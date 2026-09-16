@@ -45,6 +45,7 @@ class PlatformAdminBddSteps {
         state.lastEntryId = null
         state.lastInvitationId = null
         state.invitationToken = null
+        state.bulkEntryIds.clear()
         cleanupPlatformAdminData()
     }
 
@@ -72,18 +73,21 @@ class PlatformAdminBddSteps {
     fun pendingWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "PENDING")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
     }
 
     @Given("a converted waitlist entry exists for {string}")
     fun convertedWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "CONVERTED")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
     }
 
     @Given("an invited waitlist entry with an active invitation exists for {string}")
     fun invitedWaitlistEntryWithActiveInvitation(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "INVITED")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
         val invitationId = seedActiveInvitation(entryId)
         state.lastInvitationId = invitationId
     }
@@ -182,6 +186,38 @@ class PlatformAdminBddSteps {
                 ?.asText()
                 ?.let { state.lastInvitationId = it }
         }
+    }
+
+    @When("the platform operator bulk invites the tracked waitlist entries")
+    @When("the auditor bulk invites the tracked waitlist entries")
+    fun operatorBulkInvitesTrackedEntries() {
+        val entryIds = state.bulkEntryIds.toList()
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("entryIds" to entryIds))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @And("the bulk invite summary should be {int} invited, {int} skipped and {int} failed")
+    fun bulkInviteSummaryShouldBe(invited: Int, skipped: Int, failed: Int) {
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
+        val summary = requireNotNull(body?.get("summary"))
+        assertEquals(invited + skipped + failed, summary.get("requested").asInt())
+        assertEquals(invited, summary.get("invited").asInt())
+        assertEquals(skipped, summary.get("skipped").asInt())
+        assertEquals(failed, summary.get("failed").asInt())
+    }
+
+    @And("the bulk invite results should not contain sensitive values")
+    fun bulkInviteResultsHaveNoSensitiveValues() {
+        val payload = state.lastResponse?.responseBody?.toString(Charsets.UTF_8) ?: ""
+        assertTrue(!payload.contains("token", ignoreCase = true), "Bulk results must not contain tokens")
+        assertTrue(!payload.contains("@"), "Bulk results must not contain emails")
     }
 
     @When("the platform operator cancels the waitlist entry with reason {string}")

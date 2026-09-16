@@ -31,6 +31,14 @@ data class ToolResponse<T>(val isSuccess: Boolean, val data: T? = null, val erro
     }
 }
 
+data class AuthContext(val workspaceId: String, val principalId: String, val grantedScopes: Set<String>)
+
+data class SchedulingParams(
+    val scheduleMode: String? = null,
+    val scheduledFor: String? = null,
+    val nextSlotAfter: String? = null,
+)
+
 @Component
 class PublicationTools(
     private val mediator: Mediator,
@@ -140,12 +148,7 @@ class PublicationTools(
 
     )
     fun createPublication(
-        @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
-        workspaceId: String,
-        @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
-        principalId: String,
-        @McpToolParam(description = "OAuth scopes granted by the access token.")
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         @McpToolParam(description = "Social account id (channel) that will publish the content.")
         socialAccountId: String,
         @McpToolParam(description = "Optional publication title.", required = false)
@@ -154,12 +157,7 @@ class PublicationTools(
         bodyText: String? = null,
         @McpToolParam(description = "Optional asset ids to attach.", required = false)
         assetIds: List<String> = emptyList(),
-        @McpToolParam(description = "Schedule mode: NOW, SCHEDULED_AT, or NEXT_SLOT.")
-        scheduleMode: String,
-        @McpToolParam(description = "Required when scheduleMode = SCHEDULED_AT (ISO-8601 instant).", required = false)
-        scheduledFor: String? = null,
-        @McpToolParam(description = "Optional hint for NEXT_SLOT resolution (ISO-8601 instant).", required = false)
-        nextSlotAfter: String? = null,
+        scheduling: SchedulingParams,
         @McpToolParam(description = "Mark the publication as priority.", required = false)
         priority: Boolean = false,
         @McpToolParam(
@@ -173,23 +171,17 @@ class PublicationTools(
         val auditEmitterRef = auditEmitter
         val errorMapperRef = errorMapper
         val writeScope = MCP_WRITE_SCOPE
-        val correlationIdRef = correlationId()
         return mono {
             runWriteTool(
                 toolName = "create_publication",
-                workspaceId = workspaceId,
-                principalId = principalId,
-                grantedScopes = grantedScopes,
+                authContext = authContext,
                 requiredScope = writeScope,
                 idempotencyKey = idempotencyKey,
                 idempotencyGuardRef = idempotencyGuardRef,
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
-                correlationIdRef = correlationIdRef,
             ) {
-                val mode = ScheduleMode.valueOf(scheduleMode)
-                val scheduledInstant = scheduledFor?.let { Instant.parse(it) }
-                val nextSlotInstant = nextSlotAfter?.let { Instant.parse(it) }
+                val (mode, scheduledInstant, nextSlotInstant) = parseScheduling(scheduling)
                 val command = CreatePublicationCommand(
                     socialAccountId = socialAccountId,
                     title = title,
@@ -213,12 +205,7 @@ class PublicationTools(
 
     )
     fun editPublication(
-        @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
-        workspaceId: String,
-        @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
-        principalId: String,
-        @McpToolParam(description = "OAuth scopes granted by the access token.")
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         @McpToolParam(description = "Publication id to edit.")
         publicationId: String,
         @McpToolParam(description = "Optional new title.", required = false)
@@ -227,12 +214,7 @@ class PublicationTools(
         bodyText: String? = null,
         @McpToolParam(description = "Optional replacement asset ids.", required = false)
         assetIds: List<String>? = null,
-        @McpToolParam(description = "Schedule mode: NOW, SCHEDULED_AT, or NEXT_SLOT.")
-        scheduleMode: String,
-        @McpToolParam(description = "Required when scheduleMode = SCHEDULED_AT (ISO-8601 instant).", required = false)
-        scheduledFor: String? = null,
-        @McpToolParam(description = "Optional hint for NEXT_SLOT resolution (ISO-8601 instant).", required = false)
-        nextSlotAfter: String? = null,
+        scheduling: SchedulingParams,
         @McpToolParam(description = "Mark the publication as priority.", required = false)
         priority: Boolean = false,
         @McpToolParam(description = "Optional idempotency key (1-128 chars, opaque).", required = false)
@@ -243,23 +225,17 @@ class PublicationTools(
         val auditEmitterRef = auditEmitter
         val errorMapperRef = errorMapper
         val writeScope = MCP_WRITE_SCOPE
-        val correlationIdRef = correlationId()
         return mono {
             runWriteTool(
                 toolName = "edit_publication",
-                workspaceId = workspaceId,
-                principalId = principalId,
-                grantedScopes = grantedScopes,
+                authContext = authContext,
                 requiredScope = writeScope,
                 idempotencyKey = idempotencyKey,
                 idempotencyGuardRef = idempotencyGuardRef,
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
-                correlationIdRef = correlationIdRef,
             ) {
-                val mode = ScheduleMode.valueOf(scheduleMode)
-                val scheduledInstant = scheduledFor?.let { Instant.parse(it) }
-                val nextSlotInstant = nextSlotAfter?.let { Instant.parse(it) }
+                val (mode, scheduledInstant, nextSlotInstant) = parseScheduling(scheduling)
                 val command = EditPublicationCommand(
                     publicationId = publicationId,
                     title = title,
@@ -282,12 +258,7 @@ class PublicationTools(
 
     )
     fun deletePublication(
-        @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
-        workspaceId: String,
-        @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
-        principalId: String,
-        @McpToolParam(description = "OAuth scopes granted by the access token.")
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         @McpToolParam(description = "Publication id to delete.")
         publicationId: String,
         @McpToolParam(description = "Optional idempotency key (1-128 chars, opaque).", required = false)
@@ -298,19 +269,15 @@ class PublicationTools(
         val auditEmitterRef = auditEmitter
         val errorMapperRef = errorMapper
         val writeScope = MCP_WRITE_SCOPE
-        val correlationIdRef = correlationId()
         return mono {
             runWriteTool(
                 toolName = "delete_publication",
-                workspaceId = workspaceId,
-                principalId = principalId,
-                grantedScopes = grantedScopes,
+                authContext = authContext,
                 requiredScope = writeScope,
                 idempotencyKey = idempotencyKey,
                 idempotencyGuardRef = idempotencyGuardRef,
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
-                correlationIdRef = correlationIdRef,
             ) {
                 val command = DeletePublicationCommand(publicationId = publicationId)
                 mediatorRef.send(command)
@@ -327,12 +294,7 @@ class PublicationTools(
 
     )
     fun cancelPublication(
-        @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
-        workspaceId: String,
-        @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
-        principalId: String,
-        @McpToolParam(description = "OAuth scopes granted by the access token.")
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         @McpToolParam(description = "Publication id to cancel.")
         publicationId: String,
         @McpToolParam(description = "Optional idempotency key (1-128 chars, opaque).", required = false)
@@ -343,19 +305,15 @@ class PublicationTools(
         val auditEmitterRef = auditEmitter
         val errorMapperRef = errorMapper
         val writeScope = MCP_WRITE_SCOPE
-        val correlationIdRef = correlationId()
         return mono {
             runWriteTool(
                 toolName = "cancel_publication",
-                workspaceId = workspaceId,
-                principalId = principalId,
-                grantedScopes = grantedScopes,
+                authContext = authContext,
                 requiredScope = writeScope,
                 idempotencyKey = idempotencyKey,
                 idempotencyGuardRef = idempotencyGuardRef,
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
-                correlationIdRef = correlationIdRef,
             ) {
                 val command = CancelPublicationCommand(publicationId = publicationId)
                 mediatorRef.send(command)
@@ -372,12 +330,7 @@ class PublicationTools(
 
     )
     fun retryPublication(
-        @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
-        workspaceId: String,
-        @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
-        principalId: String,
-        @McpToolParam(description = "OAuth scopes granted by the access token.")
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         @McpToolParam(description = "Publication id to retry.")
         publicationId: String,
         @McpToolParam(
@@ -402,19 +355,15 @@ class PublicationTools(
         val auditEmitterRef = auditEmitter
         val errorMapperRef = errorMapper
         val writeScope = MCP_WRITE_SCOPE
-        val correlationIdRef = correlationId()
         return mono {
             runWriteTool(
                 toolName = "retry_publication",
-                workspaceId = workspaceId,
-                principalId = principalId,
-                grantedScopes = grantedScopes,
+                authContext = authContext,
                 requiredScope = writeScope,
                 idempotencyKey = idempotencyKey,
                 idempotencyGuardRef = idempotencyGuardRef,
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
-                correlationIdRef = correlationIdRef,
             ) {
                 val mode = scheduleMode?.let { ScheduleMode.valueOf(it) }
                 val scheduledInstant = scheduledFor?.let { Instant.parse(it) }
@@ -433,33 +382,30 @@ class PublicationTools(
 
     private suspend fun runWriteTool(
         toolName: String,
-        workspaceId: String,
-        principalId: String,
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         requiredScope: String,
         idempotencyKey: String?,
         idempotencyGuardRef: IdempotencyGuard?,
         auditEmitterRef: McpAuditEmitter?,
         errorMapperRef: McpErrorMapper,
-        correlationIdRef: String,
         execute: suspend () -> PublicationResult,
     ): ToolResponse<PublicationResult> {
-        if (!grantedScopes.contains(requiredScope)) {
+        val correlationIdRef = correlationId()
+        if (!authContext.grantedScopes.contains(requiredScope)) {
             return deniedResponse(
-                toolName,
-                workspaceId,
-                grantedScopes,
-                requiredScope,
-                auditEmitterRef,
-                errorMapperRef,
-                correlationIdRef,
+                toolName = toolName,
+                authContext = authContext,
+                requiredScope = requiredScope,
+                auditEmitterRef = auditEmitterRef,
+                errorMapperRef = errorMapperRef,
+                correlationIdRef = correlationIdRef,
             )
         }
         val invocation: suspend () -> PublicationResult = if (idempotencyGuardRef != null) {
             {
                 idempotencyGuardRef.guard(
-                    workspaceId = workspaceId,
-                    principalId = principalId,
+                    workspaceId = authContext.workspaceId,
+                    principalId = authContext.principalId,
                     toolName = toolName,
                     idempotencyKey = idempotencyKey,
                     type = PublicationResult::class.java,
@@ -472,24 +418,22 @@ class PublicationTools(
         return runCatching { invocation() }.fold(
             onSuccess = { result ->
                 successResponse(
-                    toolName,
-                    workspaceId,
-                    grantedScopes,
-                    requiredScope,
-                    auditEmitterRef,
-                    correlationIdRef,
-                    result,
+                    toolName = toolName,
+                    authContext = authContext,
+                    requiredScope = requiredScope,
+                    auditEmitterRef = auditEmitterRef,
+                    correlationIdRef = correlationIdRef,
+                    result = result,
                 )
             },
             onFailure = { ex ->
                 errorResponse(
-                    toolName,
-                    workspaceId,
-                    grantedScopes,
-                    requiredScope,
-                    auditEmitterRef,
-                    errorMapperRef,
-                    ex,
+                    toolName = toolName,
+                    authContext = authContext,
+                    requiredScope = requiredScope,
+                    auditEmitterRef = auditEmitterRef,
+                    errorMapperRef = errorMapperRef,
+                    ex = ex,
                 )
             },
         )
@@ -497,8 +441,7 @@ class PublicationTools(
 
     private fun deniedResponse(
         toolName: String,
-        workspaceId: String,
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         requiredScope: String,
         auditEmitterRef: McpAuditEmitter?,
         errorMapperRef: McpErrorMapper,
@@ -508,8 +451,8 @@ class PublicationTools(
             McpToolInvocationAuditFact(
                 toolName = toolName,
                 scopeChecked = requiredScope,
-                grantedScopes = grantedScopes,
-                workspaceId = workspaceId,
+                grantedScopes = authContext.grantedScopes,
+                workspaceId = authContext.workspaceId,
                 correlationId = correlationIdRef,
                 outcome = McpToolInvocationOutcome.DENIED,
             ),
@@ -523,8 +466,7 @@ class PublicationTools(
 
     private fun successResponse(
         toolName: String,
-        workspaceId: String,
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         requiredScope: String,
         auditEmitterRef: McpAuditEmitter?,
         correlationIdRef: String,
@@ -534,8 +476,8 @@ class PublicationTools(
             McpToolInvocationAuditFact(
                 toolName = toolName,
                 scopeChecked = requiredScope,
-                grantedScopes = grantedScopes,
-                workspaceId = workspaceId,
+                grantedScopes = authContext.grantedScopes,
+                workspaceId = authContext.workspaceId,
                 correlationId = correlationIdRef,
                 outcome = McpToolInvocationOutcome.SUCCESS,
                 publicationId = result.publicationId,
@@ -546,8 +488,7 @@ class PublicationTools(
 
     private fun errorResponse(
         toolName: String,
-        workspaceId: String,
-        grantedScopes: Set<String>,
+        authContext: AuthContext,
         requiredScope: String,
         auditEmitterRef: McpAuditEmitter?,
         errorMapperRef: McpErrorMapper,
@@ -558,8 +499,8 @@ class PublicationTools(
             McpToolInvocationAuditFact(
                 toolName = toolName,
                 scopeChecked = requiredScope,
-                grantedScopes = grantedScopes,
-                workspaceId = workspaceId,
+                grantedScopes = authContext.grantedScopes,
+                workspaceId = authContext.workspaceId,
                 correlationId = applicationError.correlationId,
                 outcome = McpToolInvocationOutcome.ERROR,
             ),
@@ -568,6 +509,19 @@ class PublicationTools(
     }
 
     private fun correlationId(): String = java.util.UUID.randomUUID().toString()
+
+    private data class SchedulingResult(
+        val mode: ScheduleMode,
+        val scheduledInstant: Instant?,
+        val nextSlotInstant: Instant?,
+    )
+
+    private fun parseScheduling(params: SchedulingParams): SchedulingResult {
+        val mode = ScheduleMode.valueOf(requireNotNull(params.scheduleMode))
+        val scheduledInstant = params.scheduledFor?.let { Instant.parse(it) }
+        val nextSlotInstant = params.nextSlotAfter?.let { Instant.parse(it) }
+        return SchedulingResult(mode, scheduledInstant, nextSlotInstant)
+    }
 
     private companion object {
         const val MCP_WRITE_SCOPE = "mcp:publications:write"

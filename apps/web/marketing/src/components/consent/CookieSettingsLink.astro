@@ -10,25 +10,13 @@ const { locale = 'en' } = Astro.props
 const t = useTranslations(locale)
 ---
 
-<button type="button" id="cookie-settings-link" class="cookie-settings-link">
+<button
+  type="button"
+  id="cookie-settings-link"
+  class="font-mono text-xs text-text-secondary hover:text-text-display underline transition-colors duration-200 inline-flex items-center min-h-[44px] cursor-pointer bg-transparent border-0 p-0"
+>
   {t.consent.footer.cookieSettings}
 </button>
-
-<style>
-  .cookie-settings-link {
-    background: none;
-    border: none;
-    color: var(--color-text-muted, #aaa);
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: 0.875rem;
-    padding: 0;
-  }
-
-  .cookie-settings-link:hover {
-    color: var(--color-accent, #0ea5e9);
-  }
-</style>
 
 <script>
   function initCookieSettingsLink() {

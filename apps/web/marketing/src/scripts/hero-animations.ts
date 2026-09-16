@@ -15,6 +15,9 @@ function commitAndCancel(anim: Animation, el: HTMLElement): void {
 
 export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   const text = el.textContent ?? ''
+  if (!el.hasAttribute('aria-label') && text.trim().length > 0) {
+    el.setAttribute('aria-label', text.trim().replace(/\r?\n+/g, ' '))
+  }
   el.textContent = ''
   const spans: HTMLSpanElement[] = []
 
@@ -28,6 +31,7 @@ export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
     span.style.display = 'inline-block'
     span.style.whiteSpace = 'pre'
     span.style.backfaceVisibility = 'hidden'
+    span.setAttribute('aria-hidden', 'true')
     el.appendChild(span)
     spans.push(span)
   })
@@ -62,11 +66,11 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
 
   const pairs = chars.map((span, rank) => {
     span.style.opacity = '0'
-    span.style.willChange = 'transform, opacity, filter'
+    span.style.willChange = 'transform, opacity'
     const anim = span.animate(
       [
-        { opacity: 0, transform: `translate3d(0, ${Y_TRAVEL}px, 0)`, filter: 'blur(12px)' },
-        { opacity: 1, transform: 'translate3d(0, 0, 0)', filter: 'blur(0px)' },
+        { opacity: 0, transform: `translate3d(0, ${Y_TRAVEL}px, 0)` },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' },
       ],
       {
         delay: delayMs + rank * 18,
