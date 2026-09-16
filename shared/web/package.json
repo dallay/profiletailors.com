@@ -20,7 +20,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "vitest": "^4.0.0",
+    "vitest": "^4.1.11",
     "@vitest/ui": "^3.2.7",
     "jsdom": "^25.0.1"
   }
