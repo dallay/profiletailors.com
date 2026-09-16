@@ -109,7 +109,7 @@ class CreateUploadedAssetHandler(
             storageKey = storageKey,
             fileHash = null,
             originalFilename = command.originalFilename,
-            status = MediaAssetStatus.PROCESSING,
+            status = MediaAssetStatus.PENDING_UPLOAD,
             createdAt = now,
         )
 
@@ -130,7 +130,7 @@ class CreateUploadedAssetHandler(
             workspaceId = command.workspaceId,
             sourceType = command.sourceType,
             mediaType = command.mediaType,
-            status = MediaAssetStatus.PROCESSING.name,
+            status = MediaAssetStatus.PENDING_UPLOAD.name,
         )
     }
 

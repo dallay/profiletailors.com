@@ -43,6 +43,14 @@ class PublicationWriteToolsTest {
     private val principalId = "user-1"
     private val grantedScopes = setOf("mcp:publications:write")
 
+    private val authContext = AuthContext(workspaceId, principalId, grantedScopes)
+
+    private fun schedulingParams(
+        scheduleMode: String = "NOW",
+        scheduledFor: String? = null,
+        nextSlotAfter: String? = null,
+    ) = SchedulingParams(scheduleMode = scheduleMode, scheduledFor = scheduledFor, nextSlotAfter = nextSlotAfter)
+
     private fun newAdapter(
         mediator: Mediator,
         idempotencyRepository: IdempotencyRecordRepository,
@@ -85,16 +93,12 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<CreatePublicationCommand>()) } returns successResult()
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = null,
         ).block()!!
@@ -120,16 +124,12 @@ class PublicationWriteToolsTest {
         stubIdempotencyMiss(idempotencyRepository)
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = null,
             assetIds = emptyList(),
-            scheduleMode = "WHEN_EVER",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(scheduleMode = "WHEN_EVER"),
             priority = false,
             idempotencyKey = null,
         ).block()!!
@@ -147,16 +147,12 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<CreatePublicationCommand>()) } throws PublicationNotFoundException("pub-X")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = null,
         ).block()!!
@@ -177,16 +173,12 @@ class PublicationWriteToolsTest {
         val adapter = newAdapter(mediator, idempotencyRepository, auditEmitter)
 
         val first = adapter.createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = "agent-retry-1",
         ).block()!!
@@ -204,16 +196,12 @@ class PublicationWriteToolsTest {
         val adapter2 = newAdapter(secondMediator, secondRepo, CapturingAuditEmitter())
 
         val second = adapter2.createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = "agent-retry-1",
         ).block()!!
@@ -231,16 +219,12 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<EditPublicationCommand>()) } returns successResult("pub-edit")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).editPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-edit",
             title = "new",
             bodyText = "edited",
             assetIds = null,
-            scheduleMode = "SCHEDULED_AT",
-            scheduledFor = "2026-12-31T00:00:00Z",
-            nextSlotAfter = null,
+            scheduling = schedulingParams(scheduleMode = "SCHEDULED_AT", scheduledFor = "2026-12-31T00:00:00Z"),
             priority = false,
             idempotencyKey = null,
         ).block()!!
@@ -267,9 +251,7 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<DeletePublicationCommand>()) } returns successResult("pub-del")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).deletePublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-del",
             idempotencyKey = null,
         ).block()!!
@@ -285,17 +267,14 @@ class PublicationWriteToolsTest {
         val auditEmitter = CapturingAuditEmitter()
         stubIdempotencyMiss(idempotencyRepository)
 
+        val readOnlyAuthContext = AuthContext(workspaceId, principalId, setOf("mcp:channels:read"))
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = setOf("mcp:channels:read"),
+            authContext = readOnlyAuthContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = null,
         ).block()!!
@@ -314,16 +293,12 @@ class PublicationWriteToolsTest {
             McpIdempotencyConflictException("create_publication", workspaceId)
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = "k1",
         ).block()!!
@@ -341,16 +316,12 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<CreatePublicationCommand>()) } returns successResult("pub-audit")
 
         newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = null,
         ).block()
@@ -373,16 +344,12 @@ class PublicationWriteToolsTest {
         coEvery { mediator.send(any<CreatePublicationCommand>()) } throws PublicationNotFoundException("pub-X")
 
         newAdapter(mediator, idempotencyRepository, auditEmitter).createPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             socialAccountId = "sa-1",
             title = "hello",
             bodyText = "world",
             assetIds = emptyList(),
-            scheduleMode = "NOW",
-            scheduledFor = null,
-            nextSlotAfter = null,
+            scheduling = schedulingParams(),
             priority = false,
             idempotencyKey = null,
         ).block()
