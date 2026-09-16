@@ -132,3 +132,19 @@ The frontend MUST treat gating as display convenience only; the server (`Operato
 - WHEN `OperatorAccessResolver.resolve()` is called
 - THEN only the active `SUPPORT_AGENT` is returned
 - AND effective permissions reflect only `SUPPORT_AGENT` permissions
+
+### Requirement: Bulk fail-fast permission check (DALLAY-665)
+
+The bulk endpoint MUST check `platform.waitlist.invite` once up front and throw `PlatformAccessDeniedException` (HTTP 403) before touching any entry when the permission is missing. No new permission is introduced; role mapping is unchanged.
+
+#### Scenario: Missing permission fails fast
+
+- GIVEN a principal with no `WAITLIST_INVITE` permission
+- WHEN the principal calls the bulk endpoint
+- THEN the response is 403 and no entry state, invitation, or audit row changes
+
+#### Scenario: Read-only role denied
+
+- GIVEN a principal with only `SUPPORT_AGENT` assignment
+- WHEN the principal calls the bulk endpoint
+- THEN the response is 403 under default-deny

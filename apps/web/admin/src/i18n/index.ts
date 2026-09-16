@@ -104,6 +104,11 @@ export const en: MessageSchema = {
       title: 'Resend Invitation',
       message: 'Resend invitation to {email}?',
     },
+    bulkInvite: 'Invite selected ({count})',
+    bulkSelect: 'Select {email}',
+    bulkSelectAll: 'Select all entries',
+    bulkResults: 'Bulk invite results',
+    bulkSummary: '{invited} invited · {skipped} skipped · {failed} failed',
     statuses: {
       pending: 'Pending',
       invited: 'Invited',
@@ -338,6 +343,11 @@ export const es: MessageSchema = {
       title: 'Reenviar invitación',
       message: '¿Reenviar invitación a {email}?',
     },
+    bulkInvite: 'Invitar seleccionados ({count})',
+    bulkSelect: 'Seleccionar {email}',
+    bulkSelectAll: 'Seleccionar todas las entradas',
+    bulkResults: 'Resultados de la invitación masiva',
+    bulkSummary: '{invited} invitados · {skipped} omitidos · {failed} fallidos',
     statuses: {
       pending: 'Pendiente',
       invited: 'Invitado',

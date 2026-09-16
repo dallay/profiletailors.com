@@ -97,6 +97,11 @@ export type MessageSchema = {
     consentVersion: string
     metadata: string
     resendDialog: { title: string; message: string }
+    bulkInvite: string
+    bulkSelect: string
+    bulkSelectAll: string
+    bulkResults: string
+    bulkSummary: string
     statuses: { pending: string; invited: string; converted: string; cancelled: string }
     filters: {
       status: string
