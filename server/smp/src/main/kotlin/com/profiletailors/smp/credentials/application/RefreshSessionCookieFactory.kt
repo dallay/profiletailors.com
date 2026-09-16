@@ -1,7 +1,5 @@
-package com.profiletailors.smp.credentials.infrastructure
+package com.profiletailors.smp.credentials.application
 
-import com.profiletailors.smp.credentials.application.RefreshSessionProperties
-import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.domain.SessionCookie
 
 class RefreshSessionCookieFactory(private val properties: RefreshSessionProperties) {

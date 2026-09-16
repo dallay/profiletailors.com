@@ -1,11 +1,11 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.credentials.application.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.domain.SessionCookie
-import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
 import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
