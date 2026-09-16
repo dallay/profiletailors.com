@@ -181,7 +181,7 @@ class PublicationTools(
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
             ) {
-                val mode = ScheduleMode.valueOf(scheduling.scheduleMode!!)
+                val mode = ScheduleMode.valueOf(requireNotNull(scheduling.scheduleMode))
                 val scheduledInstant = scheduling.scheduledFor?.let { Instant.parse(it) }
                 val nextSlotInstant = scheduling.nextSlotAfter?.let { Instant.parse(it) }
                 val command = CreatePublicationCommand(
@@ -237,7 +237,7 @@ class PublicationTools(
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
             ) {
-                val mode = ScheduleMode.valueOf(scheduling.scheduleMode!!)
+                val mode = ScheduleMode.valueOf(requireNotNull(scheduling.scheduleMode))
                 val scheduledInstant = scheduling.scheduledFor?.let { Instant.parse(it) }
                 val nextSlotInstant = scheduling.nextSlotAfter?.let { Instant.parse(it) }
                 val command = EditPublicationCommand(

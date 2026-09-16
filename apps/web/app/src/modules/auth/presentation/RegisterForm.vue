@@ -81,7 +81,7 @@ async function submit() {
       <input id="register-email" ref="emailInput" :value="email" type="email" autocomplete="username" :readonly="pending" :aria-invalid="errors.email ? 'true' : 'false'" :aria-describedby="errors.email ? 'register-email-error' : undefined" class="min-h-11 w-full rounded-2xl border border-border-visible bg-bg-primary px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-display" @input="emit('update:email', ($event.target as HTMLInputElement).value)">
       <p v-if="errors.email" id="register-email-error" class="text-sm text-error">{{ t(`auth.${errors.email}`) }}</p>
     </div>
-    <PasswordField id="register-password" ref="passwordInput" v-model="password" :label="t('auth.password')" autocomplete="off" :error="errors.password ? t(`auth.${errors.password}`) : undefined" :readonly="pending" />
+    <PasswordField id="register-password" ref="passwordInput" v-model="password" :label="t('auth.password')" autocomplete="new-password" :error="errors.password ? t(`auth.${errors.password}`) : undefined" :readonly="pending" />
     <PasswordField id="confirm-password" ref="confirmPasswordInput" v-model="confirmPassword" :label="t('auth.confirmPassword')" autocomplete="new-password" :error="errors.confirmPassword ? t(`auth.${errors.confirmPassword}`) : undefined" :readonly="pending" />
     <label for="ageEligibility" class="flex items-start gap-3 text-sm"><input id="ageEligibility" ref="ageEligibilityInput" v-model="confirmedAgeEligibility" type="checkbox" :disabled="pending">{{ t('auth.ageEligibilityLabel') }}</label>
     <p v-if="errors.confirmedAgeEligibility" class="text-sm text-error">{{ t(`auth.${errors.confirmedAgeEligibility}`) }}</p>

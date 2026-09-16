@@ -227,8 +227,9 @@ async function handleCreatePost(): Promise<void> {
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <label class="sr-only" for="idea-composer-column">{{ t('ideas.fields.column') }}</label>
-            <Select id="idea-composer-column" v-model="composer.columnId.value">
+            <Select v-model="composer.columnId.value">
               <SelectTrigger
+                id="idea-composer-column"
                 data-testid="composer-column-select"
                 class="h-9 rounded-lg border-border-visible bg-bg-primary px-3 text-xs"
                 :aria-label="t('ideas.fields.column')"
