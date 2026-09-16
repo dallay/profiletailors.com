@@ -45,8 +45,20 @@ class InvitationObservability(private val meterRegistry: MeterRegistry) : Invita
             .increment()
     }
 
+    override fun recordBulkInvite(requested: Int, invited: Int, skipped: Int, failed: Int) {
+        Counter.builder(BULK_METRIC_NAME)
+            .description("Platform waitlist bulk invitations completed")
+            .tag("requested", requested.toString())
+            .tag("invited", invited.toString())
+            .tag("skipped", skipped.toString())
+            .tag("failed", failed.toString())
+            .register(meterRegistry)
+            .increment()
+    }
+
     private companion object {
         const val ACCEPTED_METRIC_NAME = "platform.invitations.accepted"
+        const val BULK_METRIC_NAME = "platform.waitlist.invitations.bulk"
         const val CREATED_METRIC_NAME = "platform.invitations.created"
         const val EXPIRED_METRIC_NAME = "platform.invitations.expired"
         const val REPLAY_REJECTED_METRIC_NAME = "platform.invitations.replay_rejected"

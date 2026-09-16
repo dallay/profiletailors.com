@@ -25,6 +25,14 @@ exclude = [
     # Colombian SIC portal: times out for automated checks as of 2026-09-05.
     # Kept as a legal citation.
     "sic.gov.co/tema/proteccion-de-datos-personales",
+    # Korean PIPC notice portal: responds too slowly for automated checks
+    # (timeouts from CI runners) as of 2026-09-16; verified live that the
+    # cited notice exists. Kept as a legal citation.
+    "pipc\\.go\\.kr/eng/user/ltn/new/noticeDetail\\.do",
+    # GNU license pages: rate-limit automated checks (429s and timeouts from
+    # CI runners) as of 2026-09-16. The canonical AGPL-3.0 text URL is a
+    # stable legal citation, not a monitored endpoint.
+    "gnu\\.org/licenses/agpl-3\\.0",
 ]
 
 # Hide progress bar (non-interactive friendly)
