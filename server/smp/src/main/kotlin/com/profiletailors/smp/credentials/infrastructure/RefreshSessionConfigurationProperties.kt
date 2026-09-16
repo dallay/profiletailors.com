@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  * Configuration properties for refresh-session cookie and token lifecycle.
  *
  * These remain in infrastructure and are adapted to the application-layer
- * RefreshSessionProperties model via a bean bridge in IdentityBootstrapConfiguration.
+ * RefreshSessionProperties model via a bean bridge in RefreshSessionInfrastructureConfiguration.
  */
 @ConfigurationProperties(prefix = "app.security.refresh-session")
 class RefreshSessionConfigurationProperties(
