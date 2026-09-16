@@ -30,13 +30,39 @@ enabled = true
 command = "npx"
 args = ["shadcn-vue@latest", "mcp"]
 
-# [mcp_servers.filesystem]
-# command = "npx"
-# args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
-#
-# [mcp_servers.git]
-# command = "npx"
-# args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
+[mcp_servers.gh_grep]
+type = "remote"
+url = "https://mcp.grep.app"
+enabled = true
+
+[mcp_servers."chrome-devtools"]
+type = "local"
+enabled = true
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.playwright]
+type = "local"
+enabled = true
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+
+[mcp_servers."socket-mcp"]
+type = "remote"
+url = "https://mcp.socket.dev/"
+enabled = true
+
+[mcp_servers.codegraph]
+type = "local"
+enabled = true
+command = "codegraph"
+args = ["serve", "--mcp"]
+
+[mcp_servers.linear]
+type = "local"
+enabled = false
+command = "npx"
+args = ["-y", "mcp-remote", "https://mcp.linear.app/mcp"]
 
 # =============================================================================
 # Agent Configurations
