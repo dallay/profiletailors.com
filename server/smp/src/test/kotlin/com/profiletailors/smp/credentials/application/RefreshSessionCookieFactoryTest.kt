@@ -1,8 +1,8 @@
 package com.profiletailors.smp.credentials.application
 
+import com.profiletailors.smp.credentials.application.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
-import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
