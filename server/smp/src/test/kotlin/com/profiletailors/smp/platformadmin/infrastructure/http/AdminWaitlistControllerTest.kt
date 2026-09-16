@@ -6,14 +6,21 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.command.BulkEntryResult
+import com.profiletailors.smp.platformadmin.application.command.BulkInviteOutcome
+import com.profiletailors.smp.platformadmin.application.command.BulkInviteSummary
+import com.profiletailors.smp.platformadmin.application.command.BulkInviteWaitlistEntriesResult
 import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistQueryTelemetry
+import com.profiletailors.smp.platformadmin.application.handler.BulkInviteWaitlistEntriesHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
+import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,6 +40,7 @@ class AdminWaitlistControllerTest {
 
     private val waitlistQuery = mockk<AdminWaitlistQuery>()
     private val inviteHandler = mockk<InviteWaitlistEntryHandler>(relaxed = true)
+    private val bulkInviteHandler = mockk<BulkInviteWaitlistEntriesHandler>(relaxed = true)
     private val cancelHandler = mockk<CancelWaitlistEntryHandler>(relaxed = true)
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
     private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetry>(relaxed = true)
@@ -291,11 +299,134 @@ class AdminWaitlistControllerTest {
         coVerify { cancelHandler.handle(match { it.reason == "spam" }) }
     }
 
+    @Test
+    fun `bulkInvite returns 200 envelope with per-entry results and summary`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { bulkInviteHandler.handle(any()) } returns BulkInviteWaitlistEntriesResult(
+            results = listOf(
+                BulkEntryResult(
+                    entryId = entryId,
+                    outcome = BulkInviteOutcome.INVITED,
+                    invitationId = UUID.fromString("00000000-0000-0000-0000-0000000000a1"),
+                ),
+                BulkEntryResult(
+                    entryId = "entry-skipped",
+                    outcome = BulkInviteOutcome.SKIPPED,
+                    code = "ALREADY_INVITED",
+                ),
+                BulkEntryResult(
+                    entryId = "entry-failed",
+                    outcome = BulkInviteOutcome.FAILED,
+                    code = "ENTRY_ALREADY_CONVERTED",
+                ),
+            ),
+            summary = BulkInviteSummary(requested = 3, invited = 1, skipped = 1, failed = 1),
+        )
+
+        webClient()
+            .post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"entryIds":["$entryId","entry-skipped","entry-failed"]}""")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.results[0].entryId").isEqualTo(entryId)
+            .jsonPath("$.results[0].outcome").isEqualTo("invited")
+            .jsonPath("$.results[0].invitationId").isEqualTo("00000000-0000-0000-0000-0000000000a1")
+            .jsonPath("$.results[1].outcome").isEqualTo("skipped")
+            .jsonPath("$.results[1].code").isEqualTo("ALREADY_INVITED")
+            .jsonPath("$.results[2].outcome").isEqualTo("failed")
+            .jsonPath("$.results[2].code").isEqualTo("ENTRY_ALREADY_CONVERTED")
+            .jsonPath("$.summary.requested").isEqualTo(3)
+            .jsonPath("$.summary.invited").isEqualTo(1)
+            .jsonPath("$.summary.skipped").isEqualTo(1)
+            .jsonPath("$.summary.failed").isEqualTo(1)
+
+        coVerify {
+            bulkInviteHandler.handle(
+                match { command -> command.entryIds == listOf(entryId, "entry-skipped", "entry-failed") },
+            )
+        }
+    }
+
+    @Test
+    fun `bulkInvite returns 401 without principal context`() {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"entryIds":["$entryId"]}""")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `bulkInvite returns 400 when batch exceeds cap`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { bulkInviteHandler.handle(any()) } throws IllegalArgumentException("too many entries")
+
+        webClient()
+            .post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"entryIds":["$entryId"]}""")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("VALIDATION_ERROR")
+    }
+
+    @Test
+    fun `bulkInvite returns 403 when operator lacks invite permission`() {
+        grantRoles(listOf(PlatformRole.AUDITOR))
+        coEvery { bulkInviteHandler.handle(any()) } throws
+            PlatformAccessDeniedException(PlatformPermission.WAITLIST_INVITE)
+
+        webClient()
+            .post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"entryIds":["$entryId"]}""")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
+    @Test
+    fun `bulkInvite response carries ids and codes only`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { bulkInviteHandler.handle(any()) } returns BulkInviteWaitlistEntriesResult(
+            results = listOf(
+                BulkEntryResult(
+                    entryId = entryId,
+                    outcome = BulkInviteOutcome.INVITED,
+                    invitationId = UUID.fromString("00000000-0000-0000-0000-0000000000a1"),
+                ),
+            ),
+            summary = BulkInviteSummary(requested = 1, invited = 1, skipped = 0, failed = 0),
+        )
+
+        webClient()
+            .post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"entryIds":["$entryId"]}""")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.results[0].rawToken").doesNotExist()
+            .jsonPath("$.results[0].email").doesNotExist()
+            .jsonPath("$.results[0].token").doesNotExist()
+    }
+
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminWaitlistController(
                 waitlistQuery = waitlistQuery,
                 inviteHandler = inviteHandler,
+                bulkInviteHandler = bulkInviteHandler,
                 cancelHandler = cancelHandler,
                 operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
