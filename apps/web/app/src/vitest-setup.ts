@@ -15,7 +15,7 @@ afterEach(() => {
 })
 
 if (
-  typeof window.HTMLDialogElement !== 'undefined' &&
+  window.HTMLDialogElement !== undefined &&
   !window.HTMLDialogElement.prototype.showModal
 ) {
   window.HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
