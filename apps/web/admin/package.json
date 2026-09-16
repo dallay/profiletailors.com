@@ -18,7 +18,10 @@
     "format": "biome format --write .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.mocked.config.ts",
+    "test:e2e:headed": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.mocked.config.ts --headed",
+    "test:e2e:debug": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.mocked.config.ts --debug"
   },
   "dependencies": {
     "@lucide/vue": "1.38.0",
@@ -40,6 +43,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.5",
     "@types/node": "^24.13.3",
