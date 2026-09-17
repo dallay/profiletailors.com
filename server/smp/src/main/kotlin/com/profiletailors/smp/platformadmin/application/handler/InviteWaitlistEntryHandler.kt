@@ -3,6 +3,7 @@ package com.profiletailors.smp.platformadmin.application.handler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
@@ -73,23 +74,10 @@ open class InviteWaitlistEntryHandler(
                         command.waitlistEntryId,
                         "No active invitation to supersede",
                     )
-                val superseded = Invitation(
-                    id = existingInvitation.id,
-                    source = existingInvitation.source,
-                    sourceReferenceId = existingInvitation.sourceReferenceId,
-                    target = existingInvitation.target,
-                    workspaceId = existingInvitation.workspaceId,
-                    invitedEmailNormalized = existingInvitation.invitedEmailNormalized,
-                    tokenHash = existingInvitation.tokenHash,
-                    status = InvitationStatus.REVOKED,
-                    issuedBy = existingInvitation.issuedBy,
-                    createdAt = existingInvitation.createdAt,
-                    expiresAt = existingInvitation.expiresAt,
-                    acceptedAt = existingInvitation.acceptedAt,
-                    acceptedPrincipalId = existingInvitation.acceptedPrincipalId,
-                    version = existingInvitation.version,
-                )
-                newInvitationRepository.updateIfVersionMatches(superseded)
+                val superseded = existingInvitation.revoke()
+                if (!newInvitationRepository.updateIfVersionMatches(superseded)) {
+                    throw OptimisticLockException()
+                }
                 return AdminInvitationSummary(
                     id = existingInvitation.id.value,
                     waitlistEntryId = entry.id.value,

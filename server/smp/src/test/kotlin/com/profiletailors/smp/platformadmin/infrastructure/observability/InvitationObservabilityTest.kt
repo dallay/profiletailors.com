@@ -73,14 +73,32 @@ class InvitationObservabilityTest {
         observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
 
         assertEquals(3.0, requireNotNull(meterRegistry.find(CREATED_METRIC_NAME).counter()).count())
-        val bulkCounter = meterRegistry.find(BULK_METRIC_NAME)
-            .tag("requested", "5")
-            .tag("invited", "3")
-            .tag("skipped", "1")
-            .tag("failed", "1")
-            .counter()
-        assertEquals(1.0, requireNotNull(bulkCounter).count())
+        assertEquals(5.0, requireNotNull(counterFor(meterRegistry, "requested")).count())
+        assertEquals(3.0, requireNotNull(counterFor(meterRegistry, "invited")).count())
+        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "skipped")).count())
+        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "failed")).count())
     }
+
+    @Test
+    fun `records bulk outcomes as aggregate counters without per-value tags`() {
+        val meterRegistry = SimpleMeterRegistry()
+        val observability = InvitationObservability(meterRegistry)
+
+        observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
+        observability.recordBulkInvite(requested = 2, invited = 2, skipped = 0, failed = 0)
+
+        assertEquals(7.0, requireNotNull(counterFor(meterRegistry, "requested")).count())
+        assertEquals(5.0, requireNotNull(counterFor(meterRegistry, "invited")).count())
+        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "skipped")).count())
+        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "failed")).count())
+        val tagValues = meterRegistry.meters
+            .flatMap { meter -> meter.id.tags }
+            .map { tag -> tag.value }
+        assertTrue(tagValues.none { value -> value.toIntOrNull() != null })
+    }
+
+    private fun counterFor(meterRegistry: SimpleMeterRegistry, outcome: String) =
+        meterRegistry.find(BULK_METRIC_NAME).tag("outcome", outcome).counter()
 
     private companion object {
         const val ACCEPTED_METRIC_NAME = "platform.invitations.accepted"

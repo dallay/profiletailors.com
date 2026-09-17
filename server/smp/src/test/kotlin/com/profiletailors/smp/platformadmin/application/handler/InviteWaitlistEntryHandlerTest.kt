@@ -12,6 +12,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
+import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -189,6 +190,19 @@ class InviteWaitlistEntryHandlerTest {
 
         assertThat(revokedSlot.captured.status).isEqualTo(InvitationStatus.REVOKED)
         assertThat(result.createdBy).isEqualTo(operatorId)
+    }
+
+    @Test
+    fun `surfaces conflict when conditional supersede update reports false`() = runTest {
+        val invitedEntry = entry(WaitlistEntryStatus.INVITED)
+        val existing = existingInvitation()
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
+        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInvitation()
+        coEvery { newInvitationRepository.findBySourceReferenceId(entryId) } returns existing
+        coEvery { newInvitationRepository.updateIfVersionMatches(any()) } returns false
+
+        assertThrows<OptimisticLockException> { handler.handle(command()) }
     }
 
     @Test

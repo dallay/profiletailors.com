@@ -1,0 +1,30 @@
+change: 662-invitation-token-lifecycle
+current_phase: verify-pr1
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-pr1
+  - verify-pr1
+next: apply-pr2-pending-signoff
+updated: "2026-09-17"
+linear_issue: "#662"
+persistence_mode: openspec
+bounded_contexts:
+  - platformadmin
+  - notifications
+  - identity
+note: >
+  PR1 partial (2026-09-17): tasks 2.1 (bulk aggregate-only metrics) and 2.2
+  (CAS-honoring supersede via revoke() + OptimisticLockException) implemented
+  strict TDD RED→GREEN, unit tests + Detekt green. Phase 1 items 1.1/1.3
+  recorded as pending in design.md Open Questions. OUT for PR1: 2.3–2.5,
+  Phase 3 BDD/postgres, Phase 4 full gates.
+  Verify PR1 (2026-09-17): PASS WITH WARNINGS for PR1 slice only —
+  narrow suites 15/15 green on forced rerun, Detekt 0 errors, no
+  suppressions/baselines/comments; warnings: design "one bulk counter"
+  wording vs 4-series shape, staged lead-capture-waitlist spec-line
+  ownership, pending owner sign-offs. Report: verify-report.md.
+  Next: apply PR2 (bearer+throttle) pending sign-off.
