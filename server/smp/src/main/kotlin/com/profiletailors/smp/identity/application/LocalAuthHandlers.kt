@@ -14,6 +14,7 @@ import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalStatus
 import com.profiletailors.smp.identity.domain.RegistrationDecision
+import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.util.UUID
@@ -333,6 +334,9 @@ internal class LoginUserHandler(
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
+        if (identityFacts?.accountState == UserAccountState.DISABLED) {
+            throw DisabledUserException()
+        }
         if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
             throw InvalidEmailPasswordException()
         }
@@ -362,14 +366,18 @@ internal class RefreshUserSessionHandler(
 ) : CommandWithResultHandler<RefreshUserSessionCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RefreshUserSessionCommand): LocalAuthSessionResult {
-        val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
-        val identityFacts = principalIdentityLookup.findByPrincipalId(rotatedSession.current.principalId)
+        val sessionPrincipalId = refreshSessionLifecycleService.principalIdFor(command.rawRefreshToken)
+        val identityFacts = principalIdentityLookup.findByPrincipalId(sessionPrincipalId)
+        if (identityFacts?.accountState == UserAccountState.DISABLED) {
+            throw DisabledUserException()
+        }
         if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
-            refreshSessionLifecycleService.revokeAllForPrincipal(rotatedSession.current.principalId)
             throw InvalidEmailPasswordException()
         }
 
+        val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
         val email = identityFacts?.email
+
             ?: error("Email could not be resolved for principal '${rotatedSession.current.principalId}'.")
         val username = identityFacts.username
         val emailStatus = identityFacts.emailStatus ?: EmailStatus.VERIFIED

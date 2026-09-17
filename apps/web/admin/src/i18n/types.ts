@@ -120,6 +120,15 @@ export type MessageSchema = {
     principalId: string
     displayName: string
     principalType: string
+    accountState: string
+    accountStates: { active: string; disabled: string }
+    verificationState: string
+    disable: string
+    enable: string
+    revokeSessions: string
+    disableConfirm: string
+    enableConfirm: string
+    revokeSessionsConfirm: string
     lastAuthenticated: string
     authMethods: string
     workspaces: string

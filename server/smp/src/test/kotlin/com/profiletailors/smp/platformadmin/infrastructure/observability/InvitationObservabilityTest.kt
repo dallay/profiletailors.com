@@ -1,12 +1,45 @@
 package com.profiletailors.smp.platformadmin.infrastructure.observability
 
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
+import io.kotest.matchers.shouldBe
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class InvitationObservabilityTest {
+
+    @Test
+    fun `records user control authorization and replay outcomes with bounded labels`() {
+        val meterRegistry = SimpleMeterRegistry()
+        val observability = UserControlObservability(meterRegistry)
+
+        observability.recordAuthorizationRejected("disable")
+        observability.recordIdempotencyReplay()
+        observability.record("disable", "success")
+        observability.record("enable", "failure")
+        observability.record("sessions_revoke", "idempotent")
+
+        assertUserControlCounter(meterRegistry, "disable", "rejected")
+        assertUserControlCounter(meterRegistry, "idempotency", "idempotent")
+        assertUserControlCounter(meterRegistry, "disable", "success")
+        assertUserControlCounter(meterRegistry, "enable", "failure")
+        assertUserControlCounter(meterRegistry, "sessions_revoke", "idempotent")
+        assertAuthorizationFailureCounter(meterRegistry, "disable")
+    }
+
+    private fun assertUserControlCounter(meterRegistry: SimpleMeterRegistry, operation: String, outcome: String) {
+        val counter = meterRegistry.find("profiletailors.admin.user_control.requests")
+            .tag("operation", operation)
+            .tag("outcome", outcome)
+            .counter()
+        requireNotNull(counter).count().shouldBe(1.0)
+    }
+
+    private fun assertAuthorizationFailureCounter(meterRegistry: SimpleMeterRegistry, operation: String) {
+        val counter = meterRegistry.find("profiletailors.admin.user_control.authorization_failures")
+            .tag("operation", operation)
+            .counter()
+        requireNotNull(counter).count().shouldBe(1.0)
+    }
 
     @Test
     fun `records accepted invitations by bounded target`() {
@@ -24,8 +57,8 @@ class InvitationObservabilityTest {
             .tag("target", InvitationTarget.EXISTING_WORKSPACE.name)
             .counter()
 
-        assertEquals(2.0, requireNotNull(newWorkspaceCounter).count())
-        assertEquals(1.0, requireNotNull(existingWorkspaceCounter).count())
+        requireNotNull(newWorkspaceCounter).count().shouldBe(2.0)
+        requireNotNull(existingWorkspaceCounter).count().shouldBe(1.0)
     }
 
     @Test
@@ -36,14 +69,8 @@ class InvitationObservabilityTest {
         observability.recordInvitationExpired()
         observability.recordInvitationReplayRejected()
 
-        assertEquals(
-            1.0,
-            requireNotNull(meterRegistry.find(EXPIRED_METRIC_NAME).counter()).count(),
-        )
-        assertEquals(
-            1.0,
-            requireNotNull(meterRegistry.find(REPLAY_REJECTED_METRIC_NAME).counter()).count(),
-        )
+        requireNotNull(meterRegistry.find(EXPIRED_METRIC_NAME).counter()).count().shouldBe(1.0)
+        requireNotNull(meterRegistry.find(REPLAY_REJECTED_METRIC_NAME).counter()).count().shouldBe(1.0)
     }
 
     @Test
@@ -54,12 +81,12 @@ class InvitationObservabilityTest {
         observability.recordInvitationCreated()
         observability.recordInvitationRevoked()
 
-        assertEquals(1.0, requireNotNull(meterRegistry.find(CREATED_METRIC_NAME).counter()).count())
-        assertEquals(1.0, requireNotNull(meterRegistry.find(REVOKED_METRIC_NAME).counter()).count())
+        meterRegistry.find(CREATED_METRIC_NAME).counter()!!.count().shouldBe(1.0)
+        meterRegistry.find(REVOKED_METRIC_NAME).counter()!!.count().shouldBe(1.0)
         val tagValues = meterRegistry.meters
             .flatMap { meter -> meter.id.tags }
             .map { tag -> tag.value }
-        assertTrue(tagValues.none { value -> value.contains("@") || value.contains("token", ignoreCase = true) })
+        tagValues.none { value -> value.contains("@") || value.contains("token", ignoreCase = true) }.shouldBe(true)
     }
 
     @Test
@@ -72,11 +99,11 @@ class InvitationObservabilityTest {
         observability.recordInvitationCreated()
         observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
 
-        assertEquals(3.0, requireNotNull(meterRegistry.find(CREATED_METRIC_NAME).counter()).count())
-        assertEquals(5.0, requireNotNull(counterFor(meterRegistry, "requested")).count())
-        assertEquals(3.0, requireNotNull(counterFor(meterRegistry, "invited")).count())
-        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "skipped")).count())
-        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "failed")).count())
+        meterRegistry.find(CREATED_METRIC_NAME).counter()!!.count().shouldBe(3.0)
+        counterFor(meterRegistry, "requested")!!.count().shouldBe(5.0)
+        counterFor(meterRegistry, "invited")!!.count().shouldBe(3.0)
+        counterFor(meterRegistry, "skipped")!!.count().shouldBe(1.0)
+        counterFor(meterRegistry, "failed")!!.count().shouldBe(1.0)
     }
 
     @Test
@@ -87,14 +114,14 @@ class InvitationObservabilityTest {
         observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
         observability.recordBulkInvite(requested = 2, invited = 2, skipped = 0, failed = 0)
 
-        assertEquals(7.0, requireNotNull(counterFor(meterRegistry, "requested")).count())
-        assertEquals(5.0, requireNotNull(counterFor(meterRegistry, "invited")).count())
-        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "skipped")).count())
-        assertEquals(1.0, requireNotNull(counterFor(meterRegistry, "failed")).count())
+        counterFor(meterRegistry, "requested")!!.count().shouldBe(7.0)
+        counterFor(meterRegistry, "invited")!!.count().shouldBe(5.0)
+        counterFor(meterRegistry, "skipped")!!.count().shouldBe(1.0)
+        counterFor(meterRegistry, "failed")!!.count().shouldBe(1.0)
         val tagValues = meterRegistry.meters
             .flatMap { meter -> meter.id.tags }
             .map { tag -> tag.value }
-        assertTrue(tagValues.none { value -> value.toIntOrNull() != null })
+        tagValues.none { value -> value.toIntOrNull() != null }.shouldBe(true)
     }
 
     private fun counterFor(meterRegistry: SimpleMeterRegistry, outcome: String) =

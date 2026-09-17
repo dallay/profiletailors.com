@@ -18,6 +18,11 @@ open class RefreshSessionLifecycleService(
         )
     }
 
+    suspend fun principalIdFor(rawRefreshToken: String): String {
+        val parsedToken = refreshSessionTokenService.parse(rawRefreshToken)
+        return refreshSessionGateway.requireActive(parsedToken, clock.instant()).principalId
+    }
+
     suspend fun rotate(rawRefreshToken: String): RotatedRefreshSession {
         val parsedToken = refreshSessionTokenService.parse(rawRefreshToken)
         val activeSession = refreshSessionGateway.requireActive(parsedToken, clock.instant())
@@ -46,9 +51,8 @@ open class RefreshSessionLifecycleService(
      *
      * @param principalId The identifier of the principal whose sessions are revoked.
      */
-    open suspend fun revokeAllForPrincipal(principalId: String) {
+    open suspend fun revokeAllForPrincipal(principalId: String): Int =
         refreshSessionGateway.revokeAllForPrincipal(principalId, clock.instant())
-    }
 
     /**
      * Revokes all refresh sessions for a principal except the active session identified by the optional token.

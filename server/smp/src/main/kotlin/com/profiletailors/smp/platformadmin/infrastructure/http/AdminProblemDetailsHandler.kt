@@ -4,6 +4,9 @@ import com.profiletailors.smp.identity.application.InvalidPrincipalStatusTransit
 import com.profiletailors.smp.identity.application.PrincipalNotFoundException
 import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
 import com.profiletailors.smp.platformadmin.application.OptimisticLockException
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
+import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -118,6 +121,18 @@ class AdminProblemDetailsHandler {
 
     @ExceptionHandler(UserNotFoundException::class)
     fun handle(ex: UserNotFoundException): ProblemDetail = problem(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(UserControlStateConflictException::class)
+    fun handle(ex: UserControlStateConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "USER_STATE_CONFLICT", ex.message)
+
+    @ExceptionHandler(UserControlIdempotencyConflictException::class)
+    fun handle(ex: UserControlIdempotencyConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED", ex.message)
+
+    @ExceptionHandler(UserControlIdempotencyInProgressException::class)
+    fun handle(ex: UserControlIdempotencyInProgressException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_IN_PROGRESS", ex.message)
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(ex: IllegalArgumentException): ProblemDetail =

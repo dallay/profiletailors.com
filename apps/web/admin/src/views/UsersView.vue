@@ -20,11 +20,11 @@ interface AdminUserSummary {
   email: string | null
   displayIdentity: string | null
   principalType: string
+  accountState: 'ACTIVE' | 'DISABLED'
+  emailStatus: string | null
   createdAt: string
   lastAuthenticatedAt: string | null
   platformRoles: string[]
-  status: string
-  version: number
 }
 
 interface PagedResult<T> {
@@ -35,12 +35,6 @@ interface PagedResult<T> {
   totalPages: number
   hasNext: boolean
   hasPrevious: boolean
-}
-
-function statusLabel(status: string) {
-  const key = `users.${status.toLowerCase()}`
-  const translated = t(key)
-  return translated === key ? status : translated
 }
 
 async function fetchUsers() {
@@ -98,7 +92,7 @@ onBeforeUnmount(() => {
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.displayName') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.principalType') }}</th>
-            <th scope="col" class="py-2 pr-4">{{ t('common.status') }}</th>
+            <th scope="col" class="py-2 pr-4">{{ t('users.accountState') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('common.createdAt') }}</th>
           </tr>
         </thead>
@@ -118,16 +112,7 @@ onBeforeUnmount(() => {
             </td>
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
-            <td class="py-2 pr-4">
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="{
-                  'bg-green-900/40 text-green-400': user.status === 'ACTIVE',
-                  'bg-red-900/40 text-red-400': user.status === 'DEACTIVATED',
-                  'bg-yellow-900/40 text-yellow-400': user.status === 'SUSPENDED',
-                }"
-              >{{ statusLabel(user.status) }}</span>
-            </td>
+            <td class="py-2 pr-4" :class="user.accountState === 'DISABLED' ? 'text-error' : 'text-success'">{{ t(`users.accountStates.${user.accountState.toLowerCase()}`) }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>

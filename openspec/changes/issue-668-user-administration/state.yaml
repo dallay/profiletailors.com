@@ -1,0 +1,50 @@
+change: issue-668-user-administration
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+updated: "2026-09-17T14:20:00Z"
+next: verify
+verification_status: in_review
+verification_verdict: in_review
+verification_report: openspec/changes/issue-668-user-administration/verify-report.md
+blocked_reason: >-
+  PR #1077 is open with merge conflicts resolved. Review comments from CodeRabbit are being
+  addressed in a follow-up commit. All functional gates passed before conflict resolution.
+delivery:
+  strategy: single-pr
+  size_exception: true
+  scope: complete issue #668 in one delivery branch/unit
+  base: backoffice
+  branch: backoffice
+persistence_mode: openspec
+bounded_contexts:
+  - identity
+  - credentials
+  - platformadmin
+  - authorization
+  - governance
+  - observability
+stack:
+  backend:
+    - kotlin
+    - spring-boot-4
+    - webflux
+    - r2dbc
+  frontend:
+    - vue-3
+    - pinia
+  testing:
+    - junit-platform
+    - cucumber + testcontainers
+    - vitest
+    - playwright
+exploration_summary:
+  issue_state: open
+  implementation_state: apply-correction-complete-verification-blocked-by-staged-whitespace
+  production_code_changed: true

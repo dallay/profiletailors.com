@@ -141,10 +141,8 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
             refreshProperties(),
             clock,
         ) {
-            override suspend fun revokeAllForPrincipal(principalId: String) {
-                super.revokeAllForPrincipal(principalId)
+            override suspend fun revokeAllForPrincipal(principalId: String): Int =
                 throw InjectedSessionRevocationFailure()
-            }
         }
 
         assertThrows(InjectedSessionRevocationFailure::class.java) {
