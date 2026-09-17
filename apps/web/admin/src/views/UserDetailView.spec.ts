@@ -102,7 +102,10 @@ describe('UserDetailView', () => {
   })
 
   it('shows disable and revoke controls for ACTIVE user with manage permission', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'request-id') })
     const { wrapper } = await createView()
     await flushPromises()
@@ -110,11 +113,16 @@ describe('UserDetailView', () => {
     expect(buttons).toContain('Disable account')
     expect(buttons).toContain('Revoke sessions')
 
-    await wrapper.findAll('button').find((button) => button.text() === 'Disable account')?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Disable account')
+      ?.trigger('click')
     await flushPromises()
     const mutationRequest = mockRequest.mock.calls[2]
     expect(mutationRequest?.[0]).toBe('/api/admin/users/user-1/disable')
-    expect(mutationRequest?.[1]?.headers).toEqual({ 'Idempotency-Key': 'admin-user-disable-user-1-request-id' })
+    expect(mutationRequest?.[1]?.headers).toEqual({
+      'Idempotency-Key': 'admin-user-disable-user-1-request-id',
+    })
   })
 
   it('shows enable button for DISABLED user', async () => {
@@ -136,9 +144,11 @@ describe('UserDetailView', () => {
     mockHasPermission.mockReturnValue(false)
     const { wrapper } = await createView()
     await flushPromises()
-    const buttons = wrapper.findAll('button').filter((button) =>
-      ['Disable account', 'Enable account', 'Revoke sessions'].includes(button.text()),
-    )
+    const buttons = wrapper
+      .findAll('button')
+      .filter((button) =>
+        ['Disable account', 'Enable account', 'Revoke sessions'].includes(button.text()),
+      )
     expect(buttons.length).toBe(0)
   })
 })
