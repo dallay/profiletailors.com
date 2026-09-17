@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "yaml": "^2.9.0",
+    "yaml": "^2.9.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "vitest": "^4.1.11",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

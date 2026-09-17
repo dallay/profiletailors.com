@@ -1,11 +1,11 @@
 schemaVersion: 1
 task: dependency-maintenance
 lastExecution:
-  timestamp: "2026-09-09T17:30:00Z"
+  timestamp: "2026-09-16T17:55:02Z"
   outcome: CHANGES_APPLIED
-  runIdentifier: "jules-7220917715206950835-ee323b98"
-  branch: "jules-7220917715206950835-ee323b98"
-  commit: "1a05e96ef09517a0a2f71ec673c5356762f4b06a"
+  runIdentifier: "jules-5770868278068917131-28d5fa47"
+  branch: "jules-5770868278068917131-28d5fa47"
+  commit: "HEAD"
 findings: []
 checks:
   - name: pnpm-licence-check
@@ -19,7 +19,7 @@ checks:
   - name: pnpm-outdated-check
     target: "root, apps/web/*, shared/web, tools/compliance"
     status: Passed
-    notes: "Upgraded @biomejs/biome devDependency from 2.5.11 to 2.5.12; major updates restricted by policy."
+    notes: "Upgraded non-major frontend dependencies (@biomejs/biome, @iconify-json/lucide, @internationalized/date, @types/node, vue-router, yaml, @lucide/vue, @playwright/test, @unovis/vue, tailwind-merge); major upgrades withheld per policy."
   - name: gradle-dependency-check
     target: "gradle/libs.versions.toml"
     status: Passed
