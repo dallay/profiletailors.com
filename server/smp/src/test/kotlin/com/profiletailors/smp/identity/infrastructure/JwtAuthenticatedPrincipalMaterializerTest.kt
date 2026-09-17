@@ -139,7 +139,7 @@ class JwtAuthenticatedPrincipalMaterializerTest {
     }
 
     @Test
-    fun `rejects deactivated principal during materialization`() = runTest {
+    fun `should reject when user account state is disabled`() = runTest {
         val materializer = JwtAuthenticatedPrincipalMaterializer(
             principalIdentityLookup = StubPrincipalIdentityLookup(
                 PrincipalIdentityFacts(

@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
             </td>
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
-            <td class="py-2 pr-4" :class="user.accountState === 'DISABLED' ? 'text-error' : 'text-success'">{{ user.accountState }}</td>
+            <td class="py-2 pr-4" :class="user.accountState === 'DISABLED' ? 'text-error' : 'text-success'">{{ t(`users.accountStates.${user.accountState.toLowerCase()}`) }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>

@@ -117,6 +117,15 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
             }
         }
         assertEquals(RefreshSessionFailureReason.REVOKED, first.reason)
+        val second = assertThrows(RefreshSessionNotActiveException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                gateway.requireActive(
+                    RefreshSessionToken("lookup-2", "secret-value-2"),
+                    Instant.parse("2026-05-22T10:21:30Z"),
+                )
+            }
+        }
+        assertEquals(RefreshSessionFailureReason.REVOKED, second.reason)
         gateway.requireActive(
             RefreshSessionToken("lookup-3", "secret-value-3"),
             Instant.parse("2026-05-22T10:21:30Z"),

@@ -121,6 +121,7 @@ export type MessageSchema = {
     displayName: string
     principalType: string
     accountState: string
+    accountStates: { active: string; disabled: string }
     verificationState: string
     disable: string
     enable: string
