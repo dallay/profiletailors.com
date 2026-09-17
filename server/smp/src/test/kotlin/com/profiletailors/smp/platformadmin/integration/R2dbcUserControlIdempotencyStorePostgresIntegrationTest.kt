@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Import
+import org.springframework.dao.DataAccessException
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
@@ -50,12 +52,12 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     override suspend fun seedScenario() = Unit
 
     @Test
-    fun `find returns null when no record exists`() = runTest {
+    fun `should return null when no idempotency record exists`() = runTest {
         assertNull(store.find(UUID.randomUUID(), "missing-key"))
     }
 
     @Test
-    fun `claim then find returns the stored record`() = runTest {
+    fun `should return the stored record when a claim is stored`() = runTest {
         val operatorId = UUID.randomUUID()
         val record = UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1")
 
@@ -66,7 +68,7 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     }
 
     @Test
-    fun `claim returns false for duplicate key`() = runTest {
+    fun `should reject a duplicate claim for the same key`() = runTest {
         val operatorId = UUID.randomUUID()
         val record = UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1")
 
@@ -75,7 +77,16 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     }
 
     @Test
-    fun `complete stores the response for replay`() = runTest {
+    fun `should propagate non-duplicate storage failures`() = runTest {
+        val record = UserControlIdempotencyRecord(UUID.randomUUID(), "x".repeat(40), "user-1", "key-1")
+
+        assertThrows(DataAccessException::class.java) {
+            kotlinx.coroutines.runBlocking { store.claim(record) }
+        }
+    }
+
+    @Test
+    fun `should replay the stored response after completion`() = runTest {
         val operatorId = UUID.randomUUID()
         store.claim(UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1"))
 
@@ -86,7 +97,7 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     }
 
     @Test
-    fun `remove deletes the record`() = runTest {
+    fun `should forget the record after removal`() = runTest {
         val operatorId = UUID.randomUUID()
         store.claim(UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1"))
 

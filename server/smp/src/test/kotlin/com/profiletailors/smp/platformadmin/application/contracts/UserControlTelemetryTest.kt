@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 class UserControlTelemetryTest {
 
     @Test
-    fun `noop tolerates all default operations`() {
+    fun `should tolerate all default operations on the noop telemetry`() {
         val telemetry = UserControlTelemetry.noop()
 
         telemetry.recordAuthorizationRejected()

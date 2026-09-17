@@ -80,6 +80,7 @@ class LiquibaseBaselineChangelogTest {
         val changelog = resourceText(path)
         changelog shouldContain "dropIndex"
         changelog shouldContain "createIndex"
+        changelog shouldContain "unique: true"
         changelog shouldContain "operator_principal_id"
         changelog shouldContain "idempotency_key"
     }

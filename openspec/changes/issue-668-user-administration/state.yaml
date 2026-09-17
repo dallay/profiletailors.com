@@ -8,18 +8,16 @@ completed:
   - tasks
   - apply
   - verify
-updated: "2026-09-17T12:43:00Z"
-next: verify
-verification_status: in_review
-verification_verdict: FAIL_STAGED_WHITESPACE
+updated: "2026-09-17T16:06:01Z"
+next: archive
+verification_status: passed
+verification_verdict: PASS
 verification_report: openspec/changes/issue-668-user-administration/verify-report.md
 blocked_reason: >-
-  All functional gates pass (admin tests 82/82 PASS, admin type-check PASS, admin build PASS,
-  backend-check BUILD SUCCESSFUL). Working tree diff is whitespace-clean (git diff --check PASS).
-  Remaining issue: git diff --staged --check FAILs — AdminCommands.kt staged version has
-  trailing blank line at line 76 (the working tree file is clean). The correction was applied to
-  the working tree but the staged version was not refreshed. Re-stage the clean working-tree
-  version of AdminCommands.kt before committing.
+  Resolved. The staged-whitespace finding is obsolete: AdminCommands.kt was committed without
+  the trailing blank line, and both git diff --check and git diff --staged --check pass.
+  backend-check is BUILD SUCCESSFUL locally and the CI Quality Gate (SonarCloud new-code
+  coverage 86.2%, codecov/patch, backend/frontend/BDD/Postgres/E2E lanes) is green on PR #1077.
 delivery:
   strategy: single-pr
   size_exception: true

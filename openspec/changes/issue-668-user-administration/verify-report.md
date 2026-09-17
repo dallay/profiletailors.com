@@ -83,7 +83,7 @@ GitHub issue #668 / DALLAY-572: Back Office user administration across Identity,
 
 | Finding | Judge A | Judge B | Severity | Status |
 |---|---|---|---|---|
-| `git diff --staged --check` reports trailing blank line at EOF in `AdminCommands.kt` | ✅ | ✅ | CRITICAL | Confirmed — staged version has a trailing blank line at line 76; working tree is clean. Would block `git commit`. Correction was applied to working tree but staged version was not updated. |
+| `git diff --staged --check` reports trailing blank line at EOF in `AdminCommands.kt` | ✅ | ✅ | PASS | Obsolete — `AdminCommands.kt` was committed without the trailing blank line; staged and working-tree checks both pass. Lefthook pre-commit hooks (spotless, docs-links, gitleaks) enforce cleanliness on every commit. |
 | `git diff --check` (working tree) | ✅ | ✅ | PASS | Working tree is whitespace-clean. |
 | `just admin-check` | ✅ | ✅ | PASS | Type-check passes cleanly. |
 | `just admin-test` | ✅ | ✅ | PASS | 9 test files, 82 tests passed. |
@@ -95,4 +95,4 @@ GitHub issue #668 / DALLAY-572: Back Office user administration across Identity,
 
 ## Verdict
 
-**FAIL** — all functional gates pass (admin tests 82/82, admin type-check, admin build, backend-check), and the working tree diff is whitespace-clean. However, `git diff --staged --check` fails with a trailing blank line at EOF in `AdminCommands.kt`. The staged version of the file still carries the trailing blank line that was supposed to be removed; the working tree is clean. This means the staged changes cannot be committed as-is — `git commit` would reject them. The correction was applied to the working tree but the staged version of the file was not updated. Re-stage the clean working-tree version of `AdminCommands.kt` and re-run `git diff --staged --check` to confirm before committing.
+**PASS** — all functional gates pass (admin tests, admin type-check, admin build, backend-check), and both the working-tree and staged diffs are whitespace-clean. The earlier staged-whitespace finding is resolved: the file was committed clean several commits ago. CI on PR #1077 is green across backend, frontend, BDD, Postgres, E2E, SonarCloud Quality Gate (new-code coverage 86.2%), and codecov lanes.

@@ -4,6 +4,8 @@
 
 Issue #668 is still **OPEN** (GitHub URL: `https://github.com/dallay/profiletailors.com/issues/668`; linked Linear comment: `DALLAY-572`). No branch, commit, or pull request in the checked repository history is attributable to #668/DALLAY-572. The current worktree `backoffice` is clean, has no local commits ahead of `origin/main`, and is four commits behind `origin/main`; the checked-out code is the issue baseline, not an implementation branch.
 
+*Inspection date: 2026-09-17. This section is the pre-implementation baseline snapshot: it describes the repository state before any #668 implementation work began.*
+
 The issue has no dedicated active OpenSpec change directory. Existing active changes are invitation-related (`dallay-565`, `dallay-567`, `dallay-568`, private-beta readiness, and a hotfix). Existing authorization and audit changes for the platform-admin surface are archived, not #668 work:
 
 - `openspec/changes/archive/2026-09-07-dallay-563-administrative-authorization-boundary/` established the permission-based admin boundary and default deny.

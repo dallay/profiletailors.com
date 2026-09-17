@@ -233,7 +233,7 @@ class UserControlHandlersTest {
     }
 
     @Test
-    fun `records rejected audit when enable lacks manage permission`() = runTest {
+    fun `should reject enable audit when manage permission is missing`() = runTest {
         val audit = RecordingAuditPublisher()
         val telemetry = RecordingUserControlTelemetry()
         val handlers = handlers(
@@ -261,7 +261,7 @@ class UserControlHandlersTest {
     }
 
     @Test
-    fun `records rejected audit when revoke lacks manage permission`() = runTest {
+    fun `should reject revoke audit when manage permission is missing`() = runTest {
         val audit = RecordingAuditPublisher()
         val telemetry = RecordingUserControlTelemetry()
         val handlers = handlers(
@@ -289,7 +289,7 @@ class UserControlHandlersTest {
     }
 
     @Test
-    fun `records failed audit when session revocation fails`() = runTest {
+    fun `should record failed audit when session revocation fails`() = runTest {
         val audit = RecordingAuditPublisher()
         val telemetry = RecordingUserControlTelemetry()
         val handlers = handlers(
@@ -316,7 +316,7 @@ class UserControlHandlersTest {
     }
 
     @Test
-    fun `confirms disable as no-op when user already disabled`() = runTest {
+    fun `should confirm disable as no-op when the user is already disabled`() = runTest {
         val state = FakeAccountStateGateway(UserAccountState.DISABLED)
         val sessions = FakeRefreshSessionLifecycleService(2)
         val audit = RecordingAuditPublisher()
@@ -338,7 +338,7 @@ class UserControlHandlersTest {
     }
 
     @Test
-    fun `throws conflict when state cannot transition`() = runTest {
+    fun `should throw state conflict when the transition cannot apply`() = runTest {
         val gateway = mockk<AccountStateGateway>()
         coEvery { gateway.findAccountState(any()) } returns UserAccountState.ACTIVE
         coEvery { gateway.changeAccountState(any(), any(), any()) } returns false

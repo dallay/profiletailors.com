@@ -10,7 +10,7 @@ class JacksonUserControlIdempotencyCodecTest {
     private val codec = JacksonUserControlIdempotencyCodec()
 
     @Test
-    fun `round-trips control results through json`() {
+    fun `should round-trip control results through json`() {
         val result = UserControlResult("user-1", UserAccountState.DISABLED, 2)
 
         val decoded = codec.decode(codec.encode(result), UserControlResult::class.java)

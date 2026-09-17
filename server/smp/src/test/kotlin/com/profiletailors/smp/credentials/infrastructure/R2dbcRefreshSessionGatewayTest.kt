@@ -157,7 +157,7 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     }
 
     @Test
-    fun `interface default revokeAllForPrincipal revokes nothing`() = runTest {
+    fun `should revoke nothing through the interface default`() = runTest {
         val minimal = object : RefreshSessionGateway {
             override suspend fun create(
                 principalId: String,

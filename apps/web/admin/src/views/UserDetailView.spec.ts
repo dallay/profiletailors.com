@@ -118,7 +118,9 @@ describe('UserDetailView', () => {
       .find((button) => button.text() === 'Disable account')
       ?.trigger('click')
     await flushPromises()
-    const mutationRequest = mockRequest.mock.calls[2]
+    const mutationRequest = mockRequest.mock.calls.find(
+      (call) => call[0] === '/api/admin/users/user-1/disable',
+    )
     expect(mutationRequest?.[0]).toBe('/api/admin/users/user-1/disable')
     expect(mutationRequest?.[1]?.headers).toEqual({
       'Idempotency-Key': 'admin-user-disable-user-1-request-id',

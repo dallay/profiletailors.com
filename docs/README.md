@@ -11,6 +11,8 @@
   notes and media-type requirements
 - [API Versioning Implementation Summary](./api-versioning-implementation-summary.md) - Backend
   implementation and test evidence
+- [Platform Admin User Administration](./platform-admin-user-administration.md) - Disable/enable
+  accounts, session revocation, idempotency, and audit contract
 - [Architecture Overview](./architecture/) - System architecture and design patterns
 - [Media Library CAS Dedup](./architecture/media-library-cas-dedup.md) - Content-Addressed Storage
   for workspace-scoped asset deduplication

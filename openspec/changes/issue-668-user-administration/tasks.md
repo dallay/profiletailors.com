@@ -58,20 +58,20 @@ Size exception: User explicitly selected one delivery branch/unit for the comple
 - [x] 5.2 Focused backend/frontend/lint/build gates pass; focused PostgreSQL query test passes; fresh BDD runtime passes; no configured admin Playwright project exists to run.
 
 
-## Phase 4: VERIFY follow-up corrections
+## Phase 6: VERIFY follow-up corrections
 
-- [x] 4.1 Refresh rejects disabled accounts before rotation; regression asserts zero rotation calls.
-- [x] 4.2 Admin user list/detail query maps user-only workspace counts, memberships, workspace roles, and platform roles through existing ports.
-- [x] 4.3 Workspace membership endpoint requires both user-read and workspace-read permissions.
-- [x] 4.4 Idempotency claim races return the contractual in-progress conflict without nullable assertions.
-- [x] 4.5 User-control authorization rejection and idempotency replay metrics use bounded labels; metric names include the required authorization-failure counter and idempotent outcome.
-- [x] 4.6 Unauthenticated mutation requests emit redacted rejected audit events through the audit hook seam.
-- [x] 4.7 Platform-admin BDD scenarios and step bindings cover detail memberships and workspace authorization; fresh BDD runtime passes with the unauthorized workspace-read scenario using AUDITOR.
+- [x] 6.1 Refresh rejects disabled accounts before rotation; regression asserts zero rotation calls.
+- [x] 6.2 Admin user list/detail query maps user-only workspace counts, memberships, workspace roles, and platform roles through existing ports.
+- [x] 6.3 Workspace membership endpoint requires both user-read and workspace-read permissions.
+- [x] 6.4 Idempotency claim races return the contractual in-progress conflict without nullable assertions.
+- [x] 6.5 User-control authorization rejection and idempotency replay metrics use bounded labels; metric names include the required authorization-failure counter and idempotent outcome.
+- [x] 6.6 Unauthenticated mutation requests emit redacted rejected audit events through the audit hook seam.
+- [x] 6.7 Platform-admin BDD scenarios and step bindings cover detail memberships and workspace authorization; fresh BDD runtime passes with the unauthorized workspace-read scenario using AUDITOR.
 
-## Phase 6: VERIFY correction batch
+## Phase 7: VERIFY correction batch
 
-- [x] 6.1 Update admin auth-store tests to the current `platform.users.manage` contract and cover read-only denial.
-- [x] 6.2 Update UserDetailView tests to the `accountState`, `disable`/`enable`/`sessions/revoke`, Idempotency-Key, and current i18n contracts while preserving permission visibility coverage.
-- [x] 6.3 Remove the extra EOF blank line from `AdminCommands.kt`.
-- [x] 6.4 Resolve changed Spotless/Detekt findings without suppressions, config changes, baselines, comments, or unsafe types; preserve legacy PrincipalStatus lifecycle and #668 UserAccountState controls.
-- [x] 6.5 Re-run admin type-check, tests, build, focused backend tests, fresh BDD, PostgreSQL integration checks, `just backend-check`, and `git diff HEAD --check`.
+- [x] 7.1 Update admin auth-store tests to the current `platform.users.manage` contract and cover read-only denial.
+- [x] 7.2 Update UserDetailView tests to the `accountState`, `disable`/`enable`/`sessions/revoke`, Idempotency-Key, and current i18n contracts while preserving permission visibility coverage.
+- [x] 7.3 Remove the extra EOF blank line from `AdminCommands.kt`.
+- [x] 7.4 Resolve changed Spotless/Detekt findings without suppressions, config changes, baselines, comments, or unsafe types; preserve legacy PrincipalStatus lifecycle and #668 UserAccountState controls.
+- [x] 7.5 Re-run admin type-check, tests, build, focused backend tests, fresh BDD, PostgreSQL integration checks, `just backend-check`, and `git diff HEAD --check`.

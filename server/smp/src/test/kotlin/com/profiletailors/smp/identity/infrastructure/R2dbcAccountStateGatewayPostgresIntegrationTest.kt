@@ -50,24 +50,24 @@ class R2dbcAccountStateGatewayPostgresIntegrationTest : PostgresIntegrationTestB
     }
 
     @Test
-    fun `findAccountState returns ACTIVE for seeded user`() = runTest {
+    fun `should return ACTIVE account state for a seeded user`() = runTest {
         assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("user-1"))
     }
 
     @Test
-    fun `findAccountState returns null for unknown principal`() = runTest {
+    fun `should return null account state for an unknown principal`() = runTest {
         assertNull(gateway.findAccountState("missing"))
     }
 
     @Test
-    fun `changeAccountState swaps state on expected match`() = runTest {
+    fun `should swap account state when the expected state matches`() = runTest {
         assertTrue(gateway.changeAccountState("user-1", UserAccountState.ACTIVE, UserAccountState.DISABLED))
 
         assertEquals(UserAccountState.DISABLED, gateway.findAccountState("user-1"))
     }
 
     @Test
-    fun `changeAccountState returns false on expected mismatch`() = runTest {
+    fun `should keep account state when the expected state mismatches`() = runTest {
         assertFalse(gateway.changeAccountState("user-1", UserAccountState.DISABLED, UserAccountState.ACTIVE))
 
         assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("user-1"))

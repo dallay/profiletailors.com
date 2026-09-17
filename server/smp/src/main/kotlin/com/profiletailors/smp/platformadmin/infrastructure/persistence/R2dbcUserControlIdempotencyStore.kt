@@ -4,7 +4,7 @@ import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyRe
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyStore
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.util.UUID
@@ -37,7 +37,7 @@ class R2dbcUserControlIdempotencyStore(private val databaseClient: DatabaseClien
             .fetch()
             .rowsUpdated()
             .awaitSingle() == 1L
-    } catch (_: DataIntegrityViolationException) {
+    } catch (_: DuplicateKeyException) {
         false
     }
 

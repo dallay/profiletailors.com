@@ -150,7 +150,7 @@ class UserControlIdempotencyServiceTest {
     }
 
     @Test
-    fun `replays completed response when claim loses a race`() = runTest {
+    fun `should replay the completed response when a claim loses the race`() = runTest {
         val expected = UserControlResult("user-1", UserAccountState.DISABLED, 2)
         val racingService = UserControlIdempotencyService(
             store = CompletedRaceStore(operatorId, "disable", "user-1", "key-1", codec.encode(expected)),

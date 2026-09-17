@@ -149,7 +149,7 @@ class AdminUserControllerTest {
     }
 
     @Test
-    fun `enableUser forwards idempotency key and returns control result`() {
+    fun `should enable the user when the idempotency key is valid`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { userControlHandlers.enable(any()) } returns UserControlResult(userId, UserAccountState.ACTIVE, 0)
 
@@ -166,7 +166,7 @@ class AdminUserControllerTest {
     }
 
     @Test
-    fun `enableUser returns 401 without principal context`() {
+    fun `should reject enable with 401 when unauthenticated`() {
         webClient(principal = null)
             .post()
             .uri("/api/admin/users/$userId/enable")
@@ -187,7 +187,7 @@ class AdminUserControllerTest {
     }
 
     @Test
-    fun `revokeUserSessions forwards idempotency key and returns revoke result`() {
+    fun `should revoke sessions when the idempotency key is valid`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { userControlHandlers.revokeSessions(any()) } returns UserSessionsRevokeResult(userId, 2)
 
@@ -203,7 +203,7 @@ class AdminUserControllerTest {
     }
 
     @Test
-    fun `revokeUserSessions returns 401 without principal context`() {
+    fun `should reject session revocation with 401 when unauthenticated`() {
         webClient(principal = null)
             .post()
             .uri("/api/admin/users/$userId/sessions/revoke")

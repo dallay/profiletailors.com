@@ -204,7 +204,7 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
     }
 
     @Test
-    fun `findById maps platform roles for uuid principal`() = runTest {
+    fun `should map platform roles when the principal id is a uuid`() = runTest {
         seedPrincipal("00000000-0000-0000-0000-000000000001")
         seedUserIdentity("00000000-0000-0000-0000-000000000001", "operator@example.com", "operator")
 

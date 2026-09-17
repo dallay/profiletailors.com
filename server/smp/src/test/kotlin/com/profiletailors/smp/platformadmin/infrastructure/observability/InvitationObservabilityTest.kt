@@ -81,8 +81,8 @@ class InvitationObservabilityTest {
         observability.recordInvitationCreated()
         observability.recordInvitationRevoked()
 
-        meterRegistry.find(CREATED_METRIC_NAME).counter()!!.count().shouldBe(1.0)
-        meterRegistry.find(REVOKED_METRIC_NAME).counter()!!.count().shouldBe(1.0)
+        requireNotNull(meterRegistry.find(CREATED_METRIC_NAME).counter()).count().shouldBe(1.0)
+        requireNotNull(meterRegistry.find(REVOKED_METRIC_NAME).counter()).count().shouldBe(1.0)
         val tagValues = meterRegistry.meters
             .flatMap { meter -> meter.id.tags }
             .map { tag -> tag.value }
@@ -99,11 +99,11 @@ class InvitationObservabilityTest {
         observability.recordInvitationCreated()
         observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
 
-        meterRegistry.find(CREATED_METRIC_NAME).counter()!!.count().shouldBe(3.0)
-        counterFor(meterRegistry, "requested")!!.count().shouldBe(5.0)
-        counterFor(meterRegistry, "invited")!!.count().shouldBe(3.0)
-        counterFor(meterRegistry, "skipped")!!.count().shouldBe(1.0)
-        counterFor(meterRegistry, "failed")!!.count().shouldBe(1.0)
+        requireNotNull(meterRegistry.find(CREATED_METRIC_NAME).counter()).count().shouldBe(3.0)
+        requireNotNull(counterFor(meterRegistry, "requested")).count().shouldBe(5.0)
+        requireNotNull(counterFor(meterRegistry, "invited")).count().shouldBe(3.0)
+        requireNotNull(counterFor(meterRegistry, "skipped")).count().shouldBe(1.0)
+        requireNotNull(counterFor(meterRegistry, "failed")).count().shouldBe(1.0)
     }
 
     @Test
@@ -114,10 +114,10 @@ class InvitationObservabilityTest {
         observability.recordBulkInvite(requested = 5, invited = 3, skipped = 1, failed = 1)
         observability.recordBulkInvite(requested = 2, invited = 2, skipped = 0, failed = 0)
 
-        counterFor(meterRegistry, "requested")!!.count().shouldBe(7.0)
-        counterFor(meterRegistry, "invited")!!.count().shouldBe(5.0)
-        counterFor(meterRegistry, "skipped")!!.count().shouldBe(1.0)
-        counterFor(meterRegistry, "failed")!!.count().shouldBe(1.0)
+        requireNotNull(counterFor(meterRegistry, "requested")).count().shouldBe(7.0)
+        requireNotNull(counterFor(meterRegistry, "invited")).count().shouldBe(5.0)
+        requireNotNull(counterFor(meterRegistry, "skipped")).count().shouldBe(1.0)
+        requireNotNull(counterFor(meterRegistry, "failed")).count().shouldBe(1.0)
         val tagValues = meterRegistry.meters
             .flatMap { meter -> meter.id.tags }
             .map { tag -> tag.value }
