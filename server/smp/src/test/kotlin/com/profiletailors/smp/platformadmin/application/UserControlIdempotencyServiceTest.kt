@@ -150,6 +150,30 @@ class UserControlIdempotencyServiceTest {
     }
 
     @Test
+    fun `replays completed response when claim loses a race`() = runTest {
+        val expected = UserControlResult("user-1", UserAccountState.DISABLED, 2)
+        val racingService = UserControlIdempotencyService(
+            store = CompletedRaceStore(operatorId, "disable", "user-1", "key-1", codec.encode(expected)),
+            codec = codec,
+        )
+        var executions = 0
+
+        val result = racingService.execute(
+            operatorId,
+            "disable",
+            "user-1",
+            "key-1",
+            UserControlResult::class.java,
+        ) {
+            executions += 1
+            UserControlResult("user-1", UserAccountState.ACTIVE, 0)
+        }
+
+        assertEquals(expected, result)
+        assertEquals(0, executions)
+    }
+
+    @Test
     fun `removes an uncompleted claim when execution fails`() = runTest {
         assertThrows(IllegalStateException::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -219,6 +243,29 @@ class UserControlIdempotencyServiceTest {
             if (operatorPrincipalId != operatorId || idempotencyKey != key) return null
             findCalls += 1
             return if (findCalls == 1) null else UserControlIdempotencyRecord(operatorId, operation, targetId, key)
+        }
+
+        override suspend fun claim(record: UserControlIdempotencyRecord): Boolean = false
+
+        override suspend fun complete(operatorPrincipalId: UUID, idempotencyKey: String, responseJson: String) = Unit
+
+        override suspend fun remove(operatorPrincipalId: UUID, idempotencyKey: String) = Unit
+    }
+
+    private class CompletedRaceStore(
+        private val operatorId: UUID,
+        private val operation: String,
+        private val targetId: String,
+        private val key: String,
+        private val responseJson: String,
+    ) : UserControlIdempotencyStore {
+        private var findCalls = 0
+
+        override suspend fun find(operatorPrincipalId: UUID, idempotencyKey: String): UserControlIdempotencyRecord? {
+            if (operatorPrincipalId != operatorId || idempotencyKey != key) return null
+            findCalls += 1
+            if (findCalls == 1) return null
+            return UserControlIdempotencyRecord(operatorId, operation, targetId, key, responseJson)
         }
 
         override suspend fun claim(record: UserControlIdempotencyRecord): Boolean = false

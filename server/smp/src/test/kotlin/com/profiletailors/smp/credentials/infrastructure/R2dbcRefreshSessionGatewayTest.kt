@@ -1,5 +1,7 @@
 package com.profiletailors.smp.credentials.infrastructure
 
+import com.profiletailors.smp.credentials.application.ActiveRefreshSession
+import com.profiletailors.smp.credentials.application.CreatedRefreshSession
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
@@ -152,6 +154,31 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
             }
         }
         assertEquals(RefreshSessionFailureReason.REVOKED, error.reason)
+    }
+
+    @Test
+    fun `interface default revokeAllForPrincipal revokes nothing`() = runTest {
+        val minimal = object : RefreshSessionGateway {
+            override suspend fun create(
+                principalId: String,
+                refreshToken: RefreshSessionToken,
+                expiresAt: Instant,
+            ): CreatedRefreshSession = error("not used")
+
+            override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
+                error("not used")
+
+            override suspend fun rotate(
+                currentSessionId: String,
+                replacementToken: RefreshSessionToken,
+                expiresAt: Instant,
+                now: Instant,
+            ): CreatedRefreshSession = error("not used")
+
+            override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
+        }
+
+        assertEquals(0, minimal.revokeAllForPrincipal("user-1", Instant.now()))
     }
 
     private suspend fun seedPrincipal() {

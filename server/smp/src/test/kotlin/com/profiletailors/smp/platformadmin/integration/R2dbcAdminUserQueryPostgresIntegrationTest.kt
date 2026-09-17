@@ -204,6 +204,16 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
     }
 
     @Test
+    fun `findById maps platform roles for uuid principal`() = runTest {
+        seedPrincipal("00000000-0000-0000-0000-000000000001")
+        seedUserIdentity("00000000-0000-0000-0000-000000000001", "operator@example.com", "operator")
+
+        val user = requireNotNull(userQuery.findById("00000000-0000-0000-0000-000000000001"))
+
+        assertEquals(listOf("PLATFORM_OPERATOR"), user.platformRoles)
+    }
+
+    @Test
     fun `findWorkspacesByPrincipalId returns memberships`() = runTest {
         val memberships = userQuery.findWorkspacesByPrincipalId("user-1")
         assertEquals(1, memberships.size)

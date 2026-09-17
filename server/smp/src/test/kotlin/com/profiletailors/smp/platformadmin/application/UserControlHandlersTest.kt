@@ -10,10 +10,13 @@ import com.profiletailors.smp.platformadmin.application.command.RevokeUserSessio
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.UserControlTelemetry
 import com.profiletailors.smp.platformadmin.application.handler.UserControlHandlers
+import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -229,8 +232,138 @@ class UserControlHandlersTest {
         assertEquals("USER_SESSIONS_REVOKED", audit.events.single().action.name)
     }
 
+    @Test
+    fun `records rejected audit when enable lacks manage permission`() = runTest {
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(
+            FakeAccountStateGateway(UserAccountState.DISABLED),
+            FakeRefreshSessionLifecycleService(),
+            audit,
+            telemetry,
+        )
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.enable(
+                    EnableUserCommand(
+                        operatorId,
+                        setOf(PlatformRole.SUPPORT_AGENT),
+                        userId,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_ENABLED", audit.events.single().action.name)
+        assertEquals(listOf("enable:rejected"), telemetry.records)
+    }
+
+    @Test
+    fun `records rejected audit when revoke lacks manage permission`() = runTest {
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(
+            FakeAccountStateGateway(UserAccountState.ACTIVE),
+            FakeRefreshSessionLifecycleService(),
+            audit,
+            telemetry,
+        )
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.revokeSessions(
+                    RevokeUserSessionsCommand(
+                        operatorId,
+                        setOf(PlatformRole.SUPPORT_AGENT),
+                        userId,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_SESSIONS_REVOKED", audit.events.single().action.name)
+        assertEquals(listOf("sessions_revoke:rejected"), telemetry.records)
+    }
+
+    @Test
+    fun `records failed audit when session revocation fails`() = runTest {
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(
+            FakeAccountStateGateway(UserAccountState.ACTIVE),
+            FakeRefreshSessionLifecycleService(failure = IllegalStateException("revocation failed")),
+            audit,
+            telemetry,
+        )
+
+        assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.revokeSessions(
+                    RevokeUserSessionsCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        userId,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("FAILED", audit.events.single().result.name)
+        assertEquals(listOf("sessions_revoke:failure"), telemetry.records)
+    }
+
+    @Test
+    fun `confirms disable as no-op when user already disabled`() = runTest {
+        val state = FakeAccountStateGateway(UserAccountState.DISABLED)
+        val sessions = FakeRefreshSessionLifecycleService(2)
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(state, sessions, audit, telemetry)
+
+        val result = handlers.disable(
+            DisableUserCommand(
+                operatorId,
+                setOf(PlatformRole.PLATFORM_OWNER),
+                userId,
+            ),
+        )
+
+        assertEquals(UserAccountState.DISABLED, result.accountState)
+        assertEquals(2, result.revokedSessionCount)
+        assertEquals(emptyList<String>(), state.updates)
+        assertEquals(listOf("disable:success"), telemetry.records)
+    }
+
+    @Test
+    fun `throws conflict when state cannot transition`() = runTest {
+        val gateway = mockk<AccountStateGateway>()
+        coEvery { gateway.findAccountState(any()) } returns UserAccountState.ACTIVE
+        coEvery { gateway.changeAccountState(any(), any(), any()) } returns false
+        val handlers = handlers(
+            gateway,
+            FakeRefreshSessionLifecycleService(),
+            RecordingAuditPublisher(),
+            RecordingUserControlTelemetry(),
+        )
+
+        assertThrows(UserControlStateConflictException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.disable(
+                    DisableUserCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        userId,
+                    ),
+                )
+            }
+        }
+    }
+
     private fun handlers(
-        state: FakeAccountStateGateway,
+        state: AccountStateGateway,
         sessions: FakeRefreshSessionLifecycleService,
         audit: RecordingAuditPublisher,
         telemetry: RecordingUserControlTelemetry,
