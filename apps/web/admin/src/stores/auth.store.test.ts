@@ -33,10 +33,10 @@ describe('useAdminAuthStore', () => {
     expect(store.hasPermission('platform.waitlist.invite')).toBe(true)
     expect(store.hasPermission('platform.operators.manage')).toBe(true)
     expect(store.hasPermission('platform.audit.read')).toBe(true)
-    expect(store.hasPermission('platform.publishing.stale.read')).toBe(true)
+    expect(store.hasPermission('platform.users.manage')).toBe(true)
   })
 
-  it('PLATFORM_OPERATOR holds publishing stale read like the server map', () => {
+  it('PLATFORM_OPERATOR can manage users but not operators', () => {
     const store = useAdminAuthStore()
     store.principal = {
       principalId: 'test-id',
@@ -44,19 +44,24 @@ describe('useAdminAuthStore', () => {
       displayName: null,
       platformRoles: ['PLATFORM_OPERATOR'],
     }
-    expect(store.hasPermission('platform.publishing.stale.read')).toBe(true)
+    expect(store.hasPermission('platform.users.manage')).toBe(true)
+    expect(store.hasPermission('platform.operators.manage')).toBe(false)
   })
 
-  it('SUPPORT_AGENT and AUDITOR lack publishing stale read', () => {
+  it('SUPPORT_AGENT and AUDITOR are read-only for users', () => {
     const store = useAdminAuthStore()
-    for (const email of ['support@example.com', 'auditor@example.com']) {
+    for (const [email, role] of [
+      ['support@example.com', 'SUPPORT_AGENT'],
+      ['auditor@example.com', 'AUDITOR'],
+    ] as const) {
       store.principal = {
         principalId: 'test-id',
         email,
         displayName: null,
-        platformRoles: email.startsWith('support') ? ['SUPPORT_AGENT'] : ['AUDITOR'],
+        platformRoles: [role],
       }
-      expect(store.hasPermission('platform.publishing.stale.read')).toBe(false)
+      expect(store.hasPermission('platform.users.read')).toBe(true)
+      expect(store.hasPermission('platform.users.manage')).toBe(false)
     }
   })
 
@@ -94,6 +99,7 @@ describe('useAdminAuthStore', () => {
     }
     expect(store.hasPermission('platform.waitlist.invite')).toBe(false)
     expect(store.hasPermission('platform.waitlist.cancel')).toBe(false)
+    expect(store.hasPermission('platform.users.manage')).toBe(false)
     expect(store.hasPermission('platform.audit.read')).toBe(true)
   })
 

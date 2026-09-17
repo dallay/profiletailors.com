@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-009-fix-user-control-idempotency-scope
+      author: platform-admin
+      changes:
+        - dropIndex:
+            tableName: platform_admin_user_control_idempotency
+            indexName: uq_platform_admin_user_control_idempotency
+        - createIndex:
+            tableName: platform_admin_user_control_idempotency
+            indexName: uq_platform_admin_user_control_idempotency
+            unique: true
+            columns:
+              - column:
+                  name: operator_principal_id
+              - column:
+                  name: idempotency_key

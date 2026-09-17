@@ -81,6 +81,49 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `revokes all active sessions for a principal and reports the count`() = runTest {
+        seedPrincipal()
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-2', 'USER', 'local:user2@example.com', NULL, 'user2')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        gateway.create(
+            "user-1",
+            RefreshSessionToken("lookup-1", "secret-value"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+        gateway.create(
+            "user-1",
+            RefreshSessionToken("lookup-2", "secret-value-2"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+        gateway.create(
+            "user-2",
+            RefreshSessionToken("lookup-3", "secret-value-3"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+
+        val revoked = gateway.revokeAllForPrincipal("user-1", Instant.parse("2026-05-22T10:20:30Z"))
+
+        assertEquals(2, revoked)
+        val first = assertThrows(RefreshSessionNotActiveException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                gateway.requireActive(
+                    RefreshSessionToken("lookup-1", "secret-value"),
+                    Instant.parse("2026-05-22T10:21:30Z"),
+                )
+            }
+        }
+        assertEquals(RefreshSessionFailureReason.REVOKED, first.reason)
+        gateway.requireActive(
+            RefreshSessionToken("lookup-3", "secret-value-3"),
+            Instant.parse("2026-05-22T10:21:30Z"),
+        )
+    }
+
+    @Test
     fun `revokes refresh session`() = runTest {
         seedPrincipal()
         val created = gateway.create(

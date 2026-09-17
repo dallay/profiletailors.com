@@ -46,6 +46,8 @@ class PlatformAdminBddSteps {
         state.lastInvitationId = null
         state.invitationToken = null
         state.bulkEntryIds.clear()
+        state.lastUserId = null
+        state.idempotencyKey = null
         cleanupPlatformAdminData()
     }
 

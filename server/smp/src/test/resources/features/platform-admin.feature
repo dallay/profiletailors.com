@@ -185,3 +185,36 @@ Feature: Platform administration access control and waitlist management
     Then the admin response status should be 403
     And the admin response code should be "PLATFORM_ACCESS_DENIED"
     And the waitlist entry status should remain "PENDING"
+
+  @user-administration
+  Scenario: Support agent cannot disable a user
+    Given a registered user exists for "control-test@example.com"
+    And the authenticated principal has the role "SUPPORT_AGENT"
+    When the operator disables the registered user
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+
+  @user-administration
+  Scenario: Platform operator disables a user and replays the command
+    Given a registered user exists for "control-test@example.com"
+    When the platform operator disables the registered user
+    Then the admin response status should be 200
+    And the registered user account state should be "DISABLED"
+    When the platform operator repeats the disable command with the same idempotency key
+    Then the admin response status should be 200
+    And the disable operation should have been executed once
+
+  @user-administration
+  Scenario: User detail exposes workspace membership data
+    Given a registered user with a workspace membership exists for "detail-test@example.com"
+    When the platform operator requests the registered user detail
+    Then the admin response status should be 200
+    And the user detail should include one workspace membership
+
+  @user-administration
+  Scenario: Workspace membership lookup requires base user read permission
+    Given a registered user exists for "workspace-permission@example.com"
+    And the authenticated principal has the role "AUDITOR"
+    When the platform operator requests the registered user workspaces
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"

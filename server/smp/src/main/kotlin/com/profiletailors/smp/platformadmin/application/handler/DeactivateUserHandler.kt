@@ -32,7 +32,7 @@ class DeactivateUserHandler(
                 occurredAt = clock.instant(),
                 operatorPrincipalId = command.operatorPrincipalId,
                 operatorPlatformRoles = command.operatorRoles,
-                action = AdminAuditAction.USER_DEACTIVATED,
+                action = AdminAuditAction.USER_DISABLED,
                 targetType = "Principal",
                 targetId = command.principalId,
                 result = AdminAuditResult.SUCCEEDED,

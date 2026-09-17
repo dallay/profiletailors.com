@@ -41,6 +41,10 @@ class LocalAuthController {
 }
 ```
 
+## Platform admin user controls
+
+The platform-admin user control endpoints are part of the existing v1 media-type contract. Clients must send `Accept: application/vnd.api.v1+json` and an `Idempotency-Key` header for disable, enable, and refresh-session revocation commands. See [`platform-admin-user-administration.md`](./platform-admin-user-administration.md) for the complete route, authorization, replay, audit, and rollback contract.
+
 ## Changes
 
 ### 1. Programmatic WebFlux Configuration

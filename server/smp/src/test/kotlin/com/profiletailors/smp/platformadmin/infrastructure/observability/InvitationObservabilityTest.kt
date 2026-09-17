@@ -9,6 +9,40 @@ import org.junit.jupiter.api.Test
 class InvitationObservabilityTest {
 
     @Test
+    fun `records user control authorization and replay outcomes with bounded labels`() {
+        val meterRegistry = SimpleMeterRegistry()
+        val observability = UserControlObservability(meterRegistry)
+
+        observability.recordAuthorizationRejected("disable")
+        observability.recordIdempotencyReplay()
+        observability.record("disable", "success")
+        observability.record("enable", "failure")
+        observability.record("sessions_revoke", "idempotent")
+
+        assertUserControlCounter(meterRegistry, "disable", "rejected")
+        assertUserControlCounter(meterRegistry, "idempotency", "idempotent")
+        assertUserControlCounter(meterRegistry, "disable", "success")
+        assertUserControlCounter(meterRegistry, "enable", "failure")
+        assertUserControlCounter(meterRegistry, "sessions_revoke", "idempotent")
+        assertAuthorizationFailureCounter(meterRegistry, "disable")
+    }
+
+    private fun assertUserControlCounter(meterRegistry: SimpleMeterRegistry, operation: String, outcome: String) {
+        val counter = meterRegistry.find("profiletailors.admin.user_control.requests")
+            .tag("operation", operation)
+            .tag("outcome", outcome)
+            .counter()
+        assertEquals(1.0, requireNotNull(counter).count())
+    }
+
+    private fun assertAuthorizationFailureCounter(meterRegistry: SimpleMeterRegistry, operation: String) {
+        val counter = meterRegistry.find("profiletailors.admin.user_control.authorization_failures")
+            .tag("operation", operation)
+            .counter()
+        assertEquals(1.0, requireNotNull(counter).count())
+    }
+
+    @Test
     fun `records accepted invitations by bounded target`() {
         val meterRegistry = SimpleMeterRegistry()
         val observability = InvitationObservability(meterRegistry)

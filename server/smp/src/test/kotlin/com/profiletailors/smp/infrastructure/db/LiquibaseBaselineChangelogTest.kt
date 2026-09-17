@@ -65,6 +65,25 @@ class LiquibaseBaselineChangelogTest {
         tables.forEach { (path, table) -> assertHasTable(path, table) }
     }
 
+    @Test
+    fun `user control idempotency changelog defines durable replay storage`() {
+        val path = "db/changelog/platform-admin/008-create-user-control-idempotency.yaml"
+        val changelog = resourceText(path)
+        changelog shouldContain "platform_admin_user_control_idempotency"
+        changelog shouldContain "response_json"
+        changelog shouldContain "uq_platform_admin_user_control_idempotency"
+    }
+
+    @Test
+    fun `user control idempotency scope has one record per operator and key`() {
+        val path = "db/changelog/platform-admin/009-fix-user-control-idempotency-scope.yaml"
+        val changelog = resourceText(path)
+        changelog shouldContain "dropIndex"
+        changelog shouldContain "createIndex"
+        changelog shouldContain "operator_principal_id"
+        changelog shouldContain "idempotency_key"
+    }
+
     private fun assertHasTable(path: String, tableName: String) {
         resourceText(path) shouldContain "tableName: $tableName"
     }

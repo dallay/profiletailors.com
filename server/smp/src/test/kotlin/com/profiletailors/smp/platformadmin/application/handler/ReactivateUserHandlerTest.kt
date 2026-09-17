@@ -48,7 +48,7 @@ class ReactivateUserHandlerTest {
 
         handler.handle(command())
 
-        coVerify { auditPublisher.publish(match { it.action.name == "USER_REACTIVATED" }) }
+        coVerify { auditPublisher.publish(match { it.action.name == "USER_ENABLED" }) }
     }
 
     @Test

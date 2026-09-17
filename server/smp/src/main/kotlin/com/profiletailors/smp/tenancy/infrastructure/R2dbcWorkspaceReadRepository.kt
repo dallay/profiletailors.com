@@ -5,6 +5,7 @@ import com.profiletailors.smp.tenancy.application.WorkspaceSummary
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.time.OffsetDateTime
 
 /**
  * Read-only repository for workspace queries.
@@ -49,6 +50,39 @@ internal class R2dbcWorkspaceReadRepository(private val databaseClient: Database
                 name = requireNotNull(row.get("workspace_name", String::class.java)),
                 role = requireNotNull(row.get("role", String::class.java)),
                 icon = row.get("workspace_icon", String::class.java),
+            )
+        }
+        .all()
+        .collectList()
+        .awaitSingle()
+
+    override suspend fun findMembershipsByPrincipal(principalId: String) = databaseClient.sql(
+        """
+            SELECT wm.workspace_id,
+                   w.name AS workspace_name,
+                   wm.status AS membership_status,
+                   wm.created_at AS joined_at,
+                   COALESCE(string_agg(DISTINCT r.role_key, ',' ORDER BY r.role_key), '') AS workspace_roles
+            FROM workspace_memberships wm
+            JOIN workspaces w ON w.id = wm.workspace_id
+            LEFT JOIN membership_roles mr ON mr.membership_id = wm.id
+            LEFT JOIN roles r ON r.id = mr.role_id
+            WHERE wm.principal_id = :principalId
+            GROUP BY wm.workspace_id, w.name, wm.status, wm.created_at
+            ORDER BY wm.created_at DESC
+        """.trimIndent(),
+    )
+        .bind("principalId", principalId)
+        .map { row, _ ->
+            com.profiletailors.smp.tenancy.application.WorkspaceMembershipSummary(
+                workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                workspaceName = requireNotNull(row.get("workspace_name", String::class.java)),
+                membershipStatus = requireNotNull(row.get("membership_status", String::class.java)),
+                workspaceRoles = row.get("workspace_roles", String::class.java)
+                    .orEmpty()
+                    .split(',')
+                    .filter(String::isNotBlank),
+                joinedAt = requireNotNull(row.get("joined_at", OffsetDateTime::class.java)).toInstant(),
             )
         }
         .all()
