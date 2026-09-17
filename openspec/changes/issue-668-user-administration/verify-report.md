@@ -41,7 +41,7 @@ GitHub issue #668 / DALLAY-572: Back Office user administration across Identity,
 |---|---|---|---|
 | Repository baseline | `git log -1 --oneline`; `git diff --stat` | PASS | HEAD is `3484a965`; working tree contains uncommitted issue-668 corrections across 47 files, 983 additions, 481 deletions. |
 | Diff hygiene (working tree) | `git diff --check` | PASS | No whitespace errors in working tree. |
-| Diff hygiene (staged) | `git diff --staged --check` | FAIL | Reports a new blank line at EOF in `AdminCommands.kt` (staged version has the trailing blank line; working tree is clean). |
+| Diff hygiene (staged) | `git diff --staged --check` | PASS | Clean. The earlier `AdminCommands.kt` trailing-blank-line finding is resolved; the file was committed clean. |
 | Admin type-check | `just admin-check` | PASS | `vue-tsc --build` completed successfully. |
 | Admin unit tests | `just admin-test` | PASS | 9 test files, 82 tests passed in 1.40s. |
 | Admin build | `just admin-build` | PASS | `vite build` completed successfully; all 70 modules transformed. |
