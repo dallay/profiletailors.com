@@ -72,7 +72,7 @@ open class ResendWaitlistInvitationHandler(
             windowStart.toEpochMilli(),
         )
         if (recentResends >= resendLimit) {
-            throw InvitationRateLimitExceededException(existing.waitlistEntryId)
+            throw InvitationRateLimitExceededException.resendLimitExceeded(existing.waitlistEntryId)
         }
 
         invitationRepository.update(existing.supersede())

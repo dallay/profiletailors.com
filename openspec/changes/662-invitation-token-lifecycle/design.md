@@ -67,9 +67,10 @@ No migration. Metric tag removal is dashboard-breaking: coordinate owners pre-ap
 
 ## Open Questions
 
-- [ ] DALLAY-565 owner sign-off: is interim in-memory `rawToken` handoff + persisted token-bearing `acceptUrl` accepted as scoped delivery-surface debt (removal DALLAY-566), or must this change redact `acceptUrl` now? Sign: ___
+- [x] DALLAY-565 owner sign-off: interim in-memory `rawToken` handoff + persisted token-bearing `acceptUrl` accepted as scoped delivery-surface debt, removal tracked DALLAY-566. Sign: repository owner (approved 2026-09-17, PR2 proceeds on interim-debt branch).
 - [ ] DALLAY-566 confirms sealed-handoff ownership (generation, rotation, TTL, recipient binding, URL assembly)?
-- [ ] Throttle bounds (per-key+IP window/limit) acceptable to security?
+- [ ] Throttle bounds acceptable to security? PR2 records chosen bounds: 10 attempts per 10 minutes per candidateKey+IP, enforced at `InvitationAcceptanceController` before the handler runs; `InvitationActivationCoordinator` stays pure; denial reuses `InvitationRateLimitExceededException` shape mapped to 429 `INVITATION_RATE_LIMIT_EXCEEDED` with a static detail carrying no token material.
+- [x] PR2 (2026-09-17) scope-branch confirmation: `InvitationIssued`/`DirectInvitationResent` keep existing `rawToken` fields with no new fields (interim in-memory handoff, removal DALLAY-566); `InvitationEmail.toPayload()` keeps scoped `acceptUrl` equal to the template-built URL while `SendInvitationEmailConsumer` renders the URL transiently via `render()`; persisted payload key set locked to template params plus scoped `acceptUrl` by regression tests.
 - [ ] #660 interface drift confirmed none?
 - [ ] PR1 (2026-09-17) partial notes: no commit references #660 in history; PR1 changes no
   signatures (`recordBulkInvite` args unchanged, `updateIfVersionMatches` untouched), so no

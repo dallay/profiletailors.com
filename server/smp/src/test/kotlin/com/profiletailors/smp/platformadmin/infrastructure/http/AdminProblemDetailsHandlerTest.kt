@@ -179,7 +179,7 @@ class AdminProblemDetailsHandlerTest {
 
     @Test
     fun `maps InvitationRateLimitExceededException to 429 with rate limit code`() {
-        val problem = handler.handle(InvitationRateLimitExceededException("entry-1"))
+        val problem = handler.handle(InvitationRateLimitExceededException.resendLimitExceeded("entry-1"))
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), problem.status)
         assertEquals("INVITATION_RATE_LIMIT_EXCEEDED", problem.properties?.get("code"))

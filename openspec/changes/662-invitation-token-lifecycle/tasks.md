@@ -34,9 +34,9 @@ Chain strategy: pending
 
 - [x] 2.1 RED bulk aggregate-only test then GREEN `platformadmin/infrastructure/observability/InvitationObservability.kt`: drop per-value tags
 - [x] 2.2 RED CAS-false test then GREEN `platformadmin/application/handler/InviteWaitlistEntryHandler.kt`: honor boolean, throw conflict, use `revoke()`
-- [ ] 2.3 Scope `platformadmin/domain/InvitationIssued.kt`, `DirectInvitationResent.kt` as interim debt (DALLAY-566) with no new fields
-- [ ] 2.4 Redact or scope `shared/notifications/.../InvitationEmail.kt` `toPayload()` persisted `acceptUrl`; render URL transiently in `SendInvitationEmailConsumer.kt`
-- [ ] 2.5 Enforce per-key+IP accept-attempt throttle at transport edge reusing `InvitationRateLimitExceededException`; keep coordinator pure
+- [x] 2.3 Scope `platformadmin/domain/InvitationIssued.kt`, `DirectInvitationResent.kt` as interim debt (DALLAY-566) with no new fields
+- [x] 2.4 Redact or scope `shared/notifications/.../InvitationEmail.kt` `toPayload()` persisted `acceptUrl`; render URL transiently in `SendInvitationEmailConsumer.kt`
+- [x] 2.5 Enforce per-key+IP accept-attempt throttle at transport edge reusing `InvitationRateLimitExceededException`; keep coordinator pure
 
 ## Phase 3: Security and concurrency evidence
 

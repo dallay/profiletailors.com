@@ -6,6 +6,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -106,6 +107,27 @@ internal class InvitationEmailTest {
     fun `blank recipient is rejected`() {
         assertFailsWith<IllegalArgumentException> {
             invitation(recipient = NormalizedEmail.from(EmailAddress("   ")))
+        }
+    }
+
+    @Test
+    fun `persisted payload key set is limited to template params plus scoped acceptUrl`() {
+        val payload = invitation().toPayload()
+
+        assertEquals(setOf("email", "workspaceName", "target", "acceptUrl", "locale"), payload.variables.keys)
+    }
+
+    @Test
+    fun `persisted payload carries no raw token value outside scoped acceptUrl`() {
+        val raw = "super-secret-token-do-not-leak"
+        val email = invitation(
+            rawToken = raw,
+            acceptUrl = "https://app.example.com/invitations/accept?token=$raw",
+        )
+        val payload = email.toPayload()
+
+        payload.variables.filterKeys { it != "acceptUrl" }.values.forEach { value ->
+            assertFalse(value.contains(raw))
         }
     }
 
