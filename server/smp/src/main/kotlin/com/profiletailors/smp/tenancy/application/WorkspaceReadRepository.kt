@@ -7,12 +7,7 @@ package com.profiletailors.smp.tenancy.application
  * without depending on infrastructure implementations.
  * The infrastructure layer provides the actual implementation.
  */
-fun interface WorkspaceReadRepository {
-    /**
-     * Find all workspaces where the given principal has an ACTIVE membership.
-     *
-     * @param principalId The authenticated user's principal ID
-     * @return List of workspace summaries ordered by name
-     */
+interface WorkspaceReadRepository {
     suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary>
+    suspend fun findMembershipsByPrincipal(principalId: String): List<WorkspaceMembershipSummary>
 }

@@ -19,3 +19,11 @@ object GetWorkspacesForPrincipalQuery : Query<List<WorkspaceSummary>>
  * @property role The principal's role in this workspace ("OWNER" or "MEMBER")
  */
 data class WorkspaceSummary(val workspaceId: String, val name: String, val role: String, val icon: String? = null)
+
+data class WorkspaceMembershipSummary(
+    val workspaceId: String,
+    val workspaceName: String,
+    val membershipStatus: String,
+    val workspaceRoles: List<String>,
+    val joinedAt: java.time.Instant,
+)

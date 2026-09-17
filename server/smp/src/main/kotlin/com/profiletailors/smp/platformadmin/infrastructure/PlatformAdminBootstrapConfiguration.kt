@@ -3,10 +3,15 @@ package com.profiletailors.smp.platformadmin.infrastructure
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
+import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalLifecycle
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyCodec
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyStore
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
@@ -16,6 +21,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.InvitationTele
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.UserControlTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
@@ -30,6 +36,7 @@ import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistIn
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.UserControlHandlers
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
@@ -54,7 +61,7 @@ class PlatformAdminBootstrapConfiguration {
         com.profiletailors.smp.platformadmin.application.OperatorAccessResolver(roleAssignmentRepository)
 
     @Bean
-    fun tokenHasher(): BCryptTokenHasher = BCryptTokenHasher()
+    fun tokenHasher(): TokenHasher = BCryptTokenHasher()
 
     @Bean
     fun membershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
@@ -234,6 +241,30 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    fun userControlHandlers(
+        accountStateGateway: AccountStateGateway,
+        refreshSessionLifecycleService: RefreshSessionLifecycleService,
+        auditPublisher: AdministrativeAuditPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        clock: Clock,
+        telemetry: UserControlTelemetry,
+    ): UserControlHandlers = UserControlHandlers(
+        accountStateGateway = accountStateGateway,
+        refreshSessionLifecycleService = refreshSessionLifecycleService,
+        auditPublisher = auditPublisher,
+        transactionRunner = transactionRunner,
+        clock = clock,
+        telemetry = telemetry,
+    )
+
+    @Bean
+    fun userControlIdempotencyService(
+        store: UserControlIdempotencyStore,
+        codec: UserControlIdempotencyCodec,
+        telemetry: UserControlTelemetry,
+    ): UserControlIdempotencyService = UserControlIdempotencyService(store, codec, telemetry)
+
+    @Bean
     fun transactionalEventPublisher(
         applicationEventPublisher: ApplicationEventPublisher,
     ): TransactionalEventPublisher = TransactionalEventPublisher(applicationEventPublisher)
@@ -247,7 +278,7 @@ class PlatformAdminBootstrapConfiguration {
         transactionRunner: AtomicTransactionRunner,
         workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
-        tokenHasher: BCryptTokenHasher,
+        tokenHasher: TokenHasher,
         invitationTokenCandidateKey: InvitationTokenCandidateKey,
         telemetry: InvitationTelemetry,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
@@ -286,7 +317,7 @@ class PlatformAdminBootstrapConfiguration {
         transactionRunner: AtomicTransactionRunner,
         workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
-        tokenHasher: BCryptTokenHasher,
+        tokenHasher: TokenHasher,
         invitationTokenCandidateKey: InvitationTokenCandidateKey,
         acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,

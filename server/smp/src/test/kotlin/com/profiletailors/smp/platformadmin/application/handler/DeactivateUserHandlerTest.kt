@@ -50,7 +50,7 @@ class DeactivateUserHandlerTest {
         handler.handle(command())
 
         coVerify { principalLifecycleService.revokeSessions(principalId) }
-        coVerify { auditPublisher.publish(match { it.action.name == "USER_DEACTIVATED" }) }
+        coVerify { auditPublisher.publish(match { it.action.name == "USER_DISABLED" }) }
     }
 
     @Test

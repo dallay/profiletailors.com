@@ -31,7 +31,7 @@ class ReactivateUserHandler(
                 occurredAt = clock.instant(),
                 operatorPrincipalId = command.operatorPrincipalId,
                 operatorPlatformRoles = command.operatorRoles,
-                action = AdminAuditAction.USER_REACTIVATED,
+                action = AdminAuditAction.USER_ENABLED,
                 targetType = "Principal",
                 targetId = command.principalId,
                 result = AdminAuditResult.SUCCEEDED,
