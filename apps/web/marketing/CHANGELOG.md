@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.13](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.12...landing@v0.2.13) (2026-09-18)
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#1084](https://github.com/dallay/profiletailors.com/issues/1084)) ([7f6bcc2](https://github.com/dallay/profiletailors.com/commit/7f6bcc2dad2818c6210f5dfa605dd7f0704372da))
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
 ## [0.2.12](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.11...landing@v0.2.12) (2026-09-15)
 
 
