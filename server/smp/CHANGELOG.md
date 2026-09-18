@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.2...smp@v0.5.3) (2026-09-18)
+
+
+### Features
+
+* **admin:** add bulk invite BDD coverage, admin UI selection, and specs ([#1063](https://github.com/dallay/profiletailors.com/issues/1063)) ([980ad04](https://github.com/dallay/profiletailors.com/commit/980ad04699b85dfc61abf2c35ba97efe35ae56dc))
+* **admin:** add bulk waitlist invitation handler with per-entry outcomes ([#1061](https://github.com/dallay/profiletailors.com/issues/1061)) ([b17c1d3](https://github.com/dallay/profiletailors.com/commit/b17c1d35481fcc2678c908b28725a915a222a4ed))
+* **admin:** expose bulk waitlist invitation endpoint with telemetry ([#1062](https://github.com/dallay/profiletailors.com/issues/1062)) ([458f2d1](https://github.com/dallay/profiletailors.com/commit/458f2d1e9c598b7973393130ad36943450822466))
+* **platform-admin:** user administration — disable/enable accounts, revoke sessions ([#1077](https://github.com/dallay/profiletailors.com/issues/1077)) ([35afaf6](https://github.com/dallay/profiletailors.com/commit/35afaf62ffa37c4160a64c27833f242a50685d3c))
+* **platformadmin:** aggregate bulk invite metrics and honor CAS conflict ([#1076](https://github.com/dallay/profiletailors.com/issues/1076)) ([a1384c3](https://github.com/dallay/profiletailors.com/commit/a1384c3222ac6fe0cba7f0ffba041262b994980d))
+* **platformadmin:** scope invitation bearer handoff and throttle accept attempts ([#1088](https://github.com/dallay/profiletailors.com/issues/1088)) ([a212e3f](https://github.com/dallay/profiletailors.com/commit/a212e3fc10f0f6a6488d7b080f178413ffe8d690))
+
+
+### Bug Fixes
+
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
+
+### Refactoring
+
+* **backend:** remediate cross-context infrastructure coupling ([#1065](https://github.com/dallay/profiletailors.com/issues/1065)) ([13f7af3](https://github.com/dallay/profiletailors.com/commit/13f7af352b5831d4f374cad3d88d2dc7adb03fc7))
+
 ## [0.5.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.1...smp@v0.5.2) (2026-09-15)
 
 
