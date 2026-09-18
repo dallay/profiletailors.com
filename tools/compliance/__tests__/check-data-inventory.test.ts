@@ -128,4 +128,16 @@ processing_activities:
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.includes('YAML parse error'))).toBe(true)
   })
+
+  it('validates actual repo data inventory docs/compliance/data-inventory.yaml successfully', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const yamlContent = readFileSync(
+      resolve(process.cwd(), '../../docs/compliance/data-inventory.yaml'),
+      'utf-8'
+    )
+    const result = validateDataInventory(yamlContent)
+    expect(result.errors).toEqual([])
+    expect(result.valid).toBe(true)
+  })
 })

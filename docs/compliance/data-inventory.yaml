@@ -1,7 +1,7 @@
 schema_version: "2.0"
 status: draft
 production_release_status: blocked
-last_verified_on: 2026-07-17
+last_verified_on: 2026-09-18
 processing_entity: UNRESOLVED - legal person required before publication
 DPO_contact: null
 
@@ -56,7 +56,7 @@ processing_activities:
         reason: Password hashing implementation
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/BCryptRefreshTokenHasher.kt
         reason: Refresh-token verifier implementation
-      - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/RefreshSessionCookieFactory.kt
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/RefreshSessionCookieFactory.kt
         reason: Refresh-cookie attributes and clearing behaviour
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/email/ResendEmailConfiguration.kt
         reason: Resend is conditional on a non-blank API key
@@ -103,7 +103,7 @@ processing_activities:
       - OAuth credentials encrypted using AES-GCM
       - Publishing worker is disabled by default and requires explicit configuration
     evidence_references:
-      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInPublishingAdapters.kt
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInPublishingWiring.kt
         reason: Only LinkedIn has real connection and publishing adapters
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt
         reason: Publishing persistence and hard-delete transaction
@@ -592,7 +592,7 @@ processing_activities:
         reason: Publication content local storage
       - path: apps/web/app/src/components/ui/sidebar/SidebarProvider.vue
         reason: Sidebar preference cookie
-      - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/RefreshSessionCookieFactory.kt
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/RefreshSessionCookieFactory.kt
         reason: Authentication cookie
     evidence_status: verified
     legal_review_status: pending
