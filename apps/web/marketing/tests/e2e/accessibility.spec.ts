@@ -179,6 +179,15 @@ test.describe('Marketing A11y — Legal pages @a11y', () => {
             await page.getByRole('heading', { level: 1 }).first().waitFor()
 
             const results = await axe(page).analyze()
+            const colorContrastViolations = results.violations.filter(v => v.id === 'color-contrast')
+            if (colorContrastViolations.length > 0) {
+                console.log('=== COLOR CONTRAST VIOLATION DETAILS ===')
+                console.log('Page:', path)
+                colorContrastViolations.forEach(v => {
+                    console.log('Violation:', JSON.stringify(v, null, 2))
+                })
+                console.log('=== END DETAILS ===')
+            }
             expect(
                 results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
                 `axe violations on ${path}`,
