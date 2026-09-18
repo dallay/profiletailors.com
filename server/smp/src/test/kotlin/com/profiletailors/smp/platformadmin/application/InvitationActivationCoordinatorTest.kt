@@ -21,6 +21,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.InvitationToke
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.domain.Invitation
+import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
@@ -354,29 +355,51 @@ class InvitationActivationCoordinatorTest {
     }
 
     @Test
-    fun `fails when invitation is expired`() = runTest {
+    fun `rejects expired invitation with EXPIRED code`() = runTest {
         val expiredInvitation = createInvitation(
             status = InvitationStatus.ACTIVE,
             expiresAt = now.minusSeconds(10),
         )
-        val principalFacts = PrincipalIdentityFacts(
-            principalId = "p-1",
-            principalType = PrincipalType.USER,
-            subject = "sub-1",
-            provider = "local",
-            displayIdentity = "User",
-            email = "user@example.com",
-            username = "user",
-            emailStatus = EmailStatus.VERIFIED,
-        )
         coEvery { tokenHasher.candidateKey("token") } returns "key"
         coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns expiredInvitation
         coEvery { tokenHasher.matches("token", expiredInvitation.tokenHash) } returns true
-        coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns principalFacts
 
-        assertThrows<InvitationNotAcceptableException> {
+        val failure = assertThrows<InvitationNotAcceptableException> {
             coordinator.activateForRegistration("token", "user@example.com", "p-1")
         }
+
+        assertEquals(InvitationAcceptanceFailureCode.EXPIRED, failure.failureCode)
+    }
+
+    @Test
+    fun `rejects revoked invitation with REVOKED code`() = runTest {
+        val invitation = createInvitation(status = InvitationStatus.REVOKED)
+        coEvery { tokenHasher.candidateKey("token") } returns "key"
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
+        coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns true
+
+        val failure = assertThrows<InvitationNotAcceptableException> {
+            coordinator.activateForRegistration("token", "user@example.com", "p-1")
+        }
+
+        assertEquals(InvitationAcceptanceFailureCode.REVOKED, failure.failureCode)
+    }
+
+    @Test
+    fun `rejects consumed invitation with ALREADY_CONSUMED code`() = runTest {
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+        ).accept(now.minusSeconds(5), "user-p-1")
+        coEvery { tokenHasher.candidateKey("token") } returns "key"
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
+        coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns true
+
+        val failure = assertThrows<InvitationNotAcceptableException> {
+            coordinator.activateForRegistration("token", "user@example.com", "p-1")
+        }
+
+        assertEquals(InvitationAcceptanceFailureCode.ALREADY_CONSUMED, failure.failureCode)
     }
 
     @Test

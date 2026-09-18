@@ -16,8 +16,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -164,6 +166,35 @@ class InvitationAcceptanceControllerTest {
         val expectedCandidateKey = BCryptTokenHasher().candidateKey("raw-invitation-token")
         assertTrue(throttleKey.captured.contains(expectedCandidateKey))
         assertFalse(throttleKey.captured.contains("raw-invitation-token"))
+    }
+
+    @Test
+    fun `accept throttle locks attempt bounds to ten per ten minutes`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { acceptInvitationHandler.handle(any()) } returns
+            InvitationAcceptanceResult("workspace-123", "ACTIVE")
+        val throttleWindow = slot<Duration>()
+        val throttleMax = slot<Int>()
+        val bounding = object : RateLimit {
+            override fun tryAcquire(key: String, window: Duration, now: Instant): Boolean = true
+
+            override fun tryAcquire(key: String, window: Duration, now: Instant, maxRequests: Int): Boolean {
+                throttleWindow.captured = window
+                throttleMax.captured = maxRequests
+                return true
+            }
+        }
+
+        webClient(rateLimit = bounding)
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"raw-invitation-token"}""")
+            .exchange()
+            .expectStatus().isOk
+
+        assertEquals(Duration.ofMinutes(10), throttleWindow.captured)
+        assertEquals(10, throttleMax.captured)
     }
 
     private fun webClient(rateLimit: RateLimit = RateLimit { _, _, _ -> true }): WebTestClient = WebTestClient

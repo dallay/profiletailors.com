@@ -6,7 +6,7 @@ This spec documents the Back Office (`/api/admin/**`) permission model. It forma
 
 ## Permission Registry
 
-All 16 `PlatformPermission` keys and their meanings:
+All 17 `PlatformPermission` keys and their meanings:
 
 | Key | Description |
 |-----|-------------|
@@ -20,8 +20,9 @@ All 16 `PlatformPermission` keys and their meanings:
 | `platform.invitations.revoke` | Revoke active invitations |
 | `platform.users.read` | Read user profiles |
 | `platform.users.workspaces.read` | Read workspace membership for a user |
-| `platform.users.deactivate` | Deactivate a user account and revoke active sessions |
-| `platform.users.reactivate` | Reactivate a previously deactivated user account |
+| `platform.users.deactivate` | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
+| `platform.users.reactivate` | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
+| `platform.users.manage` | Disable/enable accounts and revoke sessions |
 | `platform.audit.read` | Read audit logs |
 | `platform.operators.read` | Read platform operator assignments |
 | `platform.operators.manage` | Create and revoke platform operator role assignments |
@@ -54,6 +55,7 @@ All 16 `PlatformPermission` keys and their meanings:
 | `platform.users.workspaces.read` | ✓ | ✓ | ✓ | — |
 | `platform.users.deactivate` | ✓ | ✓ | — | — |
 | `platform.users.reactivate` | ✓ | ✓ | — | — |
+| `platform.users.manage` | ✓ | ✓ | — | — |
 | `platform.audit.read` | ✓ | ✓ | — | ✓ |
 | `platform.operators.read` | ✓ | ✓ | — | ✓ |
 | `platform.operators.manage` | ✓ | — | — | — |
