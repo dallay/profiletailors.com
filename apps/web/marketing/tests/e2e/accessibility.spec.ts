@@ -179,43 +179,10 @@ test.describe('Marketing A11y — Legal pages @a11y', () => {
             await page.getByRole('heading', { level: 1 }).first().waitFor()
 
             const results = await axe(page).analyze()
-            // Get computed styles of all text elements and check contrast
-            const colorContrastViolations = results.violations.filter(v => v.id === 'color-contrast')
-            if (colorContrastViolations.length > 0) {
-                const debugInfo: string[] = []
-                for (const v of colorContrastViolations) {
-                    for (const node of v.nodes) {
-                        try {
-                            const element = page.locator(node.target[0])
-                            const bgColor = await element.evaluate(el => {
-                                let bg = getComputedStyle(el).backgroundColor
-                                // Walk up to find opaque background
-                                let el2: Element | null = el
-                                while (el2 && bg === 'rgba(0, 0, 0, 0)') {
-                                    bg = getComputedStyle(el2).backgroundColor
-                                    el2 = el2.parentElement
-                                }
-                                return bg
-                            })
-                            const color = await element.evaluate(el => getComputedStyle(el).color)
-                            const fontSize = await element.evaluate(el => getComputedStyle(el).fontSize)
-                            const fontWeight = await element.evaluate(el => getComputedStyle(el).fontWeight)
-                            debugInfo.push(`Target: ${node.target[0]}, BG: ${bgColor}, Color: ${color}, Font: ${fontSize} ${fontWeight}`)
-                        } catch {
-                            debugInfo.push(`Target: ${node.target[0]}, Error getting computed styles`)
-                        }
-                    }
-                }
-                expect(
-                    results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-                    `axe violations on ${path}\nDebug: ${debugInfo.join('\n')}`,
-                ).toEqual([])
-            } else {
-                expect(
-                    results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-                    `axe violations on ${path}`,
-                ).toEqual([])
-            }
+            expect(
+                results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
+                `axe violations on ${path}`,
+            ).toEqual([])
         })
     }
 })
