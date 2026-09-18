@@ -1,12 +1,20 @@
 /// <reference types="vitest/config" />
 
-import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwind from '@tailwindcss/vite'
+import { fileURLToPath, URL } from 'node:url'
+import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
+
+const buildInfo = computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
 
 export default defineConfig({
   envDir: '../../..',
+  define: {
+    __APP_VERSION__: JSON.stringify(buildInfo.version),
+    __GIT_SHA__: JSON.stringify(buildInfo.gitSha),
+    __BUILD_TIME__: JSON.stringify(buildInfo.buildTime),
+  },
   server: {
     port: Number.parseInt(process.env.PORT || '5174', 10),
     strictPort: Boolean(process.env.WORKTREE_ID),

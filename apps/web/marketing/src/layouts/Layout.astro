@@ -4,6 +4,7 @@ import type { Locale } from "@i18n/utils";
 import Analytics from "@components/Analytics.astro";
 import ConsentScript from "@components/consent/ConsentScript.astro";
 import ConsentBanner from "@components/consent/ConsentBanner.astro";
+import VersionBadge from "@components/VersionBadge.astro";
 
 interface Props {
   title?: string;
@@ -15,6 +16,7 @@ interface Props {
   jsonLdType?: "WebSite" | "WebPage";
   noindex?: boolean;
   includeStructuredData?: boolean;
+  hideVersionBadge?: boolean;
 }
 
 const {
@@ -27,6 +29,7 @@ const {
   jsonLdType = "WebSite",
   noindex = false,
   includeStructuredData = true,
+  hideVersionBadge = false,
 } = Astro.props;
 
 const path = canonicalPath ?? "/";
@@ -168,5 +171,12 @@ const jsonLdString = JSON.stringify(jsonLd);
     <slot />
     <Analytics />
     <ConsentBanner locale={lang} />
+    {
+      !hideVersionBadge && (
+        <div class="fixed bottom-3 right-4 z-40" aria-hidden="false">
+          <VersionBadge />
+        </div>
+      )
+    }
   </body>
 </html>
