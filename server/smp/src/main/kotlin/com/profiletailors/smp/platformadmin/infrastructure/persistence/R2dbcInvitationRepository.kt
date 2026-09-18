@@ -37,7 +37,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
     override suspend fun findByCandidateKey(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY,
     )
-        .bind("candidateKey", candidateKey)
+        .bind(CANDIDATE_KEY_PARAMETER, candidateKey)
         .map { row, _ -> row.toInvitation() }
         .one()
         .awaitSingleOrNull()
@@ -45,7 +45,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
     override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY_FOR_UPDATE,
     )
-        .bind("candidateKey", candidateKey)
+        .bind(CANDIDATE_KEY_PARAMETER, candidateKey)
         .map { row, _ -> row.toInvitation() }
         .one()
         .awaitSingleOrNull()
@@ -59,7 +59,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
                 .bind("target", invitation.target.name)
                 .bindNullableString("workspaceId", invitation.workspaceId)
                 .bind("invitedEmailNormalized", invitation.invitedEmailNormalized)
-                .bind("candidateKey", candidateKey)
+                .bind(CANDIDATE_KEY_PARAMETER, candidateKey)
                 .bind("tokenHash", invitation.tokenHash)
                 .bind("status", invitation.status.name)
                 .bind("issuedBy", invitation.issuedBy)
@@ -90,11 +90,13 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .one()
             .awaitSingleOrNull() ?: false
 
-    override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
+    override suspend fun updateIfVersionMatches(invitation: Invitation, candidateKey: String?): Boolean {
         if (invitation.version == 0L) return false
         val expectedVersion = invitation.version - 1
         val rowsUpdated = databaseClient.sql(UPDATE_IF_VERSION_MATCHES)
             .bind("status", invitation.status.name)
+            .bindNullableString("candidateKey", candidateKey)
+            .bind("tokenHash", invitation.tokenHash)
             .bindNullableInstant("acceptedAt", invitation.acceptedAt)
             .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
             .bindNullableString("workspaceId", invitation.workspaceId)
@@ -125,6 +127,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
     )
 
     companion object {
+        private const val CANDIDATE_KEY_PARAMETER = "candidateKey"
         private const val COLUMNS = """
             id, source, source_reference_id, target, workspace_id, invited_email_normalized,
             candidate_key, token_hash, status, issued_by, created_at, expires_at,
@@ -171,7 +174,9 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
 
         private const val UPDATE_IF_VERSION_MATCHES = """
             UPDATE invitations
-            SET status = :status,
+            SET candidate_key = COALESCE(:candidateKey, candidate_key),
+                token_hash = :tokenHash,
+                status = :status,
                 accepted_at = :acceptedAt,
                 accepted_principal_id = :acceptedPrincipalId,
                 workspace_id = :workspaceId,

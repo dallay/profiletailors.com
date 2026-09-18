@@ -1,5 +1,101 @@
 # Changelog
 
+## [0.5.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.2...smp@v0.5.3) (2026-09-18)
+
+
+### Features
+
+* **admin:** add bulk invite BDD coverage, admin UI selection, and specs ([#1063](https://github.com/dallay/profiletailors.com/issues/1063)) ([980ad04](https://github.com/dallay/profiletailors.com/commit/980ad04699b85dfc61abf2c35ba97efe35ae56dc))
+* **admin:** add bulk waitlist invitation handler with per-entry outcomes ([#1061](https://github.com/dallay/profiletailors.com/issues/1061)) ([b17c1d3](https://github.com/dallay/profiletailors.com/commit/b17c1d35481fcc2678c908b28725a915a222a4ed))
+* **admin:** expose bulk waitlist invitation endpoint with telemetry ([#1062](https://github.com/dallay/profiletailors.com/issues/1062)) ([458f2d1](https://github.com/dallay/profiletailors.com/commit/458f2d1e9c598b7973393130ad36943450822466))
+* **platform-admin:** user administration — disable/enable accounts, revoke sessions ([#1077](https://github.com/dallay/profiletailors.com/issues/1077)) ([35afaf6](https://github.com/dallay/profiletailors.com/commit/35afaf62ffa37c4160a64c27833f242a50685d3c))
+* **platformadmin:** aggregate bulk invite metrics and honor CAS conflict ([#1076](https://github.com/dallay/profiletailors.com/issues/1076)) ([a1384c3](https://github.com/dallay/profiletailors.com/commit/a1384c3222ac6fe0cba7f0ffba041262b994980d))
+* **platformadmin:** scope invitation bearer handoff and throttle accept attempts ([#1088](https://github.com/dallay/profiletailors.com/issues/1088)) ([a212e3f](https://github.com/dallay/profiletailors.com/commit/a212e3fc10f0f6a6488d7b080f178413ffe8d690))
+
+
+### Bug Fixes
+
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
+
+### Refactoring
+
+* **backend:** remediate cross-context infrastructure coupling ([#1065](https://github.com/dallay/profiletailors.com/issues/1065)) ([13f7af3](https://github.com/dallay/profiletailors.com/commit/13f7af352b5831d4f374cad3d88d2dc7adb03fc7))
+
+## [0.5.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.1...smp@v0.5.2) (2026-09-15)
+
+
+### Features
+
+* **observability:** close vendor-neutral event migration ([#1027](https://github.com/dallay/profiletailors.com/issues/1027)) ([77c199c](https://github.com/dallay/profiletailors.com/commit/77c199c037989aaf68af01bc68f7405d3de0afc6))
+
+
+### Bug Fixes
+
+* **admin:** resolve backoffice review findings for users, waitlist and invitations ([#1057](https://github.com/dallay/profiletailors.com/issues/1057)) ([27825c5](https://github.com/dallay/profiletailors.com/commit/27825c5cb799712111df34870fd3bd8af7789cb5))
+* **invitations:** deliver direct invitation emails reliably ([#1053](https://github.com/dallay/profiletailors.com/issues/1053)) ([3f5789e](https://github.com/dallay/profiletailors.com/commit/3f5789e9e956d6da3959106e1fc827253919c1fd))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
+
+### Refactoring
+
+* **backend:** remove 15 UNUSED_PARAMETER suppressions via rename-and-drop (R03 platform + R04 identity) ([#1059](https://github.com/dallay/profiletailors.com/issues/1059)) ([6322d36](https://github.com/dallay/profiletailors.com/commit/6322d36c06d89bd737ff82ab1b753d066efa691b))
+* **platformadmin:** add Modulith metadata parity, drop domain exemptions ([#1056](https://github.com/dallay/profiletailors.com/issues/1056)) ([791582c](https://github.com/dallay/profiletailors.com/commit/791582c95b16ac43dcdd8294ac808e33136ae17b))
+* **publishing:** remove 3 live UNUSED_PARAMETER suppressions via rename-and-drop ([#1047](https://github.com/dallay/profiletailors.com/issues/1047)) ([4b49e36](https://github.com/dallay/profiletailors.com/commit/4b49e36c59d9d408c02cbd420cbc3b5a8ff6b363))
+* **publishing:** remove remaining 9 UNUSED_PARAMETER suppressions via rename-and-drop ([#1048](https://github.com/dallay/profiletailors.com/issues/1048)) ([438e557](https://github.com/dallay/profiletailors.com/commit/438e557aa1a6a2c19f9c43615b238e6dd69204e4))
+
+
+### Documentation
+
+* reconcile Java version declarations and documentation references ([#1023](https://github.com/dallay/profiletailors.com/issues/1023)) ([e53ed2f](https://github.com/dallay/profiletailors.com/commit/e53ed2f59d6433951401a819f95cd47a1ad0d9dc))
+
+## [0.5.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.0...smp@v0.5.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **smp:** address review findings on invitation hotfix ([#1018](https://github.com/dallay/profiletailors.com/issues/1018)) ([3674450](https://github.com/dallay/profiletailors.com/commit/3674450b68c4cd5a8bd7373d035cd8aedcb7af32))
+* **smp:** store invitation issuer IDs with user- prefix ([#1016](https://github.com/dallay/profiletailors.com/issues/1016)) ([8e1007d](https://github.com/dallay/profiletailors.com/commit/8e1007dfeaa07d6735711d7ac0a1de13dd7256fb))
+
+## [0.5.0](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.9...smp@v0.5.0) (2026-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **platform-admin:** complete Invitation aggregate with lifecycle and CAS ([#944](https://github.com/dallay/profiletailors.com/issues/944))
+
+### Features
+
+* dallay 564 first class invitation ([#950](https://github.com/dallay/profiletailors.com/issues/950)) ([93314c1](https://github.com/dallay/profiletailors.com/commit/93314c17269d12d099d0570f91362f35037e268e))
+* Enforce safe vendor-neutral observability boundaries ([#1004](https://github.com/dallay/profiletailors.com/issues/1004)) ([4f6d050](https://github.com/dallay/profiletailors.com/commit/4f6d0507093dbfebc1baf8f2715bc0d1a0596e5e))
+* first-class Invitation aggregate with lifecycle and notification integration ([#955](https://github.com/dallay/profiletailors.com/issues/955)) ([811752d](https://github.com/dallay/profiletailors.com/commit/811752d46b6e336076e1c05587755f79915841c6))
+* **invitation:** accept invitations registration flow (DALLAY-567) ([#1011](https://github.com/dallay/profiletailors.com/issues/1011)) ([15c1f67](https://github.com/dallay/profiletailors.com/commit/15c1f67a1a02351fedf22de637fdce57bf7d80a0))
+* **platform-admin:** complete Invitation aggregate with lifecycle and CAS ([#944](https://github.com/dallay/profiletailors.com/issues/944)) ([7556b5a](https://github.com/dallay/profiletailors.com/commit/7556b5aea5f3d9b7d51d355529d625fb070b2d91))
+* **platformadmin:** direct invitation admin commands (DALLAY-568) ([#988](https://github.com/dallay/profiletailors.com/issues/988)) ([68cc405](https://github.com/dallay/profiletailors.com/commit/68cc40598797a71054f19bcffd8ed3bfc0bad4c9))
+* **platformadmin:** remove orphaned administrative context, enforce redact() in publish() ([#974](https://github.com/dallay/profiletailors.com/issues/974)) ([4c69cb1](https://github.com/dallay/profiletailors.com/commit/4c69cb1c1f0b4383e972a39f6e23580e7d095c40))
+* **publishing:** add bulk scheduling with CSV validation ([#922](https://github.com/dallay/profiletailors.com/issues/922)) ([2a1946b](https://github.com/dallay/profiletailors.com/commit/2a1946b667d0fac392ad8df93c79d67cef3c2526))
+* Redesign settings center and add account, security, and user preferences management ([#978](https://github.com/dallay/profiletailors.com/issues/978)) ([b066f17](https://github.com/dallay/profiletailors.com/commit/b066f173a8d5330319de2490c0ca661fcfa6ab96))
+
+
+### Bug Fixes
+
+* **notifications:** dispatch invitation emails ([#927](https://github.com/dallay/profiletailors.com/issues/927)) ([ed46918](https://github.com/dallay/profiletailors.com/commit/ed469186d873c1b2fb2078e7a496772f2925cdb0))
+* **platformadmin:** resolve admin denial handler ([#987](https://github.com/dallay/profiletailors.com/issues/987)) ([91a03ca](https://github.com/dallay/profiletailors.com/commit/91a03ca4e62a039efcf9c53eb3b9d2fc67bfe3d6))
+* **test:** resolve PostgreSQL Testcontainers hang ([#943](https://github.com/dallay/profiletailors.com/issues/943)) ([d8ee58d](https://github.com/dallay/profiletailors.com/commit/d8ee58dba33310fe82b0b229c1381814b4803321))
+
+
+### Refactoring
+
+* **backend:** remediate hexagonal architecture and DDD contract findings ([#969](https://github.com/dallay/profiletailors.com/issues/969)) ([b8da699](https://github.com/dallay/profiletailors.com/commit/b8da69917c2e5fa0af590d2c4d78843e7d3163e7))
+* **lint:** remediate unnecessary linter suppressions and audit remaining rules ([#960](https://github.com/dallay/profiletailors.com/issues/960)) ([d9a1750](https://github.com/dallay/profiletailors.com/commit/d9a175065a6f593fec9a380bebfb3486fb013abb))
+* **observability:** decouple SMP application logging from the hexagonal core ([#984](https://github.com/dallay/profiletailors.com/issues/984)) ([050361b](https://github.com/dallay/profiletailors.com/commit/050361b3a869e331bee2e10f02d5f21dee0426c0))
+* **smp:** migrate Modulith metadata to Kotlin ([#1010](https://github.com/dallay/profiletailors.com/issues/1010)) ([b6c6893](https://github.com/dallay/profiletailors.com/commit/b6c6893817c12c7b8963a166b9ca2832aea75887))
+
+
+### Documentation
+
+* **config:** reconcile Spring binding evidence ([#962](https://github.com/dallay/profiletailors.com/issues/962)) ([ff7c9b7](https://github.com/dallay/profiletailors.com/commit/ff7c9b7e2411b7d0990de701be27131862f52305))
+
 ## [Unreleased]
 
 ### ⚠ BREAKING CHANGES

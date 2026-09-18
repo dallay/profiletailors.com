@@ -1,24 +1,41 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.model.AdminDirectInvitationSummary
+import com.profiletailors.smp.platformadmin.application.query.ListAdminDirectInvitationsQuery
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import io.r2dbc.spi.Row
+import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.RowsFetchSpec
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
+import java.util.function.BiFunction
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class R2dbcAdminInvitationQueryTest {
 
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
-    private val query = R2dbcAdminInvitationQuery(invitationRepository)
+    private val databaseClient = mockk<DatabaseClient>()
+    private val query = R2dbcAdminInvitationQuery(invitationRepository, databaseClient)
 
     @Test
     fun `findById returns summary when invitation exists`() = runTest {
@@ -110,5 +127,140 @@ class R2dbcAdminInvitationQueryTest {
         assertEquals(revokedBy, result.revokedBy)
         assertEquals("REVOKED", result.status)
         assertEquals("FAILED", result.deliveryStatus)
+    }
+
+    @Test
+    fun `list rejects negative page`() = runTest {
+        assertFailsWith<IllegalArgumentException> {
+            query.list(ListAdminDirectInvitationsQuery(page = -1, size = 25))
+        }
+    }
+
+    @Test
+    fun `list rejects oversize page`() = runTest {
+        assertFailsWith<IllegalArgumentException> {
+            query.list(ListAdminDirectInvitationsQuery(page = 0, size = 101))
+        }
+    }
+
+    @Test
+    fun `list reads direct rows ordered by created_at desc`() = runTest {
+        val sqls = stubList(total = 2, rows = listOf(directRow(), directRow(email = "ops@example.com")))
+        val result = query.list(ListAdminDirectInvitationsQuery(page = 0, size = 25))
+
+        assertEquals(2, result.items.size)
+        assertEquals(2, result.totalElements)
+        assertEquals(0, result.page)
+        assertTrue(sqls.any { it.contains("source = 'DIRECT'") })
+        assertTrue(sqls.any { it.contains("ORDER BY created_at DESC") })
+        assertTrue(sqls.none { it.contains("WAITLIST") })
+    }
+
+    @Test
+    fun `list applies status equality and normalized email substring`() = runTest {
+        val sqls = mutableListOf<String>()
+        val countSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
+        val dataSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
+        every { databaseClient.sql(capture(sqls)) } answers {
+            if (firstArg<String>().contains("COUNT(*)")) countSpec else dataSpec
+        }
+        every { countSpec.bind(any<String>(), any<Any>()) } answers { countSpec }
+        every { dataSpec.bind(any<String>(), any<Any>()) } answers { dataSpec }
+        val countRows = mockk<RowsFetchSpec<Long>>(relaxed = true)
+        every { countSpec.map(any<BiFunction<Row, RowMetadata, Long>>()) } returns countRows
+        every { countRows.one() } returns Mono.just(0L)
+        val dataRows = mockk<RowsFetchSpec<AdminDirectInvitationSummary>>(relaxed = true)
+        val slot = slot<BiFunction<Row, RowMetadata, AdminDirectInvitationSummary>>()
+        every { dataSpec.map(capture(slot)) } returns dataRows
+        every { dataRows.all() } returns Flux.empty()
+
+        query.list(ListAdminDirectInvitationsQuery(page = 1, size = 10, status = "ACTIVE", email = "  OPS@  "))
+
+        verify { dataSpec.bind("status", "ACTIVE") }
+        verify { dataSpec.bind("email", "ops@") }
+        verify { dataSpec.bind("size", 10) }
+        verify { dataSpec.bind("offset", 10L) }
+        assertTrue(sqls.any { it.contains("EXPIRED") })
+        assertTrue(sqls.any { it.contains("invited_email_normalized LIKE") })
+    }
+
+    @Test
+    fun `list maps rows without token material`() = runTest {
+        stubList(total = 1, rows = listOf(directRow()))
+
+        val result = query.list(ListAdminDirectInvitationsQuery(page = 0, size = 25))
+
+        val item = result.items.single()
+        assertEquals("ops@example.com", item.email)
+        assertEquals("EXISTING_WORKSPACE", item.target)
+        assertEquals("ws-1", item.workspaceId)
+        assertEquals("ACTIVE", item.status)
+        assertEquals(3L, item.version)
+    }
+
+    @Test
+    fun `list orders by created_at desc with id tiebreaker`() = runTest {
+        val sqls = stubList(total = 0, rows = emptyList())
+
+        query.list(ListAdminDirectInvitationsQuery(page = 0, size = 25))
+
+        assertTrue(sqls.any { it.contains("ORDER BY created_at DESC, id DESC") })
+    }
+
+    @Test
+    fun `list returns empty page with total zero`() = runTest {
+        stubList(total = 0, rows = emptyList())
+
+        val result = query.list(ListAdminDirectInvitationsQuery(page = 0, size = 25, status = "REVOKED"))
+
+        assertTrue(result.items.isEmpty())
+        assertEquals(0, result.totalElements)
+        assertEquals(0, result.totalPages)
+    }
+
+    private fun directRow(email: String = "ops@example.com"): Map<String, Any?> = mapOf(
+        "id" to UUID.fromString("00000000-0000-0000-0000-0000000000a1"),
+        "invited_email_normalized" to email,
+        "target" to "EXISTING_WORKSPACE",
+        "workspace_id" to "ws-1",
+        "status" to "ACTIVE",
+        "expires_at" to OffsetDateTime.ofInstant(Instant.parse("2026-02-01T00:00:00Z"), ZoneOffset.UTC),
+        "version" to 3L,
+    )
+
+    private fun stubList(total: Long, rows: List<Map<String, Any?>>): MutableList<String> {
+        val sqls = mutableListOf<String>()
+        val countSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
+        val dataSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
+        every { databaseClient.sql(capture(sqls)) } answers {
+            if (firstArg<String>().contains("COUNT(*)")) countSpec else dataSpec
+        }
+        every { countSpec.bind(any<String>(), any<Any>()) } answers { countSpec }
+        every { dataSpec.bind(any<String>(), any<Any>()) } answers { dataSpec }
+        val countRows = mockk<RowsFetchSpec<Long>>(relaxed = true)
+        every { countSpec.map(any<BiFunction<Row, RowMetadata, Long>>()) } returns countRows
+        every { countRows.one() } returns Mono.just(total)
+        val dataRows = mockk<RowsFetchSpec<AdminDirectInvitationSummary>>(relaxed = true)
+        val slot = slot<BiFunction<Row, RowMetadata, AdminDirectInvitationSummary>>()
+        every { dataSpec.map(capture(slot)) } returns dataRows
+        every { dataRows.all() } answers {
+            Flux.fromIterable(rows.map { columns -> slot.captured.apply(stubRow(columns), mockk()) })
+        }
+        return sqls
+    }
+
+    private fun stubRow(columns: Map<String, Any?>): Row {
+        val row = mockk<Row>()
+        columns.forEach { (name, value) ->
+            when (value) {
+                is UUID -> every { row.get(name, UUID::class.java) } returns value
+                is String -> every { row.get(name, String::class.java) } returns value
+                is OffsetDateTime -> every { row.get(name, OffsetDateTime::class.java) } returns value
+                is Long -> every { row.get(name, Long::class.java) } returns value
+                null -> every { row.get(name, String::class.java) } returns null
+                else -> throw IllegalArgumentException("Unsupported stub column $name")
+            }
+        }
+        return row
     }
 }

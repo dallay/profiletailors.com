@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,10 +36,10 @@ jobs:
           cache: 'gradle'
 
       - name: Run backend tests
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon --no-configuration-cache
 
       - name: Generate backend coverage reports
-        run: ./gradlew :server:smp:koverXmlReport :server:smp:postgresIntegrationTest -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon
+        run: ./gradlew :server:smp:koverXmlReport :server:smp:postgresIntegrationTest -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon --no-configuration-cache
 
       - name: Verify backend coverage reports
         run: |

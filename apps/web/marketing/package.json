@@ -1,7 +1,7 @@
 {
   "name": "marketing",
   "type": "module",
-  "version": "0.2.10",
+  "version": "0.2.13",
   "portless": {
     "name": "profiletailors",
     "script": "dev:app"
@@ -29,24 +29,24 @@
   },
   "dependencies": {
     "@dallay/astro-icon": "^1.3.3",
-    "@iconify-json/lucide": "^1.2.126",
+    "@iconify-json/lucide": "^1.2.132",
     "@profiletailors/shared-web": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.2.6",
+    "astro": "^7.3.2",
     "tailwindcss": "^4.3.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@axe-core/playwright": "^4.13.0",
     "@bgotink/playwright-coverage": "^0.3.2",
     "@codecov/vite-plugin": "^2.0.1",
-    "@playwright/test": "^1.62.1",
-    "@vitest/coverage-v8": "^3.2.7",
+    "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^7.3.6",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "packageExtensions": {

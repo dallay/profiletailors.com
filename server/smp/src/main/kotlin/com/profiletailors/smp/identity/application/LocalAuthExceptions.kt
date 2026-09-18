@@ -17,6 +17,8 @@ class RegistrationDisabledException : RuntimeException("Registration is not avai
 
 class RegistrationInvitationRequiredException : RuntimeException("A valid invitation is required to register.")
 
+class InvitationWorkspaceOverrideException : RuntimeException("Client workspace selection is not allowed.")
+
 class UnverifiedEmailException(val email: String) : RuntimeException("Email verification required for '$email'.")
 
 open class InvalidVerificationTokenException(message: String = "Invalid verification token.") :

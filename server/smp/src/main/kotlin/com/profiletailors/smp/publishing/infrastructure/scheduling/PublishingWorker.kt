@@ -531,6 +531,7 @@ class PublishingJobExecutor(
         )
     }
 
+    @Suppress("S107")
     private suspend fun persistAttemptOutcome(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,

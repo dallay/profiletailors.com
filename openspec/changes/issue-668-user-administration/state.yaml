@@ -1,0 +1,52 @@
+change: issue-668-user-administration
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+updated: "2026-09-17T16:06:01Z"
+next: archive
+verification_status: passed
+verification_verdict: PASS
+verification_report: openspec/changes/issue-668-user-administration/verify-report.md
+blocked_reason: >-
+  Resolved. The staged-whitespace finding is obsolete: AdminCommands.kt was committed without
+  the trailing blank line, and both git diff --check and git diff --staged --check pass.
+  backend-check is BUILD SUCCESSFUL locally and the CI Quality Gate (SonarCloud new-code
+  coverage 86.2%, codecov/patch, backend/frontend/BDD/Postgres/E2E lanes) is green on PR #1077.
+delivery:
+  strategy: single-pr
+  size_exception: true
+  scope: complete issue #668 in one delivery branch/unit
+  base: backoffice
+  branch: backoffice
+persistence_mode: openspec
+bounded_contexts:
+  - identity
+  - credentials
+  - platformadmin
+  - authorization
+  - governance
+  - observability
+stack:
+  backend:
+    - kotlin
+    - spring-boot-4
+    - webflux
+    - r2dbc
+  frontend:
+    - vue-3
+    - pinia
+  testing:
+    - junit-platform
+    - cucumber + testcontainers
+    - vitest
+    - playwright
+exploration_summary:
+  issue_state: open
+  implementation_state: apply-correction-complete-verification-blocked-by-staged-whitespace
+  production_code_changed: true

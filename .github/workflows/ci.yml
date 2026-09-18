@@ -91,11 +91,11 @@ jobs:
 
       - name: Spotless check (backend)
         shell: bash
-        run: ./gradlew spotlessCheck --no-daemon
+        run: ./gradlew spotlessCheck --no-daemon --no-configuration-cache
 
       - name: Detekt (backend)
         shell: bash
-        run: ./gradlew :server:smp:detekt --no-daemon
+        run: ./gradlew :server:smp:detekt --no-daemon --no-configuration-cache
 
       - name: Restore lychee cache
         id: restore-lychee-cache
@@ -185,7 +185,7 @@ jobs:
 
       - name: Build backend artifact
         shell: bash
-        run: ./gradlew :server:smp:bootJar --no-daemon
+        run: ./gradlew :server:smp:bootJar --no-daemon --no-configuration-cache
 
   # ──────────────────────────────────────────────────────────────
   # 4. Backend unit tests (Kotlin — no Postgres)
@@ -202,7 +202,7 @@ jobs:
 
       - name: Run unit tests (exclude BDD suites)
         shell: bash
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon --no-configuration-cache
 
   # ═══════════════════════════════════════════════════════════════
   # Conditional jobs — only run when relevant paths change
@@ -230,7 +230,7 @@ jobs:
         id: bdd-test
         continue-on-error: true
         shell: bash
-        run: ./gradlew :server:smp:bddFastTest --no-daemon --info --stacktrace -x :shared:common:test -x :shared:spring-boot-common:test
+        run: ./gradlew :server:smp:bddFastTest --no-daemon --no-configuration-cache --info --stacktrace -x :shared:common:test -x :shared:spring-boot-common:test
 
       - name: Upload BDD test report
         if: always()
@@ -251,6 +251,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -260,11 +261,11 @@ jobs:
 
       - name: Run Postgres integration tests
         shell: bash
-        run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+        run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon --no-configuration-cache -x :shared:common:test -x :shared:spring-boot-common:test
 
       - name: Run Postgres BDD suite
         shell: bash
-        run: ./gradlew :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+        run: ./gradlew :server:smp:bddPostgresTest --no-daemon --no-configuration-cache -x :shared:common:test -x :shared:spring-boot-common:test
 
   # ──────────────────────────────────────────────────────────────
   # 6. Marketing E2E (Playwright — all browsers)

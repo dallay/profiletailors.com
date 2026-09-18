@@ -26,6 +26,7 @@ data class CancelWaitlistEntryCommand(
     val operatorRoles: Set<PlatformRole>,
     val waitlistEntryId: String,
     val reason: String,
+    val expectedVersion: Long,
 )
 
 data class AssignPlatformRoleCommand(
@@ -41,3 +42,60 @@ data class RevokePlatformRoleCommand(
     val targetPrincipalId: UUID,
     val role: PlatformRole,
 )
+
+data class DisableUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
+data class EnableUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
+data class RevokeUserSessionsCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
+data class DeactivateUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val principalId: String,
+    val expectedVersion: Long,
+)
+
+data class ReactivateUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val principalId: String,
+    val expectedVersion: Long,
+)
+
+const val BULK_INVITE_MAX_ENTRIES = 50
+
+data class BulkInviteWaitlistEntriesCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val entryIds: List<String>,
+)
+
+enum class BulkInviteOutcome {
+    INVITED,
+    SKIPPED,
+    FAILED,
+}
+
+data class BulkEntryResult(
+    val entryId: String,
+    val outcome: BulkInviteOutcome,
+    val invitationId: UUID? = null,
+    val code: String? = null,
+)
+
+data class BulkInviteSummary(val requested: Int, val invited: Int, val skipped: Int, val failed: Int)
+
+data class BulkInviteWaitlistEntriesResult(val results: List<BulkEntryResult>, val summary: BulkInviteSummary)

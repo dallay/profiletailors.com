@@ -10,14 +10,17 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.command.CancelWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
@@ -41,16 +44,39 @@ class CancelWaitlistEntryHandlerTest {
     private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
+    private val adminWaitlistQuery = mockk<AdminWaitlistQuery>()
 
     private val handler = CancelWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
+        adminWaitlistQuery = adminWaitlistQuery,
         clock = clock,
     )
 
     private val operatorRoles = setOf(PlatformRole.PLATFORM_OPERATOR)
     private val supportRoles = setOf(PlatformRole.SUPPORT_AGENT)
+
+    private fun entryDetail(version: Long = 1) = AdminWaitlistEntryDetail(
+        id = entryId,
+        waitlistId = "wl-1",
+        waitlistKey = "test-key",
+        email = "test@example.com",
+        normalizedEmail = "test@example.com",
+        status = "PENDING",
+        joinedAt = Instant.now(),
+        invitedAt = null,
+        convertedAt = null,
+        cancelledAt = null,
+        preferredLocale = null,
+        earlyAccessConsent = true,
+        marketingConsent = false,
+        consentVersion = "v1",
+        source = "web",
+        metadataSummary = emptyMap(),
+        invitationHistory = emptyList(),
+        version = version,
+    )
 
     @Test
     fun `throws PlatformAccessDeniedException when operator lacks cancel permission`() = runTest {
@@ -62,18 +88,21 @@ class CancelWaitlistEntryHandlerTest {
     @Test
     fun `throws WaitlistEntryNotFoundException when entry does not exist`() = runTest {
         coEvery { waitlistEntryAdmin.findById(entryId) } returns null
+        coEvery { adminWaitlistQuery.findById(entryId) } returns null
         assertThrows<WaitlistEntryNotFoundException> { handler.handle(command()) }
     }
 
     @Test
     fun `throws WaitlistEntryAlreadyConvertedException for converted entry`() = runTest {
         coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.CONVERTED)
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail()
         assertThrows<WaitlistEntryAlreadyConvertedException> { handler.handle(command()) }
     }
 
     @Test
     fun `cancels pending entry and records audit event`() = runTest {
         coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail()
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
@@ -98,6 +127,7 @@ class CancelWaitlistEntryHandlerTest {
         )
         coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInv
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail()
         coEvery { invitationRepository.update(any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
@@ -110,6 +140,7 @@ class CancelWaitlistEntryHandlerTest {
     @Test
     fun `cancellation reason is included in audit event`() = runTest {
         coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail()
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
@@ -118,13 +149,29 @@ class CancelWaitlistEntryHandlerTest {
         coVerify { auditPublisher.publish(match { it.reason == "spam" }) }
     }
 
-    private fun command(roles: Set<PlatformRole> = operatorRoles, reason: String = "test reason") =
-        CancelWaitlistEntryCommand(
-            operatorPrincipalId = operatorId,
-            operatorRoles = roles,
-            waitlistEntryId = entryId,
-            reason = reason,
-        )
+    @Test
+    fun `throws WaitlistEntryVersionConflictException on stale expected version`() = runTest {
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail(version = 2)
+
+        assertThrows<WaitlistEntryVersionConflictException> { handler.handle(command(expectedVersion = 1)) }
+
+        coVerify(exactly = 0) { invitationRepository.update(any()) }
+        coVerify(exactly = 0) { waitlistEntryAdmin.save(any()) }
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
+    }
+
+    private fun command(
+        roles: Set<PlatformRole> = operatorRoles,
+        reason: String = "test reason",
+        expectedVersion: Long = 1,
+    ) = CancelWaitlistEntryCommand(
+        operatorPrincipalId = operatorId,
+        operatorRoles = roles,
+        waitlistEntryId = entryId,
+        reason = reason,
+        expectedVersion = expectedVersion,
+    )
 
     private fun entry(status: WaitlistEntryStatus) = WaitlistEntry(
         id = WaitlistEntryId(entryId),

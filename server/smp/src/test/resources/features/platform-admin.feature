@@ -96,7 +96,7 @@ Feature: Platform administration access control and waitlist management
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation with an unavailable token
     Then the admin response status should be 400
-    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+    And the admin response code should be "INVITATION_INVALID"
 
   Scenario: Authenticated principal accepts a direct invitation and receives a safe result
     Given an active direct invitation exists for "jwt-user@example.com"
@@ -111,13 +111,26 @@ Feature: Platform administration access control and waitlist management
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
     And the authenticated principal accepts the invitation again
-    Then the admin response status should be 400
-    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+    Then the admin response status should be 409
+    And the admin response code should be "INVITATION_ALREADY_CONSUMED"
 
   Scenario: Invitation acceptance is isolated from the request workspace
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
     Then the invitation acceptance workspace should be "invitation-workspace"
+
+  Scenario: Authenticated existing identity accepts without duplicate records
+    Given an active direct invitation exists for "jwt-user@example.com"
+    And the authenticated principal has an existing credential and workspace membership
+    When the authenticated principal accepts the invitation
+    Then the admin response status should be 200
+    And the invitation acceptance workspace should be "invitation-workspace"
+    And the invitation acceptance membership status should be "ACTIVE"
+    And the invitation response should not contain the token
+    And the invitation response should not contain "jwt-user@example.com"
+    And the invitation status should become "ACCEPTED"
+    And the authenticated principal should have exactly one identity and credential
+    And the invitation workspace should have exactly one workspace and membership for the authenticated principal
 
   # ── Invitation operations ─────────────────────────────────────────────────
 
@@ -135,3 +148,73 @@ Feature: Platform administration access control and waitlist management
     When the platform operator invites the waitlist entry
     Then an audit event with action "WAITLIST_ENTRY_INVITED" should be recorded
     And the audit event should not contain a raw invitation token
+
+  # ── Bulk waitlist invitation ─────────────────────────────────────────────
+
+  Scenario: Operator bulk invites a mixed batch with partial success
+    Given a pending waitlist entry exists for "bulk-ok-a@example.com"
+    And a pending waitlist entry exists for "bulk-ok-b@example.com"
+    And a pending waitlist entry exists for "bulk-ok-c@example.com"
+    And an invited waitlist entry with an active invitation exists for "bulk-skipped@example.com"
+    And a converted waitlist entry exists for "bulk-failed@example.com"
+    When the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 3 invited, 1 skipped and 1 failed
+    And the bulk invite results should not contain sensitive values
+
+  Scenario: Retrying a bulk invite yields skips without duplicates
+    Given a pending waitlist entry exists for "bulk-retry-a@example.com"
+    And a pending waitlist entry exists for "bulk-retry-b@example.com"
+    When the platform operator bulk invites the tracked waitlist entries
+    And the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 0 invited, 2 skipped and 0 failed
+
+  Scenario: Bulk invite after a single invite keeps exactly one invitation
+    Given a pending waitlist entry exists for "bulk-race@example.com"
+    When the platform operator invites the waitlist entry
+    And the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 0 invited, 1 skipped and 0 failed
+    And one active invitation should be created for the entry
+
+  Scenario: AUDITOR cannot bulk invite candidates
+    Given the authenticated principal has the role "AUDITOR"
+    And a pending waitlist entry exists for "bulk-denied@example.com"
+    When the auditor bulk invites the tracked waitlist entries
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+    And the waitlist entry status should remain "PENDING"
+
+  @user-administration
+  Scenario: Support agent cannot disable a user
+    Given a registered user exists for "control-test@example.com"
+    And the authenticated principal has the role "SUPPORT_AGENT"
+    When the operator disables the registered user
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+
+  @user-administration
+  Scenario: Platform operator disables a user and replays the command
+    Given a registered user exists for "control-test@example.com"
+    When the platform operator disables the registered user
+    Then the admin response status should be 200
+    And the registered user account state should be "DISABLED"
+    When the platform operator repeats the disable command with the same idempotency key
+    Then the admin response status should be 200
+    And the disable operation should have been executed once
+
+  @user-administration
+  Scenario: User detail exposes workspace membership data
+    Given a registered user with a workspace membership exists for "detail-test@example.com"
+    When the platform operator requests the registered user detail
+    Then the admin response status should be 200
+    And the user detail should include one workspace membership
+
+  @user-administration
+  Scenario: Workspace membership lookup requires base user read permission
+    Given a registered user exists for "workspace-permission@example.com"
+    And the authenticated principal has the role "AUDITOR"
+    When the platform operator requests the registered user workspaces
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"

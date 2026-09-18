@@ -2,8 +2,11 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.command.BulkInviteWaitlistEntriesCommand
+import com.profiletailors.smp.platformadmin.application.command.BulkInviteWaitlistEntriesResult
 import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistQueryTelemetry
+import com.profiletailors.smp.platformadmin.application.handler.BulkInviteWaitlistEntriesHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
@@ -25,13 +28,15 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/waitlist-entries")
 class AdminWaitlistController(
     private val waitlistQuery: AdminWaitlistQuery,
     private val inviteHandler: InviteWaitlistEntryHandler,
+    private val bulkInviteHandler: BulkInviteWaitlistEntriesHandler,
     private val cancelHandler: CancelWaitlistEntryHandler,
     private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
@@ -48,10 +53,10 @@ class AdminWaitlistController(
         @RequestParam waitlistId: String? = null,
         @RequestParam waitlistKey: String? = null,
         @RequestParam email: String? = null,
-        @RequestParam joinedFrom: Instant? = null,
-        @RequestParam joinedTo: Instant? = null,
-        @RequestParam invitedFrom: Instant? = null,
-        @RequestParam invitedTo: Instant? = null,
+        @RequestParam joinedFrom: LocalDate? = null,
+        @RequestParam joinedTo: LocalDate? = null,
+        @RequestParam invitedFrom: LocalDate? = null,
+        @RequestParam invitedTo: LocalDate? = null,
     ): ResponseEntity<PagedResult<AdminWaitlistEntrySummary>> {
         val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {
@@ -79,6 +84,16 @@ class AdminWaitlistController(
             emailSearch = !email.isNullOrBlank(),
         )
         return ResponseEntity.ok(result)
+    }
+
+    @GetMapping("/summary")
+    suspend fun getSummary(): ResponseEntity<Map<String, Long>> {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {
+            throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
+        }
+        val summary = waitlistQuery.countByStatus()
+        return ResponseEntity.ok(summary)
     }
 
     @GetMapping("/{entryId}")
@@ -120,9 +135,24 @@ class AdminWaitlistController(
                 operatorRoles = operator.roles,
                 waitlistEntryId = entryId,
                 reason = request.reason,
+                expectedVersion = request.expectedVersion,
             ),
         )
         return ResponseEntity.ok(mapOf("status" to "cancelled"))
+    }
+
+    @PostMapping("/invitations:bulk")
+    suspend fun bulkInvite(@RequestBody request: BulkInviteRequest): ResponseEntity<BulkInviteResponse> {
+        val operator = resolveOperator()
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val result = bulkInviteHandler.handle(
+            BulkInviteWaitlistEntriesCommand(
+                operatorPrincipalId = operator.principalId,
+                operatorRoles = operator.roles,
+                entryIds = request.entryIds,
+            ),
+        )
+        return ResponseEntity.ok(result.toResponse())
     }
 
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
@@ -130,5 +160,35 @@ class AdminWaitlistController(
         return operatorAccessResolver.resolve(ctx)
     }
 
-    data class CancelRequest(val reason: String)
+    data class CancelRequest(val reason: String, val expectedVersion: Long)
+
+    data class BulkInviteRequest(val entryIds: List<String> = emptyList())
+
+    data class BulkEntryResponse(
+        val entryId: String,
+        val outcome: String,
+        val invitationId: UUID? = null,
+        val code: String? = null,
+    )
+
+    data class BulkInviteSummaryResponse(val requested: Int, val invited: Int, val skipped: Int, val failed: Int)
+
+    data class BulkInviteResponse(val results: List<BulkEntryResponse>, val summary: BulkInviteSummaryResponse)
+
+    private fun BulkInviteWaitlistEntriesResult.toResponse() = BulkInviteResponse(
+        results = results.map { entry ->
+            BulkEntryResponse(
+                entryId = entry.entryId,
+                outcome = entry.outcome.name.lowercase(),
+                invitationId = entry.invitationId,
+                code = entry.code,
+            )
+        },
+        summary = BulkInviteSummaryResponse(
+            requested = summary.requested,
+            invited = summary.invited,
+            skipped = summary.skipped,
+            failed = summary.failed,
+        ),
+    )
 }

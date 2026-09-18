@@ -16,6 +16,8 @@ interface AdminUserDetail {
   email: string | null
   displayIdentity: string | null
   principalType: string
+  accountState: 'ACTIVE' | 'DISABLED'
+  emailStatus: string | null
   createdAt: string
   lastAuthenticatedAt: string | null
   authenticationMethods: string[]
@@ -35,6 +37,40 @@ const user = ref<AdminUserDetail | null>(null)
 const workspaces = ref<AdminWorkspaceMembership[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const mutationError = ref<string | null>(null)
+
+function mutationKey(operation: string): string {
+  return `admin-user-${operation}-${principalId}-${crypto.randomUUID()}`
+}
+
+async function runMutation(operation: 'disable' | 'enable' | 'sessions/revoke'): Promise<void> {
+  mutationError.value = null
+  try {
+    const response = await authStore.request(`/api/admin/users/${principalId}/${operation}`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': mutationKey(operation) },
+    })
+    if (!response.ok) {
+      mutationError.value = t('common.error')
+      return
+    }
+    await fetchUser()
+  } catch {
+    mutationError.value = t('common.error')
+  }
+}
+
+async function disableUser(): Promise<void> {
+  if (window.confirm(t('users.disableConfirm'))) await runMutation('disable')
+}
+
+async function enableUser(): Promise<void> {
+  if (window.confirm(t('users.enableConfirm'))) await runMutation('enable')
+}
+
+async function revokeSessions(): Promise<void> {
+  if (window.confirm(t('users.revokeSessionsConfirm'))) await runMutation('sessions/revoke')
+}
 
 async function fetchUser() {
   loading.value = true
@@ -73,12 +109,22 @@ onMounted(fetchUser)
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('users.displayName')" :value="user.displayIdentity ?? '—'" />
         <Field :label="t('users.principalType')" :value="user.principalType" />
+        <Field :label="t('users.accountState')" :value="user.accountState" />
+        <Field :label="t('users.verificationState')" :value="user.emailStatus ?? '—'" />
         <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString(locale)" />
         <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString(locale) : '—'" />
         <Field :label="t('users.platformRoles')" :value="user.platformRoles?.join(', ') || '—'" />
       </div>
 
-      <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
+       <div v-if="authStore.hasPermission('platform.users.manage')" class="mb-8 flex flex-wrap gap-3">
+         <button v-if="user.accountState === 'ACTIVE'" class="admin-button-secondary" @click="disableUser">{{ t('users.disable') }}</button>
+         <button v-else class="admin-button-secondary" @click="enableUser">{{ t('users.enable') }}</button>
+         <button class="admin-button-secondary" @click="revokeSessions">{{ t('users.revokeSessions') }}</button>
+       </div>
+       <div v-if="mutationError" role="alert" class="mb-4 text-error">{{ mutationError }}</div>
+
+       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
+
       <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
       <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('users.workspaceMemberships')">
         <thead>

@@ -17,18 +17,17 @@ const showWaitlistForm = WAITLIST_ENABLED
 ---
 
 <section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <p
+  <div
     data-hero-label
-    class="font-mono text-xs tracking-[0.2em] text-text-muted mb-8"
-    style="opacity:0"
+    class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-visible bg-bg-surface/60 font-mono text-xs tracking-wider text-text-secondary uppercase mb-8"
   >
-    {label}
-  </p>
+    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
+    <span>{label}</span>
+  </div>
 
   <h1
     data-hero-headline
     class="font-display text-5xl sm:text-6xl lg:text-7xl font-medium text-text-display leading-[1.05] tracking-tight mb-6 whitespace-pre-line"
-    style="opacity:0"
   >
     {headline}
   </h1>
@@ -36,20 +35,19 @@ const showWaitlistForm = WAITLIST_ENABLED
   <p
     data-hero-sub
     class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-12"
-    style="opacity:0"
   >
     {sub}
   </p>
 
   {showWaitlistForm ? (
-    <div data-hero-form style="opacity:0" data-hero-form-active>
+    <div data-hero-form data-hero-form-active>
       <WaitlistForm locale={locale} />
       <noscript>
         <EarlyAccessStatus message={status} />
       </noscript>
     </div>
   ) : (
-    <div data-hero-form style="opacity:0">
+    <div data-hero-form>
       <EarlyAccessStatus message={status} />
     </div>
   )}

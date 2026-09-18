@@ -3,6 +3,8 @@ package com.profiletailors.smp.platformadmin.application.handler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.smp.platformadmin.application.OptimisticLockException
+import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -72,23 +74,10 @@ open class InviteWaitlistEntryHandler(
                         command.waitlistEntryId,
                         "No active invitation to supersede",
                     )
-                val superseded = Invitation(
-                    id = existingInvitation.id,
-                    source = existingInvitation.source,
-                    sourceReferenceId = existingInvitation.sourceReferenceId,
-                    target = existingInvitation.target,
-                    workspaceId = existingInvitation.workspaceId,
-                    invitedEmailNormalized = existingInvitation.invitedEmailNormalized,
-                    tokenHash = existingInvitation.tokenHash,
-                    status = InvitationStatus.REVOKED,
-                    issuedBy = existingInvitation.issuedBy,
-                    createdAt = existingInvitation.createdAt,
-                    expiresAt = existingInvitation.expiresAt,
-                    acceptedAt = existingInvitation.acceptedAt,
-                    acceptedPrincipalId = existingInvitation.acceptedPrincipalId,
-                    version = existingInvitation.version,
-                )
-                newInvitationRepository.updateIfVersionMatches(superseded)
+                val superseded = existingInvitation.revoke()
+                if (!newInvitationRepository.updateIfVersionMatches(superseded)) {
+                    throw OptimisticLockException()
+                }
                 return AdminInvitationSummary(
                     id = existingInvitation.id.value,
                     waitlistEntryId = entry.id.value,
@@ -98,7 +87,7 @@ open class InviteWaitlistEntryHandler(
                     acceptedAt = null,
                     revokedAt = clock.instant(),
                     revokedBy = null,
-                    createdBy = UUID.fromString(existingInvitation.issuedBy),
+                    createdBy = PlatformPrincipalIds.toUuid(existingInvitation.issuedBy),
                     deliveryStatus = InvitationDeliveryStatus.PENDING.name,
                     deliveryAttemptCount = 0,
                     version = existingInvitation.version + 1,
@@ -139,7 +128,7 @@ open class InviteWaitlistEntryHandler(
             invitedEmailNormalized = context.recipientEmail.lowercase(),
             tokenHash = tokenHash,
             status = InvitationStatus.ACTIVE,
-            issuedBy = command.operatorPrincipalId.toString(),
+            issuedBy = PlatformPrincipalIds.fromUuid(command.operatorPrincipalId),
             createdAt = now,
             expiresAt = now + invitationTtl,
         )
@@ -168,6 +157,7 @@ open class InviteWaitlistEntryHandler(
                 invitationId = newInvitation.id.value,
                 recipientEmail = context.recipientEmail,
                 workspaceName = context.workspaceName,
+                target = newInvitation.target,
                 locale = context.locale,
                 rawToken = rawToken,
             ),

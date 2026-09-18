@@ -33,12 +33,12 @@ const wl = t.waitlist
     success: wl.success,
   })}
   novalidate
-  class="flex flex-col gap-3 max-w-md border-l border-border pl-4"
+  class="flex flex-col gap-4 max-w-md border-l border-border-visible pl-5 py-1"
 >
-  <div class="flex flex-col gap-1">
-    <span class="font-mono text-xs tracking-[0.2em] text-text-muted">
+  <div class="flex flex-col gap-1.5">
+    <label for="waitlist-email" class="font-mono text-xs uppercase tracking-[0.08em] text-text-secondary">
       {wl.emailLabel}
-    </span>
+    </label>
     <input
       id="waitlist-email"
       data-waitlist-email
@@ -48,29 +48,30 @@ const wl = t.waitlist
       required
       aria-describedby="waitlist-email-error"
       aria-label={wl.emailInput.ariaLabel}
-      class="bg-transparent border-b border-border focus:border-text-display py-2 text-text-display"
+      class="bg-transparent border-b border-border-visible focus:border-text-display py-2.5 text-text-display font-mono text-sm placeholder:text-text-muted focus:outline-none transition-colors duration-200"
     />
   </div>
 
-  <div class="flex items-start gap-2 text-sm text-text-secondary">
+  <div class="flex items-start gap-2.5 text-sm text-text-secondary">
     <input
       id="waitlist-consent-early"
       data-waitlist-consent-early
       type="checkbox"
       required
-      class="mt-1 min-h-[20px] min-w-[20px] cursor-pointer"
+      aria-describedby="waitlist-email-error"
+      class="mt-0.5 min-h-[20px] min-w-[20px] accent-text-display cursor-pointer"
     />
-    <label for="waitlist-consent-early" class="cursor-pointer">{wl.consentEarly.label}</label>
+    <label for="waitlist-consent-early" class="cursor-pointer select-none leading-relaxed">{wl.consentEarly.label}</label>
   </div>
 
-  <div class="flex items-start gap-2 text-sm text-text-secondary">
+  <div class="flex items-start gap-2.5 text-sm text-text-secondary">
     <input
       id="waitlist-consent-marketing"
       data-waitlist-consent-marketing
       type="checkbox"
-      class="mt-1 min-h-[20px] min-w-[20px] cursor-pointer"
+      class="mt-0.5 min-h-[20px] min-w-[20px] accent-text-display cursor-pointer"
     />
-    <label for="waitlist-consent-marketing" class="cursor-pointer">{wl.consentMarketing.label}</label>
+    <label for="waitlist-consent-marketing" class="cursor-pointer select-none leading-relaxed">{wl.consentMarketing.label}</label>
   </div>
 
   <p
@@ -93,7 +94,7 @@ const wl = t.waitlist
   <button
     data-waitlist-submit
     type="submit"
-    class="font-mono text-xs tracking-[0.2em] text-text-display border border-border rounded-full px-6 py-3 min-h-[44px] hover:bg-bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    class="font-mono text-xs font-bold uppercase tracking-[0.06em] bg-text-display text-bg-primary rounded-full px-8 py-3.5 min-h-[44px] hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed shadow-none mt-1 sm:self-start w-full sm:w-auto cursor-pointer"
   >
     {wl.submit}
   </button>
@@ -158,18 +159,26 @@ const wl = t.waitlist
       event.preventDefault()
       const email = emailInput.value ?? ''
       if (!isValidEmail(email)) {
+        emailInput.setAttribute('aria-invalid', 'true')
+        earlyInput.removeAttribute('aria-invalid')
         errorEl.textContent = messages.validEmail
         errorEl.classList.remove(SUCCESS_HIDDEN)
         successEl.classList.add(SUCCESS_HIDDEN)
+        emailInput.focus()
         return
       }
       if (!earlyInput.checked) {
+        earlyInput.setAttribute('aria-invalid', 'true')
+        emailInput.removeAttribute('aria-invalid')
         errorEl.textContent = messages.consentRequired
         errorEl.classList.remove(SUCCESS_HIDDEN)
         successEl.classList.add(SUCCESS_HIDDEN)
+        earlyInput.focus()
         return
       }
 
+      emailInput.removeAttribute('aria-invalid')
+      earlyInput.removeAttribute('aria-invalid')
       errorEl.classList.add(SUCCESS_HIDDEN)
       submit.disabled = true
       const payload = buildWaitlistPayload({

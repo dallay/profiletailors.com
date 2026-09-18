@@ -11,14 +11,19 @@ import com.profiletailors.smp.platformadmin.application.handler.ResendInvitation
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.model.AdminDirectInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
+import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.query.ListAdminDirectInvitationsQuery
 import com.profiletailors.smp.platformadmin.application.result.CreateInvitationResult
 import com.profiletailors.smp.platformadmin.application.result.ResendInvitationResult
 import com.profiletailors.smp.platformadmin.application.result.RevokeInvitationResult
+import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
+import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
@@ -27,6 +32,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -42,6 +48,29 @@ class AdminInvitationController(
     private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
 ) {
+    @GetMapping("/direct")
+    suspend fun listDirectInvitations(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "25") size: Int,
+        @RequestParam status: String? = null,
+        @RequestParam email: String? = null,
+    ): ResponseEntity<PagedResult<AdminDirectInvitationSummary>> {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.INVITATIONS_READ !in operator.roles.effectivePermissions()) {
+            throw PlatformAccessDeniedException(PlatformPermission.INVITATIONS_READ)
+        }
+        if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
+        if (status != null) {
+            require(runCatching { InvitationStatus.valueOf(status) }.isSuccess) {
+                "Unknown invitation status: $status"
+            }
+        }
+        val result = invitationQuery.list(
+            ListAdminDirectInvitationsQuery(page = page, size = size, status = status, email = email),
+        )
+        return ResponseEntity.ok(result)
+    }
+
     @GetMapping("/{invitationId}")
     suspend fun getInvitation(@PathVariable invitationId: UUID): ResponseEntity<AdminInvitationSummary> {
         val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
@@ -84,7 +113,6 @@ class AdminInvitationController(
     }
 
     @PostMapping("/direct")
-    @Transactional
     suspend fun createDirectInvitation(
         @RequestBody request: CreateDirectInvitationRequest,
     ): ResponseEntity<CreateInvitationResult> {
@@ -122,7 +150,6 @@ class AdminInvitationController(
     }
 
     @PostMapping("/{invitationId}/direct-resend")
-    @Transactional
     suspend fun resendDirectInvitation(@PathVariable invitationId: UUID): ResponseEntity<ResendInvitationResult> {
         val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()

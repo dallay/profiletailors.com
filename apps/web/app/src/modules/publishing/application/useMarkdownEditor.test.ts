@@ -39,44 +39,27 @@ describe('useMarkdownEditor', () => {
     expect(editor.plainTextForPreview.value).toBe('Heading')
   })
 
-  it('applyBold wraps selected text', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello world')
-    fakeTextarea.selectionStart = 0
-    fakeTextarea.selectionEnd = 5
+  it.each([
+    ['wraps selected text', 0, 5, 'Hello world', '**Hello** world'],
+    ['inserts placeholder when no selection', 5, 5, 'Hello world', 'Hello**text** world'],
+  ])('applyBold %s', async (_description, selectionStart, selectionEnd, initialText, expected) => {
+    const { postText, editor, fakeTextarea } = setup(initialText)
+    fakeTextarea.selectionStart = selectionStart
+    fakeTextarea.selectionEnd = selectionEnd
     editor.applyBold()
-    expect(postText.value).toBe('**Hello** world')
+    expect(postText.value).toBe(expected)
   })
 
-  it('applyBold inserts placeholder when no selection', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello world')
-    fakeTextarea.selectionStart = 5
-    fakeTextarea.selectionEnd = 5
-    editor.applyBold()
-    expect(postText.value).toBe('Hello**text** world')
-  })
-
-  it('applyItalic wraps selected text with single asterisk', () => {
+  it.each([
+    ['applyItalic', '*Hello*'],
+    ['applyStrikethrough', '~~Hello~~'],
+    ['applyInlineCode', '`Hello`'],
+  ])('%s wraps selected text', (method, expected) => {
     const { postText, editor, fakeTextarea } = setup('Hello')
     fakeTextarea.selectionStart = 0
     fakeTextarea.selectionEnd = 5
-    editor.applyItalic()
-    expect(postText.value).toBe('*Hello*')
-  })
-
-  it('applyStrikethrough wraps with tilde markers', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello')
-    fakeTextarea.selectionStart = 0
-    fakeTextarea.selectionEnd = 5
-    editor.applyStrikethrough()
-    expect(postText.value).toBe('~~Hello~~')
-  })
-
-  it('applyInlineCode wraps with backticks', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello')
-    fakeTextarea.selectionStart = 0
-    fakeTextarea.selectionEnd = 5
-    editor.applyInlineCode()
-    expect(postText.value).toBe('`Hello`')
+    editor[method as 'applyItalic']()
+    expect(postText.value).toBe(expected)
   })
 
   it('applyHeading adds heading marker', () => {

@@ -21,6 +21,65 @@ import { mockRegisterSuccess } from '../fixtures/auth-helpers'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { SchedulerPage } from '../pages/scheduler-page'
 
+type InvitationFailure = {
+  status: number
+  code: string
+  detail: string
+  email: string
+  token: string
+  copy: RegExp
+}
+
+async function mockInvitationCapabilities(page: Page): Promise<void> {
+  await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/vnd.api.v1+json',
+      body: JSON.stringify({
+        registrationEnabled: true,
+        passwordRecoveryEnabled: true,
+        invitationAcceptanceEnabled: true,
+      }),
+    })
+  })
+}
+
+async function assertInvitationFailure(page: Page, failure: InvitationFailure): Promise<void> {
+  let refreshCalled = false
+  await page.route('**/api/auth/refresh', async (route: Route): Promise<void> => {
+    refreshCalled = true
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({ status: 401 }),
+    })
+  })
+  await page.route('**/api/invitations/accept', async (route: Route): Promise<void> => {
+    await route.fulfill({
+      status: failure.status,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({
+        title: 'Invitation unavailable',
+        detail: failure.detail,
+        status: failure.status,
+        code: failure.code,
+      }),
+    })
+  })
+
+  await page.goto(`${APP_URL.dashboard}invitations/accept?token=${failure.token}`)
+  refreshCalled = false
+  await page.getByRole('button', { name: /accept invitation/i }).click()
+
+  await expect(page.getByRole('alert')).toHaveText(failure.copy)
+  await expect(page).toHaveURL(new RegExp(`/invitations/accept\\?token=${failure.token}`))
+  expect(refreshCalled).toBe(false)
+
+  const html = await page.content()
+  expect(html).not.toContain(failure.token)
+  expect(html).not.toContain(failure.email)
+}
+
 test.describe('Invitee Private Beta Journey @integration', () => {
   test.beforeEach(async ({ resetSession }) => {
     await resetSession()
@@ -222,6 +281,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     const scheduler = new SchedulerPage(page)
     const composeModal = new ComposeModalPage(page)
     await scheduler.goto()
+    await scheduler.openMobileSidebar()
     await scheduler.linkedInFilterButton.click()
     await scheduler.clickNewPost()
     await composeModal.expectVisible()
@@ -286,7 +346,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await expect(page.getByRole('button', { name: /accept invitation/i })).toHaveCount(0)
   })
 
-  test('3.4 Backend error surfaces the canonical not-acceptable copy', async ({ page }) => {
+  test('3.4 Backend error surfaces the canonical invalid copy', async ({ page }) => {
     await page.route('**/api/capabilities/public', async (route) => {
       await route.fulfill({
         status: 200,
@@ -307,7 +367,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
           title: 'Invalid invitation',
           detail: 'This invitation link is no longer valid or has already been used.',
           status: 400,
-          code: 'INVITATION_NOT_ACCEPTABLE',
+          code: 'INVITATION_INVALID',
         }),
       })
     })
@@ -316,6 +376,80 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await page.getByRole('button', { name: /accept invitation/i }).click()
 
     await expect(page.getByRole('alert')).toContainText(/no longer valid/i)
+  })
+
+  test('3.4b Replay error surfaces the canonical already-used copy', async ({ page }) => {
+    await page.route('**/api/capabilities/public', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          registrationEnabled: true,
+          passwordRecoveryEnabled: true,
+          invitationAcceptanceEnabled: true,
+        }),
+      })
+    })
+
+    await page.route('**/api/invitations/accept', async (route) => {
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          title: 'Invitation unavailable',
+          detail: 'Invitation is unavailable.',
+          status: 409,
+          code: 'INVITATION_ALREADY_CONSUMED',
+        }),
+      })
+    })
+
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-replay`)
+    await page.getByRole('button', { name: /accept invitation/i }).click()
+
+    await expect(page.getByRole('alert')).toContainText(/already been used/i)
+  })
+
+  test('3.4c Expired invitation surfaces safe canonical copy without session activity', async ({
+    page,
+  }) => {
+    await mockInvitationCapabilities(page)
+    await assertInvitationFailure(page, {
+      status: 410,
+      code: 'INVITATION_EXPIRED',
+      detail: 'Invitation has expired.',
+      email: 'expired-invitee@example.com',
+      token: 'raw-token-expired',
+      copy: /This invitation link has expired\. Request a new invitation\./i,
+    })
+  })
+
+  test('3.4d Revoked invitation surfaces safe canonical copy without session activity', async ({
+    page,
+  }) => {
+    await mockInvitationCapabilities(page)
+    await assertInvitationFailure(page, {
+      status: 410,
+      code: 'INVITATION_REVOKED',
+      detail: 'Invitation has been revoked.',
+      email: 'revoked-invitee@example.com',
+      token: 'raw-token-revoked',
+      copy: /This invitation link has been revoked\. Request a new invitation\./i,
+    })
+  })
+
+  test('3.4e Email mismatch surfaces safe canonical copy without session activity', async ({
+    page,
+  }) => {
+    await mockInvitationCapabilities(page)
+    await assertInvitationFailure(page, {
+      status: 403,
+      code: 'INVITATION_EMAIL_MISMATCH',
+      detail: 'Invitation email does not match the authenticated identity.',
+      email: 'invited-email@example.com',
+      token: 'raw-token-mismatch',
+      copy: /Sign in with the invited email address to accept this invitation\./i,
+    })
   })
 
   test('3.5 Raw invitation token MUST NOT appear in rendered DOM', async ({ page }) => {

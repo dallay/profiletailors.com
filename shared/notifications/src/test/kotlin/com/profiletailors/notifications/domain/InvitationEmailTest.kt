@@ -6,11 +6,33 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 internal class InvitationEmailTest {
+
+    @Test
+    fun `resend idempotency key includes delivery identity`() {
+        val email = invitation(deliveryId = UUID.randomUUID())
+
+        assertEquals(
+            "invitation:${email.invitationId}:resend:${email.deliveryId}",
+            email.idempotencyKey().value,
+        )
+    }
+
+    @Test
+    fun `resend with delivery identity is distinct from initial and from another resend`() {
+        val initial = invitation(deliveryId = null)
+        val resendA = invitation(deliveryId = UUID.randomUUID())
+        val resendB = invitation(deliveryId = UUID.randomUUID())
+
+        assertEquals("invitation:${initial.invitationId}:initial", initial.idempotencyKey().value)
+        assertEquals("invitation:${resendA.invitationId}:resend:${resendA.deliveryId}", resendA.idempotencyKey().value)
+        assertNotEquals(resendA.idempotencyKey(), resendB.idempotencyKey())
+    }
 
     @Test
     fun `idempotencyKey is stable per invitation and distinct across invitations`() {
@@ -28,6 +50,7 @@ internal class InvitationEmailTest {
         assertEquals("https://app.profiletailors.com/invitations/accept?token=raw-token", payload["acceptUrl"])
         assertEquals("Profile Tailors Launch", payload["workspaceName"])
         assertEquals("es", payload["locale"])
+        assertEquals("EXISTING_WORKSPACE", payload["target"])
     }
 
     @Test
@@ -88,6 +111,27 @@ internal class InvitationEmailTest {
     }
 
     @Test
+    fun `persisted payload key set is limited to template params plus scoped acceptUrl`() {
+        val payload = invitation().toPayload()
+
+        assertEquals(setOf("email", "workspaceName", "target", "acceptUrl", "locale"), payload.variables.keys)
+    }
+
+    @Test
+    fun `persisted payload carries no raw token value outside scoped acceptUrl`() {
+        val raw = "super-secret-token-do-not-leak"
+        val email = invitation(
+            rawToken = raw,
+            acceptUrl = "https://app.example.com/invitations/accept?token=$raw",
+        )
+        val payload = email.toPayload()
+
+        payload.variables.filterKeys { it != "acceptUrl" }.values.forEach { value ->
+            assertFalse(value.contains(raw))
+        }
+    }
+
+    @Test
     fun `raw invitation token is exposed only through acceptUrl, never as a separate payload key`() {
         val email = invitation(
             rawToken = "super-secret-token-do-not-leak",
@@ -99,6 +143,36 @@ internal class InvitationEmailTest {
         assertTrue(payload["acceptUrl"]!!.contains("super-secret-token-do-not-leak"))
     }
 
+    @Test
+    fun `NEW_WORKSPACE copy is rendered in text body and subject for English locale`() {
+        val email = invitation(
+            target = InvitationEmailTarget.NEW_WORKSPACE,
+            workspaceName = InvitationEmail.NEW_WORKSPACE_COPY_EN,
+            locale = "en",
+        )
+        val rendered = email.render()
+        assertTrue(rendered.text.contains(InvitationEmail.NEW_WORKSPACE_COPY_EN))
+        assertTrue(rendered.subject.startsWith("You're invited to create a new Profile Tailors workspace"))
+    }
+
+    @Test
+    fun `NEW_WORKSPACE copy is rendered for Spanish locale`() {
+        val email = invitation(
+            target = InvitationEmailTarget.NEW_WORKSPACE,
+            workspaceName = InvitationEmail.NEW_WORKSPACE_COPY_ES,
+            locale = "es",
+        )
+        val rendered = email.render()
+        assertTrue(rendered.text.contains(InvitationEmail.NEW_WORKSPACE_COPY_ES))
+        assertTrue(rendered.subject.startsWith("Has sido invitada a crear un nuevo espacio de trabajo"))
+    }
+
+    @Test
+    fun `NEW_WORKSPACE target marks the payload for the template engine`() {
+        val email = invitation(target = InvitationEmailTarget.NEW_WORKSPACE)
+        assertEquals("NEW_WORKSPACE", email.toPayload()["target"])
+    }
+
     private fun invitation(
         invitationId: UUID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
         recipient: NormalizedEmail = NormalizedEmail.from(EmailAddress("user@example.com")),
@@ -106,13 +180,17 @@ internal class InvitationEmailTest {
         acceptUrl: String = "https://app.profiletailors.com/invitations/accept?token=raw-token",
         locale: String? = "es",
         rawToken: String = "raw-token",
+        target: InvitationEmailTarget = InvitationEmailTarget.EXISTING_WORKSPACE,
+        deliveryId: UUID? = null,
     ): InvitationEmail = InvitationEmail(
         invitationId = invitationId,
         recipient = recipient,
         workspaceName = workspaceName,
+        target = target,
         acceptUrl = acceptUrl,
         rawToken = rawToken,
         locale = locale,
+        deliveryId = deliveryId,
     )
 
     private fun invitationId(raw: String): UUID = UUID.fromString(raw)

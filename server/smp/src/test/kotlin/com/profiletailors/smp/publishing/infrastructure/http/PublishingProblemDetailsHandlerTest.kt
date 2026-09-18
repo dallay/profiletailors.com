@@ -1,23 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
-import com.profiletailors.smp.publishing.application.PublicationNotFoundException
-import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
-import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
-import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
-import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
-import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
-import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
-import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
-import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
-import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
-import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
-import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException
-import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
-import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
-import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDenial
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
-import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -28,8 +12,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps ProviderNotConfiguredException to 503 SERVICE_UNAVAILABLE`() {
-        val exception = ProviderNotConfiguredException(SocialProvider.LINKEDIN)
-        val problem = handler.handle(exception)
+        val problem = handler.handleProviderNotConfigured()
 
         problem.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
         problem.title shouldBe "Provider not configured"
@@ -38,8 +21,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps ExpiredOAuthStateException to 400 BAD_REQUEST`() {
-        val exception = ExpiredOAuthStateException()
-        val problem = handler.handle(exception)
+        val problem = handler.handleExpiredOAuthState()
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "OAuth state expired"
@@ -48,8 +30,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps InvalidOAuthStateException to 400 BAD_REQUEST`() {
-        val exception = InvalidOAuthStateException("Custom message")
-        val problem = handler.handle(exception)
+        val problem = handler.handleInvalidOAuthState()
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "OAuth state invalid"
@@ -58,7 +39,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps InvalidSocialContentCursorException to 400 BAD_REQUEST with error code`() {
-        val problem = handler.handle(InvalidSocialContentCursorException("malformed cursor"))
+        val problem = handler.handleInvalidContentCursor()
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "Invalid social content cursor"
@@ -68,8 +49,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationNotFoundException to 404 NOT_FOUND`() {
-        val exception = PublicationNotFoundException("pub-missing")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationNotFound()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Publication not found"
@@ -78,8 +58,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps SocialContentPostNotFoundException to 404 NOT_FOUND`() {
-        val exception = SocialContentPostNotFoundException("post-missing")
-        val problem = handler.handle(exception)
+        val problem = handler.handleSocialPostNotFound()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Social content post not found"
@@ -88,8 +67,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps SocialContentActorNotFoundException to 404 NOT_FOUND`() {
-        val exception = SocialContentActorNotFoundException("page-missing")
-        val problem = handler.handle(exception)
+        val problem = handler.handleSocialActorNotFound()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Social content actor not found"
@@ -108,8 +86,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps SocialContentPostIsolationException to 409 CONFLICT`() {
-        val exception = SocialContentPostIsolationException()
-        val problem = handler.handle(exception)
+        val problem = handler.handleSocialPostIsolation()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Social content workspace conflict"
@@ -122,8 +99,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationEditNotAllowedException to 409 CONFLICT`() {
-        val exception = PublicationEditNotAllowedException("pub-123")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -132,8 +108,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationDeletionNotAllowedException to 409 CONFLICT`() {
-        val exception = PublicationDeletionNotAllowedException("pub-456")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -142,8 +117,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationCancellationNotAllowedException to 409 CONFLICT`() {
-        val exception = PublicationCancellationNotAllowedException("pub-789")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -152,8 +126,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationRetryNotAllowedException to 409 CONFLICT`() {
-        val exception = PublicationRetryNotAllowedException("pub-retry")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -162,8 +135,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationAlreadyTerminalException to 409 CONFLICT`() {
-        val exception = PublicationAlreadyTerminalException("pub-terminal", PublicationStatus.PUBLISHED)
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -172,8 +144,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps base PublicationStateTransitionException to 409 CONFLICT`() {
-        val exception = PublicationStateTransitionException("Generic state transition error for pub-base")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationStateConflict()
 
         problem.status shouldBe HttpStatus.CONFLICT.value()
         problem.title shouldBe "Publication state conflict"
@@ -182,11 +153,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps asset not ready without leaking asset id`() {
-        val exception = com.profiletailors.smp.media.application.AssetNotReadyException(
-            "asset-123",
-            "storage unavailable",
-        )
-        val problem = handler.handle(exception)
+        val problem = handler.handleAssetNotReady()
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "Asset not ready"
@@ -219,8 +186,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps RecurringScheduleNotFoundException to 404 NOT_FOUND`() {
-        val exception = com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException("recur-123")
-        val problem = handler.handle(exception)
+        val problem = handler.handleRecurringScheduleMissing()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Recurring schedule not found"

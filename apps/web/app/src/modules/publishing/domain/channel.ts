@@ -5,12 +5,10 @@
  * Used across application, infrastructure, and presentation layers.
  */
 
-export type ChannelProvider = string
-
 export type Channel = {
   id: string
   name: string
-  provider: ChannelProvider
+  provider: string
   avatar: string
   avatarUrl?: string
   handle: string

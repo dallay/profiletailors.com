@@ -13,29 +13,25 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class PlatformProblemDetailsHandler {
 
     @ExceptionHandler(MissingPrincipalContextException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: MissingPrincipalContextException): ProblemDetail =
+    fun handleMissingPrincipalContext(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, UNAUTHORIZED_DETAIL).apply {
             title = "Principal context missing"
         }
 
     @ExceptionHandler(ApiKeyCredentialNotActiveException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: ApiKeyCredentialNotActiveException): ProblemDetail =
+    fun handleApiKeyNotActive(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, UNAUTHORIZED_DETAIL).apply {
             title = "API key credential invalid"
         }
 
     @ExceptionHandler(MissingResourceContextException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: MissingResourceContextException): ProblemDetail =
+    fun handleMissingResourceContext(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, BAD_REQUEST_DETAIL).apply {
             title = "Resource context missing"
         }
 
     @ExceptionHandler(RefreshSessionNotActiveException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: RefreshSessionNotActiveException): ProblemDetail =
+    fun handleRefreshSessionNotActive(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_SESSION_DETAIL).apply {
             title = "Refresh session invalid"
         }

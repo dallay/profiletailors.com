@@ -106,9 +106,51 @@ Negative:
 - UUID identity is a scoped exception to ADR-0005; future aggregates must still use prefixed
   string identifiers.
 
+## Addendum: Reliable Direct Invitation Email Delivery
+
+Direct create and resend handlers own an explicit `AtomicTransactionRunner` boundary. Inside one
+reactive transaction they resolve the target, mutate the invitation, write the audit event, and
+register the domain event through the `InvitationEventPublisher` port. The
+`SpringTransactionalInvitationEventPublisher` adapter publishes with Spring
+`TransactionalEventPublisher.publishEvent(Function<TransactionContext, ApplicationEvent>)` and awaits
+the returned `Mono`, so registration joins the enclosing R2DBC transaction. Wiring lives in
+`PlatformAdminBootstrapConfiguration`; the controller carries no `@Transactional` for these routes.
+The consumer uses `@TransactionalEventListener(AFTER_COMMIT)` with fallback disabled, persists one
+`PENDING` notification, attempts the provider once, and records `SENT` or `FAILED` without throwing
+back to the publisher.
+
+Pre-commit registration failure rolls back invitation mutation, audit, and event registration, and
+creates no notification or provider call. Post-commit provider failure records `FAILED`, leaves the
+invitation `ACTIVE`, and never reopens the invitation transaction, per the DALLAY-568 no-rollback
+guarantee which applies only after commit.
+
+`EXISTING_WORKSPACE` resolves the copy through `WorkspaceNameReader.findName`. A null result raises
+the platform-admin workspace-not-found error, maps to HTTP `404 Not Found` with code
+`WORKSPACE_NOT_FOUND`, and aborts before commit with no invitation, audit, event, notification, or
+provider call. The email renders the resolved `workspaces.name`, never the ID. `NEW_WORKSPACE` keeps
+`workspaceId` absent and uses exactly “You’ve been invited to create a new Profile Tailors
+workspace.” The narrow `WorkspaceNameReader` port is intentional: it keeps the existing
+`WorkspaceReadRepository` unchanged and follows interface segregation for a single lookup.
+
+Initial delivery uses `invitation:{invitationId}:initial`. Each intentional resend mints a new
+`deliveryId` and uses `invitation:{invitationId}:resend:{deliveryId}`. Replay of the same key reuses
+the existing notification without a second provider attempt, including when that record is `FAILED`.
+A later intentional resend receives a new key and a new attempt. There is no automatic retry for the
+same failed key; operational retry is an intentional resend.
+
+The raw-token handler-to-event-to-consumer handoff remains temporary and non-canonical until
+DALLAY-566 supplies the token-safe replacement. No HTTP response, audit record, log, metric, or new
+durable field exposes the token. The persisted notification payload carries the existing
+token-bearing `acceptUrl` only as the current delivery surface; no new token surface is added.
+DALLAY-566 owns generation, rotation, TTL, validation, recipient binding, URL assembly, encoding,
+and the replacement handoff. Operational monitoring uses committed notification counts,
+`SENT`/`FAILED` transitions, provider attempts, and 404 workspace lookup failures without exposing
+tokens or full email addresses.
+
 ## References
 
 - `openspec/changes/dallay-564-first-class-invitation/{proposal.md,design.md,specs/invitations/spec.md}`
+- `openspec/changes/fix-invitation-email-delivery/{proposal.md,design.md,specs/invitations/spec.md,specs/email-notifications/spec.md}`
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/Invitation.kt`
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/InvitationRepository.kt`
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt`

@@ -20,7 +20,9 @@ import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 import com.profiletailors.smp.identity.domain.RegistrationMode
+import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -105,6 +107,54 @@ class LocalAuthHandlersTest {
             ),
             order,
         )
+        assertEquals(1, transactionRunner.invocations)
+    }
+
+    @Test
+    fun `revalidates identity availability inside registration transaction`() = runTest {
+        val order = mutableListOf<String>()
+        val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
+        val existingIdentity = PrincipalIdentityFacts(
+            principalId = "existing-user",
+            principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+            subject = "local:race@example.com",
+            provider = null,
+            displayIdentity = "race",
+            email = "race@example.com",
+            username = "race",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+        coEvery { principalIdentityLookup.findByEmail("race@example.com") } returnsMany listOf(null, existingIdentity)
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
+            principalIdentityLookup = principalIdentityLookup,
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = transactionRunner,
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        assertThrows<UserAlreadyExistsException> {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "race@example.com",
+                    password = validPassword,
+                    username = "race",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
+        }
+
+        assertEquals(listOf("tx:start", "tx:rollback"), order)
         assertEquals(1, transactionRunner.invocations)
     }
 
@@ -498,14 +548,16 @@ class LocalAuthHandlersTest {
 
     @Test
     fun `rejects duplicate registration`() = runTest {
+        val identityRegistrationGateway = FakeIdentityRegistrationGateway()
+        val passwordGateway = FakeLocalPasswordCredentialGateway()
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
-            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            identityRegistrationGateway = identityRegistrationGateway,
             invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 existingEmail = "yuniel@example.com",
             ),
-            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            localPasswordCredentialGateway = passwordGateway,
             passwordHasher = FakePasswordHasher(),
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             eventPublisher = RecordingEventPublisher(),
@@ -530,6 +582,9 @@ class LocalAuthHandlersTest {
         } catch (e: UserAlreadyExistsException) {
             assertEquals("User already exists.", e.message)
         }
+
+        assertEquals(null, identityRegistrationGateway.created)
+        assertEquals(null, passwordGateway.createdPrincipalId)
     }
 
     @Test
@@ -557,6 +612,49 @@ class LocalAuthHandlersTest {
         assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
         assertEquals("user-1", result.tokens.principalId)
         assertEquals("refresh-secret", result.refreshToken.secret)
+    }
+
+    @Test
+    fun `rejects login for disabled account without creating a session`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
+                record = LocalPasswordCredentialRecord(
+                    principalId = "user-1",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    passwordHash = "hashed-$validPassword",
+                ),
+            ),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(accountState = UserAccountState.DISABLED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        assertThrows<DisabledUserException> {
+            handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+        }
+    }
+
+    @Test
+    fun `rejects refresh for disabled account without rotating session`() = runTest {
+        val gateway = FakeRefreshSessionGateway()
+        val handler = RefreshUserSessionHandler(
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(accountState = UserAccountState.DISABLED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = refreshLifecycleService(gateway),
+            clock = fixedClock,
+        )
+
+        assertThrows<DisabledUserException> {
+            handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
+        }
+        assertEquals(0, gateway.rotateCalls)
     }
 
     @Test
@@ -637,6 +735,53 @@ class LocalAuthHandlersTest {
 
         try {
             handler.handle(LoginUserCommand("missing@example.com", validPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `rejects login for deactivated principal`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
+                record = LocalPasswordCredentialRecord(
+                    principalId = "user-1",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    passwordHash = "hashed-$validPassword",
+                ),
+            ),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts().copy(status = PrincipalStatus.DEACTIVATED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `rejects refresh for deactivated principal`() = runTest {
+        val handler = RefreshUserSessionHandler(
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts().copy(status = PrincipalStatus.DEACTIVATED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
             throw AssertionError("Expected InvalidEmailPasswordException")
         } catch (e: InvalidEmailPasswordException) {
             assertNotNull(e)
@@ -934,8 +1079,11 @@ class LocalAuthHandlersTest {
     }
 
     private fun fakeRefreshLifecycleService(order: MutableList<String>? = null): RefreshSessionLifecycleService =
+        refreshLifecycleService(FakeRefreshSessionGateway(order))
+
+    private fun refreshLifecycleService(gateway: FakeRefreshSessionGateway): RefreshSessionLifecycleService =
         RefreshSessionLifecycleService(
-            refreshSessionGateway = FakeRefreshSessionGateway(order),
+            refreshSessionGateway = gateway,
             refreshSessionTokenService = object : RefreshSessionTokenService() {
                 override fun issue(): RefreshSessionToken = RefreshSessionToken("refresh-lookup", "refresh-secret")
             },
@@ -943,17 +1091,20 @@ class LocalAuthHandlersTest {
             clock = fixedClock,
         )
 
-    private fun identityFacts(emailStatus: EmailStatus = EmailStatus.PENDING): PrincipalIdentityFacts =
-        PrincipalIdentityFacts(
-            principalId = "user-1",
-            principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-            subject = "local:yuniel@example.com",
-            provider = null,
-            displayIdentity = "yuniel",
-            email = "yuniel@example.com",
-            username = "yuniel",
-            emailStatus = emailStatus,
-        )
+    private fun identityFacts(
+        emailStatus: EmailStatus = EmailStatus.PENDING,
+        accountState: UserAccountState = UserAccountState.ACTIVE,
+    ): PrincipalIdentityFacts = PrincipalIdentityFacts(
+        principalId = "user-1",
+        principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+        subject = "local:yuniel@example.com",
+        provider = null,
+        displayIdentity = "yuniel",
+        email = "yuniel@example.com",
+        username = "yuniel",
+        emailStatus = emailStatus,
+        accountState = accountState,
+    )
 
     private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
@@ -1156,6 +1307,8 @@ class LocalAuthHandlersTest {
     }
 
     private class FakeRefreshSessionGateway(private val order: MutableList<String>? = null) : RefreshSessionGateway {
+        var rotateCalls = 0
+
         override suspend fun create(
             principalId: String,
             refreshToken: RefreshSessionToken,
@@ -1186,12 +1339,15 @@ class LocalAuthHandlersTest {
             replacementToken: RefreshSessionToken,
             expiresAt: Instant,
             now: Instant,
-        ): CreatedRefreshSession = CreatedRefreshSession(
-            id = "refresh-session-2",
-            principalId = "user-1",
-            refreshToken = replacementToken,
-            expiresAt = expiresAt,
-        )
+        ): CreatedRefreshSession {
+            rotateCalls += 1
+            return CreatedRefreshSession(
+                id = "refresh-session-2",
+                principalId = "user-1",
+                refreshToken = replacementToken,
+                expiresAt = expiresAt,
+            )
+        }
 
         override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
     }

@@ -12,7 +12,9 @@ import com.profiletailors.smp.governance.application.RecordConsentHandler
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 import com.profiletailors.smp.identity.domain.RegistrationDecision
+import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.util.UUID
@@ -59,7 +61,11 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
     )
 }
 
-private data class RegistrationTransactionResult(val rawVerificationToken: String, val workspaceId: String)
+private data class RegistrationTransactionResult(
+    val rawVerificationToken: String,
+    val workspaceId: String,
+    val postCommitEvent: DomainEvent?,
+)
 
 @Service
 internal class RegisterUserHandler(
@@ -109,12 +115,7 @@ internal class RegisterUserHandler(
             invitationRegistrationGateway.prepare(token, normalizedEmail)
         }
 
-        if (
-            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
-            principalIdentityLookup.findByEmail(normalizedEmail) != null
-        ) {
-            throw UserAlreadyExistsException(normalizedEmail)
-        }
+        ensureEmailAvailable(normalizedEmail)
 
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
@@ -138,6 +139,7 @@ internal class RegisterUserHandler(
                 rawVerificationToken = registrationResult.rawVerificationToken,
             ),
         )
+        registrationResult.postCommitEvent?.let { eventPublisher.publish(it) }
 
         return issueAuthSession(
             AuthSessionContext(
@@ -182,6 +184,7 @@ internal class RegisterUserHandler(
 
         return try {
             transactionRunner.runAtomically {
+                ensureEmailAvailable(normalizedEmail)
                 identityRegistrationGateway.createUserIdentity(
                     principalId = principalId,
                     subject = subject,
@@ -196,15 +199,16 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                val workspaceId = invitationContext
+                val invitationResult = invitationContext
                     ?.let {
                         invitationRegistrationGateway.complete(
                             context = it,
                             rawToken = requireNotNull(invitationToken),
                             principalId = principalId,
                             displayName = normalizedUsername,
-                        ).workspaceId
+                        )
                     }
+                val workspaceId = invitationResult?.workspaceId
                     ?: workspaceProvisioningService.provisionDefaultWorkspace(
                         principalId = principalId,
                         displayName = normalizedUsername,
@@ -222,6 +226,7 @@ internal class RegisterUserHandler(
                 RegistrationTransactionResult(
                     rawVerificationToken = generated.rawToken,
                     workspaceId = workspaceId,
+                    postCommitEvent = invitationResult?.postCommitEvent,
                 )
             }
         } catch (e: RuntimeException) {
@@ -237,6 +242,15 @@ internal class RegisterUserHandler(
                 throw UserAlreadyExistsException(normalizedEmail)
             }
             throw e
+        }
+    }
+
+    private suspend fun ensureEmailAvailable(normalizedEmail: String) {
+        if (
+            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
+            principalIdentityLookup.findByEmail(normalizedEmail) != null
+        ) {
+            throw UserAlreadyExistsException(normalizedEmail)
         }
     }
 
@@ -320,6 +334,12 @@ internal class LoginUserHandler(
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
+        if (identityFacts?.accountState == UserAccountState.DISABLED) {
+            throw DisabledUserException()
+        }
+        if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
+            throw InvalidEmailPasswordException()
+        }
         val emailStatus = identityFacts?.emailStatus ?: EmailStatus.VERIFIED
 
         return issueAuthSession(
@@ -346,10 +366,18 @@ internal class RefreshUserSessionHandler(
 ) : CommandWithResultHandler<RefreshUserSessionCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RefreshUserSessionCommand): LocalAuthSessionResult {
-        val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
-        val identityFacts = principalIdentityLookup.findByPrincipalId(rotatedSession.current.principalId)
+        val sessionPrincipalId = refreshSessionLifecycleService.principalIdFor(command.rawRefreshToken)
+        val identityFacts = principalIdentityLookup.findByPrincipalId(sessionPrincipalId)
+        if (identityFacts?.accountState == UserAccountState.DISABLED) {
+            throw DisabledUserException()
+        }
+        if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
+            throw InvalidEmailPasswordException()
+        }
 
+        val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
         val email = identityFacts?.email
+
             ?: error("Email could not be resolved for principal '${rotatedSession.current.principalId}'.")
         val username = identityFacts.username
         val emailStatus = identityFacts.emailStatus ?: EmailStatus.VERIFIED

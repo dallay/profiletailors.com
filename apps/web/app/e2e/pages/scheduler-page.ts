@@ -68,6 +68,17 @@ export class SchedulerPage {
       .first()
   }
 
+  async openMobileSidebar(): Promise<void> {
+    const isMobile = await this.page.evaluate(() => window.matchMedia('(max-width: 768px)').matches)
+    if (!isMobile) return
+
+    const sidebar = this.page.locator('[data-slot="sidebar"][data-mobile="true"]')
+    if (await sidebar.isVisible()) return
+
+    await this.page.getByRole('button', { name: /toggle sidebar/i }).click()
+    await expect(sidebar).toBeVisible()
+  }
+
   // Post type filter dropdown
   get postTypeFilter(): Locator {
     return this.page
@@ -89,8 +100,9 @@ export class SchedulerPage {
   // ---- Actions ----
 
   async goto(): Promise<void> {
-    await this.page.goto('/scheduler', { waitUntil: 'domcontentloaded' })
+    await this.page.goto('/scheduler/calendar/week', { waitUntil: 'domcontentloaded' })
     await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
+    await this.expectWeekView()
   }
 
   async switchToMonth(): Promise<void> {

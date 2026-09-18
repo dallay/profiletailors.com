@@ -1,6 +1,5 @@
 ---
 import Layout from '@layouts/Layout.astro'
-import Footer from '@components/Footer.astro'
 import Nav from '@components/Nav.astro'
 import LegalPolicyUnavailable from '@components/LegalPolicyUnavailable.astro'
 import { useTranslations } from '@i18n/utils'
@@ -14,7 +13,6 @@ interface Props {
 const { locale } = Astro.props
 const t = useTranslations(locale)
 const policy = t.legal.privacy
-const links = t.footer.legalLinks
 const publicationApproved = isLegalPublicationApproved()
 
 const langHref = locale === 'en' ? '/es/privacy/' : '/privacy/'
@@ -111,7 +109,5 @@ function renderLegalText(text: string): string {
     ) : (
       <LegalPolicyUnavailable locale={locale} documentTitle={policy.title} />
     )}
-
-    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} locale={locale} />
   </main>
 </Layout>

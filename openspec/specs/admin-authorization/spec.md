@@ -6,7 +6,7 @@ This spec documents the Back Office (`/api/admin/**`) permission model. It forma
 
 ## Permission Registry
 
-All 15 `PlatformPermission` keys and their meanings:
+All 16 `PlatformPermission` keys and their meanings:
 
 | Key | Description |
 |-----|-------------|
@@ -15,10 +15,13 @@ All 15 `PlatformPermission` keys and their meanings:
 | `platform.waitlist.invite` | Convert waitlist entries to invitations |
 | `platform.waitlist.cancel` | Cancel waitlist entries |
 | `platform.invitations.read` | Read invitations |
+| `platform.invitations.create` | Create direct invitations |
 | `platform.invitations.resend` | Resend existing invitations |
 | `platform.invitations.revoke` | Revoke active invitations |
 | `platform.users.read` | Read user profiles |
 | `platform.users.workspaces.read` | Read workspace membership for a user |
+| `platform.users.deactivate` | Deactivate a user account and revoke active sessions |
+| `platform.users.reactivate` | Reactivate a previously deactivated user account |
 | `platform.audit.read` | Read audit logs |
 | `platform.operators.read` | Read platform operator assignments |
 | `platform.operators.manage` | Create and revoke platform operator role assignments |
@@ -44,10 +47,13 @@ All 15 `PlatformPermission` keys and their meanings:
 | `platform.waitlist.invite` | ✓ | ✓ | — | — |
 | `platform.waitlist.cancel` | ✓ | ✓ | — | — |
 | `platform.invitations.read` | ✓ | ✓ | — | — |
+| `platform.invitations.create` | ✓ | ✓ | — | — |
 | `platform.invitations.resend` | ✓ | ✓ | — | — |
 | `platform.invitations.revoke` | ✓ | ✓ | — | — |
 | `platform.users.read` | ✓ | ✓ | ✓ | ✓ |
 | `platform.users.workspaces.read` | ✓ | ✓ | ✓ | — |
+| `platform.users.deactivate` | ✓ | ✓ | — | — |
+| `platform.users.reactivate` | ✓ | ✓ | — | — |
 | `platform.audit.read` | ✓ | ✓ | — | ✓ |
 | `platform.operators.read` | ✓ | ✓ | — | ✓ |
 | `platform.operators.manage` | ✓ | — | — | — |
@@ -74,6 +80,19 @@ The system MUST enforce default-deny for all administrative operations.
 `findActiveByPrincipalId` excludes any assignment where `revokedAt IS NOT NULL`.
 
 Effective permissions for a principal are derived by calling `roles.effectivePermissions()` which applies `PLATFORM_ROLE_PERMISSIONS` to produce the allowed `Set<PlatformPermission>`.
+
+## Frontend Mirror Matches Server
+
+The frontend `ROLE_PERMISSIONS` mirror MUST equal the server `PLATFORM_ROLE_PERMISSIONS` for every key, including `platform.publishing.stale.read` for OWNER and OPERATOR. The system MUST NOT imply permissions the API does not enforce.
+
+- GIVEN OWNER or OPERATOR session permissions, WHEN the frontend evaluates `hasPermission('platform.publishing.stale.read')`, THEN it returns true, matching the server map.
+- GIVEN a planned area with no backing admin API, WHEN its placeholder renders, THEN no permission beyond the registry entry is implied or checked. Planned placeholders reuse only existing server-enforced keys (overview/notifications → `platform.dashboard.read`; governance/configuration → `platform.operators.read`).
+
+## Frontend Gating Is Additive Only
+
+The frontend MUST treat gating as display convenience only; the server (`OperatorAccessResolver`, default-deny) SHALL remain authoritative.
+
+- GIVEN a principal lacking a permission who forces client-side nav, WHEN calling the corresponding `/api/admin/**` endpoint, THEN the server denies with 401/403 or `PlatformAccessDeniedException`.
 
 ## Scenarios
 
@@ -113,3 +132,19 @@ Effective permissions for a principal are derived by calling `roles.effectivePer
 - WHEN `OperatorAccessResolver.resolve()` is called
 - THEN only the active `SUPPORT_AGENT` is returned
 - AND effective permissions reflect only `SUPPORT_AGENT` permissions
+
+### Requirement: Bulk fail-fast permission check (DALLAY-665)
+
+The bulk endpoint MUST check `platform.waitlist.invite` once up front and throw `PlatformAccessDeniedException` (HTTP 403) before touching any entry when the permission is missing. No new permission is introduced; role mapping is unchanged.
+
+#### Scenario: Missing permission fails fast
+
+- GIVEN a principal with no `WAITLIST_INVITE` permission
+- WHEN the principal calls the bulk endpoint
+- THEN the response is 403 and no entry state, invitation, or audit row changes
+
+#### Scenario: Read-only role denied
+
+- GIVEN a principal with only `SUPPORT_AGENT` assignment
+- WHEN the principal calls the bulk endpoint
+- THEN the response is 403 under default-deny

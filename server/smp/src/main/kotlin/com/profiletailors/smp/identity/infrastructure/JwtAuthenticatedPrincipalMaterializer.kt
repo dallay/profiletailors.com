@@ -34,6 +34,16 @@ class JwtAuthenticatedPrincipalMaterializer(
                 subject = token.subject,
                 provider = token.issuer,
             )
+        if (principalFacts != null &&
+            (
+                principalFacts.accountState != com.profiletailors.smp.identity.domain.UserAccountState.ACTIVE ||
+                    principalFacts.status != com.profiletailors.smp.identity.domain.PrincipalStatus.ACTIVE
+                )
+        ) {
+            throw MissingPrincipalContextException(
+                "Authenticated user principal is not active.",
+            )
+        }
         val displayIdentity = principalFacts?.displayIdentity
             ?: principalFacts?.username
             ?: token.claims["preferred_username"]
@@ -93,6 +103,11 @@ class JwtAuthenticatedPrincipalMaterializer(
         ) ?: throw MissingPrincipalContextException(
             "Authenticated service-account principal could not be materialized.",
         )
+        if (principalFacts.accountState != com.profiletailors.smp.identity.domain.UserAccountState.ACTIVE) {
+            throw MissingPrincipalContextException(
+                "Authenticated service-account principal is not active.",
+            )
+        }
 
         return AuthenticatedPrincipal(
             context = PrincipalContext(

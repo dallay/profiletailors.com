@@ -3,20 +3,29 @@ package com.profiletailors.smp.notifications.infrastructure.email
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
+import com.profiletailors.notifications.domain.InvitationEmail
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
+import com.profiletailors.notifications.domain.RenderedEmail
 import com.profiletailors.notifications.domain.event.InvitationResent
+import com.profiletailors.smp.notifications.infrastructure.persistence.DuplicateNotificationException
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Test
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
@@ -58,9 +67,75 @@ internal class SendInvitationEmailConsumerTest {
         val resentMethod = SendInvitationEmailConsumer::class.java.methods.single {
             it.name == "onInvitationResent"
         }
+        val directResentMethod = SendInvitationEmailConsumer::class.java.methods.single {
+            it.name == "onDirectInvitationResent"
+        }
+        val issuedListener = issuedMethod.getAnnotation(TransactionalEventListener::class.java)
+        val resentListener = resentMethod.getAnnotation(TransactionalEventListener::class.java)
+        val directListener = directResentMethod.getAnnotation(TransactionalEventListener::class.java)
 
-        issuedMethod.getAnnotation(TransactionalEventListener::class.java).phase shouldBe TransactionPhase.AFTER_COMMIT
-        resentMethod.getAnnotation(TransactionalEventListener::class.java).phase shouldBe TransactionPhase.AFTER_COMMIT
+        issuedListener.phase shouldBe TransactionPhase.AFTER_COMMIT
+        resentListener.phase shouldBe TransactionPhase.AFTER_COMMIT
+        directListener.phase shouldBe TransactionPhase.AFTER_COMMIT
+        issuedListener.fallbackExecution shouldBe false
+        resentListener.fallbackExecution shouldBe false
+        directListener.fallbackExecution shouldBe false
+    }
+
+    @Test
+    fun `concurrent duplicate insert claims delivery only once`() = runTest {
+        val pending = slot<Notification>()
+        var saveCalls = 0
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(capture(pending)) } answers {
+            saveCalls += 1
+            if (saveCalls == 1) {
+                firstArg<Notification>()
+            } else {
+                throw DuplicateNotificationException(
+                    IdempotencyKey("invitation:$invitationId:initial"),
+                    IllegalStateException("duplicate"),
+                )
+            }
+        }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } coAnswers {
+            yield()
+            EmailDispatchResult.Success
+        }
+        coEvery { notificationRepository.update(any()) } answers { firstArg() }
+
+        coroutineScope {
+            listOf(
+                async {
+                    consumer.onInvitationIssued(
+                        InvitationIssued(
+                            invitationId = invitationId,
+                            recipientEmail = inviteeEmail,
+                            workspaceName = workspaceName,
+                            target = InvitationTarget.EXISTING_WORKSPACE,
+                            locale = "en",
+                            rawToken = rawToken,
+                        ),
+                    )
+                },
+                async {
+                    consumer.onInvitationIssued(
+                        InvitationIssued(
+                            invitationId = invitationId,
+                            recipientEmail = inviteeEmail,
+                            workspaceName = workspaceName,
+                            target = InvitationTarget.EXISTING_WORKSPACE,
+                            locale = "en",
+                            rawToken = rawToken,
+                        ),
+                    )
+                },
+            ).awaitAll()
+        }
+
+        coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
+        coVerify(exactly = 2) { notificationRepository.save(any()) }
+        coVerify(exactly = 1) { notificationRepository.update(any()) }
     }
 
     @Test
@@ -77,6 +152,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -103,6 +179,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -124,6 +201,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -133,6 +211,32 @@ internal class SendInvitationEmailConsumerTest {
             notificationRepository.findByIdempotencyKey(initialKey)
         }
         coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
+    }
+
+    @Test
+    fun `dispatched email renders accept URL transiently while persisted payload carries no raw token`() = runTest {
+        val saved = slot<Notification>()
+        val rendered = slot<RenderedEmail>()
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
+        coEvery { notificationRepository.update(any()) } answers { firstArg<Notification>() }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, capture(rendered)) } returns EmailDispatchResult.Success
+
+        consumer.onInvitationIssued(
+            InvitationIssued(
+                invitationId = invitationId,
+                recipientEmail = inviteeEmail,
+                workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                locale = "en",
+                rawToken = rawToken,
+            ),
+        )
+
+        rendered.captured.text shouldContain acceptUrl
+        saved.captured.payload.variables.containsKey("rawToken") shouldBe false
+        saved.captured.payload.variables.containsValue(rawToken) shouldBe false
+        saved.captured.payload.variables["acceptUrl"] shouldBe acceptUrl
     }
 
     @Test
@@ -149,6 +253,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -168,6 +273,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -191,6 +297,7 @@ internal class SendInvitationEmailConsumerTest {
                 invitationId = invitationId,
                 recipientEmail = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 locale = "en",
                 rawToken = rawToken,
             ),
@@ -216,9 +323,11 @@ internal class SendInvitationEmailConsumerTest {
                 operatorPrincipalId = operatorPrincipalId,
                 recipient = inviteeEmail,
                 workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
                 acceptUrl = acceptUrl,
                 rawToken = rawToken,
                 locale = "en",
+                deliveryId = UUID.randomUUID(),
                 previousInvitationId = previousInvitationId,
             ),
         )
@@ -254,5 +363,103 @@ internal class SendInvitationEmailConsumerTest {
         saved.captured.status shouldBe NotificationStatus.PENDING
         updated.captured.status shouldBe NotificationStatus.SENT
         coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
+    }
+
+    @Test
+    fun `DirectInvitationResent uses the resend delivery id as the idempotency key`() = runTest {
+        val deliveryId = UUID.randomUUID()
+        val expectedKey = IdempotencyKey("invitation:$invitationId:resend:$deliveryId")
+        coEvery { notificationRepository.findByIdempotencyKey(expectedKey) } returns null
+        coEvery { notificationRepository.save(any()) } answers { firstArg<Notification>() }
+        coEvery { notificationRepository.update(any()) } answers { firstArg<Notification>() }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
+
+        consumer.onDirectInvitationResent(
+            DirectInvitationResent(
+                invitationId = invitationId,
+                operatorPrincipalId = operatorPrincipalId,
+                recipient = inviteeEmail,
+                workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                acceptUrl = acceptUrl,
+                rawToken = rawToken,
+                locale = "en",
+                deliveryId = deliveryId,
+                previousInvitationId = previousInvitationId,
+            ),
+        )
+
+        coVerify(exactly = 1) { notificationRepository.findByIdempotencyKey(expectedKey) }
+    }
+
+    @Test
+    fun `replaying a FAILED initial delivery does not call the provider again`() = runTest {
+        val initialKey = IdempotencyKey("invitation:$invitationId:initial")
+        val failed = mockk<Notification>(relaxed = true)
+        coEvery { notificationRepository.findByIdempotencyKey(initialKey) } returns failed
+
+        consumer.onInvitationIssued(
+            InvitationIssued(
+                invitationId = invitationId,
+                recipientEmail = inviteeEmail,
+                workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                locale = "en",
+                rawToken = rawToken,
+            ),
+        )
+
+        coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
+        coVerify(exactly = 0) { notificationRepository.save(any()) }
+        coVerify(exactly = 0) { notificationRepository.update(any()) }
+    }
+
+    @Test
+    fun `replaying the same direct resend delivery does not dispatch again`() = runTest {
+        val deliveryId = UUID.randomUUID()
+        val key = IdempotencyKey("invitation:$invitationId:resend:$deliveryId")
+        val failedResend = mockk<Notification>(relaxed = true)
+        coEvery { notificationRepository.findByIdempotencyKey(key) } returns failedResend
+
+        consumer.onDirectInvitationResent(
+            DirectInvitationResent(
+                invitationId = invitationId,
+                operatorPrincipalId = operatorPrincipalId,
+                recipient = inviteeEmail,
+                workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                acceptUrl = acceptUrl,
+                rawToken = rawToken,
+                locale = "en",
+                deliveryId = deliveryId,
+                previousInvitationId = previousInvitationId,
+            ),
+        )
+
+        coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
+    }
+
+    @Test
+    fun `NEW_WORKSPACE InvitationIssued uses the canonical NEW_WORKSPACE copy and target`() = runTest {
+        val newWorkspaceCopy = InvitationEmail.NEW_WORKSPACE_COPY_EN
+        val saved = slot<Notification>()
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
+        coEvery { notificationRepository.update(any()) } answers { firstArg<Notification>() }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
+
+        consumer.onInvitationIssued(
+            InvitationIssued(
+                invitationId = invitationId,
+                recipientEmail = inviteeEmail,
+                workspaceName = newWorkspaceCopy,
+                target = InvitationTarget.NEW_WORKSPACE,
+                locale = "en",
+                rawToken = rawToken,
+            ),
+        )
+
+        saved.captured.payload.variables["target"] shouldBe "NEW_WORKSPACE"
+        saved.captured.payload.variables["workspaceName"] shouldBe newWorkspaceCopy
     }
 }

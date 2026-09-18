@@ -15,7 +15,7 @@ interface InvitationRepository {
 
     suspend fun save(invitation: Invitation, candidateKey: String): Invitation
 
-    suspend fun updateIfVersionMatches(invitation: Invitation): Boolean
+    suspend fun updateIfVersionMatches(invitation: Invitation, candidateKey: String? = null): Boolean
 
     suspend fun hasActiveInvitationFor(email: String, workspaceId: String, asOf: Instant): Boolean
 }

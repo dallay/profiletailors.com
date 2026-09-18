@@ -20,6 +20,8 @@ interface AdminUserSummary {
   email: string | null
   displayIdentity: string | null
   principalType: string
+  accountState: 'ACTIVE' | 'DISABLED'
+  emailStatus: string | null
   createdAt: string
   lastAuthenticatedAt: string | null
   platformRoles: string[]
@@ -90,6 +92,7 @@ onBeforeUnmount(() => {
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.displayName') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.principalType') }}</th>
+            <th scope="col" class="py-2 pr-4">{{ t('users.accountState') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('common.createdAt') }}</th>
           </tr>
         </thead>
@@ -109,6 +112,7 @@ onBeforeUnmount(() => {
             </td>
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
+            <td class="py-2 pr-4" :class="user.accountState === 'DISABLED' ? 'text-error' : 'text-success'">{{ t(`users.accountStates.${user.accountState.toLowerCase()}`) }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>

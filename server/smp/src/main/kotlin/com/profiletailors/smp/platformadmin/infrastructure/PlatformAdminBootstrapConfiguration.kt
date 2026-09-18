@@ -3,33 +3,50 @@ package com.profiletailors.smp.platformadmin.infrastructure
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
+import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PrincipalLifecycle
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyCodec
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyStore
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.UserControlTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
+import com.profiletailors.smp.platformadmin.application.handler.BulkInviteWaitlistEntriesHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
+import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.UserControlHandlers
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
+import com.profiletailors.smp.tenancy.application.WorkspaceNameReader
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.transaction.reactive.TransactionalEventPublisher
 import java.time.Clock
 import java.time.Duration
 
@@ -47,10 +64,33 @@ class PlatformAdminBootstrapConfiguration {
     fun tokenHasher(): TokenHasher = BCryptTokenHasher()
 
     @Bean
-    fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
+    fun membershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
 
     @Bean
+    fun deactivateUserHandler(
+        principalLifecycleService: PrincipalLifecycle,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): DeactivateUserHandler = DeactivateUserHandler(
+        principalLifecycleService = principalLifecycleService,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
+
+    @Bean
+    fun reactivateUserHandler(
+        principalLifecycleService: PrincipalLifecycle,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): ReactivateUserHandler = ReactivateUserHandler(
+        principalLifecycleService = principalLifecycleService,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
+
+    @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun invitationActivator(
         invitationRepository: InvitationRepository,
         tokenHasher: TokenHasher,
@@ -58,8 +98,8 @@ class PlatformAdminBootstrapConfiguration {
         workspaceProvisioningService: WorkspaceProvisioningService,
         waitlistEntryAdmin: WaitlistEntryAdmin,
         membershipProvisioner: WorkspaceMembershipProvisioner,
-        transactionRunner: AtomicTransactionRunner,
         clock: Clock,
+        telemetry: InvitationTelemetry,
     ): InvitationActivationCoordinator = InvitationActivationCoordinator(
         invitationRepository = invitationRepository,
         tokenHasher = tokenHasher,
@@ -67,13 +107,20 @@ class PlatformAdminBootstrapConfiguration {
         workspaceProvisioningService = workspaceProvisioningService,
         waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
-        transactionRunner = transactionRunner,
         clock = clock,
+        telemetry = telemetry,
     )
 
     @Bean
-    fun acceptInvitationHandler(coordinator: InvitationActivationCoordinator): AcceptInvitationHandler =
-        AcceptInvitationHandler(coordinator)
+    fun acceptInvitationHandler(
+        coordinator: InvitationActivationCoordinator,
+        transactionRunner: AtomicTransactionRunner,
+        eventPublisher: EventPublisher<DomainEvent>,
+    ): AcceptInvitationHandler = AcceptInvitationHandler(
+        coordinator = coordinator,
+        transactionRunner = transactionRunner,
+        eventPublisher = eventPublisher,
+    )
 
     @Bean
     fun acceptUrlTemplate(
@@ -81,6 +128,7 @@ class PlatformAdminBootstrapConfiguration {
     ): AcceptUrlTemplate = AcceptUrlTemplate { rawToken -> "$base?token=$rawToken" }
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun inviteWaitlistEntryHandler(
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
@@ -102,7 +150,8 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
-    fun resendWaitlistInvitationHandler(
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
+    fun resendWaitlistInviteHandler(
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         eventPublisher: EventPublisher<DomainEvent>,
@@ -127,7 +176,24 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
-    fun revokeWaitlistInvitationHandler(
+    fun bulkInviteHandler(
+        inviteWaitlistEntryHandler: InviteWaitlistEntryHandler,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
+        transactionRunner: AtomicTransactionRunner,
+        auditPublisher: AdministrativeAuditPublisher,
+        telemetry: InvitationTelemetry,
+        clock: Clock,
+    ): BulkInviteWaitlistEntriesHandler = BulkInviteWaitlistEntriesHandler(
+        singleHandler = inviteWaitlistEntryHandler,
+        waitlistEntryAdmin = waitlistEntryAdmin,
+        transactionRunner = transactionRunner,
+        auditPublisher = auditPublisher,
+        telemetry = telemetry,
+        clock = clock,
+    )
+
+    @Bean
+    fun revokeWaitlistInviteHandler(
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         clock: Clock,
@@ -142,11 +208,13 @@ class PlatformAdminBootstrapConfiguration {
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
+        adminWaitlistQuery: AdminWaitlistQuery,
         clock: Clock,
     ): CancelWaitlistEntryHandler = CancelWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
+        adminWaitlistQuery = adminWaitlistQuery,
         clock = clock,
     )
 
@@ -173,21 +241,57 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    fun userControlHandlers(
+        accountStateGateway: AccountStateGateway,
+        refreshSessionLifecycleService: RefreshSessionLifecycleService,
+        auditPublisher: AdministrativeAuditPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        clock: Clock,
+        telemetry: UserControlTelemetry,
+    ): UserControlHandlers = UserControlHandlers(
+        accountStateGateway = accountStateGateway,
+        refreshSessionLifecycleService = refreshSessionLifecycleService,
+        auditPublisher = auditPublisher,
+        transactionRunner = transactionRunner,
+        clock = clock,
+        telemetry = telemetry,
+    )
+
+    @Bean
+    fun userControlIdempotencyService(
+        store: UserControlIdempotencyStore,
+        codec: UserControlIdempotencyCodec,
+        telemetry: UserControlTelemetry,
+    ): UserControlIdempotencyService = UserControlIdempotencyService(store, codec, telemetry)
+
+    @Bean
+    fun transactionalEventPublisher(
+        applicationEventPublisher: ApplicationEventPublisher,
+    ): TransactionalEventPublisher = TransactionalEventPublisher(applicationEventPublisher)
+
+    @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun createInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
-        eventPublisher: EventPublisher<DomainEvent>,
+        eventPublisher: InvitationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
         tokenHasher: TokenHasher,
+        invitationTokenCandidateKey: InvitationTokenCandidateKey,
         telemetry: InvitationTelemetry,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): CreateInvitationHandler = CreateInvitationHandler(
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         telemetry = telemetry,
     )
 
@@ -205,21 +309,28 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun resendInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
-        eventPublisher: EventPublisher<DomainEvent>,
+        eventPublisher: InvitationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
         tokenHasher: TokenHasher,
+        invitationTokenCandidateKey: InvitationTokenCandidateKey,
         acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): ResendInvitationHandler = ResendInvitationHandler(
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         acceptUrlTemplateFn = acceptUrlTemplate,
     )
 }

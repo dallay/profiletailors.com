@@ -45,6 +45,9 @@ class PlatformAdminBddSteps {
         state.lastEntryId = null
         state.lastInvitationId = null
         state.invitationToken = null
+        state.bulkEntryIds.clear()
+        state.lastUserId = null
+        state.idempotencyKey = null
         cleanupPlatformAdminData()
     }
 
@@ -68,27 +71,102 @@ class PlatformAdminBddSteps {
         seedPlatformRoleAssignment(role)
     }
 
+    @Given("a registered user with a workspace membership exists for {string}")
+    fun registeredUserWithWorkspaceMembershipExists(email: String) = runBlocking {
+        registeredUserExists(email)
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status) " +
+                "VALUES ('bdd-workspace-1', 'BDD Workspace', 'ACTIVE') ON CONFLICT DO NOTHING",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) " +
+                "VALUES ('bdd-membership-1', 'bdd-workspace-1', 'control-user-1', 'USER', 'ACTIVE') " +
+                "ON CONFLICT DO NOTHING",
+        ).fetch().rowsUpdated().awaitSingle()
+    }
+
+    @Given("a registered user exists for {string}")
+    fun registeredUserExists(email: String) = runBlocking {
+        databaseClient.sql(
+            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
+                "VALUES ('control-user-1', 'USER', 'local:$email', NULL, 'Control User') ON CONFLICT DO NOTHING",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO user_identities (principal_id, email, username, email_status) " +
+                "VALUES ('control-user-1', '$email', 'control-user', 'VERIFIED') ON CONFLICT DO NOTHING",
+        ).fetch().rowsUpdated().awaitSingle()
+        state.lastUserId = "control-user-1"
+        state.idempotencyKey = "bdd-control-key"
+    }
+
     @Given("a pending waitlist entry exists for {string}")
     fun pendingWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "PENDING")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
     }
 
     @Given("a converted waitlist entry exists for {string}")
     fun convertedWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "CONVERTED")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
     }
 
     @Given("an invited waitlist entry with an active invitation exists for {string}")
     fun invitedWaitlistEntryWithActiveInvitation(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "INVITED")
         state.lastEntryId = entryId
+        state.bulkEntryIds.add(entryId)
         val invitationId = seedActiveInvitation(entryId)
         state.lastInvitationId = invitationId
     }
 
     // ── Actions ──────────────────────────────────────────────────────────────
+
+    @When("the platform operator requests the registered user detail")
+    fun platformOperatorRequestsRegisteredUserDetail() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/users/${requireNotNull(state.lastUserId)}")
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator requests the registered user workspaces")
+    fun platformOperatorRequestsRegisteredUserWorkspaces() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/users/${requireNotNull(state.lastUserId)}/workspaces")
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @Then("the user detail should include one workspace membership")
+    fun userDetailIncludesOneWorkspaceMembership() {
+        val body = String(requireNotNull(state.lastResponse).responseBody ?: ByteArray(0))
+        assertTrue(body.contains("workspaceMemberships") && body.contains("bdd-workspace-1"))
+    }
+
+    @When("the operator disables the registered user")
+    @When("the platform operator disables the registered user")
+    fun operatorDisablesRegisteredUser() {
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/users/${requireNotNull(state.lastUserId)}/disable")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .header("Idempotency-Key", requireNotNull(state.idempotencyKey))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator repeats the disable command with the same idempotency key")
+    fun operatorRepeatsDisableCommand() = operatorDisablesRegisteredUser()
 
     @When("an unauthenticated principal requests the admin waitlist endpoint")
     fun unauthenticatedAdminRequest() {
@@ -184,6 +262,38 @@ class PlatformAdminBddSteps {
         }
     }
 
+    @When("the platform operator bulk invites the tracked waitlist entries")
+    @When("the auditor bulk invites the tracked waitlist entries")
+    fun operatorBulkInvitesTrackedEntries() {
+        val entryIds = state.bulkEntryIds.toList()
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/waitlist-entries/invitations:bulk")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("entryIds" to entryIds))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @And("the bulk invite summary should be {int} invited, {int} skipped and {int} failed")
+    fun bulkInviteSummaryShouldBe(invited: Int, skipped: Int, failed: Int) {
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
+        val summary = requireNotNull(body?.get("summary"))
+        assertEquals(invited + skipped + failed, summary.get("requested").asInt())
+        assertEquals(invited, summary.get("invited").asInt())
+        assertEquals(skipped, summary.get("skipped").asInt())
+        assertEquals(failed, summary.get("failed").asInt())
+    }
+
+    @And("the bulk invite results should not contain sensitive values")
+    fun bulkInviteResultsHaveNoSensitiveValues() {
+        val payload = state.lastResponse?.responseBody?.toString(Charsets.UTF_8) ?: ""
+        assertTrue(!payload.contains("token", ignoreCase = true), "Bulk results must not contain tokens")
+        assertTrue(!payload.contains("@"), "Bulk results must not contain emails")
+    }
+
     @When("the platform operator cancels the waitlist entry with reason {string}")
     fun operatorCancelsEntry(reason: String) {
         val entryId = requireNotNull(state.lastEntryId)
@@ -192,7 +302,7 @@ class PlatformAdminBddSteps {
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"reason":"$reason"}""")
+            .bodyValue("""{"reason":"$reason","expectedVersion":0}""")
             .exchange()
             .expectBody(ByteArray::class.java)
             .returnResult()
@@ -228,6 +338,29 @@ class PlatformAdminBddSteps {
         val code = body?.get("properties")?.get("code")?.asText()
             ?: body?.get("code")?.asText()
         assertEquals(expected, code)
+    }
+
+    @And("the registered user account state should be {string}")
+    fun registeredUserAccountStateShouldBe(expected: String) = runBlocking {
+        val stateValue = databaseClient.sql(
+            "SELECT account_state FROM principals WHERE id = :id",
+        ).bind("id", requireNotNull(state.lastUserId))
+            .map { row, _ -> requireNotNull(row.get("account_state", String::class.java)) }
+            .one()
+            .awaitSingle()
+        assertEquals(expected, stateValue)
+    }
+
+    @And("the disable operation should have been executed once")
+    fun disableOperationExecutedOnce() = runBlocking {
+        val count = databaseClient.sql(
+            "SELECT COUNT(*) AS event_count FROM platform_admin_audit_events " +
+                "WHERE action = 'USER_DISABLED' AND target_id = :targetId AND result = 'SUCCEEDED'",
+        ).bind("targetId", requireNotNull(state.lastUserId))
+            .map { row, _ -> requireNotNull(row.get("event_count", java.lang.Long::class.java)).toLong() }
+            .one()
+            .awaitSingle()
+        assertEquals(1L, count)
     }
 
     @And("the waitlist result should be paginated")
@@ -321,7 +454,7 @@ class PlatformAdminBddSteps {
     // ── Database helpers ─────────────────────────────────────────────────────
 
     private suspend fun cleanupPlatformAdminData() {
-        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'principal-1'"
+        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'user-$ADMIN_PRINCIPAL_ID', 'principal-1', 'user-principal-1'"
         val deleteByPrincipal = { table: String ->
             "DELETE FROM $table WHERE principal_id IN ($principalIds)"
         }
@@ -368,7 +501,23 @@ class PlatformAdminBddSteps {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-$ADMIN_PRINCIPAL_ID', 'USER', 'local:admin-issued@platform.example', NULL, 'Platform Admin')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
             VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-principal-1', 'USER', 'accepted-123', 'https://issuer.example', 'jwt-user@example.com')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()

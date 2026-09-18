@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
@@ -213,6 +212,26 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             .one()
             .awaitSingle()
         assertEquals(1L, storedCount)
+    }
+
+    @Test
+    fun `updateIfVersionMatches persists resend candidate key and token hash atomically`() = runTest {
+        seedReferenceData()
+        val invitationId = UUID.randomUUID()
+        seedActiveInvitation(invitationId, "candidate-key-resend-old", version = 0)
+        val stored = requireNotNull(repository.findById(InvitationId(invitationId)))
+        val resent = stored.resend(
+            "token-hash-resend-new",
+            stored.expiresAt.plusSeconds(3600),
+            stored.createdAt.plusSeconds(1),
+        )
+
+        val result = repository.updateIfVersionMatches(resent, candidateKey = "candidate-key-resend-new")
+
+        assertTrue(result)
+        val persisted = repository.findByCandidateKey("candidate-key-resend-new")
+        assertEquals("token-hash-resend-new", persisted?.tokenHash)
+        assertThat(repository.findByCandidateKey("candidate-key-resend-old")).isNull()
     }
 
     @Test
@@ -456,6 +475,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-principal-1', 'USER', 'subject-user-principal-1', 'https://issuer.example', 'Accepter')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
             INSERT INTO workspaces (id, name, status, icon)
             VALUES ('workspace-1', 'Workspace One', 'ACTIVE', NULL)
             """.trimIndent(),
@@ -530,12 +555,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         val secondCoordinator = InvitationActivationCoordinator(
@@ -545,12 +564,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         return ConcurrentAcceptanceFixture(

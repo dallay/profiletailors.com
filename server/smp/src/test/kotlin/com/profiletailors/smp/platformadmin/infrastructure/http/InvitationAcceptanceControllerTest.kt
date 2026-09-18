@@ -2,15 +2,24 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.identity.application.RateLimit
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceResult
+import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class InvitationAcceptanceControllerTest {
     private val acceptInvitationHandler = mockk<AcceptInvitationHandler>()
@@ -82,6 +91,23 @@ class InvitationAcceptanceControllerTest {
     }
 
     @Test
+    fun `accept rejects an authenticated non-user principal without calling the handler`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal().copy(
+            principalType = PrincipalType.SERVICE_ACCOUNT,
+        )
+
+        webClient()
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"raw-invitation-token"}""")
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { acceptInvitationHandler.handle(any()) }
+    }
+
+    @Test
     fun `accept returns 400 for a blank token without calling the handler`() {
         coEvery { requestContextStore.currentPrincipalContext() } returns principal()
 
@@ -96,8 +122,60 @@ class InvitationAcceptanceControllerTest {
         coVerify(exactly = 0) { acceptInvitationHandler.handle(any()) }
     }
 
-    private fun webClient(): WebTestClient = WebTestClient
-        .bindToController(InvitationAcceptanceController(acceptInvitationHandler, requestContextStore))
+    @Test
+    fun `accept returns 429 with safe code when per-key throttle denies without calling the handler`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        val denied = RateLimit { _, _, _ -> false }
+
+        webClient(rateLimit = denied)
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"raw-invitation-token"}""")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS)
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("INVITATION_RATE_LIMIT_EXCEEDED")
+            .jsonPath("$.status").isEqualTo(429)
+            .jsonPath("$.detail").isEqualTo("Invitation accept rate limit exceeded. Try again later.")
+
+        coVerify(exactly = 0) { acceptInvitationHandler.handle(any()) }
+    }
+
+    @Test
+    fun `accept throttle key binds candidate key without raw token material`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { acceptInvitationHandler.handle(any()) } returns
+            InvitationAcceptanceResult("workspace-123", "ACTIVE")
+        val throttleKey = slot<String>()
+        val admitted = RateLimit { key, _, _ ->
+            throttleKey.captured = key
+            true
+        }
+
+        webClient(rateLimit = admitted)
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"raw-invitation-token"}""")
+            .exchange()
+            .expectStatus().isOk
+
+        val expectedCandidateKey = BCryptTokenHasher().candidateKey("raw-invitation-token")
+        assertTrue(throttleKey.captured.contains(expectedCandidateKey))
+        assertFalse(throttleKey.captured.contains("raw-invitation-token"))
+    }
+
+    private fun webClient(rateLimit: RateLimit = RateLimit { _, _, _ -> true }): WebTestClient = WebTestClient
+        .bindToController(
+            InvitationAcceptanceController(
+                acceptInvitationHandler = acceptInvitationHandler,
+                requestContextStore = requestContextStore,
+                acceptAttemptRateLimit = rateLimit,
+                invitationTokenCandidateKey = BCryptTokenHasher(),
+                clock = Clock.fixed(Instant.parse("2026-09-17T10:00:00Z"), ZoneOffset.UTC),
+            ),
+        )
         .controllerAdvice(AdminProblemDetailsHandler())
         .build()
 

@@ -15,6 +15,7 @@ data class AdminWaitlistEntrySummary(
     val cancelledAt: Instant?,
     val preferredLocale: String?,
     val source: String,
+    val version: Long,
 )
 
 data class AdminWaitlistEntryDetail(

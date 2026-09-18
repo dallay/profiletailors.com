@@ -8,9 +8,12 @@ import SparklineChart from './SparklineChart.vue'
 
 type Props = {
   metric: KpiMetric
+  featured?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  featured: false,
+})
 const { t } = useI18n()
 
 const deltaClass = computed(() => {
@@ -27,7 +30,11 @@ const deltaIcon = computed(() => {
 </script>
 
 <template>
-  <Card size="sm">
+  <Card
+    data-kpi-card
+    size="sm"
+    :class="featured ? 'lg:col-span-2' : ''"
+  >
     <CardHeader class="pb-0">
       <CardTitle class="text-[var(--text-secondary)] font-[var(--font-space-mono)] text-[11px] uppercase tracking-[0.08em]">
         {{ t(metric.label) }}
@@ -36,7 +43,13 @@ const deltaIcon = computed(() => {
     <CardContent>
       <div class="flex items-end justify-between gap-3">
         <div class="flex-1 min-w-0">
-          <p class="text-2xl font-semibold tracking-tight text-[var(--text-display)]">
+          <p
+            data-kpi-value
+            :class="[
+              featured ? 'text-4xl sm:text-5xl' : 'text-2xl',
+              'font-semibold tracking-tight text-[var(--text-display)]',
+            ]"
+          >
             {{ metric.value }}
           </p>
           <p :class="['text-xs font-medium mt-1 flex items-center gap-1', deltaClass]">

@@ -1,15 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import com.profiletailors.smp.credentials.application.ApiKeySecretVerifier
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
-import com.profiletailors.smp.credentials.application.RefreshTokenHasher
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
-import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
-import com.profiletailors.smp.credentials.infrastructure.BCryptRefreshTokenHasher
-import com.profiletailors.smp.credentials.infrastructure.RefreshSessionConfigurationProperties
-import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.MinimumDurationPasswordRecoveryTimingEqualizer
@@ -66,30 +60,10 @@ class IdentityBootstrapConfiguration {
     ): ApiKeyAuthenticatedPrincipalMaterializer = ApiKeyAuthenticatedPrincipalMaterializer(principalIdentityLookup)
 
     @Bean
-    fun apiKeySecretVerifier(): ApiKeySecretVerifier = BCryptApiKeySecretVerifier()
-
-    @Bean
     fun passwordHasher(): PasswordHasher = BCryptPasswordHasher()
 
     @Bean
-    fun refreshTokenHasher(): RefreshTokenHasher = BCryptRefreshTokenHasher()
-
-    @Bean
     fun refreshSessionTokenService(): RefreshSessionTokenService = RefreshSessionTokenService()
-
-    @Bean
-    fun refreshSessionProperties(config: RefreshSessionConfigurationProperties): RefreshSessionProperties =
-        RefreshSessionProperties(
-            cookieName = config.cookieName,
-            cookiePath = config.cookiePath,
-            sameSite = config.sameSite,
-            secure = config.secure,
-            ttlSeconds = config.ttlSeconds,
-        )
-
-    @Bean
-    fun refreshSessionCookieFactory(properties: RefreshSessionProperties): RefreshSessionCookieFactory =
-        RefreshSessionCookieFactory(properties)
 
     @Bean
     fun refreshSessionLifecycleService(

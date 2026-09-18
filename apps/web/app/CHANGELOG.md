@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.3.9](https://github.com/dallay/profiletailors.com/compare/app@v0.3.8...app@v0.3.9) (2026-09-18)
+
+
+### Bug Fixes
+
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
+## [0.3.8](https://github.com/dallay/profiletailors.com/compare/app@v0.3.7...app@v0.3.8) (2026-09-15)
+
+
+### Features
+
+* **app:** prioritize primary dashboard KPI ([#1049](https://github.com/dallay/profiletailors.com/issues/1049)) ([68495da](https://github.com/dallay/profiletailors.com/commit/68495da13623fec3fbd6524d914d0ffda9a54dad))
+
+
+### Bug Fixes
+
+* **a11y:** associate waitlist email label and fallback channel avatar alt text ([#1054](https://github.com/dallay/profiletailors.com/issues/1054)) ([da92132](https://github.com/dallay/profiletailors.com/commit/da9213293f343052908b0d1096434a48327e1c3e))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
+## [0.3.7](https://github.com/dallay/profiletailors.com/compare/app@v0.3.6...app@v0.3.7) (2026-09-11)
+
+
+### Features
+
+* Add gallery view and refine ideas composer experience ([#923](https://github.com/dallay/profiletailors.com/issues/923)) ([52d85cb](https://github.com/dallay/profiletailors.com/commit/52d85cb5893ba4ec9db760620787c615b871bfb5))
+* **analytics:** add post performance details ([#979](https://github.com/dallay/profiletailors.com/issues/979)) ([83d6e11](https://github.com/dallay/profiletailors.com/commit/83d6e1175e1cac8777a6eeeea46bc914cf426357))
+* **invitation:** accept invitations registration flow (DALLAY-567) ([#1011](https://github.com/dallay/profiletailors.com/issues/1011)) ([15c1f67](https://github.com/dallay/profiletailors.com/commit/15c1f67a1a02351fedf22de637fdce57bf7d80a0))
+* **publishing:** add bulk scheduling with CSV validation ([#922](https://github.com/dallay/profiletailors.com/issues/922)) ([2a1946b](https://github.com/dallay/profiletailors.com/commit/2a1946b667d0fac392ad8df93c79d67cef3c2526))
+* Redesign settings center and add account, security, and user preferences management ([#978](https://github.com/dallay/profiletailors.com/issues/978)) ([b066f17](https://github.com/dallay/profiletailors.com/commit/b066f173a8d5330319de2490c0ca661fcfa6ab96))
+* **settings:** redesign settings center IA and hierarchy ([#985](https://github.com/dallay/profiletailors.com/issues/985)) ([0de42fe](https://github.com/dallay/profiletailors.com/commit/0de42fe3f436e6a7133d81e8525fb4653a42c095))
+
+
+### Bug Fixes
+
+* **app:** clean Biome lint warnings ([#924](https://github.com/dallay/profiletailors.com/issues/924)) ([bd6bdfa](https://github.com/dallay/profiletailors.com/commit/bd6bdfa9dbe97b8eac984c29d88c575455204146))
+* **app:** stub SidebarNavSection in App.test.ts to eliminate RouterLink warning ([#926](https://github.com/dallay/profiletailors.com/issues/926)) ([a8f8fa5](https://github.com/dallay/profiletailors.com/commit/a8f8fa503e27e0193cf00d43da56b6380029ee70))
+* **frontend:** reconcile verified route drift ([#939](https://github.com/dallay/profiletailors.com/issues/939)) ([5d06123](https://github.com/dallay/profiletailors.com/commit/5d06123464ea0c6657efa92ddf9d800cf02e5b49))
+* **notifications:** dispatch invitation emails ([#927](https://github.com/dallay/profiletailors.com/issues/927)) ([ed46918](https://github.com/dallay/profiletailors.com/commit/ed469186d873c1b2fb2078e7a496772f2925cdb0))
+* prevent Playwright worktree hangs ([#976](https://github.com/dallay/profiletailors.com/issues/976)) ([fefd3db](https://github.com/dallay/profiletailors.com/commit/fefd3db76b51002dc47d90f3be310ae243e23651))
+
+
+### Documentation
+
+* reconcile documentation with current implementation ([#957](https://github.com/dallay/profiletailors.com/issues/957)) ([dff392d](https://github.com/dallay/profiletailors.com/commit/dff392d32a0687c4cbe846ffd2a35df527a9c268))
+
 ## [0.3.6](https://github.com/dallay/profiletailors.com/compare/app@v0.3.5...app@v0.3.6) (2026-08-30)
 
 

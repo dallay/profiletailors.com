@@ -169,18 +169,18 @@ describe('acceptInvitationRequest', () => {
     expect(result.errorStatus).toBe(500)
   })
 
-  it('propagates server errorCode when present', async () => {
+  it('propagates a stable server errorCode when present', async () => {
     stubFetch(
-      new Response(JSON.stringify({ errorCode: 'INVITATION_NOT_FOUND', detail: 'not found' }), {
-        status: 404,
+      new Response(JSON.stringify({ errorCode: 'INVITATION_INVALID', detail: 'not found' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' },
       }),
     )
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_FOUND')
-    expect(result.errorStatus).toBe(404)
+    expect(result.errorCode).toBe('INVITATION_INVALID')
+    expect(result.errorStatus).toBe(400)
     expect(result.workspaceId).toBeNull()
   })
 
@@ -200,15 +200,15 @@ describe('acceptInvitationRequest', () => {
 
   it('prefers errorCode over code when both are present', async () => {
     stubFetch(
-      new Response(JSON.stringify({ errorCode: 'INVITATION_NOT_FOUND', code: 'OTHER' }), {
-        status: 404,
+      new Response(JSON.stringify({ errorCode: 'INVITATION_INVALID', code: 'OTHER' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' },
       }),
     )
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_FOUND')
+    expect(result.errorCode).toBe('INVITATION_INVALID')
   })
 
   it('handles non-JSON error body by classifying status', async () => {
@@ -216,68 +216,37 @@ describe('acceptInvitationRequest', () => {
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_ACCEPTABLE')
+    expect(result.errorCode).toBe('INVITATION_INVALID')
     expect(result.errorStatus).toBe(400)
   })
 
-  it('classifies 400 as INVITATION_NOT_ACCEPTABLE', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 400 }))
+  it.each([
+    [400, 'INVITATION_INVALID'],
+    [409, 'INVITATION_ALREADY_CONSUMED'],
+    [410, 'INVITATION_EXPIRED'],
+    [403, 'INVITATION_EMAIL_MISMATCH'],
+    [401, 'INVITATION_REQUIRES_LOGIN'],
+    [404, 'INVITATION_INVALID'],
+  ])('classifies %i as %s', async (status, errorCode) => {
+    stubFetch(new Response(JSON.stringify({}), { status }))
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_ACCEPTABLE')
-    expect(result.errorStatus).toBe(400)
+    expect(result.errorCode).toBe(errorCode)
+    expect(result.errorStatus).toBe(status)
   })
 
-  it('classifies 409 as INVITATION_NOT_ACCEPTABLE', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 409 }))
+  it.each([
+    [429, 'INVITATION_RATE_LIMITED'],
+    [500, 'INTERNAL_ERROR'],
+    [502, 'INTERNAL_ERROR'],
+  ])('classifies %i as %s', async (status, errorCode) => {
+    stubFetch(new Response(JSON.stringify({}), { status }))
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_ACCEPTABLE')
-    expect(result.errorStatus).toBe(409)
-  })
-
-  it('classifies 401 as INVITATION_REQUIRES_LOGIN', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 401 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_REQUIRES_LOGIN')
-    expect(result.errorStatus).toBe(401)
-  })
-
-  it('classifies 404 as INVITATION_NOT_FOUND', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 404 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_NOT_FOUND')
-  })
-
-  it('classifies 429 as INVITATION_RATE_LIMITED', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 429 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_RATE_LIMITED')
-    expect(result.errorStatus).toBe(429)
-  })
-
-  it('classifies 500 as INTERNAL_ERROR', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 500 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INTERNAL_ERROR')
-  })
-
-  it('classifies 502 as INTERNAL_ERROR', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 502 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INTERNAL_ERROR')
+    expect(result.errorCode).toBe(errorCode)
+    expect(result.errorStatus).toBe(status)
   })
 
   it('classifies unknown status as INTERNAL_ERROR', async () => {
@@ -302,16 +271,16 @@ describe('acceptInvitationRequest', () => {
     expect(result.errorStatus).toBe(403)
   })
 
-  it('does not send Authorization header', async () => {
+  it('sends the authenticated access token as a Bearer Authorization header', async () => {
     const fetchMock = stubFetch(
       new Response(JSON.stringify({ workspaceId: 'ws-1' }), { status: 200 }),
     )
 
-    await acceptInvitationRequest('tok')
+    await acceptInvitationRequest('tok', 'access-token-1')
 
     const { init } = getFetchArgs(fetchMock)
     const headers = init.headers as Record<string, string>
-    expect(headers.Authorization).toBeUndefined()
-    expect(headers['X-Workspace-Id']).toBeUndefined()
+
+    expect(headers.Authorization).toBe('Bearer access-token-1')
   })
 })

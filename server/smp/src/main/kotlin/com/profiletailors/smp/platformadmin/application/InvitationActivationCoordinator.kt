@@ -1,13 +1,13 @@
 package com.profiletailors.smp.platformadmin.application
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.identity.application.InvitationRegistrationContext
 import com.profiletailors.smp.identity.application.InvitationRegistrationSource
 import com.profiletailors.smp.identity.application.InvitationRegistrationTarget
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -29,12 +29,22 @@ class InvitationActivationCoordinator(
     private val workspaceProvisioningService: WorkspaceProvisioningService,
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val membershipProvisioner: WorkspaceMembershipProvisioner,
-    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
+    private val telemetry: InvitationTelemetry = InvitationTelemetry.noop(),
 ) {
     data class InvitationActivationResult(val invitation: Invitation, val membershipStatus: WorkspaceMembershipStatus)
 
-    private fun fail(code: InvitationAcceptanceFailureCode): Nothing = throw InvitationNotAcceptableException(code)
+    private fun fail(code: InvitationAcceptanceFailureCode): Nothing {
+        when (code) {
+            InvitationAcceptanceFailureCode.EXPIRED -> telemetry.recordInvitationExpired()
+            InvitationAcceptanceFailureCode.ALREADY_CONSUMED,
+            InvitationAcceptanceFailureCode.REPLAYED,
+            -> telemetry.recordInvitationReplayRejected()
+
+            else -> Unit
+        }
+        throw InvitationNotAcceptableException(code)
+    }
 
     suspend fun prepare(rawToken: String, normalizedEmail: String): InvitationRegistrationContext {
         val candidateKey = candidateKey(rawToken)
@@ -64,19 +74,16 @@ class InvitationActivationCoordinator(
         principalId: String,
     ): InvitationActivationResult {
         val candidateKey = candidateKey(rawToken)
-
-        return transactionRunner.runAtomically {
-            val invitation = invitationRepository.findByCandidateKeyForUpdate(candidateKey)
-                ?: fail(InvitationAcceptanceFailureCode.INVALID)
-            completeLocked(
-                context = invitation.toRegistrationContext(),
-                invitation = invitation,
-                rawToken = rawToken,
-                principalId = principalId,
-                displayName = email,
-                requestedEmail = email,
-            )
-        }
+        val invitation = invitationRepository.findByCandidateKeyForUpdate(candidateKey)
+            ?: fail(InvitationAcceptanceFailureCode.INVALID)
+        return completeLocked(
+            context = invitation.toRegistrationContext(),
+            invitation = invitation,
+            rawToken = rawToken,
+            principalId = principalId,
+            displayName = email,
+            requestedEmail = email,
+        )
     }
 
     private suspend fun completeLocked(
@@ -113,7 +120,9 @@ class InvitationActivationCoordinator(
 
         convertWaitlistEntryIfNeeded(invitation, now)
 
-        val accepted = invitation.accept(now, identity.principalId, resolvedWorkspaceId)
+        val acceptedPrincipalId = PlatformPrincipalIds.fromUuid(identity.principalId)
+        require(acceptedPrincipalId.startsWith("user-")) { "Accepted principal id must use user- prefix" }
+        val accepted = invitation.accept(now, acceptedPrincipalId, resolvedWorkspaceId)
         val success = invitationRepository.updateIfVersionMatches(accepted)
         if (!success) throw OptimisticLockException()
 

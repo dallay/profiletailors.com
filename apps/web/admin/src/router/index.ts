@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import type { PlatformPermission } from '@/stores/auth.store'
+import { plannedNavEntries } from './nav-registry'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -72,6 +73,12 @@ const router = createRouter({
           component: () => import('@/views/DirectInvitationsView.vue'),
           meta: { permission: 'platform.invitations.read' },
         },
+        ...plannedNavEntries().map((entry) => ({
+          path: entry.path,
+          name: entry.routeName,
+          component: () => import('@/views/PlannedAreaView.vue'),
+          meta: { permission: entry.permission },
+        })),
       ],
     },
   ],

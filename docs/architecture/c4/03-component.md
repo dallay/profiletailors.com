@@ -1,5 +1,7 @@
 # Level 3: Component Diagram
 
+**Last Updated:** 2026-09-15
+
 ## Overview
 
 The Component diagram zooms into the API Application container and shows the internal structure
@@ -865,12 +867,12 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ## Current Implementation Status
 
-**Implemented Contexts** (19 total):
+**Implemented Modules** (18 bounded contexts plus Config; 19 total):
 
 - ✅ Analytics Context (engagement metrics & reporting)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)
 - ✅ Authorization Context (RBAC, direct grants, workspace permissions)
-- ✅ Config Context (system & application configuration)
+- ✅ Config Module (system & application configuration)
 - ✅ Credentials Context (API keys, token validation, secret management)
 - ✅ Governance Context (audit logging, mutation tracking, compliance)
 - ✅ Hashtags Context (hashtag group management & tracking)
@@ -889,4 +891,4 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ---
 
-Last updated: 2026-08-31
+Last updated: 2026-09-14

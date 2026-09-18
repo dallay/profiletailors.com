@@ -10,6 +10,7 @@ import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
+import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalPasswordCredentialNotFoundException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.PasswordRecoveryPasswordException
@@ -33,30 +34,26 @@ import java.net.URI
 class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(InvalidEmailPasswordException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidEmailPasswordException): ProblemDetail =
+    fun handleInvalidEmailPassword(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL).apply {
             title = "Invalid credentials"
         }
 
     @ExceptionHandler(UserAlreadyExistsException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UserAlreadyExistsException): ProblemDetail =
+    fun handleUserAlreadyExists(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, USER_ALREADY_EXISTS_DETAIL).apply {
             title = "User already exists"
             setProperty("code", "USER_ALREADY_EXISTS")
         }
 
     @ExceptionHandler(InvalidRegistrationInputException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidRegistrationInputException): ProblemDetail =
+    fun handleInvalidRegistrationInput(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_REGISTRATION_INPUT_DETAIL).apply {
             title = "Invalid registration input"
         }
 
     @ExceptionHandler(UnverifiedEmailException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UnverifiedEmailException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleUnverifiedEmail(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.FORBIDDEN,
         "Please verify your email before using this feature.",
     ).apply {
@@ -66,8 +63,7 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(FeatureEmailVerificationRequired::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: FeatureEmailVerificationRequired): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleFeatureEmailRequired(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.FORBIDDEN,
         "Please verify your email before using this feature.",
     ).apply {
@@ -96,21 +92,29 @@ class IdentityProblemDetailsHandler {
         setProperty("code", "REGISTRATION_INVITATION_REQUIRED")
     }
 
+    @ExceptionHandler(InvitationWorkspaceOverrideException::class)
+    fun handle(): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        INVITATION_WORKSPACE_OVERRIDE_DETAIL,
+    ).apply {
+        title = "Invalid invitation workspace selection"
+        type = URI("/problems/invitation-workspace-override")
+        setProperty("code", "INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED")
+    }
+
     /**
      * Creates a problem detail response for registration validation failures.
      *
      * @return A problem detail with HTTP 422 status and a registration validation failure message.
      */
     @ExceptionHandler(RegistrationValidationException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: RegistrationValidationException): ProblemDetail =
+    fun handleRegistrationValidation(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, REGISTRATION_VALIDATION_DETAIL).apply {
             title = "Registration validation failed"
         }
 
     @ExceptionHandler(InvalidVerificationTokenException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidVerificationTokenException): ProblemDetail =
+    fun handleInvalidVerificationToken(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_VERIFICATION_TOKEN_DETAIL).apply {
             title = "Invalid verification token"
         }
@@ -156,24 +160,21 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(WebExchangeBindException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: WebExchangeBindException): ProblemDetail =
+    fun handleWebExchangeBind(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL).apply {
             title = "Validation failed"
             setProperty("code", "VALIDATION_ERROR")
         }
 
     @ExceptionHandler(ServerWebInputException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: ServerWebInputException): ProblemDetail =
+    fun handleServerWebInput(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL).apply {
             title = "Invalid request"
             setProperty("code", "VALIDATION_ERROR")
         }
 
     @ExceptionHandler(CloseAccountConfirmationException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
+    fun handleCloseConfirmation(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, CLOSE_ACCOUNT_CONFIRMATION_DETAIL).apply {
             title = "Invalid account closure confirmation"
         }
@@ -184,8 +185,7 @@ class IdentityProblemDetailsHandler {
      * @return A rate-limit problem detail with HTTP status 429 and the account-closure error code.
      */
     @ExceptionHandler(CloseAccountRateLimitException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleAccountClosureRateLimit(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.TOO_MANY_REQUESTS,
         CLOSE_ACCOUNT_RATE_LIMIT_DETAIL,
     ).apply {
@@ -250,6 +250,8 @@ class IdentityProblemDetailsHandler {
         private const val INVALID_PASSWORD_DETAIL = "Password does not meet policy requirements."
         private const val RATE_LIMIT_DETAIL = "Authentication rate limit exceeded. Try again later."
         private const val PASSWORD_RECOVERY_DISABLED_DETAIL = "Password recovery is not available."
+        private const val INVITATION_WORKSPACE_OVERRIDE_DETAIL =
+            "Workspace selection is not allowed for invitation registration."
         private const val VALIDATION_DETAIL = "Validation failure"
 
         private fun invalidResetProblem(exception: RuntimeException, code: String): ProblemDetail =

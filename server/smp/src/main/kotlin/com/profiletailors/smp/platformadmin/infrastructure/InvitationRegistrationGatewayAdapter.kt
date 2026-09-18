@@ -4,6 +4,7 @@ import com.profiletailors.smp.identity.application.InvitationRegistrationContext
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
 import com.profiletailors.smp.identity.application.InvitationRegistrationResult
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
+import com.profiletailors.smp.platformadmin.domain.InvitationAccepted
 import org.springframework.stereotype.Component
 
 @Component
@@ -30,6 +31,13 @@ class InvitationRegistrationGatewayAdapter(private val coordinator: InvitationAc
         return InvitationRegistrationResult(
             workspaceId = workspaceId,
             membershipStatus = result.membershipStatus.name,
+            postCommitEvent = InvitationAccepted(
+                invitationId = result.invitation.id.value,
+                principalId = requireNotNull(result.invitation.acceptedPrincipalId),
+                workspaceId = workspaceId,
+                target = result.invitation.target,
+                occurredAt = requireNotNull(result.invitation.acceptedAt),
+            ),
         )
     }
 }

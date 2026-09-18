@@ -14,6 +14,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/007-create-user-preferences.yaml
   - include:
+      file: db/changelog/identity/008-add-principal-status.yaml
+  - include:
+      file: db/changelog/identity/009-add-account-state.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml
@@ -114,6 +118,12 @@ databaseChangeLog:
       file: db/changelog/mcp/001-create-idempotency-records.yaml
 
   - include:
+      file: db/changelog/platform-admin/008-create-user-control-idempotency.yaml
+  - include:
+      file: db/changelog/platform-admin/009-fix-user-control-idempotency-scope.yaml
+
+
+  - include:
       file: db/changelog/hashtags/001-create-hashtag-saved-sets.yaml
   - include:
       file: db/changelog/media/001-create-media-assets.yaml
@@ -131,6 +141,8 @@ databaseChangeLog:
       file: db/changelog/lead-capture/001-create-waitlists.yaml
   - include:
       file: db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml
+  - include:
+      file: db/changelog/lead-capture/003-add-waitlist-entry-version.yaml
   - include:
       file: db/changelog/privacy/001-create-data-subject-requests.yaml
   - include:

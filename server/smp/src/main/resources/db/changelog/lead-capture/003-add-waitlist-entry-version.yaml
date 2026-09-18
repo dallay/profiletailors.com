@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: lead-capture-003-add-waitlist-entry-version
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: waitlist_entries
+            columns:
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: version

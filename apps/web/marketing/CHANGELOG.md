@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.13](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.12...landing@v0.2.13) (2026-09-18)
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#1084](https://github.com/dallay/profiletailors.com/issues/1084)) ([7f6bcc2](https://github.com/dallay/profiletailors.com/commit/7f6bcc2dad2818c6210f5dfa605dd7f0704372da))
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
+## [0.2.12](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.11...landing@v0.2.12) (2026-09-15)
+
+
+### Bug Fixes
+
+* **a11y:** associate waitlist email label and fallback channel avatar alt text ([#1054](https://github.com/dallay/profiletailors.com/issues/1054)) ([da92132](https://github.com/dallay/profiletailors.com/commit/da9213293f343052908b0d1096434a48327e1c3e))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
+## [0.2.11](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.10...landing@v0.2.11) (2026-09-10)
+
+
+### Bug Fixes
+
+* prevent Playwright worktree hangs ([#976](https://github.com/dallay/profiletailors.com/issues/976)) ([fefd3db](https://github.com/dallay/profiletailors.com/commit/fefd3db76b51002dc47d90f3be310ae243e23651))
+
 ## [0.2.10](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.9...landing@v0.2.10) (2026-09-04)
 
 

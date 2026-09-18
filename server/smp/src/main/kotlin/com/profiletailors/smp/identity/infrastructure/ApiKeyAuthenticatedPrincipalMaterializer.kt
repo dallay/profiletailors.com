@@ -15,6 +15,11 @@ open class ApiKeyAuthenticatedPrincipalMaterializer(private val principalIdentit
             subject = activeCredential.subject,
             provider = activeCredential.provider,
         ) ?: throw MissingPrincipalContextException("Authenticated API-key principal could not be materialized.")
+        if (principalFacts.accountState != com.profiletailors.smp.identity.domain.UserAccountState.ACTIVE ||
+            principalFacts.status != com.profiletailors.smp.identity.domain.PrincipalStatus.ACTIVE
+        ) {
+            throw MissingPrincipalContextException("Authenticated API-key principal is not active.")
+        }
 
         return AuthenticatedPrincipal(
             context = PrincipalContext(

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -13,8 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.security.crypto.bcrypt.BCrypt
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.security.MessageDigest
+import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 private const val DIRECT_API_V1 = "application/vnd.api.v1+json"
@@ -30,9 +35,44 @@ class DirectInvitationBddSteps {
     private lateinit var databaseClient: DatabaseClient
 
     @Autowired
+    private lateinit var database: BddDatabaseSupport
+
+    @Autowired
     private lateinit var state: PlatformAdminScenarioState
 
     private val json = ObjectMapper()
+
+    @When("the invitation notification is marked as FAILED for {string}")
+    fun invitationNotificationMarkedFailed(email: String) = runBlocking {
+        val normalized = email.trim().lowercase()
+        awaitNotificationStatus(normalized)
+        databaseClient.sql(
+            """
+            UPDATE notifications SET status = 'FAILED', failed_at = NOW(),
+                error_message = 'injected provider failure', sent_at = NULL,
+                updated_at = NOW() WHERE recipient = :email
+            """.trimIndent(),
+        )
+            .bind("email", normalized)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    @Then("distinct resend deliveries should exist for {string}")
+    fun distinctResendDeliveriesShouldExist(email: String) = runBlocking {
+        val keys = awaitNotificationKeys(email.trim().lowercase(), 2)
+        assertEquals(2, keys.size)
+        assertEquals(2, keys.toSet().size)
+        assertTrue(keys.all { it.contains(":resend:") })
+    }
+
+    @Then("the invitation notification should be recorded as {string} for {string}")
+    fun invitationNotificationShouldBeRecordedAs(expected: String, email: String) = runBlocking {
+        val status = awaitNotificationStatus(email.trim().lowercase())
+        assertNotNull(status)
+        assertEquals(expected, status)
+    }
 
     @Given("an active direct invitation exists for {string}")
     fun activeDirectInvitationExists(email: String) = runBlocking {
@@ -44,6 +84,87 @@ class DirectInvitationBddSteps {
             workspaceId = "invitation-workspace",
         )
         state.lastInvitationId = latestInvitationId(email)
+    }
+
+    @Given("an expired direct invitation exists for {string}")
+    fun expiredDirectInvitationExists(email: String) = runBlocking {
+        state.lastInvitationId = null
+        seedInvitation(
+            email = email,
+            source = "DIRECT",
+            sourceReferenceId = null,
+            workspaceId = "invitation-workspace",
+            createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+            expiresAt = Instant.parse("2026-01-02T00:00:00Z"),
+        )
+        state.lastInvitationId = latestInvitationId(email)
+    }
+
+    @Given("a revoked direct invitation exists for {string}")
+    fun revokedDirectInvitationExists(email: String) = runBlocking {
+        state.lastInvitationId = null
+        seedInvitation(
+            email = email,
+            source = "DIRECT",
+            sourceReferenceId = null,
+            workspaceId = "invitation-workspace",
+        )
+        val invitationId = latestInvitationId(email)
+        databaseClient.sql(
+            "UPDATE invitations SET status = 'REVOKED', version = version + 1 WHERE id = :id",
+        )
+            .bind("id", UUID.fromString(invitationId))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        state.lastInvitationId = invitationId
+    }
+
+    @Given("the authenticated principal has an existing credential and workspace membership")
+    fun authenticatedPrincipalHasExistingCredentialAndWorkspaceMembership() = runBlocking {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES ('principal-1', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO local_password_credentials (principal_id, password_hash)
+            VALUES (:principalId, :passwordHash)
+            ON CONFLICT (principal_id) DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("principalId", BddDatabaseSupport.PRINCIPAL_ID)
+            .bind("passwordHash", BCrypt.hashpw("bdd-existing-password", BCrypt.gensalt()))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('invitation-membership-principal-1', 'invitation-workspace', :principalId, 'USER', 'ACTIVE')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("principalId", BddDatabaseSupport.PRINCIPAL_ID)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     @Given("a consumed direct invitation exists for {string}")
@@ -85,6 +206,34 @@ class DirectInvitationBddSteps {
     fun invitationResponseShouldNotContainToken() {
         assertTrue(!lastResponseJson().has("token"))
         assertTrue(!lastResponseJson().has("rawToken"))
+    }
+
+    @Then("the invitation response should not contain {string}")
+    fun invitationResponseShouldNotContain(value: String) {
+        assertTrue(!lastResponseJson().toString().contains(value))
+    }
+
+    @Then("exactly one direct invitation should exist for {string}")
+    fun exactlyOneDirectInvitationShouldExist(email: String) = runBlocking {
+        assertEquals(1L, database.countInvitationsByEmail(email))
+    }
+
+    @Then("the authenticated principal should have exactly one identity and credential")
+    fun authenticatedPrincipalShouldHaveExactlyOneIdentityAndCredential() = runBlocking {
+        assertEquals(1L, database.countIdentities(BddDatabaseSupport.PRINCIPAL_ID))
+        assertEquals(1L, database.countPasswordCredentials(BddDatabaseSupport.PRINCIPAL_ID))
+    }
+
+    @Then("the invitation workspace should have exactly one workspace and membership for the authenticated principal")
+    fun invitationWorkspaceShouldHaveExactlyOneWorkspaceAndMembership() = runBlocking {
+        assertEquals(1L, database.countWorkspaces("invitation-workspace"))
+        assertEquals(
+            1L,
+            database.countWorkspaceMemberships(
+                principalId = BddDatabaseSupport.PRINCIPAL_ID,
+                workspaceId = "invitation-workspace",
+            ),
+        )
     }
 
     @When("an unauthenticated principal accepts the invitation")
@@ -174,6 +323,34 @@ class DirectInvitationBddSteps {
             .returnResult()
     }
 
+    @When("the platform operator creates a direct invitation for {string} in workspace {string}")
+    fun operatorCreatesDirectInvitationInWorkspace(email: String, workspaceId: String) = runBlocking {
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email, workspaceId = workspaceId))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+        rememberInvitationId()
+    }
+
+    @When("the platform operator creates a new-workspace direct invitation for {string}")
+    fun operatorCreatesNewWorkspaceDirectInvitation(email: String) = runBlocking {
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email, target = "NEW_WORKSPACE", workspaceId = null))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+        rememberInvitationId()
+    }
+
     @When("the platform operator revokes the direct invitation")
     fun operatorRevokesDirectInvitation() = runBlocking {
         val invitationId = requireNotNull(state.lastInvitationId)
@@ -235,14 +412,108 @@ class DirectInvitationBddSteps {
         assertNotNull(lastResponseJson().path("invitationId").asText(null))
     }
 
+    @When("the platform operator lists the direct invitations")
+    fun operatorListsDirectInvitations() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator lists the direct invitations with {string}")
+    fun operatorListsDirectInvitationsWithQuery(rawQuery: String) {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct?$rawQuery")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("an unauthenticated principal lists the direct invitations")
+    fun unauthenticatedListsDirectInvitations() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @Then("the direct invitation list should contain {int} invitations")
+    fun directInvitationListShouldContainCount(expected: Int) {
+        val body = lastResponseJson()
+        assertEquals(expected, body.path("items").size())
+    }
+
+    @Then("the direct invitation list should contain {int} invitation")
+    fun directInvitationListShouldContainSingle(expected: Int) {
+        directInvitationListShouldContainCount(expected)
+    }
+
+    @Then("the direct invitation list total should be {int}")
+    fun directInvitationListTotalShouldBe(expected: Int) {
+        assertEquals(expected, lastResponseJson().path("totalElements").asInt())
+    }
+
+    @Then("the direct invitation list should contain an invitation with email {string}")
+    fun directInvitationListShouldContainEmail(email: String) {
+        val items = lastResponseJson().path("items")
+        val match = (0 until items.size()).any { i ->
+            email.equals(items[i].path("email").asText(), ignoreCase = true)
+        }
+        assertTrue(match, "Expected an invitation with email $email in the direct invitation list")
+    }
+
+    @Then("the first direct invitation in the list should have email {string}")
+    fun firstDirectInvitationShouldHaveEmail(email: String) {
+        val items = lastResponseJson().path("items")
+        assertTrue(items.size() > 0, "Expected a non-empty direct invitation list")
+        assertEquals(email, items[0].path("email").asText())
+    }
+
+    @Then("the direct invitation list should not expose token material")
+    fun directInvitationListShouldNotExposeTokenMaterial() {
+        val items = lastResponseJson().path("items")
+        assertTrue(items.isArray, "Expected the direct invitation list to return an items array")
+        (0 until items.size()).forEach { i ->
+            val item = items[i]
+            assertTrue(!item.has("token"), "List row must not expose token")
+            assertTrue(!item.has("tokenHash"), "List row must not expose tokenHash")
+            assertTrue(!item.has("candidateKey"), "List row must not expose candidateKey")
+            assertNotNull(item.path("invitationId").asText(null))
+            assertNotNull(item.path("email").asText(null))
+        }
+    }
+
     private fun lastResponseJson() = json.readTree(requireNotNull(state.lastResponse).responseBody)
 
-    private fun directInvitationPayload(email: String): String = json.writeValueAsString(
-        mapOf(
-            "email" to email.trim().lowercase(),
-            "target" to "EXISTING_WORKSPACE",
-            "workspaceId" to "invitation-workspace",
-        ),
+    private fun rememberInvitationId() {
+        state.lastResponse?.responseBody?.let { body ->
+            runCatching { json.readTree(body) }
+                .getOrNull()
+                ?.get("invitationId")
+                ?.asText()
+                ?.let { state.lastInvitationId = it }
+        }
+    }
+
+    private fun directInvitationPayload(
+        email: String,
+        target: String = "EXISTING_WORKSPACE",
+        workspaceId: String? = "invitation-workspace",
+    ): String = json.writeValueAsString(
+        buildMap {
+            put("email", email.trim().lowercase())
+            put("target", target)
+            if (workspaceId != null) {
+                put("workspaceId", workspaceId)
+            }
+        },
     )
 
     private suspend fun seedInvitation(
@@ -250,6 +521,8 @@ class DirectInvitationBddSteps {
         source: String,
         sourceReferenceId: String?,
         workspaceId: String,
+        createdAt: Instant = Instant.now(),
+        expiresAt: Instant = createdAt.plus(Duration.ofDays(7)),
     ) {
         val token = "bdd-invitation-token-${UUID.randomUUID()}"
         val invitationId = UUID.randomUUID()
@@ -260,6 +533,7 @@ class DirectInvitationBddSteps {
             token,
             org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
         )
+        seedInvitationIssuer()
         seedInvitationWorkspace(workspaceId)
         databaseClient.sql(
             """
@@ -268,7 +542,7 @@ class DirectInvitationBddSteps {
                 candidate_key, token_hash, status, issued_by, created_at, expires_at
             ) VALUES (
                 :id, :source, :sourceReferenceId, :workspaceId, :email,
-                :candidateKey, :tokenHash, 'ACTIVE', :issuedBy, NOW(), NOW() + interval '7 days'
+                :candidateKey, :tokenHash, 'ACTIVE', :issuedBy, :createdAt, :expiresAt
             )
             """.trimIndent(),
         )
@@ -286,10 +560,26 @@ class DirectInvitationBddSteps {
             .bind("candidateKey", candidateKey)
             .bind("tokenHash", tokenHash)
             .bind("issuedBy", ADMIN_PRINCIPAL_ID)
+            .bind("createdAt", createdAt)
+            .bind("expiresAt", expiresAt)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         state.invitationToken = token
+    }
+
+    private suspend fun seedInvitationIssuer() {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:id, 'USER', 'local:admin@platform.example', NULL, 'Platform Admin')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("id", ADMIN_PRINCIPAL_ID)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     private suspend fun seedInvitationWorkspace(workspaceId: String) {
@@ -321,4 +611,41 @@ class DirectInvitationBddSteps {
         .map { row, _ -> requireNotNull(row.get("version", Long::class.java)) }
         .one()
         .awaitSingle()
+
+    private suspend fun awaitNotificationKeys(email: String, expected: Int): List<String> {
+        var keys: List<String> = emptyList()
+        var attempts = 0
+        while (attempts < 50) {
+            keys = databaseClient.sql(
+                "SELECT idempotency_key FROM notifications WHERE recipient = :email ORDER BY created_at",
+            )
+                .bind("email", email)
+                .map { row, _ -> requireNotNull(row.get("idempotency_key", String::class.java)) }
+                .all()
+                .collectList()
+                .awaitSingle()
+            if (keys.size >= expected) return keys
+            delay(100)
+            attempts += 1
+        }
+        return keys
+    }
+
+    private suspend fun awaitNotificationStatus(email: String): String? {
+        var status: String? = null
+        var attempts = 0
+        while (attempts < 50) {
+            status = databaseClient.sql(
+                "SELECT status FROM notifications WHERE recipient = :email ORDER BY created_at DESC LIMIT 1",
+            )
+                .bind("email", email)
+                .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
+                .one()
+                .awaitSingleOrNull()
+            if (status != null && status != "PENDING") return status
+            delay(100)
+            attempts += 1
+        }
+        return status
+    }
 }

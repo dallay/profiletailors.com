@@ -1,12 +1,10 @@
-/// <reference types="vitest/config" />
-
-import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig, type UserConfig } from 'vite'
-import type { UserConfig as VitestUserConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
+import type { InlineConfig as VitestInlineConfig } from 'vitest/node'
+import { fileURLToPath, URL } from 'node:url'
+import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
 const isE2eOrCi = Boolean(
   process.env.PLAYWRIGHT ||
@@ -15,12 +13,25 @@ const isE2eOrCi = Boolean(
     process.env.NODE_ENV === 'test',
 )
 
-// https://vite.dev/config/
+const buildInfo = process.env.VITEST
+  ? {
+      version: '0.3.9',
+      gitSha: 'a1b2c3d',
+      buildTime: '2026-09-18T16:00:00.000Z',
+    }
+  : computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
+
 const config = {
   envDir: '../../..',
+  define: {
+    __APP_VERSION__: JSON.stringify(buildInfo.version),
+    __GIT_SHA__: JSON.stringify(buildInfo.gitSha),
+    __BUILD_TIME__: JSON.stringify(buildInfo.buildTime),
+  },
   server: {
     port: parseInt(process.env.PORT || '5173', 10),
     strictPort: Boolean(process.env.WORKTREE_ID || process.env.PLAYWRIGHT),
+    hmr: !isE2eOrCi,
     host: true,
     allowedHosts: ['.localhost', 'pt-app.localhost'],
     proxy: {
@@ -53,6 +64,6 @@ const config = {
       exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
     },
   },
-} satisfies UserConfig & Pick<VitestUserConfig, 'test'>
+} satisfies UserConfig & { test?: VitestInlineConfig }
 
 export default defineConfig(config)

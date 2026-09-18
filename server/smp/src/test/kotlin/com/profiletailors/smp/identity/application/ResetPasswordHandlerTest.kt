@@ -438,9 +438,10 @@ class ResetPasswordHandlerTest {
         var revokeAllCalls: Int = 0
         var lastRevokedPrincipalId: String? = null
 
-        override suspend fun revokeAllForPrincipal(principalId: String) {
+        override suspend fun revokeAllForPrincipal(principalId: String): Int {
             revokeAllCalls += 1
             lastRevokedPrincipalId = principalId
+            return 0
         }
     }
 
@@ -463,7 +464,7 @@ class ResetPasswordHandlerTest {
 
         override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
 
-        override suspend fun revokeAllForPrincipal(principalId: String, now: Instant) = Unit
+        override suspend fun revokeAllForPrincipal(principalId: String, now: Instant): Int = 0
     }
 
     private fun PrincipalIdentityFacts(principalId: String) = PrincipalIdentityFacts(

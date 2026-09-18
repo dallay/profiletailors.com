@@ -2,9 +2,17 @@ export type MessageSchema = {
   nav: {
     dashboard: string
     waitlist: string
+    directInvitations: string
     users: string
     audit: string
+    overview: string
+    notifications: string
+    governance: string
+    configuration: string
     platformAdministration: string
+  }
+  planned: {
+    message: string
   }
   common: {
     loading: string
@@ -23,6 +31,8 @@ export type MessageSchema = {
     of: string
     next: string
     previous: string
+    yes: string
+    no: string
   }
   auth: {
     signIn: string
@@ -81,19 +91,61 @@ export type MessageSchema = {
     revokeConfirmMessage: string
     entries: string
     invitationHistory: string
+    consentDetails: string
+    earlyAccessConsent: string
+    marketingConsent: string
+    consentVersion: string
+    metadata: string
+    resendDialog: { title: string; message: string }
+    bulkInvite: string
+    bulkSelect: string
+    bulkSelectAll: string
+    bulkResults: string
+    bulkSummary: string
+    bulkTooMany: string
     statuses: { pending: string; invited: string; converted: string; cancelled: string }
-    filters: { status: string; search: string; all: string }
+    filters: {
+      status: string
+      search: string
+      all: string
+      waitlistKey: string
+      joinedFrom: string
+      joinedTo: string
+      invitedFrom: string
+      invitedTo: string
+    }
   }
   users: {
     title: string
     principalId: string
     displayName: string
     principalType: string
+    accountState: string
+    accountStates: { active: string; disabled: string }
+    verificationState: string
+    disable: string
+    enable: string
+    revokeSessions: string
+    disableConfirm: string
+    enableConfirm: string
+    revokeSessionsConfirm: string
     lastAuthenticated: string
     authMethods: string
     workspaces: string
     platformRoles: string
     workspaceMemberships: string
+    status: string
+    deactivate: string
+    reactivate: string
+    deactivateConfirm: string
+    reactivateConfirm: string
+    deactivateSuccess: string
+    reactivateSuccess: string
+    deactivateError: string
+    reactivateError: string
+    active: string
+    deactivated: string
+    suspended: string
   }
   audit: {
     title: string
@@ -143,6 +195,17 @@ export type MessageSchema = {
       title: string
       message: string
       confirm: string
+    }
+    list: {
+      title: string
+      search: string
+      statusFilter: string
+      allStatuses: string
+      target: string
+      expiresAt: string
+      empty: string
+      statuses: { active: string; accepted: string; expired: string; revoked: string }
+      targets: { existingWorkspace: string; newWorkspace: string }
     }
   }
   errors: {

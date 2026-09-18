@@ -3,14 +3,23 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyCodec
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyRecord
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyStore
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.handler.UserControlHandlers
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.UserControlResult
+import com.profiletailors.smp.platformadmin.application.model.UserSessionsRevokeResult
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,6 +37,11 @@ class AdminUserControllerTest {
 
     private val userQuery = mockk<AdminUserQuery>()
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
+    private val userControlHandlers = mockk<UserControlHandlers>()
+    private val userControlIdempotencyService =
+        UserControlIdempotencyService(FakeUserControlIdempotencyStore(), FakeUserControlIdempotencyCodec())
+    private val auditPublisher = mockk<AdministrativeAuditPublisher>()
+    private val auditHook = mockk<com.profiletailors.smp.audit.domain.AuditHook>(relaxed = true)
 
     @Test
     fun `listUsers returns 401 without principal context`() {
@@ -85,6 +99,157 @@ class AdminUserControllerTest {
     }
 
     @Test
+    fun `disableUser forwards idempotency key and returns control result`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { userControlHandlers.disable(any()) } returns UserControlResult(userId, UserAccountState.DISABLED, 2)
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/disable")
+            .header("Idempotency-Key", "disable-key")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo(userId)
+            .jsonPath("$.accountState").isEqualTo("DISABLED")
+            .jsonPath("$.revokedSessionCount").isEqualTo(2)
+    }
+
+    @Test
+    fun `disableUser returns 403 when operator lacks manage permission`() {
+        grantRoles(listOf(PlatformRole.SUPPORT_AGENT))
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/disable")
+            .header("Idempotency-Key", "disable-key")
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
+    @Test
+    fun `disableUser returns 401 without principal context`() {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/users/$userId/disable")
+            .header("Idempotency-Key", "disable-key")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        coVerify {
+            auditHook.onMutation(
+                match { fact ->
+                    fact.action == "USER_DISABLED" &&
+                        fact.actorPrincipalId == "UNAUTHENTICATED" &&
+                        fact.targetId == userId &&
+                        fact.outcome == com.profiletailors.smp.audit.domain.MutationAuditOutcome.REJECTED
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `should enable the user when the idempotency key is valid`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { userControlHandlers.enable(any()) } returns UserControlResult(userId, UserAccountState.ACTIVE, 0)
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/enable")
+            .header("Idempotency-Key", "enable-key")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo(userId)
+            .jsonPath("$.accountState").isEqualTo("ACTIVE")
+            .jsonPath("$.revokedSessionCount").isEqualTo(0)
+    }
+
+    @Test
+    fun `should reject enable with 401 when unauthenticated`() {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/users/$userId/enable")
+            .header("Idempotency-Key", "enable-key")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        coVerify {
+            auditHook.onMutation(
+                match { fact ->
+                    fact.action == "USER_ENABLED" &&
+                        fact.actorPrincipalId == "UNAUTHENTICATED" &&
+                        fact.targetId == userId &&
+                        fact.outcome == com.profiletailors.smp.audit.domain.MutationAuditOutcome.REJECTED
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `should revoke sessions when the idempotency key is valid`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { userControlHandlers.revokeSessions(any()) } returns UserSessionsRevokeResult(userId, 2)
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/sessions/revoke")
+            .header("Idempotency-Key", "revoke-key")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo(userId)
+            .jsonPath("$.revokedSessionCount").isEqualTo(2)
+    }
+
+    @Test
+    fun `should reject session revocation with 401 when unauthenticated`() {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/users/$userId/sessions/revoke")
+            .header("Idempotency-Key", "revoke-key")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        coVerify {
+            auditHook.onMutation(
+                match { fact ->
+                    fact.action == "USER_SESSIONS_REVOKED" &&
+                        fact.actorPrincipalId == "UNAUTHENTICATED" &&
+                        fact.targetId == userId &&
+                        fact.outcome == com.profiletailors.smp.audit.domain.MutationAuditOutcome.REJECTED
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `revokeUserSessions requires idempotency key`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OPERATOR))
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/sessions/revoke")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `getUser returns user detail`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { userQuery.findById(userId) } returns detail()
+
+        webClient()
+            .get()
+            .uri("/api/admin/users/$userId")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.workspaceMemberships[0].workspaceId").isEqualTo("workspace-1")
+            .jsonPath("$.platformRoles[0]").isEqualTo("PLATFORM_OWNER")
+    }
+
+    @Test
     fun `getUser returns detail for existing user`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { userQuery.findById(userId) } returns detail()
@@ -126,7 +291,8 @@ class AdminUserControllerTest {
 
     @Test
     fun `getUserWorkspaces returns memberships for existing user`() {
-        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        grantRoles(listOf(PlatformRole.PLATFORM_OPERATOR))
+        coEvery { userQuery.findById(userId) } returns detail()
         coEvery { userQuery.findWorkspacesByPrincipalId(userId) } returns listOf(workspace())
 
         webClient()
@@ -152,12 +318,29 @@ class AdminUserControllerTest {
             .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
     }
 
+    @Test
+    fun `getUserWorkspaces requires users read permission as well as workspace read`() {
+        grantRoles(listOf(PlatformRole.AUDITOR))
+
+        webClient()
+            .get()
+            .uri("/api/admin/users/$userId/workspaces")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminUserController(
                 userQuery = userQuery,
                 operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
+                auditHook = auditHook,
+                userControlHandlers = userControlHandlers,
+                userControlIdempotencyService = userControlIdempotencyService,
+
             ),
         )
         .controllerAdvice(AdminProblemDetailsHandler())
@@ -184,6 +367,7 @@ class AdminUserControllerTest {
         authenticationMethods = listOf("jwt"),
         workspaceCount = 1,
         platformRoles = listOf("PLATFORM_OWNER"),
+        accountState = UserAccountState.ACTIVE,
     )
 
     private fun detail() = AdminUserDetail(
@@ -196,6 +380,7 @@ class AdminUserControllerTest {
         authenticationMethods = listOf("jwt"),
         workspaceMemberships = listOf(workspace()),
         platformRoles = listOf("PLATFORM_OWNER"),
+        accountState = UserAccountState.ACTIVE,
     )
 
     private fun workspace() = AdminWorkspaceMembershipSummary(
@@ -205,6 +390,23 @@ class AdminUserControllerTest {
         workspaceRoles = listOf("OWNER"),
         joinedAt = clock,
     )
+
+    private class FakeUserControlIdempotencyStore : UserControlIdempotencyStore {
+        override suspend fun find(operatorPrincipalId: UUID, idempotencyKey: String): UserControlIdempotencyRecord? =
+            null
+
+        override suspend fun claim(record: UserControlIdempotencyRecord): Boolean = true
+
+        override suspend fun complete(operatorPrincipalId: UUID, idempotencyKey: String, responseJson: String) = Unit
+
+        override suspend fun remove(operatorPrincipalId: UUID, idempotencyKey: String) = Unit
+    }
+
+    private class FakeUserControlIdempotencyCodec : UserControlIdempotencyCodec {
+        override fun encode(value: Any): String = value.toString()
+
+        override fun <T : Any> decode(responseJson: String, responseType: Class<T>): T = error("not used")
+    }
 
     private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {
         override fun currentPrincipalContext(): PrincipalContext? = principal

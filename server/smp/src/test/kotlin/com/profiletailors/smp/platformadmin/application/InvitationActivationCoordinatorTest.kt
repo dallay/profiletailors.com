@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.application
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
@@ -33,6 +32,7 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -50,7 +50,6 @@ class InvitationActivationCoordinatorTest {
     private val workspaceProvisioningService = mockk<WorkspaceProvisioningService>()
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
     private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
-    private val transactionRunner = NoOpTransactionRunner()
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
@@ -61,7 +60,6 @@ class InvitationActivationCoordinatorTest {
         workspaceProvisioningService = workspaceProvisioningService,
         waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
-        transactionRunner = transactionRunner,
         clock = clock,
     )
 
@@ -225,7 +223,6 @@ class InvitationActivationCoordinatorTest {
             workspaceProvisioningService = workspaceProvisioningService,
             waitlistEntryAdmin = waitlistEntryAdmin,
             membershipProvisioner = membershipProvisioner,
-            transactionRunner = transactionRunner,
             clock = clock,
         )
 
@@ -383,6 +380,94 @@ class InvitationActivationCoordinatorTest {
     }
 
     @Test
+    fun `persists acceptedPrincipalId with single user prefix for bare uuid identity`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val operatorUuid = UUID.randomUUID()
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+            status = InvitationStatus.ACTIVE,
+        )
+        val principalFacts = PrincipalIdentityFacts(
+            principalId = operatorUuid.toString(),
+            principalType = PrincipalType.USER,
+            subject = "sub-1",
+            provider = "local",
+            displayIdentity = "User",
+            email = "user@example.com",
+            username = "user",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId(operatorUuid.toString()) } returns principalFacts
+        val savedSlot = slot<Invitation>()
+        coEvery { invitationRepository.updateIfVersionMatches(capture(savedSlot)) } returns true
+        coEvery {
+            membershipProvisioner.reconcile("ws-existing", operatorUuid.toString())
+        } returns
+            WorkspaceMembership(
+                "wm-3",
+                "ws-existing",
+                operatorUuid.toString(),
+                PrincipalType.USER,
+                WorkspaceMembershipStatus.ACTIVE,
+            )
+
+        val result = coordinator.activateForRegistration(rawToken, "user@example.com", operatorUuid.toString())
+
+        assertEquals("user-$operatorUuid", result.invitation.acceptedPrincipalId)
+        assertEquals("user-$operatorUuid", savedSlot.captured.acceptedPrincipalId)
+    }
+
+    @Test
+    fun `keeps already prefixed acceptedPrincipalId without double prefix`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val prefixedPrincipalId = "user-${UUID.randomUUID()}"
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+            status = InvitationStatus.ACTIVE,
+        )
+        val principalFacts = PrincipalIdentityFacts(
+            principalId = prefixedPrincipalId,
+            principalType = PrincipalType.USER,
+            subject = "sub-1",
+            provider = "local",
+            displayIdentity = "User",
+            email = "user@example.com",
+            username = "user",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId(prefixedPrincipalId) } returns principalFacts
+        val savedSlot = slot<Invitation>()
+        coEvery { invitationRepository.updateIfVersionMatches(capture(savedSlot)) } returns true
+        coEvery {
+            membershipProvisioner.reconcile("ws-existing", prefixedPrincipalId)
+        } returns
+            WorkspaceMembership(
+                "wm-4",
+                "ws-existing",
+                prefixedPrincipalId,
+                PrincipalType.USER,
+                WorkspaceMembershipStatus.ACTIVE,
+            )
+
+        val result = coordinator.activateForRegistration(rawToken, "user@example.com", prefixedPrincipalId)
+
+        assertEquals(prefixedPrincipalId, result.invitation.acceptedPrincipalId)
+        assertEquals(prefixedPrincipalId, savedSlot.captured.acceptedPrincipalId)
+    }
+
+    @Test
     fun `throws OptimisticLockException when updateIfVersionMatches returns false`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
@@ -441,8 +526,4 @@ class InvitationActivationCoordinatorTest {
     interface CandidateKeyTokenHasher :
         TokenHasher,
         InvitationTokenCandidateKey
-
-    private class NoOpTransactionRunner : AtomicTransactionRunner {
-        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
-    }
 }

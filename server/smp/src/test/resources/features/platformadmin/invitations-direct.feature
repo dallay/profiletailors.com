@@ -71,3 +71,40 @@ Feature: Direct invitation admin commands
     When the platform operator resends the direct invitation
     Then the admin response status should be 403
     And the admin response code should be "PLATFORM_ACCESS_DENIED"
+
+  Scenario: Creating a direct invitation for an unknown workspace returns 404
+    When the platform operator creates a direct invitation for "direct-unknown-workspace@example.com" in workspace "workspace-missing"
+    Then the admin response status should be 404
+    And the admin response code should be "WORKSPACE_NOT_FOUND"
+
+  Scenario: Operator creates a new-workspace direct invitation
+    When the platform operator creates a new-workspace direct invitation for "direct-new-workspace@example.com"
+    Then the admin response status should be 201
+    And the direct invitation response should contain an id
+    And the invitation response should not contain the token
+    And the direct invitation status should be "ACTIVE"
+
+  Scenario: Operator resends a direct invitation without leaking the token
+    Given an active direct invitation exists for "direct-resend-redacted@example.com"
+    When the platform operator resends the direct invitation
+    Then the admin response status should be 200
+    And the invitation response should not contain the token
+
+  Scenario: Resending twice creates distinct deliveries without leaking the token
+    Given an active direct invitation exists for "direct-resend-identity@example.com"
+    When the platform operator resends the direct invitation
+    Then the admin response status should be 200
+    And the invitation response should not contain the token
+    When the platform operator resends the direct invitation
+    Then the admin response status should be 200
+    And the invitation response should not contain the token
+    Then distinct resend deliveries should exist for "direct-resend-identity@example.com"
+
+  Scenario: Provider failure still returns success without leaking the token
+    When the platform operator creates a new-workspace direct invitation for "direct-provider-failure@example.com"
+    Then the admin response status should be 201
+    And the invitation response should not contain the token
+    And the direct invitation status should be "ACTIVE"
+    When the invitation notification is marked as FAILED for "direct-provider-failure@example.com"
+    Then the direct invitation status should be "ACTIVE"
+    And the invitation notification should be recorded as "FAILED" for "direct-provider-failure@example.com"

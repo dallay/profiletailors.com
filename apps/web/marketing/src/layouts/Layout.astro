@@ -4,6 +4,9 @@ import type { Locale } from "@i18n/utils";
 import Analytics from "@components/Analytics.astro";
 import ConsentScript from "@components/consent/ConsentScript.astro";
 import ConsentBanner from "@components/consent/ConsentBanner.astro";
+import Footer from "@components/Footer.astro";
+import VersionBadge from "@components/VersionBadge.astro";
+import { useTranslations } from "@i18n/utils";
 
 interface Props {
   title?: string;
@@ -15,6 +18,7 @@ interface Props {
   jsonLdType?: "WebSite" | "WebPage";
   noindex?: boolean;
   includeStructuredData?: boolean;
+  hideVersionBadge?: boolean;
 }
 
 const {
@@ -27,6 +31,7 @@ const {
   jsonLdType = "WebSite",
   noindex = false,
   includeStructuredData = true,
+  hideVersionBadge = false,
 } = Astro.props;
 
 const path = canonicalPath ?? "/";
@@ -39,6 +44,7 @@ const robotsContent = noindex
   ? "noindex,nofollow,noarchive"
   : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
 const siteName = "Profile Tailors";
+const t = useTranslations(lang);
 
 const jsonLdName = jsonLdType === "WebSite" ? siteName : title;
 const jsonLd = {
@@ -57,6 +63,12 @@ const jsonLdString = JSON.stringify(jsonLd);
 <html lang={lang}>
   <head>
     <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
+    />
     <!-- Consent check: must run before Analytics -->
     <ConsentScript />
     <!-- Theme: must run synchronously before first paint to prevent FOUC -->
@@ -65,17 +77,18 @@ const jsonLdString = JSON.stringify(jsonLd);
         var saved = localStorage.getItem("theme");
         if (saved === "light") {
           document.documentElement.setAttribute("data-theme", "light");
-          document.documentElement.classList.add("dark");
+          document.documentElement.classList.remove("dark");
         } else if (saved === "dark") {
           document.documentElement.removeAttribute("data-theme");
-          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.add("dark");
         } else {
-          // No saved preference — respect OS setting
           if (globalThis.matchMedia("(prefers-color-scheme: light)").matches) {
             document.documentElement.setAttribute("data-theme", "light");
+            document.documentElement.classList.remove("dark");
+          } else {
+            document.documentElement.removeAttribute("data-theme");
             document.documentElement.classList.add("dark");
           }
-          // Dark is the default (:root tokens) — no attribute needed
         }
       })();
     </script>
@@ -159,6 +172,14 @@ const jsonLdString = JSON.stringify(jsonLd);
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <slot />
+    <Footer
+      tagline={t.footer.tagline}
+      copy={t.footer.copy}
+      legalLinks={t.footer.legalLinks}
+      locale={lang}
+    >
+      {!hideVersionBadge && <VersionBadge locale={lang} />}
+    </Footer>
     <Analytics />
     <ConsentBanner locale={lang} />
   </body>

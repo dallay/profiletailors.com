@@ -125,18 +125,18 @@ describe('AcceptInvitationView branch coverage', () => {
       global: { stubs: { RouterLink: true } },
     })
     expect(wrapper.text()).toContain('invitation.checkingAvailability')
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
   })
 
-  it('shows notFound canonical copy', async () => {
+  it('shows invalid canonical copy', async () => {
     accept.mockImplementation(async () => {
-      state.errorCode = 'INVITATION_NOT_FOUND'
-      state.errorStatus = 404
+      state.errorCode = 'INVITATION_INVALID'
+      state.errorStatus = 400
       return {
         workspaceId: null,
         membershipStatus: null,
-        errorCode: 'INVITATION_NOT_FOUND',
-        errorStatus: 404,
+        errorCode: 'INVITATION_INVALID',
+        errorStatus: 400,
       }
     })
     const wrapper = mount(AcceptInvitationView, {
@@ -146,7 +146,7 @@ describe('AcceptInvitationView branch coverage', () => {
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
     await flushPromises()
-    expect(wrapper.text()).toContain('invitation.errors.notFound')
+    expect(wrapper.text()).toContain('invitation.errors.invalid')
   })
 
   it('redirects unauthenticated invitees to registration with the token', async (): Promise<void> => {
@@ -259,7 +259,7 @@ describe('AcceptInvitationView branch coverage', () => {
     await flushPromises()
     await flushPromises()
     expect(wrapper.text()).toContain('invitation.redirecting')
-    expect(wrapper.find('[role="status"][aria-live="polite"]').exists()).toBe(true)
+    expect(wrapper.find('output[aria-live="polite"]').exists()).toBe(true)
   })
 
   it('sets document title when redirecting', async () => {
