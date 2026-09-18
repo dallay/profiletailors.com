@@ -1,7 +1,17 @@
 ---
+import { formatTranslation, useTranslations } from '@i18n/utils'
+import type { Locale } from '@i18n/utils'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = 'en' } = Astro.props
 const version = __APP_VERSION__;
-const gitSha = __GIT_SHA__;
+const shortSha = __GIT_SHA__.slice(0, 7);
 const buildTime = __BUILD_TIME__;
+const t = useTranslations(locale)
+const displayText = formatTranslation(t.footer.versionBadge, { version, shortSha })
 ---
 
 <span
@@ -9,5 +19,5 @@ const buildTime = __BUILD_TIME__;
   title={buildTime}
   data-testid="version-badge"
 >
-  v{version} · {gitSha}
+  {displayText}
 </span>

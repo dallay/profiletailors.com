@@ -8,8 +8,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 
 function gitShortSha() {
-  if (process.env.GIT_SHA) {
-    return process.env.GIT_SHA;
+  const suppliedSha = process.env.GIT_SHA?.trim();
+  if (suppliedSha) {
+    return suppliedSha.slice(0, 7);
   }
   try {
     return execSync("git rev-parse --short HEAD", { cwd: root }).toString().trim();

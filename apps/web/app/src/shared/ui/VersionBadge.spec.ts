@@ -1,20 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import VersionBadge from './VersionBadge.vue'
 
 describe('VersionBadge', () => {
-  beforeEach(() => {
-    ;(globalThis as Record<string, unknown>).__APP_VERSION__ = '0.3.9'
-    ;(globalThis as Record<string, unknown>).__GIT_SHA__ = 'a1b2c3d'
-    ;(globalThis as Record<string, unknown>).__BUILD_TIME__ = '2026-09-18T16:00:00.000Z'
-  })
-
-  afterEach(() => {
-    delete (globalThis as Record<string, unknown>).__APP_VERSION__
-    delete (globalThis as Record<string, unknown>).__GIT_SHA__
-    delete (globalThis as Record<string, unknown>).__BUILD_TIME__
-  })
-
   it('renders the deployed version and the short SHA', () => {
     const wrapper = mount(VersionBadge)
     expect(wrapper.text()).toBe('v0.3.9 · a1b2c3d')

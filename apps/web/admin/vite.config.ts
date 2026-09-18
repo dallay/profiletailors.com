@@ -6,7 +6,13 @@ import tailwind from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
-const buildInfo = computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
+const buildInfo = process.env.VITEST
+  ? {
+      version: '0.0.8',
+      gitSha: 'b2c3d4e',
+      buildTime: '2026-09-18T16:00:00.000Z',
+    }
+  : computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
 
 export default defineConfig({
   envDir: '../../..',

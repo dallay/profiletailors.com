@@ -119,3 +119,11 @@ export function useTranslations(urlOrLang: URL | Locale): Translations {
   return translations[lang] as Translations
 }
 
+export function formatTranslation(
+  template: string,
+  values: Readonly<Record<string, string>>,
+): string {
+  return template.replace(/\{([A-Za-z]+)\}/g, (placeholder, key: string) => {
+    return values[key] ?? placeholder
+  })
+}

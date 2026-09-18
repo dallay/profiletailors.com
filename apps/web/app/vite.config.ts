@@ -13,7 +13,13 @@ const isE2eOrCi = Boolean(
     process.env.NODE_ENV === 'test',
 )
 
-const buildInfo = computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
+const buildInfo = process.env.VITEST
+  ? {
+      version: '0.3.9',
+      gitSha: 'a1b2c3d',
+      buildTime: '2026-09-18T16:00:00.000Z',
+    }
+  : computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
 
 const config = {
   envDir: '../../..',
