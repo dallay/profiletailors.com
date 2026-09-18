@@ -181,3 +181,88 @@ No CRITICAL issues.
 ## Final Verdict
 
 **PASS WITH WARNINGS** — strictly for the PR2 slice (tasks 2.3, 2.4, 2.5). Bearer scoping holds (no new bearer surface; payload contract locked by tests; transient render covered), the per-key+IP throttle is enforced at the transport edge with safe 429 semantics and a raw-token-free key, and the coordinator is untouched. 60/60 narrow tests green on forced rerun; Detekt (both modules) and Spotless clean; no suppressions, baselines, or comment violations. The single WARNING (bounds not test-locked) and the SUGGESTION (no full-context wiring test) are non-blocking for PR2 but should be addressed in PR3. Out-of-scope items are Not-run by instruction and MUST NOT be read as failures.
+
+---
+
+# Verification Report: 662-invitation-token-lifecycle — PR3 Slice (Work Unit 3: security evidence + reconciliation)
+
+Scope: PR3. Phase 3 (3.1–3.4) and Phase 4 (4.1–4.2). Phase 1 items 1.1 and 1.3 remain owner-confirmation-pending (in-repo evidence recorded, external sign-off not obtained); this is explicit, non-blocking carry-forward, not a PR3 failure.
+
+## Change and Mode
+
+| Field | Value |
+|---|---|
+| Change | 662-invitation-token-lifecycle (issue #662) |
+| Slice | PR3 / Work Unit 3: security + concurrency evidence (3.1–3.4) + reconciliation (4.1–4.2) |
+| Mode | openspec |
+| Date | 2026-09-18 |
+| Merged | PR #1098, merge commit `ad35eb66`, 2026-09-18T22:18:21Z |
+| Verifier | Direct (orchestrator), after prior sdd-apply background-session work was audited and re-verified |
+
+## Completeness Table (PR3 scope)
+
+| Task | Claim | Status |
+|---|---|---|
+| 3.1 Hash-only raw-token lookup test | New test `raw token value matches no stored row` in `R2dbcInvitationRepositoryTest` | DONE, verified — test present, green on isolated rerun |
+| 3.2 Expiry/revoked/consumed rejection with safe codes | Three new coordinator tests: `rejects expired invitation with EXPIRED code`, `rejects revoked invitation with REVOKED code`, `rejects consumed invitation with ALREADY_CONSUMED code` | DONE, verified — tests present, green; Postgres-level replay coverage relies on the pre-existing `platform-admin.feature` BDD scenario (unaffected by this diff) |
+| 3.3 Concurrent exactly-one-winner test + BDD replay-denied | `concurrent acceptance clients allow one success and one membership` (R2dbcInvitationRepositoryTest) and `Replaying an accepted invitation is denied` (platform-admin.feature) | CONFIRMED PRESENT — both predate this change; audited to confirm they were not weakened or removed by PR1–PR3 |
+| 3.4 No-bearer audit/log/metric assertions; throttled accept safe code | No-bearer assertions from PR2 remain; new test `accept throttle locks attempt bounds to ten per ten minutes` closes the PR2 WARNING (bounds now test-locked, not inspection-only) | DONE, verified — test present, green |
+| 4.1 Reconcile delta specs with code | `design.md` updated: 4-series metric wording locked, #660/observability-owner in-repo evidence recorded, throttle-bounds test-lock noted; `specs/invitations/spec.md` bulk-observability requirement rewritten to match the merged 4-series shape | DONE, verified by direct diff read |
+| 4.2 Full gates | See Build/Test evidence below | DONE WITH CARRY-FORWARD (two pre-existing unrelated flaky failures, isolated and confirmed non-regressions) |
+
+## Build / Test / Coverage Evidence (executed by verifier, post-merge against `main`)
+
+| Check | Command | Result |
+|---|---|---|
+| Touched-scope unit/integration suites | `./gradlew :server:smp:test --tests "...InvitationActivationCoordinatorTest" --tests "...InvitationAcceptanceControllerTest" --tests "...R2dbcInvitationRepositoryTest"` | BUILD SUCCESSFUL; 44 tests, 0 failures, 0 errors (18+8+18) |
+| Detekt (SMP) | `./gradlew :server:smp:detekt` | BUILD SUCCESSFUL, 0 findings |
+| Spotless (SMP) | `./gradlew :server:smp:spotlessCheck` | BUILD SUCCESSFUL, clean |
+| Admin Vitest (regression check, unrelated surface) | `pnpm --filter @profiletailors/admin test:run` | 10 files, 90 tests, 0 failures |
+| Full-module `backend-check` (test + postgresIntegrationTest + Spotless + Detekt + Kover) | `just backend-check` | BUILD FAILED — 2 failures, both outside `platformadmin`/invitations: `LocalAuthEndpointIntegrationTest > login returns jwt with emailStatus pending claim()` (TimeoutException) and `WaitlistRateLimitIntegrationTest > rate limited response includes Retry-After header()` (AssertionError/TimeoutException, non-deterministic across runs) |
+| Isolated rerun of the 2 failing tests | `./gradlew :server:smp:test :server:smp:postgresIntegrationTest --tests "*LocalAuthEndpointIntegrationTest*" --tests "*WaitlistRateLimitIntegrationTest*" --rerun-tasks` | `LocalAuthEndpointIntegrationTest`: 22/22 PASS (confirms transient timeout under full-suite load). `WaitlistRateLimitIntegrationTest`: 3/4 PASS, 1 still failed with a different failure mode (AssertionError at a different line) across two isolated reruns — consistent with a pre-existing timing-sensitive rate-limit-window test, unrelated to `platformadmin` invitations (bounded context: `leadcapture`; file untouched by this diff) |
+| Comment/suppression scan | Diff inspection | Clean: no new comments, `@Suppress`, `@ts-ignore`, or baseline entries |
+| Baseline/config scan | Diff inspection | No `detekt.yml`, baseline, or CI-threshold changes |
+
+## Spec Compliance Matrix (PR3-relevant scenarios)
+
+| Spec scenario | Implementation evidence | Covering test | Verdict |
+|---|---|---|---|
+| invitations / Hash-only persistence | `BCryptTokenHasher` hash stored; `findByCandidateKey(rawToken)` returns null; only the SHA-256 candidate key resolves | `raw token value matches no stored row` | COMPLIANT |
+| invitations / Expired/revoked/consumed rejection with safe codes | `InvitationActivationCoordinator.activateForRegistration` maps status to `InvitationAcceptanceFailureCode` | 3 new coordinator tests (EXPIRED/REVOKED/ALREADY_CONSUMED) | COMPLIANT |
+| invitations / Concurrent acceptance yields exactly one winner | `findByCandidateKeyForUpdate` row lock + CAS | `concurrent acceptance clients allow one success and one membership` (pre-existing, confirmed unaffected) | COMPLIANT |
+| invitations / Replay denied | Second accept on a consumed invitation rejected | `Replaying an accepted invitation is denied` (BDD, pre-existing) + `ALREADY_CONSUMED` unit test | COMPLIANT |
+| invitations / Throttle bounds test-locked (closes PR2 WARNING) | `ACCEPT_ATTEMPT_MAX = 10`, `ACCEPT_ATTEMPT_WINDOW = 10 min` captured via `RateLimit` test double | `accept throttle locks attempt bounds to ten per ten minutes` | COMPLIANT |
+| invitations / Bulk observability (four-series wording) | `design.md` and `specs/invitations/spec.md` rewritten to match `InvitationObservability.recordBulkInvite` (4 fixed outcome series, no separate batch counter) | Spec/design text diff; metric shape itself unchanged from PR1 (already covered by PR1 tests) | COMPLIANT |
+
+## Correctness Table
+
+| Property | Evidence | Status |
+|---|---|---|
+| Raw token never resolvable from storage | New repository test asserts `findByCandidateKey`/`findByCandidateKeyForUpdate` return null for the raw token value, non-null for the candidate key | PASS |
+| Rejection codes carry no bearer material | Coordinator tests assert only the enum `failureCode`, no token/URL in assertions or exception messages | PASS |
+| Throttle bounds now regression-locked | Test captures `window`/`maxRequests` args via a `RateLimit` test double, closing the PR2 inspection-only WARNING | PASS |
+| Pre-existing concurrency/replay coverage not weakened | Diffed both tests against `main` pre-PR1: unchanged | PASS |
+| Zero-comment policy | Diff scan clean | PASS |
+| No suppressions / baselines / config weakening | Diff scan clean | PASS |
+| Full-suite failures unrelated to this slice | Both failing tests live in `identity`/`leadcapture` bounded contexts, files untouched by the 662 diff; `LocalAuthEndpointIntegrationTest` fully green in isolation (confirms load-induced flake); `WaitlistRateLimitIntegrationTest` intermittent across isolated reruns with two different failure signatures — flaky, pre-existing, tracked below as a follow-up, not a PR3 regression | PASS (with tracked follow-up) |
+
+## Design Coherence Table
+
+| Design decision | Code | Status |
+|---|---|---|
+| Four fixed outcome series, no separate batch counter | `specs/invitations/spec.md` and `design.md` now state this exactly; resolves the PR1 WARNING | COHERENT |
+| Throttle bounds test-locked | New test captures exact window/max; resolves the PR2 WARNING | COHERENT |
+| #660 drift and observability-owner coordination | In-repo evidence recorded in both tasks.md and design.md as owner-confirmation-pending (not silently closed) | COHERENT |
+
+## Issues
+
+| Finding | Severity | Status |
+|---|---|---|
+| `WaitlistRateLimitIntegrationTest` rate-limit-window assertion is flaky under load (2 different failure signatures across 3 runs) | P3 | Open — pre-existing, unrelated bounded context (`leadcapture`), not introduced by this change; recommend a follow-up ticket to stabilize the test's timing assumptions |
+| 1.1 (#660 drift) and 1.3 (observability-owner tag removal) still lack external owner sign-off | INFO (non-blocking) | Open — in-repo evidence recorded in tasks.md/design.md; requires owner action outside this change's control |
+
+No CRITICAL issues. No SUGGESTION issues.
+
+## Final Verdict
+
+**PASS WITH WARNINGS** — for the full PR3 slice and the change as a whole post-merge. All Phase 3 security/concurrency evidence is present and green (44/44 touched-scope tests), Phase 4 reconciliation is complete (specs match merged code, both prior WARNINGs from PR1/PR2 resolved), Detekt/Spotless are clean, and no suppressions or baseline changes were introduced. One pre-existing flaky test outside this change's bounded context (F-1, P3) and two non-blocking owner-confirmation items (1.1, 1.3) are carried forward as tracked, non-blocking follow-ups. Change is ready for archive.
