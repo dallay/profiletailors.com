@@ -1,6 +1,6 @@
 # Data Retention Operations Guide (Current State)
 
-**Last Updated:** 2026-09-15
+**Last Updated:** 2026-09-18
 
 > **Classification:** Internal — Operations and Compliance
 > **Status:** Current-state operations guide — the retention governance API is planned, not implemented
