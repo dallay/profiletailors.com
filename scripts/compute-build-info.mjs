@@ -28,6 +28,14 @@ function packageVersion(pkgJsonPath) {
   }
 }
 
+/**
+ * Computes frontend build metadata for a package.
+ *
+ * The package version falls back to `0.0.0` when the file cannot be read or
+ * parsed, or when its version is missing. The Git revision uses the first seven
+ * characters of `GIT_SHA`, then the repository's current revision, and finally
+ * `local`. The build time is generated at each call in ISO 8601 format.
+ */
 export function computeBuildInfo(pkgJsonPath) {
   return {
     version: packageVersion(pkgJsonPath),

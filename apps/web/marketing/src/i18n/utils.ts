@@ -119,6 +119,7 @@ export function useTranslations(urlOrLang: URL | Locale): Translations {
   return translations[lang] as Translations
 }
 
+/** Replaces alphabetic `{key}` placeholders while preserving placeholders without a matching value. */
 export function formatTranslation(
   template: string,
   values: Readonly<Record<string, string>>,
