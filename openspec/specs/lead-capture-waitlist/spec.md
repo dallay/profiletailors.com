@@ -205,7 +205,7 @@ enforced across replicas.
 
 #### Requirement: Bulk eligibility is PENDING-only
 
-Bulk MUST apply single-entry eligibility per entry; `invite()` is unchanged (PENDING → INVITED only). INVITED entries MUST report `skipped`; CONVERTED, CANCELLED, or missing entries MUST report `failed` with a stable code; entries whose single-entry path raises `InvitationAlreadyActiveException` MUST report `skipped` with `INVITATION_ALREADY_ACTIVE` (retry-safe, no duplicate issuance). Retries MUST yield `skipped`, never duplicates.
+Bulk MUST apply single-entry eligibility per entry; `invite()` is unchanged (PENDING → INVITED only). INVITED entries MUST report `skipped`; CONVERTED, CANCELLED, missing, or active-invitation entries MUST report `failed` with a stable code. Retries MUST yield `skipped`, never duplicates.
 
 ##### Scenario: Per-entry eligibility mapping
 
