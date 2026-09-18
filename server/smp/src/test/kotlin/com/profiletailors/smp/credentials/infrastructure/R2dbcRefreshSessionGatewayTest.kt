@@ -1,5 +1,7 @@
 package com.profiletailors.smp.credentials.infrastructure
 
+import com.profiletailors.smp.credentials.application.ActiveRefreshSession
+import com.profiletailors.smp.credentials.application.CreatedRefreshSession
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
@@ -81,6 +83,58 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `revokes all active sessions for a principal and reports the count`() = runTest {
+        seedPrincipal()
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-2', 'USER', 'local:user2@example.com', NULL, 'user2')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        gateway.create(
+            "user-1",
+            RefreshSessionToken("lookup-1", "secret-value"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+        gateway.create(
+            "user-1",
+            RefreshSessionToken("lookup-2", "secret-value-2"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+        gateway.create(
+            "user-2",
+            RefreshSessionToken("lookup-3", "secret-value-3"),
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+
+        val revoked = gateway.revokeAllForPrincipal("user-1", Instant.parse("2026-05-22T10:20:30Z"))
+
+        assertEquals(2, revoked)
+        val first = assertThrows(RefreshSessionNotActiveException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                gateway.requireActive(
+                    RefreshSessionToken("lookup-1", "secret-value"),
+                    Instant.parse("2026-05-22T10:21:30Z"),
+                )
+            }
+        }
+        assertEquals(RefreshSessionFailureReason.REVOKED, first.reason)
+        val second = assertThrows(RefreshSessionNotActiveException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                gateway.requireActive(
+                    RefreshSessionToken("lookup-2", "secret-value-2"),
+                    Instant.parse("2026-05-22T10:21:30Z"),
+                )
+            }
+        }
+        assertEquals(RefreshSessionFailureReason.REVOKED, second.reason)
+        gateway.requireActive(
+            RefreshSessionToken("lookup-3", "secret-value-3"),
+            Instant.parse("2026-05-22T10:21:30Z"),
+        )
+    }
+
+    @Test
     fun `revokes refresh session`() = runTest {
         seedPrincipal()
         val created = gateway.create(
@@ -100,6 +154,31 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
             }
         }
         assertEquals(RefreshSessionFailureReason.REVOKED, error.reason)
+    }
+
+    @Test
+    fun `should revoke nothing through the interface default`() = runTest {
+        val minimal = object : RefreshSessionGateway {
+            override suspend fun create(
+                principalId: String,
+                refreshToken: RefreshSessionToken,
+                expiresAt: Instant,
+            ): CreatedRefreshSession = error("not used")
+
+            override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
+                error("not used")
+
+            override suspend fun rotate(
+                currentSessionId: String,
+                replacementToken: RefreshSessionToken,
+                expiresAt: Instant,
+                now: Instant,
+            ): CreatedRefreshSession = error("not used")
+
+            override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
+        }
+
+        assertEquals(0, minimal.revokeAllForPrincipal("user-1", Instant.now()))
     }
 
     private suspend fun seedPrincipal() {

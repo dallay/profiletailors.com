@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
@@ -16,13 +16,13 @@ interface AdminUserDetail {
   email: string | null
   displayIdentity: string | null
   principalType: string
+  accountState: 'ACTIVE' | 'DISABLED'
+  emailStatus: string | null
   createdAt: string
   lastAuthenticatedAt: string | null
   authenticationMethods: string[]
   workspaceMemberships: AdminWorkspaceMembership[]
   platformRoles: string[]
-  status: string
-  version: number
 }
 
 interface AdminWorkspaceMembership {
@@ -37,60 +37,39 @@ const user = ref<AdminUserDetail | null>(null)
 const workspaces = ref<AdminWorkspaceMembership[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
-const actionLoading = ref(false)
-const actionError = ref<string | null>(null)
-const actionSuccess = ref<string | null>(null)
+const mutationError = ref<string | null>(null)
 
-const canDeactivate = computed(
-  () =>
-    authStore.hasPermission('platform.users.deactivate') &&
-    (user.value?.status === 'ACTIVE' || user.value?.status === 'SUSPENDED'),
-)
-const canReactivate = computed(
-  () =>
-    authStore.hasPermission('platform.users.reactivate') && user.value?.status === 'DEACTIVATED',
-)
+function mutationKey(operation: string): string {
+  return `admin-user-${operation}-${principalId}-${crypto.randomUUID()}`
+}
 
-async function deactivateUser() {
-  if (!user.value) return
-  if (!confirm(t('users.deactivateConfirm'))) return
-  actionLoading.value = true
-  actionError.value = null
-  actionSuccess.value = null
+async function runMutation(operation: 'disable' | 'enable' | 'sessions/revoke'): Promise<void> {
+  mutationError.value = null
   try {
-    const res = await authStore.request(`/api/admin/users/${principalId}/deactivate`, {
-      method: 'PATCH',
-      body: JSON.stringify({ expectedVersion: user.value.version }),
+    const response = await authStore.request(`/api/admin/users/${principalId}/${operation}`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': mutationKey(operation) },
     })
-    if (!res.ok) throw new Error()
-    actionSuccess.value = t('users.deactivateSuccess')
+    if (!response.ok) {
+      mutationError.value = t('common.error')
+      return
+    }
     await fetchUser()
   } catch {
-    actionError.value = t('users.deactivateError')
-  } finally {
-    actionLoading.value = false
+    mutationError.value = t('common.error')
   }
 }
 
-async function reactivateUser() {
-  if (!user.value) return
-  if (!confirm(t('users.reactivateConfirm'))) return
-  actionLoading.value = true
-  actionError.value = null
-  actionSuccess.value = null
-  try {
-    const res = await authStore.request(`/api/admin/users/${principalId}/reactivate`, {
-      method: 'PATCH',
-      body: JSON.stringify({ expectedVersion: user.value.version }),
-    })
-    if (!res.ok) throw new Error()
-    actionSuccess.value = t('users.reactivateSuccess')
-    await fetchUser()
-  } catch {
-    actionError.value = t('users.reactivateError')
-  } finally {
-    actionLoading.value = false
-  }
+async function disableUser(): Promise<void> {
+  if (window.confirm(t('users.disableConfirm'))) await runMutation('disable')
+}
+
+async function enableUser(): Promise<void> {
+  if (window.confirm(t('users.enableConfirm'))) await runMutation('enable')
+}
+
+async function revokeSessions(): Promise<void> {
+  if (window.confirm(t('users.revokeSessionsConfirm'))) await runMutation('sessions/revoke')
 }
 
 async function fetchUser() {
@@ -130,44 +109,22 @@ onMounted(fetchUser)
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('users.displayName')" :value="user.displayIdentity ?? '—'" />
         <Field :label="t('users.principalType')" :value="user.principalType" />
+        <Field :label="t('users.accountState')" :value="user.accountState" />
+        <Field :label="t('users.verificationState')" :value="user.emailStatus ?? '—'" />
         <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString(locale)" />
         <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString(locale) : '—'" />
         <Field :label="t('users.platformRoles')" :value="user.platformRoles?.join(', ') || '—'" />
-        <div>
-          <p class="mb-1 text-xs text-text-secondary uppercase">{{ t('users.status') }}</p>
-          <span
-            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-            :class="{
-              'bg-green-900/40 text-green-400': user.status === 'ACTIVE',
-              'bg-red-900/40 text-red-400': user.status === 'DEACTIVATED',
-              'bg-yellow-900/40 text-yellow-400': user.status === 'SUSPENDED',
-            }"
-          >{{ t(`users.${user.status.toLowerCase()}`) }}</span>
-        </div>
       </div>
 
-      <div class="mb-6 flex items-center gap-3">
-        <button
-          v-if="canDeactivate"
-          class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
-          :disabled="actionLoading"
-          @click="deactivateUser"
-        >
-          {{ t('users.deactivate') }}
-        </button>
-        <button
-          v-if="canReactivate"
-          class="admin-button-primary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
-          :disabled="actionLoading"
-          @click="reactivateUser"
-        >
-          {{ t('users.reactivate') }}
-        </button>
-        <div v-if="actionSuccess" role="status" class="text-sm text-green-400">{{ actionSuccess }}</div>
-        <div v-if="actionError" role="alert" class="text-sm text-error">{{ actionError }}</div>
-      </div>
+       <div v-if="authStore.hasPermission('platform.users.manage')" class="mb-8 flex flex-wrap gap-3">
+         <button v-if="user.accountState === 'ACTIVE'" class="admin-button-secondary" @click="disableUser">{{ t('users.disable') }}</button>
+         <button v-else class="admin-button-secondary" @click="enableUser">{{ t('users.enable') }}</button>
+         <button class="admin-button-secondary" @click="revokeSessions">{{ t('users.revokeSessions') }}</button>
+       </div>
+       <div v-if="mutationError" role="alert" class="mb-4 text-error">{{ mutationError }}</div>
 
-      <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
+       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
+
       <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
       <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('users.workspaceMemberships')">
         <thead>

@@ -1,5 +1,7 @@
 package com.profiletailors.smp.platformadmin.application.model
 
+import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.UserAccountState
 import java.time.Instant
 
 data class AdminUserSummary(
@@ -7,6 +9,8 @@ data class AdminUserSummary(
     val email: String?,
     val displayIdentity: String?,
     val principalType: String,
+    val accountState: UserAccountState = UserAccountState.ACTIVE,
+    val emailStatus: EmailStatus? = null,
     val createdAt: Instant,
     val lastAuthenticatedAt: Instant? = null,
     val authenticationMethods: List<String> = emptyList(),
@@ -21,6 +25,8 @@ data class AdminUserDetail(
     val email: String?,
     val displayIdentity: String?,
     val principalType: String,
+    val accountState: UserAccountState = UserAccountState.ACTIVE,
+    val emailStatus: EmailStatus? = null,
     val createdAt: Instant,
     val lastAuthenticatedAt: Instant? = null,
     val authenticationMethods: List<String> = emptyList(),
@@ -35,5 +41,5 @@ data class AdminWorkspaceMembershipSummary(
     val workspaceName: String,
     val membershipStatus: String,
     val workspaceRoles: List<String>,
-    val joinedAt: Instant,
+    val joinedAt: Instant?,
 )

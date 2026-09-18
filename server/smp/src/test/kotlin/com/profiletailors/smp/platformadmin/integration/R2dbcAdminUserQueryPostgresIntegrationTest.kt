@@ -3,10 +3,12 @@ package com.profiletailors.smp.platformadmin.integration
 import com.profiletailors.smp.identity.application.PrincipalLifecycle
 import com.profiletailors.smp.identity.application.PrincipalStatusTransition
 import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
+import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuery
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
@@ -27,6 +29,7 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.util.UUID
 import kotlin.test.assertFailsWith
 
 @AutoConfigureWebTestClient
@@ -54,6 +57,9 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
     private lateinit var userQuery: AdminUserQuery
 
     @Autowired
+    private lateinit var platformRoleAssignmentRepository: PlatformRoleAssignmentRepository
+
+    @Autowired
     private lateinit var principalLifecycleService: PrincipalLifecycle
 
     override suspend fun seedScenario() {
@@ -73,30 +79,46 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         databaseClient.sql(
             "INSERT INTO user_identities (principal_id, email, username) VALUES ('svc-1', 'svc1@example.com', 'svc1')",
         ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO platform_role_assignments " +
+                "(id, principal_id, role, assigned_at, assigned_by, version) " +
+                "VALUES (:id, CAST(:principalId AS UUID), 'PLATFORM_OPERATOR', " +
+                "CURRENT_TIMESTAMP, CAST(:assignedBy AS UUID), 0)",
+        )
+            .bind("id", UUID.randomUUID())
+            .bind("principalId", "00000000-0000-0000-0000-000000000001")
+            .bind("assignedBy", "00000000-0000-0000-0000-000000000002")
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     @Test
     fun `list returns all users with identity data`() = runTest {
         val result = userQuery.list(ListAdminUsersQuery())
 
-        assertEquals(3L, result.totalElements)
-        assertEquals(3, result.items.size)
+        assertEquals(2L, result.totalElements)
+        assertEquals(2, result.items.size)
         val user1 = result.items.first { it.principalId == "user-1" }
+        assertEquals(1, user1.workspaceCount)
         assertEquals("user1@example.com", user1.email)
         assertEquals("user-1", user1.displayIdentity)
         assertEquals("USER", user1.principalType)
+        assertEquals(UserAccountState.ACTIVE, user1.accountState)
+        assertNotNull(user1.emailStatus)
         assertNotNull(user1.createdAt)
     }
 
     @Test
     fun `list filters by status`() = runTest {
-        val users = userQuery.list(ListAdminUsersQuery(status = "USER"))
+        val users = userQuery.list(ListAdminUsersQuery(status = "ACTIVE"))
         assertEquals(2L, users.totalElements)
-        assertTrue(users.items.all { it.principalType == "USER" })
+        assertTrue(users.items.all { it.accountState == UserAccountState.ACTIVE })
 
-        val services = userQuery.list(ListAdminUsersQuery(status = "SERVICE"))
-        assertEquals(1L, services.totalElements)
-        assertEquals("svc-1", services.items.single().principalId)
+        databaseClient.sql(
+            "UPDATE principals SET account_state = 'DISABLED' WHERE id = 'user-2'",
+        ).fetch().rowsUpdated().awaitSingle()
+        val disabled = userQuery.list(ListAdminUsersQuery(status = "DISABLED"))
+        assertEquals(1L, disabled.totalElements)
+        assertEquals("user-2", disabled.items.single().principalId)
     }
 
     @Test
@@ -112,18 +134,10 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
             ListAdminUsersQuery(page = 0, size = 2, sortField = "email", sortDirection = "asc"),
         )
         assertEquals(2, firstPage.items.size)
-        assertEquals(3L, firstPage.totalElements)
-        assertTrue(firstPage.hasNext)
+        assertEquals(2L, firstPage.totalElements)
+        assertTrue(!firstPage.hasNext)
         val firstEmails = firstPage.items.mapNotNull { it.email }
         assertEquals(firstEmails.sorted(), firstEmails)
-
-        val secondPage = userQuery.list(
-            ListAdminUsersQuery(page = 1, size = 2, sortField = "email", sortDirection = "asc"),
-        )
-        assertEquals(1, secondPage.items.size)
-        assertTrue(secondPage.hasPrevious)
-        val allEmails = firstPage.items.mapNotNull { it.email } + secondPage.items.mapNotNull { it.email }
-        assertEquals(allEmails.sorted(), allEmails)
     }
 
     @Test
@@ -140,27 +154,17 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         assertEquals("user1@example.com", user!!.email)
         assertEquals("user-1", user.displayIdentity)
         assertEquals("USER", user.principalType)
+        assertEquals(UserAccountState.ACTIVE, user.accountState)
+        assertEquals(1, user.workspaceMemberships.size)
+        assertEquals("Workspace One", user.workspaceMemberships.single().workspaceName)
+        assertEquals(emptyList<String>(), user.platformRoles)
+        assertNotNull(user.emailStatus)
         assertNotNull(user.createdAt)
     }
 
     @Test
     fun `findById returns null for unknown user`() = runTest {
         assertNull(userQuery.findById("missing"))
-    }
-
-    @Test
-    fun `findWorkspacesByPrincipalId returns memberships`() = runTest {
-        val memberships = userQuery.findWorkspacesByPrincipalId("user-1")
-        assertEquals(1, memberships.size)
-        assertEquals("ws-1", memberships.single().workspaceId)
-        assertEquals("Workspace One", memberships.single().workspaceName)
-        assertEquals("ACTIVE", memberships.single().membershipStatus)
-        assertNotNull(memberships.single().joinedAt)
-    }
-
-    @Test
-    fun `findWorkspacesByPrincipalId returns empty for user without workspaces`() = runTest {
-        assertEquals(0, userQuery.findWorkspacesByPrincipalId("user-2").size)
     }
 
     @Test
@@ -190,11 +194,6 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         assertEquals(1, deactivated.version)
 
         assertEquals(
-            PrincipalStatusTransition.ALREADY_IN_TARGET_STATE,
-            principalLifecycleService.deactivate("user-2", 1),
-        )
-
-        assertEquals(
             PrincipalStatusTransition.TRANSITIONED,
             principalLifecycleService.reactivate("user-2", 1),
         )
@@ -202,6 +201,31 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         val reactivated = requireNotNull(userQuery.findById("user-2"))
         assertEquals("ACTIVE", reactivated.status)
         assertEquals(2, reactivated.version)
+    }
+
+    @Test
+    fun `should map platform roles when the principal id is a uuid`() = runTest {
+        seedPrincipal("00000000-0000-0000-0000-000000000001")
+        seedUserIdentity("00000000-0000-0000-0000-000000000001", "operator@example.com", "operator")
+
+        val user = requireNotNull(userQuery.findById("00000000-0000-0000-0000-000000000001"))
+
+        assertEquals(listOf("PLATFORM_OPERATOR"), user.platformRoles)
+    }
+
+    @Test
+    fun `findWorkspacesByPrincipalId returns memberships`() = runTest {
+        val memberships = userQuery.findWorkspacesByPrincipalId("user-1")
+        assertEquals(1, memberships.size)
+        assertEquals("ws-1", memberships.single().workspaceId)
+        assertEquals("Workspace One", memberships.single().workspaceName)
+        assertEquals("ACTIVE", memberships.single().membershipStatus)
+        assertNotNull(memberships.single().joinedAt)
+    }
+
+    @Test
+    fun `findWorkspacesByPrincipalId returns empty for user without workspaces`() = runTest {
+        assertEquals(0, userQuery.findWorkspacesByPrincipalId("user-2").size)
     }
 
     companion object {

@@ -3,6 +3,9 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
+import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -191,6 +194,30 @@ class AdminProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
         assertEquals("USER_NOT_FOUND", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps UserControlStateConflictException to 409 with state conflict code`() {
+        val problem = handler.handle(UserControlStateConflictException("user-1"))
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("USER_STATE_CONFLICT", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps UserControlIdempotencyConflictException to 409 with reused key code`() {
+        val problem = handler.handle(UserControlIdempotencyConflictException())
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("IDEMPOTENCY_KEY_REUSED", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps UserControlIdempotencyInProgressException to 409 with in-progress key code`() {
+        val problem = handler.handle(UserControlIdempotencyInProgressException())
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("IDEMPOTENCY_KEY_IN_PROGRESS", problem.properties?.get("code"))
     }
 
     @Test

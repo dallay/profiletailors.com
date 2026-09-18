@@ -8,6 +8,10 @@ services. This checklist walks them top-to-bottom in the order an operator shoul
 them. Each row lists the fastest authoritative check, the authoritative log/URL, and the
 failure pattern that should escalate.
 
+## User administration safety
+
+Before changing a user account, confirm the target principal ID in the admin user detail view and verify the intended operation. Disable blocks future login and refresh and revokes active refresh sessions. Enable does not restore revoked sessions. Use a unique `Idempotency-Key` per intentional operation; retrying the same key is safe, while reusing a key for another operation or target is rejected. Review the corresponding platform-admin audit event after the command.
+
 ## Preconditions
 
 - `STACK_NAME` and `BACKEND_SERVICE` are set (defaults: `profiletailors-smp-dz2yer` and

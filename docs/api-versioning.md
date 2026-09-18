@@ -140,6 +140,10 @@ All Ideas Canvas endpoints use `version = "1"` and require
 | GET | `/api/ideas/columns` | Get column config for workspace |
 | PUT | `/api/ideas/columns` | Update column config (add, rename, reorder, delete) |
 
+## Platform admin user controls
+
+The platform-admin user control endpoints are part of the existing v1 media-type contract. Clients may send `Accept: application/vnd.api.v1+json`; requests without an explicit version fall back to the configured default version (`1`). Disable, enable, and refresh-session revocation commands additionally require an `Idempotency-Key` header. See [`platform-admin-user-administration.md`](./platform-admin-user-administration.md) for the complete route, authorization, replay, audit, and rollback contract.
+
 ## Usage
 
 ### HTTP Client (Recommended)

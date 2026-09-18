@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import UserDetailView from './UserDetailView.vue'
@@ -15,8 +15,7 @@ const mockUser = {
   authenticationMethods: ['jwt'],
   workspaceMemberships: [],
   platformRoles: [],
-  status: 'ACTIVE',
-  version: 1,
+  accountState: 'ACTIVE',
 }
 
 const mockWorkspaces: object[] = []
@@ -27,7 +26,7 @@ vi.mock('@/stores/auth.store', () => ({
   useAdminAuthStore: () => ({ request: mockRequest, hasPermission: mockHasPermission }),
 }))
 
-function createView() {
+async function createView() {
   setActivePinia(createPinia())
   const router = createRouter({
     history: createMemoryHistory(),
@@ -48,16 +47,25 @@ function createView() {
       en: {
         users: {
           title: 'Users',
-          deactivate: 'Deactivate',
-          reactivate: 'Reactivate',
-          active: 'Active',
-          deactivated: 'Deactivated',
-          suspended: 'Suspended',
+          displayName: 'Name',
+          principalType: 'Type',
+          accountState: 'Account state',
+          verificationState: 'Verification state',
+          disable: 'Disable account',
+          enable: 'Enable account',
+          revokeSessions: 'Revoke sessions',
+          disableConfirm: 'Disable this account and revoke all active sessions?',
+          enableConfirm: 'Enable this account?',
+          revokeSessionsConfirm: 'Revoke all active sessions for this account?',
+          lastAuthenticated: 'Last Authenticated',
+          platformRoles: 'Platform Roles',
+          workspaces: 'Workspaces',
         },
-        common: { loading: 'Loading...', error: 'Error', noData: 'No data' },
+        common: { loading: 'Loading...', error: 'Error', noData: 'No data', createdAt: 'Created' },
       },
     },
   })
+  await router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
   const wrapper = mount(UserDetailView, {
     global: {
       plugins: [router, i18n],
@@ -73,6 +81,10 @@ function createView() {
 }
 
 describe('UserDetailView', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   beforeEach(() => {
     mockRequest.mockReset()
     mockHasPermission.mockReset()
@@ -82,49 +94,63 @@ describe('UserDetailView', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockWorkspaces) })
   })
 
-  it('shows user details and status after loading', async () => {
-    const { wrapper, router } = createView()
-    router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
-    await router.isReady()
+  it('shows user details and account state after loading', async () => {
+    const { wrapper } = await createView()
     await flushPromises()
     expect(wrapper.text()).toContain('user@example.com')
-    expect(wrapper.text()).toContain('Active')
+    expect(wrapper.text()).toContain('ACTIVE')
   })
 
-  it('shows deactivate button for ACTIVE user', async () => {
-    const { wrapper, router } = createView()
-    router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
-    await router.isReady()
+  it('shows disable and revoke controls for ACTIVE user with manage permission', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'request-id') })
+    const { wrapper } = await createView()
     await flushPromises()
-    const btn = wrapper.findAll('button').find((b) => b.text().includes('Deactivate'))
-    expect(btn?.exists()).toBe(true)
+    const buttons = wrapper.findAll('button').map((button) => button.text())
+    expect(buttons).toContain('Disable account')
+    expect(buttons).toContain('Revoke sessions')
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Disable account')
+      ?.trigger('click')
+    await flushPromises()
+    const mutationRequest = mockRequest.mock.calls.find(
+      (call) => call[0] === '/api/admin/users/user-1/disable',
+    )
+    expect(mutationRequest?.[0]).toBe('/api/admin/users/user-1/disable')
+    expect(mutationRequest?.[1]?.headers).toEqual({
+      'Idempotency-Key': 'admin-user-disable-user-1-request-id',
+    })
   })
 
-  it('shows reactivate button for DEACTIVATED user', async () => {
+  it('shows enable button for DISABLED user', async () => {
     mockRequest.mockReset()
     mockRequest
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ ...mockUser, status: 'DEACTIVATED' }),
+        json: () => Promise.resolve({ ...mockUser, accountState: 'DISABLED' }),
       })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockWorkspaces) })
-    const { wrapper, router } = createView()
-    router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
-    await router.isReady()
+    const { wrapper } = await createView()
     await flushPromises()
-    const btn = wrapper.findAll('button').find((b) => b.text().includes('Reactivate'))
-    expect(btn?.exists()).toBe(true)
+    const buttons = wrapper.findAll('button').map((button) => button.text())
+    expect(buttons).toContain('Enable account')
+    expect(buttons).toContain('Revoke sessions')
   })
 
-  it('hides lifecycle buttons without permission', async () => {
+  it('hides account controls without manage permission', async () => {
     mockHasPermission.mockReturnValue(false)
-    const { wrapper, router } = createView()
-    router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
-    await router.isReady()
+    const { wrapper } = await createView()
     await flushPromises()
     const buttons = wrapper
       .findAll('button')
-      .filter((b) => b.text().includes('Deactivate') || b.text().includes('Reactivate'))
+      .filter((button) =>
+        ['Disable account', 'Enable account', 'Revoke sessions'].includes(button.text()),
+      )
     expect(buttons.length).toBe(0)
   })
 })

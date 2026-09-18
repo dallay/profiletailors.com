@@ -33,7 +33,7 @@ interface RefreshSessionGateway {
      * @param principalId The principal whose sessions should be revoked.
      * @param now The time at which the revocation occurs.
      */
-    suspend fun revokeAllForPrincipal(principalId: String, now: Instant) = Unit
+    suspend fun revokeAllForPrincipal(principalId: String, now: Instant): Int = 0
 
     /**
      * Revokes all refresh sessions for a principal except the specified session.
