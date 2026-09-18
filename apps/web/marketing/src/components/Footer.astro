@@ -30,4 +30,9 @@ const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
       <CookieSettingsLink locale={locale} />
     </nav>
   )}
+  {Astro.slots.has('default') && (
+    <div class="mt-6 flex justify-end">
+      <slot />
+    </div>
+  )}
 </footer>

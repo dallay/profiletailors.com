@@ -1,0 +1,15 @@
+<script setup lang="ts">
+const version = __APP_VERSION__
+const gitSha = __GIT_SHA__
+const buildTime = __BUILD_TIME__
+</script>
+
+<template>
+  <span
+    class="font-mono text-[10px] uppercase tracking-wider text-text-secondary/70"
+    :title="buildTime"
+    data-testid="version-badge"
+  >
+    v{{ version }} · {{ gitSha }}
+  </span>
+</template>

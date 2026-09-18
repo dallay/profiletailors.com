@@ -34,6 +34,7 @@ export const en = {
   footer: {
     copy: 'Profile Tailors — early access preview.',
     tagline: 'A social content workspace in development.',
+    versionBadge: 'v{version} ({shortSha})',
     legalLinks: [
       { label: 'Privacy Policy', href: '/privacy/' },
       { label: 'Terms of Service', href: '/terms/' },

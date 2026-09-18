@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { visibleNavEntries } from '@/router/nav-registry'
+import VersionBadge from '@/shared/ui/VersionBadge.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -76,6 +77,10 @@ async function signOut() {
         >
           {{ t('auth.signOut') }}
         </button>
+      </div>
+
+      <div class="border-t border-border-subtle px-4 py-3">
+        <VersionBadge />
       </div>
     </aside>
 

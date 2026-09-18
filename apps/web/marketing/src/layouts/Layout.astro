@@ -4,6 +4,9 @@ import type { Locale } from "@i18n/utils";
 import Analytics from "@components/Analytics.astro";
 import ConsentScript from "@components/consent/ConsentScript.astro";
 import ConsentBanner from "@components/consent/ConsentBanner.astro";
+import Footer from "@components/Footer.astro";
+import VersionBadge from "@components/VersionBadge.astro";
+import { useTranslations } from "@i18n/utils";
 
 interface Props {
   title?: string;
@@ -15,6 +18,7 @@ interface Props {
   jsonLdType?: "WebSite" | "WebPage";
   noindex?: boolean;
   includeStructuredData?: boolean;
+  hideVersionBadge?: boolean;
 }
 
 const {
@@ -27,6 +31,7 @@ const {
   jsonLdType = "WebSite",
   noindex = false,
   includeStructuredData = true,
+  hideVersionBadge = false,
 } = Astro.props;
 
 const path = canonicalPath ?? "/";
@@ -39,6 +44,7 @@ const robotsContent = noindex
   ? "noindex,nofollow,noarchive"
   : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
 const siteName = "Profile Tailors";
+const t = useTranslations(lang);
 
 const jsonLdName = jsonLdType === "WebSite" ? siteName : title;
 const jsonLd = {
@@ -166,6 +172,14 @@ const jsonLdString = JSON.stringify(jsonLd);
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <slot />
+    <Footer
+      tagline={t.footer.tagline}
+      copy={t.footer.copy}
+      legalLinks={t.footer.legalLinks}
+      locale={lang}
+    >
+      {!hideVersionBadge && <VersionBadge locale={lang} />}
+    </Footer>
     <Analytics />
     <ConsentBanner locale={lang} />
   </body>

@@ -33,6 +33,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/Si
 import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
+import VersionBadge from '@shared/ui/VersionBadge.vue'
 import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'
@@ -329,6 +330,9 @@ onBeforeUnmount(() => {
             @open-settings="onOpenSettings"
             @logout="handleLogout"
           />
+          <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
+            <VersionBadge />
+          </div>
         </SidebarFooter>
 
         <SidebarRail />
