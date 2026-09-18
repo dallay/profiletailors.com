@@ -1,14 +1,26 @@
 schemaVersion: 1
 task: environment-configuration-auditor
 lastExecution:
-  timestamp: 2026-09-11T19:20:27Z
-  outcome: NO_DRIFT_DETECTED
-findings: []
+  timestamp: 2026-09-18T19:30:00Z
+  outcome: CHANGES_APPLIED
+findings:
+  - id: dev-public-app-url-property-drift
+    firstDetected: 2026-09-18T19:30:00Z
+    lastVerified: 2026-09-18T19:30:00Z
+    occurrences: 1
+    status: unresolved
+    risk: LOW
+    description: >
+      In application-dev.yaml, app.email.publicAppUrl was bound only to SMP_PUBLIC_APP_URL instead of canonical SMP_EMAIL_PUBLIC_APP_URL.
+    remediation:
+      status: implemented
+      details: >
+        Reconciled application-dev.yaml to prioritize SMP_EMAIL_PUBLIC_APP_URL with fallback to SMP_PUBLIC_APP_URL and default https://pt-app.localhost.
 checks:
   - name: env-example-spring-bindings-alignment
     status: PASSED
     details: >
-      Verified `.env.example` placeholders and properties against `application.yaml` Spring Boot bindings and defaults across all modules.
+      Verified `.env.example` placeholders and properties against `application.yaml` and `application-dev.yaml` Spring Boot bindings.
   - name: production-credentials-validator-audit
     status: PASSED
     details: >
