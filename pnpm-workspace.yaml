@@ -14,7 +14,7 @@ allowBuilds:
   maplibre-gl: true
 
 overrides:
-  fast-uri: '3.1.6'
+  fast-uri: '3.1.7'
 
 minimumReleaseAgeExclude:
   - 'fast-uri@3.1.6'

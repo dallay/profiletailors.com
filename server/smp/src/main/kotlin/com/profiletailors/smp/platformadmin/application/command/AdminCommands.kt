@@ -43,6 +43,24 @@ data class RevokePlatformRoleCommand(
     val role: PlatformRole,
 )
 
+data class DisableUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
+data class EnableUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
+data class RevokeUserSessionsCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val targetPrincipalId: String,
+)
+
 data class DeactivateUserCommand(
     val operatorPrincipalId: UUID,
     val operatorRoles: Set<PlatformRole>,

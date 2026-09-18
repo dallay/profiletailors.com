@@ -11,7 +11,7 @@ import com.profiletailors.smp.credentials.domain.ValidatedToken
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
-import com.profiletailors.smp.identity.domain.PrincipalStatus
+import com.profiletailors.smp.identity.domain.UserAccountState
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -139,7 +139,7 @@ class JwtAuthenticatedPrincipalMaterializerTest {
     }
 
     @Test
-    fun `rejects deactivated principal during materialization`() = runTest {
+    fun `should reject when user account state is disabled`() = runTest {
         val materializer = JwtAuthenticatedPrincipalMaterializer(
             principalIdentityLookup = StubPrincipalIdentityLookup(
                 PrincipalIdentityFacts(
@@ -150,7 +150,7 @@ class JwtAuthenticatedPrincipalMaterializerTest {
                     displayIdentity = "dev",
                     email = "dev@profiletailors.com",
                     username = "dev",
-                    status = PrincipalStatus.DEACTIVATED,
+                    accountState = UserAccountState.DISABLED,
                 ),
             ),
         )

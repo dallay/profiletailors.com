@@ -23,6 +23,9 @@ class GetWorkspacesForPrincipalHandlerTest {
         WorkspaceReadRepository {
         override suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> =
             data[principalId] ?: emptyList()
+
+        override suspend fun findMembershipsByPrincipal(principalId: String): List<WorkspaceMembershipSummary> =
+            emptyList()
     }
 
     @Test

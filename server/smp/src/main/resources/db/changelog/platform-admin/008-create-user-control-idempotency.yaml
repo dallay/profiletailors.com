@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-008-create-user-control-idempotency
+      author: platform-admin
+      changes:
+        - createTable:
+            tableName: platform_admin_user_control_idempotency
+            columns:
+              - column:
+                  name: operator_principal_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: command
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response_json
+                  type: text
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: platform_admin_user_control_idempotency
+            indexName: uq_platform_admin_user_control_idempotency
+            unique: true
+            columns:
+              - column:
+                  name: operator_principal_id
+              - column:
+                  name: command
+              - column:
+                  name: target_principal_id
+              - column:
+                  name: idempotency_key

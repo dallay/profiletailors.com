@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-008-add-account-state
+      author: identity
+      changes:
+        - addColumn:
+            tableName: principals
+            columns:
+              - column:
+                  name: account_state
+                  type: varchar(16)
+                  defaultValue: ACTIVE
+                  value: ACTIVE
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >
+              ALTER TABLE principals
+              ADD CONSTRAINT ck_principals_account_state
+              CHECK (account_state IN ('ACTIVE', 'DISABLED'));
