@@ -85,3 +85,99 @@ No CRITICAL issues. No SUGGESTION issues.
 ## Final Verdict
 
 **PASS WITH WARNINGS** — strictly for the PR1 slice (tasks 2.1, 2.2). Both fixes match spec deltas and design decisions, are covered by new/updated tests that pass on forced rerun, and Detekt is clean with no suppressions, baselines, or comment violations. Warnings are non-blocking for PR1 but must be resolved in PR2/PR3 (design wording reconciliation; pending owner sign-offs; staged spec-line ownership). Out-of-scope items are Not-run by instruction and MUST NOT be read as failures.
+
+---
+
+# Verification Report: 662-invitation-token-lifecycle — PR2 Slice (Work Unit 2: bearer scoping + accept throttle)
+
+Scope: PR2 ONLY. Tasks 2.3, 2.4, 2.5. Phase 3 (hash-only, rejection, exactly-one-winner BDD/postgres) and Phase 4 full gates (`just backend-check`, `just backend-bdd-fast`, `just backend-test-postgres`) are explicitly OUT and marked Not-run below. Do NOT read this report as a full-change verdict.
+
+## Change and Mode
+
+| Field | Value |
+|---|---|
+| Change | 662-invitation-token-lifecycle (issue #662) |
+| Slice | PR2 / Work Unit 2: bearer scoping (2.3, 2.4) + accept throttle (2.5) |
+| Mode | openspec |
+| Date | 2026-09-17 |
+| Verifier | sdd-verify sub-agent |
+| Branch | `feat/662-invitation-bearer-throttle` (synced with main; PR1 `a1384c32` merged) |
+
+## Completeness Table (PR2 scope only)
+
+| Task | Claim | Status |
+|---|---|---|
+| 2.3 `InvitationIssued` / `DirectInvitationResent` interim debt, no new fields | Checked in tasks.md | DONE, verified by inspection (both files absent from diff; `rawToken` fields pre-existing only) + sign-off recorded in design.md |
+| 2.4 `InvitationEmail.toPayload()` scoped `acceptUrl` only; transient render path | Checked in tasks.md | DONE, verified by inspection (prod files untouched) + regression tests green |
+| 2.5 Per-key+IP accept throttle at transport edge, coordinator pure | Checked in tasks.md | DONE, verified by inspection + tests green |
+| DALLAY-565 sign-off on interim `rawToken`/`acceptUrl` debt | Recorded in design.md Open Questions (owner-approved 2026-09-17) | DONE (recorded; owner approval as stated) |
+| Phase 3 (hash-only, rejection, concurrent-winner BDD, postgres) | Out for PR2 | NOT-RUN, pending PR3 |
+| Phase 4 (spec reconciliation, full gates) | Out for PR2 | NOT-RUN, pending PR3 |
+
+## Build / Test / Coverage Evidence (actually executed by verifier)
+
+| Check | Command | Result |
+|---|---|---|
+| Narrow SMP suites (forced rerun) | `./gradlew :server:smp:test --tests "...InvitationAcceptanceControllerTest" --tests "...AdminProblemDetailsHandlerTest" --tests "...SendInvitationEmailConsumerTest" --tests "...ResendWaitlistInvitationHandlerTest" --rerun-tasks -x detekt` | BUILD SUCCESSFUL (5m 09s) |
+| `InvitationAcceptanceControllerTest` | XML report at run time | 7 tests, 0 failures, 0 errors |
+| `AdminProblemDetailsHandlerTest` | XML report at run time | 15 tests, 0 failures, 0 errors |
+| `SendInvitationEmailConsumerTest` | XML report at run time | 15 tests, 0 failures, 0 errors |
+| `ResendWaitlistInvitationHandlerTest` | XML report at run time (covers `resendLimitExceeded` factory rename) | 6 tests, 0 failures, 0 errors |
+| Shared notifications suite (forced rerun) | `./gradlew :shared:notifications:test --tests "...InvitationEmailTest" --rerun-tasks -x detekt` | BUILD SUCCESSFUL (25s); 17 tests, 0 failures, 0 errors |
+| Detekt SMP (forced rerun) | `./gradlew :server:smp:detekt --rerun-tasks` | BUILD SUCCESSFUL, 0 `<error>` in detekt.xml |
+| Detekt shared-notifications (forced rerun) | `./gradlew :shared:notifications:detekt --rerun-tasks` | BUILD SUCCESSFUL |
+| Spotless SMP + shared-notifications | `:server:smp:spotlessCheck`, `:shared:notifications:spotlessCheck --rerun-tasks` | Both BUILD SUCCESSFUL |
+| Comment/suppression scan | Added-line scan for `//` comments, block comments, `@Suppress`, baselines | Clean (single `//` hit is the `https://` inside a test string literal, not a comment) |
+| Baseline/config scan | `git diff` name check for `*detekt*`, `*baseline*`, `*.yml`, `*.yaml`, `Justfile` | No baseline, config, or threshold changes (only openspec docs + Kotlin) |
+| `just backend-check` / `just backend-bdd-fast` / `just backend-test-postgres` | Out for PR2 (Phase 4) | NOT-RUN |
+
+Total PR2 narrow evidence: 60 tests, 0 failures, 0 errors. Only pre-existing, unrelated compiler deprecation warnings observed (`MediaCasHandlersTest` legacy-upload deprecations; not introduced by PR2).
+
+## Spec Compliance Matrix (PR2-relevant scenarios only)
+
+| Spec scenario | Implementation evidence | Covering test (passed at runtime) | Verdict |
+|---|---|---|---|
+| invitations / Sealed handoff or scoped debt, never silent | `InvitationIssued.kt` / `DirectInvitationResent.kt` untouched by diff (no new bearer fields; existing `rawToken` only); interim in-memory handoff recorded as owner-signed debt in design.md with removal tracked DALLAY-566 | Debt-scope documented; no-code-change claim verified by empty `git diff` on both files | COMPLIANT |
+| email-notifications / Temporary exception remains visible | Handler-to-event-to-consumer `rawToken` path unchanged; no new durable field, no HTTP/audit/log/metric exposure added (diff touches no producer, event, or audit code) | `SendInvitationEmailConsumerTest` — dispatched email renders accept URL transiently while persisted payload carries no raw token (new; asserts `rendered.text` contains template URL, payload has no `rawToken` key/value) | COMPLIANT |
+| email-notifications / Persisted payload holds no bearer | `InvitationEmail.toPayload()` unchanged: keys locked to `email, workspaceName, target, acceptUrl, locale`; `rawToken` never a separate key; only scoped `acceptUrl` (equal to template-built URL) persists per sign-off | `InvitationEmailTest` — key-set lock test + no-raw-token-outside-`acceptUrl` test (both new); consumer test asserts `payload["acceptUrl"] == acceptUrl` | COMPLIANT |
+| invitations / Throttle decision recorded | Design Open Questions records chosen bounds: 10 attempts / 10 min per candidateKey+IP at `InvitationAcceptanceController`, coordinator pure, 429 `INVITATION_RATE_LIMIT_EXCEEDED` with static detail | `InvitationAcceptanceControllerTest` — 429 safe-code denial without handler call (new); throttle-key binds candidate key, never raw token (new) | COMPLIANT |
+
+## Correctness Table
+
+| Property | Evidence | Status |
+|---|---|---|
+| No new bearer fields on events | `git diff` empty for `InvitationIssued.kt`, `DirectInvitationResent.kt`, `InvitationEmail.kt`, `SendInvitationEmailConsumer.kt` | PASS |
+| `toPayload()` key set locked; `rawToken` excluded as separate key | Source inspection + key-set test green | PASS |
+| Persisted `acceptUrl` equals template-built URL; render is transient via `render()` | Consumer dispatches `email.render()` while persisting `email.toPayload()` (pre-existing flow, unchanged); new test asserts both sides | PASS |
+| Throttle at transport edge: 10 attempts / 10 min per `candidateKey + IP` | `ACCEPT_ATTEMPT_MAX = 10`, `ACCEPT_ATTEMPT_WINDOW = 10 min`, key `invitation-accept:<candidateKey>:<ip>` in `InvitationAcceptanceController` | PASS (bounds by inspection; see WARNING) |
+| Throttle key binds SHA-256 candidate hash, never raw token | `invitationTokenCandidateKey.candidateKey(token)` (`BCryptTokenHasher` SHA-256 hex); test asserts key contains candidate hash and not raw token | PASS |
+| 429 `INVITATION_RATE_LIMIT_EXCEEDED`, no key material in body | `acceptAttemptThrottled()` static detail `"Invitation accept rate limit exceeded. Try again later."`; `AdminProblemDetailsHandler` maps to 429 + code; test asserts exact code/status/detail | PASS |
+| Coordinator untouched / pure | `git diff` empty for `InvitationActivationCoordinator.kt`; throttle enforced before `handle()` call; denied path verified `handle` never invoked | PASS |
+| Resend path preserved through exception-shape refactor | `ResendWaitlistInvitationHandler` one-line factory rename; `ResendWaitlistInvitationHandlerTest` 6/6 green | PASS |
+| Production wiring follows proven pattern | Single `RateLimit` bean (`InMemoryRateLimit`), `BCryptTokenHasher` already injected as `InvitationTokenCandidateKey` elsewhere, `Clock` bean exists; no new configuration files | PASS |
+| Zero-comment policy | Added-line comment scan clean | PASS |
+| No suppressions / baselines / config weakening | Suppression + baseline/config scans clean | PASS |
+
+## Design Coherence Table
+
+| Design decision | Code | Status |
+|---|---|---|
+| Interim in-memory handoff as scoped debt; sealed delivery owned by DALLAY-566 | Events unchanged; sign-off + removal tracking recorded in design.md | COHERENT |
+| Canonical target template-params + delivery key; interim token-bearing `acceptUrl` only with sign-off | Payload key set locked by tests; `acceptUrl` equality to template URL asserted; sign-off recorded | COHERENT |
+| Bounded per-key+IP attempt throttle at transport edge; coordinator stays pure | Controller admits via `RateLimit` before handler; coordinator file untouched | COHERENT |
+| Throttle reuses `InvitationRateLimitExceededException` shape at accept edge | Private constructor + `resendLimitExceeded` / `acceptAttemptThrottled` factories; 429 mapping reused | COHERENT |
+
+## Issues
+
+| Finding | Judge A | Judge B | Severity | Status |
+|---|---|---|---|---|
+| Throttle bounds (10 attempts / 10 min) proven by source inspection only — throttle tests lock deny→429 behavior and key binding but do not capture window/limit args, so a silent constant change would stay green | ✅ | ✅ | WARNING | Confirmed — suggest capturing `window` + `maxRequests` in the throttle-key test in PR3; bounds themselves are correct in code |
+| Production wiring of new controller deps (`RateLimit`, `InvitationTokenCandidateKey`, `Clock`) has no full-context boot test in the narrow scope; risk is low (single `RateLimit` bean, pre-existing interface-injection pattern, `Clock` bean present) | ✅ | ❌ | SUGGESTION | Suspect — consider a slice/context test or rely on PR3 gates; not PR2-blocking |
+| Staged `openspec/specs/lead-capture-waitlist/spec.md` 1-line change still present (carried from PR1) and outside the PR2 slice | ✅ | ❌ | INFO | Suspect — confirm ownership before merge so PR2 stays a clean slice |
+| Phase 3 BDD/postgres exactly-one-winner + Phase 4 full gates not run | ✅ | ✅ | INFO (explicitly out of scope) | NOT-RUN — must be evidenced in PR3; do NOT read as failure |
+
+No CRITICAL issues.
+
+## Final Verdict
+
+**PASS WITH WARNINGS** — strictly for the PR2 slice (tasks 2.3, 2.4, 2.5). Bearer scoping holds (no new bearer surface; payload contract locked by tests; transient render covered), the per-key+IP throttle is enforced at the transport edge with safe 429 semantics and a raw-token-free key, and the coordinator is untouched. 60/60 narrow tests green on forced rerun; Detekt (both modules) and Spotless clean; no suppressions, baselines, or comment violations. The single WARNING (bounds not test-locked) and the SUGGESTION (no full-context wiring test) are non-blocking for PR2 but should be addressed in PR3. Out-of-scope items are Not-run by instruction and MUST NOT be read as failures.

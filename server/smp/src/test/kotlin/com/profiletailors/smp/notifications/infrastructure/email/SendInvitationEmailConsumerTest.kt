@@ -7,6 +7,7 @@ import com.profiletailors.notifications.domain.InvitationEmail
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
+import com.profiletailors.notifications.domain.RenderedEmail
 import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.notifications.infrastructure.persistence.DuplicateNotificationException
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
@@ -14,6 +15,7 @@ import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -209,6 +211,32 @@ internal class SendInvitationEmailConsumerTest {
             notificationRepository.findByIdempotencyKey(initialKey)
         }
         coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
+    }
+
+    @Test
+    fun `dispatched email renders accept URL transiently while persisted payload carries no raw token`() = runTest {
+        val saved = slot<Notification>()
+        val rendered = slot<RenderedEmail>()
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
+        coEvery { notificationRepository.update(any()) } answers { firstArg<Notification>() }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, capture(rendered)) } returns EmailDispatchResult.Success
+
+        consumer.onInvitationIssued(
+            InvitationIssued(
+                invitationId = invitationId,
+                recipientEmail = inviteeEmail,
+                workspaceName = workspaceName,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                locale = "en",
+                rawToken = rawToken,
+            ),
+        )
+
+        rendered.captured.text shouldContain acceptUrl
+        saved.captured.payload.variables.containsKey("rawToken") shouldBe false
+        saved.captured.payload.variables.containsValue(rawToken) shouldBe false
+        saved.captured.payload.variables["acceptUrl"] shouldBe acceptUrl
     }
 
     @Test

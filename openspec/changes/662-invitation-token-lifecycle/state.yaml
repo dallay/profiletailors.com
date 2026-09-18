@@ -1,5 +1,5 @@
 change: 662-invitation-token-lifecycle
-current_phase: verify-pr1
+current_phase: verify-pr2
 completed:
   - explore
   - propose
@@ -8,7 +8,9 @@ completed:
   - tasks
   - apply-pr1
   - verify-pr1
-next: apply-pr2-pending-signoff
+  - apply-pr2
+  - verify-pr2
+next: publish-pr2
 updated: "2026-09-17"
 linear_issue: "#662"
 persistence_mode: openspec
@@ -22,9 +24,19 @@ note: >
   strict TDD RED→GREEN, unit tests + Detekt green. Phase 1 items 1.1/1.3
   recorded as pending in design.md Open Questions. OUT for PR1: 2.3–2.5,
   Phase 3 BDD/postgres, Phase 4 full gates.
-  Verify PR1 (2026-09-17): PASS WITH WARNINGS for PR1 slice only —
-  narrow suites 15/15 green on forced rerun, Detekt 0 errors, no
-  suppressions/baselines/comments; warnings: design "one bulk counter"
-  wording vs 4-series shape, staged lead-capture-waitlist spec-line
-  ownership, pending owner sign-offs. Report: verify-report.md.
-  Next: apply PR2 (bearer+throttle) pending sign-off.
+   Verify PR1 (2026-09-17): PASS WITH WARNINGS for PR1 slice only —
+   narrow suites 15/15 green on forced rerun, Detekt 0 errors, no
+   suppressions/baselines/comments; warnings: design "one bulk counter"
+   wording vs 4-series shape, staged lead-capture-waitlist spec-line
+   ownership, pending owner sign-offs. Report: verify-report.md.
+   Next: apply PR2 (bearer+throttle) pending sign-off.
+   PR2 partial (2026-09-17): tasks 2.3 (events untouched, interim debt,
+   no new fields), 2.4 (toPayload key-set locked, transient render
+   covered), 2.5 (per-key+IP throttle 10/10min at controller, 429 safe
+   code, coordinator pure) on branch feat/662-invitation-bearer-throttle.
+   Verify PR2 (2026-09-17): PASS WITH WARNINGS for PR2 slice only —
+   narrow suites 60/60 green on forced rerun, Detekt 0 errors (both
+   modules), Spotless clean, no suppressions/baselines/comments;
+   warning: throttle bounds inspection-only (not test-locked).
+   OUT: Phase 3 BDD/postgres, Phase 4 full gates — Not-run.
+   Next: publish PR2 (no commit/push by verifier).

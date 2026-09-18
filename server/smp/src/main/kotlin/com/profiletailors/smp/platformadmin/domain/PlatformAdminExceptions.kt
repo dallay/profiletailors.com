@@ -52,8 +52,15 @@ class InvitationNotAcceptableException(
     )
 }
 
-class InvitationRateLimitExceededException(waitlistEntryId: String) :
-    RuntimeException("Invitation resend rate limit exceeded for entry: $waitlistEntryId")
+class InvitationRateLimitExceededException private constructor(message: String) : RuntimeException(message) {
+    companion object {
+        fun resendLimitExceeded(waitlistEntryId: String): InvitationRateLimitExceededException =
+            InvitationRateLimitExceededException("Invitation resend rate limit exceeded for entry: $waitlistEntryId")
+
+        fun acceptAttemptThrottled(): InvitationRateLimitExceededException =
+            InvitationRateLimitExceededException("Invitation accept rate limit exceeded. Try again later.")
+    }
+}
 
 class InvitationVersionConflictException(invitationId: String) :
     RuntimeException("Concurrent modification detected for invitation: $invitationId")
