@@ -181,12 +181,20 @@ test.describe('Marketing A11y — Legal pages @a11y', () => {
             const results = await axe(page).analyze()
             const colorContrastViolations = results.violations.filter(v => v.id === 'color-contrast')
             if (colorContrastViolations.length > 0) {
-                console.log('=== COLOR CONTRAST VIOLATION DETAILS ===')
+                console.log('=== COLOR CONTRAST DEBUG ===')
                 console.log('Page:', path)
-                colorContrastViolations.forEach(v => {
-                    console.log('Violation:', JSON.stringify(v, null, 2))
-                })
-                console.log('=== END DETAILS ===')
+                console.log('Violations:', JSON.stringify(colorContrastViolations, null, 2))
+                // Get computed styles of failing elements
+                for (const v of colorContrastViolations) {
+                    for (const node of v.nodes) {
+                        const element = page.locator(node.target[0])
+                        const bgColor = await element.evaluate(el => getComputedStyle(el).backgroundColor)
+                        const color = await element.evaluate(el => getComputedStyle(el).color)
+                        console.log('Target:', node.target[0])
+                        console.log('BG:', bgColor, '| Text:', color)
+                    }
+                }
+                console.log('=== END DEBUG ===')
             }
             expect(
                 results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
