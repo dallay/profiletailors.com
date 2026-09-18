@@ -54,14 +54,14 @@ The design MUST decide accept-attempt throttling given ~100ms BCrypt cost per at
 
 ### Requirement: Bulk observability (DALLAY-665)
 
-The system MUST record per-outcome aggregate counters plus one bulk counter with batch size and matching outcome counts. Tags MUST be low-cardinality outcome names only; per-value numeric tags are FORBIDDEN.
+The system MUST record aggregate outcome counters on the single bulk metric with four fixed outcome series (`requested`, `invited`, `skipped`, `failed`); the batch size is carried by the `requested` outcome increment, with no separate batch counter. Tags MUST be low-cardinality outcome names only; per-value numeric tags are FORBIDDEN.
 (Previously: required bulk counters without forbidding per-value tags.)
 
 #### Scenario: Aggregate counters only
 
 - GIVEN any bulk batch (e.g. 5 yielding 3 invited, 1 skipped, 1 failed)
 - WHEN the batch completes
-- THEN aggregate outcome counters plus one bulk counter (size 5, matching counts) MUST be recorded
+- THEN the `requested` series MUST increment by 5 and `invited`/`skipped`/`failed` by their matching counts
 - AND no tag value MUST embed a per-batch count or identifier
 
 ### Requirement: No raw token in InvitationIssued event
