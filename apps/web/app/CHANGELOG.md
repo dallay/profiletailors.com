@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.9](https://github.com/dallay/profiletailors.com/compare/app@v0.3.8...app@v0.3.9) (2026-09-18)
+
+
+### Bug Fixes
+
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+
 ## [0.3.8](https://github.com/dallay/profiletailors.com/compare/app@v0.3.7...app@v0.3.8) (2026-09-15)
 
 
