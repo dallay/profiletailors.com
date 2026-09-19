@@ -8,7 +8,7 @@
 
 ## Summary
 
-Implementation of release-driven Cloudflare Pages deployment for the three frontends (`app`, `admin`, `landing`) is **structurally complete** against the spec, proposal, design, and tasks. All workflow contract outputs, deploy jobs, TDD helper script, wrangler configs, documentation, and ADR are present and correctly wired. Static analysis passes. The unit test suite for `extract-release-info.mjs` passes (3/3).
+Implementation of release-driven Cloudflare Pages deployment for the three frontends (`app`, `admin`, `landing`) is **structurally complete** against the spec, proposal, design, and tasks. All workflow contract outputs, deploy jobs, TDD helper script, wrangler configs, documentation, and ADR are present and correctly wired. Static analysis passes. The unit test suite for `extract-release-info.mjs` passes (7/7).
 
 **Constraint**: Live Cloudflare deployment verification requires a merged release on `main` and is deferred to first-merge verification per the change's explicit policy-allowed exception. This is a repository-accepted tradeoff: the workflow cannot be end-to-end validated until it is merged and a Release Please release is created.
 
@@ -21,7 +21,7 @@ Implementation of release-driven Cloudflare Pages deployment for the three front
 | Spec scenarios | ✅ 11/11 covered | All scenarios have covering implementation |
 | Design decisions | ✅ 8/8 | All architecture decisions implemented |
 | Documentation | ✅ Complete | Runbook, ADR, secrets doc all present and indexed |
-| Tests | ✅ Passing | `extract-release-info.test.mjs` passes 3/3 tests |
+| Tests | ✅ Passing | `extract-release-info.test.mjs` passes 7/7 tests |
 
 ### Task Completion Detail
 
@@ -65,7 +65,7 @@ $ node --test scripts/extract-release-info.test.mjs
 ✔ extractReleaseInfo returns structured object and github output lines
 ```
 
-**Result**: ✅ 3/3 tests passing
+**Result**: ✅ 7/7 tests passing
 
 ### Static Analysis
 
@@ -89,7 +89,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 |----------|----------|--------|
 | Twelve per-component outputs declared | Lines 15-27 in `release-please.yml` | ✅ PASS |
 
-**Evidence**: All 12 outputs (`releases_created`, `app--release_created`, `app--tag_name`, `app--sha`, `admin--release_created`, `admin--tag_name`, `admin--sha`, `landing--release_created`, `landing--tag_name`, `landing--sha`, `smp--release_created`, `smp--tag_name`, `smp--sha`) are present and map to `steps.release.outputs['<package>--<field>']`.
+**Evidence**: All 13 outputs are present: the aggregate `releases_created` plus the 12 per-component fields (`app--release_created`, `app--tag_name`, `app--sha`, `admin--release_created`, `admin--tag_name`, `admin--sha`, `landing--release_created`, `landing--tag_name`, `landing--sha`, `smp--release_created`, `smp--tag_name`, `smp--sha`), each mapping to `steps.release.outputs['<package>--<field>']`.
 
 ### Requirement: Merges to main do not trigger frontend deploys
 
@@ -262,7 +262,7 @@ None.
 ### Rationale
 
 1. **Structural Completeness**: All 25 tasks across Phases 1-4 are implemented per the spec, proposal, design, and tasks documents.
-2. **Test Evidence**: The TDD helper script passes 3/3 unit tests.
+2. **Test Evidence**: The TDD helper script passes 7/7 unit tests.
 3. **Spec Compliance**: All 11 spec scenarios have covering implementation verified through static analysis.
 4. **Acceptance Criteria**: 11/12 acceptance criteria pass; AC12 (live deployment) is explicitly deferred to first-merge verification per the change's policy-allowed exception.
 5. **Design Coherence**: All 8 architecture decisions are implemented correctly.

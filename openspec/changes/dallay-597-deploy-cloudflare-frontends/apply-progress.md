@@ -81,4 +81,4 @@ scripts/extract-release-info.test.mjs|   NEW
 
 ## Recommendation
 
-Implementation is complete and ready for review. All acceptance criteria from the spec are satisfied, backend isolation is preserved, and durable operational guidance is in place.
+Implementation is complete and ready for review. Acceptance criteria AC1–AC10 remain deferred until first-merge verification (live Cloudflare Pages deployment); AC11 and AC12 pass based on repository artifacts. Backend isolation is preserved, and durable operational guidance is in place.

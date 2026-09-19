@@ -1,5 +1,7 @@
 # Cloudflare Pages Release-Driven Deployment
 
+**Last Updated:** 2026-09-19
+
 ## Overview
 
 Profile Tailors deploys its three static web frontends to Cloudflare Pages exclusively from Release Please component releases and tags. Merging to `main` acts as integration only and does not deploy frontends directly to production.
@@ -93,3 +95,28 @@ To roll back a faulty production deployment:
 2. Locate the previous known-good deployment associated with the preceding release tag.
 3. Select **Manage deployment > Rollback to this deployment**.
 4. If necessary, re-run or revert the corresponding component commit via Git and trigger a patch release through Release Please.
+
+## Changes
+
+## Usage
+
+## Troubleshooting
+
+### Cloudflare API token secret not found
+
+Ensure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are configured as **Environment secrets** scoped to the `PROD` GitHub environment. The deploy jobs declare `environment: PROD`, so repository secrets alone are insufficient.
+
+### Deployment succeeds but verification probe fails
+
+CDN propagation on Cloudflare Pages can take up to 75 seconds. The workflow retries 5 times with 15-second intervals. If all attempts fail, verify the deployment appears in the Cloudflare Pages dashboard and that the version badge renders the correct `v{version} · {sha}` format.
+
+### Automatic production deploy still triggering after disabling
+
+Confirm the change was saved in Cloudflare Pages dashboard. The setting lives under **Settings > Builds & deployments > Configure Production deployments**. Check that the correct branch (`main`) is targeted and that the toggle is fully disabled, not just set to a different branch.
+
+## References
+
+- [.github/workflows/release-please.yml](../../.github/workflows/release-please.yml)
+- [scripts/extract-release-info.mjs](../../scripts/extract-release-info.mjs)
+- [docs/production-secrets.md](../production-secrets.md)
+- [docs/architecture/adr/0022-release-driven-frontend-deployment.md](../architecture/adr/0022-release-driven-frontend-deployment.md)

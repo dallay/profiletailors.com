@@ -47,10 +47,9 @@ by the release-please step). Steps:
 1. `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1` with
    `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}`, `fetch-depth: 0`,
    `persist-credentials: false`.
-2. `id: release-sha` bash exports `GIT_SHA` to `$GITHUB_ENV`:
-   `echo "GIT_SHA=${{ needs.release-please.outputs.<scope>--sha || $(git rev-parse '${{ needs.release-please.outputs.<scope>--tag_name }}^{commit}') }}"`.
+2. `id: resolve-meta` — `node scripts/extract-release-info.mjs --tag "${{ needs.release-please.outputs.<scope>--tag_name }}" --scope "<scope>" --provided "${{ needs.release-please.outputs.<scope>--sha }}"`. The script exports `version`, `git_sha`, and `short_sha` as GitHub Actions outputs.
 3. `.github/actions/setup-frontend`.
-4. `pnpm --filter <workspace> build` with `env: { GIT_SHA: $GIT_SHA }`.
+4. `pnpm --filter <workspace> build` with `env: { GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }} }`.
 5. `cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0` with
    `apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}`,
    `accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}`,
@@ -75,7 +74,7 @@ Action pins: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 | `apps/web/admin/wrangler.toml` | Create | `name = "profiletailors-admin"`, `pages_build_output_dir = "dist"`, `compatibility_date = "2026-07-24"`, empty `[vars]` |
 
 Deploy job reads URLs from `vars.PT_PRODUCTION_APP_URL`, `vars.PT_PRODUCTION_MARKETING_URL`,
-`vars.PT_PRODUCTION_ADMIN_URL`. Defaults: `https://app-profile-tailors.pages.dev`,
+`vars.PT_PRODUCTION_ADMIN_URL`. Defaults: `https://profiletailors-com-bx5.pages.dev`,
 `https://profiletailors.pages.dev`, `https://profiletailors-admin.pages.dev`. Operator MUST
 confirm or override in `cloudflare-deployment.md`; design invents no URLs.
 

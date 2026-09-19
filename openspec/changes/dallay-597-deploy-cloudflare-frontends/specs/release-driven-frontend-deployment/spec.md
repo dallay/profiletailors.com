@@ -18,11 +18,14 @@ project names come from `state.yaml:cloudflare_projects`: `app-profile-tailors`,
 `releases_created.<package>__release_created`; each `<scope>--sha` MUST map to
 `releases_created.<package>__sha`.
 
-#### Scenario: Twelve per-component outputs declared
+#### Scenario: Thirteen release outputs declared
 
 - GIVEN `.github/workflows/release-please.yml`
 - WHEN the `release-please` job's `outputs:` block is read
-- THEN all 12 keys above are present and map to the corresponding
+- THEN all 13 outputs are present: the aggregate `releases_created` plus the 12 per-component fields
+  (`landing--release_created`, `landing--tag_name`, `landing--sha`, `app--release_created`,
+  `app--tag_name`, `app--sha`, `admin--release_created`, `admin--tag_name`, `admin--sha`,
+  `smp--release_created`, `smp--tag_name`, `smp--sha`), each mapped to its corresponding
   `steps.release.outputs['<package>--<field>']` value.
 
 ### Requirement: Merges to main do not trigger frontend deploys

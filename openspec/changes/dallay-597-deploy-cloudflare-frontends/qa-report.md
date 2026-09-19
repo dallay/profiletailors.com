@@ -10,7 +10,7 @@
 
 Acceptance QA for the release-driven Cloudflare Pages deployment change is **NOT TESTED** due to the absence of an executable application under test and the explicit repository constraint that live deployment verification requires a merged release on `main`. This is a GitHub Actions workflow and deployment configuration change with no frontend application runtime in this repository.
 
-All 12 acceptance criteria from `state.yaml` map to workflow contract scenarios that can only be validated through live GitHub Actions execution after merge. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (3/3), but the workflow contract itself has no test harness.
+All 12 acceptance criteria from `state.yaml` map to workflow contract scenarios that can only be validated through live GitHub Actions execution after merge. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (7/7), but the workflow contract itself has no test harness.
 
 **Verdict**: NOT TESTED  
 **Rationale**: Infrastructure change with no local test surface; first-merge verification explicitly deferred per repository policy.
@@ -31,7 +31,7 @@ All 12 acceptance criteria from `state.yaml` map to workflow contract scenarios 
 **Verification Phase Handoff**:
 - All 25 implementation tasks marked complete
 - Static analysis passing
-- Unit tests for `extract-release-info.mjs` passing (3/3)
+- Unit tests for `extract-release-info.mjs` passing (7/7)
 - Phase 5 (first-merge verification) explicitly deferred
 - No blocking defects reported
 
@@ -132,8 +132,8 @@ All acceptance criteria from `state.yaml` map to workflow contract scenarios fro
 **Scenario**: Checkout uses release tag not main HEAD  
 **Category**: Security/Correctness  
 **Result**: **NOT TESTED**  
-**Reason**: Requires GitHub Actions execution to observe `actions/checkout@v4` behavior with computed `ref:` value.  
-**Evidence**: Workflow shows `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}` but cannot verify checkout behavior.
+**Reason**: Requires GitHub Actions execution to observe SHA-pinned checkout behavior.
+**Evidence**: Workflow shows `actions/checkout@v7` with `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}` and `fetch-depth: 0`. The `resolve-meta` step sources `GIT_SHA` through `${{ steps.resolve-meta.outputs.git_sha }}`.
 
 ---
 
@@ -219,7 +219,7 @@ All acceptance criteria from `state.yaml` map to workflow contract scenarios fro
 
 **Prerequisites for Full Validation**:
 1. Merge all three stacked PRs to `main`
-2. Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets
+2. Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as **Environment secrets** scoped to the `PROD` environment; deploy jobs declare `environment: PROD`
 3. Disable Cloudflare Git integration for the three Pages projects (operator action)
 4. Create a Release Please release for one or more frontends
 5. Observe GitHub Actions workflow execution
@@ -247,7 +247,7 @@ This change modifies GitHub Actions workflow configuration and deployment orches
 The verify phase confirmed:
 - Structural correctness of workflow YAML
 - Presence of all required outputs, jobs, and steps
-- Unit test coverage for the TDD helper script (passing 3/3)
+- Unit test coverage for the TDD helper script (passing 7/7)
 - Documentation and ADR completeness
 - Static analysis passing
 
