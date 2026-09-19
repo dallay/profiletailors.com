@@ -6,7 +6,7 @@ completed:
   - spec
   - design
   - tasks
-next: apply-pr1
+next: apply-pr2
 updated: "2026-09-19"
 github_issue: "#672"
 persistence_mode: openspec
