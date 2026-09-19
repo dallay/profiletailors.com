@@ -67,7 +67,7 @@ Ensure `PT_PRODUCTION_API_URL` GitHub variable is set for the `PROD` environment
 
 ## References
 
-- [.github/workflows/release-please.yml](../.github/workflows/release-please.yml)
+- [.github/workflows/release-please.yml](../../.github/workflows/release-please.yml)
 - [scripts/extract-release-info.mjs](../../../scripts/extract-release-info.mjs)
 - [docs/infrastructure/cloudflare-deployment.md](../../infrastructure/cloudflare-deployment.md)
 - [docs/production-secrets.md](../../production-secrets.md)
