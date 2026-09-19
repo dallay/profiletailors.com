@@ -1,5 +1,5 @@
 change: 662-invitation-token-lifecycle
-current_phase: verify-pr2
+current_phase: verify-pr3
 completed:
   - explore
   - propose
@@ -10,8 +10,18 @@ completed:
   - verify-pr1
   - apply-pr2
   - verify-pr2
-next: publish-pr2
-updated: "2026-09-17"
+  - apply-pr3
+next: verify-pr3 + archive
+updated: "2026-09-18"
+pr3: >
+  PR3 (2026-09-18): phase 3 security + concurrency tests (hash-only,
+  rejection codes EXPIRED/REVOKED/ALREADY_CONSUMED, throttle 429, bugs
+  closed), phase 4 design/spec reconciliation (four-series wording,
+  invitations spec, Amendment D2 fix). Test evidence: 44/44 fresh green
+  (InvitationActivationCoordinator 18, InvitationAcceptanceController 8,
+  R2dbcInvitationRepository 18), Spotless clean, Detekt BUILD SUCCESSFUL.
+  Open: 1.1 (#660 drift), 1.2 (DALLAY-565 sign-off), 1.3 (observability
+  owners), throttle bounds sign-off. PR #1098 open against main.
 linear_issue: "#662"
 persistence_mode: openspec
 bounded_contexts:

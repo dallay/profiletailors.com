@@ -121,3 +121,24 @@ The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INV
 - GIVEN a batch containing 1 CONVERTED entry
 - WHEN the bulk invite runs
 - THEN that entry yields a `FAILED` audit event carrying `ENTRY_ALREADY_CONVERTED` despite no state change
+
+### Requirement: User-control audit outcomes
+
+The platform-admin audit stream MUST support `USER_DISABLED`, `USER_ENABLED`, and
+`USER_SESSIONS_REVOKED` actions. Each attempted user-control command MUST produce one audit event
+carrying operator, target principal, occurred time, action, result, and correlation context when
+available. Success events MUST be emitted only after the state/session operation completes;
+rejected and failed outcomes MUST carry the non-sensitive reason. Audit metadata MUST use the
+existing redaction enforcement.
+
+#### Scenario: Successful control is audited
+
+- GIVEN an authorized disable command completes
+- WHEN the audit stream is inspected
+- THEN one `USER_DISABLED` event exists with a successful result
+
+#### Scenario: Rejected control is audited without details
+
+- GIVEN an unauthorized control attempt
+- WHEN the audit stream is inspected
+- THEN one rejected event exists carrying only the non-sensitive reason

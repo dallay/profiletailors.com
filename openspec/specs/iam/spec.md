@@ -52,6 +52,27 @@ authorization answers *what* they may do.
 - THEN principal identity, credential type, and authorization outcome MUST remain separate concerns
 - AND authentication success alone MUST NOT imply access
 
+### Requirement: Administrative account state
+
+The Identity context MUST model a user account state of `ACTIVE` or `DISABLED`, defaulting new
+users to `ACTIVE`. Administrative disable MUST persist `DISABLED` and revoke all active refresh
+sessions before reporting success. Login and refresh MUST reject a disabled user; refresh MUST NOT
+rotate or issue a replacement session.
+
+#### Scenario: Disabled user cannot log in
+
+- GIVEN a user is `DISABLED` and submits otherwise valid credentials
+- WHEN local login is attempted
+- THEN authentication is rejected
+- AND no access token or refresh session is issued
+
+#### Scenario: Disabled user cannot refresh
+
+- GIVEN a user is `DISABLED` with an outstanding refresh session
+- WHEN session refresh is attempted
+- THEN the refresh is rejected with no rotation
+- AND no replacement session is issued
+
 ### Requirement: Resource Context Taxonomy
 
 The system MUST define the following resource contexts: `GLOBAL`, `USER`, `WORKSPACE`, and

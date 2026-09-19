@@ -23,6 +23,8 @@ import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
+import com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator
+import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
 import com.profiletailors.smp.platformadmin.infrastructure.InvitationRegistrationGatewayAdapter
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
@@ -190,6 +192,33 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(declaredFields)
             .withFailMessage("Invitation aggregate MUST NOT introduce a raw token, URL, or delivery field")
             .doesNotContain("rawToken", "acceptUrl", "deliveryStatus", "lastDeliveryAttemptAt")
+    }
+
+    @Test
+    fun `raw token value matches no stored row`() = runTest {
+        seedReferenceData()
+        val rawToken = InvitationTokenGenerator.generate()
+        val hasher = BCryptTokenHasher()
+        val invitation = newInvitation().copy(tokenHash = hasher.hash(rawToken))
+
+        repository.save(invitation, hasher.candidateKey(rawToken))
+
+        assertThat(repository.findByCandidateKey(rawToken)).isNull()
+        assertThat(repository.findByCandidateKeyForUpdate(rawToken)).isNull()
+        assertNotNull(repository.findByCandidateKey(hasher.candidateKey(rawToken)))
+        val storedMaterials = databaseClient.sql(
+            "SELECT candidate_key, token_hash FROM invitations WHERE id = :id",
+        )
+            .bind("id", invitation.id.value)
+            .map { row, _ ->
+                listOf(
+                    row.get("candidate_key", String::class.java),
+                    row.get("token_hash", String::class.java),
+                )
+            }
+            .one()
+            .awaitSingle()
+        assertThat(storedMaterials).doesNotContain(rawToken)
     }
 
     @Test
