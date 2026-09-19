@@ -75,7 +75,7 @@ Action pins: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
 Deploy job reads URLs from `vars.PT_PRODUCTION_APP_URL`, `vars.PT_PRODUCTION_MARKETING_URL`,
 `vars.PT_PRODUCTION_ADMIN_URL`. Defaults: `https://profiletailors-com-bx5.pages.dev`,
-`https://profiletailors.pages.dev`, `https://profiletailors-admin.pages.dev`. Operator MUST
+`https://profiletailors.pages.dev`, `https://profiletailors-com-bx5.pages.dev`. Operator MUST
 confirm or override in `cloudflare-deployment.md`; design invents no URLs.
 
 ## Build Metadata Propagation

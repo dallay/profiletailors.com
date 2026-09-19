@@ -6,18 +6,20 @@
 **Mode**: openspec  
 **QA Agent**: sdd-qa
 
-## Executive Summary
+## Overview
+
+### Executive Summary
 
 Acceptance QA for the release-driven Cloudflare Pages deployment change is **PARTIALLY TESTED**: AC1–AC10 remain **NOT TESTED** because live deployment verification requires a merged release on `main`, while AC11–AC12 pass static documentation checks against repository artifacts. This is a GitHub Actions workflow and deployment configuration change with no frontend application runtime in this repository.
 
-AC1–AC10 from `state.yaml` map to workflow contract scenarios that require live GitHub Actions execution after merge and remain **NOT TESTED**. AC11–AC12 pass static documentation checks against the runbook and ADR repository artifacts. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (7/7), but the workflow contract itself has no test harness.
+AC1–AC10 from `state.yaml` map to workflow contract scenarios that require live GitHub Actions execution after merge and remain **NOT TESTED**. AC11–AC12 pass static documentation checks against the runbook and ADR repository artifacts. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (5/5), but the workflow contract itself has no test harness.
 
 **Verdict**: PARTIALLY TESTED
 **Rationale**: AC1–AC10 require live GitHub Actions execution and remain deferred to first-merge verification; AC11–AC12 pass static documentation checks based on repository artifacts.
 
 ---
 
-## Source Artifacts and Verification Handoff
+### Source Artifacts and Verification Handoff
 
 | Artifact | Status | Notes |
 |----------|--------|-------|
@@ -31,13 +33,13 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios that require liv
 **Verification Phase Handoff**:
 - All 25 implementation tasks marked complete
 - Static analysis passing
-- Unit tests for `extract-release-info.mjs` passing (7/7)
+- Unit tests for `extract-release-info.mjs` passing (5/5)
 - Phase 5 (first-merge verification) explicitly deferred
 - No blocking defects reported
 
 ---
 
-## Target, Environment, and Limitations
+### Target, Environment, and Limitations
 
 | Dimension | Value |
 |-----------|-------|
@@ -58,9 +60,9 @@ None of these steps can be performed in the QA phase pre-merge. The repository e
 
 ---
 
-## Capability Inventory
+### Capability Inventory
 
-### Available Capabilities
+#### Available Capabilities
 
 | Capability | Status | Rationale |
 |------------|--------|-----------|
@@ -69,7 +71,7 @@ None of these steps can be performed in the QA phase pre-merge. The repository e
 | **Dependency Analysis** | ✅ Selected | GitHub Actions dependencies pinned; wrangler SHA-pinned |
 | **Documentation Review** | ✅ Selected | Docs, ADR, runbook present and reviewed in verify |
 
-### Unavailable Capabilities
+#### Unavailable Capabilities
 
 | Capability | Status | Reason |
 |------------|--------|--------|
@@ -83,11 +85,13 @@ None of these steps can be performed in the QA phase pre-merge. The repository e
 
 ---
 
-## Scenario Matrix
+## Changes
+
+### Scenario Matrix
 
 AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec and cannot be validated pre-merge. AC11–AC12 pass static documentation checks against repository artifacts.
 
-### AC1: Merge to main does not deploy frontends
+#### AC1: Merge to main does not deploy frontends
 
 **Scenario**: Merge to main skips every deploy  
 **Category**: Happy Path (workflow contract)  
@@ -97,7 +101,7 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC2: app release triggers only app deploy
+#### AC2: app release triggers only app deploy
 
 **Scenario**: app release deploys only app  
 **Category**: Happy Path (component isolation)  
@@ -107,7 +111,7 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC3: admin release triggers only admin deploy
+#### AC3: admin release triggers only admin deploy
 
 **Scenario**: admin release deploys only admin  
 **Category**: Happy Path (component isolation)  
@@ -117,7 +121,7 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC4: landing release triggers only landing deploy
+#### AC4: landing release triggers only landing deploy
 
 **Scenario**: landing release deploys only landing  
 **Category**: Happy Path (component isolation)  
@@ -127,17 +131,17 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC5: Deployment builds from exact release SHA
+#### AC5: Deployment builds from exact release SHA
 
 **Scenario**: Checkout uses release tag not main HEAD  
 **Category**: Security/Correctness  
 **Result**: **NOT TESTED**  
 **Reason**: Requires GitHub Actions execution to observe SHA-pinned checkout behavior.
-**Evidence**: Workflow shows `actions/checkout@v7` with `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}` and `fetch-depth: 0`. The `resolve-meta` step sources `GIT_SHA` through `${{ steps.resolve-meta.outputs.git_sha }}`.
+**Evidence**: Workflow uses the SHA-pinned `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1` action with `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}` and `fetch-depth: 0`. The build sources `GIT_SHA` through `${{ steps.resolve-meta.outputs.git_sha }}`.
 
 ---
 
-### AC6: Multiple releases in same run deploy independently
+#### AC6: Multiple releases in same run deploy independently
 
 **Scenario**: Multi-component release deploys all triggered components  
 **Category**: Happy Path (batch releases)  
@@ -147,7 +151,7 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC7: smp release behavior unchanged
+#### AC7: smp release behavior unchanged
 
 **Scenario**: smp release still triggers container build  
 **Category**: Regression Prevention  
@@ -157,7 +161,7 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC8: Cloudflare credentials are least-privilege
+#### AC8: Cloudflare credentials are least-privilege
 
 **Scenario**: Secrets configured with minimal scope  
 **Category**: Security  
@@ -167,17 +171,17 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC9: GIT_SHA passed to build for version badge
+#### AC9: GIT_SHA passed to build for version badge
 
 **Scenario**: Build info receives release SHA  
 **Category**: Correctness  
 **Result**: **NOT TESTED**  
 **Reason**: Requires GitHub Actions execution to observe environment variable propagation through build step.  
-**Evidence**: Workflow shows `GIT_SHA: ${{ needs.release-please.outputs.<scope>--sha }}` in `env:`; cannot verify build behavior.
+**Evidence**: Workflow shows `GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}` in `env:`; cannot verify build behavior.
 
 ---
 
-### AC10: Post-deployment verification asserts version badge
+#### AC10: Post-deployment verification asserts version badge
 
 **Scenario**: Production GET asserts version badge presence  
 **Category**: Deployment Verification  
@@ -187,25 +191,27 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-### AC11: Documentation includes operator gate instructions
+#### AC11: Documentation includes operator gate instructions
 
 **Scenario**: Runbook documents Cloudflare Git integration disable  
 **Category**: Documentation  
 **Result**: **PASS**  
-**Evidence**: `docs/deployment/cloudflare-release-driven-deploy.md` exists and includes "Operator Actions" section with Git integration disable instructions per verify report.
+**Evidence**: `docs/infrastructure/cloudflare-deployment.md` exists and includes the Cloudflare dashboard operator actions for disabling Git integration production deployments.
 
 ---
 
-### AC12: ADR records deployment boundary decision
+#### AC12: ADR records deployment boundary decision
 
 **Scenario**: ADR documents release-driven policy  
 **Category**: Documentation  
 **Result**: **PASS**  
-**Evidence**: `docs/architecture/adr/0030-release-driven-cloudflare-frontend-deployment.md` exists and indexed per verify report.
+**Evidence**: `docs/architecture/adr/0022-release-driven-frontend-deployment.md` exists and is indexed per verify report.
 
 ---
 
-## Untested Scope and Prerequisites
+## Usage
+
+### Untested Scope and Prerequisites
 
 **Untested Due to Repository Constraints**:
 - All 10 GitHub Actions workflow scenarios (AC1–AC10)
@@ -231,13 +237,15 @@ AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec an
 
 ---
 
-## Findings
+## Troubleshooting
+
+### Findings
 
 No findings. QA cannot produce findings without an executable test surface.
 
 ---
 
-## Final Verdict
+### Final Verdict
 
 **PARTIALLY TESTED**
 
@@ -247,7 +255,7 @@ This change modifies GitHub Actions workflow configuration and deployment orches
 The verify phase confirmed:
 - Structural correctness of workflow YAML
 - Presence of all required outputs, jobs, and steps
-- Unit test coverage for the TDD helper script (passing 7/7)
+- Unit test coverage for the TDD helper script (passing 5/5)
 - Documentation and ADR completeness
 - Static analysis passing
 
@@ -264,7 +272,7 @@ The repository explicitly accepts deferred deployment verification as documented
 
 ---
 
-## Archive Gate Decision
+### Archive Gate Decision
 
 **Recommendation**: PROCEED TO ARCHIVE with explicit acknowledgment of deferred verification.
 
@@ -284,3 +292,10 @@ The repository explicitly accepts deferred deployment verification as documented
 4. Create test release
 5. Execute Phase 5 verification
 6. Document outcomes in post-merge verification artifact
+
+## References
+
+- Runbook: `docs/infrastructure/cloudflare-deployment.md`
+- ADR 0022: `docs/architecture/adr/0022-release-driven-frontend-deployment.md`
+- Workflow: `.github/workflows/release-please.yml`
+- Verification report: `openspec/changes/dallay-597-deploy-cloudflare-frontends/verify-report.md`

@@ -6,13 +6,15 @@
 **Mode**: openspec  
 **Verifier**: sdd-verify agent
 
-## Summary
+## Overview
 
-Implementation of release-driven Cloudflare Pages deployment for the three frontends (`app`, `admin`, `landing`) is **structurally complete** against the spec, proposal, design, and tasks. All workflow contract outputs, deploy jobs, TDD helper script, wrangler configs, documentation, and ADR are present and correctly wired. Static analysis passes. The unit test suite for `extract-release-info.mjs` passes (7/7).
+### Summary
+
+Implementation of release-driven Cloudflare Pages deployment for the three frontends (`app`, `admin`, `landing`) is **structurally complete** against the spec, proposal, design, and tasks. All workflow contract outputs, deploy jobs, TDD helper script, wrangler configs, documentation, and ADR are present and correctly wired. Static analysis passes. The unit test suite for `extract-release-info.mjs` passes (5/5).
 
 **Constraint**: Live Cloudflare deployment verification requires a merged release on `main` and is deferred to first-merge verification per the change's explicit policy-allowed exception. This is a repository-accepted tradeoff: the workflow cannot be end-to-end validated until it is merged and a Release Please release is created.
 
-## Completeness
+### Completeness
 
 | Category | Status | Details |
 |----------|--------|---------|
@@ -21,9 +23,9 @@ Implementation of release-driven Cloudflare Pages deployment for the three front
 | Spec scenarios | ✅ 11/11 covered | All scenarios have covering implementation |
 | Design decisions | ✅ 8/8 | All architecture decisions implemented |
 | Documentation | ✅ Complete | Runbook, ADR, secrets doc all present and indexed |
-| Tests | ✅ Passing | `extract-release-info.test.mjs` passes 7/7 tests |
+| Tests | ✅ Passing | `extract-release-info.test.mjs` passes 5/5 tests |
 
-### Task Completion Detail
+#### Task Completion Detail
 
 **Phase 1: Workflow Contract and Wrangler Config (PR 1)**
 - ✅ 1.1 Added 8 new outputs to `release-please.yml` (lines 16-27)
@@ -33,7 +35,7 @@ Implementation of release-driven Cloudflare Pages deployment for the three front
 
 **Phase 2: Deploy Jobs and TDD Helper (PR 2)**
 - ✅ 2.1 Created `scripts/extract-release-info.mjs` with full exports
-- ✅ 2.2 Created `scripts/extract-release-info.test.mjs` with 3 passing tests
+- ✅ 2.2 Created `scripts/extract-release-info.test.mjs` with 5 passing tests
 - ✅ 2.3 Implemented `deploy-app` job (lines 43-106)
 - ✅ 2.4 Implemented `deploy-admin` job (lines 108-171)
 - ✅ 2.5 Implemented `deploy-landing` job (lines 173-236)
@@ -52,9 +54,11 @@ Implementation of release-driven Cloudflare Pages deployment for the three front
 **Phase 5: First-Merge Verification**
 - ⏸️ 5.1–5.6 Explicitly deferred until after merge per design decision
 
-## Build and Test Evidence
+## Changes
 
-### Unit Tests
+### Build and Test Evidence
+
+#### Unit Tests
 
 ```bash
 $ node --test scripts/extract-release-info.test.mjs
@@ -65,13 +69,13 @@ $ node --test scripts/extract-release-info.test.mjs
 ✔ extractReleaseInfo returns structured object and github output lines
 ```
 
-**Result**: ✅ 7/7 tests passing
+**Result**: ✅ 5/5 tests passing
 
-### Static Analysis
+#### Static Analysis
 
 No linter, formatter, or type-check commands applicable to workflow YAML or Node.js scripts without a dedicated check. The workflow YAML is syntactically valid (GitHub Actions would reject invalid syntax on push).
 
-### Integration Tests
+#### Integration Tests
 
 ⏸️ **Deferred to first-merge verification**: End-to-end workflow execution requires:
 1. Merge to `main`
@@ -81,9 +85,9 @@ No linter, formatter, or type-check commands applicable to workflow YAML or Node
 
 This is the repository-accepted tradeoff documented in the design and tasks.
 
-## Spec Compliance Matrix
+### Spec Compliance Matrix
 
-### Requirement: Per-component Release Please outputs are exposed
+#### Requirement: Per-component Release Please outputs are exposed
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -91,7 +95,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: All 13 outputs are present: the aggregate `releases_created` plus the 12 per-component fields (`app--release_created`, `app--tag_name`, `app--sha`, `admin--release_created`, `admin--tag_name`, `admin--sha`, `landing--release_created`, `landing--tag_name`, `landing--sha`, `smp--release_created`, `smp--tag_name`, `smp--sha`), each mapping to `steps.release.outputs['<package>--<field>']`.
 
-### Requirement: Merges to main do not trigger frontend deploys
+#### Requirement: Merges to main do not trigger frontend deploys
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -99,7 +103,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Each deploy job has `if: ${{ needs.release-please.outputs['<scope>--release_created'] == 'true' }}`, preventing execution without a release.
 
-### Requirement: Deploy jobs check out exact release SHA
+#### Requirement: Deploy jobs check out exact release SHA
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -108,7 +112,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Each job checks out `ref: ${{ needs.release-please.outputs['<scope>--tag_name'] }}` and runs `extract-release-info.mjs` to resolve the SHA.
 
-### Requirement: Deploy jobs use least-privilege Cloudflare credentials
+#### Requirement: Deploy jobs use least-privilege Cloudflare credentials
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -116,7 +120,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: All three deploy jobs use `secrets.CLOUDFLARE_API_TOKEN` and `secrets.CLOUDFLARE_ACCOUNT_ID`.
 
-### Requirement: GIT_SHA is passed to build
+#### Requirement: GIT_SHA is passed to build
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -124,7 +128,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Each build step exports `GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}`.
 
-### Requirement: Post-deployment verification probes production
+#### Requirement: Post-deployment verification probes production
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -132,7 +136,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Each deploy job includes a 5-retry `curl` probe that asserts the version badge matches `v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}`.
 
-### Requirement: Component isolation
+#### Requirement: Component isolation
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -142,7 +146,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Each deploy job has an independent `if:` condition checking only its own `<scope>--release_created` output.
 
-### Requirement: Canonical Cloudflare project names
+#### Requirement: Canonical Cloudflare project names
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -153,7 +157,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 - `apps/web/admin/wrangler.toml`: `name = "profiletailors-admin"`
 - `apps/web/marketing/wrangler.toml`: `name = "profiletailors"`
 
-### Requirement: smp pipeline unchanged
+#### Requirement: smp pipeline unchanged
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -161,7 +165,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: The `build-and-push-smp` job remains at lines 238-251 (implementation truncated in read, but confirmed present in apply-progress.md).
 
-### Requirement: Documentation and operator actions
+#### Requirement: Documentation and operator actions
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -171,7 +175,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: All documentation artifacts present and indexed.
 
-### Requirement: TDD helper script
+#### Requirement: TDD helper script
 
 | Scenario | Coverage | Status |
 |----------|----------|--------|
@@ -180,7 +184,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 
 **Evidence**: Script exports `stripScopeFromTag`, `shortSha`, `resolveReleaseSha`, `extractReleaseInfo` and all are tested.
 
-## Acceptance Criteria Verification
+### Acceptance Criteria Verification
 
 | ID | Criterion | Status | Evidence |
 |----|-----------|--------|----------|
@@ -197,7 +201,7 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 | AC11 | Documentation and operator actions | ✅ PASS | Runbook, secrets doc, ADR all present |
 | AC12 | Live Cloudflare deployment verification | ⏸️ DEFERRED | First-merge verification constraint per design |
 
-## Design Coherence
+### Design Coherence
 
 | Decision | Implementation | Status |
 |----------|----------------|--------|
@@ -210,13 +214,28 @@ This is the repository-accepted tradeoff documented in the design and tasks.
 | Operator action deferral | Documented in runbook, not automated | ✅ PASS |
 | First-merge verification | Explicitly deferred to Phase 5 | ✅ PASS |
 
-## Issues
+## Usage
 
-### CRITICAL
+### Next Steps
+
+1. Merge this change to `main` through the approved PR workflow.
+2. Execute Phase 5 first-merge verification after merge:
+   - Create a test `app` release via Release Please
+   - Verify only `deploy-app` runs
+   - Verify production probe succeeds
+   - Verify version badge reflects correct version and SHA
+3. Move to `qa` phase only after first-merge verification passes.
+4. Operator performs manual Cloudflare dashboard action to disable Git-integration production deployments per the runbook.
+
+## Troubleshooting
+
+### Issues
+
+#### CRITICAL
 
 None.
 
-### WARNING
+#### WARNING
 
 | Finding | Severity | Status |
 |---------|----------|--------|
@@ -235,11 +254,11 @@ None.
 
 **Acceptance**: This is a first-merge verification constraint, not a defect. The change cannot progress to `qa` phase until first-merge verification passes.
 
-### SUGGESTION
+#### SUGGESTION
 
 None.
 
-## Correctness Table
+### Correctness Table
 
 | Finding | Judge A (Static) | Judge B (Runtime) | Severity | Status |
 |---------|------------------|-------------------|----------|--------|
@@ -255,38 +274,27 @@ None.
 - ⏸️ = Deferred to first-merge verification
 - N/A = Not applicable
 
-## Final Verdict
+### Final Verdict
 
 **PASS WITH WARNINGS**
 
-### Rationale
+#### Rationale
 
 1. **Structural Completeness**: All 25 tasks across Phases 1-4 are implemented per the spec, proposal, design, and tasks documents.
-2. **Test Evidence**: The TDD helper script passes 7/7 unit tests.
+2. **Test Evidence**: The TDD helper script passes 5/5 unit tests.
 3. **Spec Compliance**: All 11 spec scenarios have covering implementation verified through static analysis.
 4. **Acceptance Criteria**: 11/12 acceptance criteria pass; AC12 (live deployment) is explicitly deferred to first-merge verification per the change's policy-allowed exception.
 5. **Design Coherence**: All 8 architecture decisions are implemented correctly.
 6. **Documentation**: Runbook, secrets doc, and ADR 0022 are present and indexed.
 
-### Warnings
+#### Warnings
 
 1. **First-Merge Verification Required**: Live Cloudflare deployment cannot be validated until the workflow is merged to `main` and a Release Please release is created. This is a repository-accepted tradeoff, not a defect.
 
-### Constraints
+#### Constraints
 
 - **Runtime verification deferred**: Phase 5 tasks (5.1–5.6) explicitly defer end-to-end validation to first-merge verification.
 - **Cloudflare operator action**: Disabling automatic production deployments in the Cloudflare dashboard is a manual operator action documented in the runbook but not automated or verified here.
-
-### Next Steps
-
-1. Merge this change to `main` through the approved PR workflow.
-2. Execute Phase 5 first-merge verification after merge:
-   - Create a test `app` release via Release Please
-   - Verify only `deploy-app` runs
-   - Verify production probe succeeds
-   - Verify version badge reflects correct version and SHA
-3. Move to `qa` phase only after first-merge verification passes.
-4. Operator performs manual Cloudflare dashboard action to disable Git-integration production deployments per the runbook.
 
 ## References
 
