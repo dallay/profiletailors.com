@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, deploy]
   pull_request:
     # Do not restrict by base branch: stacked PR layers target the preceding
     # feature branch rather than main/develop.
