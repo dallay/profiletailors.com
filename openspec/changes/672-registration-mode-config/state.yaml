@@ -6,8 +6,8 @@ completed:
   - spec
   - design
   - tasks
-next: apply-pr2
-updated: "2026-09-19"
+next: verify
+updated: "2026-09-20"
 github_issue: "#672"
 persistence_mode: openspec
 delivery:
@@ -76,3 +76,15 @@ note: >-
   (self-contained, no external contract), PR2 platformadmin API/audit/idempotency (depends on PR1's
   port), PR3 BDD + admin frontend (depends on PR2's endpoints). No production code was written in this
   phase; design.md/specs/ were read-only. Next phase is sdd-apply PR1 (identity).
+  Apply PR3 (2026-09-20, branch issue-672-bdd-ui): Phase 3 (BDD, 7 new @platform-configuration
+  scenarios + ConfigurationBddSteps.kt glue) and Phase 4 (admin frontend — auth.store permissions,
+  nav-registry/router promotion planned->live, ConfigurationView.vue + spec, i18n) implemented per
+  tasks.md, plus a light Phase 5 reconciliation pass (5.1 docs-enumeration check: skipped a
+  standalone doc, matching the 6-of-7 platformadmin-capability precedent of relying on
+  design.md/specs/ instead; 5.2 ADR-0022 citation check: consistent, no ADR edit). Verified:
+  just backend-bdd-fast (267 tests, 0 failed) and just backend-bdd-postgres (same suite, dedicated
+  container, 0 failed) both green with zero regressions on the pre-existing 28
+  platform-admin.feature scenarios; :server:smp:detekt and :server:smp:spotlessCheck clean;
+  pnpm --filter admin test:run (100/100), just admin-check, just admin-build all green. Full
+  openspec/changes/672-registration-mode-config/apply-progress.md has the complete file/verification
+  breakdown. Next phase is sdd-verify across the full 3-PR chain.

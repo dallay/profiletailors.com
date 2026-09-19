@@ -49,23 +49,23 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: BDD Coverage
 
-- [ ] 3.1 RED extend `server/smp/src/test/resources/features/platform-admin.feature` with 7 scenarios (read-ok→200; read-denied→401/403 no disclosure; owner-write→200 persisted+observed; non-owner-write→403 `REJECTED`; invalid-value→400 `FAILED`; concurrent-writes no lost update, correct audit pair; restart durability). Tag `@smoke @platform-admin @fast @postgres`.
-- [ ] 3.2 GREEN new `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/ConfigurationBddSteps.kt`: `BddDatabaseSupport`, `WebTestClient`, required headers, repo token fixtures — drive all 7 scenarios green.
-- [ ] 3.3 Run `just backend-bdd-fast` and (`just infra-up` +) `just backend-bdd-postgres`; all 7 scenarios pass, zero regressions on `platform-admin.feature`.
+- [x] 3.1 RED extend `server/smp/src/test/resources/features/platform-admin.feature` with 7 scenarios (read-ok→200; read-denied→401/403 no disclosure; owner-write→200 persisted+observed; non-owner-write→403 `REJECTED`; invalid-value→400 `FAILED`; concurrent-writes no lost update, correct audit pair; restart durability). Feature-level tags `@smoke @platform-admin @fast @postgres` apply (same file); scenario-level `@platform-configuration` added for organization.
+- [x] 3.2 GREEN new `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/ConfigurationBddSteps.kt`: shared `PlatformAdminScenarioState`, `WebTestClient`, `Idempotency-Key` + `Accept: application/vnd.api.v1+json` headers, `BDD_ADMIN_TOKEN` fixture — drives all 7 scenarios green.
+- [x] 3.3 Ran `just backend-bdd-fast` (267 tests, 0 failed) and `just backend-bdd-postgres` (same suite via a dedicated Postgres Testcontainer, 0 failed); all 7 new scenarios pass in both lanes, zero regressions on the other 28 `platform-admin.feature` scenarios.
 
 ## Phase 4: Admin Frontend
 
-- [ ] 4.1 RED/GREEN `apps/web/admin/src/stores/auth.store.ts` (+ its test): mirror `platform.configuration.read` (OWNER/OPERATOR/AUDITOR) and `platform.configuration.manage` (OWNER only) in `ROLE_PERMISSIONS`, matching the server matrix exactly.
-- [ ] 4.2 RED/GREEN `apps/web/admin/src/router/{nav-registry,index}.ts` + `nav-registry.spec.ts`: drop `configuration` from "planned" assertions; promote to `live`, gated on `platform.configuration.read`, real route to `ConfigurationView.vue`.
-- [ ] 4.3 RED new `apps/web/admin/src/views/ConfigurationView.spec.ts`: read-only render for read-only sessions; write control + `window.confirm` gated on `platform.configuration.manage`; `Idempotency-Key` via `crypto.randomUUID()`; success/error/loading states.
-- [ ] 4.4 GREEN new `apps/web/admin/src/views/ConfigurationView.vue`: mirror `UserDetailView.vue` composition (`ref` state, `authStore.request`, `crypto.randomUUID()` Idempotency-Key, `window.confirm(t('configuration.changeConfirm', {mode}))` before POST).
-- [ ] 4.5 GREEN `apps/web/admin/src/i18n/{index,types}.ts`: add `configuration.{title,currentMode,changeTo,changeConfirm,changeSuccess}` EN+ES, reusing `common.error`/`common.loading`.
-- [ ] 4.6 Run `just admin-check` and `just admin-test`; green, no new suppressions.
+- [x] 4.1 RED/GREEN `apps/web/admin/src/stores/auth.store.ts` (+ its test): mirror `platform.configuration.read` (OWNER/OPERATOR/AUDITOR) and `platform.configuration.manage` (OWNER only) in `ROLE_PERMISSIONS`, matching the server matrix exactly.
+- [x] 4.2 RED/GREEN `apps/web/admin/src/router/{nav-registry,index}.ts` + `nav-registry.spec.ts`: drop `configuration` from "planned" assertions; promote to `live`, gated on `platform.configuration.read`, real route to `ConfigurationView.vue`.
+- [x] 4.3 RED new `apps/web/admin/src/views/ConfigurationView.spec.ts`: read-only render for read-only sessions; write control + `window.confirm` gated on `platform.configuration.manage`; `Idempotency-Key` via `crypto.randomUUID()`; success/error/loading states.
+- [x] 4.4 GREEN new `apps/web/admin/src/views/ConfigurationView.vue`: mirror `UserDetailView.vue` composition (`ref` state, `authStore.request`, `crypto.randomUUID()` Idempotency-Key, `window.confirm(t('configuration.changeConfirm', {mode}))` before POST).
+- [x] 4.5 GREEN `apps/web/admin/src/i18n/{index,types}.ts`: add `configuration.{title,currentMode,changeTo,changeConfirm,changeSuccess}` EN+ES, reusing `common.error`/`common.loading`.
+- [x] 4.6 Ran `just admin-check`, `just admin-test` (100/100 passed) and `just admin-build`; green, no new suppressions, no new `any`/type errors.
 
 ## Phase 5: Reconciliation, Docs, Gates
 
-- [ ] 5.1 Confirm `docs/api-versioning*.md`/admin API reference reflect the new routes/auth/status codes if such docs enumerate admin endpoints explicitly.
-- [ ] 5.2 Citation-only check: ADR-0022 references (`docs/architecture/adr/README.md`, change links) match the shipped table/port shape — no ADR edits expected.
+- [x] 5.1 Checked `docs/api-versioning*.md` and `docs/README.md` admin doc index. Confirmed: only `docs/platform-admin-user-administration.md` (#668) has a companion route-enumeration doc + a matching "Platform admin user controls" cross-reference section in `docs/api-versioning.md`; the other 6 platformadmin HTTP controllers (waitlist, invitations, operators, audit, dashboard, publishing-stale-jobs) have zero such docs and rely on `design.md`/`specs/*/spec.md` as the source of truth. Following that majority precedent, no new `docs/platform-admin-configuration.md` or `api-versioning.md` subsection was added for `AdminConfigurationController`; the two new routes are fully documented in this change's `design.md` (HTTP Contract table) and `specs/platform-configuration/spec.md`.
+- [x] 5.2 Citation-only check: `docs/architecture/adr/README.md` row 0022 → status Accepted, correct filename. ADR-0022's own `Related` section correctly cites `openspec/changes/672-registration-mode-config/` and issue #672. ADR-0022's `Verification` section (seed/fallback, concurrent-writes, BDD durability scenario) matches what Phase 1/3 actually implemented. No ADR content edited, per instructions.
 - [ ] 5.3 Run `just backend-check` (Detekt included); fix any new finding without suppression, baseline growth, or config downgrade.
 - [ ] 5.4 Run `just backend-build` and `just admin-build`; confirm `pnpm-lock.yaml`/Gradle catalog unchanged (no new dependency).
 - [ ] 5.5 Full confirmation: `just backend-test-postgres`, `just backend-bdd-postgres`, `just admin-check`, `just admin-test`, `just admin-build`; record exact Passed/Failed/Not run per repo Definition of Done.
