@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.3...smp@v0.5.4) (2026-09-19)
+
+
+### Features
+
+* **platformadmin:** invitation token lifecycle — PR3 security + spec sync ([#1098](https://github.com/dallay/profiletailors.com/issues/1098)) ([ad35eb6](https://github.com/dallay/profiletailors.com/commit/ad35eb66ae837f392ffd9c5751436175af64b559))
+
 ## [0.5.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.2...smp@v0.5.3) (2026-09-18)
 
 
