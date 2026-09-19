@@ -12,7 +12,7 @@ NO_DRIFT_DETECTED
 
 - Liquibase Changelogs: `server/smp/src/main/resources/db/changelog/`
 - Master Changelog: `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml`
-- R2DBC Persistence Repositories & Mappings across server domain modules (tenancy, governance, publishing, identity, credentials, media)
+- R2DBC Persistence Repositories & Mappings across server domain modules (tenancy, governance, publishing, identity, credentials, media, lead-capture, privacy, platform-admin, authorization, hashtags, ideas, mcp)
 
 ## Changes Applied
 
@@ -24,10 +24,11 @@ None (no schema drift or mapping inconsistencies detected).
 | --- | --- | --- | --- |
 | Governance | `001-007` (audit, consent, controls, takedown) | `R2dbcConsentRepository`, `R2dbcAuditEventReader`, etc. | Verified Consistent |
 | Tenancy | `001-004` (workspaces, memberships, ownerships) | `R2dbcWorkspaceReadRepository`, `R2dbcWorkspaceMembershipRepository`, etc. | Verified Consistent |
-| Publishing | `001-019` (social connections, publications, assets, schedules) | `R2dbcPublishingRepositories`, `R2dbcSocialContentRepositories`, etc. | Verified Consistent |
-| Identity & Auth | `001-006` (principals, user_identities, credentials, reset tokens) | `R2dbcPrincipalIdentityLookup`, `R2dbcLocalPasswordCredentialGateway`, etc. | Verified Consistent |
-| Media | `001-007` (media assets, file blobs, external metadata) | `R2dbcMediaRepositories` | Verified Consistent |
+| Publishing | `001-022` (social connections, publications, assets, schedules, bulk import) | `R2dbcPublishingRepositories`, `R2dbcSocialContentRepositories`, etc. | Verified Consistent |
+| Identity & Auth | `001-008` (principals, user_identities, credentials, reset tokens, preferences, status) | `R2dbcPrincipalIdentityLookup`, `R2dbcLocalPasswordCredentialGateway`, etc. | Verified Consistent |
+| Media | `001-007` (media assets, file blobs, external metadata, license) | `R2dbcMediaRepositories` | Verified Consistent |
 | Credentials | `001-003` (service accounts, api keys, refresh sessions) | `R2dbcApiKeyCredentialStateLookup`, `R2dbcRefreshSessionGateway`, etc. | Verified Consistent |
+| Platform Admin | `001-007` (role assignments, waitlist invitations, invitations, audit events metadata) | `R2dbcPlatformAdminAuditRepository`, `R2dbcWaitlistInvitationRepository`, etc. | Verified Consistent |
 
 ## Validation Table
 
