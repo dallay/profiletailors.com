@@ -334,6 +334,8 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         .awaitSingle()
 
     private suspend fun cleanupTestData() {
+        databaseClient.sql("DELETE FROM platform_operational_config WHERE config_key = 'registration.mode'")
+            .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM email_verification_tokens WHERE email = 'issue193@example.com'")
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM user_identities WHERE principal_id = 'issue-193-principal'")
