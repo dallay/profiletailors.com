@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.9](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.8...admin@v0.0.9) (2026-09-19)
+
+
+### Features
+
+* **admin:** add bulk invite BDD coverage, admin UI selection, and specs ([#1063](https://github.com/dallay/profiletailors.com/issues/1063)) ([980ad04](https://github.com/dallay/profiletailors.com/commit/980ad04699b85dfc61abf2c35ba97efe35ae56dc))
+* **platform-admin:** user administration — disable/enable accounts, revoke sessions ([#1077](https://github.com/dallay/profiletailors.com/issues/1077)) ([35afaf6](https://github.com/dallay/profiletailors.com/commit/35afaf62ffa37c4160a64c27833f242a50685d3c))
+* **version-badge:** add version badge to app, admin, and marketing ([#1089](https://github.com/dallay/profiletailors.com/issues/1089)) ([94f4435](https://github.com/dallay/profiletailors.com/commit/94f443508f1f2ff469bd4ced602c476e2bbb3819))
+
 ## [0.0.8](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.7...admin@v0.0.8) (2026-09-15)
 
 
