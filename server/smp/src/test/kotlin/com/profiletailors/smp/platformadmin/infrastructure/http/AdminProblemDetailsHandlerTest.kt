@@ -11,6 +11,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveExcept
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
+import com.profiletailors.smp.platformadmin.domain.InvalidRegistrationModeException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -227,5 +228,13 @@ class AdminProblemDetailsHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("VALIDATION_ERROR", problem.properties?.get("code"))
         assertEquals("urn:profiletailors:error:VALIDATION_ERROR", problem.type.toString())
+    }
+
+    @Test
+    fun `maps InvalidRegistrationModeException to 400 via the existing IllegalArgumentException handler`() {
+        val problem = handler.handle(InvalidRegistrationModeException("BOGUS"))
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
+        assertEquals("VALIDATION_ERROR", problem.properties?.get("code"))
     }
 }

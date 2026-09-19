@@ -36,16 +36,16 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Platformadmin — Permissions, Audit, Handlers, Idempotency (TDD RED first)
 
-- [ ] 2.1 RED/GREEN `platformadmin/domain/PlatformPermission.kt`: add `CONFIGURATION_READ`/`CONFIGURATION_MANAGE`; wire `PLATFORM_ROLE_PERMISSIONS` (`OPERATOR`+`AUDITOR` get READ only; `OWNER` gets both via `entries.toSet()`; `SUPPORT_AGENT` neither); test asserts the exact matrix from `specs/admin-authorization/spec.md`.
-- [ ] 2.2 RED/GREEN `platformadmin/domain/AdminAuditEvent.kt`: add `CONFIGURATION_CHANGED` to `AdminAuditAction`.
-- [ ] 2.3 RED/GREEN `platformadmin/domain/PlatformAdminExceptions.kt`: add `InvalidRegistrationModeException(value): IllegalArgumentException`; test confirms existing `@ExceptionHandler(IllegalArgumentException::class)` → 400 `VALIDATION_ERROR` (no new handler).
-- [ ] 2.4 RED/GREEN `platformadmin/application/command/AdminCommands.kt`: add `ChangeRegistrationModeCommand(operatorId, newMode)`.
-- [ ] 2.5 RED `platformadmin/application/handler/RegistrationModeHandlersTest.kt` (new): read for `CONFIGURATION_READ`; write denied for non-`CONFIGURATION_MANAGE` → `PlatformAccessDeniedException` + `REJECTED`; invalid mode → `FAILED`, no state change; success runs in `transactionRunner.runAtomically`, publishes `SUCCEEDED` with `metadata={previousMode,newMode}`, `targetType="CONFIGURATION"`, `targetId="registration.mode"`.
-- [ ] 2.6 GREEN `platformadmin/application/handler/RegistrationModeHandlers.kt` (new): mirror `UserControlHandlers` 1:1 (permission → `runAtomically` → audit).
-- [ ] 2.7 RED/GREEN `platformadmin/application/ConfigurationIdempotency.kt` (new store+service, no `targetPrincipalId`) + `db/changelog/platform-admin/010-create-configuration-idempotency.yaml`, mirroring `UserControlIdempotencyStore`/`008-...yaml` minus target-principal; unit tests for claim/replay/in-progress-conflict + Postgres migration test.
-- [ ] 2.8 RED `platformadmin/infrastructure/http/AdminConfigurationControllerTest.kt` (new, WebFlux): GET requires `CONFIGURATION_READ` (401/403/200); POST requires `CONFIGURATION_MANAGE` + `Idempotency-Key` (mirrors `AdminUserController`), validates mode value inside the handler after the permission check (so invalid-from-owner is audited `FAILED`); 200/400/401/403.
-- [ ] 2.9 GREEN `platformadmin/infrastructure/http/AdminConfigurationController.kt` (new): thin controller, `RegistrationModeResult`/`ChangeRegistrationModeRequest` DTOs, no SpringDoc (matches the other 8 controllers).
-- [ ] 2.10 RED/GREEN `platformadmin/infrastructure/persistence/RedactSensitiveMetadataTest.kt`: add case — `previousMode`/`newMode` pass `redact()` unredacted; add case — `targetId` values are never redacted (only `metadata` is).
+- [x] 2.1 RED/GREEN `platformadmin/domain/PlatformPermission.kt`: add `CONFIGURATION_READ`/`CONFIGURATION_MANAGE`; wire `PLATFORM_ROLE_PERMISSIONS` (`OPERATOR`+`AUDITOR` get READ only; `OWNER` gets both via `entries.toSet()`; `SUPPORT_AGENT` neither); test asserts the exact matrix from `specs/admin-authorization/spec.md`.
+- [x] 2.2 RED/GREEN `platformadmin/domain/AdminAuditEvent.kt`: add `CONFIGURATION_CHANGED` to `AdminAuditAction`.
+- [x] 2.3 RED/GREEN `platformadmin/domain/PlatformAdminExceptions.kt`: add `InvalidRegistrationModeException(value): IllegalArgumentException`; test confirms existing `@ExceptionHandler(IllegalArgumentException::class)` → 400 `VALIDATION_ERROR` (no new handler).
+- [x] 2.4 RED/GREEN `platformadmin/application/command/AdminCommands.kt`: add `ChangeRegistrationModeCommand(operatorId, newMode)`.
+- [x] 2.5 RED `platformadmin/application/handler/RegistrationModeHandlersTest.kt` (new): read for `CONFIGURATION_READ`; write denied for non-`CONFIGURATION_MANAGE` → `PlatformAccessDeniedException` + `REJECTED`; invalid mode → `FAILED`, no state change; success runs in `transactionRunner.runAtomically`, publishes `SUCCEEDED` with `metadata={previousMode,newMode}`, `targetType="CONFIGURATION"`, `targetId="registration.mode"`.
+- [x] 2.6 GREEN `platformadmin/application/handler/RegistrationModeHandlers.kt` (new): mirror `UserControlHandlers` 1:1 (permission → `runAtomically` → audit).
+- [x] 2.7 RED/GREEN `platformadmin/application/ConfigurationIdempotency.kt` (new store+service, no `targetPrincipalId`) + `db/changelog/platform-admin/010-...yaml`, mirroring `UserControlIdempotencyStore`/`008-...yaml` minus target-principal; unit tests for claim/replay/in-progress-conflict + Postgres migration test.
+- [x] 2.8 RED `platformadmin/infrastructure/http/AdminConfigurationControllerTest.kt` (new, WebFlux): GET requires `CONFIGURATION_READ` (401/403/200); POST requires `CONFIGURATION_MANAGE` + `Idempotency-Key` (mirrors `AdminUserController`), validates mode value inside the handler after the permission check (so invalid-from-owner is audited `FAILED`); 200/400/401/403.
+- [x] 2.9 GREEN `platformadmin/infrastructure/http/AdminConfigurationController.kt` (new): thin controller, `RegistrationModeResult`/`ChangeRegistrationModeRequest` DTOs, no SpringDoc (matches the other 8 controllers).
+- [x] 2.10 RED/GREEN `platformadmin/infrastructure/persistence/RedactSensitiveMetadataTest.kt`: add case — `previousMode`/`newMode` pass `redact()` unredacted; add case — `targetId` values are never redacted (only `metadata` is).
 
 ## Phase 3: BDD Coverage
 
