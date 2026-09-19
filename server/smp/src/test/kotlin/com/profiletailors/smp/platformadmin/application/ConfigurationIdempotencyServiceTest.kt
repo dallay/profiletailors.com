@@ -173,10 +173,7 @@ class ConfigurationIdempotencyServiceTest {
     ) : ConfigurationIdempotencyStore {
         private var findCalls = 0
 
-        override suspend fun find(
-            operatorPrincipalId: UUID,
-            idempotencyKey: String,
-        ): ConfigurationIdempotencyRecord? {
+        override suspend fun find(operatorPrincipalId: UUID, idempotencyKey: String): ConfigurationIdempotencyRecord? {
             if (operatorPrincipalId != operatorId || idempotencyKey != key) return null
             findCalls += 1
             return if (findCalls == 1) null else ConfigurationIdempotencyRecord(operatorId, operation, key)
@@ -197,10 +194,7 @@ class ConfigurationIdempotencyServiceTest {
     ) : ConfigurationIdempotencyStore {
         private var findCalls = 0
 
-        override suspend fun find(
-            operatorPrincipalId: UUID,
-            idempotencyKey: String,
-        ): ConfigurationIdempotencyRecord? {
+        override suspend fun find(operatorPrincipalId: UUID, idempotencyKey: String): ConfigurationIdempotencyRecord? {
             if (operatorPrincipalId != operatorId || idempotencyKey != key) return null
             findCalls += 1
             if (findCalls == 1) return null

@@ -6,12 +6,12 @@ import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
 import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
+import com.profiletailors.smp.platformadmin.domain.InvalidRegistrationModeException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
-import com.profiletailors.smp.platformadmin.domain.InvalidRegistrationModeException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
