@@ -8,12 +8,12 @@
 
 ## Executive Summary
 
-Acceptance QA for the release-driven Cloudflare Pages deployment change is **NOT TESTED** due to the absence of an executable application under test and the explicit repository constraint that live deployment verification requires a merged release on `main`. This is a GitHub Actions workflow and deployment configuration change with no frontend application runtime in this repository.
+Acceptance QA for the release-driven Cloudflare Pages deployment change is **PARTIALLY TESTED**: AC1–AC10 remain **NOT TESTED** because live deployment verification requires a merged release on `main`, while AC11–AC12 pass static documentation checks against repository artifacts. This is a GitHub Actions workflow and deployment configuration change with no frontend application runtime in this repository.
 
-All 12 acceptance criteria from `state.yaml` map to workflow contract scenarios that can only be validated through live GitHub Actions execution after merge. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (7/7), but the workflow contract itself has no test harness.
+AC1–AC10 from `state.yaml` map to workflow contract scenarios that require live GitHub Actions execution after merge and remain **NOT TESTED**. AC11–AC12 pass static documentation checks against the runbook and ADR repository artifacts. Static code review was completed in the verify phase and confirmed structural correctness. The change includes a TDD helper script with passing unit tests (7/7), but the workflow contract itself has no test harness.
 
-**Verdict**: NOT TESTED  
-**Rationale**: Infrastructure change with no local test surface; first-merge verification explicitly deferred per repository policy.
+**Verdict**: PARTIALLY TESTED
+**Rationale**: AC1–AC10 require live GitHub Actions execution and remain deferred to first-merge verification; AC11–AC12 pass static documentation checks based on repository artifacts.
 
 ---
 
@@ -85,7 +85,7 @@ None of these steps can be performed in the QA phase pre-merge. The repository e
 
 ## Scenario Matrix
 
-All acceptance criteria from `state.yaml` map to workflow contract scenarios from the spec. None can be validated pre-merge.
+AC1–AC10 from `state.yaml` map to workflow contract scenarios from the spec and cannot be validated pre-merge. AC11–AC12 pass static documentation checks against repository artifacts.
 
 ### AC1: Merge to main does not deploy frontends
 
@@ -239,10 +239,10 @@ No findings. QA cannot produce findings without an executable test surface.
 
 ## Final Verdict
 
-**NOT TESTED**
+**PARTIALLY TESTED**
 
 **Rationale**:
-This change modifies GitHub Actions workflow configuration and deployment orchestration with no application runtime or test harness available in this repository. All acceptance criteria map to workflow contract scenarios that can only be validated through live GitHub Actions execution after the change is merged to `main` and a Release Please release is created.
+This change modifies GitHub Actions workflow configuration and deployment orchestration with no application runtime or test harness available in this repository. AC1–AC10 require live GitHub Actions execution after the change is merged to `main` and a Release Please release is created, so those criteria remain **NOT TESTED**.
 
 The verify phase confirmed:
 - Structural correctness of workflow YAML
@@ -251,7 +251,7 @@ The verify phase confirmed:
 - Documentation and ADR completeness
 - Static analysis passing
 
-QA adds no additional validation beyond what verify already completed. Two acceptance criteria related to documentation (AC11, AC12) pass based on artifact presence confirmed in verify.
+QA adds no additional validation beyond what verify already completed. AC11–AC12 pass static documentation checks based on the runbook and ADR repository artifacts; the **NOT TESTED** designation applies only to the unexecuted live checks for AC1–AC10.
 
 The repository explicitly accepts deferred deployment verification as documented in the verify report and change design. This is not a product acceptance gap—it is the expected behavior for infrastructure changes that cannot be validated until they are live.
 
