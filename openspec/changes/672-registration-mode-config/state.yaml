@@ -1,0 +1,78 @@
+change: 672-registration-mode-config
+current_phase: tasks
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+next: apply-pr1
+updated: "2026-09-19"
+github_issue: "#672"
+persistence_mode: openspec
+delivery:
+  strategy: feature-branch-chain
+  units:
+    - branch: issue-672-identity-gateway
+      base: main
+      position: 1
+    - branch: issue-672-admin-api
+      base: issue-672-identity-gateway
+      position: 2
+    - branch: issue-672-bdd-ui
+      base: issue-672-admin-api
+      position: 3
+bounded_contexts:
+  - identity
+  - platformadmin
+note: >-
+  Proposal locks in DB-persisted read-through registration mode (no cache, matching current
+  RegistrationPolicy.evaluate() zero-caching behavior) seeded/falling back to
+  RegistrationConfigurationProperties.mode, and OWNER-only WRITE gate via new
+  platform.configuration.manage permission (READ via platform.configuration.read, OWNER+OPERATOR).
+  New capability: platform-configuration. Modified: registration, admin-authorization,
+  platform-admin-audit. Flags RegistrationPolicy.evaluate() sync-to-suspend port change and
+  ADR-necessity decision as open items for sdd-design. Frontend: promote apps/web/admin
+  nav-registry.ts `configuration` entry planned->live, new ConfigurationView.vue. BDD required
+  (extend or add to server/smp/.../features/platform-admin.feature) per AGENTS.md.
+  Spec phase decision: platform.configuration.read is also granted to AUDITOR (mirrors its
+  existing platform.operators.read read-only governance grant); SUPPORT_AGENT gets neither key
+  (mirrors its lack of any platform.operators.* permission today). No design.md/tasks.md existed
+  at spec time (no concurrent design agent) — next phase is sdd-design.
+  Design phase decisions: concurrency mechanism is a single-statement `UPDATE ... FROM (subquery)
+  ... RETURNING` (not the Invitation/WaitlistEntry client-expected-version CAS — no client-supplied
+  expected mode exists in this flow); suspend migration only requires one real test-code fix
+  (LocalAuthHandlersTest.FakeRegistrationPolicy explicit override) — both production call sites
+  and both SAM-lambda test doubles need no change. PropertyBackedRegistrationPolicy.kt is deleted
+  (not modified in place) to avoid an ambiguous second @Service RegistrationPolicy bean; its
+  fallback behavior moves into the new R2dbcRegistrationModeGateway. New Liquibase migration
+  identity/010-create-registration-configuration.yaml seeds mode=CLOSED (matches both code and
+  actual production .env default). New dedicated ConfigurationIdempotency store (not reuse of
+  UserControlIdempotencyStore, which is shaped around targetPrincipalId). Redaction of
+  previousMode/newMode metadata keys verified safe by inspection against the redact() denylist.
+  ADR recommended (new pattern: DB-persisted, admin-mutable, read-through, no-cache operational
+  config) but NOT written in this phase — flagged as an open sdd-tasks item. Full detail in
+  design.md.
+  User decisions (2026-09-19): (1) write the ADR now, not deferred — ADR-0022 "Durable
+  Admin-Mutable Operational Configuration" written and accepted, README index updated; (2) table
+  extensible from the start, not a registration-mode-only singleton — replaced
+  `registration_configuration(id smallint, mode)` with shared `platform_operational_config(config_key
+  PK, config_value, version, updated_at)`, CHECK constraint scoped per-key
+  (`config_key <> 'registration.mode' OR config_value IN (...)`) so future keys add their own
+  guarded clause. Audit design refined: `CONFIGURATION_CHANGED` uses `targetType="CONFIGURATION"`/
+  `targetId="registration.mode"` (existing AdminAuditEvent fields) instead of a new metadata key,
+  because a literal `configKey` metadata key would trip the redaction denylist's `key` substring
+  match and hide the very value being audited. design.md fully updated to reflect both decisions;
+  no open questions remain for sdd-tasks.
+  Tasks phase (2026-09-19): tasks.md written at
+  openspec/changes/672-registration-mode-config/tasks.md, TDD-ordered across 5 phases (identity DB
+  gateway, platformadmin permissions/audit/handlers/idempotency/HTTP, BDD, admin frontend,
+  reconciliation/gates) directly from design.md's File Changes/Testing Strategy/BDD Scenarios
+  sections. Review Workload Forecast: High risk (~550-800 changed lines across ~15+ files),
+  Chained PRs recommended = Yes, Chain strategy = feature-branch-chain (confirmed by user
+  2026-09-19, 3 sequential PRs — PR1 issue-672-identity-gateway base main, PR2 issue-672-admin-api
+  base PR1 branch, PR3 issue-672-bdd-ui base PR2 branch, mirroring the 662 delivery pattern already
+  proven in this epic), Decision needed before apply = Resolved. Suggested 3-unit split: PR1 identity gateway
+  (self-contained, no external contract), PR2 platformadmin API/audit/idempotency (depends on PR1's
+  port), PR3 BDD + admin frontend (depends on PR2's endpoints). No production code was written in this
+  phase; design.md/specs/ were read-only. Next phase is sdd-apply PR1 (identity).

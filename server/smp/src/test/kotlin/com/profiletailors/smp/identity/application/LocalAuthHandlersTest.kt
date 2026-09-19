@@ -1406,6 +1406,6 @@ class LocalAuthHandlersTest {
 
     private class FakeRegistrationPolicy(private val mode: RegistrationMode = RegistrationMode.OPEN) :
         RegistrationPolicy {
-        override fun evaluate(hasInvitationToken: Boolean) = mode.evaluate(hasInvitationToken)
+        override suspend fun evaluate(hasInvitationToken: Boolean) = mode.evaluate(hasInvitationToken)
     }
 }
