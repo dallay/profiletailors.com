@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.14](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.13...landing@v0.2.14) (2026-09-19)
+
+
+### Features
+
+* **version-badge:** add version badge to app, admin, and marketing ([#1089](https://github.com/dallay/profiletailors.com/issues/1089)) ([94f4435](https://github.com/dallay/profiletailors.com/commit/94f443508f1f2ff469bd4ced602c476e2bbb3819))
+
 ## [0.2.13](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.12...landing@v0.2.13) (2026-09-18)
 
 
