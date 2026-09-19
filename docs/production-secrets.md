@@ -1,6 +1,6 @@
 # Production Secrets Reference
 
-**Last Updated:** 2026-09-15
+**Last Updated:** 2026-09-19
 **Status:** Active
 
 ## Overview
@@ -256,6 +256,26 @@ container storage.
 - **Generation:** Obtained from Ahrefs dashboard.
 - **Rotation:** Regenerate in Ahrefs if key is abused or rate-limited.
 - **Access:** Frontend developers, deployment automation.
+
+### Cloudflare Pages deployment
+
+#### `CLOUDFLARE_API_TOKEN`
+
+- **Type:** API Token (String)
+- **Description:** API token used by GitHub Actions to deploy frontends to Cloudflare Pages.
+- **Risk:** HIGH (grants write and deployment access to target Pages projects)
+- **Generation:** Cloudflare Dashboard > My Profile > API Tokens > Create Custom Token with Account > Cloudflare Pages > Edit permissions.
+- **Rotation:** Every 12 months or immediately if compromised.
+- **Access:** Infrastructure administrators, GitHub Actions secrets.
+
+#### `CLOUDFLARE_ACCOUNT_ID`
+
+- **Type:** Identifier (String)
+- **Description:** Cloudflare Account identifier owning the target Pages projects.
+- **Risk:** LOW (public account identifier used for routing API calls)
+- **Generation:** Cloudflare Dashboard > Workers & Pages > Account ID.
+- **Rotation:** Static; only changes if migrating to a different Cloudflare account.
+- **Access:** Infrastructure administrators, GitHub Actions secrets/variables.
 
 ## Secret validation checklist
 
