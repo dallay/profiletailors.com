@@ -15,8 +15,16 @@ jobs:
       releases_created:         ${{ steps.release.outputs.releases_created }}
       landing--release_created: ${{ steps.release.outputs['apps/web/marketing--release_created'] }}
       landing--tag_name:        ${{ steps.release.outputs['apps/web/marketing--tag_name'] }}
+      landing--sha:             ${{ steps.release.outputs['apps/web/marketing--sha'] }}
+      app--release_created:     ${{ steps.release.outputs['apps/web/app--release_created'] }}
+      app--tag_name:            ${{ steps.release.outputs['apps/web/app--tag_name'] }}
+      app--sha:                 ${{ steps.release.outputs['apps/web/app--sha'] }}
+      admin--release_created:   ${{ steps.release.outputs['apps/web/admin--release_created'] }}
+      admin--tag_name:          ${{ steps.release.outputs['apps/web/admin--tag_name'] }}
+      admin--sha:               ${{ steps.release.outputs['apps/web/admin--sha'] }}
       smp--release_created:     ${{ steps.release.outputs['server/smp--release_created'] }}
       smp--tag_name:            ${{ steps.release.outputs['server/smp--tag_name'] }}
+      smp--sha:                 ${{ steps.release.outputs['server/smp--sha'] }}
     steps:
       - name: Generate GitHub App token
         id: app-token
@@ -32,16 +40,203 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # ── Post-release: app ──────────────────────────────────────────────────────
+  deploy-app:
+    name: Deploy App to Cloudflare Pages
+    needs: release-please
+    if: ${{ needs.release-please.outputs['app--release_created'] == 'true' }}
+    runs-on: ubuntu-latest
+    environment: PROD
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs['app--tag_name'] }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: resolve-meta
+        run: |
+          node scripts/extract-release-info.mjs \
+            --tag "${{ needs.release-please.outputs['app--tag_name'] }}" \
+            --scope "app" \
+            --provided "${{ needs.release-please.outputs['app--sha'] }}"
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Build app
+        env:
+          GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
+        run: pnpm --filter app build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=app-profile-tailors --branch=production --commit-dirty=true
+          workingDirectory: ./apps/web/app
+
+      - name: Verify production deployment
+        env:
+          TARGET_URL: ${{ vars.PT_PRODUCTION_APP_URL || 'https://app-profiletailors.pages.dev' }}
+          EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
+          EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
+          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
+          success=0
+          for attempt in $(seq 1 5); do
+            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
+            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
+              echo "Verification passed on attempt ${attempt}"
+              success=1
+              break
+            fi
+            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
+            sleep 15
+          done
+          if [ "${success}" -ne 1 ]; then
+            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
+            exit 1
+          fi
+
+  # ── Post-release: admin ────────────────────────────────────────────────────
+  deploy-admin:
+    name: Deploy Admin to Cloudflare Pages
+    needs: release-please
+    if: ${{ needs.release-please.outputs['admin--release_created'] == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs['admin--tag_name'] }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: resolve-meta
+        run: |
+          node scripts/extract-release-info.mjs \
+            --tag "${{ needs.release-please.outputs['admin--tag_name'] }}" \
+            --scope "admin" \
+            --provided "${{ needs.release-please.outputs['admin--sha'] }}"
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Build admin
+        env:
+          GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
+          VITE_API_BASE_URL: ${{ vars.PT_PRODUCTION_API_URL || 'https://api.profiletailors.com' }}
+        run: pnpm --filter @profiletailors/admin build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=profiletailors-admin --branch=production --commit-dirty=true
+          workingDirectory: ./apps/web/admin
+
+      - name: Verify production deployment
+        env:
+          TARGET_URL: ${{ vars.PT_PRODUCTION_ADMIN_URL || 'https://profiletailors-com-bx5.pages.dev' }}
+          EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
+          EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
+          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
+          success=0
+          for attempt in $(seq 1 5); do
+            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
+            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
+              echo "Verification passed on attempt ${attempt}"
+              success=1
+              break
+            fi
+            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
+            sleep 15
+          done
+          if [ "${success}" -ne 1 ]; then
+            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
+            exit 1
+          fi
+
   # ── Post-release: landing ──────────────────────────────────────────────────
-  # Extend this job later to deploy the static site to your CDN / Vercel.
-  notify-landing:
+  deploy-landing:
+    name: Deploy Landing to Cloudflare Pages
     needs: release-please
     if: ${{ needs.release-please.outputs['landing--release_created'] == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - name: Landing released
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs['landing--tag_name'] }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: resolve-meta
         run: |
-          echo "🚀 landing released: ${{ needs.release-please.outputs['landing--tag_name'] }}"
+          node scripts/extract-release-info.mjs \
+            --tag "${{ needs.release-please.outputs['landing--tag_name'] }}" \
+            --scope "landing" \
+            --provided "${{ needs.release-please.outputs['landing--sha'] }}"
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Build marketing
+        env:
+          GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
+        run: pnpm --filter marketing build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=profiletailors --branch=production --commit-dirty=true
+          workingDirectory: ./apps/web/marketing
+
+      - name: Verify production deployment
+        env:
+          TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors-com.pages.dev' }}
+          EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
+          EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
+          verify_url="${TARGET_URL}/legal/terms"
+          echo "Verifying ${verify_url} serves badge: ${expected}"
+          success=0
+          for attempt in $(seq 1 5); do
+            body=$(curl -fsSL --max-time 15 "${verify_url}" 2>/dev/null || true)
+            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
+              echo "Verification passed on attempt ${attempt}"
+              success=1
+              break
+            fi
+            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
+            sleep 15
+          done
+          if [ "${success}" -ne 1 ]; then
+            echo "::error::Production verification failed for ${verify_url} after 5 attempts. Expected badge: ${expected}"
+            exit 1
+          fi
 
   # ── Post-release: smp ──────────────────────────────────────────────────────
   build-and-push-smp:
