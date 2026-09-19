@@ -116,7 +116,7 @@ Confirm the change was saved in Cloudflare Pages dashboard. The setting lives un
 
 ## References
 
-- [.github/workflows/release-please.yml](../../.github/workflows/release-please.yml)
-- [scripts/extract-release-info.mjs](../../scripts/extract-release-info.mjs)
-- [docs/production-secrets.md](../production-secrets.md)
-- [docs/architecture/adr/0022-release-driven-frontend-deployment.md](../architecture/adr/0022-release-driven-frontend-deployment.md)
+- `.github/workflows/release-please.yml`
+- `scripts/extract-release-info.mjs`
+- `docs/production-secrets.md`
+- `docs/architecture/adr/0022-release-driven-frontend-deployment.md`
