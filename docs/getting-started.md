@@ -82,17 +82,19 @@ cd profiletailors.com
 just setup
 ```
 
-`just setup` performs five steps automatically:
+`just setup` performs six steps automatically:
 
 1. **`.env` bootstrap** — copies `.env.example` to `.env` (skipped if `.env` already exists).
 2. **Dependency installation** — runs `pnpm install --frozen-lockfile` to install all workspace
-   dependencies (frontend + backend).
-3. **Git hooks** — runs `just hooks-install` to install Lefthook (skipped if Git hooks are globally
-   disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
-4. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations
-   and instructions.
-5. **Optional local tooling** — runs `node scripts/setup-optional-tools.mjs` to bootstrap optional
-   local tools.
+    dependencies (frontend + backend).
+3. **Playwright browsers** — runs `just playwright-install` to install Chromium, Firefox, and WebKit
+    for marketing E2E, plus Chromium for dashboard and admin E2E.
+4. **Git hooks** — runs `just hooks-install` to install Lefthook (skipped if Git hooks are globally
+    disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
+5. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations
+    and instructions.
+6. **Optional local tooling** — runs `node scripts/setup-optional-tools.mjs` to bootstrap optional
+         local tools.
 
 If hooks are not installed, CI will catch any issues — so there is no risk in skipping them locally.
 
@@ -166,6 +168,7 @@ Key recipes:
 | `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
 | `just dev-frontend`      | Start both Astro and Vue dev servers            |
 | `just frontend-test`     | Run Vitest unit tests                           |
+| `just playwright-install` | Install Playwright browser binaries             |
 | `just frontend-test-e2e` | Run Playwright E2E tests                        |
 | `just backend-run`       | Start Spring Boot (dev profile)                 |
 | `just backend-test-fast` | Fast unit tests (no Postgres)                   |

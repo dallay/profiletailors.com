@@ -256,8 +256,9 @@ not exist, use the exact workspace command already used by CI and say so in the 
 
 | Command              | Action                                                                                                         |
 | -------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `just setup`         | Create local env if needed, install dependencies, install hooks, sync agent targets, and set up optional tools |
+| `just setup`         | Create local env if needed, install dependencies and Playwright browsers, install hooks, sync agent targets, and set up optional tools |
 | `just install`       | Install all pnpm workspace dependencies from the frozen lockfile                                               |
+| `just playwright-install` | Install Playwright browser binaries for all E2E workspaces                                                |
 | `just hooks-install` | Install Lefthook hooks unless globally disabled                                                                |
 | `just -l`            | List the current command hub; treat this output as authoritative over this table                               |
 
@@ -274,7 +275,7 @@ not exist, use the exact workspace command already used by CI and say so in the 
 | `just frontend-check`                                             | Astro type/content check for marketing                             |
 | `just frontend-test`                                              | Marketing Vitest suite                                             |
 | `just admin-check` / `just admin-test`                            | Admin type-check / Vitest suite                                    |
-| `just frontend-test-e2e`                                          | Marketing E2E plus the configured mocked app media lane            |
+| `just frontend-test-e2e`                                          | Install Playwright browsers, then run marketing E2E plus the configured mocked app media lane |
 | `just app-test-e2e-media-mocked` / `just app-test-e2e-media-real` | App Media Library E2E lanes                                        |
 
 For dashboard checks without a dedicated recipe, use the package scripts used by CI, for example

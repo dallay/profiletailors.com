@@ -283,6 +283,7 @@ jobs:
       - uses: ./.github/actions/setup-frontend
         with:
           install-playwright: 'true'
+          playwright-package: 'marketing'
           playwright-browsers: 'chromium firefox webkit'
 
       - name: Run Marketing E2E
