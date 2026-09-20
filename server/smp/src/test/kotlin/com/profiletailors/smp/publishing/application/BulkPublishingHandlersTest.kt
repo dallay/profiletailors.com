@@ -90,14 +90,15 @@ class BulkPublishingHandlersTest {
             status = SocialConnectionStatus.ACTIVE,
         )
         coEvery {
-            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+            publicationCreationService.create(any(), any(), any(), any())
         } answers
             {
+                val scheduling = it.invocation.args[3] as com.profiletailors.smp.publishing.application.PublicationCreationService.PublicationSchedulingConfig
                 com.profiletailors.smp.publishing.domain.PublicationDraft(
                     id = "pub-${java.util.UUID.randomUUID()}", workspaceId = workspaceId, authorPrincipalId = principalId,
                     provider = com.profiletailors.smp.publishing.domain.SocialProvider.LINKEDIN, socialAccountId = "acc-1",
                     status = com.profiletailors.smp.publishing.domain.PublicationStatus.DRAFT, scheduleMode = com.profiletailors.smp.publishing.domain.ScheduleMode.SCHEDULED_AT,
-                    priority = false, bodyText = it.invocation.args[3] as String?, scheduledFor = it.invocation.args[5] as Instant?,
+                    priority = false, bodyText = it.invocation.args[2] as String?, scheduledFor = scheduling.scheduledFor,
                 )
             }
         val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nValid row,2026-02-01T12:00:00Z,UTC,,\n,not-a-date,UTC,,"
@@ -143,14 +144,15 @@ class BulkPublishingHandlersTest {
             status = SocialConnectionStatus.ACTIVE,
         )
         coEvery {
-            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+            publicationCreationService.create(any(), any(), any(), any())
         } answers
             {
+                val scheduling = it.invocation.args[3] as com.profiletailors.smp.publishing.application.PublicationCreationService.PublicationSchedulingConfig
                 com.profiletailors.smp.publishing.domain.PublicationDraft(
                     id = "pub-${java.util.UUID.randomUUID()}", workspaceId = workspaceId, authorPrincipalId = principalId,
                     provider = com.profiletailors.smp.publishing.domain.SocialProvider.LINKEDIN, socialAccountId = "acc-1",
                     status = com.profiletailors.smp.publishing.domain.PublicationStatus.DRAFT, scheduleMode = com.profiletailors.smp.publishing.domain.ScheduleMode.SCHEDULED_AT,
-                    priority = false, bodyText = it.invocation.args[3] as String?, scheduledFor = it.invocation.args[5] as Instant?,
+                    priority = false, bodyText = it.invocation.args[2] as String?, scheduledFor = scheduling.scheduledFor,
                 )
             }
         val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nPost A,2026-02-01T10:00:00Z,UTC,,\nPost B,2026-02-01T10:10:00Z,UTC,,"
@@ -296,7 +298,7 @@ class BulkPublishingHandlersTest {
             status = SocialConnectionStatus.ACTIVE,
         )
         coEvery {
-            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+            publicationCreationService.create(any(), any(), any(), any())
         } throws MediaServiceUnavailableException("Media service down")
 
         val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nValid row,2026-02-01T12:00:00Z,UTC,,"
@@ -326,7 +328,7 @@ class BulkPublishingHandlersTest {
             status = SocialConnectionStatus.ACTIVE,
         )
         coEvery {
-            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+            publicationCreationService.create(any(), any(), any(), any())
         } throws RuntimeException("Unexpected error during creation")
 
         val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nValid row,2026-02-01T12:00:00Z,UTC,,"
