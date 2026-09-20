@@ -371,6 +371,125 @@ Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT def
 
 The system MUST record per-entry counters plus one bulk counter with batch size and per-outcome counts, all low-cardinality.
 
+### Requirement: Validate invitation before mutation
+
+Registration MUST validate token, lifecycle, expiry, and normalized target email before mutation. It
+MUST return Problem Details: invalid `400 INVITATION_INVALID`; expired `410
+INVITATION_EXPIRED`; revoked `410 INVITATION_REVOKED`; consumed or replayed `409
+INVITATION_ALREADY_CONSUMED` or `INVITATION_REPLAYED`; mismatch `403 INVITATION_EMAIL_MISMATCH`;
+and client workspace override `400 INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED`. Details MUST omit
+tokens, full emails, and workspace values.
+
+#### Scenario: Expired invite
+
+- GIVEN an invitation at or beyond its exclusive `expiresAt` boundary
+- WHEN its matching token is submitted
+- THEN HTTP `410 INVITATION_EXPIRED` is returned and no mutation remains
+
+#### Scenario: Revoked invite
+
+- GIVEN an invitation whose lifecycle is `REVOKED`
+- WHEN its matching token is submitted
+- THEN HTTP `410 INVITATION_REVOKED` is returned and no mutation remains
+
+#### Scenario: Email mismatch
+
+- GIVEN an active invitation targeted to normalized email A
+- WHEN its token is submitted with normalized email B
+- THEN HTTP `403 INVITATION_EMAIL_MISMATCH` is returned without mutation or sensitive details
+
+### Requirement: Invitation target determines workspace
+
+`EXISTING_WORKSPACE` MUST use its stored workspace. `NEW_WORKSPACE` MUST provision exactly one
+workspace for the principal. Client workspace, invitation ID, or fallback identity
+MUST NOT determine authorization or tenancy.
+
+#### Scenario: Existing or new target
+
+- GIVEN a valid invitation targeting existing workspace W or a new workspace
+- WHEN a new identity accepts
+- THEN membership uses W, or exactly one workspace is provisioned and linked
+
+#### Scenario: Workspace override
+
+- GIVEN a valid invitation and a client workspace ID
+- WHEN registration is processed
+- THEN `400 INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED` is returned before acceptance dispatch
+
+### Requirement: Existing identity is authenticated and non-duplicating
+
+An identity that already has an accepted invitation to the same workspace MUST NOT accept another
+invitation to that workspace. The handler MUST return `409 INVITATION_ALREADY_ACCEPTED` with
+code `INVITATION_ALREADY_ACCEPTED`.
+
+#### Scenario: Duplicate acceptance returns 409
+
+- GIVEN a principal who has already accepted an invitation to workspace W
+- WHEN the same principal submits a new invitation to workspace W
+- THEN HTTP `409 INVITATION_ALREADY_ACCEPTED` is returned
+
+### Requirement: Acceptance mutations are atomic
+
+All write operations (invitation acceptance, workspace provisioning, membership creation, audit, and
+event emission) MUST be atomic. Failure at any step MUST rollback all changes and return an error
+without partial state.
+
+#### Scenario: Atomic acceptance commits all or nothing
+
+- GIVEN an active, unexpired invitation
+- WHEN acceptance is processed
+- THEN either all operations succeed or all are rolled back
+
+### Requirement: Verification follows existing policy
+
+Email verification MUST follow the existing registration verification policy with no deviation.
+
+#### Scenario: Verification is unchanged
+
+- GIVEN a successful invitation acceptance
+- WHEN the registration completes
+- THEN email verification follows the existing verification flow
+
+### Requirement: Evidence is redacted and aggregate
+
+HTTP responses, logs, metrics, and audit records MUST NOT contain raw invitation tokens, full
+email addresses, or workspace identifiers beyond the minimum required for the use case.
+
+#### Scenario: Evidence contains no bearer
+
+- GIVEN a registration with invitation
+- WHEN the response is logged or recorded
+- THEN no raw token, full email, or workspace ID appears in evidence
+
+### Requirement: One-time concurrent acceptance
+
+At most one `ACTIVE`→`ACCEPTED` transition MAY succeed per invitation. Concurrent attempts MUST
+result in exactly one success and `409 INVITATION_ALREADY_CONSUMED` for the remainder.
+
+#### Scenario: Concurrent clients contend
+
+- GIVEN two concurrent acceptance attempts for the same invitation
+- WHEN both are processed simultaneously
+- THEN exactly one succeeds with `200` and the other fails with `409`
+
+### Requirement: Token-presence authorization and split acceptance path
+
+Authorization MUST check for token presence and redirect unauthenticated requests to the
+registration flow. Authenticated requests MUST bypass invitation validation and proceed to
+dashboard.
+
+#### Scenario: Unauthenticated request routes to registration
+
+- GIVEN a request with no invitation token
+- WHEN the invitation check runs
+- THEN HTTP `302` redirects to `/register`
+
+#### Scenario: Authenticated request bypasses invitation
+
+- GIVEN a request with a valid session and an invitation token
+- WHEN the invitation check runs
+- THEN the token is ignored and the request proceeds to dashboard
+
 #### Scenario: Bulk counters recorded
 
 - GIVEN a batch of 5 yielding 3 invited, 1 skipped, 1 failed
