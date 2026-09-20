@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: api-contract-drift-auditor
-lastExecution: "2026-03-31T00:00:00Z"
+lastExecution: "2026-09-18T18:52:28Z"
 outcome: NO_DRIFT_DETECTED
 findings: []
 checks:
@@ -11,7 +11,15 @@ checks:
   - name: frontend-unit-tests
     target: apps/web/app
     status: Passed
-    notes: 147 test files / 1730 tests passed in frontend app unit test suite.
+    notes: 149 test files / 1750 tests passed in frontend app unit test suite.
+  - name: frontend-admin-tests
+    target: apps/web/admin
+    status: Passed
+    notes: 9 test files / 87 tests passed in frontend admin unit test suite.
+  - name: frontend-marketing-tests
+    target: apps/web/marketing
+    status: Passed
+    notes: 15 test files / 139 tests passed in marketing unit test suite.
   - name: frontend-lint-check
     target: apps/web/app
     status: Passed
