@@ -73,6 +73,12 @@ const router = createRouter({
           component: () => import('@/views/DirectInvitationsView.vue'),
           meta: { permission: 'platform.invitations.read' },
         },
+        {
+          path: 'configuration',
+          name: 'configuration',
+          component: () => import('@/views/ConfigurationView.vue'),
+          meta: { permission: 'platform.configuration.read' },
+        },
         ...plannedNavEntries().map((entry) => ({
           path: entry.path,
           name: entry.routeName,

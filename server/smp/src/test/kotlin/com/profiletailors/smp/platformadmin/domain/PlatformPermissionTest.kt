@@ -87,4 +87,30 @@ class PlatformPermissionTest {
             assertTrue(perm.key.split(".").size >= 3, "Expected at least 3 segments in ${perm.key}")
         }
     }
+
+    @Test
+    fun `configuration read is granted to OWNER, OPERATOR, and AUDITOR only`() {
+        assertTrue(PlatformPermission.CONFIGURATION_READ in setOf(PlatformRole.PLATFORM_OWNER).effectivePermissions())
+        assertTrue(
+            PlatformPermission.CONFIGURATION_READ in setOf(PlatformRole.PLATFORM_OPERATOR).effectivePermissions(),
+        )
+        assertTrue(PlatformPermission.CONFIGURATION_READ in setOf(PlatformRole.AUDITOR).effectivePermissions())
+        assertFalse(
+            PlatformPermission.CONFIGURATION_READ in setOf(PlatformRole.SUPPORT_AGENT).effectivePermissions(),
+        )
+    }
+
+    @Test
+    fun `configuration manage is granted to OWNER only`() {
+        assertTrue(
+            PlatformPermission.CONFIGURATION_MANAGE in setOf(PlatformRole.PLATFORM_OWNER).effectivePermissions(),
+        )
+        assertFalse(
+            PlatformPermission.CONFIGURATION_MANAGE in setOf(PlatformRole.PLATFORM_OPERATOR).effectivePermissions(),
+        )
+        assertFalse(
+            PlatformPermission.CONFIGURATION_MANAGE in setOf(PlatformRole.SUPPORT_AGENT).effectivePermissions(),
+        )
+        assertFalse(PlatformPermission.CONFIGURATION_MANAGE in setOf(PlatformRole.AUDITOR).effectivePermissions())
+    }
 }

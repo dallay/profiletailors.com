@@ -123,6 +123,8 @@ databaseChangeLog:
       file: db/changelog/platform-admin/008-create-user-control-idempotency.yaml
   - include:
       file: db/changelog/platform-admin/009-fix-user-control-idempotency-scope.yaml
+  - include:
+      file: db/changelog/platform-admin/010-create-configuration-idempotency.yaml
 
 
   - include:

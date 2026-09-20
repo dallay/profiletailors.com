@@ -218,3 +218,66 @@ Feature: Platform administration access control and waitlist management
     When the platform operator requests the registered user workspaces
     Then the admin response status should be 403
     And the admin response code should be "PLATFORM_ACCESS_DENIED"
+
+  # ── Platform configuration: registration mode ──────────────────────────────
+
+  @platform-configuration
+  Scenario: Authorized read returns the current registration mode
+    Given the registration mode is currently "OPEN"
+    When the platform operator requests the current registration mode
+    Then the admin response status should be 200
+    And the registration mode response should be "OPEN"
+
+  @platform-configuration
+  Scenario: Unauthorized read of the registration mode is denied without disclosure
+    Given the authenticated principal has no active platform role
+    When the principal requests the current registration mode
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+    And the registration mode response should not disclose a mode value
+
+  @platform-configuration
+  Scenario: Owner changes the registration mode and the change is observable on the next read
+    Given the authenticated principal has the role "PLATFORM_OWNER"
+    And the registration mode is currently "OPEN"
+    When the owner changes the registration mode to "INVITE_ONLY"
+    Then the admin response status should be 200
+    And the registration mode response should be "INVITE_ONLY"
+    When the platform operator requests the current registration mode
+    Then the registration mode response should be "INVITE_ONLY"
+
+  @platform-configuration
+  Scenario: Non-owner write is denied and audited without changing the persisted mode
+    Given the registration mode is currently "OPEN"
+    When the platform operator attempts to change the registration mode to "CLOSED"
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+    And the persisted registration mode should be "OPEN"
+    And a "CONFIGURATION_CHANGED" "REJECTED" audit event should be recorded
+
+  @platform-configuration
+  Scenario: Invalid registration mode value from an owner is rejected without changing the persisted mode
+    Given the authenticated principal has the role "PLATFORM_OWNER"
+    And the registration mode is currently "OPEN"
+    When the owner attempts to change the registration mode to "BOGUS"
+    Then the admin response status should be 400
+    And the persisted registration mode should be "OPEN"
+    And a "CONFIGURATION_CHANGED" "FAILED" audit event should be recorded
+
+  @platform-configuration
+  Scenario: Concurrent writes never lose an update
+    Given the authenticated principal has the role "PLATFORM_OWNER"
+    And the registration mode is currently "OPEN"
+    When two owners concurrently change the registration mode to "INVITE_ONLY" and "CLOSED"
+    Then both concurrent registration mode changes should return 200
+    And the persisted registration mode should be "INVITE_ONLY" or "CLOSED"
+    And each concurrent write should be audited with a consistent previous and new mode
+
+  @platform-configuration
+  Scenario: Admin-set mode survives a restart-equivalent fresh request
+    Given the authenticated principal has the role "PLATFORM_OWNER"
+    And the registration mode is currently "OPEN"
+    When the owner changes the registration mode to "CLOSED"
+    Then the admin response status should be 200
+    When a new request reads the current registration mode
+    Then the registration mode response should be "CLOSED"
