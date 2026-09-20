@@ -165,7 +165,7 @@ Key recipes:
 
 | Command                  | Description                                     |
 | ------------------------ | ----------------------------------------------- |
-| `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
+| `just setup`             | Full bootstrap: .env + deps + Playwright browsers + hooks + agentsync + optional tools |
 | `just dev-frontend`      | Start both Astro and Vue dev servers            |
 | `just frontend-test`     | Run Vitest unit tests                           |
 | `just playwright-install` | Install Playwright browser binaries             |
