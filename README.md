@@ -102,6 +102,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 
 - copy `.env.example` to `.env` when needed,
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
+- install the Chromium, Firefox, and WebKit binaries required by marketing E2E plus Chromium for app and admin E2E,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
 - apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
 - run optional local tooling setup via `node scripts/setup-optional-tools.mjs`.
@@ -137,6 +138,7 @@ Docker commands separately. Run `just -l` to list everything.
 | `just frontend-check`     | Run Astro type/content checks           |
 | `just frontend-test`      | Run marketing unit tests (Vitest)       |
 | `just frontend-test-cov`  | Run marketing unit tests with coverage  |
+| `just playwright-install` | Install Playwright browser binaries     |
 | `just frontend-test-e2e`  | Run marketing E2E tests (Playwright)    |
 | `just app-test-e2e-media` | Run app Media Library E2E tests         |
 
@@ -172,7 +174,7 @@ Docker commands separately. Run `just -l` to list everything.
 | Command              | What it does                                            |
 |----------------------|---------------------------------------------------------|
 | `just install`       | Install all dependencies                                |
-| `just setup`         | Full initial setup (.env + install + hooks + agentsync) |
+| `just setup`         | Full initial setup (.env + install + Playwright browsers + hooks + agentsync) |
 | `just hooks-install` | Install Lefthook git hooks                              |
 | `just clean`         | Clean all build artifacts and caches                    |
 

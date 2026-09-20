@@ -92,7 +92,7 @@ hooks locally.
 ### Manual Smoke Prerequisites
 
 ```bash
-just setup          # Install deps, hooks, agentsync
+just setup          # Install deps, Playwright browsers, hooks, agentsync
 cp .env.example .env  # If not already done
 ```
 
@@ -120,7 +120,11 @@ just frontend-lint
 
 ### Step 3: E2E Tests
 
+`just setup` installs the required Playwright browsers. Existing checkouts can install them explicitly
+before running the E2E suites:
+
 ```bash
+just playwright-install
 just frontend-test-e2e
 ```
 
