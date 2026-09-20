@@ -3,6 +3,7 @@ package com.profiletailors.smp
 import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.smp.authorization.infrastructure.http.AuthorizationProblemDetailsHandler
 import com.profiletailors.smp.credentials.infrastructure.R2dbcApiKeyCredentialReplacementGateway
+import com.profiletailors.smp.identity.application.RegistrationPolicy
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.SocialContentBatchWriter
 import com.profiletailors.smp.publishing.infrastructure.credentials.R2dbcLinkedInCredentialGateway
@@ -99,6 +100,15 @@ class SmpApplicationTests {
         applicationContext.getBean(R2dbcLinkedInCredentialGateway::class.java)
 
         applicationContext.getBean(AuthorizationProblemDetailsHandler::class.java)
+    }
+
+    @Test
+    fun registrationPolicyIsRegisteredOnce() {
+        val policies = applicationContext.getBeansOfType(RegistrationPolicy::class.java)
+
+        check(policies.size == 1) {
+            "Expected exactly one RegistrationPolicy bean, found ${policies.keys}"
+        }
     }
 
     companion object {

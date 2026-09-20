@@ -78,6 +78,9 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         failWorkspaceProvisioning = false
         failConsentRecording = false
 
+        databaseClient.sql("DELETE FROM platform_operational_config WHERE config_key = 'registration.mode'")
+            .fetch().rowsUpdated().awaitSingle()
+
         // Seed the WORKSPACE_OWNER role required by R2dbcWorkspaceProvisioningService
         databaseClient.sql(
             "INSERT INTO roles (id, role_key, category) VALUES ('role-owner', 'owner', 'WORKSPACE')",
