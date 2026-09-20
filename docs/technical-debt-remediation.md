@@ -1,6 +1,6 @@
 # Technical Debt Remediation and Java 25
 
-**Last Updated:** 2026-09-15
+**Last Updated:** 2026-09-20
 **Status:** In progress; not a completion report
 
 ## Overview

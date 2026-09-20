@@ -25,6 +25,9 @@ exclude = [
     # Colombian SIC portal: times out for automated checks as of 2026-09-05.
     # Kept as a legal citation.
     "sic.gov.co/tema/proteccion-de-datos-personales",
+    # Canadian OPC portal: times out for automated checks as of 2026-09-19.
+    # Kept as a legal citation.
+    "priv.gc.ca",
     # Korean PIPC notice portal: responds too slowly for automated checks
     # (timeouts from CI runners) as of 2026-09-16; verified live that the
     # cited notice exists. Kept as a legal citation.
