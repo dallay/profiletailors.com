@@ -1,6 +1,7 @@
 package com.profiletailors.smp.media.domain
 
 import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.DomainEntity
 import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.util.UUID
@@ -161,6 +162,7 @@ enum class BlobStatus {
  * @property createdAt When the asset record was created.
  * @property updatedAt When the asset record was last modified.
  */
+@AggregateRoot
 data class MediaAsset(
     val assetId: String,
     val workspaceId: String,
@@ -357,7 +359,7 @@ internal val SHA256_HASH_REGEX = Regex("^[a-f0-9]{64}$")
  * @property createdAt When the blob record was created.
  * @property updatedAt When the blob record was last modified.
  */
-@AggregateRoot
+@DomainEntity
 data class WorkspaceFileBlob(
     val workspaceId: String,
     val fileHash: String,
