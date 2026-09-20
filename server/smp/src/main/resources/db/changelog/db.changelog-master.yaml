@@ -18,6 +18,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/009-add-account-state.yaml
   - include:
+      file: db/changelog/identity/010-create-platform-operational-config.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml
