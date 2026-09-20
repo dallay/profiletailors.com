@@ -4,9 +4,11 @@
 
 ### Requirement: Invitation Lifecycle States
 
-The WaitlistInvitation aggregate MUST maintain independent lifecycle states that are NOT coupled to notification delivery state.
+The WaitlistInvitation aggregate MUST maintain independent lifecycle states that are NOT coupled to
+notification delivery state.
 
 The invitation lifecycle consists of the following states:
+
 - ACTIVE: Invitation has been issued and is awaiting acceptance
 - ACCEPTED: Invitation has been used to complete registration
 - EXPIRED: Invitation has passed its expiration timestamp
@@ -44,9 +46,11 @@ The invitation lifecycle consists of the following states:
 
 ### Requirement: InvitationIssued Domain Event
 
-The system MUST publish an InvitationIssued domain event after successful invitation persistence without exposing the raw bearer token.
+The system MUST publish an InvitationIssued domain event after successful invitation persistence
+without exposing the raw bearer token.
 
 The InvitationIssued event payload MUST contain:
+
 - invitationId: unique identifier for the invitation
 - waitlistEntryId: reference to the waitlist entry
 - recipientEmail: email address of the invitee
@@ -56,6 +60,7 @@ The InvitationIssued event payload MUST contain:
 - expiresAt: timestamp when invitation expires
 
 The InvitationIssued event payload MUST NOT contain:
+
 - rawToken: the plaintext bearer token
 - tokenHash: the hashed bearer token
 - acceptUrl: constructed accept URL
@@ -79,12 +84,14 @@ The InvitationIssued event payload MUST NOT contain:
 - GIVEN an InvitationIssued event is received by a consumer
 - WHEN the consumer needs to construct the accept URL
 - THEN the consumer MUST use the invitationId from the event
-- AND the consumer MUST reconstruct the accept URL using the platform's known base URL and invitationId
+- AND the consumer MUST reconstruct the accept URL using the platform's known base URL and
+  invitationId
 - AND the consumer MUST NOT receive the constructed URL in the event payload
 
 ### Requirement: Idempotency for Initial Notification
 
-The system MUST ensure exactly one initial notification is scheduled per invitation, preventing duplicate dispatches from repeated event consumption or replay.
+The system MUST ensure exactly one initial notification is scheduled per invitation, preventing
+duplicate dispatches from repeated event consumption or replay.
 
 The idempotency key for invitation initial notification MUST be: `invitation:{invitationId}:initial`
 
@@ -108,4 +115,6 @@ The idempotency key for invitation initial notification MUST be: `invitation:{in
 
 The WaitlistInvitation aggregate MUST NOT contain a deliveryStatus field.
 
-(Reason: Delivery state belongs exclusively to the Notification context. Cross-context coupling violates bounded context boundaries. The Invitation context does not observe notification delivery state.)
+(Reason: Delivery state belongs exclusively to the Notification context. Cross-context coupling
+violates bounded context boundaries. The Invitation context does not observe notification delivery
+state.)

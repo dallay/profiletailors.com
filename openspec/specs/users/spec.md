@@ -25,7 +25,8 @@ the list.
 
 - GIVEN an authenticated platform operator with `platform.users.read`
 - WHEN the operator opens the users list
-- THEN the system SHALL render a filter bar with status dropdown, date-range inputs, and email search
+- THEN the system SHALL render a filter bar with status dropdown, date-range inputs, and email
+  search
 - AND SHALL render rows with columns including email, account state, and workspace count
 
 #### Scenario: Operator searches users by email
@@ -61,7 +62,8 @@ platform roles, and workspace memberships.
 
 - GIVEN an authenticated operator with `platform.users.read`
 - WHEN the operator navigates to a user detail URL
-- THEN the system SHALL render sections for: profile fields, consent status, authentication methods list, platform roles, workspace memberships
+- THEN the system SHALL render sections for: profile fields, consent status, authentication methods
+  list, platform roles, workspace memberships
 - AND SHALL display `lastAuthenticatedAt` and `workspaceCount`
 
 #### Scenario: User not found returns 404

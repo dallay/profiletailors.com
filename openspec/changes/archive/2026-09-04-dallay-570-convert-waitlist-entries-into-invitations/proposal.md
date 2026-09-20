@@ -6,25 +6,30 @@
 ## Problem Statement
 
 `InviteWaitlistEntryHandler` creates `WaitlistInvitation` (stored in `waitlist_invitations` table).
-`AcceptInvitationHandler` (and the registration gateway `InvitationRegistrationGatewayAdapter`) look up
+`AcceptInvitationHandler` (and the registration gateway `InvitationRegistrationGatewayAdapter`) look
+up
 `Invitation` (stored in `invitations` table). These are two different tables, so acceptance always
 fails — the token is never found.
 
-Additionally, requiring `workspaceId` on every `Invitation` is architecturally wrong for the waitlist
-private-beta case: the user has no workspace at invite time. The workspace must be provisioned as part of
+Additionally, requiring `workspaceId` on every `Invitation` is architecturally wrong for the
+waitlist
+private-beta case: the user has no workspace at invite time. The workspace must be provisioned as
+part of
 acceptance.
 
 ## Root Cause
 
 Two aggregates (`Invitation`, `WaitlistInvitation`) for one semantic concept (an invitation to join
-Profile Tailors). The canonical acceptance path reads `Invitation`; the waitlist creation path writes
+Profile Tailors). The canonical acceptance path reads `Invitation`; the waitlist creation path
+writes
 `WaitlistInvitation`.
 
 ## Solution: InvitationTarget with Shared Orchestration
 
 ### 1. InvitationTarget — Two Onboarding Paths
 
-Replace the mandatory `workspaceId` field with an `InvitationTarget` enum and nullable `workspaceId`:
+Replace the mandatory `workspaceId` field with an `InvitationTarget` enum and nullable
+`workspaceId`:
 
 ```kotlin
 @ValueObject
@@ -86,6 +91,7 @@ fun accept(at: Instant, principalId: String, resolvedWorkspaceId: String? = null
 ```
 
 **Why this model:**
+
 - `source` = why/came from (WAITLIST vs DIRECT) — immutable
 - `target` = what happens on accept (join existing workspace vs provision new one)
 - Separation of concerns is good DDD
@@ -94,9 +100,9 @@ fun accept(at: Instant, principalId: String, resolvedWorkspaceId: String? = null
 
 Both acceptance entry points must use the same orchestration:
 
-| Entry point | Triggered by |
-|---|---|
-| `AcceptInvitationHandler` | Authenticated user clicks email link |
+| Entry point                            | Triggered by                         |
+|----------------------------------------|--------------------------------------|
+| `AcceptInvitationHandler`              | Authenticated user clicks email link |
 | `InvitationRegistrationGatewayAdapter` | New user completes registration form |
 
 Neither should contain branching logic for `EXISTING_WORKSPACE` vs `NEW_WORKSPACE` directly.
@@ -143,8 +149,8 @@ class InvitationActivationCoordinator(
 }
 ```
 
-**Transaction boundary**: The atomic transaction is managed by the caller
-(`AcceptInvitationHandler` or `InvitationRegistrationGatewayAdapter`). Both use
+**Transaction boundary**: The atomic transaction is managed by the caller (`AcceptInvitationHandler`
+or `InvitationRegistrationGatewayAdapter`). Both use
 `AtomicTransactionRunner` for registration.
 
 ### 3. Token/Notification Ownership (DALLAY-565/566)
@@ -173,6 +179,7 @@ a new delivery command/record. It does NOT create a replacement Invitation.
 
 Therefore DALLAY-570 does NOT model `SUPERSEDED` in the canonical `Invitation` aggregate.
 If an entry is already `INVITED` with an active `Invitation`:
+
 - **Option A**: Reject duplicate invite creation (current behavior in some paths)
 - **Option B**: Route through explicit resend via DALLAY-565 contract
 
@@ -185,6 +192,7 @@ DALLAY-570 does NOT create a new `Invitation` on re-invite. The existing active
 They MUST NOT be used for new waitlist invitation flows.
 
 New flows use:
+
 - `Invitation` with `source=WAITLIST`, `target=NEW_WORKSPACE` for invitation lifecycle
 - Notifications for delivery lifecycle
 - `WaitlistInvitation` only for historical records created before this migration
@@ -194,6 +202,7 @@ New code MUST NOT create or update `WaitlistInvitation` rows.
 ### 6. Database Migration
 
 Current `invitations` table:
+
 ```yaml
 workspace_id:
   type: varchar(64)
@@ -203,6 +212,7 @@ workspace_id:
 ```
 
 Required migration (additive, backwards-compatible):
+
 ```sql
 -- 1. Allow workspace_id to be nullable
 ALTER TABLE invitations
@@ -244,9 +254,9 @@ be revoked/deleted before restoring NOT NULL.
 
 ## Open Questions (Resolved)
 
-| Question | Resolution |
-|---|---|
-| Where does workspaceId come from for waitlist? | It doesn't exist yet. `NEW_WORKSPACE` provisions it on acceptance. |
-| Which handler handles private beta accept? | Both `AcceptInvitationHandler` (authenticated) and `InvitationRegistrationGatewayAdapter` (registration). Both delegate to `InvitationActivationCoordinator`. |
-| Does SUPERSEDED exist? | No. DALLAY-565 defines resend with same InvitationId. |
-| Raw token in events? | No. DALLAY-565/566 owns token handoff. |
+| Question                                       | Resolution                                                                                                                                                    |
+|------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Where does workspaceId come from for waitlist? | It doesn't exist yet. `NEW_WORKSPACE` provisions it on acceptance.                                                                                            |
+| Which handler handles private beta accept?     | Both `AcceptInvitationHandler` (authenticated) and `InvitationRegistrationGatewayAdapter` (registration). Both delegate to `InvitationActivationCoordinator`. |
+| Does SUPERSEDED exist?                         | No. DALLAY-565 defines resend with same InvitationId.                                                                                                         |
+| Raw token in events?                           | No. DALLAY-565/566 owns token handoff.                                                                                                                        |

@@ -2,13 +2,17 @@
 
 ## Purpose
 
-Admin waitlist back-office slice (`apps/web/admin`, route `/waitlist`): paged list with search/filters, entry detail with consent/metadata display, and lifecycle actions (invite/cancel/resend). Mirrors the invitations slice pattern with optimistic lock on mutations and status-count summary card.
+Admin waitlist back-office slice (`apps/web/admin`, route `/waitlist`): paged list with
+search/filters, entry detail with consent/metadata display, and lifecycle actions
+(invite/cancel/resend). Mirrors the invitations slice pattern with optimistic lock on mutations and
+status-count summary card.
 
 ## Requirements
 
 ### Requirement: Cancel Action Uses Optimistic Lock
 
-The cancel action MUST send `expectedVersion` with the request so the backend rejects concurrent last-write-wins with HTTP 409.
+The cancel action MUST send `expectedVersion` with the request so the backend rejects concurrent
+last-write-wins with HTTP 409.
 
 #### Scenario: Successful cancel with matching version
 
@@ -34,7 +38,8 @@ The cancel action MUST send `expectedVersion` with the request so the backend re
 
 ### Requirement: Resend Invitation Action
 
-The entry detail view MUST provide a resend action that re-triggers invitation email delivery without revoking the existing invitation.
+The entry detail view MUST provide a resend action that re-triggers invitation email delivery
+without revoking the existing invitation.
 
 #### Scenario: Resend succeeds
 
@@ -59,13 +64,15 @@ The entry detail view MUST provide a resend action that re-triggers invitation e
 
 ### Requirement: Consent Fields Displayed in Entry Detail
 
-The entry detail view MUST render `earlyAccessConsent`, `marketingConsent`, and `consentVersion` fields when present.
+The entry detail view MUST render `earlyAccessConsent`, `marketingConsent`, and `consentVersion`
+fields when present.
 
 #### Scenario: Consent fields render when present
 
 - GIVEN an operator viewing a waitlist entry
 - WHEN the entry has consent data
-- THEN `earlyAccessConsent`, `marketingConsent`, and `consentVersion` MUST render in a dedicated consent section
+- THEN `earlyAccessConsent`, `marketingConsent`, and `consentVersion` MUST render in a dedicated
+  consent section
 
 #### Scenario: Consent fields hidden when absent
 
@@ -75,7 +82,8 @@ The entry detail view MUST render `earlyAccessConsent`, `marketingConsent`, and 
 
 ### Requirement: Status Count Summary Card
 
-The list view MUST display a summary card showing entry counts grouped by status (`PENDING`, `INVITED`, `CONVERTED`, `CANCELLED`).
+The list view MUST display a summary card showing entry counts grouped by status (`PENDING`,
+`INVITED`, `CONVERTED`, `CANCELLED`).
 
 #### Scenario: Summary card shows accurate counts
 
@@ -92,7 +100,8 @@ The list view MUST display a summary card showing entry counts grouped by status
 
 ### Requirement: Date-Range Filters
 
-The list view MUST support `joinedFrom`, `joinedTo`, `invitedFrom`, and `invitedTo` query parameters.
+The list view MUST support `joinedFrom`, `joinedTo`, `invitedFrom`, and `invitedTo` query
+parameters.
 
 #### Scenario: Filter by join date range
 
@@ -114,7 +123,8 @@ The list view MUST support `joinedFrom`, `joinedTo`, `invitedFrom`, and `invited
 
 ### Requirement: WaitlistKey Filter
 
-The list view MUST support filtering by `waitlistKey` (or `waitlistId`) to narrow results by waitlist source.
+The list view MUST support filtering by `waitlistKey` (or `waitlistId`) to narrow results by
+waitlist source.
 
 #### Scenario: Filter by waitlistKey
 
@@ -179,7 +189,8 @@ The list view row click MUST navigate to the entry detail view with full entry d
 
 ### Requirement: Vitest Spec Coverage
 
-The `WaitlistView.vue` and `WaitlistEntryView.vue` components MUST have Vitest specs covering core user interactions.
+The `WaitlistView.vue` and `WaitlistEntryView.vue` components MUST have Vitest specs covering core
+user interactions.
 
 #### Scenario: WaitlistView renders correctly
 
@@ -219,13 +230,13 @@ The `WaitlistView.vue` and `WaitlistEntryView.vue` components MUST have Vitest s
 
 ## Acceptance Mapping
 
-| # | Criterion | Requirement | Scenario |
-|---|-----------|-------------|----------|
-| G1 | Cancel sends `expectedVersion` | Cancel Action Uses Optimistic Lock | Successful cancel, 409 on mismatch, reason required |
-| G2 | Resend action available | Resend Invitation Action | Success, unavailable for non-invited, error handling |
-| G3 | Consent fields in detail | Consent Fields Displayed in Entry Detail | Present, absent |
-| G4 | Summary card shows counts | Status Count Summary Card | Accurate counts, updates after actions |
-| G5 | Vitest specs exist | Vitest Spec Coverage | Render, loading/error, cancel flow, resend |
-| G6 | `waitlistKey` filter | WaitlistKey Filter | Text filter narrows results |
-| G7 | Date-range filters | Date-Range Filters | Join range, invite range, combined |
-| G8 | Metadata summary display | Metadata Summary Displayed in Entry Detail | Present, absent |
+| #  | Criterion                      | Requirement                                | Scenario                                             |
+|----|--------------------------------|--------------------------------------------|------------------------------------------------------|
+| G1 | Cancel sends `expectedVersion` | Cancel Action Uses Optimistic Lock         | Successful cancel, 409 on mismatch, reason required  |
+| G2 | Resend action available        | Resend Invitation Action                   | Success, unavailable for non-invited, error handling |
+| G3 | Consent fields in detail       | Consent Fields Displayed in Entry Detail   | Present, absent                                      |
+| G4 | Summary card shows counts      | Status Count Summary Card                  | Accurate counts, updates after actions               |
+| G5 | Vitest specs exist             | Vitest Spec Coverage                       | Render, loading/error, cancel flow, resend           |
+| G6 | `waitlistKey` filter           | WaitlistKey Filter                         | Text filter narrows results                          |
+| G7 | Date-range filters             | Date-Range Filters                         | Join range, invite range, combined                   |
+| G8 | Metadata summary display       | Metadata Summary Displayed in Entry Detail | Present, absent                                      |

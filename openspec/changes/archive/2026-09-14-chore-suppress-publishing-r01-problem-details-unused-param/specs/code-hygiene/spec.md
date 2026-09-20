@@ -4,13 +4,19 @@
 
 ### Requirement: Live Suppression Removal in PublishingProblemDetailsHandler
 
-The system MUST NOT contain the 3 `UNUSED_PARAMETER` suppressions in `PublishingProblemDetailsHandler.kt`: `:39` (`ProviderNotConfiguredException`), `:71` (`PublicationNotFoundException`), `:158` (`RecurringScheduleNotFoundException`). Each handler SHALL be renamed (`handleProviderNotConfigured`, `handlePublicationNotFound`, `handleRecurringScheduleMissing`) with the unread exception parameter dropped. Parameters that ARE read (`reason`/`denial`/`message`/`jobId`) MUST stay untouched.
+The system MUST NOT contain the 3 `UNUSED_PARAMETER` suppressions in
+`PublishingProblemDetailsHandler.kt`: `:39` (`ProviderNotConfiguredException`), `:71`
+(`PublicationNotFoundException`), `:158` (`RecurringScheduleNotFoundException`). Each handler SHALL
+be renamed (`handleProviderNotConfigured`, `handlePublicationNotFound`,
+`handleRecurringScheduleMissing`) with the unread exception parameter dropped. Parameters that ARE
+read (`reason`/`denial`/`message`/`jobId`) MUST stay untouched.
 
 #### Scenario: Three suppressions gone via rename-and-drop
 
 - GIVEN the change is applied
 - WHEN `PublishingProblemDetailsHandler.kt` is grepped for the 3 listed sites
-- THEN zero `@Suppress("UNUSED_PARAMETER")` remain at those sites and each renamed handler takes zero exception parameter
+- THEN zero `@Suppress("UNUSED_PARAMETER")` remain at those sites and each renamed handler takes
+  zero exception parameter
 
 #### Scenario: Lint-oracle pre-check cited
 
@@ -20,7 +26,10 @@ The system MUST NOT contain the 3 `UNUSED_PARAMETER` suppressions in `Publishing
 
 ### Requirement: Behavior-Preserving Handler Rename
 
-Each renamed handler MUST map the same exception to the same status/title `ProblemDetail` as before the rename. A new web-slice regression test SHALL assert one case per renamed handler (fails pre-rename, passes post-rename); existing `infrastructure/http` web tests and `publishing-publications.feature` MUST stay green.
+Each renamed handler MUST map the same exception to the same status/title `ProblemDetail` as before
+the rename. A new web-slice regression test SHALL assert one case per renamed handler (fails
+pre-rename, passes post-rename); existing `infrastructure/http` web tests and
+`publishing-publications.feature` MUST stay green.
 
 #### Scenario: Exception mapping unchanged
 
@@ -36,7 +45,8 @@ Each renamed handler MUST map the same exception to the same status/title `Probl
 
 ### Requirement: Static-Analysis Gates Stay Green (Publishing R01)
 
-`just backend-lint` MUST PASS with zero new Detekt findings, and zero new `@Suppress` annotations MUST be introduced anywhere in the change.
+`just backend-lint` MUST PASS with zero new Detekt findings, and zero new `@Suppress` annotations
+MUST be introduced anywhere in the change.
 
 #### Scenario: Backend lint passes
 
@@ -52,7 +62,9 @@ Each renamed handler MUST map the same exception to the same status/title `Probl
 
 ### Requirement: Architecture and Config Integrity (Publishing R01)
 
-`just backend-check` MUST PASS (`HexagonalArchTest`, `ComponentScanArchTest` green). `TooManyFunctions` (`:35`), the remaining 8 `UNUSED_PARAMETER` sites, signatures visible outside the class, `detekt-baseline.xml`, `detekt.yml`, and `shared/` MUST be untouched.
+`just backend-check` MUST PASS (`HexagonalArchTest`, `ComponentScanArchTest` green).
+`TooManyFunctions` (`:35`), the remaining 8 `UNUSED_PARAMETER` sites, signatures visible outside the
+class, `detekt-baseline.xml`, `detekt.yml`, and `shared/` MUST be untouched.
 
 #### Scenario: Backend check passes
 
@@ -64,4 +76,5 @@ Each renamed handler MUST map the same exception to the same status/title `Probl
 
 - GIVEN the change is applied
 - WHEN `git status --porcelain` and the handler diff are inspected
-- THEN only `PublishingProblemDetailsHandler.kt` + its web-slice test plus OpenSpec artifacts are modified, with `:35`, the 8 deferred sites, and config/baseline byte-identical
+- THEN only `PublishingProblemDetailsHandler.kt` + its web-slice test plus OpenSpec artifacts are
+  modified, with `:35`, the 8 deferred sites, and config/baseline byte-identical

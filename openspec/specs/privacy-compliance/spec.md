@@ -685,7 +685,7 @@ the non-modal prompt and stale-consent state, keeping `consent-banner` testid.
 
 - **Marketing category omitted**: Proposal included Marketing toggle, but user decision
   post-proposal removed it. No marketing scripts exist; showing "Marketing: OFF" would be misleading
-  consent (GDPR Article 4(11) requires informed consent about specific purposes).
+  consent (GDPR Article 4 (11) requires informed consent about specific purposes).
 - **Backend sync deferred**: Anonymous visitors stay localStorage-only. Authenticated app users sync
   to `/api/governance/consent` for audit trail.
 - **policyVersion format finalized**: User chose `YYYY-MM-DD` over semantic versioning for legal

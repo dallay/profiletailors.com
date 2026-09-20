@@ -4,8 +4,12 @@
 
 ### Requirement: Permission registry and role mapping
 
-The administrative permission registry MUST add `platform.users.manage` for disable, enable, and session-revocation commands. `PLATFORM_OWNER` and `PLATFORM_OPERATOR` MUST hold this permission. `SUPPORT_AGENT`, `AUDITOR`, and principals without an active platform role MUST NOT hold it. `platform.users.read` and `platform.users.workspaces.read` remain independent permissions.
-(Previously: the registry exposed user-read and workspace-read permissions only; no explicit permission governed user controls.)
+The administrative permission registry MUST add `platform.users.manage` for disable, enable, and
+session-revocation commands. `PLATFORM_OWNER` and `PLATFORM_OPERATOR` MUST hold this permission.
+`SUPPORT_AGENT`, `AUDITOR`, and principals without an active platform role MUST NOT hold it.
+`platform.users.read` and `platform.users.workspaces.read` remain independent permissions.
+(Previously: the registry exposed user-read and workspace-read permissions only; no explicit
+permission governed user controls.)
 
 #### Scenario: Control permission is granted narrowly
 
@@ -23,8 +27,11 @@ The administrative permission registry MUST add `platform.users.manage` for disa
 
 ### Requirement: Default-deny enforcement
 
-All user-administration query and control endpoints MUST enforce their explicit permission server-side. Missing authentication MUST return the established unauthorized response; an authenticated principal without the required permission MUST return forbidden. Frontend guards MUST NOT be treated as enforcement.
-(Previously: default deny covered existing administrative operations but did not define the new user-control permission.)
+All user-administration query and control endpoints MUST enforce their explicit permission
+server-side. Missing authentication MUST return the established unauthorized response; an
+authenticated principal without the required permission MUST return forbidden. Frontend guards MUST
+NOT be treated as enforcement. (Previously: default deny covered existing administrative operations
+but did not define the new user-control permission.)
 
 #### Scenario: Unassigned principal is denied
 

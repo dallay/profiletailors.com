@@ -4,14 +4,13 @@
 
 **Change**: `private-beta-launch-readiness`
 **Unit**: `apply-unit-2-publishing-controls` (DALLAY-555/557)
-**Mode**: OpenSpec
-**Verified at**: `2026-08-23T17:55:00Z`
+**Mode**: OpenSpec **Verified at**: `2026-08-23T17:55:00Z`
 **Branch / base HEAD**: `feature/dallay-555-557-publishing-controls` / `09cfc767`
 **Execution mode**: `fallback` — no `sdd-quality-runner` was available; direct commands below
-preserve command identity, CWD, exit status, parser result, and artifact references.
-**Strict TDD**: configured `true`; the runner and `strict-tdd-verify.md` module were unavailable, so
-strict-TDD enforcement is `UNAVAILABLE` and is not treated as a pass.
-**Re-run basis**: the prior `verify-report.md` was a pre-fix snapshot. This run inspected the
+preserve command identity, CWD, exit status, parser result, and artifact references. **Strict TDD**:
+configured `true`; the runner and `strict-tdd-verify.md` module were unavailable, so
+strict-TDD enforcement is `UNAVAILABLE` and is not treated as a pass. **Re-run basis**: the prior
+`verify-report.md` was a pre-fix snapshot. This run inspected the
 CURRENT worktree source directly and re-executed focused tests, the BDD fast lane, the architecture
 boundaries, formatting, and repository quality gates. The four former CRITICAL findings are now
 confirmed closed in code and runtime evidence; the verdict is `PASS WITH WARNINGS` (warnings are
@@ -73,16 +72,16 @@ acceptance QA.
     - `LinkedInPublishingAdaptersTest.kt:232` asserts `assertNull(result.providerMessage)` for a
       success-shaped `LinkedInHttpResponse(201, …, body=…)`.
     -
-    `PublishingWorkerTest.worker stores only the safe ProviderUploadException type when upload fails` (
-    lines 1195-1232) sets a diagnostic containing a JSON body with `access_token`, asserts
-    `providerMessage shouldBe "ProviderUploadException"` and
-    `providerErrorCode shouldBe "PUBLISHING_FAILED"`.
+  `PublishingWorkerTest.worker stores only the safe ProviderUploadException type when upload fails`
+  (lines 1195-1232) sets a diagnostic containing a JSON body with `access_token`, asserts
+  `providerMessage shouldBe "ProviderUploadException"` and
+  `providerErrorCode shouldBe "PUBLISHING_FAILED"`.
     -
-    `PublishingWorkerTest.worker redacts unsafe diagnostics from publication attempts and notifications` (
-    lines 1235-1295) passes a multi-line diagnostic with tokens, URLs, stack frames, workspace
-    UUIDs, and bucket paths and asserts `providerMessage shouldBe null`,
-    `failedReasonMessage shouldBe null`, notification message is just `PROVIDER_UNAVAILABLE`, and
-    none of the unsafe tokens appear in any persisted surface.
+  `PublishingWorkerTest.worker redacts unsafe diagnostics from publication attempts and notifications`
+  (lines 1235-1295) passes a multi-line diagnostic with tokens, URLs, stack frames, workspace
+  UUIDs, and bucket paths and asserts `providerMessage shouldBe null`,
+  `failedReasonMessage shouldBe null`, notification message is just `PROVIDER_UNAVAILABLE`, and
+  none of the unsafe tokens appear in any persisted surface.
 
 #### 2. Stable operation identity across stale reclaim — CLOSED
 
@@ -113,18 +112,20 @@ acceptance QA.
   `idx_publication_jobs_claimed_lease` index, and the `CREATE INDEX CONCURRENTLY IF NOT EXISTS`
   block — both tests passed this run.
 - Regression coverage:
+  -
+  `R2dbcPublishingRepositoriesUnitTest.reclaiming a stale job reuses the in-progress delivery attempt identity`
+  (
+  `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositoriesUnitTest.kt:1019-1058`)
+  inserts a stale `IN_PROGRESS` attempt, calls `releaseExpiredClaims` + `claimNextDue`, and
+  asserts `attemptNumber == 1` and `operationKey == "$jobId:1"`. Passed this run.
     -
-    `R2dbcPublishingRepositoriesUnitTest.reclaiming a stale job reuses the in-progress delivery attempt identity` (
-    `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositoriesUnitTest.kt:1019-1058`)
-    inserts a stale `IN_PROGRESS` attempt, calls `releaseExpiredClaims` + `claimNextDue`, and
-    asserts `attemptNumber == 1` and `operationKey == "$jobId:1"`. Passed this run.
-    -
-    `PublishingWorkerTransactionPostgresIntegrationTest.stale reclaim reconciles in-progress attempt without replaying provider create` (
-    `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/integration/PublishingWorkerTransactionPostgresIntegrationTest.kt:146-185`)
-    records an `IN_PROGRESS` attempt with the initial `operationKey`, releases the expired claim,
-    reclaims, and verifies `CountingPublisher.calls == 0`, the attempt is fenced to `AMBIGUOUS`, and
-    the job is `BLOCKED`. (Test source is present; the Postgres lane requires `just infra-up` and
-    could not run in this verification — see WARNING-2 below.)
+  `PublishingWorkerTransactionPostgresIntegrationTest.stale reclaim reconciles in-progress attempt without replaying provider create`
+  (
+  `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/integration/PublishingWorkerTransactionPostgresIntegrationTest.kt:146-185`)
+  records an `IN_PROGRESS` attempt with the initial `operationKey`, releases the expired claim,
+  reclaims, and verifies `CountingPublisher.calls == 0`, the attempt is fenced to `AMBIGUOUS`, and
+  the job is `BLOCKED`. (Test source is present; the Postgres lane requires `just infra-up` and
+  could not run in this verification — see WARNING-2 below.)
 
 #### 3. Unknown exception classification — CLOSED
 
@@ -143,12 +144,12 @@ acceptance QA.
   which routes it to `PublishingFailure.publishingFailed(...)` → canonical `PUBLISHING_FAILED`.
   There is no fallthrough that maps untyped exceptions to `AMBIGUOUS_OUTCOME`.
 - Regression coverage:
-    -
-    `PublishingWorkerTest.worker fails unknown provider outcomes without treating them as ambiguous` (
-    `PublishingWorkerTest.kt:891-925`) drives `RawFailingPublisher` and asserts
-    `providerErrorCode shouldBe "PUBLISHING_FAILED"`,
-    `outcome shouldBe DeliveryAttemptOutcome.FAILED`,
-    `failedReasonCode shouldBe "PUBLISHING_FAILED"`, and `failedJobId == "job-1"`. Passed this run.
+  -
+  `PublishingWorkerTest.worker fails unknown provider outcomes without treating them as ambiguous` (
+  `PublishingWorkerTest.kt:891-925`) drives `RawFailingPublisher` and asserts
+  `providerErrorCode shouldBe "PUBLISHING_FAILED"`,
+  `outcome shouldBe DeliveryAttemptOutcome.FAILED`,
+  `failedReasonCode shouldBe "PUBLISHING_FAILED"`, and `failedJobId == "job-1"`. Passed this run.
     - `PublishingWorkerTest.worker blocks typed transport uncertainty without retrying blindly` (
       `PublishingWorkerTest.kt:927-961`) drives `TransportUncertaintyPublisher` and asserts
       `providerErrorCode shouldBe "AMBIGUOUS_OUTCOME"`,
@@ -166,12 +167,12 @@ acceptance QA.
   require a coordinated JSON schema migration. **Recommendation: keep the field, always null, until
   a coordinated API-versioned deprecation removes it.** This is the safest minimal change.
 - Regression coverage:
-    -
-    `PublishingHandlersTest.list publications does not expose persisted technical error messages` (
-    `PublishingHandlersTest.kt:1815-1842`) seeds a `FAILED` publication with
-    `lastErrorMessage = "com.linkedin.Client token=secret https://api.linkedin.com/rest/posts bucket/key"`,
-    calls `ListPublicationsHandler`, and asserts `item.lastErrorMessage shouldBe null` AND that the
-    JSON serialization `shouldNotContain(unsafeMessage)`. Passed this run.
+  -
+  `PublishingHandlersTest.list publications does not expose persisted technical error messages` (
+  `PublishingHandlersTest.kt:1815-1842`) seeds a `FAILED` publication with
+  `lastErrorMessage = "com.linkedin.Client token=secret https://api.linkedin.com/rest/posts bucket/key"`,
+  calls `ListPublicationsHandler`, and asserts `item.lastErrorMessage shouldBe null` AND that the
+  JSON serialization `shouldNotContain(unsafeMessage)`. Passed this run.
 
 ## Usage
 
@@ -201,8 +202,8 @@ is unchanged from the prior report.
 
 ### Spec compliance matrix
 
-| Requirement / scenario                                                                                          | Runtime covering test and implementation evidence                                                                                                                                                                                                                                                                                                                                                                         | Result                                                                                                          |
-|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Requirement / scenario                                                                                          | Runtime covering test and implementation evidence                                                                                                                                                                                                                                                                                                                                                                         | Result                                                                                                           |
+|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | Failure is visible and safe (spec/publishing L13-18)                                                            | `PublishingWorkerTest.worker redacts unsafe diagnostics from publication attempts and notifications` (1235-1295), `worker stores only the safe ProviderUploadException type when upload fails` (1195-1232), `worker does not log reconnect diagnostic` (964-995); `sanitizeDiagnostic` allow-list (`PublishingWorker.kt:656-666`); `RealLinkedInPublisher.publish` SUCCESS branch (LinkedInPublishingAdapters.kt:263-267) | ✅ COMPLIANT                                                                                                     |
 | Stale work is actionable with publication, workspace, age, and next action (spec/publishing L20-25)             | `ListStaleJobsHandler` + `StaleJobItem`; controller test `success response exposes only the safe stale job contract`; BDD `Operator lists stale claims and sees publication, workspace, age and suggested action`                                                                                                                                                                                                         | ✅ COMPLIANT                                                                                                     |
 | Stale work is not silently published (spec/publishing L24-25)                                                   | BDD `Stale claims cannot be silently treated as published`; `PublishingWorkerTransactionPostgresIntegrationTest.stale reclaim reconciles in-progress attempt without replaying provider create` (147-185); worker release-before-claim tests                                                                                                                                                                              | ✅ COMPLIANT                                                                                                     |
@@ -222,8 +223,8 @@ is unchanged from the prior report.
 
 ### Correctness and design coherence
 
-| Finding                                                                                                 | Judge A                                                                                                                                                                                           | Judge B                                                                                                                                                                                                         | Severity          | Status                                                                                      |
-|---------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|---------------------------------------------------------------------------------------------|
+| Finding                                                                                                 | Judge A                                                                                                                                                                                            | Judge B                                                                                                                                                                                                          | Severity          | Status                                                                                      |
+|---------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|---------------------------------------------------------------------------------------------|
 | Stale visibility selects only sufficiently expired `CLAIMED` rows and returns a bounded safe projection | ✅ `R2dbcPublicationJobRepository.findStaleClaims` and `ListStaleJobsHandler` source                                                                                                               | ✅ Focused repository/handler tests plus BDD fast lane                                                                                                                                                           | REQUIRED          | Confirmed                                                                                   |
 | Stale recovery releases expired claims before `claimNextDue` and preserves retryability                 | ✅ `PublishingWorker.pollOnce` source (PublishingWorker.kt:825-836) and lease wiring                                                                                                               | ✅ Worker unit tests; Postgres integration tests in source (see WARNING-2)                                                                                                                                       | REQUIRED          | Confirmed locally; Postgres lane not executed                                               |
 | Safe-off defaults and managed Swarm override are documented and reversible                              | ✅ `application.yaml`, `PublishingWorkerProperties`, `stack.yaml`, and runbook                                                                                                                     | ✅ Scheduling/worker tests; Swarm render is the only unavailable check                                                                                                                                           | REQUIRED          | Confirmed locally; VPS render warning remains                                               |
@@ -323,8 +324,8 @@ Postgres lane not re-executed, no managed-VPS/provider/user acceptance evidence,
 drift) are not CRITICAL and do not block technical acceptance. Do not archive yet; `qa-report.md`
 remains `BLOCKED` until managed-VPS evidence is supplied.
 
-**Status**: success
-**Summary**: Re-verified `private-beta-launch-readiness` against the current worktree source. The
+**Status**: success **Summary**: Re-verified `private-beta-launch-readiness` against the current
+worktree source. The
 four prior CRITICAL findings are closed: provider payload redaction is enforced at the publisher
 success branch and via `sanitizeDiagnostic`'s allow/deny lists; stale-reclaim operation identity is
 preserved by `findRecoverableOperationKey` and `uq_delivery_attempts_operation_key`;
@@ -338,12 +339,12 @@ HexagonalArchTest, and the 8-scenario `publishing-stale-jobs.feature` BDD lane; 
 **Next**: Keep `qa-report.md` `BLOCKED`; do not archive. The orchestrator should rerun
 `just backend-bdd-postgres` after `just infra-up` to refresh Postgres evidence, then hand off to
 `sdd-qa` for managed-VPS acceptance. No deployment, restart, commit, or push is performed by this
-verification.
-**Risks**: Local Swarm render unavailable (missing `DASHBOARD_IMAGE`); Postgres BDD and
+verification. **Risks**: Local Swarm render unavailable (missing `DASHBOARD_IMAGE`); Postgres BDD
+and
 `postgresIntegrationTest` not re-executed this run (relying on prior `UP-TO-DATE` results);
 managed-VPS/provider/user acceptance evidence absent (deferred to `sdd-qa`); runbook line-number
-drift (cosmetic); change-wide Phases 3–5 still pending; strict-TDD runner unavailable.
-**Skill Resolution**: `paths-injected` — repository standards and SDD verification protocol supplied
+drift (cosmetic); change-wide Phases 3–5 still pending; strict-TDD runner unavailable. **Skill
+Resolution**: `paths-injected` — repository standards and SDD verification protocol supplied
 by the orchestrator; quality-runner fallback used.
 
 ## References
@@ -356,14 +357,17 @@ by the orchestrator; quality-runner fallback used.
 - `openspec/changes/private-beta-launch-readiness/qa-report.md`
 - `docs/infrastructure/private-beta-launch-readiness-runbook.md`
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInPublishingAdapters.kt`
 -
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInAssetUploaderAdapters.kt`
 -
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/scheduling/PublishingWorker.kt`
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublishingMappers.kt`
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublishingApi.kt`
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt`
 -
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/PublishingStaleJobsController.kt`

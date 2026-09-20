@@ -1,7 +1,9 @@
 # Apply Progress: DALLAY-579 — consent non-modal banner remediation
 
-Change: `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior`
-Date: 2026-09-09 | Mode: openspec | Delivery: single PR, `size:exception` (user-approved, per tasks.md forecast)
+Change:
+`consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior`
+Date: 2026-09-09 | Mode: openspec | Delivery: single PR, `size:exception` (user-approved, per
+tasks.md forecast)
 
 ## Goal of this pass
 
@@ -30,26 +32,26 @@ browser matrix) plus Phase 4–5 housekeeping, without archiving, syncing specs,
 
 ## RED → GREEN → REFACTOR evidence (TASK-029)
 
-| Step | Action | Result |
-|------|--------|--------|
-| RED | Signal line temporarily disabled, `--grep TASK-029`, chromium | FAIL as expected at `expect(receipt.dnt).toBe(true)` (line 223) — proves DNT-sensitivity, test not vacuous |
-| GREEN | Signal restored, same invocation | PASS (2.5s) |
-| REGRESSION | Full `consent.spec.ts`, all 3 projects (chromium/firefox/Mobile Chrome) | 12/12 PASS |
-| REFACTOR | n/a — test-only change, follows TASK-026/027 locator patterns; no prod code touched | — |
+| Step       | Action                                                                              | Result                                                                                                     |
+|------------|-------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| RED        | Signal line temporarily disabled, `--grep TASK-029`, chromium                       | FAIL as expected at `expect(receipt.dnt).toBe(true)` (line 223) — proves DNT-sensitivity, test not vacuous |
+| GREEN      | Signal restored, same invocation                                                    | PASS (2.5s)                                                                                                |
+| REGRESSION | Full `consent.spec.ts`, all 3 projects (chromium/firefox/Mobile Chrome)             | 12/12 PASS                                                                                                 |
+| REFACTOR   | n/a — test-only change, follows TASK-026/027 locator patterns; no prod code touched | —                                                                                                          |
 
 ## Commands run (exit codes)
 
-| Command | Result |
-|---------|--------|
-| `pnpm --filter app exec vitest run src/components/consent src/modules/settings/infrastructure/consent.store.test.ts src/layouts/AppShell.test.ts` | PASS (5 files, 51 tests) |
-| `pnpm --filter app test:run` (full unit, unfiltered) | PASS (146 files, 1711 tests) |
-| `pnpm --filter app type-check` | PASS |
-| `just frontend-lint` | PASS (67 files) |
-| `playwright test -c e2e/playwright.config.ts e2e/specs/consent.spec.ts --project=chromium --grep TASK-029` (signal disabled) | FAIL at dnt assertion (RED proof) |
-| same, signal enabled | PASS |
-| `playwright test -c e2e/playwright.config.ts e2e/specs/consent.spec.ts` (all projects) | 12/12 PASS |
-| `playwright test -c e2e/playwright.config.ts --project=chromium` (full suite) | 174 passed / 29 failed / 6 skipped |
-| `pnpm --filter app test:e2e:scheduler -- --grep @consent` | 42/42 PASS, exit 0 (one earlier transient non-zero exit with zero test failures; re-runs green) |
+| Command                                                                                                                                           | Result                                                                                          |
+|---------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `pnpm --filter app exec vitest run src/components/consent src/modules/settings/infrastructure/consent.store.test.ts src/layouts/AppShell.test.ts` | PASS (5 files, 51 tests)                                                                        |
+| `pnpm --filter app test:run` (full unit, unfiltered)                                                                                              | PASS (146 files, 1711 tests)                                                                    |
+| `pnpm --filter app type-check`                                                                                                                    | PASS                                                                                            |
+| `just frontend-lint`                                                                                                                              | PASS (67 files)                                                                                 |
+| `playwright test -c e2e/playwright.config.ts e2e/specs/consent.spec.ts --project=chromium --grep TASK-029` (signal disabled)                      | FAIL at dnt assertion (RED proof)                                                               |
+| same, signal enabled                                                                                                                              | PASS                                                                                            |
+| `playwright test -c e2e/playwright.config.ts e2e/specs/consent.spec.ts` (all projects)                                                            | 12/12 PASS                                                                                      |
+| `playwright test -c e2e/playwright.config.ts --project=chromium` (full suite)                                                                     | 174 passed / 29 failed / 6 skipped                                                              |
+| `pnpm --filter app test:e2e:scheduler -- --grep @consent`                                                                                         | 42/42 PASS, exit 0 (one earlier transient non-zero exit with zero test failures; re-runs green) |
 
 ## Still open / BLOCKED (not fabricated)
 
@@ -85,12 +87,12 @@ browser matrix) plus Phase 4–5 housekeeping, without archiving, syncing specs,
 
 ## Files changed (uncommitted, for orchestrator review)
 
-| File | Action |
-|------|--------|
-| `apps/web/app/e2e/specs/consent.spec.ts` | Modified: +TASK-029 DNT scenario, `mockPrivacySignals` import, header task list |
-| `openspec/changes/.../specs/privacy-compliance/spec.md` | Created: byte-identical copy of change-root `spec.md` (original kept) |
-| `openspec/changes/.../tasks.md` | Modified: Phase 4–5 boxes checked with dated evidence; 4.5/4.6 marked BLOCKED; 5.1 left OPEN |
-| `openspec/changes/.../apply-progress.md` | Created (this file) |
+| File                                                    | Action                                                                                       |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| `apps/web/app/e2e/specs/consent.spec.ts`                | Modified: +TASK-029 DNT scenario, `mockPrivacySignals` import, header task list              |
+| `openspec/changes/.../specs/privacy-compliance/spec.md` | Created: byte-identical copy of change-root `spec.md` (original kept)                        |
+| `openspec/changes/.../tasks.md`                         | Modified: Phase 4–5 boxes checked with dated evidence; 4.5/4.6 marked BLOCKED; 5.1 left OPEN |
+| `openspec/changes/.../apply-progress.md`                | Created (this file)                                                                          |
 
 No commits made. No prod code modified. Zero comments/suppressions added; no static-analysis
 configuration touched.

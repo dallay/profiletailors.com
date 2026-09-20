@@ -6,7 +6,7 @@
 > The term `PROCESSING` is the authoritative lifecycle state name.
 
 > **Wire format note (R2-C1):** The `mediaType` field is serialized as a MIME string (e.g.,
-`image/jpeg`) in all API request and response bodies.
+> `image/jpeg`) in all API request and response bodies.
 
 ## ADDED Requirements
 
@@ -183,8 +183,8 @@ Upload retry is allowed only if the asset status is `PROCESSING` or `FAILED`.
 
 #### Scenario: Concurrent upload attempt against the same active or ready asset is rejected
 
-- GIVEN a workspace media asset already has status `PROCESSING` with an active upload in progress (
-  i.e., `uploadStartedAt` was set within the past 30 minutes), OR status `READY`
+- GIVEN a workspace media asset already has status `PROCESSING` with an active upload in progress
+  (i.e., `uploadStartedAt` was set within the past 30 minutes), OR status `READY`
 - WHEN another upload request targets the same asset
 - THEN the system MUST reject the request with HTTP 409 `ASSET_UPLOAD_CONFLICT`
 
@@ -362,7 +362,7 @@ Asset lifecycle state transitions:
 - AND proceed with the upload flow without requiring the client to create a new asset
 
 > **Note (Fix 1):** The system MUST also reset any in-flight upload tracking (equivalent to
-`uploadStartedAt = NULL`) when transitioning to `FAILED`, so that the FAILED asset is immediately
+> `uploadStartedAt = NULL`) when transitioning to `FAILED`, so that the FAILED asset is immediately
 > eligible for retry without a cooldown.
 
 #### Scenario: Concurrent retry attempts against the same FAILED asset
@@ -735,8 +735,8 @@ The integration test suite MUST verify the following with a real Postgres databa
 
 ## Media Copyright & Takedown Additions
 
-The following requirements were added as part of the media copyright takedown change
-(archived `2026-07-22`).
+The following requirements were added as part of the media copyright takedown change (archived
+`2026-07-22`).
 
 ### Requirement: Licence Field on DTOs
 
@@ -771,8 +771,8 @@ component SHALL hide the attribution section gracefully.
 Media library list queries MUST exclude assets with `MediaAssetStatus.SUSPENDED` from all picker,
 composer, and public API responses. The default list filter (`status=READY`) SHALL remain unchanged.
 Explicit `status` query parameters SHALL also exclude `SUSPENDED` assets unless the caller holds
-`workspace:governance:media-read`.
-(Previously: no moderation/exclusion status existed; all READY assets were returned.)
+`workspace:governance:media-read`. (Previously: no moderation/exclusion status existed; all READY
+assets were returned.)
 
 #### Scenario: Library list excludes SUSPENDED
 

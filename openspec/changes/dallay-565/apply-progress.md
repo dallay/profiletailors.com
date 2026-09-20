@@ -23,19 +23,25 @@
 
 ### TDD Evidence
 
-The focused test was written before the new contracts. The first RED run failed because the requested
-contract classes were absent (`ClassNotFoundException`). After the minimum shared contracts were added,
+The focused test was written before the new contracts. The first RED run failed because the
+requested
+contract classes were absent (`ClassNotFoundException`). After the minimum shared contracts were
+added,
 the focused test passed. A second focused test assertion was added for the event shape; it initially
-failed to compile until the new event types were imported, then passed after that test-only correction.
+failed to compile until the new event types were imported, then passed after that test-only
+correction.
 The existing `Notification` model was intentionally left unchanged because unit 1 does not yet own
 durable notification persistence correlation fields; unit 2/4 must add those fields with repository
 and race coverage.
 
 ### Files Changed
 
-- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationNotificationRequested.kt`
-- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/application/ports/InvitationDeliverySummaryReader.kt`
-- `shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationNotificationContractsTest.kt`
+-
+`shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationNotificationRequested.kt`
+-
+`shared/notifications/src/main/kotlin/com/profiletailors/notifications/application/ports/InvitationDeliverySummaryReader.kt`
+-
+`shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationNotificationContractsTest.kt`
 - `openspec/changes/dallay-565/tasks.md`
 - `openspec/changes/dallay-565/state.yaml`
 
@@ -43,8 +49,9 @@ and race coverage.
 
 ### Commands Run
 
-- `./gradlew :shared:notifications:test --tests 'com.profiletailors.notifications.domain.InvitationNotificationContractsTest' --no-daemon`
-  — RED: failed as expected with five `ClassNotFoundException` failures before production contracts.
+-
+`./gradlew :shared:notifications:test --tests 'com.profiletailors.notifications.domain.InvitationNotificationContractsTest' --no-daemon`
+— RED: failed as expected with five `ClassNotFoundException` failures before production contracts.
 - Same command — GREEN: passed, 5 tests completed.
 - Same command — GREEN after event-shape assertion — passed, 7 tests completed.
 - `./gradlew :shared:notifications:spotlessKotlinCheck :shared:notifications:test --no-daemon`
@@ -52,9 +59,10 @@ and race coverage.
 - `./gradlew :shared:notifications:test --no-daemon` — passed; unfiltered shared notifications test
   task completed successfully.
 - `./gradlew :server:smp:compileKotlin --no-daemon` — passed; downstream compilation remains valid.
-- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.platformadmin.domain.InvitationTest' --tests 'com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationAcceptanceRepositoryTest' --no-daemon`
-  — compile passed; 11 unit tests passed and 2 PostgreSQL tests failed because the local PostgreSQL
-  connection was unavailable (`java.net.ConnectException`).
+-
+`./gradlew :server:smp:test --tests 'com.profiletailors.smp.platformadmin.domain.InvitationTest' --tests 'com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationAcceptanceRepositoryTest' --no-daemon`
+— compile passed; 11 unit tests passed and 2 PostgreSQL tests failed because the local PostgreSQL
+connection was unavailable (`java.net.ConnectException`).
 
 The required broader unfiltered task invocation (`just backend-test-fast`) was not run because this
 unit is a shared contract slice and the full SMP fast suite is outside its focused boundary. Apply

@@ -310,8 +310,8 @@ pnpm --filter app dev
 | Step | Action                                       | Expected                   |
 |------|----------------------------------------------|----------------------------|
 | 1    | Select "📁 All Posts" in the filter dropdown | All posts visible          |
-| 2    | Select "⏳ Queued"                            | Only queued posts shown    |
-| 3    | Select "✅ Published"                         | Only published posts shown |
+| 2    | Select "⏳ Queued"                           | Only queued posts shown    |
+| 3    | Select "✅ Published"                        | Only published posts shown |
 | 4    | Select "🚫 Cancelled"                        | Only cancelled posts shown |
 | 5    | Select "📁 All Posts" again                  | All posts restored         |
 

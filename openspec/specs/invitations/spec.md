@@ -37,7 +37,8 @@ email, blank opaque token material, and `expiresAt <= createdAt`. `DIRECT` MUST 
 
 ### Requirement: Semantic lifecycle
 
-Statuses MUST be exactly `ACTIVE`, `ACCEPTED`, `EXPIRED`, and `REVOKED`. Only `ACTIVE` MAY transition
+Statuses MUST be exactly `ACTIVE`, `ACCEPTED`, `EXPIRED`, and `REVOKED`. Only `ACTIVE` MAY
+transition
 to another state; terminal states MUST reject mutation. Status MUST NOT contain delivery fields.
 
 #### Scenario: Delivery is independent
@@ -71,7 +72,8 @@ neither. `accept(at, principal)` MUST preserve all other invitation facts.
 
 ### Requirement: Canonical repository transitions
 
-A framework-free `InvitationRepository` MUST provide aggregate reads/writes and conditional lifecycle
+A framework-free `InvitationRepository` MUST provide aggregate reads/writes and conditional
+lifecycle
 transitions. Adapters MUST map the `invitations` schema and report success only when the expected
 current state changed; handlers MUST use the port.
 
@@ -95,7 +97,8 @@ invitation. Under contention exactly one caller MAY succeed; provisioning remain
 ### Requirement: Schema protections
 
 The schema MUST enforce UUID identity, required fields, source/reference consistency, normalized
-email, `expires_at > created_at`, accepted-metadata consistency, unique opaque lookup/token material,
+email, `expires_at > created_at`, accepted-metadata consistency, unique opaque lookup/token
+material,
 and at most one active invitation per workspace and normalized target email. It MUST NOT persist raw
 tokens or add delivery columns.
 
@@ -107,7 +110,8 @@ tokens or add delivery columns.
 
 ### Requirement: Safe audit and observability
 
-Lifecycle evidence MUST use low-cardinality invitation ID, status, outcome, timestamps, and correlation
+Lifecycle evidence MUST use low-cardinality invitation ID, status, outcome, timestamps, and
+correlation
 data. Raw tokens, token-bearing URLs, and full target emails MUST NOT cross invitation, audit, log,
 or metric boundaries; downstream owners publish their events.
 
@@ -119,7 +123,8 @@ or metric boundaries; downstream owners publish their events.
 
 ### Requirement: Token ownership
 
-Invitation MAY persist only non-reversible token material and opaque lookup data required by DALLAY-566.
+Invitation MAY persist only non-reversible token material and opaque lookup data required by
+DALLAY-566.
 It MUST NOT define token algorithms, raw-token handoff, URL construction, or delivery behavior.
 
 #### Scenario: Notification failure stays external
@@ -166,11 +171,11 @@ enum class InvitationTarget {
 
 **Lifecycle-aware invariants enforced in aggregate init:**
 
-| target | status | workspaceId |
-|--------|--------|------------|
-| `EXISTING_WORKSPACE` | any | `!= null` (always required) |
-| `NEW_WORKSPACE` | `ACTIVE`, `EXPIRED`, `REVOKED` | `== null` |
-| `NEW_WORKSPACE` | `ACCEPTED` | `!= null` (set by `accept()`) |
+| target               | status                         | workspaceId                   |
+|----------------------|--------------------------------|-------------------------------|
+| `EXISTING_WORKSPACE` | any                            | `!= null` (always required)   |
+| `NEW_WORKSPACE`      | `ACTIVE`, `EXPIRED`, `REVOKED` | `== null`                     |
+| `NEW_WORKSPACE`      | `ACCEPTED`                     | `!= null` (set by `accept()`) |
 
 The aggregate init raises `IllegalStateException` when invariants are violated.
 
@@ -187,35 +192,38 @@ it is unused and `workspaceId` is already set.
 
 - GIVEN a waitlist entry with status PENDING and no active invitation
 - WHEN admin with WAITLIST_INVITE permission executes InviteWaitlistEntryCommand
-- THEN the handler creates Invitation(source=WAITLIST, sourceReferenceId=waitlistEntryId, target=NEW_WORKSPACE, workspaceId=null)
+- THEN the handler creates Invitation (source=WAITLIST, sourceReferenceId=waitlistEntryId,
+  target=NEW_WORKSPACE, workspaceId=null)
 - AND persists it via InvitationRepository
-- AND calls WaitlistEntry.invite(now) [PENDING → INVITED]
+- AND calls WaitlistEntry.invite (now) [PENDING → INVITED]
 - AND publishes InvitationIssued (audit event — no raw token)
 
 #### Scenario: User accepts a waitlist invitation (NEW_WORKSPACE)
 
 - GIVEN an active Invitation with source=WAITLIST, target=NEW_WORKSPACE, workspaceId=null
 - WHEN user with matching identity and email presents valid token
-- THEN InvitationActivationCoordinator.activate() provisions workspace, converts waitlist entry, and accepts invitation
-- AND returns InvitationActivationResult(invitation, membershipStatus)
+- THEN InvitationActivationCoordinator.activate () provisions workspace, converts waitlist entry,
+  and accepts invitation
+- AND returns InvitationActivationResult (invitation, membershipStatus)
 
 #### Scenario: User accepts invitation to existing workspace (EXISTING_WORKSPACE)
 
 - GIVEN an active Invitation with target=EXISTING_WORKSPACE, workspaceId=ws-789
 - WHEN user with matching email presents valid token
-- THEN InvitationActivationCoordinator.activate() reconciles membership and accepts invitation
-- AND returns InvitationActivationResult(invitation, membershipStatus)
+- THEN InvitationActivationCoordinator.activate () reconciles membership and accepts invitation
+- AND returns InvitationActivationResult (invitation, membershipStatus)
 
 ### Requirement: InvitationActivationCoordinator orchestrates all acceptance paths
 
 Both acceptance entry points delegate to `InvitationActivationCoordinator`:
 
-| Entry point | Triggered by |
-|---|---|
-| `AcceptInvitationHandler` | Authenticated user clicks email link |
+| Entry point                            | Triggered by                         |
+|----------------------------------------|--------------------------------------|
+| `AcceptInvitationHandler`              | Authenticated user clicks email link |
 | `InvitationRegistrationGatewayAdapter` | New user completes registration form |
 
 Coordinator returns `InvitationActivationResult`:
+
 ```kotlin
 data class InvitationActivationResult(
     val invitation: Invitation,
@@ -224,6 +232,7 @@ data class InvitationActivationResult(
 ```
 
 `ProvisionedWorkspace` MUST expose `membershipStatus`:
+
 ```kotlin
 data class ProvisionedWorkspace(
     val workspaceId: String,
@@ -232,19 +241,21 @@ data class ProvisionedWorkspace(
 )
 ```
 
-Coordinator has no transaction of its own. Transaction is owned by the caller (`AtomicTransactionRunner`).
+Coordinator has no transaction of its own. Transaction is owned by the caller
+(`AtomicTransactionRunner`).
 
 ### Requirement: Waitlist entry reflects conversion on acceptance
 
-`WaitlistEntry.convert()` MUST be called by `InvitationActivationCoordinator` when a `source=WAITLIST` invitation is accepted.
+`WaitlistEntry.convert()` MUST be called by `InvitationActivationCoordinator` when a
+`source=WAITLIST` invitation is accepted.
 
 #### Scenario: INVITED entry transitions to CONVERTED when workspace is provisioned
 
 - GIVEN a waitlist entry with status INVITED and an active Invitation with target=NEW_WORKSPACE
 - WHEN InvitationActivationCoordinator activates the invitation for NEW_WORKSPACE
-- THEN WorkspaceProvisioningService.provisionDefaultWorkspace() is called
-- AND WaitlistEntry.convert(now) [INVITED → CONVERTED]
-- AND Invitation.accept(now, principalId, provisionedWorkspaceId) [ACTIVE → ACCEPTED]
+- THEN WorkspaceProvisioningService.provisionDefaultWorkspace () is called
+- AND WaitlistEntry.convert (now) [INVITED → CONVERTED]
+- AND Invitation.accept (now, principalId, provisionedWorkspaceId) [ACTIVE → ACCEPTED]
 
 ### Requirement: WAITLIST source enforces sourceReferenceId
 
@@ -301,9 +312,11 @@ transactional. Telemetry recording MUST happen only after the transaction succee
 For `EXISTING_WORKSPACE` the handler MUST resolve the human label through the narrow tenancy
 workspace-name port (`workspaces.name` where `ACTIVE`). A null lookup MUST raise the platform-admin
 workspace-not-found error, map to HTTP `404 Not Found` with code `WORKSPACE_NOT_FOUND`, abort before
-commit, and create no invitation, audit, event, notification, or provider call. The email MUST receive
+commit, and create no invitation, audit, event, notification, or provider call. The email MUST
+receive
 the resolved name, never the workspace ID or blank text. For `NEW_WORKSPACE` the handler MUST keep
-`workspaceId` absent and use exactly: “You’ve been invited to create a new Profile Tailors workspace.”
+`workspaceId` absent and use exactly: “You’ve been invited to create a new Profile Tailors
+workspace.”
 
 #### Scenario: Unknown workspace returns 404 with no writes
 
@@ -322,7 +335,8 @@ the resolved name, never the workspace ID or blank text. For `NEW_WORKSPACE` the
 ### Requirement: Delivery identity originates in handlers
 
 Initial direct create MUST publish `InvitationIssued` with `deliveryId = null`, which the consumer
-renders as `invitation:{invitationId}:initial`. Each intentional direct resend MUST mint a new random
+renders as `invitation:{invitationId}:initial`. Each intentional direct resend MUST mint a new
+random
 `deliveryId` and publish `DirectInvitationResent` with that identity, which the consumer renders as
 `invitation:{invitationId}:resend:{deliveryId}`. Two intentional resends of the same invitation MUST
 carry distinct delivery identities.
@@ -343,7 +357,10 @@ carry distinct delivery identities.
 
 ### Requirement: Bulk invitation envelope (DALLAY-665)
 
-Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `results` (per ID: `entryId`, `outcome` of `invited|skipped|failed`, `invitationId` when invited, `code` otherwise) plus `summary` (`requested`, `invited`, `skipped`, `failed`). Partial success MUST be reported per entry, never hidden. Results MUST carry IDs and codes only — never raw tokens or emails.
+Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `results` (per ID:
+`entryId`, `outcome` of `invited|skipped|failed`, `invitationId` when invited, `code` otherwise)
+plus `summary` (`requested`, `invited`, `skipped`, `failed`). Partial success MUST be reported per
+entry, never hidden. Results MUST carry IDs and codes only — never raw tokens or emails.
 
 #### Scenario: Mixed batch reports partial success
 
@@ -359,7 +376,10 @@ Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `result
 
 ### Requirement: Bulk reuses single-entry issuance (DALLAY-665)
 
-Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT define a separate lifecycle. One `InvitationIssued` event MUST be published per `invited` entry only, with no raw token. Bulk persistence MUST match single-entry behavior entry-for-entry (dual-write parity kept as legacy debt).
+Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT define a separate
+lifecycle. One `InvitationIssued` event MUST be published per `invited` entry only, with no raw
+token. Bulk persistence MUST match single-entry behavior entry-for-entry (dual-write parity kept as
+legacy debt).
 
 #### Scenario: Success issues one event per entry
 
@@ -369,7 +389,8 @@ Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT def
 
 ### Requirement: Bulk observability (DALLAY-665)
 
-The system MUST record per-entry counters plus one bulk counter with batch size and per-outcome counts, all low-cardinality.
+The system MUST record per-entry counters plus one bulk counter with batch size and per-outcome
+counts, all low-cardinality.
 
 ### Requirement: Validate invitation before mutation
 

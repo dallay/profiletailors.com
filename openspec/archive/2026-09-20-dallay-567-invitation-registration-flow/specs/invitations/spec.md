@@ -113,4 +113,5 @@ provisioning remained outside this change.)
 
 ### Requirement: Token-presence authorization and split acceptance path
 
-(Reason: authorization MUST use server validation, not token presence or a separate token-only path.)
+(Reason: authorization MUST use server validation, not token presence or a separate token-only
+path.)

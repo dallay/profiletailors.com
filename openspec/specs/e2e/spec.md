@@ -89,5 +89,5 @@ assertion is recorded. Local evidence MUST NOT be presented as deployed or manua
 
 Each behavior scenario MUST have a failing-first test. Existing in-tree tests:
 `apps/web/app/e2e/specs/registration.spec.ts` (8→12 assertion), `schemas.test.ts`
-(registerSchema min(12) mirror), BDD `registration.feature` (11 rejected / 12 accepted). New
+(registerSchema min (12) mirror), BDD `registration.feature` (11 rejected / 12 accepted). New
 regression required: ES message asserts "12" (currently untested).

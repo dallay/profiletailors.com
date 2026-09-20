@@ -11,9 +11,9 @@ Publishing is a well-isolated Spring Modulith bounded context at
 `authorization::domain`.
 
 - **Domain** (`domain/`): `PublishingModels.kt` defines `PublicationDraft` (@AggregateRoot),
-  `PublicationJob`/`PublicationJobClaim`, `PublicationStatus` (
-  DRAFT/QUEUED/SCHEDULED/PROCESSING/PUBLISHED/BLOCKED/FAILED/CANCELLED), `ScheduleMode` (
-  NOW/SCHEDULED_AT/NEXT_SLOT), `JobStatus`, `PublicationAsset`/`AssetSourceType`/
+  `PublicationJob`/`PublicationJobClaim`, `PublicationStatus`
+  (DRAFT/QUEUED/SCHEDULED/PROCESSING/PUBLISHED/BLOCKED/FAILED/CANCELLED), `ScheduleMode`
+  (NOW/SCHEDULED_AT/NEXT_SLOT), `JobStatus`, `PublicationAsset`/`AssetSourceType`/
   `PublicationAssetStatus`, `DeliveryAttempt`. `PublishingPolicies.kt` contains
   `PublicationLifecyclePolicy.validateForCreation/queue/cancel/markPublished/markFailed/markBlocked/prepareBlockedRetry`,
   `PublicationSchedulingPolicy.resolveDueAt`, `ConflictDetectionPolicy` (15-min window, same
@@ -25,8 +25,8 @@ Publishing is a well-isolated Spring Modulith bounded context at
 - **Application** (`application/`): `PublishingApi.kt` defines
   `CreatePublicationCommand(socialAccountId, title, bodyText, assetIds, scheduleMode, scheduledFor, nextSlotAfter, priority) -> PublicationResult`
   plus Edit/Cancel/Delete/Retry/Reschedule commands and calendar/list/stale-jobs queries.
-  `CreatePublicationHandler.kt` is the canonical creation flow: `requireEmailVerification` (
-  PUBLISH_CONTENT + SCHEDULE_POST), `requireWorkspaceContext`, `requireSocialAccount`,
+  `CreatePublicationHandler.kt` is the canonical creation flow: `requireEmailVerification`
+  (PUBLISH_CONTENT + SCHEDULE_POST), `requireWorkspaceContext`, `requireSocialAccount`,
   `resolveAssets` (media-context path with 5s timeout -> `MediaServiceUnavailableException`,
   fallback `publicationAssetRepository.findByWorkspaceAndIds`),
   `PublicationLifecyclePolicy.validateForCreation`, `ProviderCapabilityValidator.validate`,
@@ -38,8 +38,9 @@ Publishing is a well-isolated Spring Modulith bounded context at
 - **Infrastructure**: `http/PublishingControllers.kt` — `PublishingPublicationController` at
   `/api/publishing/publications` (version `1` via Spring versioning,
   `Accept: application/vnd.api.v1+json`): `POST /` -> Create, `PATCH /{id}` -> Edit,
-  `POST /{id}/cancel`, `DELETE /{id}`, `POST /{id}/retry`, `GET /calendar`, `POST /quick-create` (
-  SCHEDULED_AT, empty assets), `PATCH /{id}/reschedule`, `GET /` list. `RecurringScheduleController`
+  `POST /{id}/cancel`, `DELETE /{id}`, `POST /{id}/retry`, `GET /calendar`, `POST /quick-create`
+  (SCHEDULED_AT, empty assets), `PATCH /{id}/reschedule`, `GET /` list.
+  `RecurringScheduleController`
   at `/api/v1/workspaces/{workspaceId}/recurring` (workspace-path validated via
   `resourceContextProvider.requireWorkspaceContext()` equality check).
   `persistence/R2dbcPublishingRepositories.kt` — `R2dbcPublicationRepository` (insertOrUpdate with
@@ -51,8 +52,8 @@ Publishing is a well-isolated Spring Modulith bounded context at
   `PublishingJobExecutor.executeClaim` (preflight account-status gate
   DISABLED/REQUIRES_RECONNECT/DELETED/PENDING, media resolve, capability validate, idempotent
   delivery via `operationKey = jobId:attemptNumber` + `findByOperationKey`, provider publish via
-  `SocialPublisher`, retry/terminal failure handling) + `PublishingWorker.pollOnce` (
-  releaseExpiredClaims, claimNextDue) + BLOCKED-recovery scan.
+  `SocialPublisher`, retry/terminal failure handling) + `PublishingWorker.pollOnce`
+  (releaseExpiredClaims, claimNextDue) + BLOCKED-recovery scan.
 - **DB** (`resources/db/changelog/publishing/*.yaml`, 20 changesets): `publications`,
   `publication_assets`, `publication_asset_links`, `publication_jobs` (due_at, priority_rank,
   attempt_count, claim_version, lease_expires_at), `delivery_attempts` (operation_key,
@@ -136,23 +137,31 @@ re-exports `useComposerScheduling`, `useComposerValidation`, `useComposerMediaPi
   `BulkValidationPolicy` / CSV row validators (scheduledFor parse, media_urls, hashtags) reusing
   lifecycle/capability policies
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/CreatePublicationHandler.kt` —
 reuse via composition for each row; bulk handler must handle per-row workspace/account resolution,
 partial failure semantics, idempotency key per row/job
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/PublishingControllers.kt` —
 add `BulkPublishingController` at `/api/v1/workspaces/{workspaceId}/bulk` with `POST /validate`,
 `POST /schedule`, `GET /jobs/{jobId}`, `GET /templates`, `GET /templates/{id}/csv`
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt` —
 implement batch inserts, `R2dbcBulkImportJobRepository`, batched `publication_asset_links` writes
-- `server/smp/src/main/resources/db/changelog/publishing/` — new changeset(s)
+
+- `server/smp/src/main/resources/db/changelog/publishing/` — new changeset (s)
   `021-create-bulk-import-jobs.yaml` + `022-create-bulk-import-rows.yaml` (job header + row results,
   idempotency key, workspace FK)
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/scheduling/PublishingWorker.kt` —
 no change for sync bulk; if async job processing for >1000 rows, add `BulkImportWorker` or extend
 `PublishingWorker` with bulk polling
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/media/` — `MediaAssetResolver`/`MediaService`
   for `media_urls` CSV column (external URL download/IPA, size/type validation); consider
   `ImportMediaFromUrlCommand` if not present
@@ -208,8 +217,8 @@ no change for sync bulk; if async job processing for >1000 rows, add `BulkImport
     - Effort: Medium
 
 2. **New Async Bulk Bounded Context — Job-Queue with Background Processing**
-    - Introduce separate module/package `server/smp/src/main/kotlin/com/profiletailors/smp/bulk/` (
-      or `publishing/bulk/` subpackage) with its own `BulkImportJob` aggregate, `BulkRow` value
+    - Introduce separate module/package `server/smp/src/main/kotlin/com/profiletailors/smp/bulk/`
+      (or `publishing/bulk/` subpackage) with its own `BulkImportJob` aggregate, `BulkRow` value
       objects, and application services. Publish domain event `BulkImportRequested` and process via
       `BulkImportWorker` (scheduled poll, similar to `PublishingWorker.pollOnce` with
       `FOR UPDATE SKIP LOCKED` per job) chunking 100 rows per transaction, updating job progress
@@ -263,8 +272,8 @@ exceed HTTP timeout or require resume semantics.
 Key design decisions for the proposal:
 
 - CSV `media_urls` resolves via `MediaAssetResolver` inside bulk handler — external URLs create
-  `PublicationAsset(EXTERNAL_URL)` via existing publishing asset path, not media `UPLOADED` path (
-  enforces LinkedIn `IMAGE/JPEG,PNG,GIF,WEBP,VIDEO/MP4` and 10MB publishing limit, distinct from
+  `PublicationAsset(EXTERNAL_URL)` via existing publishing asset path, not media `UPLOADED` path
+  (enforces LinkedIn `IMAGE/JPEG,PNG,GIF,WEBP,VIDEO/MP4` and 10MB publishing limit, distinct from
   media-library 500MB).
 - Hashtags are plain text within `bodyText` (extracted post-persist by hashtags context); bulk does
   not add a separate hashtag bulk API.
@@ -302,8 +311,8 @@ Key design decisions for the proposal:
   `/api/v1/workspaces/{workspaceId}/bulk/*` — aligns with recurring but diverges from
   `/api/publishing/*`. OpenAPI/docs must reconcile; frontend `apiFetch` already supports
   `workspaceScoped:true` + path param.
-- **Scope creep — full async**: If milestone 0.3 expects true background jobs with SSE progress (
-  like `channelEventStreamRegistry`), Approach 1 will need evolution; proposal should mark async
+- **Scope creep — full async**: If milestone 0.3 expects true background jobs with SSE progress
+  (like `channelEventStreamRegistry`), Approach 1 will need evolution; proposal should mark async
   worker as **Planned, not in V1**.
 
 ## Ready for Proposal

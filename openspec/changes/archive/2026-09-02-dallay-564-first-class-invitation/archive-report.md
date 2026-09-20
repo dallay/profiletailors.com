@@ -13,8 +13,8 @@ Archive gate passed on 2026-09-02T13:46:04Z.
 
 ## Specs Synced
 
-| Domain | Action | Details |
-|---|---|---|
+| Domain      | Action  | Details                                                                                                                                              |
+|-------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | invitations | Created | Promoted 12 requirements from `openspec/changes/dallay-564-first-class-invitation/specs/invitations/spec.md` to `openspec/specs/invitations/spec.md` |
 
 ## Archive Destination
@@ -40,4 +40,6 @@ Archive gate passed on 2026-09-02T13:46:04Z.
 
 ## Out of Scope Preserved
 
-DALLAY-565 notifications, DALLAY-566 token generation and handoff, DALLAY-567 provisioning, DALLAY-568 admin commands, DALLAY-570 waitlist conversion, UI, bulk operations, destructive migration, and replacement of `WaitlistInvitation` flows remain outside DALLAY-564.
+DALLAY-565 notifications, DALLAY-566 token generation and handoff, DALLAY-567 provisioning,
+DALLAY-568 admin commands, DALLAY-570 waitlist conversion, UI, bulk operations, destructive
+migration, and replacement of `WaitlistInvitation` flows remain outside DALLAY-564.

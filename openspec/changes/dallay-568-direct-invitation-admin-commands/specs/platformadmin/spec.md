@@ -15,12 +15,17 @@ events for post-commit email delivery. Raw invitation tokens never cross API bou
 
 `CreateInvitationHandler` MUST:
 
-- Accept `CreateInvitationCommand(operatorPrincipalId, operatorRoles, email, target, workspaceId)` as input
-- Validate the operator has `platform.invitations.create` from the command roles (no framework resolver inside the handler)
-- Normalize the email once to trimmed-lowercase form and use it for lookup, persistence, and the notification event
-- Generate CSPRNG token material and persist only its hash plus candidate key via `InvitationRepository.save()`
+- Accept `CreateInvitationCommand(operatorPrincipalId, operatorRoles, email, target, workspaceId)`
+  as input
+- Validate the operator has `platform.invitations.create` from the command roles (no framework
+  resolver inside the handler)
+- Normalize the email once to trimmed-lowercase form and use it for lookup, persistence, and the
+  notification event
+- Generate CSPRNG token material and persist only its hash plus candidate key via
+  `InvitationRepository.save()`
 - Construct `Invitation(source=DIRECT, ...)` as `ACTIVE`
-- Detect duplicates via `hasActiveInvitationFor(email, workspaceId, asOf)`; map a unique-conflict on `save()` to `InvitationAlreadyActiveException` (→ 409)
+- Detect duplicates via `hasActiveInvitationFor(email, workspaceId, asOf)`; map a unique-conflict on
+  `save()` to `InvitationAlreadyActiveException` (→ 409)
 - Emit `INVITATION_CREATED` audit event with low-cardinality fields only
 - Publish `InvitationIssued` after successful persistence for post-commit delivery
 - Increment platform invitation creation counter
@@ -52,11 +57,16 @@ events for post-commit email delivery. Raw invitation tokens never cross API bou
 
 `RevokeInvitationHandler` MUST:
 
-- Accept `RevokeInvitationCommand(operatorPrincipalId, operatorRoles, invitationId, expectedVersion)` as input
+- Accept
+  `RevokeInvitationCommand(operatorPrincipalId, operatorRoles, invitationId, expectedVersion)` as
+  input
 - Validate the operator has `platform.invitations.revoke` from the command roles
-- Load via `findById`; require `invitation.isActive(now)` (status AND expiry) else `InvitationNotRevocableException`
-- Call `invitation.revoke(expectedVersion)` and persist via `updateIfVersionMatches`; a lost update raises `InvitationVersionConflictException` (→ 409)
-- Emit `INVITATION_REVOKED` audit event with low-cardinality fields only (no revocation domain event is published)
+- Load via `findById`; require `invitation.isActive(now)` (status AND expiry) else
+  `InvitationNotRevocableException`
+- Call `invitation.revoke(expectedVersion)` and persist via `updateIfVersionMatches`; a lost update
+  raises `InvitationVersionConflictException` (→ 409)
+- Emit `INVITATION_REVOKED` audit event with low-cardinality fields only (no revocation domain event
+  is published)
 - Increment platform invitation revocation counter
 - Return `RevokeInvitationResult(invitationId)`
 
@@ -83,7 +93,8 @@ events for post-commit email delivery. Raw invitation tokens never cross API bou
 
 - Accept `ResendInvitationCommand(operatorPrincipalId, operatorRoles, invitationId)` as input
 - Validate the operator has `platform.invitations.resend` from the command roles
-- Load via `findById` (404 if absent); reject `source != DIRECT` with `InvitationNotResendableException`
+- Load via `findById` (404 if absent); reject `source != DIRECT` with
+  `InvitationNotResendableException`
 - Require `invitation.isActive(now)` — expired invitations are never revived
 - Rotate token material, extend expiry, bump the version, persist via `updateIfVersionMatches`
 - Publish `DirectInvitationResent` after persistence for post-commit delivery
@@ -130,7 +141,8 @@ DALLAY-566.
 ### Requirement: Notification delivery after successful persistence
 
 `InvitationIssued` (create) and `DirectInvitationResent` (resend) MUST be published after the
-invitation is successfully persisted, for post-commit email delivery by `SendInvitationEmailConsumer`.
+invitation is successfully persisted, for post-commit email delivery by
+`SendInvitationEmailConsumer`.
 A publish failure propagates without rolling back the saved invitation (pinned by unit test); it
 MUST NOT be silently swallowed.
 

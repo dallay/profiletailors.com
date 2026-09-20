@@ -4,7 +4,12 @@
 
 ### Requirement: Paged direct-invitations list
 
-The system MUST expose `GET /api/admin/invitations/direct` returning a paged list of `source=DIRECT` invitations sorted `issuedAt desc`. Query params MUST be `page`, `size`, optional `status` and `email`. Rows MUST be direct-shaped (`invitationId, email, target, workspaceId, status, expiresAt, version`) and MUST NOT contain token material. The endpoint MUST require `INVITATIONS_READ`. `status` filter MUST accept canonical statuses; `email` filter MUST match normalized email substring case-insensitively.
+The system MUST expose `GET /api/admin/invitations/direct` returning a paged list of `source=DIRECT`
+invitations sorted `issuedAt desc`. Query params MUST be `page`, `size`, optional `status` and
+`email`. Rows MUST be direct-shaped
+(`invitationId, email, target, workspaceId, status, expiresAt, version`) and MUST NOT contain token
+material. The endpoint MUST require `INVITATIONS_READ`. `status` filter MUST accept canonical
+statuses; `email` filter MUST match normalized email substring case-insensitively.
 
 #### Scenario: Authorized operator lists direct invitations
 

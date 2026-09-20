@@ -37,7 +37,8 @@ email, blank opaque token material, and `expiresAt <= createdAt`. `DIRECT` MUST 
 
 ### Requirement: Semantic lifecycle
 
-Statuses MUST be exactly `ACTIVE`, `ACCEPTED`, `EXPIRED`, and `REVOKED`. Only `ACTIVE` MAY transition
+Statuses MUST be exactly `ACTIVE`, `ACCEPTED`, `EXPIRED`, and `REVOKED`. Only `ACTIVE` MAY
+transition
 to another state; terminal states MUST reject mutation. Status MUST NOT contain delivery fields.
 
 #### Scenario: Delivery is independent
@@ -71,7 +72,8 @@ neither. `accept(at, principal)` MUST preserve all other invitation facts.
 
 ### Requirement: Canonical repository transitions
 
-A framework-free `InvitationRepository` MUST provide aggregate reads/writes and conditional lifecycle
+A framework-free `InvitationRepository` MUST provide aggregate reads/writes and conditional
+lifecycle
 transitions. Adapters MUST map the `invitations` schema and report success only when the expected
 current state changed; handlers MUST use the port.
 
@@ -95,7 +97,8 @@ invitation. Under contention exactly one caller MAY succeed; provisioning remain
 ### Requirement: Schema protections
 
 The schema MUST enforce UUID identity, required fields, source/reference consistency, normalized
-email, `expires_at > created_at`, accepted-metadata consistency, unique opaque lookup/token material,
+email, `expires_at > created_at`, accepted-metadata consistency, unique opaque lookup/token
+material,
 and at most one active invitation per workspace and normalized target email. It MUST NOT persist raw
 tokens or add delivery columns.
 
@@ -107,7 +110,8 @@ tokens or add delivery columns.
 
 ### Requirement: Safe audit and observability
 
-Lifecycle evidence MUST use low-cardinality invitation ID, status, outcome, timestamps, and correlation
+Lifecycle evidence MUST use low-cardinality invitation ID, status, outcome, timestamps, and
+correlation
 data. Raw tokens, token-bearing URLs, and full target emails MUST NOT cross invitation, audit, log,
 or metric boundaries; downstream owners publish their events.
 
@@ -119,7 +123,8 @@ or metric boundaries; downstream owners publish their events.
 
 ### Requirement: Token ownership
 
-Invitation MAY persist only non-reversible token material and opaque lookup data required by DALLAY-566.
+Invitation MAY persist only non-reversible token material and opaque lookup data required by
+DALLAY-566.
 It MUST NOT define token algorithms, raw-token handoff, URL construction, or delivery behavior.
 
 #### Scenario: Notification failure stays external

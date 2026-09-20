@@ -2,7 +2,8 @@
 
 ## Reporting Security Vulnerabilities
 
-We take security vulnerabilities seriously. If you discover a security issue, please report it responsibly.
+We take security vulnerabilities seriously. If you discover a security issue, please report it
+responsibly.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
@@ -21,12 +22,12 @@ Include the following in your report:
 
 We aim to acknowledge reports within **48 hours** and provide a timeline for remediation:
 
-| Severity | Initial Response | Target Resolution |
-|----------|------------------|-------------------|
-| Critical (CVSS 9-10) | 24 hours | 72 hours |
-| High (CVSS 7-8.9) | 48 hours | 7 days |
-| Medium (CVSS 4-6.9) | 48 hours | 14 days |
-| Low (CVSS 0-3.9) | 5 days | Next release |
+| Severity             | Initial Response | Target Resolution |
+|----------------------|------------------|-------------------|
+| Critical (CVSS 9-10) | 24 hours         | 72 hours          |
+| High (CVSS 7-8.9)    | 48 hours         | 7 days            |
+| Medium (CVSS 4-6.9)  | 48 hours         | 14 days           |
+| Low (CVSS 0-3.9)     | 5 days           | Next release      |
 
 ### Scope
 
@@ -55,15 +56,16 @@ Out of scope:
 
 ### Supported Versions
 
-| Version | Status |
-|---------|--------|
-| 0.0.x | Pre-release — development version |
+| Version | Status                            |
+|---------|-----------------------------------|
+| 0.0.x   | Pre-release — development version |
 
 For pre-release software, we recommend using the latest available version.
 
 ### Security Training
 
-Contributors must complete security awareness training before contributing to production code. See our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributors must complete security awareness training before contributing to production code. See
+our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Attribution
 

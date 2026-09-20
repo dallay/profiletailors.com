@@ -30,8 +30,8 @@
   workspace package but consumes no admin-specific contract. No page-access
   telemetry exists in admin src (grep for track/analytics/page-view: no hits).
 - Recipes exist: `just admin-test`, `just admin-check`, `just admin-build`
-  (all wired into `just ci`/`ci-local`). No admin Playwright/E2E lane exists
-  (E2E covers marketing + app media only).
+  (all wired into `just ci`/`ci-local`). No admin Playwright/E2E lane exists (E2E covers marketing +
+  app media only).
 
 ### Affected Areas
 
@@ -41,11 +41,11 @@
   route exists but is **missing from nav**, operators has i18n but no route/view.
 - `apps/web/admin/src/stores/auth.store.ts` — frontend permission mirror; drift
   vs server map (see Risks).
-- `apps/web/admin/src/i18n/index.ts` + `types.ts` — nav labels for new sections
-  (EN+ES) would extend `MessageSchema.nav`.
+- `apps/web/admin/src/i18n/index.ts` + `types.ts` — nav labels for new sections (EN+ES) would extend
+  `MessageSchema.nav`.
 - `apps/web/admin/src/views/` — new placeholder vs full views live here.
-- `server/smp/.../platformadmin/` — read-only reference; no change expected
-  (shell consumes existing `/api/admin/**` APIs).
+- `server/smp/.../platformadmin/` — read-only reference; no change expected (shell consumes existing
+  `/api/admin/**` APIs).
 - `openspec/specs/admin-authorization/spec.md` — permission registry source of
   truth for gating alignment.
 
@@ -53,39 +53,39 @@
 
 1. **Incremental shell hardening (recommended)** — Keep `/` shell; add the
    missing `direct-invitations` (+ `operators` if backend query suffices) nav
-   entries, and permission-gated placeholder routes for planned areas
-   (overview→dashboard alias, notifications, governance, configuration) that
+   entries, and permission-gated placeholder routes for planned areas (overview→dashboard alias,
+   notifications, governance, configuration) that
    render an explicit "planned / not yet available" state without fetching
    data they are not authorized for.
-   - Pros: smallest diff; matches "nav exposes planned areas without requiring
-     every screen"; no backend change; stays within flatter admin profile.
-   - Cons: placeholders must be clearly marked planned to avoid implying
-     permissions; still needs design decision per stub.
-   - Effort: Low
+    - Pros: smallest diff; matches "nav exposes planned areas without requiring
+      every screen"; no backend change; stays within flatter admin profile.
+    - Cons: placeholders must be clearly marked planned to avoid implying
+      permissions; still needs design decision per stub.
+    - Effort: Low
 2. **Introduce a literal `/admin` path prefix** (either inside dashboard app or
    by remounting the admin SPA under `/admin`).
-   - Pros: literal match to issue wording.
-   - Cons: contradicts the established separate-SPA + portless topology and
-     `frontend-architecture` admin profile; touches deploy/CORS/proxy config;
-     dashboard feature-module rules would then apply to admin code.
-   - Effort: High
+    - Pros: literal match to issue wording.
+    - Cons: contradicts the established separate-SPA + portless topology and
+      `frontend-architecture` admin profile; touches deploy/CORS/proxy config;
+      dashboard feature-module rules would then apply to admin code.
+    - Effort: High
 3. **Build all planned screens in this change** (overview, notifications,
    governance, configuration, operators UI).
-   - Pros: no stubs needed.
-   - Cons: explicitly out of scope; several areas have **no admin API**
-     (notifications, governance-admin, configuration); high risk of implying
-     permissions the API does not enforce.
-   - Effort: High
+    - Pros: no stubs needed.
+    - Cons: explicitly out of scope; several areas have **no admin API**
+      (notifications, governance-admin, configuration); high risk of implying
+      permissions the API does not enforce.
+    - Effort: High
 
 ### Recommendation
 
-Approach 1. Clarify that "/admin route" = the existing admin SPA shell root
-(`/` under `AdminLayout`), not a new path in the dashboard app. Scope the
+Approach 1. Clarify that "/admin route" = the existing admin SPA shell root (`/` under
+`AdminLayout`), not a new path in the dashboard app. Scope the
 change to: (a) nav completeness for what already has APIs (add invitations;
-   decide operators), (b) explicit planned-area seams with permission-gated
-   placeholder routes + EN/ES labels, (c) fix the frontend/backend permission
-   drift, (d) Vitest for guard/nav-filtering + type-check/build. No backend,
-   no `shared/web` change, no telemetry beyond existing conventions (none).
+decide operators), (b) explicit planned-area seams with permission-gated
+placeholder routes + EN/ES labels, (c) fix the frontend/backend permission
+drift, (d) Vitest for guard/nav-filtering + type-check/build. No backend,
+no `shared/web` change, no telemetry beyond existing conventions (none).
 
 ### Risks
 

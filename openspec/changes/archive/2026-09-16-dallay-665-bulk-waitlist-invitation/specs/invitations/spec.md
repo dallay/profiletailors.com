@@ -4,7 +4,10 @@
 
 ### Requirement: Bulk invitation envelope
 
-Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `results` (per ID: `entryId`, `outcome` of `invited|skipped|failed`, `invitationId` when invited, `code` otherwise) plus `summary` (`requested`, `invited`, `skipped`, `failed`). Partial success MUST be reported per entry, never hidden. Results MUST carry IDs and codes only — never raw tokens or emails.
+Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `results` (per ID:
+`entryId`, `outcome` of `invited|skipped|failed`, `invitationId` when invited, `code` otherwise)
+plus `summary` (`requested`, `invited`, `skipped`, `failed`). Partial success MUST be reported per
+entry, never hidden. Results MUST carry IDs and codes only — never raw tokens or emails.
 
 #### Scenario: Mixed batch reports partial success
 
@@ -20,7 +23,10 @@ Bulk requests MUST accept at most 50 entry IDs and respond HTTP 200 with `result
 
 ### Requirement: Bulk reuses single-entry issuance
 
-Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT define a separate lifecycle. One `InvitationIssued` event MUST be published per `invited` entry only, with no raw token. Bulk persistence MUST match single-entry behavior entry-for-entry (dual-write parity kept as legacy debt).
+Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT define a separate
+lifecycle. One `InvitationIssued` event MUST be published per `invited` entry only, with no raw
+token. Bulk persistence MUST match single-entry behavior entry-for-entry (dual-write parity kept as
+legacy debt).
 
 #### Scenario: Success issues one event per entry
 
@@ -30,7 +36,8 @@ Each entry MUST reuse the single-entry WAITLIST issuance path; bulk MUST NOT def
 
 ### Requirement: Bulk observability
 
-The system MUST record per-entry counters plus one bulk counter with batch size and per-outcome counts, all low-cardinality.
+The system MUST record per-entry counters plus one bulk counter with batch size and per-outcome
+counts, all low-cardinality.
 
 #### Scenario: Bulk counters recorded
 

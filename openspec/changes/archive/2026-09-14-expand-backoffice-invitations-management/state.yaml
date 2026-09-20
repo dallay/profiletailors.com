@@ -1,6 +1,6 @@
 change: expand-backoffice-invitations-management
 current_phase: archive
-completed: [explore, propose, spec, design, tasks, apply, verify, archive]
+completed: [ explore, propose, spec, design, tasks, apply, verify, archive ]
 next: none
 archived: '2026-09-14'
 updated: '2026-09-14'

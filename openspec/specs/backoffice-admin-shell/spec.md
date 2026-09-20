@@ -2,13 +2,15 @@
 
 ## Purpose
 
-Admin SPA shell (`apps/web/admin`, root `/` under `AdminLayout`): layout, permission-filtered nav registry, routing seams, inert placeholders. No dashboard-app change.
+Admin SPA shell (`apps/web/admin`, root `/` under `AdminLayout`): layout, permission-filtered nav
+registry, routing seams, inert placeholders. No dashboard-app change.
 
 ## Requirements
 
 ### Requirement: Shell Loads for Authorized Admin
 
-The system MUST render `AdminLayout` with sidebar nav for any authenticated principal holding platform access.
+The system MUST render `AdminLayout` with sidebar nav for any authenticated principal holding
+platform access.
 
 #### Scenario: Authorized admin opens shell
 
@@ -24,7 +26,8 @@ The system MUST render `AdminLayout` with sidebar nav for any authenticated prin
 
 ### Requirement: Registry-Driven Navigation
 
-The system MUST render nav exclusively from a central registry `{ key, route, permission, status: live|planned }`, filtered by `hasPermission`.
+The system MUST render nav exclusively from a central registry
+`{ key, route, permission, status: live|planned }`, filtered by `hasPermission`.
 
 #### Scenario: Nav filtered by permission
 
@@ -40,7 +43,8 @@ The system MUST render nav exclusively from a central registry `{ key, route, pe
 
 ### Requirement: Direct-Invitations Nav Entry
 
-The system MUST list `direct-invitations` in nav when the principal holds `platform.invitations.read`.
+The system MUST list `direct-invitations` in nav when the principal holds
+`platform.invitations.read`.
 
 #### Scenario: Permitted principal sees direct-invitations
 
@@ -50,7 +54,9 @@ The system MUST list `direct-invitations` in nav when the principal holds `platf
 
 ### Requirement: Inert Planned-Area Placeholders
 
-The system MUST render planned areas (overview/users/waitlist/invitations/notifications/governance/configuration/audit) via a shared static view that is explicit "planned", permission-gated, and performs zero fetch.
+The system MUST render planned areas
+(overview/users/waitlist/invitations/notifications/governance/configuration/audit) via a shared
+static view that is explicit "planned", permission-gated, and performs zero fetch.
 
 #### Scenario: Planned area shows planned state
 
@@ -76,16 +82,20 @@ The system MUST provide EN/ES nav and placeholder labels for every registry entr
 
 ## Acceptance Mapping
 
-| # | Criterion | Scenario |
-|---|-----------|----------|
-| 1 | Shell loads + nav visible for authorized admin | Shell Loads / Authorized admin opens shell |
-| 2 | `direct-invitations` in nav | Direct-Invitations Nav Entry |
-| 3 | Planned areas show planned state, zero fetch | Inert Planned-Area Placeholders |
-| 4 | Gating matches server; `admin-check` + `admin-build` pass | Registry-Driven Navigation + authz delta |
+| # | Criterion                                                 | Scenario                                   |
+|---|-----------------------------------------------------------|--------------------------------------------|
+| 1 | Shell loads + nav visible for authorized admin            | Shell Loads / Authorized admin opens shell |
+| 2 | `direct-invitations` in nav                               | Direct-Invitations Nav Entry               |
+| 3 | Planned areas show planned state, zero fetch              | Inert Planned-Area Placeholders            |
+| 4 | Gating matches server; `admin-check` + `admin-build` pass | Registry-Driven Navigation + authz delta   |
 
 ### Requirement: Direct-invitations list section
 
-`DirectInvitationsView` MUST render a list section above/below the create form: table of direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it the view MUST show access-denied and issue zero list requests.
+`DirectInvitationsView` MUST render a list section above/below the create form: table of
+direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels
+MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The
+view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it
+the view MUST show access-denied and issue zero list requests.
 
 #### Scenario: Table renders seeded rows
 
@@ -119,18 +129,22 @@ The system MUST provide EN/ES nav and placeholder labels for every registry entr
 
 ## Acceptance Mapping
 
-| # | Criterion | Scenario |
-|---|-----------|----------|
-| 1 | Paged list, `issuedAt desc`, no token | invitations: Authorized operator lists |
-| 2 | Pagination + status/email filters | invitations: Pagination; Status and email filters |
-| 3 | 401/403 on list | invitations: Unauthenticated; Unpermitted |
-| 4 | Table + filters + states + EN/ES | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
-| 5 | Row resend/revoke from existing endpoints | backoffice-admin-shell: Row actions reuse |
-| 6 | Access-denied when no permission | backoffice-admin-shell: No permission |
+| # | Criterion                                 | Scenario                                                                     |
+|---|-------------------------------------------|------------------------------------------------------------------------------|
+| 1 | Paged list, `issuedAt desc`, no token     | invitations: Authorized operator lists                                       |
+| 2 | Pagination + status/email filters         | invitations: Pagination; Status and email filters                            |
+| 3 | 401/403 on list                           | invitations: Unauthenticated; Unpermitted                                    |
+| 4 | Table + filters + states + EN/ES          | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
+| 5 | Row resend/revoke from existing endpoints | backoffice-admin-shell: Row actions reuse                                    |
+| 6 | Access-denied when no permission          | backoffice-admin-shell: No permission                                        |
 
 ### Requirement: Direct-invitations list section
 
-`DirectInvitationsView` MUST render a list section above/below the create form: table of direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it the view MUST show access-denied and issue zero list requests.
+`DirectInvitationsView` MUST render a list section above/below the create form: table of
+direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels
+MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The
+view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it
+the view MUST show access-denied and issue zero list requests.
 
 #### Scenario: Table renders seeded rows
 
@@ -164,10 +178,10 @@ The system MUST provide EN/ES nav and placeholder labels for every registry entr
 
 ## Acceptance Mapping
 
-| # | Criterion | Scenario |
-|---|-----------|----------|
-| 1 | Paged list, `issuedAt desc`, no token | invitations: Authorized operator lists |
-| 2 | Pagination + status/email filters | invitations: Pagination; Status and email filters |
-| 3 | 401/403 on list | invitations: Unauthenticated; Unpermitted |
-| 4 | Table + filters + states + EN/ES | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
-| 5 | Row resend/revoke from list | backoffice-admin-shell: Row actions |
+| # | Criterion                             | Scenario                                                                     |
+|---|---------------------------------------|------------------------------------------------------------------------------|
+| 1 | Paged list, `issuedAt desc`, no token | invitations: Authorized operator lists                                       |
+| 2 | Pagination + status/email filters     | invitations: Pagination; Status and email filters                            |
+| 3 | 401/403 on list                       | invitations: Unauthenticated; Unpermitted                                    |
+| 4 | Table + filters + states + EN/ES      | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
+| 5 | Row resend/revoke from list           | backoffice-admin-shell: Row actions                                          |

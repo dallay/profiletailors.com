@@ -6,10 +6,10 @@
 
 The permission registry MUST include two new `PlatformPermission` keys for user state mutations:
 
-| Key | Description |
-|-----|-------------|
+| Key                         | Description                                          |
+|-----------------------------|------------------------------------------------------|
 | `platform.users.deactivate` | Deactivate a user account and revoke active sessions |
-| `platform.users.reactivate` | Reactivate a previously deactivated user account |
+| `platform.users.reactivate` | Reactivate a previously deactivated user account     |
 
 These permissions MUST be enforced by the backend endpoint adapters for
 `PATCH /api/admin/users/{principalId}/deactivate` and
@@ -19,13 +19,15 @@ These permissions MUST be enforced by the backend endpoint adapters for
 
 - GIVEN the platform permission registry
 - WHEN the registry is loaded
-- THEN `platform.users.deactivate` SHALL be present with the description "Deactivate a user account and revoke active sessions"
+- THEN `platform.users.deactivate` SHALL be present with the description "Deactivate a user account
+  and revoke active sessions"
 
 #### Scenario: Reactivate permission registered
 
 - GIVEN the platform permission registry
 - WHEN the registry is loaded
-- THEN `platform.users.reactivate` SHALL be present with the description "Reactivate a previously deactivated user account"
+- THEN `platform.users.reactivate` SHALL be present with the description "Reactivate a previously
+  deactivated user account"
 
 ---
 
