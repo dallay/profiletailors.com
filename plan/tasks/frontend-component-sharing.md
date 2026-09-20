@@ -1,9 +1,11 @@
 # Frontend component sharing
 
 ## Goal
+
 Reduce duplicated presentation code between `apps/web/app` and `apps/web/admin` without coupling their domain, authentication, navigation, or layout boundaries.
 
 ## Route
+
 Delegated direct implementation in Plan Mode. This is not an OpenSpec cycle because the user authorized a focused refactor and did not request durable product specifications.
 
 ## Scope
