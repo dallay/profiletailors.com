@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.3...smp@v0.5.4) (2026-09-20)
+
+
+### Features
+
+* **identity:** persist registration mode in a DB-backed operational config table ([#1102](https://github.com/dallay/profiletailors.com/issues/1102)) ([e8d4b27](https://github.com/dallay/profiletailors.com/commit/e8d4b2735fbe39ea4ff5641bf32dcd4c9dfe1614))
+* **platformadmin:** invitation token lifecycle — PR3 security + spec sync ([#1098](https://github.com/dallay/profiletailors.com/issues/1098)) ([ad35eb6](https://github.com/dallay/profiletailors.com/commit/ad35eb66ae837f392ffd9c5751436175af64b559))
+* **platformadmin:** registration-mode configuration API, permissions, and audit ([#1105](https://github.com/dallay/profiletailors.com/issues/1105)) ([72d474e](https://github.com/dallay/profiletailors.com/commit/72d474e87f1c9ba6c28cda633ef3bc09651bcbc9))
+
+
+### Bug Fixes
+
+* **quality:** resolve SonarQube S107 and accessibility issues ([#1110](https://github.com/dallay/profiletailors.com/issues/1110)) ([0050aa7](https://github.com/dallay/profiletailors.com/commit/0050aa76116631143c9a2934dfad0256929d4776))
+
 ## [0.5.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.2...smp@v0.5.3) (2026-09-18)
 
 
