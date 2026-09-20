@@ -74,3 +74,5 @@ class PlatformRoleAlreadyRevokedException(assignmentId: String) :
 
 class PlatformRoleVersionConflictException(assignmentId: String) :
     RuntimeException("Concurrent modification detected for platform role assignment: $assignmentId")
+
+class InvalidRegistrationModeException(value: String) : IllegalArgumentException("Invalid registration mode: $value")

@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { visibleNavEntries } from '@/router/nav-registry'
-import VersionBadge from '@/shared/ui/VersionBadge.vue'
+import { VersionBadge } from '@profiletailors/vue-ui'
 
 const { t } = useI18n()
 const router = useRouter()

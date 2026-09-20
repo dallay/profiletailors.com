@@ -61,7 +61,9 @@ None.
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
 | backend-fast-tests | server/smp | Passed | Controller tests and REST contracts verified against backend domain modules. |
-| frontend-unit-tests | apps/web/app | Passed | 147 test files / 1730 tests passed in frontend app unit test suite. |
+| frontend-unit-tests | apps/web/app | Passed | 149 test files / 1750 tests passed in frontend app unit test suite. |
+| frontend-admin-tests | apps/web/admin | Passed | 9 test files / 87 tests passed in frontend admin unit test suite. |
+| frontend-marketing-tests | apps/web/marketing | Passed | 15 test files / 139 tests passed in marketing unit test suite. |
 | frontend-lint-check | apps/web/app | Passed | Biome lint check completed across frontend web application files. |
 
 ## Unresolved Findings
@@ -74,7 +76,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-03-31T00:00:00Z`
+- **Last Execution:** `2026-09-18T18:52:28Z`
 - **Schema Version:** `1`
 - **Task Identity:** `api-contract-drift-auditor`
 

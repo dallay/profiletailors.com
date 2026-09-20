@@ -3,36 +3,36 @@
 ## Purpose
 
 This spec defines the back-office user management capability for platform operators. It covers the
-enriched user list with filters and summary metrics, the user detail view with all fields, backend
-mutation endpoints with optimistic locking, row-level actions with confirmation, and the supporting
-backend summary endpoint. All behavior mirrors the invitations and waitlist slice patterns.
+user list with exact-email search and account-state filters, the user detail view with memberships,
+explicit disable/enable/session-revoke commands guarded by `platform.users.manage` and
+`Idempotency-Key`, and detail-view actions with confirmation. All behavior mirrors the invitations
+and waitlist slice patterns.
 
 ---
 
 ## Requirements
 
-### Requirement: User list renders with filters, summary card, and enriched columns
+### Requirement: User list renders with filters and enriched columns
 
-`GET /api/admin/users` MUST support `status`, `principalType`, `createdFrom`, `createdTo`, and
-`search` (email substring) query parameters. The response MUST include `workspaceCount`,
-`platformRoles`, `lastAuthenticatedAt`, and `authenticationMethods` per entry.
+`GET /api/admin/users` MUST support `status` (account state), `email` (exact normalized match),
+`createdFrom`, and `createdTo` query parameters with pagination and sorting. The response MUST
+include `workspaceCount` per entry.
 
-The UI MUST render a summary card above the list showing counts grouped by `status` and
-`principalType` fetched from `GET /api/admin/users/summary`.
+The UI MUST render a filter bar with status dropdown, date-range inputs, and email search above
+the list.
 
-#### Scenario: Operator sees active users filtered by principal type
+#### Scenario: Operator sees users filtered by account state
 
 - GIVEN an authenticated platform operator with `platform.users.read`
 - WHEN the operator opens the users list
-- THEN the system SHALL render a summary card with counts by status and principalType
-- AND SHALL render a filter bar with status dropdown, principalType dropdown, date-range inputs, and email search
-- AND SHALL render rows with columns: email, principalType, status, workspaceCount, platformRoles, lastAuthenticatedAt, authenticationMethods
+- THEN the system SHALL render a filter bar with status dropdown, date-range inputs, and email search
+- AND SHALL render rows with columns including email, account state, and workspace count
 
 #### Scenario: Operator searches users by email
 
-- GIVEN a populated users list with `search` parameter supported by the backend
-- WHEN the operator types a partial email in the search field
-- THEN the system SHALL debounce the request and filter rows by email substring match
+- GIVEN a populated users list with `email` parameter supported by the backend
+- WHEN the operator types a full email in the search field
+- THEN the system SHALL filter rows by exact normalized-email match
 
 #### Scenario: Unauthenticated request returns 401
 
@@ -78,142 +78,136 @@ platform roles, and workspace memberships.
 
 ---
 
-### Requirement: Deactivate action with optimistic locking
+### Requirement: Disable action is explicit and idempotent
 
-`PATCH /api/admin/users/{principalId}/deactivate` MUST require `platform.users.deactivate`
-permission. The request MUST include an `If-Match: version` header. On version match the system
-MUST deactivate the user and return `200 OK`. On version mismatch the system MUST return
-`409 Conflict`. The system MUST emit a `USER_DEACTIVATED` audit event on success.
+`POST /api/admin/users/{principalId}/disable` MUST require `platform.users.manage` permission and
+a valid `Idempotency-Key` header. The system MUST persist `DISABLED` account state and revoke all
+active refresh sessions before reporting success, and MUST NOT report success on partial
+completion. Repeating disable on an already-disabled account MUST succeed without changing the
+final state. The system MUST emit a `USER_DISABLED` audit event on success.
 
-#### Scenario: Operator deactivates user successfully
+#### Scenario: Operator disables user successfully
 
-- GIVEN an authenticated operator with `platform.users.deactivate`
-- AND a user with a known `version`
-- WHEN `PATCH /api/admin/users/{principalId}/deactivate` is sent with matching `If-Match` header
-- THEN the system SHALL return `200 OK` with updated user payload including new `version`
-- AND SHALL emit a `USER_DEACTIVATED` audit event
+- GIVEN an authenticated operator with `platform.users.manage`
+- AND an active user with zero or more active refresh sessions
+- WHEN `POST /api/admin/users/{principalId}/disable` is sent with a valid `Idempotency-Key`
+- THEN the account SHALL become `DISABLED`
+- AND all active refresh sessions SHALL be revoked before success is reported
+- AND a `USER_DISABLED` audit event SHALL be emitted
 
-#### Scenario: Version mismatch returns 409
+#### Scenario: Disabled account cannot authenticate
 
-- GIVEN an authenticated operator with `platform.users.deactivate`
-- AND a user whose current `version` differs from the `If-Match` header
-- WHEN `PATCH /api/admin/users/{principalId}/deactivate` is sent with stale `If-Match` header
-- THEN the system SHALL return `409 Conflict`
-- AND SHALL NOT modify the user record
-
-#### Scenario: Missing If-Match header returns 428
-
-- GIVEN an authenticated operator with `platform.users.deactivate`
-- WHEN `PATCH /api/admin/users/{principalId}/deactivate` is sent without `If-Match` header
-- THEN the system SHALL return `428 Precondition Required`
+- GIVEN a disabled user
+- WHEN local login or session refresh is attempted
+- THEN authentication SHALL be rejected
+- AND no access token or replacement session SHALL be issued
 
 #### Scenario: Insufficient permission returns 403
 
-- GIVEN a principal without `platform.users.deactivate`
-- WHEN `PATCH /api/admin/users/{principalId}/deactivate` is invoked
+- GIVEN a principal without `platform.users.manage`
+- WHEN `POST /api/admin/users/{principalId}/disable` is invoked
 - THEN the system SHALL return `403 Forbidden`
+- AND SHALL NOT modify the account
 
 ---
 
-### Requirement: Reactivate action with optimistic locking
+### Requirement: Enable action restores access without restoring sessions
 
-`PATCH /api/admin/users/{principalId}/reactivate` MUST require `platform.users.reactivate`
-permission. The request MUST include an `If-Match: version` header. On version match the system
-MUST reactivate the user and return `200 OK`. On version mismatch the system MUST return
-`409 Conflict`. The system MUST emit a `USER_REACTIVATED` audit event on success.
+`POST /api/admin/users/{principalId}/enable` MUST require `platform.users.manage` permission and
+a valid `Idempotency-Key` header. The system MUST persist `ACTIVE` account state; previously
+revoked sessions MUST remain revoked. The system MUST emit a `USER_ENABLED` audit event on
+success.
 
-#### Scenario: Operator reactivates user successfully
+#### Scenario: Operator enables user successfully
 
-- GIVEN an authenticated operator with `platform.users.reactivate`
-- AND a deactivated user with a known `version`
-- WHEN `PATCH /api/admin/users/{principalId}/reactivate` is sent with matching `If-Match` header
-- THEN the system SHALL return `200 OK` with updated user payload including new `version`
-- AND SHALL emit a `USER_REACTIVATED` audit event
-
-#### Scenario: Version mismatch returns 409
-
-- GIVEN an authenticated operator with `platform.users.reactivate`
-- AND a deactivated user whose current `version` differs from the `If-Match` header
-- WHEN `PATCH /api/admin/users/{principalId}/reactivate` is sent with stale `If-Match` header
-- THEN the system SHALL return `409 Conflict`
-
-#### Scenario: Missing If-Match header returns 428
-
-- GIVEN an authenticated operator with `platform.users.reactivate`
-- WHEN `PATCH /api/admin/users/{principalId}/reactivate` is sent without `If-Match` header
-- THEN the system SHALL return `428 Precondition Required`
-
-#### Scenario: Insufficient permission returns 403
-
-- GIVEN a principal without `platform.users.reactivate`
-- WHEN `PATCH /api/admin/users/{principalId}/reactivate` is invoked
-- THEN the system SHALL return `403 Forbidden`
+- GIVEN an authenticated operator with `platform.users.manage`
+- AND a disabled user
+- WHEN `POST /api/admin/users/{principalId}/enable` is sent with a valid `Idempotency-Key`
+- THEN the account SHALL become `ACTIVE`
+- AND previously revoked sessions SHALL remain revoked
+- AND a `USER_ENABLED` audit event SHALL be emitted
 
 ---
 
-### Requirement: Row actions in user list with confirmation dialog
+### Requirement: Standalone session revocation reports the revoked count
 
-The UsersView MUST render row-level deactivate and reactivate action buttons for each row based on
-current user status. Clicking an action MUST show a confirmation dialog describing the effect.
-On confirm, the action MUST call the corresponding backend endpoint with the current `version`
-from the row and handle 409 by refreshing the row data with the new version.
+`POST /api/admin/users/{principalId}/sessions/revoke` MUST require `platform.users.manage`
+permission and a valid `Idempotency-Key` header. The system MUST revoke all active refresh
+sessions without changing account state and MUST return the number revoked. The system MUST emit
+a `USER_SESSIONS_REVOKED` audit event on success.
 
-#### Scenario: Operator deactivates user from list row
+#### Scenario: Operator revokes all sessions
 
-- GIVEN an operator viewing the users list with a row whose status is ACTIVE
-- WHEN the operator clicks the deactivate action on that row
-- THEN the system SHALL show a confirmation dialog
-- AND on operator confirm SHALL call `PATCH /api/admin/users/{principalId}/deactivate` with `If-Match` from the row
-- AND on `200 OK` SHALL update the row status to INACTIVE
-
-#### Scenario: Optimistic lock conflict on row action refreshes data
-
-- GIVEN an operator viewing the users list
-- WHEN a row action returns `409 Conflict`
-- THEN the system SHALL refresh the affected row from the list endpoint
-- AND SHALL display a toast indicating the data was updated by another operator
-
-#### Scenario: Reactivate action shown only for inactive users
-
-- GIVEN an operator viewing the users list
-- WHEN a row status is INACTIVE
-- THEN the system SHALL render a reactivate action button
-- AND SHALL NOT render a deactivate action button
+- GIVEN an authenticated operator with `platform.users.manage`
+- AND a user with active refresh sessions on multiple devices
+- WHEN `POST /api/admin/users/{principalId}/sessions/revoke` is sent
+- THEN every active refresh session SHALL become invalid
+- AND the response SHALL report the revoked count
 
 ---
 
-### Requirement: Backend summary endpoint returns counts by status and principal type
+### Requirement: Detail-view actions with confirmation dialog
 
-`GET /api/admin/users/summary` MUST return a JSON object with counts keyed by `status` and
-`principalType`, for example `{ "byStatus": { "ACTIVE": 10, "INACTIVE": 2 }, "byPrincipalType": {
-"USER": 11, "SERVICE_ACCOUNT": 1 } }`. This endpoint MUST require `platform.users.read`
-permission.
+The UserDetailView MUST render disable, enable, and revoke-sessions action buttons based on
+current account state, visible only to operators holding `platform.users.manage`. Clicking an
+action MUST show a confirmation dialog describing the effect. On confirm, the action MUST call
+the corresponding POST endpoint with an `Idempotency-Key` header and handle failure by refreshing
+the detail data with a toast.
 
-#### Scenario: Operator fetches summary counts
+#### Scenario: Operator disables user from detail view
+
+- GIVEN an operator viewing a user detail whose account state is ACTIVE
+- WHEN the operator clicks the disable action and confirms
+- THEN the system SHALL call `POST /api/admin/users/{principalId}/disable` with an `Idempotency-Key`
+- AND on success SHALL update the detail account state to DISABLED
+
+#### Scenario: Failed action refreshes data
+
+- GIVEN an operator viewing a user detail
+- WHEN a control action fails
+- THEN the system SHALL refresh the detail from the backend
+- AND SHALL display a toast indicating the outcome
+
+#### Scenario: Enable action shown only for disabled users
+
+- GIVEN an operator viewing a user detail
+- WHEN the account state is DISABLED
+- THEN the system SHALL render an enable action button
+- AND SHALL NOT render a disable action button
+
+---
+
+### Requirement: List pagination and sorting
+
+`GET /api/admin/users` MUST paginate with `page` and `size` parameters and sort with `sortField`
+and `sortDirection`, defaulting to creation time descending. This endpoint MUST require
+`platform.users.read` permission.
+
+#### Scenario: Operator pages through users
 
 - GIVEN an authenticated operator with `platform.users.read`
-- WHEN `GET /api/admin/users/summary` is invoked
-- THEN the system SHALL return `200 OK` with counts grouped by status and principalType
+- WHEN `GET /api/admin/users` is invoked with paging and sorting parameters
+- THEN the system SHALL return `200 OK` with the requested page in the declared order
 
 #### Scenario: Insufficient permission returns 403
 
 - GIVEN a principal without `platform.users.read`
-- WHEN `GET /api/admin/users/summary` is invoked
+- WHEN `GET /api/admin/users` is invoked
 - THEN the system SHALL return `403 Forbidden`
 
 ---
 
 ### Requirement: Vitest specs for UsersView and UserDetailView
 
-Vitest suites MUST cover UsersView component rendering with filter interactions and summary card
-display, UserDetailView rendering with all section data, optimistic lock conflict handling in
-row actions, and toast notifications on action success or 409 refresh.
+Vitest suites MUST cover UsersView component rendering with filter interactions, UserDetailView
+rendering with all section data, detail-view control actions with confirmation and permission
+gating, and toast notifications on action success or failure refresh.
 
-#### Scenario: UsersView renders filter bar and summary card
+#### Scenario: UsersView renders filter bar
 
-- GIVEN UsersView mounted with mock API returning summary and list data
+- GIVEN UsersView mounted with mock API returning list data
 - WHEN the component renders
-- THEN Vitest SHALL verify the filter bar, summary card, and data rows are present
+- THEN Vitest SHALL verify the filter bar and data rows are present
 
 #### Scenario: UserDetailView renders all sections
 
@@ -221,19 +215,19 @@ row actions, and toast notifications on action success or 409 refresh.
 - WHEN the component renders
 - THEN Vitest SHALL verify profile, consent, authentication methods, roles, and memberships sections
 
-#### Scenario: Row action 409 triggers toast and refresh
+#### Scenario: Detail action failure triggers toast and refresh
 
-- GIVEN UsersView with a row action pending
-- WHEN the action returns `409 Conflict`
-- THEN Vitest SHALL verify a toast is shown and the list refresh is triggered
+- GIVEN UserDetailView with a control action pending
+- WHEN the action fails
+- THEN Vitest SHALL verify a toast is shown and the detail refresh is triggered
 
 ---
 
-### Requirement: BDD scenarios for user list, detail, deactivate, and reactivate
+### Requirement: BDD scenarios for user list, detail, disable, enable, and revocation
 
 Cucumber feature files MUST cover the full user management flow: list rendering with filters,
-detail navigation, deactivate with optimistic lock, reactivate with optimistic lock, and
-permission denial scenarios.
+detail navigation with memberships, disable with session revocation, enable, standalone session
+revocation, idempotent replay, and permission denial scenarios.
 
 #### Scenario: List users with all filters applied
 
@@ -241,28 +235,36 @@ permission denial scenarios.
 - WHEN the operator applies status, principalType, date-range, and email filters
 - THEN the system SHALL return filtered results matching all criteria
 
-#### Scenario: Deactivate user with correct version
+#### Scenario: Disable user revokes sessions
 
-- GIVEN an authenticated operator with `platform.users.deactivate`
-- WHEN the operator deactivates a user with the correct `If-Match` version
-- THEN the user status SHALL be INACTIVE
-- AND a `USER_DEACTIVATED` audit event SHALL be recorded
+- GIVEN an authenticated operator with `platform.users.manage`
+- WHEN the operator disables an active user
+- THEN the account SHALL be DISABLED
+- AND all active refresh sessions SHALL be revoked
+- AND a `USER_DISABLED` audit event SHALL be recorded
 
-#### Scenario: Reactivate user with correct version
+#### Scenario: Enable user restores access
 
-- GIVEN an authenticated operator with `platform.users.reactivate`
-- WHEN the operator reactivates a user with the correct `If-Match` version
-- THEN the user status SHALL be ACTIVE
-- AND a `USER_REACTIVATED` audit event SHALL be recorded
+- GIVEN an authenticated operator with `platform.users.manage`
+- WHEN the operator enables a disabled user
+- THEN the account SHALL be ACTIVE
+- AND a `USER_ENABLED` audit event SHALL be recorded
 
-#### Scenario: Deactivation without permission returns 403
+#### Scenario: Revoke sessions without state change
 
-- GIVEN a principal without `platform.users.deactivate`
-- WHEN the operator attempts to deactivate a user
-- THEN the system SHALL return `403 Forbidden`
+- GIVEN an authenticated operator with `platform.users.manage`
+- WHEN the operator revokes sessions for a user
+- THEN every refresh session SHALL become invalid
+- AND a `USER_SESSIONS_REVOKED` audit event SHALL be recorded
 
-#### Scenario: Reactivation without permission returns 403
+#### Scenario: Replay is idempotent
 
-- GIVEN a principal without `platform.users.reactivate`
-- WHEN the operator attempts to reactivate a user
+- GIVEN a completed disable command with its idempotency key
+- WHEN the same command is replayed
+- THEN no duplicate state change or success audit SHALL occur
+
+#### Scenario: Control without permission returns 403
+
+- GIVEN a principal without `platform.users.manage`
+- WHEN the operator attempts a user control command
 - THEN the system SHALL return `403 Forbidden`

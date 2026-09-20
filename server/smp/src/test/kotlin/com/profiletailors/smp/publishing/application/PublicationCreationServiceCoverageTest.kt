@@ -86,13 +86,14 @@ class PublicationCreationServiceCoverageTest {
         )
         assertThrows<IllegalArgumentException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = null,
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                mediaUrls = emptyList(),
-                assetIds = emptyList(),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    mediaUrls = emptyList(),
+                    assetIds = emptyList(),
+                ),
             )
         }
     }
@@ -104,11 +105,12 @@ class PublicationCreationServiceCoverageTest {
         val (service, _, _) = createService(socialAccountRepository = repo)
         assertThrows<IllegalArgumentException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2025-12-31T12:00:00Z"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2025-12-31T12:00:00Z"),
+                ),
             )
         }
     }
@@ -120,12 +122,13 @@ class PublicationCreationServiceCoverageTest {
         val (service, _, _) = createService(socialAccountRepository = repo)
         assertThrows<IllegalArgumentException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                scheduleMode = ScheduleMode.NOW,
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    scheduleMode = ScheduleMode.NOW,
+                ),
             )
         }
     }
@@ -137,12 +140,13 @@ class PublicationCreationServiceCoverageTest {
         val (service, _, _) = createService(socialAccountRepository = repo)
         assertThrows<IllegalArgumentException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = null,
-                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = null,
+                    scheduleMode = ScheduleMode.SCHEDULED_AT,
+                ),
             )
         }
     }
@@ -154,12 +158,13 @@ class PublicationCreationServiceCoverageTest {
         val (service, _, _) = createService(socialAccountRepository = repo)
         assertThrows<PublicationValidationException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                mediaUrls = listOf("https://cdn.example.com/oversized.jpg"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    mediaUrls = listOf("https://cdn.example.com/oversized.jpg"),
+                ),
             )
         }
     }
@@ -171,12 +176,13 @@ class PublicationCreationServiceCoverageTest {
         val (service, _, _) = createService(socialAccountRepository = repo)
         assertThrows<PublicationValidationException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                mediaUrls = listOf("https://cdn.example.com/too-large.png"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    mediaUrls = listOf("https://cdn.example.com/too-large.png"),
+                ),
             )
         }
     }
@@ -190,12 +196,13 @@ class PublicationCreationServiceCoverageTest {
             val (service, _, _) = createService(socialAccountRepository = repo)
             assertThrows<PublicationValidationException> {
                 service.create(
-                    workspaceId = "ws-1",
-                    principalId = "u-1",
+                    identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                     socialAccountId = "acc-1",
                     bodyText = "Hello",
-                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                    mediaUrls = listOf("https://cdn.example.com/file$ext"),
+                    scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                        scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                        mediaUrls = listOf("https://cdn.example.com/file$ext"),
+                    ),
                 )
             }
         }
@@ -225,12 +232,13 @@ class PublicationCreationServiceCoverageTest {
             val (service, _, _) = createService(socialAccountRepository = repo)
             assertThrows<PublicationValidationException> {
                 service.create(
-                    workspaceId = "ws-1",
-                    principalId = "u-1",
+                    identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                     socialAccountId = "acc-1",
                     bodyText = "Hello",
-                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                    mediaUrls = listOf(url),
+                    scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                        scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                        mediaUrls = listOf(url),
+                    ),
                 )
             }
         }
@@ -247,12 +255,13 @@ class PublicationCreationServiceCoverageTest {
             publicationRepository = pubRepo,
         )
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Hello",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            mediaUrls = listOf("http://172.32.0.1/image.jpg"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                mediaUrls = listOf("http://172.32.0.1/image.jpg"),
+            ),
         )
         result.bodyText shouldBe "Hello"
     }
@@ -284,12 +293,13 @@ class PublicationCreationServiceCoverageTest {
                 publicationRepository = pubRepo,
             )
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                mediaUrls = listOf(url),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    mediaUrls = listOf(url),
+                ),
             )
             slot.captured.mediaType shouldBe expectedType
         }
@@ -313,12 +323,13 @@ class PublicationCreationServiceCoverageTest {
             mediaResolver = mediaResolver,
         )
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Hello",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            assetIds = emptyList(),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                assetIds = emptyList(),
+            ),
         )
         result.assetIds.isEmpty() shouldBe true
         coVerify(exactly = 0) { assetRepo.findByWorkspaceAndIds(any(), any()) }
@@ -342,12 +353,13 @@ class PublicationCreationServiceCoverageTest {
             mediaResolver = mediaResolver,
         )
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Hello",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            mediaUrls = listOf("https://cdn.example.com/image.jpg"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                mediaUrls = listOf("https://cdn.example.com/image.jpg"),
+            ),
         )
         result.assetIds.size shouldBe 1
         coVerify(exactly = 0) { assetRepo.findByWorkspaceAndIds(any(), any()) }
@@ -380,13 +392,14 @@ class PublicationCreationServiceCoverageTest {
             publicationRepository = pubRepo,
         )
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Hello",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            mediaUrls = listOf("https://cdn.example.com/image.jpg"),
-            assetIds = listOf("existing-1"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                mediaUrls = listOf("https://cdn.example.com/image.jpg"),
+                assetIds = listOf("existing-1"),
+            ),
         )
         result.assetIds.size shouldBe 2
         coVerify { assetRepo.findByWorkspaceAndIds("ws-1", listOf("existing-1")) }
@@ -417,12 +430,13 @@ class PublicationCreationServiceCoverageTest {
             mediaResolver = mediaResolver,
         )
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Hello",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            assetIds = listOf("asset-1"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                assetIds = listOf("asset-1"),
+            ),
         )
         result.assetIds shouldBe listOf("asset-1")
         coVerify { mediaResolver.resolveReadyAssets("ws-1", listOf("asset-1")) }
@@ -447,12 +461,13 @@ class PublicationCreationServiceCoverageTest {
         )
         assertThrows<MediaServiceUnavailableException> {
             service.create(
-                workspaceId = "ws-1",
-                principalId = "u-1",
+                identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
                 socialAccountId = "acc-1",
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                assetIds = listOf("asset-timeout"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    assetIds = listOf("asset-timeout"),
+                ),
             )
         }
     }
@@ -465,13 +480,14 @@ class PublicationCreationServiceCoverageTest {
         coEvery { pubRepo.createDraft(any()) } answers { it.invocation.args[0] as PublicationDraft }
         val (service, _, _) = createService(socialAccountRepository = repo, publicationRepository = pubRepo)
         val result = service.create(
-            workspaceId = "ws-1",
-            principalId = "u-1",
+            identity = PublicationCreationService.PublishingIdentity("ws-1", "u-1"),
             socialAccountId = "acc-1",
             bodyText = "Priority post",
-            scheduledFor = null,
-            scheduleMode = ScheduleMode.NEXT_SLOT,
-            priority = true,
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = null,
+                scheduleMode = ScheduleMode.NEXT_SLOT,
+                priority = true,
+            ),
         )
         result.priority shouldBe true
         result.scheduleMode shouldBe ScheduleMode.NEXT_SLOT

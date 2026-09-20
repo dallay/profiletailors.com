@@ -21,6 +21,15 @@ import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import java.time.Clock
 import java.util.UUID
 
+private data class AuditContext(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
+    val targetPrincipalId: String,
+    val action: AdminAuditAction,
+)
+
+private data class StateTransition(val expected: UserAccountState, val replacement: UserAccountState)
+
 open class UserControlHandlers(
     private val accountStateGateway: AccountStateGateway,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
@@ -46,12 +55,16 @@ open class UserControlHandlers(
         )
         return executeStateChange(
             operation = "disable",
-            operatorPrincipalId = command.operatorPrincipalId,
-            operatorRoles = command.operatorRoles,
-            targetPrincipalId = command.targetPrincipalId,
-            expected = UserAccountState.ACTIVE,
-            replacement = UserAccountState.DISABLED,
-            action = AdminAuditAction.USER_DISABLED,
+            context = AuditContext(
+                operatorPrincipalId = command.operatorPrincipalId,
+                operatorRoles = command.operatorRoles,
+                targetPrincipalId = command.targetPrincipalId,
+                action = AdminAuditAction.USER_DISABLED,
+            ),
+            transition = StateTransition(
+                expected = UserAccountState.ACTIVE,
+                replacement = UserAccountState.DISABLED,
+            ),
             disable = true,
         )
     }
@@ -65,12 +78,16 @@ open class UserControlHandlers(
         )
         return executeStateChange(
             operation = "enable",
-            operatorPrincipalId = command.operatorPrincipalId,
-            operatorRoles = command.operatorRoles,
-            targetPrincipalId = command.targetPrincipalId,
-            expected = UserAccountState.DISABLED,
-            replacement = UserAccountState.ACTIVE,
-            action = AdminAuditAction.USER_ENABLED,
+            context = AuditContext(
+                operatorPrincipalId = command.operatorPrincipalId,
+                operatorRoles = command.operatorRoles,
+                targetPrincipalId = command.targetPrincipalId,
+                action = AdminAuditAction.USER_ENABLED,
+            ),
+            transition = StateTransition(
+                expected = UserAccountState.DISABLED,
+                replacement = UserAccountState.ACTIVE,
+            ),
             disable = false,
         )
     }
@@ -88,10 +105,12 @@ open class UserControlHandlers(
                 refreshSessionLifecycleService.revokeAllForPrincipal(command.targetPrincipalId)
             }
             publishSuccess(
-                operatorPrincipalId = command.operatorPrincipalId,
-                operatorRoles = command.operatorRoles,
-                targetPrincipalId = command.targetPrincipalId,
-                action = AdminAuditAction.USER_SESSIONS_REVOKED,
+                context = AuditContext(
+                    operatorPrincipalId = command.operatorPrincipalId,
+                    operatorRoles = command.operatorRoles,
+                    targetPrincipalId = command.targetPrincipalId,
+                    action = AdminAuditAction.USER_SESSIONS_REVOKED,
+                ),
                 metadata = mapOf("revokedSessionCount" to count.toString()),
             )
             telemetry.record("sessions_revoke", "success")
@@ -99,10 +118,12 @@ open class UserControlHandlers(
         } catch (error: Throwable) {
             telemetry.record("sessions_revoke", "failure")
             publishFailure(
-                command.operatorPrincipalId,
-                command.operatorRoles,
-                command.targetPrincipalId,
-                AdminAuditAction.USER_SESSIONS_REVOKED,
+                context = AuditContext(
+                    operatorPrincipalId = command.operatorPrincipalId,
+                    operatorRoles = command.operatorRoles,
+                    targetPrincipalId = command.targetPrincipalId,
+                    action = AdminAuditAction.USER_SESSIONS_REVOKED,
+                ),
             )
             throw error
         }
@@ -110,31 +131,24 @@ open class UserControlHandlers(
 
     private suspend fun executeStateChange(
         operation: String,
-        operatorPrincipalId: UUID,
-        operatorRoles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
-        targetPrincipalId: String,
-        expected: UserAccountState,
-        replacement: UserAccountState,
-        action: AdminAuditAction,
+        context: AuditContext,
+        transition: StateTransition,
         disable: Boolean,
     ): UserControlResult = try {
         val count = transactionRunner.runAtomically {
-            requireUser(targetPrincipalId)
-            changeStateOrConfirm(targetPrincipalId, expected, replacement)
-            revokeSessionsIfDisabled(disable, targetPrincipalId)
+            requireUser(context.targetPrincipalId)
+            changeStateOrConfirm(context.targetPrincipalId, transition.expected, transition.replacement)
+            revokeSessionsIfDisabled(disable, context.targetPrincipalId)
         }
         publishSuccess(
-            operatorPrincipalId,
-            operatorRoles,
-            targetPrincipalId,
-            action,
-            mapOf("revokedSessionCount" to count.toString()),
+            context = context,
+            metadata = mapOf("revokedSessionCount" to count.toString()),
         )
         telemetry.record(operation, "success")
-        UserControlResult(targetPrincipalId, replacement, count)
+        UserControlResult(context.targetPrincipalId, transition.replacement, count)
     } catch (error: Throwable) {
         telemetry.record(operation, "failure")
-        publishFailure(operatorPrincipalId, operatorRoles, targetPrincipalId, action)
+        publishFailure(context = context)
         throw error
     }
 
@@ -168,11 +182,13 @@ open class UserControlHandlers(
             telemetry.recordAuthorizationRejected(action.metricOperation)
             auditPublisher.publish(
                 auditEvent(
-                    operatorPrincipalId,
-                    roles,
-                    targetPrincipalId,
-                    action,
-                    AdminAuditResult.REJECTED,
+                    context = AuditContext(
+                        operatorPrincipalId = operatorPrincipalId,
+                        operatorRoles = roles,
+                        targetPrincipalId = targetPrincipalId,
+                        action = action,
+                    ),
+                    result = AdminAuditResult.REJECTED,
                     reason = "Platform user-management permission required.",
                 ),
             )
@@ -180,37 +196,20 @@ open class UserControlHandlers(
         }
     }
 
-    private suspend fun publishSuccess(
-        operatorPrincipalId: UUID,
-        operatorRoles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
-        targetPrincipalId: String,
-        action: AdminAuditAction,
-        metadata: Map<String, String>,
-    ) {
+    private suspend fun publishSuccess(context: AuditContext, metadata: Map<String, String>) {
         auditPublisher.publish(
             auditEvent(
-                operatorPrincipalId,
-                operatorRoles,
-                targetPrincipalId,
-                action,
+                context,
                 AdminAuditResult.SUCCEEDED,
                 metadata = metadata,
             ),
         )
     }
 
-    private suspend fun publishFailure(
-        operatorPrincipalId: UUID,
-        operatorRoles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
-        targetPrincipalId: String,
-        action: AdminAuditAction,
-    ) {
+    private suspend fun publishFailure(context: AuditContext) {
         auditPublisher.publish(
             auditEvent(
-                operatorPrincipalId,
-                operatorRoles,
-                targetPrincipalId,
-                action,
+                context,
                 AdminAuditResult.FAILED,
                 reason = "User control operation failed.",
             ),
@@ -218,21 +217,18 @@ open class UserControlHandlers(
     }
 
     private fun auditEvent(
-        operatorPrincipalId: UUID,
-        operatorRoles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
-        targetPrincipalId: String,
-        action: AdminAuditAction,
+        context: AuditContext,
         result: AdminAuditResult,
         reason: String? = null,
         metadata: Map<String, String> = emptyMap(),
     ) = AdminAuditEvent(
         eventId = UUID.randomUUID(),
         occurredAt = clock.instant(),
-        operatorPrincipalId = operatorPrincipalId,
-        operatorPlatformRoles = operatorRoles,
-        action = action,
+        operatorPrincipalId = context.operatorPrincipalId,
+        operatorPlatformRoles = context.operatorRoles,
+        action = context.action,
         targetType = "Principal",
-        targetId = targetPrincipalId,
+        targetId = context.targetPrincipalId,
         result = result,
         reason = reason,
         metadata = metadata,

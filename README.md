@@ -6,7 +6,8 @@
 
 **Schedule smarter. Post everywhere.**
 
-Monorepo for the Profile Tailors social media management platform (marketing, dashboard, backend, shared modules, and infrastructure).
+Monorepo for the Profile Tailors social media management platform (marketing, dashboard, backend,
+shared modules, and infrastructure).
 
 </div>
 
@@ -30,27 +31,29 @@ Monorepo for the Profile Tailors social media management platform (marketing, da
 
 ## Subprojects Index
 
-This monorepo contains 17 dedicated subprojects across web applications, backend services, shared libraries, compliance tooling, and build infrastructure. Each subproject contains an independently useful `README.md` file detailing its role, tech stack, configuration, and developer commands:
+This monorepo contains 17 dedicated subprojects across web applications, backend services, shared
+libraries, compliance tooling, and build infrastructure. Each subproject contains an independently
+useful `README.md` file detailing its role, tech stack, configuration, and developer commands:
 
-| Category | Subproject Path | Purpose | Dedicated README |
-| --- | --- | --- | --- |
-| **Web App** | [`apps/web/marketing`](apps/web/marketing) | Public-facing Astro 7 marketing site, bilingual landing pages, and client-side waitlist acquisition flow. | [README](apps/web/marketing/README.md) |
-| **Web App** | [`apps/web/app`](apps/web/app) | Core Vue 3 dashboard single-page application for post scheduling, social publishing, media, and analytics. | [README](apps/web/app/README.md) |
-| **Web App** | [`apps/web/admin`](apps/web/admin) | Internal Vue 3 platform administration portal for waitlist management, user accounts, and system auditing. | [README](apps/web/admin/README.md) |
-| **Shared Web** | [`shared/web`](shared/web) | Framework-agnostic TypeScript workspace package defining canonical GDPR consent contracts and validation rules. | [README](shared/web/README.md) |
-| **Tooling** | [`tools/compliance`](tools/compliance) | Node.js CLI tool and schema validator verifying GDPR data inventory schemas and security drift rules. | [README](tools/compliance/README.md) |
-| **Build Infrastructure** | [`gradle/build-logic`](gradle/build-logic) | Centralized Gradle Kotlin DSL convention plugins for Spring Boot, Spotless formatting, OWASP, and Detekt. | [README](gradle/build-logic/README.md) |
-| **Backend Service** | [`server/smp`](server/smp) | Reactive Spring Boot 4 Kotlin monolith providing core REST APIs, R2DBC persistence, and publishing services. | [README](server/smp/README.md) |
-| **Shared Backend** | [`shared/common`](shared/common) | Pure Kotlin domain primitives, immutable value objects (`Email`, `Username`, `WorkspaceId`), and domain events. | [README](shared/common/README.md) |
-| **Shared Backend** | [`shared/bus`](shared/bus) | Framework-agnostic in-process CQRS mediator, command/query dispatcher, and pipeline behavior middleware chain. | [README](shared/bus/README.md) |
-| **Shared Backend** | [`shared/lead-capture/common`](shared/lead-capture/common) | Domain models and interface contracts for prospect acquisition and lead capture. | [README](shared/lead-capture/common/README.md) |
-| **Shared Backend** | [`shared/lead-capture/waitlist`](shared/lead-capture/waitlist) | Waitlist domain logic, signup processing, invite status tracking, and duplicate checks. | [README](shared/lead-capture/waitlist/README.md) |
-| **Shared Backend** | [`shared/notifications`](shared/notifications) | Email alert abstractions, transactional messaging, and event-driven notification dispatch services. | [README](shared/notifications/README.md) |
-| **Shared Backend** | [`shared/presentation`](shared/presentation) | Framework-agnostic API presentation envelopes, page response structures (`PageResponse`), and opaque cursor encoders. | [README](shared/presentation/README.md) |
-| **Shared Backend** | [`shared/security`](shared/security) | Pure Kotlin security abstractions (`Hasher`, `Sha256Hasher`, `HmacHasher`), `PrincipalContext`, and tenant context. | [README](shared/security/README.md) |
-| **Shared Backend** | [`shared/shield/ratelimit`](shared/shield/ratelimit) | Reactive Spring WebFlux rate-limiting filter using Bucket4j, Caffeine cache, and Micrometer metrics. | [README](shared/shield/ratelimit/README.md) |
-| **Shared Backend** | [`shared/spring-boot-common`](shared/spring-boot-common) | Spring WebFlux integration adapter offering RFC 9457 `ProblemDetail` handlers and workspace `WebFilter`. | [README](shared/spring-boot-common/README.md) |
-| **Shared Backend** | [`shared/storage`](shared/storage) | Reactive multi-provider object storage abstraction (Local FS, AWS S3, Cloudflare R2) with path traversal protection. | [README](shared/storage/README.md) |
+| Category                 | Subproject Path                                                | Purpose                                                                                                               | Dedicated README                                 |
+|--------------------------|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| **Web App**              | [`apps/web/marketing`](apps/web/marketing)                     | Public-facing Astro 7 marketing site, bilingual landing pages, and client-side waitlist acquisition flow.             | [README](apps/web/marketing/README.md)           |
+| **Web App**              | [`apps/web/app`](apps/web/app)                                 | Core Vue 3 dashboard single-page application for post scheduling, social publishing, media, and analytics.            | [README](apps/web/app/README.md)                 |
+| **Web App**              | [`apps/web/admin`](apps/web/admin)                             | Internal Vue 3 platform administration portal for waitlist management, user accounts, and system auditing.            | [README](apps/web/admin/README.md)               |
+| **Shared Web**           | [`shared/web`](shared/web)                                     | Framework-agnostic TypeScript workspace package defining canonical GDPR consent contracts and validation rules.       | [README](shared/web/README.md)                   |
+| **Tooling**              | [`tools/compliance`](tools/compliance)                         | Node.js CLI tool and schema validator verifying GDPR data inventory schemas and security drift rules.                 | [README](tools/compliance/README.md)             |
+| **Build Infrastructure** | [`gradle/build-logic`](gradle/build-logic)                     | Centralized Gradle Kotlin DSL convention plugins for Spring Boot, Spotless formatting, OWASP, and Detekt.             | [README](gradle/build-logic/README.md)           |
+| **Backend Service**      | [`server/smp`](server/smp)                                     | Reactive Spring Boot 4 Kotlin monolith providing core REST APIs, R2DBC persistence, and publishing services.          | [README](server/smp/README.md)                   |
+| **Shared Backend**       | [`shared/common`](shared/common)                               | Pure Kotlin domain primitives, immutable value objects (`Email`, `Username`, `WorkspaceId`), and domain events.       | [README](shared/common/README.md)                |
+| **Shared Backend**       | [`shared/bus`](shared/bus)                                     | Framework-agnostic in-process CQRS mediator, command/query dispatcher, and pipeline behavior middleware chain.        | [README](shared/bus/README.md)                   |
+| **Shared Backend**       | [`shared/lead-capture/common`](shared/lead-capture/common)     | Domain models and interface contracts for prospect acquisition and lead capture.                                      | [README](shared/lead-capture/common/README.md)   |
+| **Shared Backend**       | [`shared/lead-capture/waitlist`](shared/lead-capture/waitlist) | Waitlist domain logic, signup processing, invite status tracking, and duplicate checks.                               | [README](shared/lead-capture/waitlist/README.md) |
+| **Shared Backend**       | [`shared/notifications`](shared/notifications)                 | Email alert abstractions, transactional messaging, and event-driven notification dispatch services.                   | [README](shared/notifications/README.md)         |
+| **Shared Backend**       | [`shared/presentation`](shared/presentation)                   | Framework-agnostic API presentation envelopes, page response structures (`PageResponse`), and opaque cursor encoders. | [README](shared/presentation/README.md)          |
+| **Shared Backend**       | [`shared/security`](shared/security)                           | Pure Kotlin security abstractions (`Hasher`, `Sha256Hasher`, `HmacHasher`), `PrincipalContext`, and tenant context.   | [README](shared/security/README.md)              |
+| **Shared Backend**       | [`shared/shield/ratelimit`](shared/shield/ratelimit)           | Reactive Spring WebFlux rate-limiting filter using Bucket4j, Caffeine cache, and Micrometer metrics.                  | [README](shared/shield/ratelimit/README.md)      |
+| **Shared Backend**       | [`shared/spring-boot-common`](shared/spring-boot-common)       | Spring WebFlux integration adapter offering RFC 9457 `ProblemDetail` handlers and workspace `WebFilter`.              | [README](shared/spring-boot-common/README.md)    |
+| **Shared Backend**       | [`shared/storage`](shared/storage)                             | Reactive multi-provider object storage abstraction (Local FS, AWS S3, Cloudflare R2) with path traversal protection.  | [README](shared/storage/README.md)               |
 
 ---
 
@@ -59,14 +62,15 @@ This monorepo contains 17 dedicated subprojects across web applications, backend
 ### Prerequisites
 
 | Requirement | Version      | Install                                                                  |
-| ----------- | ------------ | ------------------------------------------------------------------------ |
+|-------------|--------------|--------------------------------------------------------------------------|
 | Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                         |
 | pnpm        | `>= 11.8.0`  | `npm install -g pnpm`                                                    |
 | just        | `>= 1.30`    | `brew install just` / `winget install Casey.Just` / `cargo install just` |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
 > (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
-> still require a POSIX shell — use **Git Bash** (included with [Git for Windows](https://git-scm.com))
+> still require a POSIX shell — use **Git Bash** (included
+> with [Git for Windows](https://git-scm.com))
 > or **WSL**.
 
 ### Install and run locally
@@ -98,6 +102,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 
 - copy `.env.example` to `.env` when needed,
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
+- install the Chromium, Firefox, and WebKit binaries required by marketing E2E plus Chromium for app and admin E2E,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
 - apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
 - run optional local tooling setup via `node scripts/setup-optional-tools.mjs`.
@@ -109,8 +114,10 @@ just dev-frontend  # starts both Astro and Vue dev servers
 ```
 
 - Marketing site: [https://profiletailors.localhost](https://profiletailors.localhost)
-- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](docs/portless-setup.md))
-- Linked worktrees prefix these names with the branch, for example `https://fix-ui.pt-app.localhost`.
+- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost)
+  (requires [Portless](docs/portless-setup.md))
+- Linked worktrees prefix these names with the branch, for example
+  `https://fix-ui.pt-app.localhost`.
 
 ### Command Hub
 
@@ -121,7 +128,7 @@ Docker commands separately. Run `just -l` to list everything.
 #### Frontend (Astro + Vue / pnpm)
 
 | Command                   | What it does                            |
-| ------------------------- | --------------------------------------- |
+|---------------------------|-----------------------------------------|
 | `just dev-frontend`       | Start both dev servers in parallel      |
 | `just app`                | Start only the Vue 3 dashboard app      |
 | `just frontend-build`     | Build the marketing site for production |
@@ -131,13 +138,14 @@ Docker commands separately. Run `just -l` to list everything.
 | `just frontend-check`     | Run Astro type/content checks           |
 | `just frontend-test`      | Run marketing unit tests (Vitest)       |
 | `just frontend-test-cov`  | Run marketing unit tests with coverage  |
+| `just playwright-install` | Install Playwright browser binaries     |
 | `just frontend-test-e2e`  | Run marketing E2E tests (Playwright)    |
 | `just app-test-e2e-media` | Run app Media Library E2E tests         |
 
 #### Backend (Gradle / Kotlin / Spring Boot)
 
 | Command                  | What it does                       |
-| ------------------------ | ---------------------------------- |
+|--------------------------|------------------------------------|
 | `just backend-build`     | Compile and package                |
 | `just backend-run`       | Start Spring Boot (dev profile)    |
 | `just backend-test-fast` | Run unit tests (fast: no Postgres) |
@@ -149,7 +157,7 @@ Docker commands separately. Run `just -l` to list everything.
 #### Infrastructure (Docker)
 
 | Command           | What it does               |
-| ----------------- | -------------------------- |
+|-------------------|----------------------------|
 | `just infra-up`   | Start Postgres + services  |
 | `just infra-down` | Stop and remove containers |
 | `just infra-logs` | Tail service logs          |
@@ -157,16 +165,16 @@ Docker commands separately. Run `just -l` to list everything.
 #### CI Simulation
 
 | Command         | What it does                                   |
-| --------------- | ---------------------------------------------- |
+|-----------------|------------------------------------------------|
 | `just ci-local` | Full CI pipeline simulation (fast, local-only) |
 | `just ci-full`  | CI pipeline + Postgres BDD tests               |
 
 #### Setup & Maintenance
 
 | Command              | What it does                                            |
-| -------------------- | ------------------------------------------------------- |
+|----------------------|---------------------------------------------------------|
 | `just install`       | Install all dependencies                                |
-| `just setup`         | Full initial setup (.env + install + hooks + agentsync) |
+| `just setup`         | Full initial setup (.env + install + Playwright browsers + hooks + agentsync) |
 | `just hooks-install` | Install Lefthook git hooks                              |
 | `just clean`         | Clean all build artifacts and caches                    |
 
@@ -177,12 +185,17 @@ Docker commands separately. Run `just -l` to list everything.
 ### Development Notes
 
 - **Frontend Apps**:
-  - `apps/web/marketing/`: Astro-based marketing site.
-  - `apps/web/app/`: Vue 3-based dashboard application.
-- The marketing site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
-- User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and `apps/web/app/src/i18n/`.
-- Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias. Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build configuration.
-- The current waitlist flow is **client-side only** (Astro component); backend persistence is documented as planned (ADR-0011).
+- `apps/web/marketing/`: Astro-based marketing site.
+- `apps/web/app/`: Vue 3-based dashboard application.
+- The marketing site uses Astro's built-in locale routing with **English as the default locale** and
+  **Spanish under `/es/`**.
+- User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and
+  `apps/web/app/src/i18n/`.
+- Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias.
+  Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build
+  configuration.
+- The current waitlist flow is **client-side only** (Astro component); backend persistence is
+  documented as planned (ADR-0011).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.

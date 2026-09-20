@@ -82,10 +82,16 @@ swarm-env := "infra/apps/smp/swarm/.env"
 install:
     pnpm install --frozen-lockfile
 
-# Full initial setup: .env → install → git hooks → agentsync → codegraph
+playwright-install:
+    pnpm --filter marketing exec playwright install chromium firefox webkit
+    pnpm --filter app exec playwright install chromium
+    pnpm --filter @profiletailors/admin exec playwright install chromium
+
+# Full initial setup: .env → install → browsers → git hooks → agentsync → codegraph
 setup:
     node -e "const fs=require('fs');if(!fs.existsSync('.env')&&fs.existsSync('.env.example'))fs.copyFileSync('.env.example','.env')"
     just install
+    just playwright-install
     just hooks-install
     pnpm dlx @dallay/agentsync apply
     node scripts/setup-optional-tools.mjs
@@ -168,15 +174,18 @@ frontend-test-cov *flags="":
 
 # Run E2E tests (Playwright headless)
 frontend-test-e2e:
+    just playwright-install
     cd {{frontend-dir}} && pnpm test:e2e
     pnpm --filter app test:e2e:media:mocked
 
 # Run E2E tests in Playwright UI mode
 frontend-test-e2e-ui:
+    just playwright-install
     cd {{frontend-dir}} && pnpm test:e2e:ui
 
 # Run E2E tests headed (visible browser)
 frontend-test-e2e-headed:
+    just playwright-install
     cd {{frontend-dir}} && pnpm test:e2e:headed
 
 # Open Playwright HTML report
@@ -185,10 +194,12 @@ frontend-test-e2e-report:
 
 # Run app Media Library mocked E2E tests (Playwright headless)
 app-test-e2e-media-mocked:
+    just playwright-install
     pnpm --filter app test:e2e:media:mocked
 
 # Run app Media Library real-CAS smoke E2E tests (Playwright headless)
 app-test-e2e-media-real:
+    just playwright-install
     pnpm --filter app test:e2e:media:real
 
 # Run available app Media Library E2E lanes (mocked + real)

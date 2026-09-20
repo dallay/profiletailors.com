@@ -58,16 +58,34 @@ describe('NAV_REGISTRY', () => {
     }
   })
 
-  it('marks overview, notifications, governance and configuration as planned', () => {
-    for (const key of ['overview', 'notifications', 'governance', 'configuration']) {
+  it('marks overview, notifications and governance as planned', () => {
+    for (const key of ['overview', 'notifications', 'governance']) {
       expect(NAV_REGISTRY.find((entry) => entry.key === key)?.status).toBe('planned')
     }
   })
 
-  it('keeps dashboard, waitlist, users, direct-invitations and audit live', () => {
-    for (const key of ['dashboard', 'waitlist', 'users', 'direct-invitations', 'audit']) {
+  it('keeps dashboard, waitlist, users, direct-invitations, audit and configuration live', () => {
+    for (const key of [
+      'dashboard',
+      'waitlist',
+      'users',
+      'direct-invitations',
+      'audit',
+      'configuration',
+    ]) {
       expect(NAV_REGISTRY.find((entry) => entry.key === key)?.status).toBe('live')
     }
+  })
+
+  it('lists configuration as a live entry gated by platform.configuration.read', () => {
+    const entry = NAV_REGISTRY.find((candidate) => candidate.key === 'configuration')
+    expect(entry).toBeDefined()
+    expect(entry).toMatchObject({
+      routeName: 'configuration',
+      path: 'configuration',
+      permission: 'platform.configuration.read',
+      status: 'live',
+    })
   })
 
   it('gates every planned entry by an existing platform permission', () => {

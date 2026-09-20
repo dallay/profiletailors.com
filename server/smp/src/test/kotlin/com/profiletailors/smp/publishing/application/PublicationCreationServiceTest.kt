@@ -71,12 +71,13 @@ class PublicationCreationServiceTest {
         coEvery { publicationRepository.createDraft(any()) } answers
             { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
         val result = service.create(
-            workspaceId = workspaceId,
-            principalId = principalId,
+            identity = PublicationCreationService.PublishingIdentity(workspaceId, principalId),
             socialAccountId = accountId,
             bodyText = "Hello bulk",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-            mediaUrls = listOf("https://cdn.example.com/image.jpg"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                mediaUrls = listOf("https://cdn.example.com/image.jpg"),
+            ),
         )
         result.bodyText shouldBe "Hello bulk"
         result.status shouldBe PublicationStatus.SCHEDULED
@@ -99,12 +100,13 @@ class PublicationCreationServiceTest {
         )
         assertThrows<PublicationValidationException> {
             service.create(
-                workspaceId = workspaceId,
-                principalId = principalId,
+                identity = PublicationCreationService.PublishingIdentity(workspaceId, principalId),
                 socialAccountId = accountId,
                 bodyText = "Hello",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
-                mediaUrls = listOf("http://127.0.0.1/evil.jpg"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                    mediaUrls = listOf("http://127.0.0.1/evil.jpg"),
+                ),
             )
         }
     }
@@ -127,11 +129,12 @@ class PublicationCreationServiceTest {
         coEvery { publicationRepository.createDraft(any()) } answers
             { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
         val result = service.create(
-            workspaceId = workspaceId,
-            principalId = principalId,
+            identity = PublicationCreationService.PublishingIdentity(workspaceId, principalId),
             socialAccountId = "acc-bulk-placeholder",
             bodyText = "Bulk placeholder",
-            scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+            ),
         )
         result.socialAccountId shouldBe "acc-active-1"
     }
@@ -144,11 +147,12 @@ class PublicationCreationServiceTest {
         coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns null
         assertThrows<PublicationValidationException> {
             service.create(
-                workspaceId = workspaceId,
-                principalId = principalId,
+                identity = PublicationCreationService.PublishingIdentity(workspaceId, principalId),
                 socialAccountId = "acc-bulk-placeholder",
                 bodyText = "Bulk placeholder",
-                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                ),
             )
         }
     }

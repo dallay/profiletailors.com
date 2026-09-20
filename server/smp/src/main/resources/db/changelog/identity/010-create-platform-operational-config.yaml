@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-010-create-platform-operational-config
+      author: identity
+      changes:
+        - createTable:
+            tableName: platform_operational_config
+            columns:
+              - column:
+                  name: config_key
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: config_value
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >
+              ALTER TABLE platform_operational_config
+              ADD CONSTRAINT ck_platform_operational_config_registration_mode
+              CHECK (config_key <> 'registration.mode' OR config_value IN ('OPEN', 'INVITE_ONLY', 'CLOSED'));
+        - insert:
+            tableName: platform_operational_config
+            columns:
+              - column:
+                  name: config_key
+                  value: registration.mode
+              - column:
+                  name: config_value
+                  value: CLOSED
+      rollback:
+        - dropTable:
+            tableName: platform_operational_config

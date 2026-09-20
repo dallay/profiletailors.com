@@ -1,0 +1,61 @@
+change: 662-invitation-token-lifecycle
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-pr1
+  - verify-pr1
+  - apply-pr2
+  - verify-pr2
+  - apply-pr3
+  - verify-pr3
+  - qa
+  - archive
+next: none
+updated: "2026-09-18"
+verification_status: passed
+verification_verdict: PASS WITH WARNINGS
+verification_report: openspec/changes/archive/2026-09-18-662-invitation-token-lifecycle/verify-report.md
+qa_verdict: PASS WITH WARNINGS
+qa_report: openspec/changes/archive/2026-09-18-662-invitation-token-lifecycle/qa-report.md
+archive_note: >-
+  PR #1098 (final security-evidence slice) merged 2026-09-18T22:18:21Z,
+  merge commit ad35eb66. All 5 acceptance criteria + 3 Gherkin scenarios
+  from GitHub issue #662 verified with fresh PostgreSQL-backed evidence
+  (hash-only persistence, exactly-one-success concurrent acceptance).
+  GitHub issue #662 closed on archive. Carry-forward non-blocking items:
+  F-1 (WaitlistRateLimitIntegrationTest flakiness, unrelated bounded
+  context, tracked as follow-up) and 1.1/1.3 owner sign-offs (#660 drift,
+  observability tag-removal — in-repo evidence recorded, external action
+  pending).
+linear_issue: "#662"
+persistence_mode: openspec
+bounded_contexts:
+  - platformadmin
+  - notifications
+  - identity
+note: >
+  PR1 partial (2026-09-17): tasks 2.1 (bulk aggregate-only metrics) and 2.2
+  (CAS-honoring supersede via revoke() + OptimisticLockException) implemented
+  strict TDD RED→GREEN, unit tests + Detekt green. Phase 1 items 1.1/1.3
+  recorded as pending in design.md Open Questions. OUT for PR1: 2.3–2.5,
+  Phase 3 BDD/postgres, Phase 4 full gates.
+   Verify PR1 (2026-09-17): PASS WITH WARNINGS for PR1 slice only —
+   narrow suites 15/15 green on forced rerun, Detekt 0 errors, no
+   suppressions/baselines/comments; warnings: design "one bulk counter"
+   wording vs 4-series shape, staged lead-capture-waitlist spec-line
+   ownership, pending owner sign-offs. Report: verify-report.md.
+   Next: apply PR2 (bearer+throttle) pending sign-off.
+   PR2 partial (2026-09-17): tasks 2.3 (events untouched, interim debt,
+   no new fields), 2.4 (toPayload key-set locked, transient render
+   covered), 2.5 (per-key+IP throttle 10/10min at controller, 429 safe
+   code, coordinator pure) on branch feat/662-invitation-bearer-throttle.
+   Verify PR2 (2026-09-17): PASS WITH WARNINGS for PR2 slice only —
+   narrow suites 60/60 green on forced rerun, Detekt 0 errors (both
+   modules), Spotless clean, no suppressions/baselines/comments;
+   warning: throttle bounds inspection-only (not test-locked).
+   OUT: Phase 3 BDD/postgres, Phase 4 full gates — Not-run.
+   Next: publish PR2 (no commit/push by verifier).

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, deploy]
   pull_request:
     # Do not restrict by base branch: stacked PR layers target the preceding
     # feature branch rather than main/develop.
@@ -283,6 +283,7 @@ jobs:
       - uses: ./.github/actions/setup-frontend
         with:
           install-playwright: 'true'
+          playwright-package: 'marketing'
           playwright-browsers: 'chromium firefox webkit'
 
       - name: Run Marketing E2E

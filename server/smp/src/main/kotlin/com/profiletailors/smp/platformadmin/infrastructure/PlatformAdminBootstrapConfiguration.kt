@@ -7,7 +7,11 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalLifecycle
+import com.profiletailors.smp.identity.application.RegistrationModeGateway
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyCodec
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyService
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyStore
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyCodec
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
@@ -31,6 +35,7 @@ import com.profiletailors.smp.platformadmin.application.handler.CreateInvitation
 import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
+import com.profiletailors.smp.platformadmin.application.handler.RegistrationModeHandlers
 import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
@@ -263,6 +268,25 @@ class PlatformAdminBootstrapConfiguration {
         codec: UserControlIdempotencyCodec,
         telemetry: UserControlTelemetry,
     ): UserControlIdempotencyService = UserControlIdempotencyService(store, codec, telemetry)
+
+    @Bean
+    fun registrationModeHandlers(
+        registrationModeGateway: RegistrationModeGateway,
+        auditPublisher: AdministrativeAuditPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        clock: Clock,
+    ): RegistrationModeHandlers = RegistrationModeHandlers(
+        registrationModeGateway = registrationModeGateway,
+        auditPublisher = auditPublisher,
+        transactionRunner = transactionRunner,
+        clock = clock,
+    )
+
+    @Bean
+    fun configIdempotencyService(
+        store: ConfigurationIdempotencyStore,
+        codec: ConfigurationIdempotencyCodec,
+    ): ConfigurationIdempotencyService = ConfigurationIdempotencyService(store, codec)
 
     @Bean
     fun transactionalEventPublisher(

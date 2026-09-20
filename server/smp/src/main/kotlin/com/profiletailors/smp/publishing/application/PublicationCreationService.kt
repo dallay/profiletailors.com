@@ -3,7 +3,6 @@
     "MagicNumber",
     "ReturnCount",
     "TooManyFunctions",
-    "LongParameterList",
     "SwallowedException",
     "StringLiteralDuplication",
 )
@@ -35,7 +34,6 @@ import java.time.Instant
 import java.util.UUID
 
 @Service
-@Suppress("LongParameterList")
 class PublicationCreationService(
     private val socialAccountRepository: SocialAccountRepository,
     private val publicationRepository: PublicationRepository,
@@ -48,18 +46,32 @@ class PublicationCreationService(
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
 ) {
+    data class PublishingIdentity(val workspaceId: String, val principalId: String)
+
+    data class PublicationSchedulingConfig(
+        val title: String? = null,
+        val scheduledFor: Instant? = null,
+        val scheduleMode: ScheduleMode = ScheduleMode.SCHEDULED_AT,
+        val mediaUrls: List<String> = emptyList(),
+        val assetIds: List<String> = emptyList(),
+        val priority: Boolean = false,
+    )
+
     suspend fun create(
-        workspaceId: String,
-        principalId: String,
+        identity: PublishingIdentity,
         socialAccountId: String,
         bodyText: String?,
-        title: String? = null,
-        scheduledFor: Instant?,
-        scheduleMode: ScheduleMode = ScheduleMode.SCHEDULED_AT,
-        mediaUrls: List<String> = emptyList(),
-        assetIds: List<String> = emptyList(),
-        priority: Boolean = false,
+        scheduling: PublicationSchedulingConfig = PublicationSchedulingConfig(),
     ): PublicationDraft {
+        val workspaceId = identity.workspaceId
+        val principalId = identity.principalId
+        val title = scheduling.title
+        val scheduledFor = scheduling.scheduledFor
+        val scheduleMode = scheduling.scheduleMode
+        val mediaUrls = scheduling.mediaUrls
+        val assetIds = scheduling.assetIds
+        val priority = scheduling.priority
+
         val socialAccount = socialAccountRepository.findByWorkspaceAndId(workspaceId, socialAccountId)
             ?: socialAccountRepository.findFirstActiveByWorkspace(workspaceId)
             ?: throw PublicationValidationException("No active social account found for workspace $workspaceId")

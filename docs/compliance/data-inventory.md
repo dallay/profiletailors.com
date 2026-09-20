@@ -3,7 +3,7 @@
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Internal control artifact — not a public policy document
 > **Schema version:** 2.0
-> **Last verified:** 2026-07-17
+> **Last verified:** 2026-09-18
 
 ## Overview
 

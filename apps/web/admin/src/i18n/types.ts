@@ -168,6 +168,13 @@ export type MessageSchema = {
     confirmAssign: string
     confirmRevoke: string
   }
+  configuration: {
+    title: string
+    currentMode: string
+    changeTo: string
+    changeConfirm: string
+    changeSuccess: string
+  }
   directInvitations: {
     title: string
     subtitle: string

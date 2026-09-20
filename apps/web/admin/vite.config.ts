@@ -38,6 +38,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@shared/assets': fileURLToPath(new URL('../../../shared/assets', import.meta.url)),
+      '@profiletailors/vue-ui': fileURLToPath(
+        new URL('../../../shared/vue-ui/src', import.meta.url),
+      ),
     },
   },
   test: {

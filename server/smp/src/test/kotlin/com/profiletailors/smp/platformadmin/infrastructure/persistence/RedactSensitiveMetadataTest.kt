@@ -71,4 +71,17 @@ class RedactSensitiveMetadataTest {
             result,
         )
     }
+
+    @Test
+    fun `redact leaves previousMode and newMode configuration metadata unredacted`() {
+        val input = mapOf("previousMode" to "OPEN", "newMode" to "CLOSED")
+        assertEquals(input, redact(input))
+    }
+
+    @Test
+    fun `redact takes only a metadata map and has no parameter for targetId or targetType`() {
+        val redactParameters = ::redact.parameters
+        assertEquals(1, redactParameters.size)
+        assertEquals(Map::class, redactParameters.single().type.classifier)
+    }
 }

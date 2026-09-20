@@ -192,6 +192,24 @@ class R2dbcAdminAuditRepositoryPostgresIntegrationTest : PostgresIntegrationTest
     }
 
     @Test
+    fun `targetId persists unredacted even when its value contains denylisted substrings`() = runTest {
+        val eventWithSensitiveLookingTargetId = event().copy(
+            eventId = UUID.fromString("77777777-8888-9999-aaaa-bbbbbbbbbbbb"),
+            action = AdminAuditAction.CONFIGURATION_CHANGED,
+            targetType = "CONFIGURATION",
+            targetId = "api_key_credential_token",
+            metadata = mapOf("previousMode" to "OPEN", "newMode" to "CLOSED"),
+        )
+        auditPublisher.publish(eventWithSensitiveLookingTargetId)
+
+        val persisted = adminAuditQuery.findById(eventWithSensitiveLookingTargetId.eventId)
+
+        assertNotNull(persisted)
+        assertEquals("api_key_credential_token", persisted!!.targetId)
+        assertEquals("CONFIGURATION", persisted.targetType)
+    }
+
+    @Test
     fun `list orders by occurred_at descending`() = runTest {
         auditPublisher.publish(event())
         val later = event().copy(
