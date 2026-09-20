@@ -1,7 +1,7 @@
 # Media Library — Content-Addressed Storage (CAS) Deduplication
 
 > **Status:** Implemented internal storage architecture
-> **Last Updated:** 2026-09-18
+> **Last Updated:** 2026-09-20
 
 ## Overview
 
