@@ -64,6 +64,13 @@ class R2dbcRegistrationModeGatewayTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `changeMode without a persisted row fails instead of reporting a phantom transition`() = runTest {
+        val outcome = runCatching { gateway.changeMode(RegistrationMode.OPEN) }
+
+        assertTrue(outcome.isFailure)
+    }
+
+    @Test
     fun `two concurrent writers never lose an update and each reports a consistent transition`() = runTest {
         insertConfigRow(RegistrationMode.CLOSED)
 
