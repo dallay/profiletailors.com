@@ -1,0 +1,170 @@
+package com.profiletailors.smp.platformadmin.infrastructure.util
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+internal class PayloadRedactorTest {
+
+    @Test
+    fun `redactPayload removes token from top level`() {
+        val payload = mapOf(
+            "recipient" to "test@example.com",
+            "token" to "secret-token-value",
+            "channel" to "EMAIL",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["token"])
+        assertEquals("test@example.com", result["recipient"])
+    }
+
+    @Test
+    fun `redactPayload removes password from top level`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "password" to "supersecret",
+            "status" to "PENDING",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["password"])
+        assertEquals("user@test.com", result["recipient"])
+    }
+
+    @Test
+    fun `redactPayload removes acceptUrl from top level`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "acceptUrl" to "https://example.com/accept",
+            "templateId" to "platform.invitation",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["acceptUrl"])
+        assertEquals("platform.invitation", result["templateId"])
+    }
+
+    @Test
+    fun `redactPayload removes rawToken from top level`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "rawToken" to "abc123xyz",
+            "status" to "SENT",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["rawToken"])
+    }
+
+    @Test
+    fun `redactPayload removes verificationToken from top level`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "verificationToken" to "verify-123",
+            "channel" to "SMS",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["verificationToken"])
+    }
+
+    @Test
+    fun `redactPayload removes nested sensitive keys`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "data" to mapOf(
+                "token" to "nested-token",
+                "safeField" to "safe-value",
+            ),
+        )
+        val result = redactPayload(payload)
+
+        @Suppress("UNCHECKED_CAST")
+        val nestedResult = result["data"] as? Map<String, Any?>
+        assertEquals("[REDACTED]", nestedResult?.get("token"))
+        assertEquals("safe-value", nestedResult?.get("safeField"))
+    }
+
+    @Test
+    fun `redactPayload preserves allowed keys`() {
+        val payload = mapOf(
+            "id" to "ntf-123",
+            "channel" to "EMAIL",
+            "templateId" to "platform.welcome",
+            "recipient" to "user@test.com",
+            "status" to "SENT",
+            "createdAt" to "2026-07-20T10:00:00Z",
+            "errorMessage" to "some error",
+        )
+        val result = redactPayload(payload)
+        assertEquals("ntf-123", result["id"])
+        assertEquals("EMAIL", result["channel"])
+        assertEquals("platform.welcome", result["templateId"])
+        assertEquals("user@test.com", result["recipient"])
+        assertEquals("SENT", result["status"])
+        assertEquals("2026-07-20T10:00:00Z", result["createdAt"])
+        assertEquals("some error", result["errorMessage"])
+    }
+
+    @Test
+    fun `redactPayload handles empty map`() {
+        val result = redactPayload(emptyMap())
+        assertEquals(emptyMap<String, Any?>(), result)
+    }
+
+    @Test
+    fun `redactPayload handles null values`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "optionalField" to null,
+        )
+        val result = redactPayload(payload)
+        assertEquals("user@test.com", result["recipient"])
+        assertEquals(null, result["optionalField"])
+    }
+
+    @Test
+    fun `redactPayload handles case insensitive key matching`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "TOKEN" to "uppercase-token",
+            "Password" to "mixed-case-password",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["TOKEN"])
+        assertEquals("[REDACTED]", result["Password"])
+    }
+
+    @Test
+    fun `redactPayload removes keys containing sensitive substrings`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "access_token" to "access-token-value",
+            "reset_password_token" to "reset-token",
+            "myToken" to "my-token-value",
+            "authToken" to "auth-token-value",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["access_token"])
+        assertEquals("[REDACTED]", result["reset_password_token"])
+        assertEquals("[REDACTED]", result["myToken"])
+        assertEquals("[REDACTED]", result["authToken"])
+    }
+
+    @Test
+    fun `redactPayload handles deeply nested sensitive keys`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "level1" to mapOf(
+                "level2" to mapOf(
+                    "token" to "deeply-nested-token",
+                    "safeData" to "safe",
+                ),
+            ),
+        )
+        val result = redactPayload(payload)
+
+        @Suppress("UNCHECKED_CAST")
+        val level1 = result["level1"] as? Map<String, Any?>
+
+        @Suppress("UNCHECKED_CAST")
+        val level2 = level1?.get("level2") as? Map<String, Any?>
+        assertEquals("[REDACTED]", level2?.get("token"))
+        assertEquals("safe", level2?.get("safeData"))
+    }
+}

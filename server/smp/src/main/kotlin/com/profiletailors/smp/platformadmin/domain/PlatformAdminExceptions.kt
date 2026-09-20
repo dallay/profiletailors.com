@@ -30,6 +30,14 @@ class InvitationNotRevocableException(id: String) : RuntimeException("Invitation
 
 class InvitationNotExpirableException(id: String) : RuntimeException("Invitation cannot be expired: $id")
 
+class NotificationNotFoundForRetryException(id: String) : RuntimeException("Notification not found for retry: $id")
+
+class NotificationNotRetryableException(id: String, status: String, templateId: String) :
+    RuntimeException("Notification $id is not retryable: status=$status, template=$templateId")
+
+class NotificationRetryConflictException(val idempotencyKey: String) :
+    RuntimeException("Notification retry conflict for idempotency key: $idempotencyKey")
+
 enum class InvitationAcceptanceFailureCode(val publicCode: String) {
     INVALID("INVITATION_INVALID"),
     EXPIRED("INVITATION_EXPIRED"),

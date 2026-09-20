@@ -20,6 +20,8 @@ const ROLE_PERMISSIONS = {
     'platform.operators.manage',
     'platform.configuration.read',
     'platform.configuration.manage',
+    'platform.notifications.read',
+    'platform.notifications.manage',
   ],
   PLATFORM_OPERATOR: [
     'platform.dashboard.read',
@@ -36,11 +38,14 @@ const ROLE_PERMISSIONS = {
     'platform.audit.read',
     'platform.operators.read',
     'platform.configuration.read',
+    'platform.notifications.read',
+    'platform.notifications.manage',
   ],
   SUPPORT_AGENT: [
     'platform.users.read',
     'platform.waitlist.read',
     'platform.users.workspaces.read',
+    'platform.notifications.read',
   ],
   AUDITOR: [
     'platform.audit.read',
@@ -49,6 +54,7 @@ const ROLE_PERMISSIONS = {
     'platform.users.read',
     'platform.operators.read',
     'platform.configuration.read',
+    'platform.notifications.read',
   ],
 } as const satisfies Record<string, readonly string[]>
 

@@ -6,7 +6,7 @@ This spec documents the Back Office (`/api/admin/**`) permission model. It forma
 
 ## Permission Registry
 
-All 17 `PlatformPermission` keys and their meanings:
+All 19 `PlatformPermission` keys and their meanings:
 
 | Key | Description |
 |-----|-------------|
@@ -27,6 +27,8 @@ All 17 `PlatformPermission` keys and their meanings:
 | `platform.operators.read` | Read platform operator assignments |
 | `platform.operators.manage` | Create and revoke platform operator role assignments |
 | `platform.publishing.stale.read` | Read stale publishing job status |
+| `platform.configuration.read` | Read operational configuration (registration mode) |
+| `platform.configuration.manage` | Change operational configuration (OWNER-only) |
 
 ## Role Taxonomy
 
@@ -60,6 +62,8 @@ All 17 `PlatformPermission` keys and their meanings:
 | `platform.operators.read` | ✓ | ✓ | — | ✓ |
 | `platform.operators.manage` | ✓ | — | — | — |
 | `platform.publishing.stale.read` | ✓ | ✓ | — | — |
+| `platform.configuration.read` | ✓ | ✓ | — | ✓ |
+| `platform.configuration.manage` | ✓ | — | — | — |
 
 ## Default-Deny Enforcement
 
@@ -85,10 +89,10 @@ Effective permissions for a principal are derived by calling `roles.effectivePer
 
 ## Frontend Mirror Matches Server
 
-The frontend `ROLE_PERMISSIONS` mirror MUST equal the server `PLATFORM_ROLE_PERMISSIONS` for every key, including `platform.publishing.stale.read` for OWNER and OPERATOR. The system MUST NOT imply permissions the API does not enforce.
+The frontend `ROLE_PERMISSIONS` mirror MUST equal the server `PLATFORM_ROLE_PERMISSIONS` for every key, including `platform.publishing.stale.read` for OWNER and OPERATOR, and `platform.configuration.read`/`platform.configuration.manage` per the mapping above (OWNER both; OPERATOR+AUDITOR read-only; SUPPORT_AGENT neither). The system MUST NOT imply permissions the API does not enforce.
 
 - GIVEN OWNER or OPERATOR session permissions, WHEN the frontend evaluates `hasPermission('platform.publishing.stale.read')`, THEN it returns true, matching the server map.
-- GIVEN a planned area with no backing admin API, WHEN its placeholder renders, THEN no permission beyond the registry entry is implied or checked. Planned placeholders reuse only existing server-enforced keys (overview/notifications → `platform.dashboard.read`; governance/configuration → `platform.operators.read`).
+- GIVEN a planned area with no backing admin API, WHEN its placeholder renders, THEN no permission beyond the registry entry is implied or checked. Planned placeholders reuse only existing server-enforced keys (overview/notifications → `platform.dashboard.read`; governance → `platform.operators.read`). The `configuration` nav entry is `live`, gated on its own `platform.configuration.read`, backed by a real admin API (dallay/profiletailors.com#672).
 
 ## Frontend Gating Is Additive Only
 
@@ -150,3 +154,44 @@ The bulk endpoint MUST check `platform.waitlist.invite` once up front and throw 
 - GIVEN a principal with only `SUPPORT_AGENT` assignment
 - WHEN the principal calls the bulk endpoint
 - THEN the response is 403 under default-deny
+
+### Requirement: Platform configuration permission keys (dallay/profiletailors.com#672)
+
+The permission registry MUST add two keys governing the `platform-configuration` capability:
+`platform.configuration.read` and `platform.configuration.manage`. `PLATFORM_OWNER` MUST hold both.
+`PLATFORM_OPERATOR` MUST hold only `platform.configuration.read`. `AUDITOR` MUST hold only
+`platform.configuration.read`, consistent with its existing `platform.operators.read` grant — both
+are read-only governance/investigation visibility over operational state AUDITOR already receives.
+`SUPPORT_AGENT` MUST hold neither key, consistent with it holding no `platform.operators.*`
+permission today. No role other than `PLATFORM_OWNER` MUST hold `platform.configuration.manage`.
+
+| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.configuration.read` | ✓ | ✓ | — | ✓ |
+| `platform.configuration.manage` | ✓ | — | — | — |
+
+#### Scenario: Read permission is granted to OWNER, OPERATOR, and AUDITOR
+
+- GIVEN an operator with an active `PLATFORM_OWNER`, `PLATFORM_OPERATOR`, or `AUDITOR` assignment
+- WHEN effective permissions are evaluated
+- THEN `platform.configuration.read` is present
+
+#### Scenario: Manage permission is OWNER-only
+
+- GIVEN an operator with an active `PLATFORM_OPERATOR`, `SUPPORT_AGENT`, or `AUDITOR` assignment
+- WHEN effective permissions are evaluated
+- THEN `platform.configuration.manage` is absent
+- AND any attempt to change registration mode is denied with the established forbidden response
+
+#### Scenario: Configuration nav entry is gated on its own permission
+
+- GIVEN an operator holds `platform.configuration.read` but not `platform.operators.read`
+- WHEN the frontend evaluates visibility of the `configuration` nav entry
+- THEN the entry is visible, gated solely on `platform.configuration.read`
+
+#### Scenario: Forcing hidden nav still hits server enforcement
+
+- GIVEN a principal lacking `platform.configuration.read` forces client-side navigation to the
+  configuration view
+- WHEN the corresponding `/api/admin/**` configuration endpoint is called
+- THEN the server denies with `401`/`403` regardless of client-side navigation state

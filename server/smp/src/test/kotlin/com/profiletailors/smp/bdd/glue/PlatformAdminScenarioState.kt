@@ -10,4 +10,5 @@ class PlatformAdminScenarioState {
     val bulkEntryIds: MutableList<String> = mutableListOf()
     var lastUserId: String? = null
     var idempotencyKey: String? = null
+    val notificationIds: MutableMap<String, String> = mutableMapOf()
 }
