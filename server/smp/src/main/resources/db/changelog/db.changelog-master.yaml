@@ -18,6 +18,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/009-add-account-state.yaml
   - include:
+      file: db/changelog/identity/010-create-platform-operational-config.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml
@@ -121,6 +123,8 @@ databaseChangeLog:
       file: db/changelog/platform-admin/008-create-user-control-idempotency.yaml
   - include:
       file: db/changelog/platform-admin/009-fix-user-control-idempotency-scope.yaml
+  - include:
+      file: db/changelog/platform-admin/010-create-configuration-idempotency.yaml
 
 
   - include:

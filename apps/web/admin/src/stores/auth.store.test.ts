@@ -34,6 +34,8 @@ describe('useAdminAuthStore', () => {
     expect(store.hasPermission('platform.operators.manage')).toBe(true)
     expect(store.hasPermission('platform.audit.read')).toBe(true)
     expect(store.hasPermission('platform.users.manage')).toBe(true)
+    expect(store.hasPermission('platform.configuration.read')).toBe(true)
+    expect(store.hasPermission('platform.configuration.manage')).toBe(true)
   })
 
   it('PLATFORM_OPERATOR can manage users but not operators', () => {
@@ -75,6 +77,32 @@ describe('useAdminAuthStore', () => {
     }
     expect(store.hasPermission('platform.waitlist.invite')).toBe(true)
     expect(store.hasPermission('platform.operators.manage')).toBe(false)
+  })
+
+  it('PLATFORM_OPERATOR and AUDITOR can read configuration but not manage it', () => {
+    const store = useAdminAuthStore()
+    for (const role of ['PLATFORM_OPERATOR', 'AUDITOR'] as const) {
+      store.principal = {
+        principalId: 'test-id',
+        email: 'operator@example.com',
+        displayName: null,
+        platformRoles: [role],
+      }
+      expect(store.hasPermission('platform.configuration.read')).toBe(true)
+      expect(store.hasPermission('platform.configuration.manage')).toBe(false)
+    }
+  })
+
+  it('SUPPORT_AGENT has no configuration permissions', () => {
+    const store = useAdminAuthStore()
+    store.principal = {
+      principalId: 'test-id',
+      email: 'support@example.com',
+      displayName: null,
+      platformRoles: ['SUPPORT_AGENT'],
+    }
+    expect(store.hasPermission('platform.configuration.read')).toBe(false)
+    expect(store.hasPermission('platform.configuration.manage')).toBe(false)
   })
 
   it('SUPPORT_AGENT cannot invite candidates', () => {

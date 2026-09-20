@@ -26,6 +26,7 @@
   "dependencies": {
     "@lucide/vue": "1.46.0",
     "@profiletailors/shared-web": "workspace:*",
+    "@profiletailors/vue-ui": "workspace:*",
     "@tanstack/vue-table": "^9.2.4",
     "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",

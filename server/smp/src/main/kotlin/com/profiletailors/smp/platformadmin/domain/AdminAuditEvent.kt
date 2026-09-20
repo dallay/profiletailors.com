@@ -18,6 +18,7 @@ enum class AdminAuditAction {
     USER_DISABLED,
     USER_ENABLED,
     USER_SESSIONS_REVOKED,
+    CONFIGURATION_CHANGED,
 }
 
 @ValueObject

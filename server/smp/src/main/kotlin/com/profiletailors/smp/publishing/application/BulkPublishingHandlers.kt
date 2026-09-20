@@ -202,12 +202,16 @@ class ScheduleBulkHandler(
         }
         return try {
             val publication = publicationCreationService.create(
-                workspaceId = access.workspaceId,
-                principalId = access.principalId,
+                identity = PublicationCreationService.PublishingIdentity(
+                    workspaceId = access.workspaceId,
+                    principalId = access.principalId,
+                ),
                 socialAccountId = socialAccountId,
                 bodyText = validated.bodyText,
-                scheduledFor = validated.scheduledFor,
-                mediaUrls = validated.mediaUrls,
+                scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                    scheduledFor = validated.scheduledFor,
+                    mediaUrls = validated.mediaUrls,
+                ),
             )
             BulkRowOutcome(
                 mapScheduledRow(validated, jobId, publication.id),

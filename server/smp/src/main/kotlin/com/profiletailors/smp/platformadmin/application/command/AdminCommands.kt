@@ -61,6 +61,12 @@ data class RevokeUserSessionsCommand(
     val targetPrincipalId: String,
 )
 
+data class ChangeRegistrationModeCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val newMode: String,
+)
+
 data class DeactivateUserCommand(
     val operatorPrincipalId: UUID,
     val operatorRoles: Set<PlatformRole>,

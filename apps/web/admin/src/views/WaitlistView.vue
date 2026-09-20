@@ -2,6 +2,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { PaginationControls, Table } from '@profiletailors/vue-ui'
+import { formatDate } from '@/lib/formatters'
+import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { messages } from '@/i18n'
 
@@ -26,16 +29,6 @@ interface StatusSummary {
   INVITED: number
   CONVERTED: number
   CANCELLED: number
-}
-
-interface PagedResult<T> {
-  items: T[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  hasNext: boolean
-  hasPrevious: boolean
 }
 
 interface BulkEntryResult {
@@ -321,7 +314,7 @@ onMounted(() => {
         </ul>
       </div>
 
-      <table class="admin-table w-full text-left text-sm" :aria-label="t('waitlist.entries')">
+      <Table :aria-label="t('waitlist.entries')" class="admin-table">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th v-if="canInvite" scope="col" class="py-2 pr-4">
@@ -366,9 +359,9 @@ onMounted(() => {
             <td class="py-2 pr-4">
               <StatusBadge :status="entry.status" />
             </td>
-            <td class="py-2 pr-4 text-text-secondary">{{ new Date(entry.joinedAt).toLocaleDateString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ formatDate(entry.joinedAt, locale) }}</td>
             <td class="py-2 pr-4 text-text-secondary">
-              {{ entry.invitedAt ? new Date(entry.invitedAt).toLocaleDateString(locale) : '—' }}
+              {{ formatDate(entry.invitedAt, locale) }}
             </td>
             <td class="py-2 flex gap-2">
               <button
@@ -390,29 +383,16 @@ onMounted(() => {
             </td>
           </tr>
         </tbody>
-      </table>
+      </Table>
 
-      <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
-        <span>{{ t('common.page') }} {{ result.page + 1 }} {{ t('common.of') }} {{ result.totalPages }}</span>
-        <div class="flex gap-2">
-          <button
-            :disabled="!result.hasPrevious"
-            class="admin-button-secondary disabled:opacity-40"
-            :aria-label="t('common.previous')"
-            @click="page--; fetchEntries()"
-          >
-            {{ t('common.previous') }}
-          </button>
-          <button
-            :disabled="!result.hasNext"
-            class="admin-button-secondary disabled:opacity-40"
-            :aria-label="t('common.next')"
-            @click="page++; fetchEntries()"
-          >
-            {{ t('common.next') }}
-          </button>
-        </div>
-      </div>
+      <PaginationControls
+        :page="result.page"
+        :total-pages="result.totalPages"
+        :has-previous="result.hasPrevious"
+        :has-next="result.hasNext"
+        @previous="page--; fetchEntries()"
+        @next="page++; fetchEntries()"
+      />
     </template>
 
     <div
