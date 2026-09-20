@@ -147,6 +147,7 @@ class PublicationTools(
             "asynchronous LinkedIn publish. Supports optional `idempotencyKey` for safe agent retries.",
 
     )
+    @Suppress("S107") // MCP tool interface: all parameters are required for tool schema generation
     fun createPublication(
         authContext: AuthContext,
         @McpToolParam(description = "Social account id (channel) that will publish the content.")
@@ -204,6 +205,7 @@ class PublicationTools(
             "returns the cached result.",
 
     )
+    @Suppress("S107") // MCP tool interface: all parameters are required for tool schema generation
     fun editPublication(
         authContext: AuthContext,
         @McpToolParam(description = "Publication id to edit.")
@@ -380,6 +382,7 @@ class PublicationTools(
         }
     }
 
+    @Suppress("S107") // Private internal method: refactoring would require breaking apart helper function contracts
     private suspend fun runWriteTool(
         toolName: String,
         authContext: AuthContext,
