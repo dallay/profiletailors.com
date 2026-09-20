@@ -4,7 +4,10 @@
 
 ### Requirement: Per-entry bulk audit
 
-The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per `invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per `failed` entry (including unexpected errors). Each audit MUST commit independently of its entry's state change. Metadata MUST carry IDs and codes only — never raw tokens or emails.
+The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per
+`invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per
+`failed` entry (including unexpected errors). Each audit MUST commit independently of its entry's
+state change. Metadata MUST carry IDs and codes only — never raw tokens or emails.
 
 #### Scenario: Success audited per entry
 
@@ -16,4 +19,5 @@ The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INV
 
 - GIVEN a batch containing 1 CONVERTED entry
 - WHEN the bulk invite runs
-- THEN that entry yields a `FAILED` audit event carrying `ENTRY_ALREADY_CONVERTED` despite no state change
+- THEN that entry yields a `FAILED` audit event carrying `ENTRY_ALREADY_CONVERTED` despite no state
+  change

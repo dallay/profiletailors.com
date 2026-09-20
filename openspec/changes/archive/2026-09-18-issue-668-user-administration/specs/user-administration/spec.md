@@ -2,13 +2,19 @@
 
 ## Purpose
 
-Define the Back Office user list/detail views and narrowly scoped account controls. Controls MUST be explicit, retry-safe, auditable, and limited to administrative account state and refresh-session revocation.
+Define the Back Office user list/detail views and narrowly scoped account controls. Controls MUST be
+explicit, retry-safe, auditable, and limited to administrative account state and refresh-session
+revocation.
 
 ## Requirements
 
 ### Requirement: List and inspect users
 
-Authorized operators MUST be able to list and search users with pagination and exact normalized-email matching. Results MUST expose principal identity, account state, verification state, registration time, and workspace count; detail MUST additionally expose workspace memberships and platform roles. The existing `status` filter MUST represent account state rather than principal type.
+Authorized operators MUST be able to list and search users with pagination and exact
+normalized-email matching. Results MUST expose principal identity, account state, verification
+state, registration time, and workspace count; detail MUST additionally expose workspace memberships
+and platform roles. The existing `status` filter MUST represent account state rather than principal
+type.
 
 #### Scenario: Search and list users
 
@@ -21,7 +27,8 @@ Authorized operators MUST be able to list and search users with pagination and e
 
 - GIVEN an operator has `platform.users.read` and `platform.users.workspaces.read`
 - WHEN the operator requests an existing user detail
-- THEN identity, account state, verification state, registration time, roles, and workspace memberships are returned
+- THEN identity, account state, verification state, registration time, roles, and workspace
+  memberships are returned
 
 #### Scenario: Missing user or workspace permission
 
@@ -32,7 +39,11 @@ Authorized operators MUST be able to list and search users with pagination and e
 
 ### Requirement: Control account state and sessions
 
-An operator with `platform.users.manage` MUST be able to `disable`, `enable`, and `sessions/revoke` through explicit user-targeted commands. Commands MUST be idempotent. Disable MUST persist `DISABLED` state and revoke all active refresh sessions; enable MUST persist `ACTIVE` state; revoke MUST revoke all active refresh sessions and return the number revoked. No command MAY edit email, verification, ownership, memberships, or delete a user.
+An operator with `platform.users.manage` MUST be able to `disable`, `enable`, and `sessions/revoke`
+through explicit user-targeted commands. Commands MUST be idempotent. Disable MUST persist
+`DISABLED` state and revoke all active refresh sessions; enable MUST persist `ACTIVE` state; revoke
+MUST revoke all active refresh sessions and return the number revoked. No command MAY edit email,
+verification, ownership, memberships, or delete a user.
 
 #### Scenario: Disable and revoke sessions
 
@@ -61,7 +72,11 @@ An operator with `platform.users.manage` MUST be able to `disable`, `enable`, an
 ## Decisions
 
 - Default account states are `ACTIVE` and `DISABLED`; no separate suspension state is introduced.
-- Control authorization uses one explicit `platform.users.manage` permission, granted only to `PLATFORM_OWNER` and `PLATFORM_OPERATOR`; read permissions remain independent.
+- Control authorization uses one explicit `platform.users.manage` permission, granted only to
+  `PLATFORM_OWNER` and `PLATFORM_OPERATOR`; read permissions remain independent.
 - Exact normalized-email matching is retained; fuzzy or partial search is not added.
-- Disable is fail-closed: success is not returned unless account state and session revocation both complete. The design MUST make retries safe; if completion cannot be established, the outcome is failure and the account MUST NOT be treated as safely enabled.
-- API error bodies and exact metric names remain implementation/design concerns, but status semantics MUST preserve existing admin 401/403/404 conventions.
+- Disable is fail-closed: success is not returned unless account state and session revocation both
+  complete. The design MUST make retries safe; if completion cannot be established, the outcome is
+  failure and the account MUST NOT be treated as safely enabled.
+- API error bodies and exact metric names remain implementation/design concerns, but status
+  semantics MUST preserve existing admin 401/403/404 conventions.

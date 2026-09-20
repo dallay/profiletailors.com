@@ -50,8 +50,10 @@ specification, and design. Marketing, backend, and shared consent contracts were
 ## Commands
 
 -
+
 `pnpm --filter app exec vitest run src/components/consent/ConsentBanner.spec.ts src/components/consent/CookieSettings.spec.ts src/components/consent/useConsent.spec.ts src/modules/settings/infrastructure/consent.store.test.ts` —
 **PASS** (all focused tests green; expected sync-failure logs are emitted by regression tests).
+
 - `pnpm --filter app type-check` — **PASS**.
 - `just frontend-lint` — **PASS**.
 

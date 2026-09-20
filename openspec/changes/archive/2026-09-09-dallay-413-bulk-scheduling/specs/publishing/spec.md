@@ -4,7 +4,8 @@
 
 ### Requirement: Bulk Validate (Sync, No Persistence)
 
-MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/validate` returning per-row `{rowIndex, status: VALID|INVALID, errors[]}`. MUST NOT persist publications or `BulkImportJob`.
+MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/validate` returning per-row
+`{rowIndex, status: VALID|INVALID, errors[]}`. MUST NOT persist publications or `BulkImportJob`.
 
 #### Scenario: Gherkin 1 — per-row errors, no persistence
 
@@ -20,7 +21,9 @@ MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/validate` returning per-
 
 ### Requirement: Chunked Bulk Schedule
 
-MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/schedule` persisting valid rows via `PublicationCreationService` in 50–100-row `runAtomically` chunks. MUST return `{jobId, totalRows, scheduledCount, failedCount, rows[]}` with 200/207 and support partial success.
+MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/schedule` persisting valid rows via
+`PublicationCreationService` in 50–100-row `runAtomically` chunks. MUST return
+`{jobId, totalRows, scheduledCount, failedCount, rows[]}` with 200/207 and support partial success.
 
 #### Scenario: Gherkin 2 — chunked atomic, partial success
 
@@ -36,7 +39,8 @@ MUST expose `POST /api/v1/workspaces/{workspaceId}/bulk/schedule` persisting val
 
 ### Requirement: Bulk Job Status
 
-MUST expose `GET /api/v1/workspaces/{workspaceId}/bulk/jobs/{jobId}` returning `status` (`SCHEDULED|PARTIAL|FAILED`), counts and row errors. MUST be workspace-scoped.
+MUST expose `GET /api/v1/workspaces/{workspaceId}/bulk/jobs/{jobId}` returning `status`
+(`SCHEDULED|PARTIAL|FAILED`), counts and row errors. MUST be workspace-scoped.
 
 #### Scenario: Gherkin 3 — owner sees counts
 
@@ -52,7 +56,8 @@ MUST expose `GET /api/v1/workspaces/{workspaceId}/bulk/jobs/{jobId}` returning `
 
 ### Requirement: Bulk Templates
 
-MUST expose `GET /bulk/templates` and `GET /bulk/templates/{id}/csv` with canonical header `bodyText,scheduledFor,timezone,media_urls,hashtags`.
+MUST expose `GET /bulk/templates` and `GET /bulk/templates/{id}/csv` with canonical header
+`bodyText,scheduledFor,timezone,media_urls,hashtags`.
 
 #### Scenario: Gherkin 4 — catalog and CSV correct
 
@@ -62,7 +67,9 @@ MUST expose `GET /bulk/templates` and `GET /bulk/templates/{id}/csv` with canoni
 
 ### Requirement: CSV Parsing and Row Errors
 
-MUST skip blank lines, flag `INVALID_DATE` for non-ISO-8601 `scheduledFor`, flag `MISSING_CONTENT` when `bodyText` and `media_urls` empty, warn `DUPLICATE` on `sha256(ws+body+scheduledFor)` collision, validate `media_urls` via `MediaAssetResolver` (SSRF allowlist, 10MB) → `INVALID_MEDIA`.
+MUST skip blank lines, flag `INVALID_DATE` for non-ISO-8601 `scheduledFor`, flag `MISSING_CONTENT`
+when `bodyText` and `media_urls` empty, warn `DUPLICATE` on `sha256(ws+body+scheduledFor)`
+collision, validate `media_urls` via `MediaAssetResolver` (SSRF allowlist, 10MB) → `INVALID_MEDIA`.
 
 #### Scenario: Blank lines skipped
 
@@ -84,7 +91,9 @@ MUST skip blank lines, flag `INVALID_DATE` for non-ISO-8601 `scheduledFor`, flag
 
 ### Requirement: Bulk Isolation, Auth, Idempotency
 
-All bulk endpoints MUST verify `path workspaceId == context workspaceId` else 403/404, require `emailStatus=VERIFIED` else 403, and enforce `idempotencyKey=sha256(ws+principal+csvHash)` → 409 with existing `jobId` on duplicate.
+All bulk endpoints MUST verify `path workspaceId == context workspaceId` else 403/404, require
+`emailStatus=VERIFIED` else 403, and enforce `idempotencyKey=sha256(ws+principal+csvHash)` → 409
+with existing `jobId` on duplicate.
 
 #### Scenario: Workspace mismatch rejected and unverified blocked
 
@@ -100,7 +109,10 @@ All bulk endpoints MUST verify `path workspaceId == context workspaceId` else 40
 
 ### Requirement: Reuse Publishing Lifecycle
 
-Each row MUST pass `PublicationLifecyclePolicy.validateForCreation`, `ProviderCapabilityValidator`, `ConflictDetectionPolicy` (15-min, same account, `SCHEDULED`/`QUEUED` only → `hasConflict:true` warn-only V1), and `MediaAssetResolver` for `EXTERNAL_URL`. V1 MUST only allow `SCHEDULED_AT` with future `scheduledFor`.
+Each row MUST pass `PublicationLifecyclePolicy.validateForCreation`, `ProviderCapabilityValidator`,
+`ConflictDetectionPolicy` (15-min, same account, `SCHEDULED`/`QUEUED` only → `hasConflict:true`
+warn-only V1), and `MediaAssetResolver` for `EXTERNAL_URL`. V1 MUST only allow `SCHEDULED_AT` with
+future `scheduledFor`.
 
 #### Scenario: Capability violation
 

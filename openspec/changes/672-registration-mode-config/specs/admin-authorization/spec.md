@@ -12,10 +12,10 @@ are read-only governance/investigation visibility over operational state AUDITOR
 `SUPPORT_AGENT` MUST hold neither key, consistent with it holding no `platform.operators.*`
 permission today. No role other than `PLATFORM_OWNER` MUST hold `platform.configuration.manage`.
 
-| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
-|------------|:-----:|:--------:|:-------------:|:-------:|
-| `platform.configuration.read` | ✓ | ✓ | — | ✓ |
-| `platform.configuration.manage` | ✓ | — | — | — |
+| Permission                      | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|---------------------------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.configuration.read`   |  ✓   |    ✓    |       —       |   ✓    |
+| `platform.configuration.manage` |  ✓   |    —     |       —       |    —    |
 
 #### Scenario: Read permission is granted to OWNER, OPERATOR, and AUDITOR
 
@@ -44,10 +44,10 @@ MUST NOT imply permissions the API does not enforce.
 - GIVEN a planned area with no backing admin API, WHEN its placeholder renders, THEN no permission
   beyond the registry entry is implied or checked. Planned placeholders reuse only existing
   server-enforced keys (overview/notifications → `platform.dashboard.read`; governance →
-  `platform.operators.read`).
-(Previously: `configuration` was also listed as a planned placeholder reusing
-`platform.operators.read`. The `configuration` nav entry is now `live` and gated on its own
-`platform.configuration.read` permission, backed by a real admin API.)
+  `platform.operators.read`). (Previously: `configuration` was also listed as a planned placeholder
+  reusing
+  `platform.operators.read`. The `configuration` nav entry is now `live` and gated on its own
+  `platform.configuration.read` permission, backed by a real admin API.)
 
 #### Scenario: Configuration nav entry is gated on its own permission
 

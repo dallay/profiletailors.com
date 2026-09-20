@@ -4,9 +4,11 @@
 
 ### Requirement: Invitation Notification Type
 
-The system MUST support invitation notifications as a distinct notification type within the Notification context.
+The system MUST support invitation notifications as a distinct notification type within the
+Notification context.
 
 Invitation notifications:
+
 - Are created in response to InvitationIssued domain events
 - Track their own lifecycle independent of the Invitation aggregate
 - Are correlated to the invitation via invitationId
@@ -23,9 +25,11 @@ Invitation notifications:
 
 ### Requirement: Notification Payload for Invitations
 
-The notification payload for invitation notifications MUST contain sufficient information to construct the acceptance email without receiving the raw bearer token.
+The notification payload for invitation notifications MUST contain sufficient information to
+construct the acceptance email without receiving the raw bearer token.
 
 The invitation notification payload MUST contain:
+
 - invitationId: correlation identifier
 - recipientEmail: destination address
 - workspaceName: for email personalization
@@ -33,6 +37,7 @@ The invitation notification payload MUST contain:
 - expiresAt: for display in email content
 
 The invitation notification payload MUST NOT contain:
+
 - rawToken: plaintext bearer token (never in payload)
 - tokenHash: hashed bearer token
 - constructed acceptUrl: URL must be reconstructed from invitationId
@@ -55,9 +60,11 @@ The invitation notification payload MUST NOT contain:
 
 ### Requirement: Notification Correlation with Invitation
 
-The system MUST enable correlation between notifications and their corresponding invitations for future operations such as resend (DALLAY-574).
+The system MUST enable correlation between notifications and their corresponding invitations for
+future operations such as resend (DALLAY-574).
 
 Correlation MUST be achieved via:
+
 - invitationId stored in the notification payload
 - idempotency key: `invitation:{invitationId}:initial`
 
@@ -70,7 +77,8 @@ Correlation MUST be achieved via:
 
 ### Requirement: Notification Lifecycle Independence
 
-The notification lifecycle (PENDING → SENT/FAILED) MUST be independent of the invitation lifecycle (ACTIVE/ACCEPTED/EXPIRED/REVOKED).
+The notification lifecycle (PENDING → SENT/FAILED) MUST be independent of the invitation lifecycle
+(ACTIVE/ACCEPTED/EXPIRED/REVOKED).
 
 Notification state transitions MUST NOT trigger invitation state changes.
 
@@ -94,9 +102,11 @@ Notification state transitions MUST NOT trigger invitation state changes.
 
 ### Requirement: Email Dispatch Failure Handling
 
-The notification consumer MUST handle email dispatch failures gracefully without throwing exceptions to the event bus.
+The notification consumer MUST handle email dispatch failures gracefully without throwing exceptions
+to the event bus.
 
 When email dispatch fails:
+
 - The notification status MUST transition to FAILED
 - The error message SHOULD be recorded in the notification
 - The consumer MUST NOT throw exceptions
@@ -127,4 +137,5 @@ When email dispatch fails:
 
 The system MUST NOT publish InvitationDeliveryAttempted events that cross context boundaries.
 
-(Reason: This event existed solely to propagate notification state back to the Invitation context. With deliveryStatus removed from Invitation, this cross-context coupling is eliminated.)
+(Reason: This event existed solely to propagate notification state back to the Invitation context.
+With deliveryStatus removed from Invitation, this cross-context coupling is eliminated.)

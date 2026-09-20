@@ -11,8 +11,8 @@ that provider, and SHALL treat `Upload` as an action within the picker flow rath
 browsable source. The parent MUST supply `provider="unsplash"` only when the provider is configured
 and enabled. The host of the picker orchestration MAY move between component inline and a dedicated
 Vue composable without changing any typed emit, prop, testid, lifecycle, or user-observable behavior
-of the picker.
-(Previously: The shell only emitted search, filter, and close interactions and could not support
+of the picker. (Previously: The shell only emitted search, filter, and close interactions and could
+not support
 selection, upload, or draft attachment flows.)
 
 #### Scenario: Emit parent-owned browse and selection interactions
@@ -45,8 +45,8 @@ selection, upload, or draft attachment flows.)
 The composer media picker MUST accept an optional `provider: "unsplash" | null` prop and MUST emit
 `provider-search` and `provider-import` interactions. The shell MUST NOT call any HTTP endpoint
 directly, and provider import MUST keep the picker open so the parent can continue staged
-multi-selection after import.
-(Previously: The shell emitted provider interactions, but import completion did not explicitly
+multi-selection after import. (Previously: The shell emitted provider interactions, but import
+completion did not explicitly
 preserve the open picker session for continued multi-selection.)
 
 #### Scenario: Provider tab is conditional
@@ -71,8 +71,8 @@ support staged multi-selection for draft attachment flows. `READY` assets MUST b
 when its preview fails to load, it MUST render fallback visuals without losing selectability.
 `PROCESSING` assets MUST remain visible with a placeholder or status and MUST NOT be selectable.
 `FAILED` assets MUST remain visible with fallback or failure presentation and MUST NOT be
-selectable.
-(Previously: The asset region was presentation-only and could show a non-interactive ready state
+selectable. (Previously: The asset region was presentation-only and could show a non-interactive
+ready state
 without attachment behavior.)
 
 #### Scenario: Render and stage ready assets

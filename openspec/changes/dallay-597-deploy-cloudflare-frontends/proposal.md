@@ -2,7 +2,8 @@
 
 ## Intent
 
-The `app`, `admin`, and `landing` frontends are currently deployable from `main` through Cloudflare's
+The `app`, `admin`, and `landing` frontends are currently deployable from `main` through
+Cloudflare's
 Git integration, so a merge to `main` can ship a frontend to production even when that component
 has not produced an explicit release. DALLAY-597 makes a Release Please release for a specific
 component the sole production deployment boundary for the three Cloudflare Pages-hosted frontends,
@@ -13,7 +14,8 @@ touched.
 
 ### In Scope
 
-- Expose per-component Release Please outputs (`apps/web/app`, `apps/web/admin`, `apps/web/marketing`)
+- Expose per-component Release Please outputs (`apps/web/app`, `apps/web/admin`,
+  `apps/web/marketing`)
   on `.github/workflows/release-please.yml`.
 - Add component-scoped Cloudflare deployment jobs (one per frontend) gated by that component's
   `release_created` output and tagged by its `tag_name`.
@@ -87,16 +89,16 @@ project restores the prior deployment behavior without code changes.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|---|---|---|
-| `.github/workflows/release-please.yml` | Modified | Add `app--*` and `admin--*` outputs; replace `notify-landing` with three component-scoped deploy jobs. |
-| `release-please-config.json` | Verified | `apps/web/app` and `apps/web/admin` already declared as Release Please components; no config edit expected. |
-| `apps/web/admin/wrangler.toml` | New | Currently absent; add a minimal file mirroring `apps/web/app/wrangler.toml` so wrangler has a local anchor for the Cloudflare project name. |
-| `apps/web/app/wrangler.toml`, `apps/web/marketing/wrangler.toml` | Verified | Already declare `pages_build_output_dir`; no edit expected. |
-| `scripts/compute-build-info.mjs` | Reuse | No edit; deploy job passes `GIT_SHA` and the existing version badge picks it up. |
-| GitHub Actions secrets | New | Provision `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` with Pages Deploy-only scopes. |
-| Cloudflare Pages dashboard | Operator action | Disable Git-integration production auto-deploy for `app-profile-tailors`, `profiletailors`, `profiletailors-admin`; documented in deployment runbook. |
-| `docs/operations/` (runbook) | Modified | Record the operator action, the rollback toggle, and the post-deploy smoke probe. |
+| Area                                                             | Impact          | Description                                                                                                                                           |
+|------------------------------------------------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.github/workflows/release-please.yml`                           | Modified        | Add `app--*` and `admin--*` outputs; replace `notify-landing` with three component-scoped deploy jobs.                                                |
+| `release-please-config.json`                                     | Verified        | `apps/web/app` and `apps/web/admin` already declared as Release Please components; no config edit expected.                                           |
+| `apps/web/admin/wrangler.toml`                                   | New             | Currently absent; add a minimal file mirroring `apps/web/app/wrangler.toml` so wrangler has a local anchor for the Cloudflare project name.           |
+| `apps/web/app/wrangler.toml`, `apps/web/marketing/wrangler.toml` | Verified        | Already declare `pages_build_output_dir`; no edit expected.                                                                                           |
+| `scripts/compute-build-info.mjs`                                 | Reuse           | No edit; deploy job passes `GIT_SHA` and the existing version badge picks it up.                                                                      |
+| GitHub Actions secrets                                           | New             | Provision `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` with Pages Deploy-only scopes.                                                           |
+| Cloudflare Pages dashboard                                       | Operator action | Disable Git-integration production auto-deploy for `app-profile-tailors`, `profiletailors`, `profiletailors-admin`; documented in deployment runbook. |
+| `docs/operations/` (runbook)                                     | Modified        | Record the operator action, the rollback toggle, and the post-deploy smoke probe.                                                                     |
 
 ## Testing Strategy
 
@@ -115,12 +117,12 @@ project restores the prior deployment behavior without code changes.
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Operator accidentally disables preview deployments alongside production auto-deploy | Medium | Scope the operator action to the production branch only; preview deploys from PR branches stay intact and are verified manually before enabling the new workflow. |
-| SHA extraction from Release Please output mismatches the actual tag | Medium | Resolve the SHA via a single helper step (`actions/checkout` with `ref: <tag>` + `fetch-depth: 0`) and unit-test it against fixture tags before merge. |
-| Cloudflare Pages CDN serves a cached artifact that diverges from the freshly deployed build | Low | Post-deploy smoke probe asserts the version badge; on mismatch the deploy job fails and `wrangler rollback` (or a re-deploy of the previous SHA) is invoked. |
-| Operator delay in disabling Cloudflare Git integration for the production branch | High | Gate the merge of the new workflow on the operator action being completed in the same release PR; the runbook entry records the dashboard path, the three project names, and the verification curl. |
+| Risk                                                                                        | Likelihood | Mitigation                                                                                                                                                                                          |
+|---------------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Operator accidentally disables preview deployments alongside production auto-deploy         | Medium     | Scope the operator action to the production branch only; preview deploys from PR branches stay intact and are verified manually before enabling the new workflow.                                   |
+| SHA extraction from Release Please output mismatches the actual tag                         | Medium     | Resolve the SHA via a single helper step (`actions/checkout` with `ref: <tag>` + `fetch-depth: 0`) and unit-test it against fixture tags before merge.                                              |
+| Cloudflare Pages CDN serves a cached artifact that diverges from the freshly deployed build | Low        | Post-deploy smoke probe asserts the version badge; on mismatch the deploy job fails and `wrangler rollback` (or a re-deploy of the previous SHA) is invoked.                                        |
+| Operator delay in disabling Cloudflare Git integration for the production branch            | High       | Gate the merge of the new workflow on the operator action being completed in the same release PR; the runbook entry records the dashboard path, the three project names, and the verification curl. |
 
 ## Rollback Plan
 
@@ -147,13 +149,18 @@ destroyed; the rollback is a workflow toggle plus a dashboard toggle.
 
 - [ ] A merge to `main` does NOT deploy `app`, `admin`, or `landing` to Cloudflare production.
 - [ ] Releasing `app@vX.Y.Z` through Release Please triggers only the `app` production deployment.
-- [ ] Releasing `admin@vX.Y.Z` through Release Please triggers only the `admin` production deployment.
-- [ ] Releasing `landing@vX.Y.Z` through Release Please triggers only the `landing` production deployment.
-- [ ] Each deploy build checks out the exact SHA associated with the Release Please release, not the implicit `main` HEAD.
+- [ ] Releasing `admin@vX.Y.Z` through Release Please triggers only the `admin` production
+  deployment.
+- [ ] Releasing `landing@vX.Y.Z` through Release Please triggers only the `landing` production
+  deployment.
+- [ ] Each deploy build checks out the exact SHA associated with the Release Please release, not the
+  implicit `main` HEAD.
 - [ ] Multiple frontend releases created in the same Release Please run deploy independently.
 - [ ] The existing `smp` release and image behavior remains unchanged.
 - [ ] Cloudflare Git-integration production auto-deploy is disabled for the three frontend projects.
 - [ ] Cloudflare authentication uses least-privilege GitHub Actions secrets.
-- [ ] Production deployment metadata is correlatable with component version, release tag, and Git SHA.
+- [ ] Production deployment metadata is correlatable with component version, release tag, and Git
+  SHA.
 - [ ] The frontend version badge receives metadata from the exact production build.
-- [ ] A post-deployment verification step fails the workflow when the production deployment is not healthy.
+- [ ] A post-deployment verification step fails the workflow when the production deployment is not
+  healthy.

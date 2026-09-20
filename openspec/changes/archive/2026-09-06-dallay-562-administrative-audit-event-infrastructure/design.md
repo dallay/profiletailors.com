@@ -129,6 +129,7 @@ server/smp/src/test/kotlin/com/profiletailors/smp/administrative/
 ```
 
 Including:
+
 - `AdministrativeBoundedContext.kt`
 - `AdministrativeAuditEvent.kt` (domain entity)
 - `AdministrativeAuditEventRepository.kt` (port interface)
@@ -144,14 +145,16 @@ deleted as dead code; no rollback migration is required.
 
 ## Testing Strategy
 
-| Layer | What to Test | Approach |
-|---|---|---|
-| Unit | `redact()` edge cases (sensitive keys present/absent, case sensitivity, empty map) | Plain JUnit test, no Spring context |
-| Unit | `redact()` does not mutate the input map | Assert original map is unchanged after redact |
-| Integration | Handler emits event with sensitive metadata → stored row has no sensitive keys | `BddDatabaseSupport` + real `DatabaseClient`; query the row after publish |
+| Layer       | What to Test                                                                       | Approach                                                                  |
+|-------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Unit        | `redact()` edge cases (sensitive keys present/absent, case sensitivity, empty map) | Plain JUnit test, no Spring context                                       |
+| Unit        | `redact()` does not mutate the input map                                           | Assert original map is unchanged after redact                             |
+| Integration | Handler emits event with sensitive metadata → stored row has no sensitive keys     | `BddDatabaseSupport` + real `DatabaseClient`; query the row after publish |
 
 ## Open Questions
 
 - [x] Where to apply redaction: repository (chosen) vs domain model construction (rejected)
-- [x] Who calls `redact()`: `R2dbcAdminAuditRepository` (chosen), not `AuditEventPublisher` or domain model
-- [x] Migration 006 status: TBD — requires git history check before deciding rollback vs forward-drop
+- [x] Who calls `redact()`: `R2dbcAdminAuditRepository` (chosen), not `AuditEventPublisher` or
+  domain model
+- [x] Migration 006 status: TBD — requires git history check before deciding rollback vs
+  forward-drop

@@ -4,7 +4,11 @@
 
 ### Requirement: User-administration metrics
 
-The platform MUST expose counters for user disable, enable, and session-revoke command outcomes, plus failed authorization attempts for user administration. Counters MUST distinguish operation and outcome, and MUST NOT include email addresses, tokens, passwords, raw user-agent values, or other sensitive identifiers. Metric names and ownership MUST be finalized in design while preserving these semantic dimensions.
+The platform MUST expose counters for user disable, enable, and session-revoke command outcomes,
+plus failed authorization attempts for user administration. Counters MUST distinguish operation and
+outcome, and MUST NOT include email addresses, tokens, passwords, raw user-agent values, or other
+sensitive identifiers. Metric names and ownership MUST be finalized in design while preserving these
+semantic dimensions.
 
 #### Scenario: Successful control increments a counter
 

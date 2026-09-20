@@ -2,7 +2,8 @@
 
 ## Overview
 
-Integrate DALLAY-564's standalone Invitation with Notifications while isolating validity from delivery.
+Integrate DALLAY-564's standalone Invitation with Notifications while isolating validity from
+delivery.
 
 ## Changes
 
@@ -150,15 +151,18 @@ response.
 
 ## Usage
 
-Platformadmin will schedule `InvitationNotificationRequested` after a committed Invitation transaction.
-Notifications will consume the event, own delivery records, and expose `InvitationDeliverySummaryReader`
+Platformadmin will schedule `InvitationNotificationRequested` after a committed Invitation
+transaction.
+Notifications will consume the event, own delivery records, and expose
+`InvitationDeliverySummaryReader`
 for composed admin reads.
 
 ## Troubleshooting
 
 - If the same command key creates duplicate deliveries, verify the unique constraint on
   `platform.invitation:{invitationId}:{commandId}`.
-- If delivery state leaks into Invitation validity, check that no reverse event or direct write updates
+- If delivery state leaks into Invitation validity, check that no reverse event or direct write
+  updates
   the Invitation aggregate.
 - DALLAY-566 owns the ephemeral token handoff; do not implement token generation, URL assembly, or
   recipient binding in this change.

@@ -9,6 +9,7 @@ This follow-up adds tests and fixtures only; production behavior and contracts r
 ## Scope
 
 ### In Scope
+
 - Cucumber scenarios for expired, revoked, and email-mismatched invite-only registration.
 - Cucumber scenario for authenticated matching-existing-identity acceptance with no duplicate
   identity, credential, membership, or workspace.
@@ -17,6 +18,7 @@ This follow-up adds tests and fixtures only; production behavior and contracts r
 - Test-only lifecycle/authentication fixtures and database assertions for QA-06 through QA-10.
 
 ### Out of Scope
+
 - Production implementation, API classifier, schema, UI copy, or runtime behavior changes.
 - Accessibility, locale, raw-token URL exposure, unrelated regression coverage, or new requirements.
 - Deployed/manual exploratory acceptance until a target, credentials, and controlled invitation
@@ -25,9 +27,11 @@ This follow-up adds tests and fixtures only; production behavior and contracts r
 ## Capabilities
 
 ### New Capabilities
+
 - None.
 
 ### Modified Capabilities
+
 - None. Existing `invitations` and `e2e` requirements are unchanged; this adds evidence only.
 
 ## Approach
@@ -39,20 +43,20 @@ revoked fixtures must include a code because status-only `410` maps to expired.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|---|---|---|
-| `server/smp/src/test/resources/features` | Modified | Four backend acceptance scenarios. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd` | Modified | Lifecycle and mutation assertions. |
-| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts` | Modified | Three response-classification scenarios. |
-| `openspec/changes/.../qa-report.md` | Later | Rerun missing scenario results. |
+| Area                                                    | Impact   | Description                              |
+|---------------------------------------------------------|----------|------------------------------------------|
+| `server/smp/src/test/resources/features`                | Modified | Four backend acceptance scenarios.       |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd` | Modified | Lifecycle and mutation assertions.       |
+| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts`   | Modified | Three response-classification scenarios. |
+| `openspec/changes/.../qa-report.md`                     | Later    | Rerun missing scenario results.          |
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Shared fixtures leak state | Medium | Reset per scenario and assert persisted state. |
-| Revoked `410` is classified as expired | Medium | Include `INVITATION_REVOKED` in the browser payload. |
-| Manual acceptance remains unverifiable | High | Keep it `BLOCKED` pending target, credentials, and controlled fixtures. |
+| Risk                                   | Likelihood | Mitigation                                                              |
+|----------------------------------------|------------|-------------------------------------------------------------------------|
+| Shared fixtures leak state             | Medium     | Reset per scenario and assert persisted state.                          |
+| Revoked `410` is classified as expired | Medium     | Include `INVITATION_REVOKED` in the browser payload.                    |
+| Manual acceptance remains unverifiable | High       | Keep it `BLOCKED` pending target, credentials, and controlled fixtures. |
 
 ## Rollback Plan
 

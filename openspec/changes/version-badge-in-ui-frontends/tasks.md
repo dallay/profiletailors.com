@@ -2,23 +2,29 @@
 
 ## Overview
 
-Track the build-time injection, UI components, frontend wiring, and verification required by the version badge proposal.
+Track the build-time injection, UI components, frontend wiring, and verification required by the
+version badge proposal.
 
 ## Changes
 
 ### 1. Build-time injection
 
-- [x] 1.1 Add `define` block in `apps/web/app/vite.config.ts` exposing `__APP_VERSION__`, `__GIT_SHA__`, `__BUILD_TIME__`.
+- [x] 1.1 Add `define` block in `apps/web/app/vite.config.ts` exposing `__APP_VERSION__`,
+  `__GIT_SHA__`, `__BUILD_TIME__`.
 - [x] 1.2 Add `define` block in `apps/web/admin/vite.config.ts` with the same globals.
 - [x] 1.3 Add Vite `define` block in `apps/web/marketing/astro.config.mjs` with the same globals.
-- [x] 1.4 Add TypeScript declaration files for the globals in each frontend (`src/types/build-info.d.ts`).
-- [x] 1.5 Add `scripts/compute-build-info.mjs` that exports the short git SHA and ISO build time and is consumed by each Vite/Astro config.
+- [x] 1.4 Add TypeScript declaration files for the globals in each frontend
+  (`src/types/build-info.d.ts`).
+- [x] 1.5 Add `scripts/compute-build-info.mjs` that exports the short git SHA and ISO build time and
+  is consumed by each Vite/Astro config.
 
 ### 2. Vue component (`apps/web/app` + `apps/web/admin`)
 
-- [x] 2.1 Write `VersionBadge.spec.ts` first asserting it renders `v<version> · <sha>` and exposes build time as `title`.
+- [x] 2.1 Write `VersionBadge.spec.ts` first asserting it renders `v<version> · <sha>` and exposes
+  build time as `title`.
 - [x] 2.2 Implement `VersionBadge.vue` in `apps/web/app/src/shared/ui/`.
-- [x] 2.3 Implement matching `VersionBadge.vue` in `apps/web/admin/src/shared/ui/` with the same contract.
+- [x] 2.3 Implement matching `VersionBadge.vue` in `apps/web/admin/src/shared/ui/` with the same
+  contract.
 
 ### 3. Astro component (`apps/web/marketing`)
 
@@ -29,9 +35,12 @@ Track the build-time injection, UI components, frontend wiring, and verification
 
 ### 4. Wiring
 
-- [x] 4.1 Render `<VersionBadge />` inside the sidebar footer in `apps/web/app/src/layouts/AppShell.vue`.
-- [x] 4.2 Render `<VersionBadge />` at the bottom of the admin sidebar in `apps/web/admin/src/layouts/AdminLayout.vue`.
-- [x] 4.3 Render `<VersionBadge />` in `apps/web/marketing/src/layouts/Layout.astro`, conditionally hidden on the landing pages (`/` and `/es/`).
+- [x] 4.1 Render `<VersionBadge />` inside the sidebar footer in
+  `apps/web/app/src/layouts/AppShell.vue`.
+- [x] 4.2 Render `<VersionBadge />` at the bottom of the admin sidebar in
+  `apps/web/admin/src/layouts/AdminLayout.vue`.
+- [x] 4.3 Render `<VersionBadge />` in `apps/web/marketing/src/layouts/Layout.astro`, conditionally
+  hidden on the landing pages (`/` and `/es/`).
 
 ## Troubleshooting
 

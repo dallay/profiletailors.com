@@ -4,7 +4,8 @@
 
 - Change: `fix-invitation-email-delivery`
 - Archived: 2026-09-15
-- Mode: `openspec` per `openspec/config.yaml` (`persistence.mode: openspec`, `artifact_policy: openspec-only`)
+- Mode: `openspec` per `openspec/config.yaml` (`persistence.mode: openspec`,
+  `artifact_policy: openspec-only`)
 - Destination: `openspec/changes/archive/2026-09-15-fix-invitation-email-delivery/`
 - Branch: `feature/fix-invitation-email-delivery-1`
 - Worktree: `/Users/acosta/Dev/dallay/worktrees/fix-invitation-email-delivery`
@@ -21,16 +22,18 @@ Archive gate PASSED.
 - Focused PostgreSQL notification repository integration passed 7/7.
 - `backend-check` passed locally.
 - No unresolved P0, P1, or CRITICAL acceptance issue is recorded.
-- The remaining `PublishingWorkerTransactionPostgresIntegrationTest` initialization failure is an unrelated open P2 warning (`QA-001`), which the repository archive policy permits.
-- The raw-token handler-to-event-to-consumer handoff remains explicitly documented as a temporary, non-canonical DALLAY-566 follow-up.
+- The remaining `PublishingWorkerTransactionPostgresIntegrationTest` initialization failure is an
+  unrelated open P2 warning (`QA-001`), which the repository archive policy permits.
+- The raw-token handler-to-event-to-consumer handoff remains explicitly documented as a temporary,
+  non-canonical DALLAY-566 follow-up.
 - No deployed, CI, PR, merge, or production acceptance evidence is claimed.
 
 ## Specs Synced
 
-| Domain | Action | Details |
-|---|---|---|
-| `invitations` | Updated | Added direct invitation transaction atomicity, target-aware workspace-name and 404 semantics, and handler-originated initial/resend delivery identity requirements. Existing requirements preserved. |
-| `email-notifications` | Updated | Added post-commit direct-event delivery, initial/resend idempotency, provider-owned notification status, and the temporary DALLAY-566 raw-token handoff boundary. Existing requirements preserved. |
+| Domain                | Action  | Details                                                                                                                                                                                              |
+|-----------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `invitations`         | Updated | Added direct invitation transaction atomicity, target-aware workspace-name and 404 semantics, and handler-originated initial/resend delivery identity requirements. Existing requirements preserved. |
+| `email-notifications` | Updated | Added post-commit direct-event delivery, initial/resend idempotency, provider-owned notification status, and the temporary DALLAY-566 raw-token handoff boundary. Existing requirements preserved.   |
 
 ## Archive Contents
 
@@ -48,7 +51,8 @@ Archive gate PASSED.
 ## Verification
 
 - Active change directory no longer exists at `openspec/changes/fix-invitation-email-delivery/`.
-- Archived change directory exists at `openspec/changes/archive/2026-09-15-fix-invitation-email-delivery/`.
+- Archived change directory exists at
+  `openspec/changes/archive/2026-09-15-fix-invitation-email-delivery/`.
 - All change artifacts are present in the archive directory.
 - Canonical spec changes pass `git diff --check`.
 - DALLAY-567 QA artifacts were not modified.

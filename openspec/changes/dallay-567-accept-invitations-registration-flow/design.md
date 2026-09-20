@@ -10,12 +10,12 @@ contracts, classifiers, UI copy, or deployment configuration.
 
 ## Architecture Decisions
 
-| Option | Tradeoff | Decision |
-|---|---|---|
-| Add dedicated production test endpoints | Couples QA to non-user behavior | Rejected; seed and mutate lifecycle rows through existing test glue only. |
-| Reuse shared Cucumber state across scenarios | Fast but leaks tokens and rows | Rejected; reset database and glue state before every scenario. |
-| Use status-only browser errors | Cannot distinguish revoked from expired (`410`) | Rejected; revoked fixtures must include `INVITATION_REVOKED`. |
-| Replace raw-token registration handoff | Correctness/security change outside evidence scope | Rejected; preserve the existing warning and assertions unchanged. |
+| Option                                       | Tradeoff                                           | Decision                                                                  |
+|----------------------------------------------|----------------------------------------------------|---------------------------------------------------------------------------|
+| Add dedicated production test endpoints      | Couples QA to non-user behavior                    | Rejected; seed and mutate lifecycle rows through existing test glue only. |
+| Reuse shared Cucumber state across scenarios | Fast but leaks tokens and rows                     | Rejected; reset database and glue state before every scenario.            |
+| Use status-only browser errors               | Cannot distinguish revoked from expired (`410`)    | Rejected; revoked fixtures must include `INVITATION_REVOKED`.             |
+| Replace raw-token registration handoff       | Correctness/security change outside evidence scope | Rejected; preserve the existing warning and assertions unchanged.         |
 
 ## Data Flow
 
@@ -38,15 +38,15 @@ shares cookies, storage, route state, or invitation tokens.
 
 ## File Changes
 
-| File | Action | Description |
-|---|---|---|
-| `server/smp/src/test/resources/features/local-auth.feature` | Modify | Add expired, revoked, and normalized-email-mismatch registration scenarios. |
-| `server/smp/src/test/resources/features/platform-admin.feature` | Modify | Add successful matching-identity acceptance with no duplicate assertions. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt` | Modify | Add expired/revoked test fixtures and lifecycle/status assertions; keep token in glue state only. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` | Modify | Add explicit failure-code and no-mutation assertions for registration. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt` | Modify | Add focused count queries for identity, local credential, membership, and workspace uniqueness. |
-| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts` | Modify | Add mocked `410` expired, `410` revoked, and `403` mismatch journeys with response/code checks. |
-| `openspec/changes/dallay-567-accept-invitations-registration-flow/qa-report.md` | Later | QA reruns QA-06 through QA-10 and retains QA-16/QA-21 warnings. |
+| File                                                                                          | Action | Description                                                                                       |
+|-----------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------------------------|
+| `server/smp/src/test/resources/features/local-auth.feature`                                   | Modify | Add expired, revoked, and normalized-email-mismatch registration scenarios.                       |
+| `server/smp/src/test/resources/features/platform-admin.feature`                               | Modify | Add successful matching-identity acceptance with no duplicate assertions.                         |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt`      | Modify | Add expired/revoked test fixtures and lifecycle/status assertions; keep token in glue state only. |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` | Modify | Add explicit failure-code and no-mutation assertions for registration.                            |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt`                 | Modify | Add focused count queries for identity, local credential, membership, and workspace uniqueness.   |
+| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts`                                         | Modify | Add mocked `410` expired, `410` revoked, and `403` mismatch journeys with response/code checks.   |
+| `openspec/changes/dallay-567-accept-invitations-registration-flow/qa-report.md`               | Later  | QA reruns QA-06 through QA-10 and retains QA-16/QA-21 warnings.                                   |
 
 ## Interfaces / Contracts
 
@@ -61,12 +61,12 @@ code. The revoked route must not rely on the frontend's status-only `410` fallba
 
 ## Testing Strategy
 
-| Layer | What to Test | Exact command |
-|---|---|---|
-| Cucumber fast | All new local scenarios and per-scenario reset | `just backend-bdd-fast` |
-| Cucumber PostgreSQL | Same scenarios against repository infrastructure | `just infra-up`; `just backend-bdd-postgres`; `just infra-down` |
-| Playwright | Focused invitation file across Chromium, Firefox, Mobile Chrome | `cd apps/web/app && node ../../../scripts/run-playwright.mjs -c e2e/playwright.config.ts e2e/specs/invitee-private-beta.spec.ts` |
-| Frontend checks | Test-only route/type/lint correctness | `pnpm --filter app lint`; `pnpm --filter app type-check` |
+| Layer               | What to Test                                                    | Exact command                                                                                                                    |
+|---------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| Cucumber fast       | All new local scenarios and per-scenario reset                  | `just backend-bdd-fast`                                                                                                          |
+| Cucumber PostgreSQL | Same scenarios against repository infrastructure                | `just infra-up`; `just backend-bdd-postgres`; `just infra-down`                                                                  |
+| Playwright          | Focused invitation file across Chromium, Firefox, Mobile Chrome | `cd apps/web/app && node ../../../scripts/run-playwright.mjs -c e2e/playwright.config.ts e2e/specs/invitee-private-beta.spec.ts` |
+| Frontend checks     | Test-only route/type/lint correctness                           | `pnpm --filter app lint`; `pnpm --filter app type-check`                                                                         |
 
 ## Migration / Rollout
 

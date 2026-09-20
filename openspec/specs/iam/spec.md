@@ -376,8 +376,8 @@ The following capabilities are explicitly deferred beyond phase one:
 
 ## Media Governance Permission Additions
 
-The following requirements were added as part of the media copyright takedown change
-(archived `2026-07-22`).
+The following requirements were added as part of the media copyright takedown change (archived
+`2026-07-22`).
 
 ### Requirement: Governance Media Permissions
 
