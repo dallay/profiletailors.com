@@ -19,8 +19,7 @@ bounded_contexts:
   - platformadmin
   - tenancy
 note: >
-  Archived. QA completed with BLOCKED verdict due to manual/deployed acceptance blocker (QA-21)
-  and P2 warning (QA-16: raw-token URL exposure). Delta specs synced to main specs.
-  All technical verification PASS. Local evidence: 36/36 Playwright, 1,729/1,729 Vitest,
-  24/24 + 20/20 BDD. Blockers explicitly acknowledged: QA-16 (P2 acceptable risk),
-  QA-21 (environment limitation - no deployed target).
+  Archived. QA completed with PASS verdict. All scenarios resolved: QA-06..QA-10 (5/5),
+  QA-21 (manual acceptance 4x PASS by operator). P2 warning QA-16 acknowledged as acceptable risk
+  (raw-token URL exposure). Delta specs synced to main specs. Local evidence: 36/36 Playwright,
+  1,729/1,729 Vitest, 24/24 + 20/20 BDD. All technical verification PASS.
