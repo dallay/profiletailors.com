@@ -184,6 +184,13 @@ export const en: MessageSchema = {
     confirmAssign: 'Assign platform role {role} to {email}?',
     confirmRevoke: 'Revoke platform role {role} from {email}? This takes effect immediately.',
   },
+  configuration: {
+    title: 'Registration Mode',
+    currentMode: 'Current mode',
+    changeTo: 'Change mode',
+    changeConfirm: 'Change the registration mode to {mode}? This takes effect immediately.',
+    changeSuccess: 'Registration mode updated.',
+  },
   directInvitations: {
     title: 'Direct Invitations',
     subtitle: 'Issue or revoke invitations independently of the waitlist.',
@@ -432,6 +439,13 @@ export const es: MessageSchema = {
     revokeRole: 'Revocar rol',
     confirmAssign: '¿Asignar rol de plataforma {role} a {email}?',
     confirmRevoke: '¿Revocar rol de plataforma {role} de {email}? Tendrá efecto inmediato.',
+  },
+  configuration: {
+    title: 'Modo de registro',
+    currentMode: 'Modo actual',
+    changeTo: 'Cambiar modo',
+    changeConfirm: '¿Cambiar el modo de registro a {mode}? Esto tiene efecto inmediato.',
+    changeSuccess: 'Modo de registro actualizado.',
   },
   directInvitations: {
     title: 'Invitaciones directas',
