@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { z } from 'zod'
 
@@ -8,19 +9,23 @@ const automationStateSchema = z.object({
   schemaVersion: z.number(),
   task: z.string(),
   lastExecution: z.string().nullable(),
-  outcome: z.enum(['CHANGES_APPLIED', 'NO_DRIFT_DETECTED', 'PARTIALLY_COMPLETED', 'BLOCKED']).optional(),
+  outcome: z
+    .enum(['CHANGES_APPLIED', 'NO_DRIFT_DETECTED', 'PARTIALLY_COMPLETED', 'BLOCKED'])
+    .optional(),
   findings: z.array(z.any()),
   checks: z.array(z.any()),
 })
 
+const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
+
 describe('compliance-evidence-synchronizer state and report artifacts', () => {
   const statePath = resolve(
-    process.cwd(),
-    '../../.agents/automation/state/compliance-evidence-synchronizer.yaml'
+    repositoryRoot,
+    '.agents/automation/state/compliance-evidence-synchronizer.yaml',
   )
   const reportPath = resolve(
-    process.cwd(),
-    '../../.agents/automation/reports/compliance-evidence-synchronizer.md'
+    repositoryRoot,
+    '.agents/automation/reports/compliance-evidence-synchronizer.md',
   )
 
   it('state conforms to schema', () => {

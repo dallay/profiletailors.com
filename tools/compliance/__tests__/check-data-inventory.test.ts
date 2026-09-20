@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { validateDataInventory } from '../check-data-inventory.js'
+
+const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
+const dataInventoryPath = resolve(repositoryRoot, 'docs/compliance/data-inventory.yaml')
 
 describe('validateDataInventory', () => {
   it('returns valid for a correct minimal inventory', () => {
@@ -129,13 +135,8 @@ processing_activities:
     expect(result.errors.some((e) => e.includes('YAML parse error'))).toBe(true)
   })
 
-  it('validates actual repo data inventory docs/compliance/data-inventory.yaml successfully', async () => {
-    const { readFileSync } = await import('node:fs')
-    const { resolve } = await import('node:path')
-    const yamlContent = readFileSync(
-      resolve(process.cwd(), '../../docs/compliance/data-inventory.yaml'),
-      'utf-8'
-    )
+  it('validates actual repo data inventory docs/compliance/data-inventory.yaml successfully', () => {
+    const yamlContent = readFileSync(dataInventoryPath, 'utf-8')
     const result = validateDataInventory(yamlContent)
     expect(result.errors).toEqual([])
     expect(result.valid).toBe(true)
