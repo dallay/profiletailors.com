@@ -33,7 +33,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/Si
 import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
-import VersionBadge from '@shared/ui/VersionBadge.vue'
+import { VersionBadge } from '@profiletailors/vue-ui'
 import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'

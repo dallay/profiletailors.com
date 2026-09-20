@@ -4,6 +4,7 @@ packages:
   - apps/web/admin
   - tools/compliance
   - shared/web
+  - shared/vue-ui
 
 minimumReleaseAge: 4320
 

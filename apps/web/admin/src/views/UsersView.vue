@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { PaginationControls, Table } from '@profiletailors/vue-ui'
+import { formatDate } from '@/lib/formatters'
+import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
@@ -25,16 +28,6 @@ interface AdminUserSummary {
   createdAt: string
   lastAuthenticatedAt: string | null
   platformRoles: string[]
-}
-
-interface PagedResult<T> {
-  items: T[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  hasNext: boolean
-  hasPrevious: boolean
 }
 
 async function fetchUsers() {
@@ -86,7 +79,7 @@ onBeforeUnmount(() => {
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="admin-table w-full text-left text-sm" aria-label="Users">
+      <Table aria-label="Users" class="admin-table">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
@@ -113,26 +106,19 @@ onBeforeUnmount(() => {
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
             <td class="py-2 pr-4" :class="user.accountState === 'DISABLED' ? 'text-error' : 'text-success'">{{ t(`users.accountStates.${user.accountState.toLowerCase()}`) }}</td>
-            <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ formatDate(user.createdAt, locale) }}</td>
           </tr>
         </tbody>
-      </table>
+      </Table>
 
-      <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
-        <span>{{ t('common.page') }} {{ result.page + 1 }} {{ t('common.of') }} {{ result.totalPages }}</span>
-        <div class="flex gap-2">
-          <button
-            :disabled="!result.hasPrevious"
-            class="admin-button-secondary disabled:opacity-40"
-            @click="page--; fetchUsers()"
-          >{{ t('common.previous') }}</button>
-          <button
-            :disabled="!result.hasNext"
-            class="admin-button-secondary disabled:opacity-40"
-            @click="page++; fetchUsers()"
-          >{{ t('common.next') }}</button>
-        </div>
-      </div>
+      <PaginationControls
+        :page="result.page"
+        :total-pages="result.totalPages"
+        :has-previous="result.hasPrevious"
+        :has-next="result.hasNext"
+        @previous="page--; fetchUsers()"
+        @next="page++; fetchUsers()"
+      />
     </template>
   </div>
 </template>
