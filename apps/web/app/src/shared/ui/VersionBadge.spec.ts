@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import VersionBadge from './VersionBadge.vue'
+import { VersionBadge } from '@profiletailors/vue-ui'
 
 describe('VersionBadge', () => {
   it('renders the deployed version and the short SHA', () => {

@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { Table } from '@profiletailors/vue-ui'
+import { formatDate, formatDateTime } from '@/lib/formatters'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
@@ -111,8 +113,8 @@ onMounted(fetchUser)
         <Field :label="t('users.principalType')" :value="user.principalType" />
         <Field :label="t('users.accountState')" :value="user.accountState" />
         <Field :label="t('users.verificationState')" :value="user.emailStatus ?? '—'" />
-        <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString(locale)" />
-        <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString(locale) : '—'" />
+        <Field :label="t('common.createdAt')" :value="formatDateTime(user.createdAt, locale)" />
+        <Field :label="t('users.lastAuthenticated')" :value="formatDateTime(user.lastAuthenticatedAt, locale)" />
         <Field :label="t('users.platformRoles')" :value="user.platformRoles?.join(', ') || '—'" />
       </div>
 
@@ -125,8 +127,13 @@ onMounted(fetchUser)
 
        <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
 
-      <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
-      <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('users.workspaceMemberships')">
+       <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
+       <Table
+         v-else
+         class="admin-table"
+         :aria-label="t('users.workspaceMemberships')"
+       >
+
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">Workspace</th>
@@ -140,10 +147,10 @@ onMounted(fetchUser)
             <td class="py-2 pr-4 text-text-body">{{ ws.workspaceName }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ ws.membershipStatus }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ ws.workspaceRoles?.join(', ') || '—' }}</td>
-            <td class="py-2 text-text-secondary">{{ new Date(ws.joinedAt).toLocaleDateString(locale) }}</td>
+            <td class="py-2 text-text-secondary">{{ formatDate(ws.joinedAt, locale) }}</td>
           </tr>
         </tbody>
-      </table>
+      </Table>
     </div>
   </div>
 </template>

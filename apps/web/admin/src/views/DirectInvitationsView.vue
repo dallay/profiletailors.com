@@ -2,6 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import { Table } from '@profiletailors/vue-ui'
+import { formatDateTime } from '@/lib/formatters'
+import type { PagedResult } from '@/types/pagination'
 import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
 
 interface CreatedInvitation {
@@ -22,21 +25,13 @@ interface DirectInvitationRow {
   version: number
 }
 
-interface DirectInvitationPage {
-  items: DirectInvitationRow[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  hasNext: boolean
-  hasPrevious: boolean
-}
+type DirectInvitationPage = PagedResult<DirectInvitationRow>
 
 const JSON_API_MEDIA_TYPE = 'application/vnd.api.v1+json'
 
 type DirectInvitationTarget = 'NEW_WORKSPACE' | 'EXISTING_WORKSPACE'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const authStore = useAdminAuthStore()
 
 const canRead = authStore.hasPermission('platform.invitations.read')
@@ -300,11 +295,6 @@ function closeRevokeDialog() {
   revokeError.value = null
 }
 
-function formatExpiry(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString()
-}
 </script>
 
 <template>
@@ -449,7 +439,7 @@ function formatExpiry(value: string): string {
             {{ t('directInvitations.success.expiresAt') }}
           </dt>
           <dd class="text-text-display">
-            {{ formatExpiry(created.expiresAt) }}
+            {{ formatDateTime(created.expiresAt, locale) }}
           </dd>
         </div>
       </dl>
@@ -560,8 +550,8 @@ function formatExpiry(value: string): string {
           {{ t('directInvitations.list.empty') }}
         </div>
         <template v-else>
-          <table
-            class="admin-table w-full text-left text-sm"
+          <Table
+            class="admin-table"
             data-testid="direct-invitations-table"
             :aria-label="t('directInvitations.list.title')"
           >
@@ -601,7 +591,7 @@ function formatExpiry(value: string): string {
                   {{ invitationStatusLabel(row.status) }}
                 </td>
                 <td class="py-2 pr-4 text-text-secondary">
-                  {{ formatExpiry(row.expiresAt) }}
+                  {{ formatDateTime(row.expiresAt, locale) }}
                 </td>
                 <td class="flex gap-2 py-2">
                   <button
@@ -626,7 +616,7 @@ function formatExpiry(value: string): string {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </Table>
 
           <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
             <span data-testid="direct-invitations-page-info">

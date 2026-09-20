@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { PaginationControls, Table } from '@profiletailors/vue-ui'
+import { formatDateTime } from '@/lib/formatters'
+import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
@@ -13,16 +16,6 @@ interface AuditEvent {
   targetType: string
   targetId: string
   result: string
-}
-
-interface PagedResult<T> {
-  items: T[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  hasNext: boolean
-  hasPrevious: boolean
 }
 
 const result = ref<PagedResult<AuditEvent> | null>(null)
@@ -87,7 +80,7 @@ onBeforeUnmount(() => activeRequest?.abort())
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="admin-table w-full text-left text-sm" :aria-label="t('audit.title')">
+      <Table :aria-label="t('audit.title')" class="admin-table">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('audit.occurredAt') }}</th>
@@ -103,7 +96,7 @@ onBeforeUnmount(() => activeRequest?.abort())
             :key="event.eventId"
             class="border-b border-border-subtle hover:bg-bg-surface"
           >
-            <td class="py-2 pr-4 text-text-secondary">{{ new Date(event.occurredAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ formatDateTime(event.occurredAt, locale) }}</td>
             <td class="py-2 pr-4 font-mono text-text-body text-xs">{{ event.action }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ event.targetType }}</td>
             <td class="max-w-32 truncate py-2 pr-4 font-mono text-text-secondary text-xs">{{ event.targetId }}</td>
@@ -121,23 +114,16 @@ onBeforeUnmount(() => activeRequest?.abort())
             </td>
           </tr>
         </tbody>
-      </table>
+      </Table>
 
-      <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
-        <span>{{ t('common.page') }} {{ result.page + 1 }} {{ t('common.of') }} {{ result.totalPages }}</span>
-        <div class="flex gap-2">
-          <button
-            :disabled="!result.hasPrevious"
-            class="admin-button-secondary disabled:opacity-40"
-            @click="page--; fetchEvents()"
-          >{{ t('common.previous') }}</button>
-          <button
-            :disabled="!result.hasNext"
-            class="admin-button-secondary disabled:opacity-40"
-            @click="page++; fetchEvents()"
-          >{{ t('common.next') }}</button>
-        </div>
-      </div>
+      <PaginationControls
+        :page="result.page"
+        :total-pages="result.totalPages"
+        :has-previous="result.hasPrevious"
+        :has-next="result.hasNext"
+        @previous="page--; fetchEvents()"
+        @next="page++; fetchEvents()"
+      />
     </template>
   </div>
 </template>

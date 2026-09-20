@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { Table } from '@profiletailors/vue-ui'
+import { formatDateTime } from '@/lib/formatters'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
@@ -162,11 +164,11 @@ onMounted(fetchEntry)
 
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('common.status')" :value="entry.status" />
-        <Field :label="t('waitlist.joinedAt')" :value="new Date(entry.joinedAt).toLocaleString(locale)" />
-        <Field :label="t('waitlist.invitedAt')" :value="entry.invitedAt ? new Date(entry.invitedAt).toLocaleString(locale) : '—'" />
+        <Field :label="t('waitlist.joinedAt')" :value="formatDateTime(entry.joinedAt, locale)" />
+        <Field :label="t('waitlist.invitedAt')" :value="formatDateTime(entry.invitedAt, locale)" />
         <Field :label="t('waitlist.source')" :value="entry.source" />
         <Field :label="t('waitlist.locale')" :value="entry.preferredLocale ?? '—'" />
-        <Field :label="t('waitlist.cancelledAt')" :value="entry.cancelledAt ? new Date(entry.cancelledAt).toLocaleString(locale) : '—'" />
+        <Field :label="t('waitlist.cancelledAt')" :value="formatDateTime(entry.cancelledAt, locale)" />
       </div>
 
       <details class="mb-6">
@@ -215,7 +217,7 @@ onMounted(fetchEntry)
 
       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('waitlist.invitationHistory') }}</h2>
       <div v-if="!entry.invitationHistory?.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
-      <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('waitlist.invitationHistory')">
+      <Table v-else class="admin-table" :aria-label="t('waitlist.invitationHistory')">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">Status</th>
@@ -228,8 +230,8 @@ onMounted(fetchEntry)
         <tbody>
           <tr v-for="inv in entry.invitationHistory" :key="inv.id" class="border-b border-border-subtle">
             <td class="py-2 pr-4">{{ inv.status }}</td>
-            <td class="py-2 pr-4 text-text-secondary">{{ new Date(inv.issuedAt).toLocaleString(locale) }}</td>
-            <td class="py-2 pr-4 text-text-secondary">{{ new Date(inv.expiresAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ formatDateTime(inv.issuedAt, locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ formatDateTime(inv.expiresAt, locale) }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ inv.deliveryStatus }}</td>
             <td class="py-2">
               <button
@@ -242,7 +244,7 @@ onMounted(fetchEntry)
             </td>
           </tr>
         </tbody>
-      </table>
+      </Table>
     </div>
 
     <div

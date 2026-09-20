@@ -17,7 +17,9 @@
       "@modules/*": ["./src/modules/*"],
       "@shared/assets/*": ["../../../shared/assets/*"],
       "@shared/*": ["./src/shared/*"],
-      "@layouts/*": ["./src/layouts/*"]
+      "@layouts/*": ["./src/layouts/*"],
+      "@profiletailors/vue-ui": ["../../../shared/vue-ui/src/index.ts"],
+      "@profiletailors/vue-ui/*": ["../../../shared/vue-ui/src/*"]
     },
 
     // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.

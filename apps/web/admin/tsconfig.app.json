@@ -5,7 +5,9 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/assets/*": ["../../../shared/assets/*"]
+      "@shared/assets/*": ["../../../shared/assets/*"],
+      "@profiletailors/vue-ui": ["../../../shared/vue-ui/src/index.ts"],
+      "@profiletailors/vue-ui/*": ["../../../shared/vue-ui/src/*"]
     },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
   }
