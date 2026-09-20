@@ -46,7 +46,7 @@ as a historical record and a guide for current and future development.
 | 0019 | [MCP Write Tools for Publication Lifecycle](./0019-mcp-write-tools.md) | Accepted | 2026-08-28 |
 | 0020 | [Model Invitation as a First-Class Domain Capability](./0020-first-class-invitation-aggregate.md) | Accepted | 2026-09-02 |
 | 0021 | [Shared Operational Event Safety Boundary](./0021-operational-event-safety-boundary.md) | Accepted | 2026-09-10 |
-| 0022 | [Durable Admin-Mutable Operational Configuration](./0022-durable-admin-mutable-operational-configuration.md) | Accepted | 2026-09-19 |
+| 0022 | [Release-Driven Frontend Deployment to Cloudflare Pages](./0022-release-driven-frontend-deployment.md) | Accepted | 2026-09-18 |
 
 ## Relationship with other docs
 

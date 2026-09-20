@@ -1,33 +1,21 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: "2026-09-04T17:39:18Z"
-runId: "documentation-maintainer-run-20260904-173918"
+lastExecution: "2026-09-18T12:00:00Z"
+runId: "documentation-maintainer-run-20260918-120000"
 outcome: "CHANGES_APPLIED"
 findings:
-  - id: "DOC-20260904-01"
+  - id: "DOC-20260918-01"
     category: "documentation-drift"
-    description: "apps/web/app/package.json specified node engines as 20.19.0 || >=22.12.0 instead of >=24.19.0 as required in root package.json and .nvmrc"
+    description: "26 documentation files in docs/ contained outdated 'Last Updated' dates relative to their latest git commit dates"
     risk: "LOW"
     status: "resolved"
-    firstDetected: "2026-09-04T17:39:18Z"
-    lastVerified: "2026-09-04T17:39:18Z"
+    firstDetected: "2026-09-18T12:00:00Z"
+    lastVerified: "2026-09-18T12:00:00Z"
     occurrences: 1
     remediation:
       status: "implemented"
       pullRequest: "draft"
-      details: "Updated apps/web/app/package.json node engines field to >=24.19.0."
-  - id: "DOC-20260904-02"
-    category: "documentation-drift"
-    description: "docs/gradle-build-system.md referenced Kotlin 2.3 instead of 2.4.10 as specified in gradle/libs.versions.toml"
-    risk: "LOW"
-    status: "resolved"
-    firstDetected: "2026-09-04T17:39:18Z"
-    lastVerified: "2026-09-04T17:39:18Z"
-    occurrences: 1
-    remediation:
-      status: "implemented"
-      pullRequest: "draft"
-      details: "Updated Kotlin version reference in docs/gradle-build-system.md to Kotlin 2.4."
+      details: "Updated 'Last Updated' header dates in 26 documentation files under docs/ to 2026-09-18 to align with git log commit history."
 checks:
   - name: "node-version-alignment"
     target: "apps/web/app/package.json, README.md, docs/getting-started.md, Justfile"
@@ -41,3 +29,11 @@ checks:
     target: "docs/, README.md"
     status: "Passed"
     notes: "Relative links audited. Deployed route links validated as intentional."
+  - name: "doc-last-updated-validation"
+    target: "docs/**/*.md"
+    status: "Passed"
+    notes: "All documentation 'Last Updated' header dates verified against git commit log via check-doc-last-updated.mjs."
+  - name: "markdown-linting"
+    target: "docs/**/*.md, README.md, CONTRIBUTING.md"
+    status: "Passed"
+    notes: "Markdown linting passed clean via markdownlint-cli2."
