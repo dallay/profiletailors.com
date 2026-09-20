@@ -4,10 +4,16 @@ import tailwindcss from '@tailwindcss/vite'
 import icon from '@dallay/astro-icon'
 import { codecovVitePlugin } from '@codecov/vite-plugin'
 import { resolve, join, extname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { cpSync, createReadStream, existsSync, statSync } from 'node:fs'
+import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
 const SHARED_ASSETS = resolve('../../../shared/assets')
 const SHARED_WEB_ASSETS = resolve('../../../shared/assets/web')
+
+const buildInfo = computeBuildInfo(
+  fileURLToPath(new URL('./package.json', import.meta.url))
+)
 
 const MIME_TYPES = /** @type {Record<string, string>} */ ({
   '.ico': 'image/x-icon',
@@ -19,11 +25,9 @@ const MIME_TYPES = /** @type {Record<string, string>} */ ({
 /** @type {import('vite').Plugin} */
 const sharedAssetsPlugin = {
   name: 'shared-assets',
-  // Serve shared/assets/web/* as static files at the root in dev
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       const filePath = join(SHARED_WEB_ASSETS, req.url ?? '')
-      // Only serve actual files, not directories
       if (!req.url?.includes('..') && existsSync(filePath) && statSync(filePath).isFile()) {
         const ext = extname(filePath)
         res.setHeader('Content-Type', MIME_TYPES[ext] ?? 'application/octet-stream')
@@ -33,13 +37,11 @@ const sharedAssetsPlugin = {
       next()
     })
   },
-  // Copy shared/assets/web/* into dist/ at build time
   closeBundle() {
     cpSync(SHARED_WEB_ASSETS, 'dist', { recursive: true })
   },
 }
 
-// https://astro.build/config
 export default defineConfig({
   site: 'https://profiletailors.com',
 
@@ -65,6 +67,11 @@ export default defineConfig({
   },
 
   vite: {
+    define: {
+      __APP_VERSION__: JSON.stringify(buildInfo.version),
+      __GIT_SHA__: JSON.stringify(buildInfo.gitSha),
+      __BUILD_TIME__: JSON.stringify(buildInfo.buildTime),
+    },
     plugins: [
       tailwindcss(),
       sharedAssetsPlugin,
@@ -76,13 +83,11 @@ export default defineConfig({
     ],
     resolve: {
       alias: {
-        // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
         '@shared/assets': SHARED_ASSETS,
       },
     },
     server: {
       watch: {
-        // Use chokidar polling to avoid EISDIR errors on macOS with symlinks
         usePolling: true,
         interval: 1000,
         ignored: [

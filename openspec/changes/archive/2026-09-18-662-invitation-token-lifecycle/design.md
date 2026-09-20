@@ -33,7 +33,7 @@ Transaction/CAS ordering proof: `complete`/`activateForRegistration` re-resolve 
 
 | File | Action | Description |
 |---|---|---|
-| `platformadmin/infrastructure/observability/InvitationObservability.kt` | Modify | `recordBulkInvite`: aggregate outcome counters + one bulk counter (size + counts); remove per-value tags |
+| `platformadmin/infrastructure/observability/InvitationObservability.kt` | Modify | `recordBulkInvite`: increment four fixed outcome series (`requested`, `invited`, `skipped`, `failed`) on the single bulk metric; batch size carried by `requested`; remove per-value tags |
 | `platformadmin/application/handler/InviteWaitlistEntryHandler.kt` | Modify | Honor CAS boolean (conflict on false); replace manual REVOKED copy with `revoke()` |
 | `platformadmin/domain/InvitationIssued.kt`, `DirectInvitationResent.kt` | Modify | Document interim debt; no new fields; removal tracked DALLAY-566 |
 | `notifications/infrastructure/email/SendInvitationEmailConsumer.kt` | Modify | Persist template-params + delivery key; render URL transiently |
@@ -69,12 +69,9 @@ No migration. Metric tag removal is dashboard-breaking: coordinate owners pre-ap
 
 - [x] DALLAY-565 owner sign-off: interim in-memory `rawToken` handoff + persisted token-bearing `acceptUrl` accepted as scoped delivery-surface debt, removal tracked DALLAY-566. Sign: repository owner (approved 2026-09-17, PR2 proceeds on interim-debt branch).
 - [ ] DALLAY-566 confirms sealed-handoff ownership (generation, rotation, TTL, recipient binding, URL assembly)?
-- [ ] Throttle bounds acceptable to security? PR2 records chosen bounds: 10 attempts per 10 minutes per candidateKey+IP, enforced at `InvitationAcceptanceController` before the handler runs; `InvitationActivationCoordinator` stays pure; denial reuses `InvitationRateLimitExceededException` shape mapped to 429 `INVITATION_RATE_LIMIT_EXCEEDED` with a static detail carrying no token material.
+- [ ] Throttle bounds acceptable to security? PR2 records chosen bounds: 10 attempts per 10 minutes per candidateKey+IP, enforced at `InvitationAcceptanceController` before the handler runs; `InvitationActivationCoordinator` stays pure; denial reuses `InvitationRateLimitExceededException` shape mapped to 429 `INVITATION_RATE_LIMIT_EXCEEDED` with a static detail carrying no token material. PR3 (2026-09-18) test-locks the bounds (`accept throttle locks attempt bounds to ten per ten minutes` captures window + maxRequests), resolving the PR2 WARNING; security-owner acceptance of the bounds themselves still pending.
 - [x] PR2 (2026-09-17) scope-branch confirmation: `InvitationIssued`/`DirectInvitationResent` keep existing `rawToken` fields with no new fields (interim in-memory handoff, removal DALLAY-566); `InvitationEmail.toPayload()` keeps scoped `acceptUrl` equal to the template-built URL while `SendInvitationEmailConsumer` renders the URL transiently via `render()`; persisted payload key set locked to template params plus scoped `acceptUrl` by regression tests.
-- [ ] #660 interface drift confirmed none?
-- [ ] PR1 (2026-09-17) partial notes: no commit references #660 in history; PR1 changes no
-  signatures (`recordBulkInvite` args unchanged, `updateIfVersionMatches` untouched), so no
-  drift introduced by this slice — full #660 confirmation still pending with owners.
-- [ ] PR1 (2026-09-17) pending: `recordBulkInvite` tag removal coordinated with observability
-  owners — NOT yet confirmed; dashboard owners must approve before merge. RFC 12/14/40/43/44
+- [ ] #660 interface drift confirmed none? PR3 (2026-09-18) in-repo evidence: `git log --all --grep="#660"` is empty; PR1 (#1076) and PR2 (#1088) diffs changed no public signatures (`recordBulkInvite` args unchanged, `updateIfVersionMatches` untouched, throttle added controller-local deps only). No drift detected in-repo — full owner confirmation still pending.
+- [ ] PR1 (2026-09-17) pending: `recordBulkInvite` tag removal coordinated with observability owners — NOT yet confirmed; dashboard owners must approve before merge. PR3 (2026-09-18) in-repo evidence: repo-wide search finds no dashboard, alert, doc, or frontend consumer of the removed per-value tags (bulk metric names appear only in `InvitationObservability` + its test); external owner approval still pending. RFC 12/14/40/43/44
   clauses not located — linkage pending, no assumptions made.
+- [x] PR3 (2026-09-18) reconciliation notes: delta `Bulk observability` wording fixed to the merged 4-series shape (single bulk metric, `requested` carries batch size, no separate batch counter), resolving the PR1 WARNING; `REPLAYED` (`INVITATION_REPLAYED`, 409) is defined and mapped but never thrown — second accept yields `ALREADY_CONSUMED` (BDD-proven) and accept-path CAS loss yields 409 via the `OptimisticLockException` mapping, so the delta scenario's safe-code set holds with no prod change and no silent contradiction.

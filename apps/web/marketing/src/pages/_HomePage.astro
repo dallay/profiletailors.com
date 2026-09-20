@@ -3,7 +3,6 @@ import Layout from '@layouts/Layout.astro'
 import Nav from '@components/Nav.astro'
 import Hero from '@components/Hero.astro'
 import Features from '@components/Features.astro'
-import Footer from '@components/Footer.astro'
 import { useTranslations } from '@i18n/utils'
 import type { Locale } from '@i18n/utils'
 
@@ -18,7 +17,7 @@ const langHref = locale === 'en' ? '/es/' : '/'
 const langLabel = t.nav.langSwitchLabel
 ---
 
-<Layout title={t.meta.title} description={t.meta.description} lang={locale}>
+<Layout title={t.meta.title} description={t.meta.description} lang={locale} hideVersionBadge>
   <div class="fixed inset-0 dot-grid pointer-events-none opacity-[0.06] dark:opacity-[0.14] -z-10" aria-hidden="true"></div>
   <main id="main-content" class="fade-in relative" tabindex="-1">
     <Nav
@@ -41,7 +40,5 @@ const langLabel = t.nav.langSwitchLabel
     <Features label={t.features.label} items={t.features.items} />
 
     <div class="border-t border-border max-w-4xl mx-auto"></div>
-
-    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={t.footer.legalLinks} locale={locale} />
   </main>
 </Layout>

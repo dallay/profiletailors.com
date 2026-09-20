@@ -1,5 +1,5 @@
 change: issue-668-user-administration
-current_phase: apply
+current_phase: archive
 completed:
   - explore
   - propose
@@ -8,11 +8,21 @@ completed:
   - tasks
   - apply
   - verify
-updated: "2026-09-17T16:06:01Z"
-next: archive
+  - qa
+  - archive
+updated: "2026-09-18"
+next: none
 verification_status: passed
 verification_verdict: PASS
-verification_report: openspec/changes/issue-668-user-administration/verify-report.md
+verification_report: openspec/changes/archive/2026-09-18-issue-668-user-administration/verify-report.md
+qa_verdict: PASS WITH WARNINGS
+qa_report: openspec/changes/archive/2026-09-18-issue-668-user-administration/qa-report.md
+archive_note: >-
+  Delta specs synced to living specs on 2026-09-18: users, admin-authorization,
+  iam, platform-admin-audit updated to the merged POST disable/enable/revoke
+  contract; observability and user-administration created. Stale sibling change
+  668-user-administration (superseded propose-stage duplicate) removed.
+  Implementation: PR #1077 merged 2026-09-17. GitHub issue #668 closed on archive.
 blocked_reason: >-
   Resolved. The staged-whitespace finding is obsolete: AdminCommands.kt was committed without
   the trailing blank line, and both git diff --check and git diff --staged --check pass.

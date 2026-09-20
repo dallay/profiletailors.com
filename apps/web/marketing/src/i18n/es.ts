@@ -34,6 +34,7 @@ export const es = {
   footer: {
     copy: 'Profile Tailors — vista previa de acceso anticipado.',
     tagline: 'Un espacio de contenido social en desarrollo.',
+    versionBadge: 'v{version} ({shortSha})',
     legalLinks: [
       { label: 'Política de Privacidad', href: '/es/privacy/' },
       { label: 'Términos del Servicio', href: '/es/terms/' },
