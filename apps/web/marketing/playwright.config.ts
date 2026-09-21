@@ -36,7 +36,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${previewPort}`,
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${previewPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -65,8 +65,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && ASTRO_PREVIEW_BACKGROUND=0 PORT=${previewPort} pnpm preview`,
-    url: `http://localhost:${previewPort}`,
+    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && ASTRO_PREVIEW_BACKGROUND=0 PORT=${previewPort} pnpm preview --host 127.0.0.1`,
+    url: `http://127.0.0.1:${previewPort}`,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     timeout: 120 * 1000,
   },
