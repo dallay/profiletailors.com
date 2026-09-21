@@ -1,4 +1,4 @@
-package com.profiletailors.smp.platformadmin.infrastructure.util
+package com.profiletailors.notifications.domain
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -74,8 +74,7 @@ internal class PayloadRedactorTest {
         )
         val result = redactPayload(payload)
 
-        @Suppress("UNCHECKED_CAST")
-        val nestedResult = result["data"] as? Map<String, Any?>
+        val nestedResult = result["data"] as? Map<*, *>
         assertEquals("[REDACTED]", nestedResult?.get("token"))
         assertEquals("safe-value", nestedResult?.get("safeField"))
     }
@@ -159,12 +158,40 @@ internal class PayloadRedactorTest {
         )
         val result = redactPayload(payload)
 
-        @Suppress("UNCHECKED_CAST")
-        val level1 = result["level1"] as? Map<String, Any?>
+        val level1 = result["level1"] as? Map<*, *>
 
-        @Suppress("UNCHECKED_CAST")
-        val level2 = level1?.get("level2") as? Map<String, Any?>
+        val level2 = level1?.get("level2") as? Map<*, *>
         assertEquals("[REDACTED]", level2?.get("token"))
         assertEquals("safe", level2?.get("safeData"))
+    }
+
+    @Test
+    fun `redactPayload redacts sensitive keys inside collections`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "attempts" to listOf(
+                mapOf("token" to "first-token", "code" to "500"),
+                mapOf("token" to "second-token", "code" to "503"),
+            ),
+            "tags" to listOf("email", "retryable"),
+        )
+        val result = redactPayload(payload)
+
+        val attempts = result["attempts"] as? List<*>
+        val first = attempts?.get(0) as? Map<*, *>
+        val second = attempts?.get(1) as? Map<*, *>
+        assertEquals("[REDACTED]", first?.get("token"))
+        assertEquals("500", first?.get("code"))
+        assertEquals("[REDACTED]", second?.get("token"))
+        assertEquals("503", second?.get("code"))
+        assertEquals(listOf("email", "retryable"), result["tags"])
+    }
+
+    @Test
+    fun `redactSensitiveValue redacts values containing sensitive substrings`() {
+        assertEquals("[REDACTED]", redactSensitiveValue("Failed to send email: authentication token expired"))
+        assertEquals("[REDACTED]", redactSensitiveValue("invalid password supplied"))
+        assertEquals("SMTP timeout", redactSensitiveValue("SMTP timeout"))
+        assertEquals("", redactSensitiveValue(""))
     }
 }

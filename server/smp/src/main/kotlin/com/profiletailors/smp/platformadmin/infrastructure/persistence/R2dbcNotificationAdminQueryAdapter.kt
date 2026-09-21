@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.notifications.domain.NotificationId
+import com.profiletailors.notifications.domain.redactPayload
 import com.profiletailors.smp.platformadmin.application.contracts.NotificationAdminQuery
 import com.profiletailors.smp.platformadmin.application.model.NotificationSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.query.NotificationFilters
-import com.profiletailors.smp.platformadmin.infrastructure.util.redactPayload
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull

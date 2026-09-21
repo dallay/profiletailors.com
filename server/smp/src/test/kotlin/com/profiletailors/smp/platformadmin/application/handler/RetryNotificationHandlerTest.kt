@@ -9,10 +9,13 @@ import com.profiletailors.notifications.domain.Recipient
 import com.profiletailors.notifications.domain.TemplateId
 import com.profiletailors.smp.platformadmin.application.command.RetryNotificationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.NotificationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.NotificationRepositoryPort
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
+import com.profiletailors.smp.platformadmin.domain.NotificationDispatchException
 import com.profiletailors.smp.platformadmin.domain.NotificationNotFoundForRetryException
 import com.profiletailors.smp.platformadmin.domain.NotificationNotRetryableException
+import com.profiletailors.smp.platformadmin.domain.NotificationRetryConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
@@ -35,10 +38,12 @@ internal class RetryNotificationHandlerTest {
 
     private val notificationRepository = mockk<NotificationRepositoryPort>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
+    private val eventPublisher = mockk<NotificationEventPublisher>(relaxed = true)
 
     private val handler = RetryNotificationHandler(
         notificationRepository = notificationRepository,
         auditPublisher = auditPublisher,
+        eventPublisher = eventPublisher,
         clock = fixedClock,
     )
 
@@ -120,6 +125,7 @@ internal class RetryNotificationHandlerTest {
     fun `handle creates retry notification for eligible notification`() = runTest {
         val existing = createFailedPasswordRecoveryNotification()
         coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
         coEvery { notificationRepository.save(any()) } coAnswers { firstArg() }
 
         val command = RetryNotificationCommand(
@@ -143,6 +149,7 @@ internal class RetryNotificationHandlerTest {
     fun `handle publishes audit event with correct metadata`() = runTest {
         val existing = createFailedPasswordRecoveryNotification()
         coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
         coEvery { notificationRepository.save(any()) } coAnswers { firstArg() }
 
         val command = RetryNotificationCommand(
@@ -161,5 +168,128 @@ internal class RetryNotificationHandlerTest {
         assert(captured.targetType == "NOTIFICATION")
         assert(captured.targetId == "ntf-123")
         assert(captured.result.name == "SUCCEEDED")
+    }
+
+    @Test
+    fun `handle publishes REJECTED audit when template is ineligible`() = runTest {
+        val notification = createFailedInvitationNotification()
+        coEvery { notificationRepository.findById(NotificationId("ntf-456")) } returns notification
+
+        val command = RetryNotificationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = operatorRoles,
+            notificationId = NotificationId("ntf-456"),
+        )
+
+        assertThrows<NotificationNotRetryableException> {
+            handler.handle(command)
+        }
+
+        val auditEventSlot = slot<AdminAuditEvent>()
+        coVerify { auditPublisher.publish(capture(auditEventSlot)) }
+
+        val captured = auditEventSlot.captured
+        assert(captured.action.name == "NOTIFICATION_RETRIED")
+        assert(captured.targetId == "ntf-456")
+        assert(captured.result.name == "REJECTED")
+        assert(captured.metadata["retryOutcome"] == "REJECTED")
+        assert(captured.metadata["templateId"] == "platform.invitation")
+        coVerify(exactly = 0) { notificationRepository.save(any()) }
+    }
+
+    @Test
+    fun `handle throws conflict when idempotency key was already used`() = runTest {
+        val existing = createFailedPasswordRecoveryNotification()
+        coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns existing
+
+        val command = RetryNotificationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = operatorRoles,
+            notificationId = NotificationId("ntf-123"),
+            idempotencyKey = "already-used-key",
+        )
+
+        assertThrows<NotificationRetryConflictException> {
+            handler.handle(command)
+        }
+
+        coVerify(exactly = 0) { notificationRepository.save(any()) }
+    }
+
+    @Test
+    fun `handle publishes FAILED audit when persistence fails`() = runTest {
+        val existing = createFailedPasswordRecoveryNotification()
+        coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(any()) } throws
+            NotificationDispatchException("retry-key", RuntimeException("connection reset"))
+
+        val command = RetryNotificationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = operatorRoles,
+            notificationId = NotificationId("ntf-123"),
+        )
+
+        assertThrows<NotificationDispatchException> {
+            handler.handle(command)
+        }
+
+        val auditEventSlot = slot<AdminAuditEvent>()
+        coVerify { auditPublisher.publish(capture(auditEventSlot)) }
+
+        val captured = auditEventSlot.captured
+        assert(captured.action.name == "NOTIFICATION_RETRIED")
+        assert(captured.result.name == "FAILED")
+        assert(captured.metadata["retryOutcome"] == "DISPATCH_FAILED")
+    }
+
+    @Test
+    fun `handle redacts sensitive priorError in audit metadata`() = runTest {
+        val existing = createFailedPasswordRecoveryNotification().copy(
+            errorMessage = "Failed to send email: authentication token expired",
+        )
+        coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(any()) } coAnswers { firstArg() }
+
+        val command = RetryNotificationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = operatorRoles,
+            notificationId = NotificationId("ntf-123"),
+        )
+
+        handler.handle(command)
+
+        val auditEventSlot = slot<AdminAuditEvent>()
+        coVerify { auditPublisher.publish(capture(auditEventSlot)) }
+
+        assert(auditEventSlot.captured.metadata["priorError"] == "[REDACTED]")
+    }
+
+    @Test
+    fun `handle publishes retry event and SUCCESS outcome metadata`() = runTest {
+        val existing = createFailedPasswordRecoveryNotification()
+        coEvery { notificationRepository.findById(NotificationId("ntf-123")) } returns existing
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(any()) } coAnswers { firstArg() }
+
+        val command = RetryNotificationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = operatorRoles,
+            notificationId = NotificationId("ntf-123"),
+        )
+
+        val result = handler.handle(command)
+
+        coVerify { eventPublisher.publish(any()) }
+
+        val auditEventSlot = slot<AdminAuditEvent>()
+        coVerify { auditPublisher.publish(capture(auditEventSlot)) }
+
+        val captured = auditEventSlot.captured
+        assert(captured.metadata["retryOutcome"] == "SUCCESS")
+        assert(captured.metadata["notificationId"] == "ntf-123")
+        assert(captured.metadata["retryNotificationId"] == result.id)
     }
 }

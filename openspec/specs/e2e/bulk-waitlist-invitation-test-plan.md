@@ -71,7 +71,9 @@ INSERT INTO waitlist_entries
   (id, waitlist_id, email_original, normalized_email, source, locale,
    consent_early_access, consent_marketing, consent_version, status,
    joined_at, invited_at, converted_at, version)
-VALUES (...);
+VALUES ('<entry-uuid>', '<wl-id>', '<email>', '<normalized-email>', 'organic', 'en',
+  TRUE, FALSE, 1, 'PENDING',
+  NOW(), NULL, NULL, 0) ON CONFLICT DO NOTHING;
 ```
 
 ### Suggested Data Matrix

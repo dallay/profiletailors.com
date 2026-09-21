@@ -68,14 +68,16 @@ Feature: Platform admin notification management
     Then the notification response status should be 400
     And the response should indicate notification not found
 
-  Scenario: Unauthenticated request returns 403
+  Scenario: Unauthenticated request returns 401
     When an unauthenticated principal retries a notification
-    Then the notification response status should be 403
+    Then the notification response status should be 401
 
-  # ── Idempotency ──────────────────────────────────────────────────────────────
+  # ── Idempotency ─────────────────────────────────────────────────────────────
 
   Scenario: Retry with same idempotency key returns 409
     Given a failed password-recovery notification exists
     And the idempotency key is set to "test-idempotency-key"
+    When the platform operator retries the notification with the idempotency key
+    Then the notification response status should be 200
     When the platform operator retries the notification with the idempotency key
     Then the notification response status should be 409

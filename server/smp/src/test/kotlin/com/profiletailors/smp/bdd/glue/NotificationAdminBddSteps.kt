@@ -159,14 +159,14 @@ class NotificationAdminBddSteps {
                 idempotencyKey = IdempotencyKey("bdd-expired-$notificationId"),
                 channel = NotificationChannel.EMAIL,
                 recipient = Recipient("expired-$notificationId@example.com"),
-                templateId = TemplateId("platform.password-recovery"),
+                templateId = TemplateId("platform.invitation"),
                 payload = NotificationPayload(
-                    variables = mapOf("message" to "Expired recovery"),
+                    variables = mapOf("message" to "Expired invitation"),
                 ),
                 status = NotificationStatus.FAILED,
                 sentAt = null,
                 failedAt = Instant.now().minusSeconds(weekSeconds),
-                errorMessage = "Expired: retry window closed",
+                errorMessage = "Expired: invitation token no longer valid",
                 createdAt = Instant.now().minusSeconds(twoWeeksSeconds),
                 updatedAt = Instant.now().minusSeconds(weekSeconds),
             )
@@ -238,6 +238,7 @@ class NotificationAdminBddSteps {
     fun retryNotification() {
         val notificationId = state.notificationIds["password-recovery"]
             ?: state.notificationIds["invitation"]
+            ?: state.notificationIds["expired"]
             ?: state.notificationIds["default"]
             ?: return
         state.lastResponse = webTestClient.post()
@@ -274,14 +275,14 @@ class NotificationAdminBddSteps {
 
     @Then("the notification response status should be {int}")
     fun assertNotificationResponseStatus(status: Int) {
-        assertNotNull(state.lastResponse)
-        assertEquals(status, state.lastResponse!!.status.value())
+        val response = requireNotNull(state.lastResponse)
+        assertEquals(status, response.status.value())
     }
 
     @Then("the notification result should be empty")
     fun assertResultIsEmpty() {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertTrue(data.isArray, "Expected data to be an array")
@@ -290,8 +291,8 @@ class NotificationAdminBddSteps {
 
     @Then("the notification result should contain notifications")
     fun assertResultContainsNotifications() {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertTrue(data.isArray, "Expected data to be an array")
@@ -300,8 +301,8 @@ class NotificationAdminBddSteps {
 
     @Then("all notifications should have status {string}")
     fun assertAllNotificationsHaveStatus(expectedStatus: String) {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertTrue(data.isArray, "Expected data to be an array")
@@ -312,8 +313,8 @@ class NotificationAdminBddSteps {
 
     @Then("all notifications should have channel {string}")
     fun assertAllNotificationsHaveChannel(expectedChannel: String) {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertTrue(data.isArray, "Expected data to be an array")
@@ -324,8 +325,8 @@ class NotificationAdminBddSteps {
 
     @Then("no notification payload should contain {string}")
     fun assertNoPayloadContains(field: String) {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertTrue(data.isArray, "Expected data to be an array")
@@ -343,8 +344,8 @@ class NotificationAdminBddSteps {
 
     @Then("a new notification should be created")
     fun assertNewNotificationCreated() {
-        assertNotNull(state.lastResponse)
-        val body = state.lastResponse!!.responseBodyContent?.decodeToString() ?: ""
+        val response = requireNotNull(state.lastResponse)
+        val body = response.responseBodyContent?.decodeToString() ?: ""
         val result = json.readTree(body)
         val data = result.get("data")
         assertNotNull(data, "Expected data in response")
@@ -352,13 +353,13 @@ class NotificationAdminBddSteps {
 
     @Then("the response should indicate notification is not retryable")
     fun assertNotRetryable() {
-        assertNotNull(state.lastResponse)
-        assertEquals(400, state.lastResponse!!.status.value())
+        val response = requireNotNull(state.lastResponse)
+        assertEquals(400, response.status.value())
     }
 
     @Then("the response should indicate notification not found")
     fun assertNotFound() {
-        assertNotNull(state.lastResponse)
-        assertEquals(400, state.lastResponse!!.status.value())
+        val response = requireNotNull(state.lastResponse)
+        assertEquals(400, response.status.value())
     }
 }

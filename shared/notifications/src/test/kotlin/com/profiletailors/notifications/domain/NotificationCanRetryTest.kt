@@ -43,7 +43,7 @@ internal class NotificationCanRetryTest {
     @Test
     fun `canRetry returns true for failed password-reset notification`() {
         val notification = createNotification(
-            templateId = TemplateId("platform.password-reset-v2"),
+            templateId = TemplateId("platform.password-reset"),
             status = NotificationStatus.FAILED,
             failedAt = now.minusSeconds(120),
             errorMessage = "connection timeout",

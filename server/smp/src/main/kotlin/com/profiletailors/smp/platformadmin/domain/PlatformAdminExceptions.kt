@@ -38,6 +38,9 @@ class NotificationNotRetryableException(id: String, status: String, templateId: 
 class NotificationRetryConflictException(val idempotencyKey: String) :
     RuntimeException("Notification retry conflict for idempotency key: $idempotencyKey")
 
+class NotificationDispatchException(val idempotencyKey: String, cause: Throwable?) :
+    RuntimeException("Notification dispatch failed for idempotency key: $idempotencyKey", cause)
+
 enum class InvitationAcceptanceFailureCode(val publicCode: String) {
     INVALID("INVITATION_INVALID"),
     EXPIRED("INVITATION_EXPIRED"),

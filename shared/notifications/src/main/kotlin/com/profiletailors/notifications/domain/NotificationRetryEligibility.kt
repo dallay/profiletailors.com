@@ -12,31 +12,18 @@ import com.profiletailors.common.domain.ValueObject
 @ValueObject
 object NotificationRetryEligibility {
 
-    private val ELIGIBLE_TEMPLATE_PREFIXES = setOf(
+    private val ELIGIBLE_TEMPLATES = setOf(
         "platform.password-recovery",
         "platform.password-reset",
-    )
-
-    private val INELIGIBLE_TEMPLATE_PREFIXES = setOf(
-        "platform.invitation",
-        "platform.workspace-invitation",
-        "platform.waitlist-invitation",
     )
 
     /**
      * Returns true if the given template ID is eligible for admin-initiated retry.
      *
-     * Matching is prefix-based to accommodate template variants:
-     * - `platform.password-recovery` and `platform.password-reset` are eligible
-     * - `platform.invitation` and its variants are ineligible
-     * - Unknown templates are denied by default
+     * Matching is exact: only the two reviewed password-recovery templates are eligible.
+     * Invitation and waitlist templates are excluded because they have their own resend
+     * mechanisms at the domain level and must not be retried via the admin path.
+     * Unknown templates are denied by default.
      */
-    fun isEligible(templateId: TemplateId): Boolean {
-        val value = templateId.value
-        return when {
-            INELIGIBLE_TEMPLATE_PREFIXES.any { value.startsWith(it) } -> false
-            ELIGIBLE_TEMPLATE_PREFIXES.any { value.startsWith(it) } -> true
-            else -> false
-        }
-    }
+    fun isEligible(templateId: TemplateId): Boolean = templateId.value in ELIGIBLE_TEMPLATES
 }

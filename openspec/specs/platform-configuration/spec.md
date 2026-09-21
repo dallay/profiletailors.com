@@ -43,7 +43,7 @@ MUST be rejected before any mutation, leaving the stored mode unchanged.
 #### Scenario: Denied writes cause no state change
 
 - GIVEN either (a) an operator holds `platform.configuration.read` but not `.manage` (e.g.
-  `PLATFORM_OPERATOR`, `SUPPORT_AGENT`, `AUDITOR`), or (b) an owner submits a value outside `OPEN`,
+  `PLATFORM_OPERATOR`, `AUDITOR`), or (b) an owner submits a value outside `OPEN`,
   `INVITE_ONLY`, `CLOSED`
 - WHEN the write is attempted
 - THEN the response MUST be `403` (case a) or `400` (case b)
