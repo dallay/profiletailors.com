@@ -28,8 +28,12 @@ const registrationAvailable = computed(
 onMounted(() => { void capabilities.load() })
 
 async function completeAuthentication() {
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-  await router.replace(redirect)
+  await router.replace(resolveRedirect(route.query.redirect))
+}
+
+function resolveRedirect(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/'
+  return value
 }
 </script>
 
