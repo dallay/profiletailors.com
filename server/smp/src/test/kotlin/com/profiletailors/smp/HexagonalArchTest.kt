@@ -262,4 +262,31 @@ internal class HexagonalArchTest {
             )
         }
     }
+
+    @Test
+    fun takedownReportMustStayInsideGovernance() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideOutsideOfPackage("com.profiletailors.smp.governance..")
+            .should()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("com.profiletailors.smp.governance.domain.TakedownReport")
+            .because("Back Office consumes governance application DTOs, never TakedownReport")
+            .check(importedClasses)
+    }
+
+    @Test
+    fun adminTakedownPortsMustLiveInGovernanceApplication() {
+        ArchRuleDefinition.classes()
+            .that()
+            .haveSimpleName("AdminTakedownQueryPort")
+            .or()
+            .haveSimpleName("AdminTakedownCommandPort")
+            .or()
+            .haveSimpleName("MediaAssetStatusReader")
+            .should()
+            .resideInAPackage("com.profiletailors.smp.governance.application")
+            .because("admin takedown ports belong on the governance application named interface")
+            .check(importedClasses)
+    }
 }

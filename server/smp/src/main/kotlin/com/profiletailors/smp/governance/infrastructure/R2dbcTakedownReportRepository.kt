@@ -6,6 +6,7 @@ import com.profiletailors.smp.governance.domain.TakedownReportStatus
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -112,6 +113,84 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
         return query.map { row, _ -> rowToTakedownReport(row) }
             .all()
             .asFlow()
+    }
+
+    override suspend fun findByReportId(reportId: String): TakedownReport? = databaseClient.sql(
+        """
+        $SELECT_COLUMNS
+        FROM takedown_reports
+        WHERE report_id = :reportId
+        """.trimIndent(),
+    )
+        .bind("reportId", reportId)
+        .map { row, _ -> rowToTakedownReport(row) }
+        .one()
+        .awaitSingleOrNull()
+
+    override suspend fun findAll(
+        status: TakedownReportStatus?,
+        workspaceId: String?,
+        page: Int,
+        size: Int,
+    ): List<TakedownReport> {
+        val offset = page.toLong() * size
+        return bindFilters(
+            databaseClient.sql(
+                """
+                $SELECT_COLUMNS
+                FROM takedown_reports
+                ${whereClause(status, workspaceId)}
+                ORDER BY created_at DESC
+                LIMIT :size OFFSET :offset
+                """.trimIndent(),
+            ),
+            status,
+            workspaceId,
+        )
+            .bind("size", size)
+            .bind("offset", offset)
+            .map { row, _ -> rowToTakedownReport(row) }
+            .all()
+            .collectList()
+            .awaitSingle()
+    }
+
+    override suspend fun count(status: TakedownReportStatus?, workspaceId: String?): Long = bindFilters(
+        databaseClient.sql(
+            """
+            SELECT COUNT(*) AS report_count
+            FROM takedown_reports
+            ${whereClause(status, workspaceId)}
+            """.trimIndent(),
+        ),
+        status,
+        workspaceId,
+    )
+        .map { row, _ -> requireNotNull(row.get("report_count", Long::class.java)) }
+        .one()
+        .awaitSingle()
+
+    private fun whereClause(status: TakedownReportStatus?, workspaceId: String?): String {
+        val conditions = buildList {
+            if (status != null) add("status = :status")
+            if (workspaceId != null) add("workspace_id = :workspaceId")
+        }
+        return if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
+    }
+
+    private fun bindFilters(
+        spec: DatabaseClient.GenericExecuteSpec,
+        status: TakedownReportStatus?,
+        workspaceId: String?,
+    ): DatabaseClient.GenericExecuteSpec {
+        var bound = spec
+        if (status != null) {
+            bound = bound.bind("status", status.name)
+        }
+        if (workspaceId != null) {
+            bound = bound.bind("workspaceId", workspaceId)
+        }
+        return bound
     }
 
     private fun rowToTakedownReport(row: Row): TakedownReport = TakedownReport(
