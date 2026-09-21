@@ -21,16 +21,16 @@ badge. `build-and-push-smp` is unchanged.
 
 ## Architecture Decisions
 
-| Decision | Choice | Tradeoff | Rationale |
-|---|---|---|---|
-| Workflow shape | Extend `release-please.yml`; three deploy jobs alongside `build-and-push-smp` | Split files scatter context | Matches existing pattern; keeps `needs: release-please` output wiring local. |
-| Release Please SHA source | `<scope>--sha` outputs; fall back to `git rev-parse <tag>^{commit}` when empty | Two paths | `release-please-action` documents `<path>--sha`; fallback is defensive. |
-| `wrangler.toml` `name` | Edit `app` and `marketing` to canonical names; create `admin/wrangler.toml`. Deploy job also passes `--project-name=<canonical>` | Local `wrangler pages dev` matches deploy target | Local dev/prod parity removes ambiguity. |
-| Wrangler invocation | `cloudflare/wrangler-action@v3.15.0` SHA-pinned, not `pnpm dlx wrangler` | Action parses wrangler exit codes natively | Aligns with Cloudflare's Pages deployment docs. |
-| Action pinning | Every external `uses:` SHA-pinned with `# vX.Y.Z` comment | More verbose | Required by `AGENTS.md` static-analysis posture. |
-| Operator gate for Git-integration disable | Pre-merge PR checkbox (option b) | `workflow_run` needs side-channel pushes; webhook check only confirms configuration | Cheapest, lowest-risk. |
-| CDN propagation retry | 5 × 15 s = 75 s | Cloudflare's edge propagation is typically <30 s | Bounded retry surfaces stale-cache failures. |
-| `CLOUDFLARE_API_TOKEN` scope | "Cloudflare Pages: Edit" on three project names only; account-wide, DNS, Workers, KV forbidden | Token cannot deploy anywhere else | Least-privilege; spec requires it. |
+| Decision                                  | Choice                                                                                                                           | Tradeoff                                                                            | Rationale                                                                    |
+|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Workflow shape                            | Extend `release-please.yml`; three deploy jobs alongside `build-and-push-smp`                                                    | Split files scatter context                                                         | Matches existing pattern; keeps `needs: release-please` output wiring local. |
+| Release Please SHA source                 | `<scope>--sha` outputs; fall back to `git rev-parse <tag>^{commit}` when empty                                                   | Two paths                                                                           | `release-please-action` documents `<path>--sha`; fallback is defensive.      |
+| `wrangler.toml` `name`                    | Edit `app` and `marketing` to canonical names; create `admin/wrangler.toml`. Deploy job also passes `--project-name=<canonical>` | Local `wrangler pages dev` matches deploy target                                    | Local dev/prod parity removes ambiguity.                                     |
+| Wrangler invocation                       | `cloudflare/wrangler-action@v3.15.0` SHA-pinned, not `pnpm dlx wrangler`                                                         | Action parses wrangler exit codes natively                                          | Aligns with Cloudflare's Pages deployment docs.                              |
+| Action pinning                            | Every external `uses:` SHA-pinned with `# vX.Y.Z` comment                                                                        | More verbose                                                                        | Required by `AGENTS.md` static-analysis posture.                             |
+| Operator gate for Git-integration disable | Pre-merge PR checkbox (option b)                                                                                                 | `workflow_run` needs side-channel pushes; webhook check only confirms configuration | Cheapest, lowest-risk.                                                       |
+| CDN propagation retry                     | 5 × 15 s = 75 s                                                                                                                  | Cloudflare's edge propagation is typically <30 s                                    | Bounded retry surfaces stale-cache failures.                                 |
+| `CLOUDFLARE_API_TOKEN` scope              | "Cloudflare Pages: Edit" on three project names only; account-wide, DNS, Workers, KV forbidden                                   | Token cannot deploy anywhere else                                                   | Least-privilege; spec requires it.                                           |
 
 ## Workflow Changes
 
@@ -47,9 +47,12 @@ by the release-please step). Steps:
 1. `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1` with
    `ref: ${{ needs.release-please.outputs.<scope>--tag_name }}`, `fetch-depth: 0`,
    `persist-credentials: false`.
-2. `id: resolve-meta` — `node scripts/extract-release-info.mjs --tag "${{ needs.release-please.outputs.<scope>--tag_name }}" --scope "<scope>" --provided "${{ needs.release-please.outputs.<scope>--sha }}"`. The script exports `version`, `git_sha`, and `short_sha` as GitHub Actions outputs.
+2. `id: resolve-meta` —
+   `node scripts/extract-release-info.mjs --tag "${{ needs.release-please.outputs.<scope>--tag_name }}" --scope "<scope>" --provided "${{ needs.release-please.outputs.<scope>--sha }}"`.
+   The script exports `version`, `git_sha`, and `short_sha` as GitHub Actions outputs.
 3. `.github/actions/setup-frontend`.
-4. `pnpm --filter <workspace> build` with `env: { GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }} }`.
+4. `pnpm --filter <workspace> build` with
+   `env: { GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }} }`.
 5. `cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0` with
    `apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}`,
    `accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}`,
@@ -67,11 +70,11 @@ Action pins: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
 ## Cloudflare Configuration
 
-| File | Action | Content |
-|---|---|---|
-| `apps/web/app/wrangler.toml` | Modify `name` | `name = "app-profile-tailors"` |
-| `apps/web/marketing/wrangler.toml` | Modify `name` | `name = "profiletailors"` |
-| `apps/web/admin/wrangler.toml` | Create | `name = "profiletailors-admin"`, `pages_build_output_dir = "dist"`, `compatibility_date = "2026-07-24"`, empty `[vars]` |
+| File                               | Action        | Content                                                                                                                 |
+|------------------------------------|---------------|-------------------------------------------------------------------------------------------------------------------------|
+| `apps/web/app/wrangler.toml`       | Modify `name` | `name = "app-profile-tailors"`                                                                                          |
+| `apps/web/marketing/wrangler.toml` | Modify `name` | `name = "profiletailors"`                                                                                               |
+| `apps/web/admin/wrangler.toml`     | Create        | `name = "profiletailors-admin"`, `pages_build_output_dir = "dist"`, `compatibility_date = "2026-07-24"`, empty `[vars]` |
 
 Deploy job reads URLs from `vars.PT_PRODUCTION_APP_URL`, `vars.PT_PRODUCTION_MARKETING_URL`,
 `vars.PT_PRODUCTION_ADMIN_URL`. Defaults: `https://profiletailors-com-bx5.pages.dev`,
@@ -136,17 +139,18 @@ Pages: Edit on those names only, and three GitHub Actions variables for canonica
 - Three GitHub Actions variables for canonical production URLs (defaults above).
 - Operator-confirmed disablement of Cloudflare Git-integration production auto-deploy on each
   Pages project.
-- Operator-confirmed values for the three production URL variables (custom domain vs. `*.pages.dev`).
+- Operator-confirmed values for the three production URL variables (custom domain vs.
+  `*.pages.dev`).
 
 ## Documentation Changes
 
-| File | Action |
-|---|---|
-| `docs/infrastructure/cloudflare-deployment.md` | Create — runbook |
-| `docs/production-secrets.md` | Modify — add Cloudflare rows |
-| `docs/architecture/adr/0022-release-driven-frontend-deployment.md` | Create — durable decision |
-| `docs/architecture/adr/README.md` | Modify — append ADR row |
-| `apps/web/{app,admin,marketing}/PRODUCT.md` | Verify — no product change |
+| File                                                               | Action                       |
+|--------------------------------------------------------------------|------------------------------|
+| `docs/infrastructure/cloudflare-deployment.md`                     | Create — runbook             |
+| `docs/production-secrets.md`                                       | Modify — add Cloudflare rows |
+| `docs/architecture/adr/0022-release-driven-frontend-deployment.md` | Create — durable decision    |
+| `docs/architecture/adr/README.md`                                  | Modify — append ADR row      |
+| `apps/web/{app,admin,marketing}/PRODUCT.md`                        | Verify — no product change   |
 
 ## ADR Outline
 
@@ -176,13 +180,13 @@ Pages: Edit on those names only, and three GitHub Actions variables for canonica
 
 ## Risks and Mitigations
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Operator enables preview deploys on the same toggle that disables production | Medium | Runbook names the production-only toggle; PR checkbox confirms preview deploys remain enabled. |
-| `<scope>--sha` empty for a re-run where Release Please did not create a release | Low | `git rev-parse <tag>^{commit}` fallback; empty path is logged. |
-| CDN cache serves an older build after wrangler upload completes | Low | Bounded 5 × 15 s retry; persistent mismatch fails the job. |
-| API token over-scoped | Medium | Runbook and `docs/production-secrets.md` document exact scope; spec asserts `grep` for `secrets.*` references only. |
-| `main` advances past the tagged commit between tagging and deploy | Low (spec scenario) | `ref: <tag>` with `fetch-depth: 0` dereferences to the released commit. |
+| Risk                                                                            | Likelihood          | Mitigation                                                                                                          |
+|---------------------------------------------------------------------------------|---------------------|---------------------------------------------------------------------------------------------------------------------|
+| Operator enables preview deploys on the same toggle that disables production    | Medium              | Runbook names the production-only toggle; PR checkbox confirms preview deploys remain enabled.                      |
+| `<scope>--sha` empty for a re-run where Release Please did not create a release | Low                 | `git rev-parse <tag>^{commit}` fallback; empty path is logged.                                                      |
+| CDN cache serves an older build after wrangler upload completes                 | Low                 | Bounded 5 × 15 s retry; persistent mismatch fails the job.                                                          |
+| API token over-scoped                                                           | Medium              | Runbook and `docs/production-secrets.md` document exact scope; spec asserts `grep` for `secrets.*` references only. |
+| `main` advances past the tagged commit between tagging and deploy               | Low (spec scenario) | `ref: <tag>` with `fetch-depth: 0` dereferences to the released commit.                                             |
 
 ## Open Questions
 

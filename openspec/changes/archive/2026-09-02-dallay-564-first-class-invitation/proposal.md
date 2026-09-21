@@ -20,13 +20,15 @@ DDD-marker, repository, and concurrency contracts remain incomplete.
 - DALLAY-568 admin creation/revocation; DALLAY-570 waitlist conversion and entry state.
 - DALLAY-567 registration provisioning; DALLAY-565 notification integration.
 - DALLAY-566 concrete secure token lifecycle/handoff.
-- Replacing `WaitlistInvitation` flows, full DALLAY-556, UI, bulk operations, or destructive migration.
+- Replacing `WaitlistInvitation` flows, full DALLAY-556, UI, bulk operations, or destructive
+  migration.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `invitations`: identity, source binding, semantic lifecycle, persistence, and exactly-once transitions.
+- `invitations`: identity, source binding, semantic lifecycle, persistence, and exactly-once
+  transitions.
 
 ### Modified Capabilities
 
@@ -35,11 +37,13 @@ DDD-marker, repository, and concurrency contracts remain incomplete.
 ## Approach
 
 Use approved Approach 1: complete the existing `Invitation` model and DDD contracts, expose stable
-seams for DALLAY-565/566/567/568, and retain legacy flows. Do not create a second invitation or token subsystem.
+seams for DALLAY-565/566/567/568, and retain legacy flows. Do not create a second invitation or
+token subsystem.
 
 ## Semantic Lifecycle Contract
 
-`ACTIVE` may transition only to `ACCEPTED`, `EXPIRED`, or `REVOKED`; terminal states reject mutation.
+`ACTIVE` may transition only to `ACCEPTED`, `EXPIRED`, or `REVOKED`; terminal states reject
+mutation.
 `expiresAt` is exclusive. Resolved expiry decision: explicit `expire(at)` materializes `EXPIRED` at
 the boundary; scheduling and cleanup are deferred. Resolved ID decision: retain UUID-backed
 `InvitationId` as immutable `@ValueObject` with raw PostgreSQL UUID, documented as an infrastructure
@@ -53,13 +57,16 @@ transitions. Expose semantic state without delivery fields; admin commands remai
 
 ## Security Ownership
 
-Persist only non-reversible token material and opaque lookup data. Raw tokens, URLs, and delivery state
-must not cross Invitation, event, audit, log, or metric boundaries. DALLAY-566 owns token mechanics and
+Persist only non-reversible token material and opaque lookup data. Raw tokens, URLs, and delivery
+state
+must not cross Invitation, event, audit, log, or metric boundaries. DALLAY-566 owns token mechanics
+and
 enforcement; DALLAY-565 owns safe notification handoff.
 
 ## Compatibility/Migration
 
-`invitations` is canonical for first-class flows. Preserve `waitlist_invitations`, handlers, queries,
+`invitations` is canonical for first-class flows. Preserve `waitlist_invitations`, handlers,
+queries,
 history, and delivery bridge until DALLAY-565/570 define migration. No drop, rename, or backfill.
 
 ## Testing/TDD Strategy
@@ -80,16 +87,17 @@ surface or new endpoint.
 
 ## Dependencies
 
-Existing hexagonal, transaction, and DDD contracts. DALLAY-556/565/566/567/568/570 consume or constrain
+Existing hexagonal, transaction, and DDD contracts. DALLAY-556/565/566/567/568/570 consume or
+constrain
 this contract; DALLAY-565/566 are handoff gates.
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Two tables diverge | Medium | Document ownership; forbid cross-flow substitution. |
-| Token boundary unsafe | High | Gate DALLAY-565/566 on explicit contracts. |
-| Race guarantee assumed | Medium | Require PostgreSQL contention evidence. |
+| Risk                   | Likelihood | Mitigation                                          |
+|------------------------|------------|-----------------------------------------------------|
+| Two tables diverge     | Medium     | Document ownership; forbid cross-flow substitution. |
+| Token boundary unsafe  | High       | Gate DALLAY-565/566 on explicit contracts.          |
+| Race guarantee assumed | Medium     | Require PostgreSQL contention evidence.             |
 
 ## Rollback
 

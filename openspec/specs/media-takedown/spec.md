@@ -137,8 +137,8 @@ The requirements in this document drive:
 
 ## Troubleshooting
 
-- **SUSPENDED assets not surfacing**: Confirm the media query is filtering by `setOf(READY)` (
-  default) or includes `SUSPENDED` only for admin contexts.
+- **SUSPENDED assets not surfacing**: Confirm the media query is filtering by `setOf(READY)`
+  (default) or includes `SUSPENDED` only for admin contexts.
 - **Email not sent on approval**: Verify the workspace has owners resolvable via
   `WorkspaceOwnershipRepository` and `PrincipalIdentityLookup`.
 - **Idempotent retries on `report` endpoint**: Duplicate `(workspaceId, assetId, reportedById)`

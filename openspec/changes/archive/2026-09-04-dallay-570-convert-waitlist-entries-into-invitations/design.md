@@ -18,6 +18,7 @@ Unify waitlist invitation flow on the canonical `Invitation` aggregate using
 `workspaceId == null` in non-ACCEPTED states, requires non-null after ACCEPTED.
 
 **Alternatives rejected**:
+
 - Sealed interface with nested data class — overkill; enum suffices.
 - Null-is-missing without target context — ambiguous semantics.
 - Immutable `workspaceId` on `Invitation` — would require `withWorkspaceId()` which
@@ -43,6 +44,7 @@ Both `AcceptInvitationHandler` (authenticated accept via email link) and
 `InvitationRegistrationGatewayAdapter` (registration flow) delegate to.
 
 **Alternatives rejected**:
+
 - Branching `when(target)` in both handlers — diverges over time.
 - Put orchestration in one handler only — registration doesn't go through that handler.
 
@@ -61,7 +63,8 @@ data class ProvisionedWorkspace(
 )
 ```
 
-`ProvisionedWorkspace.membershipStatus` exposes the status of the membership created during provisioning,
+`ProvisionedWorkspace.membershipStatus` exposes the status of the membership created during
+provisioning,
 so the coordinator can propagate it without hardcoding.
 
 **Coordinator**:
@@ -155,6 +158,7 @@ DALLAY-565 explicitly defines resend semantics with ID reuse.
 
 **Implication for re-invite**: If an entry is `INVITED` with an active `Invitation`,
 the re-invite either:
+
 - Rejects duplicate creation (throws `InvitationAlreadyActiveException`), OR
 - Routes through explicit resend command (DALLAY-565 notification contract)
 
@@ -222,6 +226,7 @@ Both flows share the same coordinator. The transaction boundary is the caller's
 ## Database Migration
 
 ### Current state
+
 - `invitations.workspace_id` is `NOT NULL` with FK to `workspaces`
 - No `target` column
 
@@ -260,24 +265,24 @@ with `NULL` workspace_id must first be revoked/deleted before restoring NOT NULL
 
 ## File Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `server/smp/src/main/kotlin/.../domain/Invitation.kt` | Modify | Add `InvitationTarget` enum; make `workspaceId` nullable; add lifecycle-aware invariant; update `accept()` signature |
-| `db/changelog/.../xxx-add-invitation-target.yaml` | Add | Migration with DROP NOT NULL, target column, check constraint, index |
-| `server/smp/src/main/kotlin/.../persistence/R2dbcInvitationRepository.kt` | Modify | Handle nullable `workspaceId`; read/write `target` column |
-| `server/smp/src/main/kotlin/.../handler/InviteWaitlistEntryHandler.kt` | Modify | Create `Invitation(WAITLIST, NEW_WORKSPACE)` via `InvitationRepository` |
-| `server/smp/src/main/kotlin/.../InvitationActivationCoordinator.kt` | Add | Shared orchestration for both accept entry points |
-| `server/smp/src/main/kotlin/.../AcceptInvitationHandler.kt` | Modify | Delegate to `InvitationActivationCoordinator` |
-| `server/smp/src/main/kotlin/.../InvitationRegistrationGatewayAdapter.kt` | Modify | Delegate to `InvitationActivationCoordinator` |
-| `server/smp/src/main/kotlin/.../PlatformAdminBootstrapConfiguration.kt` | Modify | Wire `InvitationActivationCoordinator`; wire `InvitationRepository` to `InviteWaitlistEntryHandler` |
-| `server/smp/src/main/kotlin/.../contracts/WaitlistEntryAdmin.kt` | Audit | Confirm `WaitlistEntry.convert()` and `save()` available |
+| File                                                                      | Action | Description                                                                                                          |
+|---------------------------------------------------------------------------|--------|----------------------------------------------------------------------------------------------------------------------|
+| `server/smp/src/main/kotlin/.../domain/Invitation.kt`                     | Modify | Add `InvitationTarget` enum; make `workspaceId` nullable; add lifecycle-aware invariant; update `accept()` signature |
+| `db/changelog/.../xxx-add-invitation-target.yaml`                         | Add    | Migration with DROP NOT NULL, target column, check constraint, index                                                 |
+| `server/smp/src/main/kotlin/.../persistence/R2dbcInvitationRepository.kt` | Modify | Handle nullable `workspaceId`; read/write `target` column                                                            |
+| `server/smp/src/main/kotlin/.../handler/InviteWaitlistEntryHandler.kt`    | Modify | Create `Invitation(WAITLIST, NEW_WORKSPACE)` via `InvitationRepository`                                              |
+| `server/smp/src/main/kotlin/.../InvitationActivationCoordinator.kt`       | Add    | Shared orchestration for both accept entry points                                                                    |
+| `server/smp/src/main/kotlin/.../AcceptInvitationHandler.kt`               | Modify | Delegate to `InvitationActivationCoordinator`                                                                        |
+| `server/smp/src/main/kotlin/.../InvitationRegistrationGatewayAdapter.kt`  | Modify | Delegate to `InvitationActivationCoordinator`                                                                        |
+| `server/smp/src/main/kotlin/.../PlatformAdminBootstrapConfiguration.kt`   | Modify | Wire `InvitationActivationCoordinator`; wire `InvitationRepository` to `InviteWaitlistEntryHandler`                  |
+| `server/smp/src/main/kotlin/.../contracts/WaitlistEntryAdmin.kt`          | Audit  | Confirm `WaitlistEntry.convert()` and `save()` available                                                             |
 
 ## Resolved Open Questions
 
-| Question | Answer |
-|---|---|
-| Where does workspaceId for waitlist come from? | It doesn't exist yet. `NEW_WORKSPACE` provisions it on acceptance. |
-| Does `SUPERSEDED` exist in `Invitation`? | No. DALLAY-565 defines resend with same InvitationId. |
-| Raw token in events? | No. DALLAY-565/566 owns token handoff. `InvitationIssued` is audit-only. |
-| Which handler for private beta accept? | Both `AcceptInvitationHandler` and `InvitationRegistrationGatewayAdapter` — both delegate to coordinator. |
-| `WaitlistInvitation` status? | Legacy compatibility only. New flows MUST NOT create or update it. |
+| Question                                       | Answer                                                                                                    |
+|------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| Where does workspaceId for waitlist come from? | It doesn't exist yet. `NEW_WORKSPACE` provisions it on acceptance.                                        |
+| Does `SUPERSEDED` exist in `Invitation`?       | No. DALLAY-565 defines resend with same InvitationId.                                                     |
+| Raw token in events?                           | No. DALLAY-565/566 owns token handoff. `InvitationIssued` is audit-only.                                  |
+| Which handler for private beta accept?         | Both `AcceptInvitationHandler` and `InvitationRegistrationGatewayAdapter` — both delegate to coordinator. |
+| `WaitlistInvitation` status?                   | Legacy compatibility only. New flows MUST NOT create or update it.                                        |

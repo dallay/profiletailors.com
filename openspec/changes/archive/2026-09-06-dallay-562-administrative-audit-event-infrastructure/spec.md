@@ -15,6 +15,7 @@ bounded context and its `administrative_audit_events` table are removed.
 The method now calls `redact()` on event metadata before storing it.
 
 **Before**:
+
 ```kotlin
 suspend fun publish(event: AdminAuditEvent) {
     // stores event.metadata directly — sensitive keys may be stored in plain text
@@ -22,6 +23,7 @@ suspend fun publish(event: AdminAuditEvent) {
 ```
 
 **After**:
+
 ```kotlin
 suspend fun publish(event: AdminAuditEvent) {
     val safeMetadata = redact(event.metadata)
@@ -34,6 +36,7 @@ suspend fun publish(event: AdminAuditEvent) {
 `refreshtoken`, `acresstoken`
 
 **Stored data**:
+
 - `id`, `event_type`, `workspace_id`, `actor_id`, `timestamp` — unchanged
 - `metadata` — only non-sensitive key-value pairs
 
@@ -41,15 +44,15 @@ suspend fun publish(event: AdminAuditEvent) {
 
 **Elements deleted**:
 
-| Element | Type | Location |
-|---|---|---|
-| `AdministrativeBoundedContext` | class | `domain/AdministrativeBoundedContext.kt` |
-| `AdministrativeAuditEvent` | class | `domain/AdministrativeAuditEvent.kt` |
-| `AdministrativeAuditEventRepository` | interface | `domain/AdministrativeAuditEventRepository.kt` |
-| `AuditEventPublisher` | class | `application/AuditEventPublisher.kt` |
-| `R2dbcAdministrativeAuditEventRepository` | class | `infrastructure/R2dbcAdministrativeAuditEventRepository.kt` |
-| `AdministrativeAuditEventRepositoryImplTest` | test | `infrastructure/R2dbcAdministrativeAuditEventRepositoryImplTest.kt` |
-| `AuditEventPublisherTest` | test | `application/AuditEventPublisherTest.kt` |
+| Element                                      | Type      | Location                                                            |
+|----------------------------------------------|-----------|---------------------------------------------------------------------|
+| `AdministrativeBoundedContext`               | class     | `domain/AdministrativeBoundedContext.kt`                            |
+| `AdministrativeAuditEvent`                   | class     | `domain/AdministrativeAuditEvent.kt`                                |
+| `AdministrativeAuditEventRepository`         | interface | `domain/AdministrativeAuditEventRepository.kt`                      |
+| `AuditEventPublisher`                        | class     | `application/AuditEventPublisher.kt`                                |
+| `R2dbcAdministrativeAuditEventRepository`    | class     | `infrastructure/R2dbcAdministrativeAuditEventRepository.kt`         |
+| `AdministrativeAuditEventRepositoryImplTest` | test      | `infrastructure/R2dbcAdministrativeAuditEventRepositoryImplTest.kt` |
+| `AuditEventPublisherTest`                    | test      | `application/AuditEventPublisherTest.kt`                            |
 
 **Location**: `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` and
 `server/smp/src/test/kotlin/com/profiletailors/smp/administrative/`
@@ -65,6 +68,7 @@ context was deleted as dead code.
 ### Scenario: Publish event with sensitive metadata
 
 **Given** an `AdminAuditEvent` with metadata:
+
 ```json
 {
   "action": "user.login",
@@ -76,17 +80,20 @@ context was deleted as dead code.
 **When** `R2dbcAdminAuditRepository.publish(event)` is called
 
 **Then** the row stored in `platform_admin_audit_events` has:
+
 ```json
 {
   "action": "user.login",
   "userId": "user-123"
 }
 ```
+
 The `invitationToken` key is removed by `redact()`.
 
 ### Scenario: Publish event with no sensitive metadata
 
 **Given** an `AdminAuditEvent` with metadata:
+
 ```json
 {"action": "user.logout", "userId": "user-456"}
 ```
@@ -98,6 +105,7 @@ The `invitationToken` key is removed by `redact()`.
 ### Scenario: Publish event with case-variant sensitive keys
 
 **Given** an `AdminAuditEvent` with metadata:
+
 ```json
 {"action": "auth", "accessToken": "secret-value", "RESETPassword": "another-secret"}
 ```
@@ -105,10 +113,13 @@ The `invitationToken` key is removed by `redact()`.
 **When** `R2dbcAdminAuditRepository.publish(event)` is called
 
 **Then** the row stored in `platform_admin_audit_events` has:
+
 ```json
 {"action": "auth"}
 ```
-Both `accessToken` and `RESETPassword` are removed (case-insensitive substring match on "token" and "password").
+
+Both `accessToken` and `RESETPassword` are removed (case-insensitive substring match on "token" and
+"password").
 
 ### Scenario: No mutation of original event
 
@@ -129,12 +140,15 @@ Both `accessToken` and `RESETPassword` are removed (case-insensitive substring m
 ## Acceptance Criteria
 
 - [ ] `R2dbcAdminAuditRepository.publish()` calls `redact()` before storing metadata
-- [ ] `redact()` removes keys containing: password, token, secret, credential, key (case-insensitive)
+- [ ] `redact()` removes keys containing: password, token, secret, credential, key
+  (case-insensitive)
 - [ ] `redact()` does not mutate the input map
 - [ ] `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` is deleted
 - [ ] `server/smp/src/test/kotlin/com/profiletailors/smp/administrative/` is deleted
-- [ ] `V006__create_administrative_audit_events.sql` is either deleted (rollback) or superseded by forward-drop migration
+- [ ] `V006__create_administrative_audit_events.sql` is either deleted (rollback) or superseded by
+  forward-drop migration
 - [ ] `backend-test-fast` passes without errors
 - [ ] `backend-bdd-fast` passes without errors
-- [ ] Unit test covers `redact()` edge cases: empty map, no sensitive keys, all sensitive keys, mixed case variants, original map untouched
+- [ ] Unit test covers `redact()` edge cases: empty map, no sensitive keys, all sensitive keys,
+  mixed case variants, original map untouched
 - [ ] Integration test covers: event with sensitive metadata → stored row is sanitized

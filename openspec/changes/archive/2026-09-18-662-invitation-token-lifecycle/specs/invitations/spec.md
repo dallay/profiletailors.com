@@ -4,7 +4,10 @@
 
 ### Requirement: Token lifecycle acceptance evidence
 
-The system MUST prove hash-only, expiring, single-use lifecycle with automated tests: raw-token lookup returns nothing; expired, revoked, or consumed attempts are rejected with safe codes; replay after accept is rejected; concurrent accept yields exactly one winner; audit, log, and metric payloads contain no bearer.
+The system MUST prove hash-only, expiring, single-use lifecycle with automated tests: raw-token
+lookup returns nothing; expired, revoked, or consumed attempts are rejected with safe codes; replay
+after accept is rejected; concurrent accept yields exactly one winner; audit, log, and metric
+payloads contain no bearer.
 
 #### Scenario: Hash-only persistence
 
@@ -32,7 +35,8 @@ The system MUST prove hash-only, expiring, single-use lifecycle with automated t
 
 ### Requirement: CAS-honoring waitlist re-invite
 
-`InviteWaitlistEntryHandler` MUST honor the `updateIfVersionMatches` boolean and MUST use `revoke()` instead of hand-building REVOKED copies.
+`InviteWaitlistEntryHandler` MUST honor the `updateIfVersionMatches` boolean and MUST use `revoke()`
+instead of hand-building REVOKED copies.
 
 #### Scenario: CAS conflict surfaces
 
@@ -42,7 +46,8 @@ The system MUST prove hash-only, expiring, single-use lifecycle with automated t
 
 ### Requirement: Accept-attempt throttle decision
 
-The design MUST decide accept-attempt throttling given ~100ms BCrypt cost per attempt: rate-limit or justify absence.
+The design MUST decide accept-attempt throttling given ~100ms BCrypt cost per attempt: rate-limit or
+justify absence.
 
 #### Scenario: Throttle decision recorded
 
@@ -54,23 +59,32 @@ The design MUST decide accept-attempt throttling given ~100ms BCrypt cost per at
 
 ### Requirement: Bulk observability (DALLAY-665)
 
-The system MUST record aggregate outcome counters on the single bulk metric with four fixed outcome series (`requested`, `invited`, `skipped`, `failed`); the batch size is carried by the `requested` outcome increment, with no separate batch counter. Tags MUST be low-cardinality outcome names only; per-value numeric tags are FORBIDDEN.
-(Previously: required bulk counters without forbidding per-value tags.)
+The system MUST record aggregate outcome counters on the single bulk metric with four fixed outcome
+series (`requested`, `invited`, `skipped`, `failed`); the batch size is carried by the `requested`
+outcome increment, with no separate batch counter. Tags MUST be low-cardinality outcome names only;
+per-value numeric tags are FORBIDDEN. (Previously: required bulk counters without forbidding
+per-value tags.)
 
 #### Scenario: Aggregate counters only
 
 - GIVEN any bulk batch (e.g. 5 yielding 3 invited, 1 skipped, 1 failed)
 - WHEN the batch completes
-- THEN the `requested` series MUST increment by 5 and `invited`/`skipped`/`failed` by their matching counts
+- THEN the `requested` series MUST increment by 5 and `invited`/`skipped`/`failed` by their matching
+  counts
 - AND no tag value MUST embed a per-batch count or identifier
 
 ### Requirement: No raw token in InvitationIssued event
 
-`InvitationIssued` and `DirectInvitationResent` MUST NOT carry raw token as canonical behavior: the issuance boundary renders the accept URL once from the transient value and passes a sealed delivery reference; persisted state holds hash material only. Until DALLAY-566 replaces the handoff AND DALLAY-565 owners sign off in design.md, the in-memory path MAY remain as scoped interim debt tracked by DALLAY-566, adding no new bearer surfaces.
-(Previously: forbade raw token with no interim clause, contradicting live code.)
+`InvitationIssued` and `DirectInvitationResent` MUST NOT carry raw token as canonical behavior: the
+issuance boundary renders the accept URL once from the transient value and passes a sealed delivery
+reference; persisted state holds hash material only. Until DALLAY-566 replaces the handoff AND
+DALLAY-565 owners sign off in design.md, the in-memory path MAY remain as scoped interim debt
+tracked by DALLAY-566, adding no new bearer surfaces. (Previously: forbade raw token with no interim
+clause, contradicting live code.)
 
 #### Scenario: Sealed handoff or scoped debt, never silent
 
 - GIVEN the token-safe replacement is absent
 - WHEN invitation delivery occurs
-- THEN either no event carries raw token, or the interim handoff is recorded as owner-signed debt with no new bearer surface
+- THEN either no event carries raw token, or the interim handoff is recorded as owner-signed debt
+  with no new bearer surface

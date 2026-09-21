@@ -1,9 +1,8 @@
 # Archive Report: dallay-665-bulk-waitlist-invitation
 
 **Change**: dallay-665-bulk-waitlist-invitation (GitHub issue #665)
-**Date**: 2026-09-16
-**Mode**: openspec
-**Verdict carried**: PASS WITH WARNINGS (no CRITICAL, no scope creep)
+**Date**: 2026-09-16 **Mode**: openspec **Verdict carried**: PASS WITH WARNINGS (no CRITICAL, no
+scope creep)
 
 ## W1 Reconciliation
 
@@ -22,12 +21,12 @@ Fixed in: `openspec/changes/dallay-665-bulk-waitlist-invitation/specs/platform-a
 
 ## Specs Synced
 
-| Domain | Action | Details |
-|--------|--------|---------|
-| invitations | Updated | 3 added: Bulk invitation envelope, Bulk reuses single-entry issuance, Bulk observability |
-| lead-capture-waitlist | Updated | 1 added: Bulk eligibility is PENDING-only |
-| platform-admin-audit | Updated | 1 added: Per-entry bulk audit (W1-reconciled wording) |
-| admin-authorization | Updated | 1 added: Bulk fail-fast permission check |
+| Domain                | Action  | Details                                                                                  |
+|-----------------------|---------|------------------------------------------------------------------------------------------|
+| invitations           | Updated | 3 added: Bulk invitation envelope, Bulk reuses single-entry issuance, Bulk observability |
+| lead-capture-waitlist | Updated | 1 added: Bulk eligibility is PENDING-only                                                |
+| platform-admin-audit  | Updated | 1 added: Per-entry bulk audit (W1-reconciled wording)                                    |
+| admin-authorization   | Updated | 1 added: Bulk fail-fast permission check                                                 |
 
 No MODIFIED or REMOVED requirements; all pre-existing requirements preserved.
 No spec index file exists under `openspec/specs/` — nothing else to update.

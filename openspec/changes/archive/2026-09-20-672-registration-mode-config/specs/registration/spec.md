@@ -9,8 +9,8 @@ configuration value, read through on every `RegistrationPolicy.evaluate()` call 
 layer. `app.identity.registration.mode`, bound from the non-secret `SMP_REGISTRATION_MODE`
 environment variable, becomes the seed/fallback value only: it MUST be used to seed the persisted
 row on first migration and MUST be consulted only when no persisted row exists. Missing
-configuration at every level MUST still default to `CLOSED`.
-(Previously: the mode was bound once from `SMP_REGISTRATION_MODE` at application startup and was
+configuration at every level MUST still default to `CLOSED`. (Previously: the mode was bound once
+from `SMP_REGISTRATION_MODE` at application startup and was
 the sole, immutable source of truth for the process lifetime.)
 
 #### Scenario: Missing mode fails closed

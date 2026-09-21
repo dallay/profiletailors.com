@@ -13,6 +13,9 @@ inputs:
   playwright-browsers:
     description: Which browsers to install (e.g. "chromium firefox webkit")
     default: 'chromium'
+  playwright-package:
+    description: Workspace package that owns the Playwright dependency
+    default: 'app'
 
 runs:
   using: composite
@@ -34,4 +37,7 @@ runs:
       shell: bash
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.playwright-browsers }}
-      run: pnpm --filter app exec playwright install --with-deps $PLAYWRIGHT_BROWSERS
+        PLAYWRIGHT_PACKAGE: ${{ inputs.playwright-package }}
+      run: |
+        read -r -a browsers <<< "$PLAYWRIGHT_BROWSERS"
+        pnpm --filter "$PLAYWRIGHT_PACKAGE" exec playwright install --with-deps "${browsers[@]}"

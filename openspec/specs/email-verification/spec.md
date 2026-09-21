@@ -17,8 +17,8 @@ The system MUST store tokens as SHA-256 hashes in the database.
 The system MUST enforce single-use consumption (token invalidated after successful verification).
 The system MUST enforce 24-hour expiration for tokens.
 The system MUST associate tokens with specific user emails.
-The system MUST provide cleanup for expired tokens (background job or migration).
-(Previously: users consumed verification tokens through a backend GET link and successful
+The system MUST provide cleanup for expired tokens (background job or migration). (Previously: users
+consumed verification tokens through a backend GET link and successful
 verification issued session tokens directly.)
 
 #### Scenario: Token generated on user registration
@@ -78,8 +78,8 @@ The system MUST provide `POST /api/auth/resend-verification` endpoint for resend
 emails.
 The verify endpoint MUST accept token in the JSON request body as `{ token }`.
 The resend endpoint MUST accept email in request body.
-Both endpoints MUST follow RESTful response conventions.
-(Previously: published docs described verification as `GET /api/auth/verify-email` with a token
+Both endpoints MUST follow RESTful response conventions. (Previously: published docs described
+verification as `GET /api/auth/verify-email` with a token
 query parameter; the implemented contract is SPA link entry plus backend POST.)
 
 #### Scenario: Verify endpoint returns success on valid token

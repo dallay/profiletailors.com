@@ -4,7 +4,12 @@
 
 ### Requirement: User-control audit outcomes
 
-The platform-admin audit stream MUST support `USER_DISABLED`, `USER_ENABLED`, and `USER_SESSIONS_REVOKED` actions. Each attempted command MUST produce one audit event containing the operator, target principal, occurred time, action, result, and correlation/request context when available. Successful events MUST be emitted only after the corresponding state/session operation completes; rejected and failed outcomes MUST identify the non-sensitive reason. Audit metadata MUST continue to use the existing redaction enforcement.
+The platform-admin audit stream MUST support `USER_DISABLED`, `USER_ENABLED`, and
+`USER_SESSIONS_REVOKED` actions. Each attempted command MUST produce one audit event containing the
+operator, target principal, occurred time, action, result, and correlation/request context when
+available. Successful events MUST be emitted only after the corresponding state/session operation
+completes; rejected and failed outcomes MUST identify the non-sensitive reason. Audit metadata MUST
+continue to use the existing redaction enforcement.
 
 #### Scenario: Successful control is audited
 

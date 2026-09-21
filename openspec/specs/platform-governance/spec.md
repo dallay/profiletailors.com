@@ -1,16 +1,24 @@
 # Platform-Governance Specification — Observability Boundary Enforcement
 
-> Change-scoped governance contract. No user-facing behavior. No new or modified `openspec/specs/` capabilities. Enforces ARCH-001 / ADR-0002 (hexagonal layer direction) and ADR-0010 (shared-kernel framework isolation) in `shared/*`.
+> Change-scoped governance contract. No user-facing behavior. No new or modified `openspec/specs/`
+> capabilities. Enforces ARCH-001 / ADR-0002 (hexagonal layer direction) and ADR-0010 (shared-kernel
+> framework isolation) in `shared/*`.
 
 ## Purpose
 
-Remove SLF4J and Jackson from `shared/*` domain/application code, route storage publish-failure signals through `OperationalEventSink`, and enforce the boundary with per-module blocking ArchUnit bans.
+Remove SLF4J and Jackson from `shared/*` domain/application code, route storage publish-failure
+signals through `OperationalEventSink`, and enforce the boundary with per-module blocking ArchUnit
+bans.
 
 ## Requirements
 
 ### Requirement: Per-module observability import bans
 
-Each existing `*ArchTest` (storage, ratelimit) MUST ban SLF4J, Jackson, OTel, and Micrometer imports in `..domain..` and `..application..` packages. A new presentation test MUST provide equivalent coverage for `shared/presentation`. `..infrastructure..` owners (metrics, observability adapters, autoconfiguration, gateways/filters) MUST remain allowlisted. Bans MUST be blocking and demonstrated fail-then-pass against the known violations. Existing assertions MUST NOT be weakened.
+Each existing `*ArchTest` (storage, ratelimit) MUST ban SLF4J, Jackson, OTel, and Micrometer imports
+in `..domain..` and `..application..` packages. A new presentation test MUST provide equivalent
+coverage for `shared/presentation`. `..infrastructure..` owners (metrics, observability adapters,
+autoconfiguration, gateways/filters) MUST remain allowlisted. Bans MUST be blocking and demonstrated
+fail-then-pass against the known violations. Existing assertions MUST NOT be weakened.
 
 #### Scenario: Ban fails on known violation then passes after migration
 
@@ -27,7 +35,12 @@ Each existing `*ArchTest` (storage, ratelimit) MUST ban SLF4J, Jackson, OTel, an
 
 ### Requirement: Storage publish-failure events via sink
 
-`StorageApplicationService` (3 sites) and `GeneratePresignedUrlUseCase` (1 site) MUST report event-publish failures via `OperationalEventSink.emit(WARN, <dotted-name>, ...)` with a defaulted `NoOpOperationalEventSink` injection. Events MUST carry `operation`, `provider`, and sanitized `bucket` only; `key` and payloads MUST NEVER be emitted. Swallow-and-continue MUST be preserved and `CancellationException` MUST be rethrown. Captured-event tests MUST assert name, severity, attributes, and absence of `key`.
+`StorageApplicationService` (3 sites) and `GeneratePresignedUrlUseCase` (1 site) MUST report
+event-publish failures via `OperationalEventSink.emit(WARN, <dotted-name>, ...)` with a defaulted
+`NoOpOperationalEventSink` injection. Events MUST carry `operation`, `provider`, and sanitized
+`bucket` only; `key` and payloads MUST NEVER be emitted. Swallow-and-continue MUST be preserved and
+`CancellationException` MUST be rethrown. Captured-event tests MUST assert name, severity,
+attributes, and absence of `key`.
 
 #### Scenario: Publish failure emits key-safe event and continues
 
@@ -44,7 +57,9 @@ Each existing `*ArchTest` (storage, ratelimit) MUST ban SLF4J, Jackson, OTel, an
 
 ### Requirement: RHSFilterParser reclassified out of domain
 
-`RHSFilterParser` MUST live outside any `..domain..` package so Jackson leaves domain-packaged code. The factory import and all test imports MUST be updated. The parser MUST NOT log or emit the full query map or payload.
+`RHSFilterParser` MUST live outside any `..domain..` package so Jackson leaves domain-packaged code.
+The factory import and all test imports MUST be updated. The parser MUST NOT log or emit the full
+query map or payload.
 
 #### Scenario: Parser resolves outside domain
 
@@ -55,7 +70,9 @@ Each existing `*ArchTest` (storage, ratelimit) MUST ban SLF4J, Jackson, OTel, an
 
 ### Requirement: Docs synchronized
 
-`docs/architecture/shared/dependencies.md`, `docs/observability-usage.md`, and `docs/observability-contracts.md` MUST document the new storage-to-observability edge and the canonical event names and attributes.
+`docs/architecture/shared/dependencies.md`, `docs/observability-usage.md`, and
+`docs/observability-contracts.md` MUST document the new storage-to-observability edge and the
+canonical event names and attributes.
 
 #### Scenario: Docs match implementation
 

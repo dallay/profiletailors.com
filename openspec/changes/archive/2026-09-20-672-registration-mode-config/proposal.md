@@ -11,6 +11,7 @@ change it live, promoting the already-`planned` `configuration` nav entry.
 ## Scope
 
 ### In Scope
+
 - Single-row DB-persisted mode, read-through on every `RegistrationPolicy.evaluate()` call (no
   cache, matching current behavior), seeded/falling back to
   `RegistrationConfigurationProperties.mode` to preserve fail-closed-to-`CLOSED`
@@ -27,6 +28,7 @@ change it live, promoting the already-`planned` `configuration` nav entry.
   verified (not assumed)
 
 ### Out of Scope
+
 - Config beyond registration mode; no generic multi-value config framework
 - Removing `SMP_REGISTRATION_MODE` (stays as seed/fallback)
 - Changing `OPEN`/`INVITE_ONLY`/`CLOSED` evaluation semantics
@@ -35,10 +37,12 @@ change it live, promoting the already-`planned` `configuration` nav entry.
 ## Capabilities
 
 ### New Capabilities
+
 - `platform-configuration`: Back Office read/write surface for operational config; registration
   mode is the first value
 
 ### Modified Capabilities
+
 - `registration`: mode source of truth becomes DB-persisted, admin-mutable at runtime; properties
   become seed/fallback only
 - `admin-authorization`: two new permission keys, OWNER-only write gate
@@ -62,29 +66,29 @@ conventions.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|------|--------|-------------|
-| `identity/infrastructure/RegistrationConfigurationProperties.kt`, `PropertyBackedRegistrationPolicy.kt` | Modified | Becomes seed/fallback only |
-| `identity/application/RegistrationPolicy.kt` | Modified | `evaluate()` becomes `suspend` |
-| `identity/infrastructure` (new) | New | DB-backed adapter + Liquibase migration (table + seed) |
-| `platformadmin/domain/PlatformPermission.kt` | Modified | Add `CONFIGURATION_READ`/`CONFIGURATION_MANAGE`; wire role map (manage=OWNER only) |
-| `platformadmin/domain/AdminAuditEvent.kt` | Modified | Add `CONFIGURATION_CHANGED` |
-| `platformadmin/application/handler` (new) | New | `RegistrationModeHandlers` |
-| `platformadmin/infrastructure/http` (new/modified) | New/Modified | GET/POST endpoints |
-| `apps/web/admin/src/router/nav-registry.ts` | Modified | `configuration`: planned→live, permission→`platform.configuration.read` |
-| `apps/web/admin/src/views/ConfigurationView.vue` | New | Read/mutate UI |
-| `.../features/platform-admin.feature` + glue | Modified/New | BDD coverage |
+| Area                                                                                                    | Impact       | Description                                                                        |
+|---------------------------------------------------------------------------------------------------------|--------------|------------------------------------------------------------------------------------|
+| `identity/infrastructure/RegistrationConfigurationProperties.kt`, `PropertyBackedRegistrationPolicy.kt` | Modified     | Becomes seed/fallback only                                                         |
+| `identity/application/RegistrationPolicy.kt`                                                            | Modified     | `evaluate()` becomes `suspend`                                                     |
+| `identity/infrastructure` (new)                                                                         | New          | DB-backed adapter + Liquibase migration (table + seed)                             |
+| `platformadmin/domain/PlatformPermission.kt`                                                            | Modified     | Add `CONFIGURATION_READ`/`CONFIGURATION_MANAGE`; wire role map (manage=OWNER only) |
+| `platformadmin/domain/AdminAuditEvent.kt`                                                               | Modified     | Add `CONFIGURATION_CHANGED`                                                        |
+| `platformadmin/application/handler` (new)                                                               | New          | `RegistrationModeHandlers`                                                         |
+| `platformadmin/infrastructure/http` (new/modified)                                                      | New/Modified | GET/POST endpoints                                                                 |
+| `apps/web/admin/src/router/nav-registry.ts`                                                             | Modified     | `configuration`: planned→live, permission→`platform.configuration.read`            |
+| `apps/web/admin/src/views/ConfigurationView.vue`                                                        | New          | Read/mutate UI                                                                     |
+| `.../features/platform-admin.feature` + glue                                                            | Modified/New | BDD coverage                                                                       |
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Read-modify-write race on concurrent writes | Med | Atomic `UPDATE ... RETURNING` capturing previous+new in one statement |
-| Redaction false match/miss on mode keys/values | Low | Test asserting keys/OPEN/INVITE_ONLY/CLOSED stay unredacted |
-| No DB row on first deploy | Low | Migration seeds from `SMP_REGISTRATION_MODE`; adapter falls back if absent |
-| OWNER-only write narrows OPERATOR vs. other surfaces | Low | Deliberate, documented (mirrors `operators.manage`) |
-| Sync→suspend port change ripples to callers/tests | Med | Confirm call sites/test doubles updated in design/tasks |
-| Durable runtime-mutable config may need an ADR | Med | Decide in design phase; track as a design task |
+| Risk                                                 | Likelihood | Mitigation                                                                 |
+|------------------------------------------------------|------------|----------------------------------------------------------------------------|
+| Read-modify-write race on concurrent writes          | Med        | Atomic `UPDATE ... RETURNING` capturing previous+new in one statement      |
+| Redaction false match/miss on mode keys/values       | Low        | Test asserting keys/OPEN/INVITE_ONLY/CLOSED stay unredacted                |
+| No DB row on first deploy                            | Low        | Migration seeds from `SMP_REGISTRATION_MODE`; adapter falls back if absent |
+| OWNER-only write narrows OPERATOR vs. other surfaces | Low        | Deliberate, documented (mirrors `operators.manage`)                        |
+| Sync→suspend port change ripples to callers/tests    | Med        | Confirm call sites/test doubles updated in design/tasks                    |
+| Durable runtime-mutable config may need an ADR       | Med        | Decide in design phase; track as a design task                             |
 
 ## Rollback Plan
 

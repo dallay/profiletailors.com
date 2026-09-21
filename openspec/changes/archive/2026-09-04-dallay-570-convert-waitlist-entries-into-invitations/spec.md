@@ -1,7 +1,8 @@
 # Delta Spec: DALLAY-570 — Convert Waitlist Entries into Invitations
 
 > Corrected spec after team review. Supersedes previous version.
-> Changes: lifecycle-aware invariants, enum not sealed class, coordinator not direct handler branching,
+> Changes: lifecycle-aware invariants, enum not sealed class, coordinator not direct handler
+> branching,
 > no SUPERSEDED, no raw token in events, correct resend semantics.
 
 ---
@@ -21,11 +22,11 @@ enum class InvitationTarget {
 
 **Lifecycle-aware invariants enforced in aggregate init:**
 
-| target | status | workspaceId |
-|--------|--------|------------|
-| `EXISTING_WORKSPACE` | any | `!= null` (always required) |
-| `NEW_WORKSPACE` | `ACTIVE`, `EXPIRED`, `REVOKED` | `== null` |
-| `NEW_WORKSPACE` | `ACCEPTED` | `!= null` (set by `accept()`) |
+| target               | status                         | workspaceId                   |
+|----------------------|--------------------------------|-------------------------------|
+| `EXISTING_WORKSPACE` | any                            | `!= null` (always required)   |
+| `NEW_WORKSPACE`      | `ACTIVE`, `EXPIRED`, `REVOKED` | `== null`                     |
+| `NEW_WORKSPACE`      | `ACCEPTED`                     | `!= null` (set by `accept()`) |
 
 The aggregate init raises `IllegalStateException` when invariants are violated.
 
@@ -44,6 +45,7 @@ it is unused and `workspaceId` is already set.
 
 When an admin creates an invitation from an eligible waitlist entry, the system MUST create
 `Invitation` with:
+
 - `source = InvitationSource.WAITLIST`
 - `sourceReferenceId` = waitlist entry ID (non-blank)
 - `target = InvitationTarget.NEW_WORKSPACE`
@@ -79,12 +81,13 @@ THEN  WaitlistEntry.invite(now) is called and the entry transitions to INVITED
 
 Both acceptance entry points delegate to `InvitationActivationCoordinator`:
 
-| Entry point | Triggered by |
-|---|---|
-| `AcceptInvitationHandler` | Authenticated user clicks email link |
+| Entry point                            | Triggered by                         |
+|----------------------------------------|--------------------------------------|
+| `AcceptInvitationHandler`              | Authenticated user clicks email link |
 | `InvitationRegistrationGatewayAdapter` | New user completes registration form |
 
 Coordinator returns `InvitationActivationResult`:
+
 ```kotlin
 data class InvitationActivationResult(
     val invitation: Invitation,
@@ -207,6 +210,7 @@ AND   the WaitlistInvitation aggregate behaves as before
 The scenario "admin re-invites → existing Invitation marked SUPERSEDED" is REMOVED.
 DALLAY-565 defines resend with same `InvitationId` and new delivery notification.
 If an entry already has an active `Invitation`, re-invite creation MUST either:
+
 - Throw `InvitationAlreadyActiveException`, OR
 - Route through explicit resend command (handled by DALLAY-565 contract)
 
@@ -218,11 +222,11 @@ DALLAY-570 does NOT create a replacement `Invitation` on re-invite.
 
 ### Invitation lifecycle table
 
-| source | target | workspaceId | sourceReferenceId | Notes |
-|--------|--------|-------------|-------------------|-------|
-| `DIRECT` | `EXISTING_WORKSPACE` | non-null | `null` | Normal invite |
-| `DIRECT` | `NEW_WORKSPACE` | null → non-null on accept | `null` | Platform invite to new workspace |
-| `WAITLIST` | `NEW_WORKSPACE` | null → non-null on accept | non-null | Waitlist conversion |
+| source     | target               | workspaceId               | sourceReferenceId | Notes                            |
+|------------|----------------------|---------------------------|-------------------|----------------------------------|
+| `DIRECT`   | `EXISTING_WORKSPACE` | non-null                  | `null`            | Normal invite                    |
+| `DIRECT`   | `NEW_WORKSPACE`      | null → non-null on accept | `null`            | Platform invite to new workspace |
+| `WAITLIST` | `NEW_WORKSPACE`      | null → non-null on accept | non-null          | Waitlist conversion              |
 
 ### Init block rules (enforced at construction and on state transitions)
 
@@ -299,13 +303,13 @@ New user registration
 
 ## 7. Acceptance Criteria
 
-| AC | Description | Scenario |
-|----|-------------|----------|
-| AC1 | Admin creates invitation from eligible waitlist entry | "Admin creates invitation from eligible waitlist entry" |
-| AC2 | Resulting invitation has WAITLIST source and NEW_WORKSPACE target | Table in §4 |
-| AC3 | Waitlist entry reflects INVITED state after invitation creation | "PENDING entry transitions to INVITED" |
-| AC4 | Waitlist entry reflects CONVERTED state after acceptance | "INVITED entry transitions to CONVERTED" |
-| AC5 | Workspace provisioned and linked to invitation on acceptance | Coordinator scenario for NEW_WORKSPACE |
-| AC6 | Both accept entry points (authenticated + registration) use same coordinator | §1 Req 3 |
-| AC7 | No raw token in InvitationIssued event | §1 Req 6 |
-| AC8 | SUPERSEDED not in canonical status | §1 Req 7 |
+| AC  | Description                                                                  | Scenario                                                |
+|-----|------------------------------------------------------------------------------|---------------------------------------------------------|
+| AC1 | Admin creates invitation from eligible waitlist entry                        | "Admin creates invitation from eligible waitlist entry" |
+| AC2 | Resulting invitation has WAITLIST source and NEW_WORKSPACE target            | Table in §4                                             |
+| AC3 | Waitlist entry reflects INVITED state after invitation creation              | "PENDING entry transitions to INVITED"                  |
+| AC4 | Waitlist entry reflects CONVERTED state after acceptance                     | "INVITED entry transitions to CONVERTED"                |
+| AC5 | Workspace provisioned and linked to invitation on acceptance                 | Coordinator scenario for NEW_WORKSPACE                  |
+| AC6 | Both accept entry points (authenticated + registration) use same coordinator | §1 Req 3                                                |
+| AC7 | No raw token in InvitationIssued event                                       | §1 Req 6                                                |
+| AC8 | SUPERSEDED not in canonical status                                           | §1 Req 7                                                |

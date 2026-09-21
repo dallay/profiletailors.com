@@ -4,8 +4,12 @@
 
 ### Requirement: User account lifecycle and credential enforcement
 
-The Identity context MUST model a user account state of `ACTIVE` or `DISABLED`, defaulting new users to `ACTIVE`. Administrative disable MUST persist `DISABLED` and revoke all active refresh sessions before reporting success. Login and refresh MUST reject a disabled user; refresh MUST NOT rotate or issue a replacement session. Existing bearer tokens MAY expire normally and MUST NOT require per-request identity-state lookup.
-(Previously: users had no administrative account state; login and refresh issued credentials without checking disabled state.)
+The Identity context MUST model a user account state of `ACTIVE` or `DISABLED`, defaulting new users
+to `ACTIVE`. Administrative disable MUST persist `DISABLED` and revoke all active refresh sessions
+before reporting success. Login and refresh MUST reject a disabled user; refresh MUST NOT rotate or
+issue a replacement session. Existing bearer tokens MAY expire normally and MUST NOT require
+per-request identity-state lookup. (Previously: users had no administrative account state; login and
+refresh issued credentials without checking disabled state.)
 
 #### Scenario: Disabled user cannot log in
 

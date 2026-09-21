@@ -18,7 +18,7 @@ unmodified.
 
 ## Requirements
 
-### Requirement: Metadata redaction enforcement in publish()
+### Requirement: Metadata redaction enforcement in publish ()
 
 `R2dbcAdminAuditRepository.publish()` MUST call `redact(event.metadata)` and MUST serialize
 and bind only the redacted map. The raw `event.metadata` MUST NEVER reach storage.
@@ -108,7 +108,11 @@ code MUST reference it:
 
 ### Requirement: Per-entry bulk audit (DALLAY-665)
 
-The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per `invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per `failed` entry (including unexpected errors). `SUCCEEDED` audits MUST commit atomically with their entry's state change; `REJECTED` and `FAILED` audits MUST commit independently of entry state. Metadata MUST carry IDs and codes only — never raw tokens or emails.
+The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per
+`invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per
+`failed` entry (including unexpected errors). `SUCCEEDED` audits MUST commit atomically with their
+entry's state change; `REJECTED` and `FAILED` audits MUST commit independently of entry state.
+Metadata MUST carry IDs and codes only — never raw tokens or emails.
 
 #### Scenario: Success audited per entry
 
@@ -120,7 +124,8 @@ The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INV
 
 - GIVEN a batch containing 1 CONVERTED entry
 - WHEN the bulk invite runs
-- THEN that entry yields a `FAILED` audit event carrying `ENTRY_ALREADY_CONVERTED` despite no state change
+- THEN that entry yields a `FAILED` audit event carrying `ENTRY_ALREADY_CONVERTED` despite no state
+  change
 
 ### Requirement: User-control audit outcomes
 

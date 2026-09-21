@@ -1,6 +1,6 @@
 change: dallay-413-bulk-scheduling
 current_phase: verify
-completed: [explore, propose, spec, design, tasks, apply-pr1, apply-pr2, apply-pr3, verify, qa]
+completed: [ explore, propose, spec, design, tasks, apply-pr1, apply-pr2, apply-pr3, verify, qa ]
 next: qa
 updated: 2026-08-30T16:00:00Z
 pr1_branch: feature/dallay-413-bulk-pr1-domain

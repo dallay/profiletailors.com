@@ -11,9 +11,11 @@ of invitation delivery state.
 ### Requirement: Domain Event Consumer for Email Notifications
 
 The system MUST consume domain events to trigger email notifications. The system MUST implement the
-`EventConsumer` interface and handle consumption failures gracefully. It MUST consume `UserRegistered`
+`EventConsumer` interface and handle consumption failures gracefully. It MUST consume
+`UserRegistered`
 and dispatch its verification email as before.
-Invitation triggers MUST come only from the approved post-commit handoff, use the command idempotency
+Invitation triggers MUST come only from the approved post-commit handoff, use the command
+idempotency
 key for deduplication, and never persist, log, audit, or measure raw token material. Notifications
 MUST own invitation delivery state.
 
@@ -67,8 +69,10 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 
 ## Usage
 
-Consumers will implement `EventConsumer` and handle `UserRegistered` for verification emails as before.
-Invitation-specific consumption will use `InvitationNotificationRequested` from the approved post-commit
+Consumers will implement `EventConsumer` and handle `UserRegistered` for verification emails as
+before.
+Invitation-specific consumption will use `InvitationNotificationRequested` from the approved
+post-commit
 handoff; retries for transient failures remain deferred to a future implementation.
 
 ## Troubleshooting

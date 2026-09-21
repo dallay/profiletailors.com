@@ -38,7 +38,8 @@ outbox.
 
 ## Approach
 
-Use the DALLAY-564 Invitation ID as durable cross-context correlation. An after-commit trigger invokes
+Use the DALLAY-564 Invitation ID as durable cross-context correlation. An after-commit trigger
+invokes
 Notifications, which creates and updates its delivery record. Remove writes that copy delivery state
 back into Invitation. Admin reads compose lifecycle data with a narrow Notifications summary via an
 explicit port/read contract. `WaitlistInvitation` is not the target model.
@@ -57,29 +58,31 @@ historical reads and rollback behavior are specified and tested.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|---|---|---|
-| Platformadmin handlers, persistence, reads | Modified | Invitation identity; no delivery ownership. |
-| Notifications events, consumer, templates, repository | Modified | Post-commit trigger and delivery records. |
-| Liquibase, transaction policy, tests | Modified | Compatibility and security verification. |
+| Area                                                  | Impact   | Description                                 |
+|-------------------------------------------------------|----------|---------------------------------------------|
+| Platformadmin handlers, persistence, reads            | Modified | Invitation identity; no delivery ownership. |
+| Notifications events, consumer, templates, repository | Modified | Post-commit trigger and delivery records.   |
+| Liquibase, transaction policy, tests                  | Modified | Compatibility and security verification.    |
 
 ## Testing Strategy
 
 Unit tests cover invariants, idempotency, and resend multiplicity. R2DBC/WebFlux integration tests
-cover commit/rollback scheduling and composed reads. Security/serialization tests prove token absence.
+cover commit/rollback scheduling and composed reads. Security/serialization tests prove token
+absence.
 Cucumber covers scheduling, delivery failure independence, and resend behavior.
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Post-commit crash loses in-memory trigger | Medium | Document limitation; follow up with outbox. |
-| Legacy token-bearing data complicates migration | High | Preserve rows; require reviewed migration evidence. |
-| Token boundary remains ambiguous | High | Block implementation decisions on DALLAY-566. |
+| Risk                                            | Likelihood | Mitigation                                          |
+|-------------------------------------------------|------------|-----------------------------------------------------|
+| Post-commit crash loses in-memory trigger       | Medium     | Document limitation; follow up with outbox.         |
+| Legacy token-bearing data complicates migration | High       | Preserve rows; require reviewed migration evidence. |
+| Token boundary remains ambiguous                | High       | Block implementation decisions on DALLAY-566.       |
 
 ## Rollback Plan
 
-Revert trigger/read-composition and non-destructive schema changes; retain legacy rows. Never restore
+Revert trigger/read-composition and non-destructive schema changes; retain legacy rows. Never
+restore
 delivery fields to canonical Invitation.
 
 ## Dependencies
@@ -89,6 +92,7 @@ delivery fields to canonical Invitation.
 
 ## Success Criteria
 
-- [ ] Commit schedules one Notification; rollback schedules none, with best-effort semantics explicit.
+- [ ] Commit schedules one Notification; rollback schedules none, with best-effort semantics
+  explicit.
 - [ ] Failure leaves Invitation valid; same key deduplicates; a new resend adds one delivery.
 - [ ] Admin visibility comes from Notifications and no raw bearer token crosses a durable boundary.

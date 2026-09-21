@@ -7,6 +7,7 @@ Provide a stateless, OAuth-protected, read-only MCP resource server.
 ## Requirements
 
 ### Requirement: Stateless Endpoint and Stable Catalog (production catalog — profile-gated
+
 `mcp_ping` excluded)
 
 The system MUST expose `POST /api/mcp` with stateless Streamable HTTP and support `initialize`,

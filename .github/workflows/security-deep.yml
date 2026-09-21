@@ -1,6 +1,9 @@
 name: Security Deep
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '17 3 * * 1-5'
   workflow_dispatch:

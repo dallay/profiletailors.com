@@ -32,9 +32,11 @@ transactional. Telemetry recording MUST happen only after the transaction succee
 For `EXISTING_WORKSPACE` the handler MUST resolve the human label through the narrow tenancy
 workspace-name port (`workspaces.name` where `ACTIVE`). A null lookup MUST raise the platform-admin
 workspace-not-found error, map to HTTP `404 Not Found` with code `WORKSPACE_NOT_FOUND`, abort before
-commit, and create no invitation, audit, event, notification, or provider call. The email MUST receive
+commit, and create no invitation, audit, event, notification, or provider call. The email MUST
+receive
 the resolved name, never the workspace ID or blank text. For `NEW_WORKSPACE` the handler MUST keep
-`workspaceId` absent and use exactly: “You’ve been invited to create a new Profile Tailors workspace.”
+`workspaceId` absent and use exactly: “You’ve been invited to create a new Profile Tailors
+workspace.”
 
 #### Scenario: Unknown workspace returns 404 with no writes
 
@@ -53,7 +55,8 @@ the resolved name, never the workspace ID or blank text. For `NEW_WORKSPACE` the
 ### Requirement: Delivery identity originates in handlers
 
 Initial direct create MUST publish `InvitationIssued` with `deliveryId = null`, which the consumer
-renders as `invitation:{invitationId}:initial`. Each intentional direct resend MUST mint a new random
+renders as `invitation:{invitationId}:initial`. Each intentional direct resend MUST mint a new
+random
 `deliveryId` and publish `DirectInvitationResent` with that identity, which the consumer renders as
 `invitation:{invitationId}:resend:{deliveryId}`. Two intentional resends of the same invitation MUST
 carry distinct delivery identities.

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.10](https://github.com/dallay/profiletailors.com/compare/app@v0.3.9...app@v0.3.10) (2026-09-20)
+
+
+### Features
+
+* **frontend:** release-driven deployment to Cloudflare Pages ([#1103](https://github.com/dallay/profiletailors.com/issues/1103)) ([ddd70b5](https://github.com/dallay/profiletailors.com/commit/ddd70b5f672c741e979276df941dee2f894c6d97))
+* **version-badge:** add version badge to app, admin, and marketing ([#1089](https://github.com/dallay/profiletailors.com/issues/1089)) ([94f4435](https://github.com/dallay/profiletailors.com/commit/94f443508f1f2ff469bd4ced602c476e2bbb3819))
+
+
+### Bug Fixes
+
+* **quality:** resolve SonarQube S107 and accessibility issues ([#1110](https://github.com/dallay/profiletailors.com/issues/1110)) ([0050aa7](https://github.com/dallay/profiletailors.com/commit/0050aa76116631143c9a2934dfad0256929d4776))
+
+
+### Refactoring
+
+* **web:** share app and admin UI primitives ([#1109](https://github.com/dallay/profiletailors.com/issues/1109)) ([73f2117](https://github.com/dallay/profiletailors.com/commit/73f21179c1d1a95e7e87c78beb3734ca3ecadee2))
+
 ## [0.3.9](https://github.com/dallay/profiletailors.com/compare/app@v0.3.8...app@v0.3.9) (2026-09-18)
 
 

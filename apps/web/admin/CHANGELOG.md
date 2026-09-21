@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.9](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.8...admin@v0.0.9) (2026-09-20)
+
+
+### Features
+
+* **admin:** add bulk invite BDD coverage, admin UI selection, and specs ([#1063](https://github.com/dallay/profiletailors.com/issues/1063)) ([980ad04](https://github.com/dallay/profiletailors.com/commit/980ad04699b85dfc61abf2c35ba97efe35ae56dc))
+* **frontend:** release-driven deployment to Cloudflare Pages ([#1103](https://github.com/dallay/profiletailors.com/issues/1103)) ([ddd70b5](https://github.com/dallay/profiletailors.com/commit/ddd70b5f672c741e979276df941dee2f894c6d97))
+* **platform-admin:** user administration — disable/enable accounts, revoke sessions ([#1077](https://github.com/dallay/profiletailors.com/issues/1077)) ([35afaf6](https://github.com/dallay/profiletailors.com/commit/35afaf62ffa37c4160a64c27833f242a50685d3c))
+* **platformadmin:** registration-mode configuration API, permissions, and audit ([#1105](https://github.com/dallay/profiletailors.com/issues/1105)) ([72d474e](https://github.com/dallay/profiletailors.com/commit/72d474e87f1c9ba6c28cda633ef3bc09651bcbc9))
+* **version-badge:** add version badge to app, admin, and marketing ([#1089](https://github.com/dallay/profiletailors.com/issues/1089)) ([94f4435](https://github.com/dallay/profiletailors.com/commit/94f443508f1f2ff469bd4ced602c476e2bbb3819))
+
+
+### Refactoring
+
+* **web:** share app and admin UI primitives ([#1109](https://github.com/dallay/profiletailors.com/issues/1109)) ([73f2117](https://github.com/dallay/profiletailors.com/commit/73f21179c1d1a95e7e87c78beb3734ca3ecadee2))
+
 ## [0.0.8](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.7...admin@v0.0.8) (2026-09-15)
 
 

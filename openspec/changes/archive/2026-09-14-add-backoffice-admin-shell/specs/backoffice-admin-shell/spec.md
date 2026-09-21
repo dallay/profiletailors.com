@@ -2,13 +2,15 @@
 
 ## Purpose
 
-Admin SPA shell (`apps/web/admin`, root `/` under `AdminLayout`): layout, permission-filtered nav registry, routing seams, inert placeholders. No dashboard-app change.
+Admin SPA shell (`apps/web/admin`, root `/` under `AdminLayout`): layout, permission-filtered nav
+registry, routing seams, inert placeholders. No dashboard-app change.
 
 ## Requirements
 
 ### Requirement: Shell Loads for Authorized Admin
 
-The system MUST render `AdminLayout` with sidebar nav for any authenticated principal holding platform access.
+The system MUST render `AdminLayout` with sidebar nav for any authenticated principal holding
+platform access.
 
 #### Scenario: Authorized admin opens shell
 
@@ -24,7 +26,8 @@ The system MUST render `AdminLayout` with sidebar nav for any authenticated prin
 
 ### Requirement: Registry-Driven Navigation
 
-The system MUST render nav exclusively from a central registry `{ key, route, permission, status: live|planned }`, filtered by `hasPermission`.
+The system MUST render nav exclusively from a central registry
+`{ key, route, permission, status: live|planned }`, filtered by `hasPermission`.
 
 #### Scenario: Nav filtered by permission
 
@@ -40,7 +43,8 @@ The system MUST render nav exclusively from a central registry `{ key, route, pe
 
 ### Requirement: Direct-Invitations Nav Entry
 
-The system MUST list `direct-invitations` in nav when the principal holds `platform.invitations.read`.
+The system MUST list `direct-invitations` in nav when the principal holds
+`platform.invitations.read`.
 
 #### Scenario: Permitted principal sees direct-invitations
 
@@ -50,7 +54,9 @@ The system MUST list `direct-invitations` in nav when the principal holds `platf
 
 ### Requirement: Inert Planned-Area Placeholders
 
-The system MUST render planned areas (overview/users/waitlist/invitations/notifications/governance/configuration/audit) via a shared static view that is explicit "planned", permission-gated, and performs zero fetch.
+The system MUST render planned areas
+(overview/users/waitlist/invitations/notifications/governance/configuration/audit) via a shared
+static view that is explicit "planned", permission-gated, and performs zero fetch.
 
 #### Scenario: Planned area shows planned state
 
@@ -76,9 +82,9 @@ The system MUST provide EN/ES nav and placeholder labels for every registry entr
 
 ## Acceptance Mapping
 
-| # | Criterion | Scenario |
-|---|-----------|----------|
-| 1 | Shell loads + nav visible for authorized admin | Shell Loads / Authorized admin opens shell |
-| 2 | `direct-invitations` in nav | Direct-Invitations Nav Entry |
-| 3 | Planned areas show planned state, zero fetch | Inert Planned-Area Placeholders |
-| 4 | Gating matches server; `admin-check` + `admin-build` pass | Registry-Driven Navigation + authz delta |
+| # | Criterion                                                 | Scenario                                   |
+|---|-----------------------------------------------------------|--------------------------------------------|
+| 1 | Shell loads + nav visible for authorized admin            | Shell Loads / Authorized admin opens shell |
+| 2 | `direct-invitations` in nav                               | Direct-Invitations Nav Entry               |
+| 3 | Planned areas show planned state, zero fetch              | Inert Planned-Area Placeholders            |
+| 4 | Gating matches server; `admin-check` + `admin-build` pass | Registry-Driven Navigation + authz delta   |

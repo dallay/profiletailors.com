@@ -18,7 +18,9 @@
 - requested_classes: ["documentation"]
 - declared_grants: documentation=[]; open-web=[]
 - observed_grants: none admitted
-- verdict: denied for the requested documentation class. Open-web was explicitly not requested for this lane. Persistence access, generic tooling, filenames, and inherited unnamed tools were not treated as evidence capability. No evidence source of any class was accessed.
+- verdict: denied for the requested documentation class. Open-web was explicitly not requested for
+  this lane. Persistence access, generic tooling, filenames, and inherited unnamed tools were not
+  treated as evidence capability. No evidence source of any class was accessed.
 
 ## Sources
 
@@ -40,8 +42,12 @@ None recorded. No admitted sources exist to compare.
 
 ## Product choices (non-authoritative, separate from evidence)
 
-Retained pre-proposal handoff tokens only: research=run_research, key_never, reclassify, redact_followup, deprecate_followup, per_module_blocking. These are pending orchestrator-owned decisions, not validated findings.
+Retained pre-proposal handoff tokens only: research=run_research, key_never, reclassify,
+redact_followup, deprecate_followup, per_module_blocking. These are pending orchestrator-owned
+decisions, not validated findings.
 
 ## Recovery
 
-Blocked recovery state is this file. Re-entry requires the orchestrator to relaunch sdd-research for this lane with explicit non-empty evidence grants for the requested classes. Proposal readiness remains blocked until selected research reaches done with valid evidence.
+Blocked recovery state is this file. Re-entry requires the orchestrator to relaunch sdd-research for
+this lane with explicit non-empty evidence grants for the requested classes. Proposal readiness
+remains blocked until selected research reaches done with valid evidence.

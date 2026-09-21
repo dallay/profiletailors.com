@@ -4,7 +4,11 @@
 
 ### Requirement: Direct-invitations list section
 
-`DirectInvitationsView` MUST render a list section above/below the create form: table of direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it the view MUST show access-denied and issue zero list requests.
+`DirectInvitationsView` MUST render a list section above/below the create form: table of
+direct-shaped rows, status filter, email search, pagination, and loading/empty/error states. Labels
+MUST have EN+ES keys. Row resend/revoke MUST reuse existing endpoints with `expectedVersion`. The
+view MUST NOT render token material. List fetch MUST require `platform.invitations.read`; without it
+the view MUST show access-denied and issue zero list requests.
 
 #### Scenario: Table renders seeded rows
 
@@ -38,10 +42,10 @@
 
 ## Acceptance Mapping
 
-| # | Criterion | Scenario |
-|---|-----------|----------|
-| 1 | Paged list, `issuedAt desc`, no token | invitations: Authorized operator lists |
-| 2 | Pagination + status/email filters | invitations: Pagination; Status and email filters |
-| 3 | 401/403 on list | invitations: Unauthenticated; Unpermitted |
-| 4 | Table + filters + states + EN/ES | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
-| 5 | Row resend/revoke from table | backoffice-admin-shell: Row actions reuse |
+| # | Criterion                             | Scenario                                                                     |
+|---|---------------------------------------|------------------------------------------------------------------------------|
+| 1 | Paged list, `issuedAt desc`, no token | invitations: Authorized operator lists                                       |
+| 2 | Pagination + status/email filters     | invitations: Pagination; Status and email filters                            |
+| 3 | 401/403 on list                       | invitations: Unauthenticated; Unpermitted                                    |
+| 4 | Table + filters + states + EN/ES      | backoffice-admin-shell: Table renders; Filters; Empty/loading/error; Spanish |
+| 5 | Row resend/revoke from table          | backoffice-admin-shell: Row actions reuse                                    |

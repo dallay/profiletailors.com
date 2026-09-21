@@ -11,12 +11,12 @@ DALLAY-568/570/565 remain owners of commands, conversion, delivery, and notifica
 
 ## Architecture Decisions
 
-| Decision | Choice | Alternatives and rationale |
-|---|---|---|
-| Aggregate boundary | Mark `Invitation` with `@AggregateRoot`; mark `InvitationId`, `InvitationSource`, and `InvitationStatus` with `@ValueObject`. Keep `Invitation` immutable and responsible for `accept`, `expire`, and `revoke` invariants. | Do not mark delivery types or fold `WaitlistInvitation` into this aggregate; that would couple semantic validity to transport or waitlist lifecycle. |
-| Identifier | Retain `@JvmInline InvitationId(UUID)` and PostgreSQL `uuid`. Record a scoped exception to ADR-0005; no prefixed-ID migration. | Converting to a prefixed string would break the already-landed table and acceptance path without improving the token boundary. |
-| Lifecycle | `ACTIVE` may transition only to `ACCEPTED`, `EXPIRED`, or `REVOKED`; terminal states reject mutation. `accept(at, principalId)` requires `at < expiresAt`; `expire(at)` requires `at >= expiresAt` and materializes `EXPIRED`; non-accepted states require null acceptance metadata. | Computed-only expiry leaves stale active rows and makes later reads disagree with persisted state. A scheduler is deferred; access/expiry commands materialize the state. |
-| Token ownership | Keep only stored non-reversible `tokenHash` and opaque candidate lookup data. No raw token, accept URL, or delivery field crosses the Invitation, audit, metric, or durable-event boundary. | Generation, hashing, candidate derivation, recipient binding, and ephemeral handoff belong exclusively to DALLAY-566/565. |
+| Decision           | Choice                                                                                                                                                                                                                                                                               | Alternatives and rationale                                                                                                                                                |
+|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Aggregate boundary | Mark `Invitation` with `@AggregateRoot`; mark `InvitationId`, `InvitationSource`, and `InvitationStatus` with `@ValueObject`. Keep `Invitation` immutable and responsible for `accept`, `expire`, and `revoke` invariants.                                                           | Do not mark delivery types or fold `WaitlistInvitation` into this aggregate; that would couple semantic validity to transport or waitlist lifecycle.                      |
+| Identifier         | Retain `@JvmInline InvitationId(UUID)` and PostgreSQL `uuid`. Record a scoped exception to ADR-0005; no prefixed-ID migration.                                                                                                                                                       | Converting to a prefixed string would break the already-landed table and acceptance path without improving the token boundary.                                            |
+| Lifecycle          | `ACTIVE` may transition only to `ACCEPTED`, `EXPIRED`, or `REVOKED`; terminal states reject mutation. `accept(at, principalId)` requires `at < expiresAt`; `expire(at)` requires `at >= expiresAt` and materializes `EXPIRED`; non-accepted states require null acceptance metadata. | Computed-only expiry leaves stale active rows and makes later reads disagree with persisted state. A scheduler is deferred; access/expiry commands materialize the state. |
+| Token ownership    | Keep only stored non-reversible `tokenHash` and opaque candidate lookup data. No raw token, accept URL, or delivery field crosses the Invitation, audit, metric, or durable-event boundary.                                                                                          | Generation, hashing, candidate derivation, recipient binding, and ephemeral handoff belong exclusively to DALLAY-566/565.                                                 |
 
 ## Data Flow
 
@@ -28,7 +28,8 @@ DALLAY-565 consumes InvitationId and keeps delivery state in Notifications
 ```
 
 The canonical `InvitationRepository` lives in `platformadmin.application.contracts` and exposes
-`findById`, `save`, candidate-key lookup, and conditional lifecycle transitions. Its candidate key is
+`findById`, `save`, candidate-key lookup, and conditional lifecycle transitions. Its candidate key
+is
 opaque and supplied by DALLAY-566; the repository never derives or returns bearer values.
 `R2dbcInvitationRepository` owns SQL, row mapping, UUID conversion, and optimistic version handling.
 The existing `InvitationAcceptanceRepository` becomes a temporary façade over this adapter, not a
@@ -42,15 +43,15 @@ one acceptance and one membership under contention.
 
 ## File Changes
 
-| File | Action | Description |
-|---|---|---|
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/{Invitation.kt,InvitationId.kt}` | Modify | Add markers, explicit transitions, metadata invariants, and version. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/{AcceptInvitation.kt,contracts/InvitationRepository.kt}` | Modify/Create | Use the canonical port and preserve the safe acceptance result. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt` | Create/replace | Implement row mapping, locked lookup, CAS transitions, and safe output. |
-| `server/smp/src/main/resources/db/changelog/platform-admin/005-harden-invitations.yaml` and `db.changelog-master.yaml` | Create/Modify | Add version, lifecycle/source/email checks, active `(workspace_id, invited_email_normalized)` uniqueness, and indexes. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/{PlatformAdminMarkerCoverageTest.kt,domain/InvitationTest.kt,integration/*Invitation*Test.kt}` | Modify/Create | Cover markers, invariants, transitions, schema, rollback, scope, and races. |
-| `AdminAuditEvent.kt`, invitation observability adapter/tests | Modify/Create | Add safe actions and bounded transition metric tags. |
-| `docs/architecture/adr/0005-use-prefixed-string-identifiers.md`, `docs/architecture/c4/04-code.md`, `docs/architecture/data-model/README.md`, `docs/architecture/transaction-policy.md`, `docs/observability-contracts.md`, `docs/infrastructure/private-beta-correlation-matrix.md` | Modify | Record UUID, expiry, canonical table, pivots, and redaction. |
+| File                                                                                                                                                                                                                                                                                 | Action         | Description                                                                                                            |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|------------------------------------------------------------------------------------------------------------------------|
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/{Invitation.kt,InvitationId.kt}`                                                                                                                                                                             | Modify         | Add markers, explicit transitions, metadata invariants, and version.                                                   |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/{AcceptInvitation.kt,contracts/InvitationRepository.kt}`                                                                                                                                                | Modify/Create  | Use the canonical port and preserve the safe acceptance result.                                                        |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt`                                                                                                                                                            | Create/replace | Implement row mapping, locked lookup, CAS transitions, and safe output.                                                |
+| `server/smp/src/main/resources/db/changelog/platform-admin/005-harden-invitations.yaml` and `db.changelog-master.yaml`                                                                                                                                                               | Create/Modify  | Add version, lifecycle/source/email checks, active `(workspace_id, invited_email_normalized)` uniqueness, and indexes. |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/{PlatformAdminMarkerCoverageTest.kt,domain/InvitationTest.kt,integration/*Invitation*Test.kt}`                                                                                                                      | Modify/Create  | Cover markers, invariants, transitions, schema, rollback, scope, and races.                                            |
+| `AdminAuditEvent.kt`, invitation observability adapter/tests                                                                                                                                                                                                                         | Modify/Create  | Add safe actions and bounded transition metric tags.                                                                   |
+| `docs/architecture/adr/0005-use-prefixed-string-identifiers.md`, `docs/architecture/c4/04-code.md`, `docs/architecture/data-model/README.md`, `docs/architecture/transaction-policy.md`, `docs/observability-contracts.md`, `docs/infrastructure/private-beta-correlation-matrix.md` | Modify         | Record UUID, expiry, canonical table, pivots, and redaction.                                                           |
 
 ## Interfaces / Contracts
 
@@ -72,13 +73,15 @@ bounded reason codes only. Delivery outcomes never update `Invitation`.
 Use strict TDD: failing domain/marker tests first, port-fake application tests, then Testcontainers
 PostgreSQL tests. Verify terminal/expiry boundaries, illegal metadata, source binding, duplicate
 active email, CAS loss, rollback after provisioning failure, and delivery failure leaving Invitation
-unchanged. Add a two-client acceptance race proving one success, one accepted row, and one membership.
+unchanged. Add a two-client acceptance race proving one success, one accepted row, and one
+membership.
 Run architecture, Modulith, backend, and PostgreSQL gates; no endpoint or web test is required.
 
 ## Migration / Rollout
 
 Use an additive Liquibase changeSet after `004-create-invitations`; no backfill, rename, drop, or
-dual-write. `waitlist_invitations`, `WaitlistInvitation`, legacy admin routes, resend/delivery bridge,
+dual-write. `waitlist_invitations`, `WaitlistInvitation`, legacy admin routes, resend/delivery
+bridge,
 and waitlist history remain untouched until DALLAY-570/565 define migration. Existing acceptance
 responses remain compatible. Roll back application and additive constraints together, retaining both
 tables.

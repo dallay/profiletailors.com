@@ -4,7 +4,9 @@
 
 ### Requirement: Bulk fail-fast permission check
 
-The bulk endpoint MUST check `platform.waitlist.invite` once up front and throw `PlatformAccessDeniedException` (HTTP 403) before touching any entry when the permission is missing. No new permission is introduced; role mapping is unchanged.
+The bulk endpoint MUST check `platform.waitlist.invite` once up front and throw
+`PlatformAccessDeniedException` (HTTP 403) before touching any entry when the permission is missing.
+No new permission is introduced; role mapping is unchanged.
 
 #### Scenario: Missing permission fails fast
 

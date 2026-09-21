@@ -53,8 +53,8 @@ backdrop, no `bg-black/80`.
 
 `saveConsent({ analytics, source })` (store, unchanged) → build receipt (`consentVersion: 1`,
 `policyVersion: '2026-07-23'`, ISO `timestamp`, `region: 'EU'`, `necessary: true`, `dnt` from
-`detectDNTSignal()`) → `localStorage.setItem('pt-consent', …)` → `receipt.value = newReceipt` (
-drives `hasValidConsent`) → if authenticated, fire-and-forget `syncToBackend`; failure sets
+`detectDNTSignal()`) → `localStorage.setItem('pt-consent', …)` → `receipt.value = newReceipt`
+(drives `hasValidConsent`) → if authenticated, fire-and-forget `syncToBackend`; failure sets
 `syncError` + toast, local receipt **not** reverted (R6). Sources: banner first-level + inline
 save ⇒ `'banner'`; CookieSettings ⇒ `'settings-panel'`. DNT/GPC: inline toggle initializes from
 `store.analyticsEnabled` ⇒ `false` default while undecided; Accept All explicitly overrides.
@@ -173,8 +173,8 @@ cosmetic filtering off comparison; ⑥ console errors; ⑦ blocked resources (ne
 
 ## Migration / Rollout
 
-No migration — receipts stay `consentVersion: 1`; stale receipts re-prompt. Rollback: `git revert` (
-banner returns to dialog; `pt-consent` never deleted). Manual matrix: Chrome/Chromium,
+No migration — receipts stay `consentVersion: 1`; stale receipts re-prompt. Rollback: `git revert`
+(banner returns to dialog; `pt-consent` never deleted). Manual matrix: Chrome/Chromium,
 Safari/WebKit, Brave Shields ON/OFF × states A–D, EN/ES, light/dark, 320px/768px/1280px viewports.
 
 ## Open Questions

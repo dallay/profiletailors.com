@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This specification documents the integration seam between the Platform-Admin bounded context (Invitation lifecycle) and the Notifications bounded context (Notification delivery). It establishes the correct architectural boundaries ensuring each context maintains its own state independently.
+This specification documents the integration seam between the Platform-Admin bounded context
+(Invitation lifecycle) and the Notifications bounded context (Notification delivery). It establishes
+the correct architectural boundaries ensuring each context maintains its own state independently.
 
 ## Integration Architecture
 
@@ -41,34 +43,36 @@ This specification documents the integration seam between the Platform-Admin bou
 The following sequence describes the correct event flow:
 
 1. **Invitation Creation** (Platform-Admin Context)
-   - Administrator initiates invitation
-   - Handler creates WaitlistInvitation with ACTIVE status
-   - Handler publishes InvitationIssued event (token-free)
-   - Transaction commits successfully
+    - Administrator initiates invitation
+    - Handler creates WaitlistInvitation with ACTIVE status
+    - Handler publishes InvitationIssued event (token-free)
+    - Transaction commits successfully
 
 2. **Event Consumption** (Notifications Context)
-   - SendInvitationEmailConsumer receives InvitationIssued
-   - Consumer checks idempotency: `invitation:{invitationId}:initial`
-   - If new: creates Notification with PENDING status
-   - Consumer reconstructs accept URL from invitationId
-   - Consumer dispatches email via EmailDispatcher
+    - SendInvitationEmailConsumer receives InvitationIssued
+    - Consumer checks idempotency: `invitation:{invitationId}:initial`
+    - If new: creates Notification with PENDING status
+    - Consumer reconstructs accept URL from invitationId
+    - Consumer dispatches email via EmailDispatcher
 
 3. **Notification Update** (Notifications Context)
-   - EmailDispatcher returns result
-   - Consumer updates Notification to SENT or FAILED
-   - No cross-context event published
+    - EmailDispatcher returns result
+    - Consumer updates Notification to SENT or FAILED
+    - No cross-context event published
 
 4. **Invitation Lifecycle** (Platform-Admin Context)
-   - Invitation state evolves independently (ACTIVE → ACCEPTED/EXPIRED/REVOKED)
-   - Invitation never observes notification state
+    - Invitation state evolves independently (ACTIVE → ACCEPTED/EXPIRED/REVOKED)
+    - Invitation never observes notification state
 
 ## ADDED Requirements
 
 ### Requirement: Post-Commit Event Publishing Guarantee
 
-The InvitationIssued event MUST be published only after the transaction that persisted the invitation commits successfully.
+The InvitationIssued event MUST be published only after the transaction that persisted the
+invitation commits successfully.
 
 Event publishing MUST use one of:
+
 - `@TransactionalEventListener(phase = AFTER_COMMIT)`
 - Outbox pattern with async publishing
 - Transactional outbox table
@@ -89,9 +93,11 @@ Event publishing MUST use one of:
 
 ### Requirement: SendInvitationEmailConsumer Behavior
 
-The SendInvitationEmailConsumer MUST consume InvitationIssued events and manage the notification lifecycle independently.
+The SendInvitationEmailConsumer MUST consume InvitationIssued events and manage the notification
+lifecycle independently.
 
 The consumer MUST:
+
 - Create Notification with type INVITATION and status PENDING
 - Use idempotency key: `invitation:{invitationId}:initial`
 - Reconstruct accept URL from invitationId
@@ -135,9 +141,11 @@ The integration between Platform-Admin and Notifications contexts MUST follow cl
 
 ### Requirement: Token Security Throughout Pipeline
 
-The raw bearer token MUST be excluded from all observable state, logs, events, and payloads throughout the invitation-to-notification pipeline.
+The raw bearer token MUST be excluded from all observable state, logs, events, and payloads
+throughout the invitation-to-notification pipeline.
 
 The token flow MUST be:
+
 1. Generated in InviteWaitlistEntryHandler
 2. Hashed and hash persisted in WaitlistInvitation.tokenHash
 3. Used to build acceptUrl for email template rendering

@@ -128,8 +128,8 @@ The system MUST provide email templates for notification content.
 The system MUST provide verification email content with a semantically complete plain-text body and
 a styled HTML body aligned with Profile Tailors design language. The system MUST include the same
 verification URL in both bodies. The system MUST preserve verification instructions, 24-hour expiry
-copy, and graceful fallback behavior when template rendering fails.
-(Previously: verification email templates allowed optional HTML or multipart output but only
+copy, and graceful fallback behavior when template rendering fails. (Previously: verification email
+templates allowed optional HTML or multipart output but only
 guaranteed plain text completeness.)
 
 #### Scenario: Verification email template rendered
@@ -172,8 +172,8 @@ The system MUST define an email sender port in the application layer that accept
 recipient, and email content containing required text plus optional HTML. Sending adapters that
 support HTML MUST deliver both HTML and text when HTML is present. Mock and development adapters
 MUST expose enough text and HTML content to debug delivery and support assertions. Adapters MUST
-remain swappable without changing application code.
-(Previously: the sender port accepted a single body and did not require adapters to deliver or
+remain swappable without changing application code. (Previously: the sender port accepted a single
+body and did not require adapters to deliver or
 expose HTML plus text.)
 
 #### Scenario: Email sender port defined
@@ -315,8 +315,8 @@ The system MUST generate verification email links from the configured public app
 
 The system MUST separate the public app URL used in emails from backend API base URL concerns.
 Verification email links MUST use `app.email.public-app-url` plus `/verify-email?token=...` in both
-plain-text and HTML bodies. This change MUST NOT require new frontend behavior.
-(Previously: links used the configured public app URL and frontend route, but the exact route/query
+plain-text and HTML bodies. This change MUST NOT require new frontend behavior. (Previously: links
+used the configured public app URL and frontend route, but the exact route/query
 contract was not repeated for both text and HTML bodies.)
 
 #### Scenario: Verification link uses configured public app URL
@@ -344,14 +344,17 @@ contract was not repeated for both text and HTML bodies.)
 
 ## Takedown Notification Additions
 
-The following requirements were added as part of the media copyright takedown change
-(archived `2026-07-22`).
+The following requirements were added as part of the media copyright takedown change (archived
+`2026-07-22`).
 
 ### Requirement: Committed direct events create one delivery
 
-The invitation email consumer MUST consume `InvitationIssued` and `DirectInvitationResent` only after
-the enclosing reactive R2DBC transaction commits. It MUST render the target-specific copy defined by the
-invitations delta. For a committed event it MUST persist one `PENDING` notification and make one provider
+The invitation email consumer MUST consume `InvitationIssued` and `DirectInvitationResent` only
+after
+the enclosing reactive R2DBC transaction commits. It MUST render the target-specific copy defined by
+the
+invitations delta. For a committed event it MUST persist one `PENDING` notification and make one
+provider
 attempt. A rolled-back transaction MUST create neither a notification nor a provider call. Provider
 delivery is best effort; durable crash recovery is not part of this delta.
 
@@ -370,10 +373,14 @@ delivery is best effort; durable crash recovery is not part of this delta.
 
 ### Requirement: Initial and resend deliveries have separate identities
 
-Initial delivery MUST use `invitation:{invitationId}:initial`. Each intentional direct resend MUST receive
-a distinct internal `deliveryId` and use `invitation:{invitationId}:resend:{deliveryId}`. A replay of the
-same event and key MUST reuse the existing notification without inserting another record or calling the
-provider again, including when that record is `FAILED`. A later intentional resend MUST receive a new
+Initial delivery MUST use `invitation:{invitationId}:initial`. Each intentional direct resend MUST
+receive
+a distinct internal `deliveryId` and use `invitation:{invitationId}:resend:{deliveryId}`. A replay
+of the
+same event and key MUST reuse the existing notification without inserting another record or calling
+the
+provider again, including when that record is `FAILED`. A later intentional resend MUST receive a
+new
 delivery identity and MUST NOT be suppressed by the initial key or an earlier resend key.
 
 #### Scenario: Initial event replay is safe
@@ -392,10 +399,14 @@ delivery identity and MUST NOT be suppressed by the initial key or an earlier re
 
 ### Requirement: Provider outcomes own notification status
 
-Notifications MUST own invitation delivery state independently of invitation validity. A new record MUST
-start `PENDING`; provider success MUST update it to `SENT` with `sentAt`; provider failure MUST update it
-to `FAILED` with `failedAt` and an error message. The consumer MUST handle a provider failure without
-throwing it back to the event publisher, and the committed invitation MUST remain semantically `ACTIVE`
+Notifications MUST own invitation delivery state independently of invitation validity. A new record
+MUST
+start `PENDING`; provider success MUST update it to `SENT` with `sentAt`; provider failure MUST
+update it
+to `FAILED` with `failedAt` and an error message. The consumer MUST handle a provider failure
+without
+throwing it back to the event publisher, and the committed invitation MUST remain semantically
+`ACTIVE`
 unless an independent lifecycle operation changes it.
 
 #### Scenario: Provider success
@@ -414,13 +425,18 @@ unless an independent lifecycle operation changes it.
 
 ### Requirement: Temporary raw-token handoff is non-canonical
 
-Until DALLAY-566 supplies the token-safe replacement, the existing handler-to-event-to-consumer raw-token
-handoff MAY remain solely to render the accept URL in memory. This is a documented temporary contradiction
-of the canonical `invitations` security requirements: current invitation events carry `rawToken`, and the
-current notification payload carries a token-bearing `acceptUrl`, while canonical behavior forbids raw or
+Until DALLAY-566 supplies the token-safe replacement, the existing handler-to-event-to-consumer
+raw-token
+handoff MAY remain solely to render the accept URL in memory. This is a documented temporary
+contradiction
+of the canonical `invitations` security requirements: current invitation events carry `rawToken`,
+and the
+current notification payload carries a token-bearing `acceptUrl`, while canonical behavior forbids
+raw or
 recoverable token values in observable or durable state. This delta MUST NOT be read as a security
 relaxation or as authorization to add new token surfaces. DALLAY-566 owns generation, rotation, TTL,
-validation, recipient binding, URL assembly, encoding, and the token-safe handoff that removes this exception.
+validation, recipient binding, URL assembly, encoding, and the token-safe handoff that removes this
+exception.
 
 #### Scenario: Temporary exception remains visible
 

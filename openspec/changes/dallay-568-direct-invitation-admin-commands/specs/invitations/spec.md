@@ -31,9 +31,11 @@ rolling back the saved invitation (pinned by unit test); it MUST NOT be silently
 #### Scenario: Admin creates invitation — duplicate active invitation
 
 - GIVEN an authenticated platform operator with `platform.invitations.create` permission
-- AND an existing live `ACTIVE` invitation (not expired) for the same normalized email in the same workspace
+- AND an existing live `ACTIVE` invitation (not expired) for the same normalized email in the same
+  workspace
 - WHEN POST /api/admin/invitations/direct with `{email, target, workspaceId}` is received
-- THEN the pre-check query — or the unique index via `save()` on a race — raises `InvitationAlreadyActiveException`
+- THEN the pre-check query — or the unique index via `save()` on a race — raises
+  `InvitationAlreadyActiveException`
 - AND HTTP 409 Conflict is returned with a machine-safe error
 - AND no audit event is emitted
 

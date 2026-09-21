@@ -58,8 +58,8 @@ States A–D: none, stale, valid, DNT/GPC.
 ## Phase 4: Testing
 
 - [x] 4.1 Run `pnpm --filter app test:run` — consent suites green (14 scenarios).
-  → DONE 2026-09-09: full app unit suite PASS — 146 files, 1711 tests, 0 failures
-  (incl. 5-file consent subset: 51 tests PASS).
+  → DONE 2026-09-09: full app unit suite PASS — 146 files, 1711 tests, 0 failures (incl. 5-file
+  consent subset: 51 tests PASS).
 - [x] 4.2 E2E `consent.spec.ts`: TASK-026 no `dialog-overlay`, banner visible, sidebar clickable;
   keep TASK-027/028 (R1 S2, R4 S5, R5 S7, R8 S14).
   → DONE 2026-09-09: `consent.spec.ts` 12/12 PASS (4 tests × chromium/firefox/Mobile Chrome)
