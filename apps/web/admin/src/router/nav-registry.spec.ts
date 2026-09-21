@@ -58,10 +58,17 @@ describe('NAV_REGISTRY', () => {
     }
   })
 
-  it('marks overview, notifications and governance as planned', () => {
-    for (const key of ['overview', 'notifications', 'governance']) {
+  it('marks overview and governance as planned', () => {
+    for (const key of ['overview', 'governance']) {
       expect(NAV_REGISTRY.find((entry) => entry.key === key)?.status).toBe('planned')
     }
+  })
+
+  it('marks notifications as live with correct permission', () => {
+    const entry = NAV_REGISTRY.find((candidate) => candidate.key === 'notifications')
+    expect(entry).toBeDefined()
+    expect(entry?.status).toBe('live')
+    expect(entry?.permission).toBe('platform.notifications.read')
   })
 
   it('keeps dashboard, waitlist, users, direct-invitations, audit and configuration live', () => {
