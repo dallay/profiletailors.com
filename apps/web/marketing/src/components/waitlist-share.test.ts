@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { shareWaitlist, waitlistShareUrl } from './waitlist-share'
+import { readWaitlistShareAttributes, shareWaitlist, waitlistShareUrl } from './waitlist-share'
 
 describe('waitlistShareUrl', () => {
   it('uses the public https origin for English', () => {
@@ -51,5 +51,35 @@ describe('shareWaitlist', () => {
     })
     expect(result).toBe('copied')
     expect(writeText).toHaveBeenCalledWith('https://profiletailors.com/')
+  })
+})
+
+describe('readWaitlistShareAttributes', () => {
+  it('reads localized share attributes from the form', () => {
+    document.body.innerHTML = `
+      <form
+        data-waitlist-share-url="https://profiletailors.com/es/"
+        data-waitlist-share-title="Lista de espera de Profile Tailors"
+        data-waitlist-share-copied="Enlace copiado"
+      ></form>
+    `
+    const form = document.querySelector('form')
+    if (!form) {
+      throw new Error('form missing')
+    }
+    expect(readWaitlistShareAttributes(form)).toEqual({
+      url: 'https://profiletailors.com/es/',
+      title: 'Lista de espera de Profile Tailors',
+      copied: 'Enlace copiado',
+    })
+  })
+
+  it('rejects missing localized share attributes', () => {
+    document.body.innerHTML = '<form></form>'
+    const form = document.querySelector('form')
+    if (!form) {
+      throw new Error('form missing')
+    }
+    expect(() => readWaitlistShareAttributes(form)).toThrow('waitlist-share-attributes-missing')
   })
 })

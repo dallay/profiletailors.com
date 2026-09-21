@@ -105,7 +105,7 @@ const errorId = `${formId}-error`
 <script>
   import { buildWaitlistPayload, WAITLIST_KEY_DEFAULT } from './waitlist-form'
   import { isValidEmail } from './waitlist-form-validator'
-  import { shareWaitlist } from './waitlist-share'
+  import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share'
 
   const SUCCESS_HIDDEN = 'hidden'
 
@@ -142,28 +142,7 @@ const errorId = `${formId}-error`
     form.dataset.waitlistBound = 'true'
 
     if (share) {
-      const shareUrl = form.dataset.waitlistShareUrl ?? 'https://profiletailors.com/'
-      const shareTitle = form.dataset.waitlistShareTitle ?? 'Profile Tailors waitlist'
-      const shareCopied = form.dataset.waitlistShareCopied ?? 'Link copied'
-      const shareLabel = share.textContent ?? ''
-      share.addEventListener('click', () => {
-        const shareFn = typeof navigator.share === 'function'
-          ? (data: { title: string; url: string }) => navigator.share(data)
-          : undefined
-        const writeText = navigator.clipboard?.writeText.bind(navigator.clipboard)
-        void shareWaitlist({
-          url: shareUrl,
-          title: shareTitle,
-          share: shareFn,
-          writeText,
-        }).then((result) => {
-          if (result === 'copied') {
-            share.textContent = shareCopied
-          }
-        }).catch(() => {
-          share.textContent = shareLabel
-        })
-      })
+      bindWaitlistShare(share, readWaitlistShareAttributes(form))
     }
 
     const waitlistKey = form.dataset.waitlistKey ?? WAITLIST_KEY_DEFAULT

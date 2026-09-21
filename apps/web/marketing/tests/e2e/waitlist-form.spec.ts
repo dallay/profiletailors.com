@@ -3,6 +3,11 @@ import type { Page, Route, Request } from '@playwright/test';
 
 const WAITLIST_KEY = 'profile-tailors-launch';
 
+const FORM_NAMES = {
+  'waitlist-hero': 'Early access waitlist form',
+  'waitlist-final': 'Waitlist form at the end of the page',
+} as const;
+
 /**
  * Helper: Pre-load valid consent receipt to dismiss banner.
  * Call before page.goto() in tests that don't need the consent banner.
@@ -145,9 +150,31 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText('Too many requests');
   });
 
+  test('homepage waitlist forms expose unique email ids bound to labels', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page)
+    await page.goto('/')
+
+    for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
+      const form = page.getByRole('form', { name: FORM_NAMES[formId] })
+      await form.scrollIntoViewIfNeeded()
+      const email = form.getByLabel('Email address')
+      await expect(email).toHaveAttribute('id', `${formId}-email`)
+      await expect(form.locator(`label[for="${formId}-email"]`)).toHaveCount(1)
+      await expect(page.locator(`#${formId}-email`)).toHaveCount(1)
+    }
+  })
+
   for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
-    test(`${formId} has unique email id, label association, and consent payload`, async ({ page }: { page: Page }): Promise<void> => {
+    test(`${formId} submits with accessible controls and consent payload`, async ({ page }: { page: Page }): Promise<void> => {
       let interceptedBody: unknown = null
+
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: { writeText: async () => undefined },
+        })
+      })
 
       await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
         if (request.method() !== 'POST') {
@@ -165,31 +192,22 @@ test.describe('Waitlist Form — Marketing E2E', () => {
       await dismissConsentBanner(page)
       await page.goto('/')
 
-      const form = page.locator(`[data-waitlist-form-id="${formId}"]`)
-      await form.evaluate((el) => {
-        el.closest('[data-animate-scroll]')?.classList.add('is-visible')
-      })
+      const form = page.getByRole('form', { name: FORM_NAMES[formId] })
+      await form.scrollIntoViewIfNeeded()
       await expect(form).toBeVisible()
 
-      const emailId = `${formId}-email`
-      const marketingId = `${formId}-marketing`
-      const emailInput = form.locator(`#${emailId}`)
-      const emailLabel = form.locator(`label[for="${emailId}"]`)
-      const marketingInput = form.locator(`#${marketingId}`)
-
-      await expect(emailInput).toHaveCount(1)
-      await expect(emailLabel).toHaveCount(1)
-      await expect(marketingInput).toHaveCount(1)
-      await expect(page.locator(`#${emailId}`)).toHaveCount(1)
-
       const checkMarketing = formId === 'waitlist-final'
-      await emailInput.fill(`${formId}@example.com`)
+      await form.getByLabel('Email address').fill(`${formId}@example.com`)
       if (checkMarketing) {
-        await marketingInput.check()
+        await form.getByRole('checkbox', { name: 'Marketing consent' }).check()
       }
 
-      await form.locator('[data-waitlist-submit]').click()
-      await expect(form.locator('[data-waitlist-success]')).toBeVisible()
+      await form.getByRole('button', { name: 'Join the waitlist' }).click()
+      await expect(form.getByRole('status')).toBeVisible()
+      await expect(form.getByRole('status')).toContainText("You're on the list")
+
+      await form.getByRole('button', { name: 'Share the waitlist' }).click()
+      await expect(form.getByRole('button', { name: 'Link copied' })).toBeVisible()
 
       expect(interceptedBody).toMatchObject({
         email: `${formId}@example.com`,

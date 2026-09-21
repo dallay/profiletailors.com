@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share'
 
 const source = readFileSync(resolve(process.cwd(), 'src/components/WaitlistForm.astro'), 'utf8')
 
@@ -24,5 +25,34 @@ describe('WaitlistForm accessibility', () => {
     expect(source).toContain('data-waitlist-share')
     expect(source).toContain('type="button"')
     expect(source).not.toContain('share.href')
+  })
+
+  it('shows the copied result after a successful share click', async () => {
+    document.body.innerHTML = `
+      <form
+        data-waitlist-form
+        data-waitlist-share-url="https://profiletailors.com/"
+        data-waitlist-share-title="Profile Tailors waitlist"
+        data-waitlist-share-copied="Link copied"
+      >
+        <div data-waitlist-success>
+          <button type="button" data-waitlist-share>Share the waitlist</button>
+        </div>
+      </form>
+    `
+    const form = document.querySelector('form')
+    const share = document.querySelector<HTMLButtonElement>('[data-waitlist-share]')
+    if (!form || !share) {
+      throw new Error('Waitlist share markup was not found')
+    }
+
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    bindWaitlistShare(share, readWaitlistShareAttributes(form), { writeText })
+    share.click()
+
+    await vi.waitFor(() => {
+      expect(share.textContent).toBe('Link copied')
+    })
+    expect(writeText).toHaveBeenCalledWith('https://profiletailors.com/')
   })
 })
