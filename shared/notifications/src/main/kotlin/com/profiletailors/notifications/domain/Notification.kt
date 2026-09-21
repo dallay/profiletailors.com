@@ -56,6 +56,15 @@ data class Notification(
         errorMessage = error,
         updatedAt = at,
     )
+
+    /**
+     * Returns true if this notification is eligible for admin-initiated retry.
+     *
+     * A notification is eligible only if its template is in the approved retry whitelist
+     * and the notification is in a failed state.
+     */
+    fun canRetry(): Boolean = status == NotificationStatus.FAILED &&
+        NotificationRetryEligibility.isEligible(templateId)
 }
 
 /** Identifier for a persisted [Notification]. */

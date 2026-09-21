@@ -25,4 +25,9 @@ interface NotificationRepository {
      * key has been recorded.
      */
     suspend fun findByIdempotencyKey(key: IdempotencyKey): Notification?
+
+    /**
+     * Find a notification by its ID, or `null` if no notification with that ID exists.
+     */
+    suspend fun findById(id: NotificationId): Notification?
 }

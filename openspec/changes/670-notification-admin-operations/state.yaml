@@ -1,0 +1,96 @@
+change_id: "670"
+title: "Notification Admin Queries and Safe Retry Operations"
+status: "tasks"
+current_phase: "tasks"
+
+completed_phases:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+
+next_phase: "apply"
+
+metadata:
+  epic: "656"
+  issue: "dallay-670"
+  orchestrator_context:
+    explore_completed: true
+    key_findings:
+      - "Notifications table append-only with idempotency_key UNIQUE constraint"
+      - "Invitation retry creates NEW token + NEW row via ResendInvitationHandler"
+      - "Password-recovery retry has no queryable retry policy in-consumer"
+      - "EmailDispatchResult lacks retryable category distinction"
+      - "Gaps: semantic retry vs re-notification, eligibility checks, payload redaction, observability"
+    scope_decisions:
+      - "Admin read-only visibility + safe retry for eligible (non-token-bound) notifications"
+      - "Retry as re-dispatch through NotificationService (NOT new token creation)"
+      - "Eligible: password-recovery class; Ineligible: invitation/token-bound class"
+      - "Payload redaction for tokens, passwords, acceptUrl, rawToken"
+      - "NOT: second notification engine, blind resend, attempt-tracking schema"
+
+artifacts:
+  proposal: "openspec/changes/670-notification-admin-operations/proposal.md"
+  specs:
+    - "openspec/changes/670-notification-admin-operations/specs/platform-notifications/spec.md"
+    - "openspec/changes/670-notification-admin-operations/specs/admin-authorization/spec.md"
+    - "openspec/changes/670-notification-admin-operations/specs/platform-admin-audit/spec.md"
+  design: "openspec/changes/670-notification-admin-operations/design.md"
+
+next_steps:
+  - phase: "spec"
+    actions:
+      - "Write platform-notifications capability spec (query port, redaction, retry eligibility)"
+      - "Extend admin-authorization spec (platform.notifications.read, platform.notifications.manage permissions)"
+      - "Extend platform-admin-audit spec (NOTIFICATION_RETRIED event type)"
+      - "Create delta specs in change folder for modified capabilities"
+  - phase: "design"
+    actions:
+      - "Write hexagonal architecture design (domain/application/infrastructure layers)"
+      - "Define NotificationAdminQuery port and R2dbcNotificationAdminQueryAdapter"
+      - "Design NotificationMetadataRedactor utility"
+      - "Design RetryNotificationHandler with eligibility whitelist"
+      - "Design AdminNotificationController thin endpoints"
+      - "Design NotificationAdminIdempotencyService"
+      - "Update nav-registry for notifications navigation"
+      - "Add auth.store permission mirror for platform.notifications.read/manage"
+      - "Write BDD NotificationAdminBddSteps.kt reusing PlatformAdminBddSteps"
+      - "Document API contract (GET query, POST retry)"
+      - "Document security model (authorization, redaction, eligibility gate)"
+      - "Document testing strategy (unit/integration/BDD/security)"
+      - "Document risks and tradeoffs"
+
+design_summary:
+  architecture:
+    approach: "Hexagonal layers: domain (NotificationRetryEligibility whitelist), application (NotificationAdminQuery port + handlers), infrastructure (R2DBC adapter + controller + redaction)"
+    modules_touched:
+      - "platformadmin: new query port, retry handler, controller, idempotency service, navigation"
+      - "notifications: reused NotificationService for retry dispatch"
+    bounded_contexts:
+      - "platformadmin: owns admin query + retry orchestration"
+      - "notifications: owns notification dispatch pipeline"
+  data_model:
+    changes: "None - uses existing notifications table"
+    retry_strategy: "New notification row with idempotency_key suffix"
+  api_contract:
+    endpoints:
+      - "GET /api/admin/notifications: paginated query with filters, redacted payload"
+      - "POST /api/admin/notifications/{id}/retry: idempotent retry with eligibility gate"
+    permissions:
+      - "platform.notifications.read: OWNER, OPERATOR, AUDITOR"
+      - "platform.notifications.manage: OWNER, OPERATOR"
+  key_decisions:
+    - "Query port in application layer preserves bounded context isolation"
+    - "Retry via NotificationService reuses existing dispatch pipeline"
+    - "Template whitelist (PASSWORD_RECOVERY) enforces eligibility gate"
+    - "Payload redaction utility strips sensitive keys before response"
+    - "No schema changes - retry creates new notification row"
+  risks:
+    - "Redaction incompleteness: future sensitive keys not in denylist"
+    - "Eligibility drift: domain changes may affect retry safety"
+    - "Query performance: no composite index on common filter columns"
+  tradeoffs:
+    - "No attempt correlation: independent notification rows for retries"
+    - "Single-template whitelist: only PASSWORD_RECOVERY eligible initially"
+    - "In-memory redaction: applied after fetch, not at SQL layer"
