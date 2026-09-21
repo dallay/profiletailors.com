@@ -50,9 +50,9 @@ export function bindWaitlistShare(
     share?: (data: { title: string; url: string }) => Promise<void>
     writeText?: (text: string) => Promise<void>
   },
-): void {
+): () => void {
   const shareLabel = share.textContent ?? ''
-  share.addEventListener('click', () => {
+  const handleClick = () => {
     const shareFn =
       apis?.share ??
       (typeof navigator.share === 'function'
@@ -73,5 +73,7 @@ export function bindWaitlistShare(
       .catch(() => {
         share.textContent = shareLabel
       })
-  })
+  }
+  share.addEventListener('click', handleClick)
+  return () => share.removeEventListener('click', handleClick)
 }
