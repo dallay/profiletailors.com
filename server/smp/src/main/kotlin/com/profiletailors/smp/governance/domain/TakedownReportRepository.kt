@@ -27,4 +27,15 @@ interface TakedownReportRepository {
      * Lists takedown reports for a workspace, optionally filtered by status.
      */
     fun findByWorkspace(workspaceId: String, status: TakedownReportStatus? = null): Flow<TakedownReport>
+
+    suspend fun findByReportId(reportId: String): TakedownReport?
+
+    suspend fun findAll(
+        status: TakedownReportStatus? = null,
+        workspaceId: String? = null,
+        page: Int,
+        size: Int,
+    ): List<TakedownReport>
+
+    suspend fun count(status: TakedownReportStatus? = null, workspaceId: String? = null): Long
 }

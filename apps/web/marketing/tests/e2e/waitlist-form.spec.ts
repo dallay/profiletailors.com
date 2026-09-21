@@ -3,6 +3,11 @@ import type { Page, Route, Request } from '@playwright/test';
 
 const WAITLIST_KEY = 'profile-tailors-launch';
 
+const FORM_NAMES = {
+  'waitlist-hero': 'Early access waitlist form',
+  'waitlist-final': 'Waitlist form at the end of the page',
+} as const;
+
 /**
  * Helper: Pre-load valid consent receipt to dismiss banner.
  * Call before page.goto() in tests that don't need the consent banner.
@@ -49,7 +54,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(form).toBeVisible();
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const success = page.locator('[data-waitlist-success]').first();
@@ -72,7 +76,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     const form = page.locator('[data-waitlist-form]').first();
     await expect(form).toBeVisible();
 
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
@@ -88,7 +91,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(form).toBeVisible();
 
     await page.locator('[data-waitlist-email]').first().fill('invalid-email');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
@@ -96,19 +98,32 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText('Please enter a valid email');
   });
 
-  test('blocks submission when early-access consent is missing', async ({ page }: { page: Page }): Promise<void> => {
+  test('sends earlyAccess true without a separate consent checkbox', async ({ page }: { page: Page }): Promise<void> => {
+    let interceptedBody: unknown = null;
+
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      if (request.method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      interceptedBody = JSON.parse(request.postData() ?? '{}');
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+    });
+
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
-    await expect(form).toBeVisible();
-
+    await expect(page.locator('[data-waitlist-consent-early]')).toHaveCount(0);
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
     await page.locator('[data-waitlist-submit]').first().click();
-
-    const error = page.locator('[data-waitlist-error]').first();
-    await expect(error).toBeVisible();
-    await expect(error).toContainText('Early-access consent is required');
+    await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();
+    expect(interceptedBody).toMatchObject({
+      consent: { earlyAccess: true, marketing: false },
+    });
   });
 
   test('shows friendly message when the backend returns 429', async ({ page }: { page: Page }): Promise<void> => {
@@ -128,13 +143,82 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await page.goto('/');
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
     await expect(error).toBeVisible();
     await expect(error).toContainText('Too many requests');
   });
+
+  test('homepage waitlist forms expose unique email ids bound to labels', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page)
+    await page.goto('/')
+
+    for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
+      const form = page.getByRole('form', { name: FORM_NAMES[formId] })
+      await form.scrollIntoViewIfNeeded()
+      const email = form.getByLabel('Email address')
+      await expect(email).toHaveAttribute('id', `${formId}-email`)
+      await expect(form.locator(`label[for="${formId}-email"]`)).toHaveCount(1)
+      await expect(page.locator(`#${formId}-email`)).toHaveCount(1)
+    }
+  })
+
+  for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
+    test(`${formId} submits with accessible controls and consent payload`, async ({ page }: { page: Page }): Promise<void> => {
+      let interceptedBody: unknown = null
+
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: { writeText: async () => undefined },
+        })
+      })
+
+      await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+        if (request.method() !== 'POST') {
+          await route.fallback()
+          return
+        }
+        interceptedBody = JSON.parse(request.postData() ?? '{}')
+        await route.fulfill({
+          status: 202,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: 'accepted' }),
+        })
+      })
+
+      await dismissConsentBanner(page)
+      await page.goto('/')
+
+      const form = page.getByRole('form', { name: FORM_NAMES[formId] })
+      await form.scrollIntoViewIfNeeded()
+      await expect(form).toBeVisible()
+
+      const checkMarketing = formId === 'waitlist-final'
+      await form.getByLabel('Email address').fill(`${formId}@example.com`)
+      if (checkMarketing) {
+        await form.getByLabel('Send me occasional product emails. Optional.').check()
+      }
+
+      await form.getByRole('button', { name: 'Join the waitlist' }).click()
+      await expect(form.getByRole('status')).toBeVisible()
+      await expect(form.getByRole('status')).toContainText("You're on the list")
+
+      await form.getByRole('button', { name: 'Share the waitlist' }).click()
+      await expect(form.getByRole('button', { name: 'Link copied' })).toBeVisible()
+
+      expect(interceptedBody).toMatchObject({
+        email: `${formId}@example.com`,
+        formId,
+        consent: {
+          earlyAccess: true,
+          marketing: checkMarketing,
+        },
+      })
+    })
+  }
 
   test('submits against the configured API base and waitlist key', async ({ page }: { page: Page }): Promise<void> => {
     let capturedUrl = '';
@@ -151,7 +235,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();

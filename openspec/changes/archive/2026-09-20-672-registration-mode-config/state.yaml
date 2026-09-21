@@ -1,13 +1,38 @@
 change: 672-registration-mode-config
-current_phase: tasks
+current_phase: archive
 completed:
   - explore
   - propose
   - spec
   - design
   - tasks
-next: verify
+  - verify
+  - qa
+  - archive
+next: none
 updated: "2026-09-20"
+verification_status: passed-with-warnings
+verification_verdict: PASS WITH WARNINGS
+verification_report: openspec/changes/archive/2026-09-20-672-registration-mode-config/verify-report.md
+qa_verdict: PASS WITH WARNINGS
+qa_report: openspec/changes/archive/2026-09-20-672-registration-mode-config/qa-report.md
+archive_note: >-
+  Archived 2026-09-20. Gate: verify-report.md + qa-report.md present, both PASS WITH
+  WARNINGS on main @72d474e8, zero FAIL, zero CRITICAL/P0/P1. Four NOT TESTED items
+  accepted with explicit rationale (qa-report.md section 9: live-target/browser-only scope,
+  forbidden to invent a target, every spec scenario runtime-proven on the merged commit,
+  zero production-code drift). Delta specs synced: platform-configuration created;
+  registration (Typed MODIFIED + Runtime-Mutable ADDED), admin-authorization (19 keys,
+  mapping, mirror, permission-keys requirement + 4 scenarios), platform-admin-audit
+  (CONFIGURATION_CHANGED requirement + 3 scenarios) updated. Visible follow-up debt —
+  F-01 live Back Office walkthrough (owner ops, next: OWNER session change
+  OPEN/INVITE_ONLY/CLOSED + restart/redeploy check on staging/prod); F-02 ConfigurationView
+  Playwright E2E (owner frontend, next: add admin spec + run E2E lane); F-04 seed-vs-admin-set
+  operator comms (owner docs/ops, next: rollout note that SMP_REGISTRATION_MODE edits do NOT
+  override an admin-set value); F-03 coverage informational; NT-04 belt-and-braces reruns
+  (backend-bdd-postgres after infra-up, backend-check, admin-build) if demanded.
+  Implementation: 3-PR chain #1102/#1105/#1106 squash-merged to main @72d474e8.
+  Do NOT close GitHub issue #672 from archive — orchestrator recommends closure.
 github_issue: "#672"
 persistence_mode: openspec
 delivery:
@@ -87,4 +112,12 @@ note: >-
   platform-admin.feature scenarios; :server:smp:detekt and :server:smp:spotlessCheck clean;
   pnpm --filter admin test:run (100/100), just admin-check, just admin-build all green. Full
   openspec/changes/672-registration-mode-config/apply-progress.md has the complete file/verification
-  breakdown. Next phase is sdd-verify across the full 3-PR chain.
+  breakdown. Full verify evidence in verify-report.md: PASS WITH WARNINGS on main @72d474e8
+  (fresh bddFastTest 267/267 with platform-admin.feature 35/35, detekt+spotless rerun clean,
+  admin-test 104/104, vue-tsc clean; remote CI on the #1105 squash all SUCCESS). Next is sdd-qa.
+  QA (2026-09-20): qa-report.md written — PASS WITH WARNINGS. QA-EXEC-01 re-ran focused admin
+  Vitest (ConfigurationView + auth.store + nav-registry, 35/35 PASS); backend scenarios cite
+  verify's fresh runtime evidence on the identical commit (zero production-code drift) plus
+  remote CI SUCCESS. No CRITICAL/P0/P1. Four NOT TESTED items (live walkthrough, browser E2E,
+  visual ES, local postgres/full-gate re-runs) documented with rerun prerequisites and
+  non-blocking rationale. Next is sdd-archive.

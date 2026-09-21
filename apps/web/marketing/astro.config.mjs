@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config'
+import vue from '@astrojs/vue'
 import tailwindcss from '@tailwindcss/vite'
 import icon from '@dallay/astro-icon'
 import { codecovVitePlugin } from '@codecov/vite-plugin'
@@ -104,5 +105,5 @@ export default defineConfig({
     },
   },
 
-  integrations: [icon()],
+  integrations: [icon(), vue()],
 })

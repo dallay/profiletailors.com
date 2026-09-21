@@ -21,8 +21,8 @@ export const GET: APIRoute = ({ site }) => {
         const esUrl = buildUrl(base, 'es', route)
 
         return [
-            `<url><loc>${enUrl}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>${route === '/' ? '1.0' : '0.7'}</priority></url>`,
-            `<url><loc>${esUrl}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>${route === '/' ? '0.9' : '0.6'}</priority></url>`,
+            `<url><loc>${enUrl}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>${route === '/' ? '1.0' : '0.3'}</priority></url>`,
+            `<url><loc>${esUrl}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>${route === '/' ? '0.9' : '0.2'}</priority></url>`,
         ]
     }).join('')
 

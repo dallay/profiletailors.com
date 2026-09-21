@@ -1,0 +1,13 @@
+---
+import type { ComponentProps } from 'astro/types'
+import WaitlistForm from './WaitlistForm.astro'
+import WaitlistFormIsland from './WaitlistFormIsland.vue'
+
+type Props = ComponentProps<typeof WaitlistForm>
+
+const props = Astro.props
+---
+
+<WaitlistFormIsland client:load>
+  <WaitlistForm {...props} />
+</WaitlistFormIsland>

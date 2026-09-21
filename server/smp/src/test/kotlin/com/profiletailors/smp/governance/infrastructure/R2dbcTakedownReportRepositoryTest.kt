@@ -66,6 +66,77 @@ class R2dbcTakedownReportRepositoryTest : PostgresDatabaseTestBase() {
         assertNull(repository.findExisting("workspace-2", "asset-1", "reporter-1"))
     }
 
+    @Test
+    fun `finds a report globally by report id across workspaces`() = runTest {
+        val workspaceOne = report(reportId = "report-global-1", workspaceId = "workspace-1")
+        val workspaceTwo = report(
+            reportId = "report-global-2",
+            workspaceId = "workspace-2",
+            assetId = "asset-2",
+        )
+        repository.save(workspaceOne)
+        repository.save(workspaceTwo)
+
+        assertEquals(workspaceOne, repository.findByReportId("report-global-1"))
+        assertEquals(workspaceTwo, repository.findByReportId("report-global-2"))
+        assertNull(repository.findByReportId("missing-report"))
+    }
+
+    @Test
+    fun `lists and counts reports across workspaces with omitted filters unrestricted`() = runTest {
+        val first = report(
+            reportId = "report-page-1",
+            workspaceId = "workspace-1",
+            createdAt = Instant.parse("2026-07-20T10:00:00Z"),
+        )
+        val second = report(
+            reportId = "report-page-2",
+            workspaceId = "workspace-1",
+            assetId = "asset-2",
+            createdAt = Instant.parse("2026-07-21T10:00:00Z"),
+        ).approve("reviewer-1", Instant.parse("2026-07-22T10:00:00Z"))
+        val third = report(
+            reportId = "report-page-3",
+            workspaceId = "workspace-2",
+            assetId = "asset-3",
+            createdAt = Instant.parse("2026-07-23T10:00:00Z"),
+        )
+        repository.save(first)
+        repository.save(second)
+        repository.save(third)
+
+        val unfiltered = repository.findAll(status = null, workspaceId = null, page = 0, size = 25)
+        assertEquals(listOf(third.reportId, second.reportId, first.reportId), unfiltered.map { it.reportId })
+        assertEquals(3, repository.count(status = null, workspaceId = null))
+
+        val reported = repository.findAll(
+            status = TakedownReportStatus.REPORTED,
+            workspaceId = null,
+            page = 0,
+            size = 25,
+        )
+        assertEquals(listOf(third.reportId, first.reportId), reported.map { it.reportId })
+        assertEquals(2, repository.count(status = TakedownReportStatus.REPORTED, workspaceId = null))
+
+        val workspaceOne = repository.findAll(status = null, workspaceId = "workspace-1", page = 0, size = 25)
+        assertEquals(listOf(second.reportId, first.reportId), workspaceOne.map { it.reportId })
+        assertEquals(2, repository.count(status = null, workspaceId = "workspace-1"))
+
+        val reportedInWorkspaceOne = repository.findAll(
+            status = TakedownReportStatus.REPORTED,
+            workspaceId = "workspace-1",
+            page = 0,
+            size = 25,
+        )
+        assertEquals(listOf(first.reportId), reportedInWorkspaceOne.map { it.reportId })
+        assertEquals(1, repository.count(status = TakedownReportStatus.REPORTED, workspaceId = "workspace-1"))
+
+        val firstPage = repository.findAll(status = null, workspaceId = null, page = 0, size = 2)
+        val secondPage = repository.findAll(status = null, workspaceId = null, page = 1, size = 2)
+        assertEquals(listOf(third.reportId, second.reportId), firstPage.map { it.reportId })
+        assertEquals(listOf(first.reportId), secondPage.map { it.reportId })
+    }
+
     @AfterEach
     fun cleanReports() = runTest {
         databaseClient.sql("DELETE FROM takedown_reports").fetch().rowsUpdated().awaitSingle()
@@ -75,11 +146,12 @@ class R2dbcTakedownReportRepositoryTest : PostgresDatabaseTestBase() {
         reportId: String,
         workspaceId: String = "workspace-1",
         reportedById: String = "reporter-1",
+        assetId: String = "asset-1",
         createdAt: Instant = Instant.parse("2026-07-21T10:00:00Z"),
     ): TakedownReport = TakedownReport(
         reportId = reportId,
         workspaceId = workspaceId,
-        assetId = "asset-1",
+        assetId = assetId,
         reportedById = reportedById,
         reason = "Copyright infringement",
         status = TakedownReportStatus.REPORTED,
