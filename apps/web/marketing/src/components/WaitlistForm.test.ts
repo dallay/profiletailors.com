@@ -19,4 +19,10 @@ describe('WaitlistForm accessibility', () => {
   it('exposes a placeholder on the email input', () => {
     expect(source).toContain('placeholder={wl.emailInput.placeholder}')
   })
+
+  it('shares with a button instead of an http href', () => {
+    expect(source).toContain('data-waitlist-share')
+    expect(source).toContain('type="button"')
+    expect(source).not.toContain('share.href')
+  })
 })

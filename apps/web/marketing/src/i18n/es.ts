@@ -51,6 +51,28 @@ export const es = {
       'Ocho redes, o precios inventados',
     ],
   },
+  preview: {
+    week: 'Semana',
+    linkedin: 'LinkedIn',
+    days: [
+      { name: 'Lun', date: '21', time: '09:00 borrador', title: 'Precio sin discurso' },
+      { name: 'Mar', date: '22' },
+      { name: 'Mié', date: '23', time: '11:00 listo', title: 'Notas de cliente, un post' },
+      { name: 'Jue', date: '24' },
+      { name: 'Vie', date: '25', time: '08:00 programado', title: 'Resumen semanal' },
+    ],
+    editor: {
+      label: 'Borrador',
+      body: 'La mayoría de las herramientas te piden publicar en todas partes. Empezamos por la red donde ya escribes con cuidado.',
+      count: '248 / 3000',
+      status: 'Listo para programar',
+    },
+    pipeline: [
+      { col: 'Borrador', items: ['Desglose de oferta', 'Nota de contratación'] },
+      { col: 'Listo', items: ['Caso de cliente'] },
+      { col: 'Programado', items: ['Resumen del viernes'] },
+    ],
+  },
   product: {
     title: 'El espacio, en tres vistas',
     items: [
@@ -301,6 +323,9 @@ export const es = {
     success: 'Estás en la lista.',
     successNext: 'Te escribiremos cuando abra una oleada.',
     shareLabel: 'Comparte la lista',
+    shareTitle: 'Lista de espera de Profile Tailors',
+    shareCopied: 'Enlace copiado',
+    disabled: 'El registro a la lista no está activado aquí.',
   },
   consent: {
     banner: {

@@ -145,6 +145,63 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText('Too many requests');
   });
 
+  for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
+    test(`${formId} has unique email id, label association, and consent payload`, async ({ page }: { page: Page }): Promise<void> => {
+      let interceptedBody: unknown = null
+
+      await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+        if (request.method() !== 'POST') {
+          await route.fallback()
+          return
+        }
+        interceptedBody = JSON.parse(request.postData() ?? '{}')
+        await route.fulfill({
+          status: 202,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: 'accepted' }),
+        })
+      })
+
+      await dismissConsentBanner(page)
+      await page.goto('/')
+
+      const form = page.locator(`[data-waitlist-form-id="${formId}"]`)
+      await form.evaluate((el) => {
+        el.closest('[data-animate-scroll]')?.classList.add('is-visible')
+      })
+      await expect(form).toBeVisible()
+
+      const emailId = `${formId}-email`
+      const marketingId = `${formId}-marketing`
+      const emailInput = form.locator(`#${emailId}`)
+      const emailLabel = form.locator(`label[for="${emailId}"]`)
+      const marketingInput = form.locator(`#${marketingId}`)
+
+      await expect(emailInput).toHaveCount(1)
+      await expect(emailLabel).toHaveCount(1)
+      await expect(marketingInput).toHaveCount(1)
+      await expect(page.locator(`#${emailId}`)).toHaveCount(1)
+
+      const checkMarketing = formId === 'waitlist-final'
+      await emailInput.fill(`${formId}@example.com`)
+      if (checkMarketing) {
+        await marketingInput.check()
+      }
+
+      await form.locator('[data-waitlist-submit]').click()
+      await expect(form.locator('[data-waitlist-success]')).toBeVisible()
+
+      expect(interceptedBody).toMatchObject({
+        email: `${formId}@example.com`,
+        formId,
+        consent: {
+          earlyAccess: true,
+          marketing: checkMarketing,
+        },
+      })
+    })
+  }
+
   test('submits against the configured API base and waitlist key', async ({ page }: { page: Page }): Promise<void> => {
     let capturedUrl = '';
 

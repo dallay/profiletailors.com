@@ -2,6 +2,7 @@
 import type { Locale } from '@i18n/utils'
 import { WAITLIST_API_BASE } from 'astro:env/client'
 import { useTranslations } from '@i18n/utils'
+import { waitlistShareUrl } from './waitlist-share'
 
 interface Props {
   locale: Locale
@@ -30,6 +31,9 @@ const errorId = `${formId}-error`
   data-waitlist-locale={locale}
   data-waitlist-api-base={resolvedApiBase}
   aria-label={resolvedAriaLabel}
+  data-waitlist-share-url={waitlistShareUrl(locale)}
+  data-waitlist-share-title={wl.shareTitle}
+  data-waitlist-share-copied={wl.shareCopied}
   data-waitlist-messages={JSON.stringify({
     validEmail: wl.errorValidEmail,
     tooManyRequests: wl.errorTooManyRequests,
@@ -78,13 +82,13 @@ const errorId = `${formId}-error`
   <div data-waitlist-success role="status" aria-live="polite" class="hidden text-sm text-text-display">
     <p>{wl.success}</p>
     <p class="text-text-secondary mt-1">{wl.successNext}</p>
-    <a
+    <button
       data-waitlist-share
-      href="/"
-      class="inline-flex items-center min-h-[44px] font-mono text-xs uppercase tracking-[0.06em] text-text-display underline underline-offset-4"
+      type="button"
+      class="inline-flex items-center min-h-[44px] font-mono text-xs uppercase tracking-[0.06em] text-text-display underline underline-offset-4 cursor-pointer bg-transparent border-0 p-0"
     >
       {wl.shareLabel}
-    </a>
+    </button>
   </div>
 
   <button
@@ -101,6 +105,7 @@ const errorId = `${formId}-error`
 <script>
   import { buildWaitlistPayload, WAITLIST_KEY_DEFAULT } from './waitlist-form'
   import { isValidEmail } from './waitlist-form-validator'
+  import { shareWaitlist } from './waitlist-share'
 
   const SUCCESS_HIDDEN = 'hidden'
 
@@ -131,13 +136,34 @@ const errorId = `${formId}-error`
     const errorEl = form.querySelector<HTMLElement>('[data-waitlist-error]')
     const successEl = form.querySelector<HTMLElement>('[data-waitlist-success]')
     const submit = form.querySelector<HTMLButtonElement>('[data-waitlist-submit]')
-    const share = form.querySelector<HTMLAnchorElement>('[data-waitlist-share]')
+    const share = form.querySelector<HTMLButtonElement>('[data-waitlist-share]')
     if (!emailInput || !marketingInput || !errorEl || !successEl || !submit) continue
     if (form.dataset.waitlistBound === 'true') continue
     form.dataset.waitlistBound = 'true'
 
     if (share) {
-      share.href = window.location.href.split('#')[0]
+      const shareUrl = form.dataset.waitlistShareUrl ?? 'https://profiletailors.com/'
+      const shareTitle = form.dataset.waitlistShareTitle ?? 'Profile Tailors waitlist'
+      const shareCopied = form.dataset.waitlistShareCopied ?? 'Link copied'
+      const shareLabel = share.textContent ?? ''
+      share.addEventListener('click', () => {
+        const shareFn = typeof navigator.share === 'function'
+          ? (data: { title: string; url: string }) => navigator.share(data)
+          : undefined
+        const writeText = navigator.clipboard?.writeText.bind(navigator.clipboard)
+        void shareWaitlist({
+          url: shareUrl,
+          title: shareTitle,
+          share: shareFn,
+          writeText,
+        }).then((result) => {
+          if (result === 'copied') {
+            share.textContent = shareCopied
+          }
+        }).catch(() => {
+          share.textContent = shareLabel
+        })
+      })
     }
 
     const waitlistKey = form.dataset.waitlistKey ?? WAITLIST_KEY_DEFAULT

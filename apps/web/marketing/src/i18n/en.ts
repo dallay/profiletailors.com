@@ -51,6 +51,28 @@ export const en = {
       'Eight networks, or invented prices',
     ],
   },
+  preview: {
+    week: 'Week',
+    linkedin: 'LinkedIn',
+    days: [
+      { name: 'Mon', date: '21', time: '09:00 draft', title: 'Pricing without the pitch' },
+      { name: 'Tue', date: '22' },
+      { name: 'Wed', date: '23', time: '11:00 ready', title: 'Client notes, one post' },
+      { name: 'Thu', date: '24' },
+      { name: 'Fri', date: '25', time: '08:00 set', title: 'Weekly roundup' },
+    ],
+    editor: {
+      label: 'Draft',
+      body: 'Most tools ask you to post everywhere. We start with the network where you already write with care.',
+      count: '248 / 3000',
+      status: 'Ready to schedule',
+    },
+    pipeline: [
+      { col: 'Draft', items: ['Offer teardown', 'Hiring note'] },
+      { col: 'Ready', items: ['Client case'] },
+      { col: 'Set', items: ['Friday roundup'] },
+    ],
+  },
   product: {
     title: 'The workspace, in three views',
     items: [
@@ -301,6 +323,9 @@ export const en = {
     success: "You're on the list.",
     successNext: 'We will write when a wave opens.',
     shareLabel: 'Share the waitlist',
+    shareTitle: 'Profile Tailors waitlist',
+    shareCopied: 'Link copied',
+    disabled: 'Waitlist signup is not enabled here.',
   },
   consent: {
     banner: {

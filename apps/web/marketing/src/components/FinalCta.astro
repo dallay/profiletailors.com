@@ -25,7 +25,7 @@ const showWaitlistForm = WAITLIST_ENABLED
     {showWaitlistForm ? (
       <WaitlistForm locale={locale} formId="waitlist-final" source="marketing-site" ariaLabel={t.waitlist.formAriaLabelFinal} />
     ) : (
-      <EarlyAccessStatus message={t.hero.status} />
+      <EarlyAccessStatus message={t.waitlist.disabled} />
     )}
   </div>
 </section>

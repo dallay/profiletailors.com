@@ -1,39 +1,26 @@
 ---
+import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
+
 interface Props {
   variant: 'calendar' | 'editor' | 'pipeline'
   caption: string
-  locale?: 'en' | 'es'
+  locale?: Locale
 }
 
 const { variant, caption, locale = 'en' } = Astro.props
-
-const days = locale === 'es'
-  ? [
-      { name: 'Lun', date: '21' },
-      { name: 'Mar', date: '22' },
-      { name: 'Mié', date: '23' },
-      { name: 'Jue', date: '24' },
-      { name: 'Vie', date: '25' },
-    ]
-  : [
-      { name: 'Mon', date: '21' },
-      { name: 'Tue', date: '22' },
-      { name: 'Wed', date: '23' },
-      { name: 'Thu', date: '24' },
-      { name: 'Fri', date: '25' },
-    ]
-const weekLabel = locale === 'es' ? 'Semana' : 'Week'
+const preview = useTranslations(locale).preview
 ---
 
 <figure class="border border-border-visible bg-bg-surface overflow-hidden rounded-lg">
   {variant === 'calendar' && (
     <div class="p-3 sm:p-4" aria-hidden="true">
       <div class="flex items-center justify-between mb-3">
-        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">{weekLabel}</span>
-        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">LinkedIn</span>
+        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">{preview.week}</span>
+        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">{preview.linkedin}</span>
       </div>
       <div class="grid grid-cols-5 border-t border-l border-border">
-        {days.map((day, i) => (
+        {preview.days.map((day, i) => (
           <div class:list={['border-r border-b border-border min-h-[132px] p-1.5', i === 2 && 'bg-bg-primary']}>
             <div class="flex items-baseline justify-between mb-2">
               <span class="font-mono text-[9px] uppercase tracking-widest text-text-secondary">{day.name}</span>
@@ -41,24 +28,12 @@ const weekLabel = locale === 'es' ? 'Semana' : 'Week'
                 {day.date}
               </span>
             </div>
-            {i === 0 && (
-              <div class="border border-border-visible bg-bg-primary px-1.5 py-1 mb-1">
-                <p class="font-mono text-[8px] uppercase tracking-wider text-text-muted">09:00 draft</p>
-                <p class="font-display text-[11px] text-text-body leading-tight">Pricing without the pitch</p>
+            {'time' in day && day.time && 'title' in day && day.title ? (
+              <div class:list={['border bg-bg-primary px-1.5 py-1 mb-1', i === 4 ? 'border-text-display/40' : 'border-border-visible']}>
+                <p class="font-mono text-[8px] uppercase tracking-wider text-text-muted">{day.time}</p>
+                <p class="font-display text-[11px] text-text-body leading-tight">{day.title}</p>
               </div>
-            )}
-            {i === 2 && (
-              <div class="border border-border-visible bg-bg-primary px-1.5 py-1 mb-1">
-                <p class="font-mono text-[8px] uppercase tracking-wider text-text-muted">11:00 ready</p>
-                <p class="font-display text-[11px] text-text-body leading-tight">Client notes, one post</p>
-              </div>
-            )}
-            {i === 4 && (
-              <div class="border border-text-display/40 bg-bg-primary px-1.5 py-1">
-                <p class="font-mono text-[8px] uppercase tracking-wider text-text-muted">08:00 set</p>
-                <p class="font-display text-[11px] text-text-body leading-tight">Weekly roundup</p>
-              </div>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
@@ -68,26 +43,22 @@ const weekLabel = locale === 'es' ? 'Semana' : 'Week'
   {variant === 'editor' && (
     <div class="p-4 sm:p-5" aria-hidden="true">
       <div class="flex items-center justify-between mb-4">
-        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">Draft</span>
-        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">LinkedIn</span>
+        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">{preview.editor.label}</span>
+        <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">{preview.linkedin}</span>
       </div>
       <p class="font-display text-sm text-text-display leading-relaxed mb-4">
-        Most tools ask you to post everywhere. We start with the network where you already write with care.
+        {preview.editor.body}
       </p>
       <div class="flex items-center justify-between border-t border-border pt-3">
-        <span class="font-mono text-[10px] text-text-muted">248 / 3000</span>
-        <span class="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Ready to schedule</span>
+        <span class="font-mono text-[10px] text-text-muted">{preview.editor.count}</span>
+        <span class="font-mono text-[10px] uppercase tracking-wider text-text-secondary">{preview.editor.status}</span>
       </div>
     </div>
   )}
 
   {variant === 'pipeline' && (
     <div class="grid grid-cols-3 divide-x divide-border" aria-hidden="true">
-      {[
-        { col: 'Draft', items: ['Offer teardown', 'Hiring note'] },
-        { col: 'Ready', items: ['Client case'] },
-        { col: 'Set', items: ['Friday roundup'] },
-      ].map((column) => (
+      {preview.pipeline.map((column) => (
         <div class="p-3 sm:p-4">
           <p class="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary mb-3">{column.col}</p>
           <ul class="flex flex-col gap-2">
