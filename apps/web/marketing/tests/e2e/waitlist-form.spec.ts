@@ -49,7 +49,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(form).toBeVisible();
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const success = page.locator('[data-waitlist-success]').first();
@@ -72,7 +71,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     const form = page.locator('[data-waitlist-form]').first();
     await expect(form).toBeVisible();
 
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
@@ -88,7 +86,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(form).toBeVisible();
 
     await page.locator('[data-waitlist-email]').first().fill('invalid-email');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
@@ -96,19 +93,32 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText('Please enter a valid email');
   });
 
-  test('blocks submission when early-access consent is missing', async ({ page }: { page: Page }): Promise<void> => {
+  test('sends earlyAccess true without a separate consent checkbox', async ({ page }: { page: Page }): Promise<void> => {
+    let interceptedBody: unknown = null;
+
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      if (request.method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      interceptedBody = JSON.parse(request.postData() ?? '{}');
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+    });
+
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
-    await expect(form).toBeVisible();
-
+    await expect(page.locator('[data-waitlist-consent-early]')).toHaveCount(0);
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
     await page.locator('[data-waitlist-submit]').first().click();
-
-    const error = page.locator('[data-waitlist-error]').first();
-    await expect(error).toBeVisible();
-    await expect(error).toContainText('Early-access consent is required');
+    await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();
+    expect(interceptedBody).toMatchObject({
+      consent: { earlyAccess: true, marketing: false },
+    });
   });
 
   test('shows friendly message when the backend returns 429', async ({ page }: { page: Page }): Promise<void> => {
@@ -128,7 +138,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await page.goto('/');
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     const error = page.locator('[data-waitlist-error]').first();
@@ -151,7 +160,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-consent-early]').first().check();
     await page.locator('[data-waitlist-submit]').first().click();
 
     await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();

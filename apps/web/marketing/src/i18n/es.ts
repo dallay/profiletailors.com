@@ -4,36 +4,125 @@ export const es = {
     name: 'Profile Tailors',
     langSwitch: 'EN',
     langSwitchLabel: 'Cambiar a inglés (EN)',
+    product: 'Producto',
+    how: 'Cómo funciona',
+    join: 'Unirme',
   },
   hero: {
-    label: 'VISTA PREVIA DE ACCESO ANTICIPADO',
-    headline: 'Planifica con claridad,\npublica con intención.',
-    sub: 'Planifica y organiza contenido social desde un espacio limpio. Las integraciones de publicación siguen en validación antes de abrir el acceso anticipado.',
-    status: 'La inscripción al acceso anticipado todavía no está abierta.',
+    label: 'LINKEDIN · ACCESO ANTICIPADO',
+    headline: 'Planifica LinkedIn con intención.\nPublica cuando esté listo.',
+    sub: 'Un calendario para freelance y consultores que publican en LinkedIn a propósito. Datos en la UE. Sin una suite de 12 redes.',
+    status: 'Hace falta JavaScript para unirte a la lista de espera.',
+    previewCaption: 'Espacio de planificación de ejemplo. La publicación sigue restringida.',
+    caveat: 'La publicación en LinkedIn abre tras la validación.',
   },
   features: {
-    label: 'POR QUÉ PROFILE TAILORS',
+    title: 'Un espacio que se lee de un vistazo',
     items: [
       {
-        tag: '01 — PLANIFICA',
-        title: 'Da forma al contenido antes de publicarlo.',
-        desc: 'Redacta y organiza contenido en un espacio enfocado mientras se validan las conexiones de publicación.',
+        tag: 'Calendario',
+        title: 'Semana, día y mes.',
+        desc: 'Ve qué está planificado y qué se ha quedado atascado antes de publicar.',
       },
       {
-        tag: '02 — VISIÓN GENERAL',
-        title: 'Revisa todo el flujo.',
-        desc: 'Usa un calendario y un flujo claros para revisar qué está planificado y qué necesita atención.',
+        tag: 'Borradores',
+        title: 'Escribe antes de publicar.',
+        desc: 'Redacta y organiza en un solo sitio. Publica cuando LinkedIn esté conectado de verdad.',
       },
       {
-        tag: '03 — ACCESO ANTICIPADO',
-        title: 'Un producto todavía en validación.',
-        desc: 'Las funciones, integraciones, mercados y condiciones comerciales se anunciarán solo cuando estén preparadas.',
+        tag: 'LinkedIn primero',
+        title: 'Una red, bien hecha.',
+        desc: 'Las demás, solo cuando funcionen. Sin un panel de 12 redes el primer día.',
       },
     ],
   },
+  scope: {
+    title: 'Qué entra en el acceso anticipado',
+    includedTitle: 'Sí',
+    excludedTitle: 'No',
+    included: [
+      'Calendario en semana, día y mes',
+      'Borradores y media en un solo espacio',
+      'Publicación en LinkedIn cuando esté validada',
+    ],
+    excluded: [
+      'Un generador de posts con IA',
+      'Una suite de agencia el primer día',
+      'Ocho redes, o precios inventados',
+    ],
+  },
+  product: {
+    title: 'El espacio, en tres vistas',
+    items: [
+      {
+        title: 'Calendario',
+        desc: 'La semana de un vistazo. Borradores junto a lo programado.',
+      },
+      {
+        title: 'Editor',
+        desc: 'Escribe el post de LinkedIn en el mismo sitio donde lo planificas.',
+      },
+      {
+        title: 'Pipeline',
+        desc: 'Borrador, listo, programado. Nada se esconde en un tablero de 12 columnas.',
+      },
+    ],
+  },
+  linkedin: {
+    title: 'Por qué LinkedIn primero',
+    body: 'Marca personal, freelance y pequeño negocio ya escriben aquí con criterio. Profile Tailors empieza donde ocurre ese trabajo. Otras redes llegan solo cuando la publicación esté demostrada.',
+  },
+  trust: {
+    title: 'Prueba que ya es cierta',
+    items: [
+      {
+        title: 'Datos en la UE',
+        body: 'La instancia alojada corre en Frankfurt. El GDPR es estructural, no una línea del pie.',
+      },
+      {
+        title: 'Código abierto',
+        body: 'El software es AGPL-3.0. Autohospeda si quieres el código, no un candado.',
+      },
+      {
+        title: 'Operador',
+        body: 'Yuniel Acosta opera esta instancia. Hecho para quien publica en LinkedIn a propósito.',
+      },
+    ],
+    githubLabel: 'Código en GitHub',
+    githubHref: 'https://github.com/dallay/profiletailors.com',
+  },
+  faq: {
+    title: 'Preguntas antes de unirte',
+    items: [
+      {
+        q: '¿Cuándo abre el acceso anticipado?',
+        a: 'Por oleadas. Te escribimos cuando empiece una. Todavía no hay fecha pública.',
+      },
+      {
+        q: '¿Solo LinkedIn?',
+        a: 'Sí, de momento. Otras redes se añaden solo cuando la publicación esté validada.',
+      },
+      {
+        q: '¿Es gratis?',
+        a: 'La instancia alojada es gratis durante el acceso anticipado. El precio no está decidido.',
+      },
+      {
+        q: '¿Puedo autohospedarlo?',
+        a: 'Sí. El código es AGPL-3.0. Tu relación de privacidad con tus usuarios la defines tú.',
+      },
+      {
+        q: '¿Dónde se guardan los datos?',
+        a: 'Aplicación y base de datos en Frankfurt, Alemania. CDN en el borde global de Cloudflare.',
+      },
+    ],
+  },
+  finalCta: {
+    title: 'Únete a la lista',
+    sub: 'El mismo formulario. Te escribimos cuando abra una oleada.',
+  },
   footer: {
-    copy: 'Profile Tailors — vista previa de acceso anticipado.',
-    tagline: 'Un espacio de contenido social en desarrollo.',
+    copy: 'Profile Tailors. Lista de espera de acceso anticipado.',
+    tagline: 'Un espacio LinkedIn-first para contenido deliberado.',
     versionBadge: 'v{version} ({shortSha})',
     legalLinks: [
       { label: 'Política de Privacidad', href: '/es/privacy/' },
@@ -44,9 +133,9 @@ export const es = {
     ],
   },
   meta: {
-    title: 'Planificación de contenido social en desarrollo — Profile Tailors',
+    title: 'Planifica contenido de LinkedIn con intención — Profile Tailors',
     description:
-      'Descubre Profile Tailors, un espacio de planificación de contenido social en desarrollo. La inscripción al acceso anticipado todavía no está abierta.',
+      'Calendario para redactar, programar y revisar posts de LinkedIn. Únete a la lista. Acceso por oleadas. Datos en Frankfurt.',
   },
   legal: {
     publication: {
@@ -194,25 +283,24 @@ export const es = {
   },
   waitlist: {
     formAriaLabel: 'Formulario de lista de espera de acceso anticipado',
+    formAriaLabelFinal: 'Formulario de lista de espera al final de la página',
     emailLabel: 'CORREO',
     emailInput: {
-      placeholder: 'Correo electrónico',
+      placeholder: 'tu@empresa.com',
       ariaLabel: 'Correo electrónico',
     },
-    consentEarly: {
-      label: 'Quiero acceso anticipado al producto.',
-      ariaLabel: 'Acceso anticipado',
-    },
     consentMarketing: {
-      label: 'Acepto recibir correos de marketing.',
+      label: 'Enviadme correos ocasionales del producto. Opcional.',
       ariaLabel: 'Consentimiento de marketing',
     },
-    submit: 'SOLICITAR ACCESO',
+    submit: 'Unirme a la lista',
+    hint: 'Te escribimos cuando abra una oleada. Sin newsletter si no marcas la casilla.',
     errorValidEmail: 'Introduce un correo válido.',
-    errorConsentRequired: 'Debes aceptar el acceso anticipado.',
     errorTooManyRequests: 'Demasiadas solicitudes. Inténtalo en un minuto.',
     errorGeneric: 'No se pudo registrar. Inténtalo de nuevo.',
-    success: '¡Estás en la lista!',
+    success: 'Estás en la lista.',
+    successNext: 'Te escribiremos cuando abra una oleada.',
+    shareLabel: 'Comparte la lista',
   },
   consent: {
     banner: {

@@ -19,11 +19,12 @@ interface Props {
   noindex?: boolean;
   includeStructuredData?: boolean;
   hideVersionBadge?: boolean;
+  includeAppJsonLd?: boolean;
 }
 
 const {
-  title = "Profile Tailors — Social content planning in development",
-  description = "Preview Profile Tailors, a social content planning workspace currently in development.",
+  title = "Plan LinkedIn content with intent — Profile Tailors",
+  description = "A calendar-first workspace to draft, schedule and review LinkedIn posts. Join the waitlist. Early access opens in waves.",
   lang = "en",
   image,
   sameAs,
@@ -32,6 +33,7 @@ const {
   noindex = false,
   includeStructuredData = true,
   hideVersionBadge = false,
+  includeAppJsonLd = false,
 } = Astro.props;
 
 const path = canonicalPath ?? "/";
@@ -39,7 +41,7 @@ const baseUrl = Astro.site ?? "https://profiletailors.com";
 const canonicalEN = new URL(path, baseUrl).href;
 const canonicalES = new URL(path === "/" ? "/es/" : `/es${path}`, baseUrl).href;
 const canonical = lang === "en" ? canonicalEN : canonicalES;
-const ogImage = image ?? (lang === "en" ? "/og-en.svg" : "/og-es.svg");
+const ogImage = image ?? (lang === "en" ? "/og-en.png" : "/og-es.png");
 const robotsContent = noindex
   ? "noindex,nofollow,noarchive"
   : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
@@ -57,18 +59,41 @@ const jsonLd = {
   ...(sameAs && sameAs.length > 0 ? { sameAs } : {}),
 };
 const jsonLdString = JSON.stringify(jsonLd);
+const appJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: siteName,
+      url: String(baseUrl),
+      logo: new URL("/profiletailors-logotype.svg", baseUrl).href,
+      sameAs: [
+        "https://github.com/dallay/profiletailors.com",
+        "https://x.com/profiletailors",
+      ],
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: siteName,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      url: canonical,
+      description,
+      offers: {
+        "@type": "Offer",
+        availability: "https://schema.org/PreOrder",
+      },
+    },
+  ],
+};
+const appJsonLdString = JSON.stringify(appJsonLd);
 ---
 
 <!doctype html>
 <html lang={lang}>
   <head>
     <meta charset="utf-8" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
-    />
+
     <!-- Consent check: must run before Analytics -->
     <ConsentScript />
     <!-- Theme: must run synchronously before first paint to prevent FOUC -->
@@ -147,6 +172,11 @@ const jsonLdString = JSON.stringify(jsonLd);
     {
       includeStructuredData && (
         <script is:inline type="application/ld+json" set:html={jsonLdString} />
+      )
+    }
+    {
+      includeAppJsonLd && (
+        <script is:inline type="application/ld+json" set:html={appJsonLdString} />
       )
     }
 

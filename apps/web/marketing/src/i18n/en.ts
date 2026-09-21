@@ -4,36 +4,125 @@ export const en = {
     name: 'Profile Tailors',
     langSwitch: 'ES',
     langSwitchLabel: 'Switch to Spanish (ES)',
+    product: 'Product',
+    how: 'How it works',
+    join: 'Join',
   },
   hero: {
-    label: 'EARLY ACCESS PREVIEW',
-    headline: 'Plan clearly,\npublish deliberately.',
-    sub: 'Plan and organise social content from one clean workspace. Publishing integrations are still being validated before early access opens.',
-    status: 'Early-access registration is not open yet.',
+    label: 'LINKEDIN · EARLY ACCESS',
+    headline: 'Plan LinkedIn with intent.\nPublish when it is ready.',
+    sub: 'A calendar-first workspace for people who post on purpose. Not an AI generator. Not a 12-network suite.',
+    status: 'JavaScript is required to join the waitlist.',
+    previewCaption: 'Sample planning workspace. Publishing is still gated.',
+    caveat: 'Publishing to LinkedIn opens after validation.',
   },
   features: {
-    label: 'WHY PROFILE TAILORS',
+    title: 'A workspace you can scan',
     items: [
       {
-        tag: '01 — PLAN',
-        title: 'Shape content before it ships.',
-        desc: 'Draft and organise content in a focused workspace while publishing connections are validated.',
+        tag: 'Calendar',
+        title: 'Week, day, and month.',
+        desc: 'See what is planned and what is stuck before anything goes out.',
       },
       {
-        tag: '02 — OVERVIEW',
-        title: 'Review the full pipeline.',
-        desc: 'Use a clear calendar and workflow to review what is planned and what still needs attention.',
+        tag: 'Drafts',
+        title: 'Write before it ships.',
+        desc: 'Draft and organise in one place. Publish when LinkedIn is actually connected.',
       },
       {
-        tag: '03 — EARLY ACCESS',
-        title: 'A product still being validated.',
-        desc: 'Features, integrations, markets, and commercial terms will be announced only after they are ready.',
+        tag: 'LinkedIn first',
+        title: 'One platform, done properly.',
+        desc: 'Others only after they work. No 12-network dashboard on day one.',
       },
     ],
   },
+  scope: {
+    title: 'What early access includes',
+    includedTitle: 'In',
+    excludedTitle: 'Out',
+    included: [
+      'Calendar in week, day, and month',
+      'Drafts and media in one workspace',
+      'LinkedIn publishing after validation',
+    ],
+    excluded: [
+      'An AI post generator',
+      'An agency suite on day one',
+      'Eight networks, or invented prices',
+    ],
+  },
+  product: {
+    title: 'The workspace, in three views',
+    items: [
+      {
+        title: 'Calendar',
+        desc: 'The week at a glance. Drafts sit next to scheduled posts.',
+      },
+      {
+        title: 'Editor',
+        desc: 'Write the LinkedIn post in the same place you plan it.',
+      },
+      {
+        title: 'Pipeline',
+        desc: 'Draft, ready, scheduled. Nothing hides in a 12-column board.',
+      },
+    ],
+  },
+  linkedin: {
+    title: 'Why LinkedIn first',
+    body: 'Personal brands, freelancers, and small businesses already write here with intent. Profile Tailors starts where that work happens. Other networks follow only after publishing is proven.',
+  },
+  trust: {
+    title: 'Proof that is already true',
+    items: [
+      {
+        title: 'EU data',
+        body: 'The hosted instance runs in Frankfurt. GDPR is structural, not a footer line.',
+      },
+      {
+        title: 'Open source',
+        body: 'The software is AGPL-3.0. Self-host if you want the code, not a lock-in.',
+      },
+      {
+        title: 'Operator',
+        body: 'Yuniel Acosta operates this instance. Built for people who post on LinkedIn on purpose.',
+      },
+    ],
+    githubLabel: 'Source on GitHub',
+    githubHref: 'https://github.com/dallay/profiletailors.com',
+  },
+  faq: {
+    title: 'Questions before you join',
+    items: [
+      {
+        q: 'When does early access open?',
+        a: 'In waves. We email you when a wave starts. There is no public date yet.',
+      },
+      {
+        q: 'Is it only LinkedIn?',
+        a: 'Yes, for now. Other networks are added only after publishing is validated.',
+      },
+      {
+        q: 'Is it free?',
+        a: 'The hosted instance is free during early access. Pricing is not decided.',
+      },
+      {
+        q: 'Can I self-host?',
+        a: 'Yes. The source is AGPL-3.0. Your privacy relationship is then yours to define.',
+      },
+      {
+        q: 'Where is my data stored?',
+        a: 'Application and database in Frankfurt, Germany. CDN on Cloudflare’s global edge.',
+      },
+    ],
+  },
+  finalCta: {
+    title: 'Join the waitlist',
+    sub: 'Same form. We write when a wave opens.',
+  },
   footer: {
-    copy: 'Profile Tailors — early access preview.',
-    tagline: 'A social content workspace in development.',
+    copy: 'Profile Tailors. Early access waitlist.',
+    tagline: 'A LinkedIn-first workspace for deliberate content.',
     versionBadge: 'v{version} ({shortSha})',
     legalLinks: [
       { label: 'Privacy Policy', href: '/privacy/' },
@@ -44,9 +133,9 @@ export const en = {
     ],
   },
   meta: {
-    title: 'Social content planning in development — Profile Tailors',
+    title: 'Plan LinkedIn content with intent — Profile Tailors',
     description:
-      'Preview Profile Tailors, a social content planning workspace currently in development. Early-access registration is not open yet.',
+      'A calendar-first workspace to draft, schedule and review LinkedIn posts. Join the waitlist. Early access opens in waves.',
   },
   legal: {
     publication: {
@@ -194,25 +283,24 @@ export const en = {
   },
   waitlist: {
     formAriaLabel: 'Early access waitlist form',
+    formAriaLabelFinal: 'Waitlist form at the end of the page',
     emailLabel: 'EMAIL',
     emailInput: {
-      placeholder: 'Email address',
+      placeholder: 'you@company.com',
       ariaLabel: 'Email address',
     },
-    consentEarly: {
-      label: 'I want early product access.',
-      ariaLabel: 'Early access consent',
-    },
     consentMarketing: {
-      label: 'I agree to receive marketing emails.',
+      label: 'Send me occasional product emails. Optional.',
       ariaLabel: 'Marketing consent',
     },
-    submit: 'REQUEST ACCESS',
+    submit: 'Join the waitlist',
+    hint: 'We email you when a wave opens. No newsletter unless you tick the box.',
     errorValidEmail: 'Please enter a valid email.',
-    errorConsentRequired: 'Early-access consent is required.',
     errorTooManyRequests: 'Too many requests. Try again in a minute.',
     errorGeneric: 'Could not register you. Please try again.',
     success: "You're on the list.",
+    successNext: 'We will write when a wave opens.',
+    shareLabel: 'Share the waitlist',
   },
   consent: {
     banner: {

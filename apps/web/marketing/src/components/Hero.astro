@@ -1,56 +1,68 @@
 ---
 import EarlyAccessStatus from './EarlyAccessStatus.astro'
 import WaitlistForm from './WaitlistForm.astro'
+import WorkspacePreview from './WorkspacePreview.astro'
 import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
 import { WAITLIST_ENABLED } from 'astro:env/client'
 
 interface Props {
-  label: string
-  headline: string
-  sub: string
-  status: string
   locale: Locale
 }
 
-const { label, headline, sub, status, locale } = Astro.props
+const { locale } = Astro.props
+const t = useTranslations(locale)
 const showWaitlistForm = WAITLIST_ENABLED
 ---
 
-<section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <div
-    data-hero-label
-    class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-visible bg-bg-surface/60 font-mono text-xs tracking-wider text-text-secondary uppercase mb-8"
-  >
-    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
-    <span>{label}</span>
+<section class="px-6 pt-16 pb-20 max-w-6xl mx-auto">
+  <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)] gap-10 lg:gap-14 items-start">
+    <div>
+      <div
+        data-hero-label
+        class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-visible bg-bg-surface/60 font-mono text-xs tracking-wider text-text-secondary uppercase mb-8"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success" aria-hidden="true"></span>
+        <span>{t.hero.label}</span>
+      </div>
+
+      <h1
+        data-hero-headline
+        class="font-display text-[2.35rem] sm:text-5xl font-medium text-text-display leading-[1.08] tracking-tight mb-6 whitespace-pre-line"
+      >
+        {t.hero.headline}
+      </h1>
+
+      <div class="lg:hidden mb-8">
+        <WorkspacePreview variant="calendar" caption={t.hero.previewCaption} locale={locale} />
+      </div>
+
+      <p
+        data-hero-sub
+        class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-10"
+      >
+        {t.hero.sub}
+      </p>
+
+      {showWaitlistForm ? (
+        <div id="waitlist" data-hero-form data-hero-form-active>
+          <WaitlistForm locale={locale} formId="waitlist-hero" />
+          <p class="font-display text-sm text-text-muted mt-4 max-w-md">{t.hero.caveat}</p>
+          <noscript>
+            <EarlyAccessStatus message={t.hero.status} />
+          </noscript>
+        </div>
+      ) : (
+        <div id="waitlist" data-hero-form>
+          <EarlyAccessStatus message={t.hero.status} />
+        </div>
+      )}
+    </div>
+
+    <div class="hidden lg:block lg:sticky lg:top-24">
+      <WorkspacePreview variant="calendar" caption={t.hero.previewCaption} locale={locale} />
+    </div>
   </div>
-
-  <h1
-    data-hero-headline
-    class="font-display text-5xl sm:text-6xl lg:text-7xl font-medium text-text-display leading-[1.05] tracking-tight mb-6 whitespace-pre-line"
-  >
-    {headline}
-  </h1>
-
-  <p
-    data-hero-sub
-    class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-12"
-  >
-    {sub}
-  </p>
-
-  {showWaitlistForm ? (
-    <div data-hero-form data-hero-form-active>
-      <WaitlistForm locale={locale} />
-      <noscript>
-        <EarlyAccessStatus message={status} />
-      </noscript>
-    </div>
-  ) : (
-    <div data-hero-form>
-      <EarlyAccessStatus message={status} />
-    </div>
-  )}
 </section>
 
 <script>

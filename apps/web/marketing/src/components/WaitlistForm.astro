@@ -9,44 +9,49 @@ interface Props {
   source?: string
   formId?: string
   apiBase?: string
+  ariaLabel?: string
 }
 
-const { locale, waitlistKey, source, formId, apiBase } = Astro.props
+const { locale, waitlistKey, source, formId = 'waitlist-hero', apiBase, ariaLabel } = Astro.props
 const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
 const t = useTranslations(locale)
 const wl = t.waitlist
+const resolvedAriaLabel = ariaLabel ?? wl.formAriaLabel
+const emailId = `${formId}-email`
+const marketingId = `${formId}-marketing`
+const errorId = `${formId}-error`
 ---
 
 <form
   data-waitlist-form
   data-waitlist-key={waitlistKey ?? 'profile-tailors-launch'}
   data-waitlist-source={source ?? 'marketing-site'}
-  data-waitlist-form-id={formId ?? 'waitlist-hero'}
+  data-waitlist-form-id={formId}
   data-waitlist-locale={locale}
   data-waitlist-api-base={resolvedApiBase}
-  aria-label={wl.formAriaLabel}
+  aria-label={resolvedAriaLabel}
   data-waitlist-messages={JSON.stringify({
     validEmail: wl.errorValidEmail,
-    consentRequired: wl.errorConsentRequired,
     tooManyRequests: wl.errorTooManyRequests,
     genericError: wl.errorGeneric,
     success: wl.success,
   })}
   novalidate
-  class="flex flex-col gap-4 max-w-md border-l border-border-visible pl-5 py-1"
+  class="flex flex-col gap-4 max-w-md"
 >
   <div class="flex flex-col gap-1.5">
-    <label for="waitlist-email" class="font-mono text-xs uppercase tracking-[0.08em] text-text-secondary">
+    <label for={emailId} class="font-mono text-xs uppercase tracking-[0.08em] text-text-secondary">
       {wl.emailLabel}
     </label>
     <input
-      id="waitlist-email"
+      id={emailId}
       data-waitlist-email
       type="email"
       inputmode="email"
       autocomplete="email"
       required
-      aria-describedby="waitlist-email-error"
+      placeholder={wl.emailInput.placeholder}
+      aria-describedby={errorId}
       aria-label={wl.emailInput.ariaLabel}
       class="bg-transparent border-b border-border-visible focus:border-text-display py-2.5 text-text-display font-mono text-sm placeholder:text-text-muted focus:outline-none transition-colors duration-200"
     />
@@ -54,42 +59,33 @@ const wl = t.waitlist
 
   <div class="flex items-start gap-2.5 text-sm text-text-secondary">
     <input
-      id="waitlist-consent-early"
-      data-waitlist-consent-early
-      type="checkbox"
-      required
-      aria-describedby="waitlist-email-error"
-      class="mt-0.5 min-h-[20px] min-w-[20px] accent-text-display cursor-pointer"
-    />
-    <label for="waitlist-consent-early" class="cursor-pointer select-none leading-relaxed">{wl.consentEarly.label}</label>
-  </div>
-
-  <div class="flex items-start gap-2.5 text-sm text-text-secondary">
-    <input
-      id="waitlist-consent-marketing"
+      id={marketingId}
       data-waitlist-consent-marketing
       type="checkbox"
       class="mt-0.5 min-h-[20px] min-w-[20px] accent-text-display cursor-pointer"
     />
-    <label for="waitlist-consent-marketing" class="cursor-pointer select-none leading-relaxed">{wl.consentMarketing.label}</label>
+    <label for={marketingId} class="cursor-pointer select-none leading-relaxed">{wl.consentMarketing.label}</label>
   </div>
 
   <p
     data-waitlist-error
-    id="waitlist-email-error"
+    id={errorId}
     role="alert"
     aria-live="polite"
     class="hidden text-sm text-error-text"
   ></p>
 
-  <p
-    data-waitlist-success
-    role="status"
-    aria-live="polite"
-    class="hidden text-sm text-text-display"
-  >
-    {wl.success}
-  </p>
+  <div data-waitlist-success role="status" aria-live="polite" class="hidden text-sm text-text-display">
+    <p>{wl.success}</p>
+    <p class="text-text-secondary mt-1">{wl.successNext}</p>
+    <a
+      data-waitlist-share
+      href="/"
+      class="inline-flex items-center min-h-[44px] font-mono text-xs uppercase tracking-[0.06em] text-text-display underline underline-offset-4"
+    >
+      {wl.shareLabel}
+    </a>
+  </div>
 
   <button
     data-waitlist-submit
@@ -98,6 +94,8 @@ const wl = t.waitlist
   >
     {wl.submit}
   </button>
+
+  <p class="font-display text-sm text-text-secondary leading-relaxed">{wl.hint}</p>
 </form>
 
 <script>
@@ -108,7 +106,6 @@ const wl = t.waitlist
 
   interface WaitlistMessages {
     validEmail: string
-    consentRequired: string
     tooManyRequests: string
     genericError: string
     success: string
@@ -130,12 +127,18 @@ const wl = t.waitlist
 
   for (const form of document.querySelectorAll<HTMLFormElement>('[data-waitlist-form]')) {
     const emailInput = form.querySelector<HTMLInputElement>('[data-waitlist-email]')
-    const earlyInput = form.querySelector<HTMLInputElement>('[data-waitlist-consent-early]')
     const marketingInput = form.querySelector<HTMLInputElement>('[data-waitlist-consent-marketing]')
     const errorEl = form.querySelector<HTMLElement>('[data-waitlist-error]')
     const successEl = form.querySelector<HTMLElement>('[data-waitlist-success]')
     const submit = form.querySelector<HTMLButtonElement>('[data-waitlist-submit]')
-    if (!emailInput || !earlyInput || !marketingInput || !errorEl || !successEl || !submit) continue
+    const share = form.querySelector<HTMLAnchorElement>('[data-waitlist-share]')
+    if (!emailInput || !marketingInput || !errorEl || !successEl || !submit) continue
+    if (form.dataset.waitlistBound === 'true') continue
+    form.dataset.waitlistBound = 'true'
+
+    if (share) {
+      share.href = window.location.href.split('#')[0]
+    }
 
     const waitlistKey = form.dataset.waitlistKey ?? WAITLIST_KEY_DEFAULT
     const source = form.dataset.waitlistSource ?? 'marketing-site'
@@ -144,7 +147,6 @@ const wl = t.waitlist
 
     let messages: WaitlistMessages = {
       validEmail: 'Please enter a valid email.',
-      consentRequired: 'Early-access consent is required.',
       tooManyRequests: 'Too many requests. Try again in a minute.',
       genericError: 'Could not register you. Please try again.',
       success: "You're on the list.",
@@ -160,25 +162,14 @@ const wl = t.waitlist
       const email = emailInput.value ?? ''
       if (!isValidEmail(email)) {
         emailInput.setAttribute('aria-invalid', 'true')
-        earlyInput.removeAttribute('aria-invalid')
         errorEl.textContent = messages.validEmail
         errorEl.classList.remove(SUCCESS_HIDDEN)
         successEl.classList.add(SUCCESS_HIDDEN)
         emailInput.focus()
         return
       }
-      if (!earlyInput.checked) {
-        earlyInput.setAttribute('aria-invalid', 'true')
-        emailInput.removeAttribute('aria-invalid')
-        errorEl.textContent = messages.consentRequired
-        errorEl.classList.remove(SUCCESS_HIDDEN)
-        successEl.classList.add(SUCCESS_HIDDEN)
-        earlyInput.focus()
-        return
-      }
 
       emailInput.removeAttribute('aria-invalid')
-      earlyInput.removeAttribute('aria-invalid')
       errorEl.classList.add(SUCCESS_HIDDEN)
       submit.disabled = true
       const payload = buildWaitlistPayload({
@@ -187,7 +178,7 @@ const wl = t.waitlist
         formId,
         locale,
         consent: {
-          earlyAccess: earlyInput.checked,
+          earlyAccess: true,
           marketing: marketingInput.checked,
         },
         metadata: captureUtm(),
