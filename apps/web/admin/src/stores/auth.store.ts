@@ -22,6 +22,8 @@ const ROLE_PERMISSIONS = {
     'platform.configuration.manage',
     'platform.notifications.read',
     'platform.notifications.manage',
+    'platform.governance.read',
+    'platform.governance.manage',
   ],
   PLATFORM_OPERATOR: [
     'platform.dashboard.read',
@@ -40,6 +42,8 @@ const ROLE_PERMISSIONS = {
     'platform.configuration.read',
     'platform.notifications.read',
     'platform.notifications.manage',
+    'platform.governance.read',
+    'platform.governance.manage',
   ],
   SUPPORT_AGENT: [
     'platform.users.read',
@@ -55,6 +59,7 @@ const ROLE_PERMISSIONS = {
     'platform.operators.read',
     'platform.configuration.read',
     'platform.notifications.read',
+    'platform.governance.read',
   ],
 } as const satisfies Record<string, readonly string[]>
 

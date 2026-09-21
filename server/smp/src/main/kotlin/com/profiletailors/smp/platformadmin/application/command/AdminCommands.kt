@@ -67,6 +67,19 @@ data class ChangeRegistrationModeCommand(
     val newMode: String,
 )
 
+data class ApproveAdminTakedownCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val reportId: String,
+)
+
+data class RejectAdminTakedownCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val reportId: String,
+    val rejectionReason: String,
+)
+
 data class DeactivateUserCommand(
     val operatorPrincipalId: UUID,
     val operatorRoles: Set<PlatformRole>,

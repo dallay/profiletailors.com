@@ -6,6 +6,7 @@ import org.springframework.modulith.ApplicationModule
     allowedDependencies = [
         "audit :: domain",
         "credentials :: application",
+        "governance :: application",
         "identity :: application",
         "identity :: domain",
         "platform :: domain",
