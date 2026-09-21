@@ -1,0 +1,25 @@
+---
+import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useTranslations(locale)
+---
+
+<section class="px-6 pt-8 pb-24 max-w-5xl mx-auto">
+  <h2 data-animate-scroll class="font-display text-3xl sm:text-4xl font-medium text-text-display tracking-tight mb-12 max-w-2xl">
+    {t.faq.title}
+  </h2>
+  <dl class="flex flex-col">
+    {t.faq.items.map((item) => (
+      <div data-animate-scroll class="border-t border-border py-8 last:border-b">
+        <dt class="font-display text-xl font-medium text-text-display tracking-tight mb-3">{item.q}</dt>
+        <dd class="font-display text-base text-text-secondary leading-relaxed max-w-2xl">{item.a}</dd>
+      </div>
+    ))}
+  </dl>
+</section>

@@ -1,0 +1,31 @@
+---
+import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
+import { WAITLIST_ENABLED } from 'astro:env/client'
+import InteractiveWaitlistForm from './InteractiveWaitlistForm.astro'
+import EarlyAccessStatus from './EarlyAccessStatus.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useTranslations(locale)
+const showWaitlistForm = WAITLIST_ENABLED
+---
+
+<section class="px-6 pt-8 pb-28 max-w-5xl mx-auto">
+  <div data-animate-scroll class="max-w-xl">
+    <h2 class="font-display text-3xl sm:text-4xl font-medium text-text-display tracking-tight mb-4">
+      {t.finalCta.title}
+    </h2>
+    <p class="font-display text-base text-text-secondary leading-relaxed mb-10">
+      {t.finalCta.sub}
+    </p>
+    {showWaitlistForm ? (
+      <InteractiveWaitlistForm locale={locale} formId="waitlist-final" source="marketing-site" ariaLabel={t.waitlist.formAriaLabelFinal} />
+    ) : (
+      <EarlyAccessStatus message={t.waitlist.disabled} />
+    )}
+  </div>
+</section>

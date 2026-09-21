@@ -30,6 +30,7 @@ logs/
 # Temporary debug files (screenshots, login notes, npm lockfiles)
 *.png
 !apps/web/app/public/*.png
+!apps/web/marketing/public/*.png
 login-page.txt
 package-lock.json
 **/package-lock.json
