@@ -20,6 +20,7 @@ data class LinkedInOAuthStatePayload(
 interface LinkedInAuthorizationUrlBuilder {
     fun buildAuthorizationUrl(state: String, redirectUri: String): String
     fun isConfigured(): Boolean
+    fun isAllowedRedirectUri(redirectUri: String): Boolean
 }
 
 class ProviderNotConfiguredException(provider: SocialProvider) :
