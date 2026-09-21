@@ -199,7 +199,7 @@ test.describe('Waitlist Form — Marketing E2E', () => {
       const checkMarketing = formId === 'waitlist-final'
       await form.getByLabel('Email address').fill(`${formId}@example.com`)
       if (checkMarketing) {
-        await form.getByRole('checkbox', { name: 'Marketing consent' }).check()
+        await form.getByLabel('Send me occasional product emails. Optional.').check()
       }
 
       await form.getByRole('button', { name: 'Join the waitlist' }).click()
