@@ -2,7 +2,7 @@
 import type { Locale } from '@i18n/utils'
 import { useTranslations } from '@i18n/utils'
 import { WAITLIST_ENABLED } from 'astro:env/client'
-import WaitlistForm from './WaitlistForm.astro'
+import InteractiveWaitlistForm from './InteractiveWaitlistForm.astro'
 import EarlyAccessStatus from './EarlyAccessStatus.astro'
 
 interface Props {
@@ -23,7 +23,7 @@ const showWaitlistForm = WAITLIST_ENABLED
       {t.finalCta.sub}
     </p>
     {showWaitlistForm ? (
-      <WaitlistForm locale={locale} formId="waitlist-final" source="marketing-site" ariaLabel={t.waitlist.formAriaLabelFinal} />
+      <InteractiveWaitlistForm locale={locale} formId="waitlist-final" source="marketing-site" ariaLabel={t.waitlist.formAriaLabelFinal} />
     ) : (
       <EarlyAccessStatus message={t.waitlist.disabled} />
     )}

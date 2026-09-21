@@ -1,6 +1,6 @@
 ---
 import EarlyAccessStatus from './EarlyAccessStatus.astro'
-import WaitlistForm from './WaitlistForm.astro'
+import InteractiveWaitlistForm from './InteractiveWaitlistForm.astro'
 import WorkspacePreview from './WorkspacePreview.astro'
 import type { Locale } from '@i18n/utils'
 import { useTranslations } from '@i18n/utils'
@@ -46,7 +46,7 @@ const showWaitlistForm = WAITLIST_ENABLED
 
       {showWaitlistForm ? (
         <div id="waitlist" data-hero-form data-hero-form-active>
-          <WaitlistForm locale={locale} formId="waitlist-hero" />
+          <InteractiveWaitlistForm locale={locale} formId="waitlist-hero" />
           <p class="font-display text-sm text-text-muted mt-4 max-w-md">{t.hero.caveat}</p>
           <noscript>
             <EarlyAccessStatus message={t.hero.status} />

@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share'
 
 const source = readFileSync(resolve(process.cwd(), 'src/components/WaitlistForm.astro'), 'utf8')
+const interactiveSource = readFileSync(resolve(process.cwd(), 'src/components/InteractiveWaitlistForm.astro'), 'utf8')
+const clientSource = readFileSync(resolve(process.cwd(), 'src/components/useWaitlistForm.ts'), 'utf8')
 
 describe('WaitlistForm accessibility', () => {
   it('binds the email label to a unique form-scoped id', () => {
@@ -14,7 +16,15 @@ describe('WaitlistForm accessibility', () => {
 
   it('does not render a redundant early-access consent checkbox', () => {
     expect(source).not.toContain('data-waitlist-consent-early')
-    expect(source).toContain('earlyAccess: true')
+    expect(clientSource).toContain('earlyAccess: true')
+  })
+
+  it('keeps the static form free of page-global behavior', () => {
+    expect(source).not.toContain('<script>')
+    expect(interactiveSource).toContain('client:load')
+    expect(clientSource).toContain('bindWaitlistShare')
+    expect(clientSource).toContain('readWaitlistShareAttributes')
+    expect(clientSource).not.toContain('document.querySelectorAll')
   })
 
   it('exposes a placeholder on the email input', () => {
