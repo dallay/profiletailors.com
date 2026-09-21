@@ -1,0 +1,125 @@
+change_id: "670"
+title: "Notification Admin Queries and Safe Retry Operations"
+status: "archive"
+current_phase: "archive"
+
+completed_phases:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - qa
+  - archive
+
+next_phase: "none"
+
+metadata:
+  epic: "656"
+  issue: "dallay-670"
+  github_issue_state: "open"
+  merged_pr: "1119"
+  merge_commit: "0e9107f53c835ab7ba350d6ad466176d89249d78"
+  merged_at: "2026-09-21T09:39:59Z"
+  verify_verdict: "PASS WITH WARNINGS"
+  verify_mode: "fallback"
+  qa_verdict: "PASS WITH WARNINGS"
+  qa_mode: "fallback"
+  qa_date: "2026-09-21"
+  archive_date: "2026-09-21"
+  archived_to: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/"
+  github_issue_not_closed_by_archive: true
+  orchestrator_context:
+    explore_completed: true
+    key_findings:
+      - "Notifications table append-only with idempotency_key UNIQUE constraint"
+      - "Invitation retry creates NEW token + NEW row via ResendInvitationHandler"
+      - "Password-recovery retry has no queryable retry policy in-consumer"
+      - "EmailDispatchResult lacks retryable category distinction"
+      - "Gaps: semantic retry vs re-notification, eligibility checks, payload redaction, observability"
+    scope_decisions:
+      - "Admin read-only visibility + safe retry for eligible (non-token-bound) notifications"
+      - "Retry as re-dispatch through NotificationService (NOT new token creation)"
+      - "Eligible: password-recovery class; Ineligible: invitation/token-bound class"
+      - "Payload redaction for tokens, passwords, acceptUrl, rawToken"
+      - "NOT: second notification engine, blind resend, attempt-tracking schema"
+    known_gaps:
+      - "NO NotificationsView.vue — nav live but router has no real notifications route"
+      - "tasks.md still has 4.1-6.2 unchecked though implementation is on main"
+      - "BDD cleanup does not DELETE FROM notifications"
+      - "Concurrent same idempotency key can 500; sequential reuse returns 409"
+    qa_notes:
+      - "All five GitHub #670 ACs PASS via remote BDD + verify unit/WebTestClient + in-session admin 29/29"
+      - "No CRITICAL/P0/P1; known gaps remain P2/P3 warnings"
+      - "Archive eligible with explicit live-target NOT TESTED rationale"
+
+artifacts:
+  proposal: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/proposal.md"
+  specs:
+    - "openspec/changes/archive/2026-09-21-670-notification-admin-operations/specs/platform-notifications/spec.md"
+    - "openspec/changes/archive/2026-09-21-670-notification-admin-operations/specs/admin-authorization/spec.md"
+    - "openspec/changes/archive/2026-09-21-670-notification-admin-operations/specs/platform-admin-audit/spec.md"
+  design: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/design.md"
+  tasks: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/tasks.md"
+  apply_progress: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/apply-progress.md"
+  verify: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/verify-report.md"
+  qa: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/qa-report.md"
+
+next_steps: []
+
+archive_note: >-
+  Archived 2026-09-21. Gate: verify-report.md + qa-report.md present, both PASS WITH
+  WARNINGS on main @0e9107f5 (PR #1119), zero FAIL, zero CRITICAL/P0/P1. Acceptance-relevant
+  NOT TESTED items (live Back Office, NotificationsView, a11y/locale visual) accepted with
+  explicit rationale in qa-report.md (no target invented; every #670 AC has executable HTTP/unit
+  evidence). Specs synced: platform-notifications CREATED (full spec REQ-PN-001..007);
+  admin-authorization ADDED requirement "Platform notification permission keys" (+2 keys
+  already present in registry/mapping from PR #1119 — OWNER/OPERATOR both, SUPPORT_AGENT/AUDITOR
+  read-only); platform-admin-audit ADDED "Notification-retry audit outcomes" with
+  NOTIFICATION_RETRIED SUCCESS/REJECTED/DISPATCH_FAILED. Destructive delta MODIFIED registry
+  NOT applied (would revert platform.configuration.manage from #672 and invent VIEWER).
+  Visible follow-up debt — F-01 no NotificationsView / live nav without route (owner frontend;
+  next: ship view + live router record or revert nav to planned); F-02 live Back Office
+  walkthrough (owner ops); F-03 BDD cleanup omits DELETE FROM notifications; F-04 concurrent
+  same idempotency key can 500 (map UNIQUE to 409); F-05 redaction keeps keys as [REDACTED]
+  vs spec "strip field"; F-06 spec drift (delta admin-authorization retry 202 vs shipped 200;
+  platform-notifications AUDITOR-lacks-read vs admin-authorization AUDITOR has read; VIEWER
+  is not a PlatformRole); F-07 tasks.md 4.1–6.2 still [ ] (tracking only). Do NOT close
+  GitHub issue #670 from archive — orchestrator recommends closure with suggested comment.
+  Next epic #656 work: notifications UI (F-01) + issue #671.
+
+design_summary:
+  architecture:
+    approach: "Hexagonal layers: domain (NotificationRetryEligibility whitelist), application (NotificationAdminQuery port + handlers), infrastructure (R2DBC adapter + controller + redaction)"
+    modules_touched:
+      - "platformadmin: new query port, retry handler, controller, idempotency service, navigation"
+      - "notifications: reused NotificationService for retry dispatch"
+    bounded_contexts:
+      - "platformadmin: owns admin query + retry orchestration"
+      - "notifications: owns notification dispatch pipeline"
+  data_model:
+    changes: "None - uses existing notifications table"
+    retry_strategy: "New notification row with idempotency_key suffix"
+  api_contract:
+    endpoints:
+      - "GET /api/admin/notifications: paginated query with filters, redacted payload"
+      - "POST /api/admin/notifications/{id}/retry: idempotent retry with eligibility gate"
+    permissions:
+      - "platform.notifications.read: OWNER, OPERATOR, AUDITOR"
+      - "platform.notifications.manage: OWNER, OPERATOR"
+  key_decisions:
+    - "Query port in application layer preserves bounded context isolation"
+    - "Retry via NotificationService reuses existing dispatch pipeline"
+    - "Template whitelist (PASSWORD_RECOVERY) enforces eligibility gate"
+    - "Payload redaction utility strips sensitive keys before response"
+    - "No schema changes - retry creates new notification row"
+  risks:
+    - "Redaction incompleteness: future sensitive keys not in denylist"
+    - "Eligibility drift: domain changes may affect retry safety"
+    - "Query performance: no composite index on common filter columns"
+  tradeoffs:
+    - "No attempt correlation: independent notification rows for retries"
+    - "Single-template whitelist: only PASSWORD_RECOVERY eligible initially"
+    - "In-memory redaction: applied after fetch, not at SQL layer"

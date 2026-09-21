@@ -223,3 +223,69 @@ permission today. No role other than `PLATFORM_OWNER` MUST hold `platform.config
   configuration view
 - WHEN the corresponding `/api/admin/**` configuration endpoint is called
 - THEN the server denies with `401`/`403` regardless of client-side navigation state
+
+### Requirement: Platform notification permission keys (dallay/profiletailors.com#670)
+
+The permission registry MUST include `platform.notifications.read` and
+`platform.notifications.manage`. `PLATFORM_OWNER` and `PLATFORM_OPERATOR` MUST hold both.
+`AUDITOR` and `SUPPORT_AGENT` MUST hold only `platform.notifications.read`. No other role MUST
+hold `platform.notifications.manage`.
+
+`GET /api/admin/notifications` and `GET /api/admin/notifications/{id}` MUST enforce
+`platform.notifications.read`. `POST /api/admin/notifications/{id}/retry` MUST enforce
+`platform.notifications.manage`. Eligible retry MUST return HTTP 200 (shipped contract;
+`platform-notifications` REQ-PN-003).
+
+| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.notifications.read` | ✓ | ✓ | ✓ | ✓ |
+| `platform.notifications.manage` | ✓ | ✓ | — | — |
+
+#### Scenario: AUDITOR can query notifications
+
+- GIVEN an operator with an active `AUDITOR` assignment
+- WHEN the operator queries `GET /api/admin/notifications`
+- THEN the response status is 200
+- AND the response contains paginated notifications
+
+#### Scenario: Query denied without read permission
+
+- GIVEN a principal that lacks `platform.notifications.read`
+- WHEN the principal queries `GET /api/admin/notifications`
+- THEN the response status is 403
+
+#### Scenario: OPERATOR can retry eligible notifications
+
+- GIVEN an operator with an active `PLATFORM_OPERATOR` assignment
+- AND notification `abc-123` is eligible for retry
+- WHEN the operator posts `POST /api/admin/notifications/abc-123/retry`
+- THEN the response status is 200
+- AND retry is dispatched
+
+#### Scenario: AUDITOR cannot retry notifications
+
+- GIVEN an operator with an active `AUDITOR` assignment (has read, lacks manage)
+- AND notification `abc-123` is eligible for retry
+- WHEN the operator posts `POST /api/admin/notifications/abc-123/retry`
+- THEN the response status is 403
+
+#### Scenario: Permission registry includes notification permissions
+
+- GIVEN the `PlatformPermission` registry is loaded
+- WHEN the system initializes
+- THEN the registry contains `platform.notifications.read`
+- AND the registry contains `platform.notifications.manage`
+
+#### Scenario: OWNER has notification permissions
+
+- GIVEN an operator with an active `PLATFORM_OWNER` assignment
+- WHEN effective permissions are evaluated
+- THEN `platform.notifications.read` is present
+- AND `platform.notifications.manage` is present
+
+#### Scenario: AUDITOR has read-only notification access
+
+- GIVEN an operator with an active `AUDITOR` assignment
+- WHEN effective permissions are evaluated
+- THEN `platform.notifications.read` is present
+- AND `platform.notifications.manage` is absent

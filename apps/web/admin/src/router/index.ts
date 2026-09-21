@@ -79,6 +79,12 @@ const router = createRouter({
           component: () => import('@/views/ConfigurationView.vue'),
           meta: { permission: 'platform.configuration.read' },
         },
+        {
+          path: 'notifications',
+          name: 'notifications',
+          component: () => import('@/views/NotificationsView.vue'),
+          meta: { permission: 'platform.notifications.read' },
+        },
         ...plannedNavEntries().map((entry) => ({
           path: entry.path,
           name: entry.routeName,

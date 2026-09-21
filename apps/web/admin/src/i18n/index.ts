@@ -191,6 +191,23 @@ export const en: MessageSchema = {
     changeConfirm: 'Change the registration mode to {mode}? This takes effect immediately.',
     changeSuccess: 'Registration mode updated.',
   },
+  notifications: {
+    title: 'Notifications',
+    channel: 'Channel',
+    template: 'Template',
+    recipient: 'Recipient',
+    error: 'Error',
+    retry: 'Retry',
+    retryConfirm: 'Retry delivery to {recipient}? A new attempt will be scheduled.',
+    retrySuccess: 'Retry scheduled.',
+    retryNotEligible: 'This notification cannot be retried from Back Office.',
+    empty: 'No notifications match the current filters.',
+    allStatuses: 'All statuses',
+    allChannels: 'All channels',
+    filterStatus: 'Filter by status',
+    filterChannel: 'Filter by channel',
+    statuses: { pending: 'Pending', sent: 'Sent', failed: 'Failed' },
+  },
   directInvitations: {
     title: 'Direct Invitations',
     subtitle: 'Issue or revoke invitations independently of the waitlist.',
@@ -253,6 +270,8 @@ export const en: MessageSchema = {
     OPTIMISTIC_LOCK_CONFLICT:
       'The invitation changed while you were acting on it. Reload and retry.',
     INTERNAL_ERROR: 'An internal error occurred. Please try again.',
+    NOTIFICATION_NOT_RETRYABLE: 'This notification cannot be retried from Back Office.',
+    IDEMPOTENCY_KEY_REUSED: 'This retry was already submitted. Reload and try again.',
   },
 }
 
@@ -447,6 +466,23 @@ export const es: MessageSchema = {
     changeConfirm: '¿Cambiar el modo de registro a {mode}? Esto tiene efecto inmediato.',
     changeSuccess: 'Modo de registro actualizado.',
   },
+  notifications: {
+    title: 'Notificaciones',
+    channel: 'Canal',
+    template: 'Plantilla',
+    recipient: 'Destinatario',
+    error: 'Error',
+    retry: 'Reintentar',
+    retryConfirm: '¿Reintentar la entrega a {recipient}? Se programará un nuevo intento.',
+    retrySuccess: 'Reintento programado.',
+    retryNotEligible: 'Esta notificación no se puede reintentar desde Back Office.',
+    empty: 'Ninguna notificación coincide con los filtros actuales.',
+    allStatuses: 'Todos los estados',
+    allChannels: 'Todos los canales',
+    filterStatus: 'Filtrar por estado',
+    filterChannel: 'Filtrar por canal',
+    statuses: { pending: 'Pendiente', sent: 'Enviada', failed: 'Fallida' },
+  },
   directInvitations: {
     title: 'Invitaciones directas',
     subtitle: 'Emite o revoca invitaciones de forma independiente de la lista de espera.',
@@ -510,6 +546,8 @@ export const es: MessageSchema = {
     OPTIMISTIC_LOCK_CONFLICT:
       'La invitación cambió mientras actuabas sobre ella. Recarga e inténtalo de nuevo.',
     INTERNAL_ERROR: 'Ocurrió un error interno. Por favor, inténtalo de nuevo.',
+    NOTIFICATION_NOT_RETRYABLE: 'Esta notificación no se puede reintentar desde Back Office.',
+    IDEMPOTENCY_KEY_REUSED: 'Este reintento ya se envió. Recarga e inténtalo de nuevo.',
   },
 }
 
