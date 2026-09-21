@@ -53,17 +53,37 @@ class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
         ),
     )
 
-    private fun Map<String, String>?.toLeadMetadata(): LeadMetadata = LeadMetadata(
-        utmSource = this?.get("utm_source"),
-        utmMedium = this?.get("utm_medium"),
-        utmCampaign = this?.get("utm_campaign"),
-        utmContent = this?.get("utm_content"),
-        utmTerm = this?.get("utm_term"),
-        referrer = this?.get("referrer"),
-        pagePath = this?.get("page_path"),
-        userAgentFamily = this?.get("user_agent_family"),
-        consentVersion = this?.get("consent_version"),
-    )
+    private fun Map<String, String>?.toLeadMetadata(): LeadMetadata {
+        validateMetadataSize()
+        return LeadMetadata(
+            utmSource = this?.get("utm_source"),
+            utmMedium = this?.get("utm_medium"),
+            utmCampaign = this?.get("utm_campaign"),
+            utmContent = this?.get("utm_content"),
+            utmTerm = this?.get("utm_term"),
+            referrer = this?.get("referrer"),
+            pagePath = this?.get("page_path"),
+            userAgentFamily = this?.get("user_agent_family"),
+            consentVersion = this?.get("consent_version"),
+        )
+    }
+
+    private fun Map<String, String>?.validateMetadataSize() {
+        if (this == null) {
+            return
+        }
+        require(size <= MAX_METADATA_ENTRIES) {
+            "Lead metadata must contain at most $MAX_METADATA_ENTRIES entries"
+        }
+        for ((key, value) in this) {
+            require(key.length <= MAX_METADATA_KEY_LENGTH) {
+                "Lead metadata key must be at most $MAX_METADATA_KEY_LENGTH characters"
+            }
+            require(value.length <= MAX_METADATA_VALUE_LENGTH) {
+                "Lead metadata value must be at most $MAX_METADATA_VALUE_LENGTH characters"
+            }
+        }
+    }
 
     private fun IllegalArgumentException.toPublicErrorCode(): String? = when {
         message == CONSENT_REQUIRED_ERROR -> CONSENT_REQUIRED_ERROR
@@ -73,6 +93,7 @@ class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
         message?.startsWith("Capture locale") == true -> INVALID_LOCALE_ERROR
         message?.startsWith("Consent version") == true -> CONSENT_REQUIRED_ERROR
         message?.startsWith("Early access consent") == true -> CONSENT_REQUIRED_ERROR
+        message?.startsWith("Lead metadata") == true -> INVALID_METADATA_ERROR
         else -> null
     }
 
@@ -83,6 +104,10 @@ class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
         private const val INVALID_EMAIL_ERROR = "invalid_email"
         private const val INVALID_SOURCE_ERROR = "invalid_source"
         private const val INVALID_LOCALE_ERROR = "invalid_locale"
+        private const val INVALID_METADATA_ERROR = "invalid_metadata"
+        private const val MAX_METADATA_ENTRIES = 20
+        private const val MAX_METADATA_KEY_LENGTH = 64
+        private const val MAX_METADATA_VALUE_LENGTH = 500
         private const val DEFAULT_CONSENT_VERSION = "2026-07-17"
     }
 }
