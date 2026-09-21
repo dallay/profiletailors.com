@@ -14,7 +14,7 @@ class UnsplashProblemDetailsHandlerTest {
 
     @Test
     fun `not configured exception maps to 503 problem detail`() {
-        val result = handler.handle(UnsplashProviderNotConfiguredException())
+        val result = handler.handleProviderNotConfigured()
 
         result.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
         result.title shouldBe "Unsplash is not configured"
@@ -24,7 +24,7 @@ class UnsplashProblemDetailsHandlerTest {
 
     @Test
     fun `photo not found exception maps to 404 with id omitted`() {
-        val result = handler.handle(UnsplashPhotoNotFoundException("photo-404"))
+        val result = handler.handleUnsplashPhotoNotFound()
 
         result.status shouldBe HttpStatus.NOT_FOUND.value()
         result.title shouldBe "Unsplash photo not found"

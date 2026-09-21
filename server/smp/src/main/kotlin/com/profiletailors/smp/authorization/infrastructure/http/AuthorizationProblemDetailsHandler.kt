@@ -10,8 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class AuthorizationProblemDetailsHandler {
 
     @ExceptionHandler(AuthorizationDeniedException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: AuthorizationDeniedException): ProblemDetail =
+    fun handleAuthorizationDenied(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, AUTHORIZATION_DENIED_DETAIL).apply {
             title = "Authorization denied"
         }

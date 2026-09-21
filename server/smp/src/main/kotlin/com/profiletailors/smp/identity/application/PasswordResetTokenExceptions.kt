@@ -7,7 +7,7 @@ class ExpiredPasswordResetTokenException : InvalidPasswordResetTokenException()
 
 class UsedPasswordResetTokenException : InvalidPasswordResetTokenException()
 
-class PasswordRecoveryPasswordException(@Suppress("UNUSED_PARAMETER") password: String) :
+class PasswordRecoveryPasswordException(val password: String = "") :
     RuntimeException("Password does not meet policy requirements.")
 
 class PasswordResetRateLimitExceededException :

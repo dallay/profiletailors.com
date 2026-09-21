@@ -11,7 +11,7 @@ class AuthorizationProblemDetailsHandlerTest {
 
     @Test
     fun `authorization denied returns generic forbidden problem detail`() {
-        val problem = handler.handle(AuthorizationDeniedException("Permission workspace.manage was explicitly denied."))
+        val problem = handler.handleAuthorizationDenied()
 
         problem.status shouldBe HttpStatus.FORBIDDEN.value()
         problem.title shouldBe "Authorization denied"
