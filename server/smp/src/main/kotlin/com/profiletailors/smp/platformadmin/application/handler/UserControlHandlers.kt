@@ -53,6 +53,12 @@ open class UserControlHandlers(
             command.targetPrincipalId,
             AdminAuditAction.USER_DISABLED,
         )
+        requireNoSelfTarget(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_DISABLED,
+        )
         return executeStateChange(
             operation = "disable",
             context = AuditContext(
@@ -76,6 +82,12 @@ open class UserControlHandlers(
             command.targetPrincipalId,
             AdminAuditAction.USER_ENABLED,
         )
+        requireNoSelfTarget(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_ENABLED,
+        )
         return executeStateChange(
             operation = "enable",
             context = AuditContext(
@@ -94,6 +106,12 @@ open class UserControlHandlers(
 
     suspend fun revokeSessions(command: RevokeUserSessionsCommand): UserSessionsRevokeResult {
         requirePermission(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_SESSIONS_REVOKED,
+        )
+        requireNoSelfTarget(
             command.operatorRoles,
             command.operatorPrincipalId,
             command.targetPrincipalId,
@@ -190,6 +208,30 @@ open class UserControlHandlers(
                     ),
                     result = AdminAuditResult.REJECTED,
                     reason = "Platform user-management permission required.",
+                ),
+            )
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_MANAGE)
+        }
+    }
+
+    private suspend fun requireNoSelfTarget(
+        roles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
+        operatorPrincipalId: UUID,
+        targetPrincipalId: String,
+        action: AdminAuditAction,
+    ) {
+        if (operatorPrincipalId.toString() == targetPrincipalId) {
+            telemetry.recordAuthorizationRejected(action.metricOperation)
+            auditPublisher.publish(
+                auditEvent(
+                    AuditContext(
+                        operatorPrincipalId = operatorPrincipalId,
+                        operatorRoles = roles,
+                        targetPrincipalId = targetPrincipalId,
+                        action = action,
+                    ),
+                    AdminAuditResult.REJECTED,
+                    reason = "Self-targeted user control operation is not allowed.",
                 ),
             )
             throw PlatformAccessDeniedException(PlatformPermission.USERS_MANAGE)

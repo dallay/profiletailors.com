@@ -16,6 +16,7 @@ import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -360,6 +361,96 @@ class UserControlHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `rejects self-disable without touching account state or sessions`() = runTest {
+        val selfTarget = operatorId.toString()
+        val gateway = mockk<AccountStateGateway>()
+        coEvery { gateway.findAccountState(selfTarget) } returns UserAccountState.ACTIVE
+        coEvery { gateway.changeAccountState(any(), any(), any()) } returns true
+        val sessions = FakeRefreshSessionLifecycleService(3)
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(gateway, sessions, audit, telemetry)
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.disable(
+                    DisableUserCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        selfTarget,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_DISABLED", audit.events.single().action.name)
+        assertEquals(selfTarget, audit.events.single().targetId)
+        assertEquals(listOf("disable:rejected"), telemetry.records)
+        assertEquals(emptyList<String>(), sessions.revoked)
+        coVerify(exactly = 0) { gateway.changeAccountState(any(), any(), any()) }
+    }
+
+    @Test
+    fun `rejects self-revoke without revoking sessions`() = runTest {
+        val selfTarget = operatorId.toString()
+        val gateway = mockk<AccountStateGateway>()
+        coEvery { gateway.findAccountState(selfTarget) } returns UserAccountState.ACTIVE
+        val sessions = FakeRefreshSessionLifecycleService(2)
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(gateway, sessions, audit, telemetry)
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.revokeSessions(
+                    RevokeUserSessionsCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        selfTarget,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_SESSIONS_REVOKED", audit.events.single().action.name)
+        assertEquals(selfTarget, audit.events.single().targetId)
+        assertEquals(listOf("sessions_revoke:rejected"), telemetry.records)
+        assertEquals(emptyList<String>(), sessions.revoked)
+    }
+
+    @Test
+    fun `rejects self-enable without touching account state`() = runTest {
+        val selfTarget = operatorId.toString()
+        val gateway = mockk<AccountStateGateway>()
+        coEvery { gateway.findAccountState(selfTarget) } returns UserAccountState.DISABLED
+        coEvery { gateway.changeAccountState(any(), any(), any()) } returns true
+        val sessions = FakeRefreshSessionLifecycleService(0)
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(gateway, sessions, audit, telemetry)
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.enable(
+                    EnableUserCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        selfTarget,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_ENABLED", audit.events.single().action.name)
+        assertEquals(selfTarget, audit.events.single().targetId)
+        assertEquals(listOf("enable:rejected"), telemetry.records)
+        coVerify(exactly = 0) { gateway.changeAccountState(any(), any(), any()) }
     }
 
     private fun handlers(
