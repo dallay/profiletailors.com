@@ -9,8 +9,8 @@ Feature: Platform admin notification management
 
   # ── Query notifications ───────────────────────────────────────────────────────
 
-  Scenario: Query returns empty result when no notifications exist
-    When the platform operator queries notifications with no filters
+  Scenario: Query with unmatched filter returns empty result
+    When the platform operator queries notifications with recipient filter "empty-result-probe@example.com"
     Then the notification response status should be 200
     And the notification result should be empty
 

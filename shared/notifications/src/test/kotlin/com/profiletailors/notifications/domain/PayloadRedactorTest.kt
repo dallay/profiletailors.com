@@ -188,6 +188,21 @@ internal class PayloadRedactorTest {
     }
 
     @Test
+    fun `redactPayload removes invitation and reset link keys`() {
+        val payload = mapOf(
+            "recipient" to "user@test.com",
+            "inviteLink" to "https://example.com/invite?token=xyz789",
+            "resetLink" to "https://example.com/reset?token=abc123",
+            "resetUrl" to "https://example.com/reset?token=def456",
+        )
+        val result = redactPayload(payload)
+        assertEquals("[REDACTED]", result["inviteLink"])
+        assertEquals("[REDACTED]", result["resetLink"])
+        assertEquals("[REDACTED]", result["resetUrl"])
+        assertEquals("user@test.com", result["recipient"])
+    }
+
+    @Test
     fun `redactSensitiveValue redacts values containing sensitive substrings`() {
         assertEquals("[REDACTED]", redactSensitiveValue("Failed to send email: authentication token expired"))
         assertEquals("[REDACTED]", redactSensitiveValue("invalid password supplied"))

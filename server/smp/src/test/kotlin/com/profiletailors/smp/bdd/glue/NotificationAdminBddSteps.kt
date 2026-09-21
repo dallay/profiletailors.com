@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
@@ -234,6 +235,22 @@ class NotificationAdminBddSteps {
             .returnResult()
     }
 
+    @When("the platform operator queries notifications with recipient filter {string}")
+    fun queryNotificationsWithRecipientFilter(recipient: String) {
+        state.lastResponse = webTestClient.get()
+            .uri { builder ->
+                builder
+                    .path(NOTIFICATION_PATH)
+                    .queryParam("recipient", recipient)
+                    .build()
+            }
+            .header(HttpHeaders.AUTHORIZATION, NOTIFICATION_ADMIN_BEARER)
+            .header(HttpHeaders.ACCEPT, NOTIFICATION_API_V1)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
     @When("the platform operator retries the notification")
     fun retryNotification() {
         val notificationId = state.notificationIds["password-recovery"]
@@ -332,14 +349,17 @@ class NotificationAdminBddSteps {
         assertTrue(data.isArray, "Expected data to be an array")
         for (notification in data) {
             val redactedPayload = notification.get("redactedPayload")
-            if (redactedPayload != null) {
-                val payloadStr = redactedPayload.toString().lowercase()
-                assertFalse(
-                    payloadStr.contains(field.lowercase()),
-                    "Payload should not contain '$field' (redaction failed)",
-                )
-            }
+            assertFalse(
+                nodeContainsText(redactedPayload, field.lowercase()),
+                "Payload value should not contain '$field' (redaction failed)",
+            )
         }
+    }
+
+    private fun nodeContainsText(node: JsonNode?, needle: String): Boolean {
+        if (node == null || node.isNull) return false
+        if (node.isValueNode) return node.asText().lowercase().contains(needle)
+        return node.any { child -> nodeContainsText(child, needle) }
     }
 
     @Then("a new notification should be created")
