@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) : PrincipalIdentityLookup {
+    /** Finds principal identity facts for [email]. */
     override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = databaseClient.sql(
         """
             SELECT p.id,
@@ -33,6 +34,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         .one()
         .awaitSingleOrNull()
 
+    /** Finds principal identity facts for [principalId]. */
     override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = databaseClient.sql(
         """
             SELECT p.id,
@@ -54,6 +56,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         .one()
         .awaitSingleOrNull()
 
+    /** Finds principal identity facts by external subject and optional provider. */
     override suspend fun findBySubject(
         principalType: PrincipalType,
         subject: String,
@@ -109,6 +112,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
             .awaitSingleOrNull()
     }
 
+    /** Maps a database [row] to principal identity facts. */
     private fun mapPrincipalIdentityFacts(row: Readable): PrincipalIdentityFacts {
         val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
         val emailStatusRaw = row.get("email_status", String::class.java)

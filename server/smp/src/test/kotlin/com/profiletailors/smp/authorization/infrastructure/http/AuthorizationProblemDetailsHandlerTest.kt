@@ -9,6 +9,7 @@ class AuthorizationProblemDetailsHandlerTest {
 
     private val handler = AuthorizationProblemDetailsHandler()
 
+    /** Verifies that authorization details are not exposed to callers. */
     @Test
     fun `authorization denied returns generic forbidden problem detail`() {
         val problem = handler.handleAuthorizationDenied()

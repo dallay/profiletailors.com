@@ -294,6 +294,10 @@ or `PasswordResetTokenExceptions.kt`. The system MUST NOT contain `@Suppress("To
 in `McpAuditEmitter.kt`. Handlers SHALL drop unused parameters or convert parameters to class properties,
 R2DBC mappers SHALL accept `Readable` without unused `RowMetadata`, and `McpAuditEmitter` SHALL catch
 `JsonProcessingException` and `IllegalArgumentException` instead of catching generic `RuntimeException`.
+The R2DBC mapper refactor remains governed by
+[ADR-0002](../../../docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md) and
+[ADR-0003](../../../docs/architecture/adr/0003-mandatory-reactive-stack.md); it introduces no new
+architectural decision.
 
 #### Scenario: All 6 target suppressions removed
 
