@@ -78,6 +78,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
           command: pages deploy dist --project-name=app-profile-tailors --branch=production --commit-dirty=true
           workingDirectory: ./apps/web/app
 
@@ -144,6 +145,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
           command: pages deploy dist --project-name=profiletailors-admin --branch=production --commit-dirty=true
           workingDirectory: ./apps/web/admin
 
@@ -209,6 +211,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
           command: pages deploy dist --project-name=profiletailors --branch=production --commit-dirty=true
           workingDirectory: ./apps/web/marketing
 
