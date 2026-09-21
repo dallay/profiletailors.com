@@ -71,9 +71,9 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     key: 'notifications',
     routeName: 'notifications',
     path: 'notifications',
-    permission: 'platform.dashboard.read',
-    status: 'planned',
-    icon: '♪',
+    permission: 'platform.notifications.read',
+    status: 'live',
+    icon: '▣',
     labelKey: 'nav.notifications',
   },
   {

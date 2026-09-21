@@ -23,6 +23,8 @@ enum class PlatformPermission(val key: String) {
     PUBLISHING_STALE_READ("platform.publishing.stale.read"),
     CONFIGURATION_READ("platform.configuration.read"),
     CONFIGURATION_MANAGE("platform.configuration.manage"),
+    NOTIFICATIONS_READ("platform.notifications.read"),
+    NOTIFICATIONS_MANAGE("platform.notifications.manage"),
     ;
 
     companion object {
@@ -53,11 +55,14 @@ val PLATFORM_ROLE_PERMISSIONS: Map<PlatformRole, Set<PlatformPermission>> = mapO
         PlatformPermission.OPERATORS_READ,
         PlatformPermission.PUBLISHING_STALE_READ,
         PlatformPermission.CONFIGURATION_READ,
+        PlatformPermission.NOTIFICATIONS_READ,
+        PlatformPermission.NOTIFICATIONS_MANAGE,
     ),
     PlatformRole.SUPPORT_AGENT to setOf(
         PlatformPermission.USERS_READ,
         PlatformPermission.WAITLIST_READ,
         PlatformPermission.USERS_WORKSPACES_READ,
+        PlatformPermission.NOTIFICATIONS_READ,
     ),
     PlatformRole.AUDITOR to setOf(
         PlatformPermission.AUDIT_READ,
@@ -66,6 +71,7 @@ val PLATFORM_ROLE_PERMISSIONS: Map<PlatformRole, Set<PlatformPermission>> = mapO
         PlatformPermission.USERS_READ,
         PlatformPermission.OPERATORS_READ,
         PlatformPermission.CONFIGURATION_READ,
+        PlatformPermission.NOTIFICATIONS_READ,
     ),
 )
 

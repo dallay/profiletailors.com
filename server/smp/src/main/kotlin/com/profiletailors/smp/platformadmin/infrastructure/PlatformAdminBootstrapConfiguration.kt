@@ -23,6 +23,8 @@ import com.profiletailors.smp.platformadmin.application.contracts.InvitationEven
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
+import com.profiletailors.smp.platformadmin.application.contracts.NotificationEventPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.NotificationRepositoryPort
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.UserControlTelemetry
@@ -38,6 +40,7 @@ import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHa
 import com.profiletailors.smp.platformadmin.application.handler.RegistrationModeHandlers
 import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.RetryNotificationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
@@ -356,5 +359,20 @@ class PlatformAdminBootstrapConfiguration {
         tokenHasher = tokenHasher,
         invitationTokenCandidateKey = invitationTokenCandidateKey,
         acceptUrlTemplateFn = acceptUrlTemplate,
+    )
+
+    @Bean
+    fun retryNotificationHandler(
+        notificationRepository: NotificationRepositoryPort,
+        auditPublisher: AdministrativeAuditPublisher,
+        eventPublisher: NotificationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        clock: Clock,
+    ): RetryNotificationHandler = RetryNotificationHandler(
+        notificationRepository = notificationRepository,
+        auditPublisher = auditPublisher,
+        eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        clock = clock,
     )
 }

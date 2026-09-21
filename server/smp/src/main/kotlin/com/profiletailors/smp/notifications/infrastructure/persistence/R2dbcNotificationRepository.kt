@@ -88,6 +88,13 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             .asFlow()
             .firstOrNull()
 
+    override suspend fun findById(id: NotificationId): Notification? = databaseClient.sql(SELECT_BY_ID_SQL)
+        .bind("id", id.value)
+        .map { row, _ -> row.toNotification() }
+        .one()
+        .asFlow()
+        .firstOrNull()
+
     companion object {
         private val JSONB_PAIR: Regex = Regex(""""([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"""")
 
@@ -115,6 +122,13 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
                    status, sent_at, failed_at, error_message, created_at, updated_at
             FROM notifications
             WHERE idempotency_key = :idempotencyKey
+        """
+
+        private const val SELECT_BY_ID_SQL = """
+            SELECT id, idempotency_key, channel, recipient, template_id, payload,
+                   status, sent_at, failed_at, error_message, created_at, updated_at
+            FROM notifications
+            WHERE id = :id
         """
 
         private fun Instant.toUtcLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(this, ZoneOffset.UTC)
