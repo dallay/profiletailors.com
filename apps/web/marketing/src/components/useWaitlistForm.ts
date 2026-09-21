@@ -5,7 +5,7 @@ import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share
 
 const SUCCESS_HIDDEN = 'hidden'
 
-interface WaitlistMessages {
+type WaitlistMessages = {
   validEmail: string
   tooManyRequests: string
   genericError: string
