@@ -13,6 +13,7 @@ import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
+import com.profiletailors.storage.domain.StorageSecurityException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -331,6 +332,86 @@ class GeneratePresignedUrlUseCaseTest {
         assertEquals(StorageObservation.Providers.S3, event.attributes["provider"])
         assertEquals(setOf("operation", "provider"), event.attributes.keys)
         assertTrue(event.cause is IllegalArgumentException)
+    }
+
+    @Test
+    fun `reject presigned URL with absolute bucket without signing`() = runTest {
+        var presignCalls = 0
+        val delegate = MockPresignableStorage()
+        val storage = object : PresignableStorage by delegate {
+            override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
+                presignCalls++
+                return delegate.presignGet(bucket, key, expirySeconds)
+            }
+        }
+        val errors = mutableListOf<String>()
+        val presignResults = mutableListOf<Boolean>()
+        val metrics = object : StorageObservation by TestStorageMetrics() {
+            override fun recordError(operation: String, provider: String, bucket: String, errorType: String) {
+                errors += errorType
+            }
+
+            override fun recordPresignedUrlGenerated(provider: String, success: Boolean) {
+                presignResults += success
+            }
+        }
+        val useCase =
+            GeneratePresignedUrlUseCase(
+                storage,
+                createMockEventPublisher(),
+                metrics,
+                MockRateLimiter(),
+                maxExpirySeconds = 3600,
+            )
+
+        assertThrows<StorageSecurityException> {
+            runBlocking {
+                useCase.execute("/absolute/bucket", "test.txt", 3600, "user-123")
+            }
+        }
+        assertTrue(presignCalls == 0)
+        assertTrue(errors.contains(StorageObservation.ErrorTypes.SECURITY))
+        assertTrue(presignResults.contains(false))
+    }
+
+    @Test
+    fun `reject presigned URL with traversal key without signing`() = runTest {
+        var presignCalls = 0
+        val delegate = MockPresignableStorage()
+        val storage = object : PresignableStorage by delegate {
+            override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
+                presignCalls++
+                return delegate.presignGet(bucket, key, expirySeconds)
+            }
+        }
+        val errors = mutableListOf<String>()
+        val presignResults = mutableListOf<Boolean>()
+        val metrics = object : StorageObservation by TestStorageMetrics() {
+            override fun recordError(operation: String, provider: String, bucket: String, errorType: String) {
+                errors += errorType
+            }
+
+            override fun recordPresignedUrlGenerated(provider: String, success: Boolean) {
+                presignResults += success
+            }
+        }
+        val useCase =
+            GeneratePresignedUrlUseCase(
+                storage,
+                createMockEventPublisher(),
+                metrics,
+                MockRateLimiter(),
+                maxExpirySeconds = 3600,
+            )
+
+        assertThrows<StorageSecurityException> {
+            runBlocking {
+                useCase.execute("test-bucket", "../../etc/passwd", 3600, "user-123")
+            }
+        }
+        assertTrue(presignCalls == 0)
+        assertTrue(errors.contains(StorageObservation.ErrorTypes.SECURITY))
+        assertTrue(presignResults.contains(false))
     }
 
     @Test
