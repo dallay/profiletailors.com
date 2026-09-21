@@ -366,11 +366,13 @@ class PlatformAdminBootstrapConfiguration {
         notificationRepository: NotificationRepositoryPort,
         auditPublisher: AdministrativeAuditPublisher,
         eventPublisher: NotificationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
         clock: Clock,
     ): RetryNotificationHandler = RetryNotificationHandler(
         notificationRepository = notificationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
         clock = clock,
     )
 }

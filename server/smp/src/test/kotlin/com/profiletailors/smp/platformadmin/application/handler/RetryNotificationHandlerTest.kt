@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationChannel
 import com.profiletailors.notifications.domain.NotificationId
@@ -44,6 +45,7 @@ internal class RetryNotificationHandlerTest {
         notificationRepository = notificationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = RecordingTransactionRunner(),
         clock = fixedClock,
     )
 
@@ -236,7 +238,7 @@ internal class RetryNotificationHandlerTest {
         }
 
         val auditEventSlot = slot<AdminAuditEvent>()
-        coVerify { auditPublisher.publish(capture(auditEventSlot)) }
+        coVerify(exactly = 1) { auditPublisher.publish(capture(auditEventSlot)) }
 
         val captured = auditEventSlot.captured
         assert(captured.action.name == "NOTIFICATION_RETRIED")
@@ -291,5 +293,9 @@ internal class RetryNotificationHandlerTest {
         assert(captured.metadata["retryOutcome"] == "SUCCESS")
         assert(captured.metadata["notificationId"] == "ntf-123")
         assert(captured.metadata["retryNotificationId"] == result.id)
+    }
+
+    private class RecordingTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
     }
 }

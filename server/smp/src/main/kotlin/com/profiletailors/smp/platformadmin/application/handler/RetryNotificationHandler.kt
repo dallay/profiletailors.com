@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationId
@@ -33,6 +34,7 @@ class RetryNotificationHandler(
     private val notificationRepository: NotificationRepositoryPort,
     private val auditPublisher: AdministrativeAuditPublisher,
     private val eventPublisher: NotificationEventPublisher,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
 ) {
     suspend fun handle(command: RetryNotificationCommand): NotificationSummary {
@@ -42,14 +44,29 @@ class RetryNotificationHandler(
         }
 
         val existing = loadRetryableNotification(command)
-        val saved = persistRetryAttempt(command, existing)
 
-        eventPublisher.publish(
-            NotificationRetryRequested(
-                retryNotificationId = saved.id.value,
-                idempotencyKey = saved.idempotencyKey.value,
-            ),
-        )
+        val saved = try {
+            transactionRunner.runAtomically {
+                persistRetryAttempt(command, existing).also { attempt ->
+                    eventPublisher.publish(
+                        NotificationRetryRequested(
+                            retryNotificationId = attempt.id.value,
+                            idempotencyKey = attempt.idempotencyKey.value,
+                        ),
+                    )
+                }
+            }
+        } catch (dispatchFailure: NotificationDispatchException) {
+            publishOutcome(
+                operatorPrincipalId = command.operatorPrincipalId,
+                operatorRoles = command.operatorRoles,
+                notification = existing,
+                outcome = RetryOutcome.DISPATCH_FAILED,
+                result = AdminAuditResult.FAILED,
+                retryNotificationId = null,
+            )
+            throw dispatchFailure
+        }
 
         publishOutcome(
             operatorPrincipalId = command.operatorPrincipalId,
@@ -60,8 +77,11 @@ class RetryNotificationHandler(
             retryNotificationId = saved.id.value,
         )
 
-        val redactedPayload = redactPayload(saved.payload.variables.mapValues { it.value })
+        return toSummary(saved)
+    }
 
+    private fun toSummary(saved: Notification): NotificationSummary {
+        val redactedPayload = redactPayload(saved.payload.variables.mapValues { it.value })
         return NotificationSummary(
             id = saved.id.value,
             channel = saved.channel.name,
@@ -121,19 +141,7 @@ class RetryNotificationHandler(
             updatedAt = now,
         )
 
-        return try {
-            notificationRepository.save(retryNotification)
-        } catch (dispatchFailure: NotificationDispatchException) {
-            publishOutcome(
-                operatorPrincipalId = command.operatorPrincipalId,
-                operatorRoles = command.operatorRoles,
-                notification = existing,
-                outcome = RetryOutcome.DISPATCH_FAILED,
-                result = AdminAuditResult.FAILED,
-                retryNotificationId = null,
-            )
-            throw dispatchFailure
-        }
+        return notificationRepository.save(retryNotification)
     }
 
     private suspend fun publishOutcome(

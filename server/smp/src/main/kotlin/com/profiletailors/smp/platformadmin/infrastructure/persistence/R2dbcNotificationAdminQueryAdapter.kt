@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
-import java.time.OffsetDateTime
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 @Repository
@@ -49,11 +49,11 @@ class R2dbcNotificationAdminQueryAdapter(private val databaseClient: DatabaseCli
         }
         filters.createdFrom?.let {
             conditions += "n.created_at >= :createdFrom"
-            params["createdFrom"] = it.atOffset(ZoneOffset.UTC)
+            params["createdFrom"] = LocalDateTime.ofInstant(it, ZoneOffset.UTC)
         }
         filters.createdTo?.let {
             conditions += "n.created_at <= :createdTo"
-            params["createdTo"] = it.atOffset(ZoneOffset.UTC)
+            params["createdTo"] = LocalDateTime.ofInstant(it, ZoneOffset.UTC)
         }
 
         val where = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
@@ -118,12 +118,12 @@ class R2dbcNotificationAdminQueryAdapter(private val databaseClient: DatabaseCli
             recipient = get("recipient", String::class.java) ?: "",
             status = get("status", String::class.java) ?: "",
             errorMessage = get("error_message", String::class.java),
-            createdAt = getOffsetDateTime("created_at")?.toInstant() ?: Instant.EPOCH,
-            sentAt = getOffsetDateTime("sent_at")?.toInstant(),
-            failedAt = getOffsetDateTime("failed_at")?.toInstant(),
+            createdAt = getLocalDateTime("created_at")?.toInstant(ZoneOffset.UTC) ?: Instant.EPOCH,
+            sentAt = getLocalDateTime("sent_at")?.toInstant(ZoneOffset.UTC),
+            failedAt = getLocalDateTime("failed_at")?.toInstant(ZoneOffset.UTC),
             redactedPayload = redactedPayload,
         )
     }
 
-    private fun Readable.getOffsetDateTime(column: String): OffsetDateTime? = get(column, OffsetDateTime::class.java)
+    private fun Readable.getLocalDateTime(column: String): LocalDateTime? = get(column, LocalDateTime::class.java)
 }
