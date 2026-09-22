@@ -175,6 +175,23 @@ export type MessageSchema = {
     changeConfirm: string
     changeSuccess: string
   }
+  notifications: {
+    title: string
+    channel: string
+    template: string
+    recipient: string
+    error: string
+    retry: string
+    retryConfirm: string
+    retrySuccess: string
+    retryNotEligible: string
+    empty: string
+    allStatuses: string
+    allChannels: string
+    filterStatus: string
+    filterChannel: string
+    statuses: { pending: string; sent: string; failed: string }
+  }
   directInvitations: {
     title: string
     subtitle: string
@@ -226,5 +243,7 @@ export type MessageSchema = {
     INVITATION_VERSION_CONFLICT: string
     OPTIMISTIC_LOCK_CONFLICT: string
     INTERNAL_ERROR: string
+    NOTIFICATION_NOT_RETRYABLE: string
+    IDEMPOTENCY_KEY_REUSED: string
   }
 }

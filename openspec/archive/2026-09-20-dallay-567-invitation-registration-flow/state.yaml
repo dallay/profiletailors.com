@@ -1,0 +1,25 @@
+change: dallay-567-accept-invitations-registration-flow
+current_phase: archive
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - qa
+  - archive
+next: null
+updated: "2026-09-20"
+linear_issue: DALLAY-567
+active_linear_issue: DALLAY-556
+persistence_mode: openspec
+bounded_contexts:
+  - identity
+  - platformadmin
+  - tenancy
+note: >
+  Archived. QA completed with PASS verdict. All scenarios resolved: QA-06..QA-10 (5/5),
+  QA-21 (manual acceptance 4x PASS by operator). P2 warning QA-16 acknowledged as acceptable risk
+  (raw-token URL exposure). Delta specs synced to main specs. Local evidence: 36/36 Playwright,
+  1,729/1,729 Vitest, 24/24 + 20/20 BDD. All technical verification PASS.

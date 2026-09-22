@@ -21,20 +21,21 @@ export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   el.textContent = ''
   const spans: HTMLSpanElement[] = []
 
-  Array.from(text).forEach((char) => {
-    if (char === '\n') {
+  for (const token of text.split(/(\n| +)/)) {
+    if (token === '\n') {
       el.appendChild(document.createElement('br'))
-      return
+      continue
     }
+    if (token === '') continue
     const span = document.createElement('span')
-    span.textContent = char
+    span.textContent = token
     span.style.display = 'inline-block'
     span.style.whiteSpace = 'pre'
     span.style.backfaceVisibility = 'hidden'
     span.setAttribute('aria-hidden', 'true')
     el.appendChild(span)
     spans.push(span)
-  })
+  }
 
   return spans
 }
