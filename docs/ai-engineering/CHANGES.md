@@ -10,10 +10,12 @@
 **Status**: ✅ **ARCHIVED** — Full lifecycle complete
 
 ### Linear Issue
+
 - **Issue**: `DALLAY-567`
 - **Link**: Linear issue tracker (requires Linear MCP or web access)
 
 ### OpenSpec Change
+
 - **Path**: `openspec/archive/2026-09-20-dallay-567-invitation-registration-flow/`
 - **Type**: Delta spec for invitations capability
 
@@ -37,6 +39,7 @@
 - **Quality gates**: Detekt, Spotless, `git diff --check` — all PASS
 
 ### Key Verdict
+
 - **Verification**: `PASS` — all 12 tasks complete
 - **QA**: `PASS` — 5/5 scenarios (QA-06..QA-10), manual acceptance 4x PASS
 - **Archive date**: 2026-09-20
@@ -72,10 +75,12 @@ Linear issue closed
 **Status**: 🔄 **NEARLY COMPLETE** — Ready for archive after QA
 
 ### Linear Issue
+
 - **Issue**: `hotfix-direct-invitation`
 - **Reference**: `openspec/changes/hotfix-direct-invitation-issued-by-fk/`
 
 ### OpenSpec Change
+
 - **Path**: `openspec/changes/hotfix-direct-invitation-issued-by-fk/`
 
 ### Artifacts
@@ -99,6 +104,7 @@ Linear issue closed
 ### Key Findings
 
 The verify report confirms:
+
 - Zero migrations required
 - InvitationId untouched
 - All writers properly gated through `PlatformPrincipalIds.fromUuid`
@@ -131,10 +137,12 @@ Linear issue closed
 **Status**: ⚠️ **QA BLOCKED** — Technical verification complete, acceptance testing pending
 
 ### Linear Issues
+
 - **Primary**: `DALLAY-555` (publishing controls)
 - **Secondary**: `DALLAY-557`
 
 ### OpenSpec Change
+
 - **Path**: `openspec/changes/private-beta-launch-readiness/`
 
 ### Artifacts
@@ -159,6 +167,7 @@ Linear issue closed
 ### Blockers
 
 The QA report documents:
+
 1. **BLOCKED**: Managed-beta acceptance evidence not available
 2. **WARNING**: Production is reachable but no approved mutation permissions
 3. **WARNING**: Deployed v0.4.1 image is pre-change/mismatched release
@@ -237,6 +246,7 @@ linear_issue: DALLAY-567
 ```
 
 The Linear MCP configuration in `.mcp.json` enables agents to:
+
 - Read issue details
 - Update issue status
 - Add comments

@@ -79,6 +79,7 @@
 ### Review Evidence
 
 The tenancy remediation review documented:
+
 - **2 HIGH severity findings** → Fixed in implementation
 - **4 MEDIUM severity findings** → Fixed in implementation
 - **4 LOW severity findings** → Acknowledged
@@ -104,6 +105,7 @@ This demonstrates a **real finding** that was **corrected**.
 ### Honest Limitation
 
 GitHub Copilot does not expose token counts or tool call statistics through its API. The document:
+
 - Provides **estimated ranges** based on typical workflows
 - Documents **how to collect real metrics** manually
 - Explains **what cannot be measured automatically**

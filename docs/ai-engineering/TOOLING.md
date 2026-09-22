@@ -1,7 +1,6 @@
 # AI-Assisted Engineering — Tool Selection Decisions
 
 > This document explains why ProfileTailors uses specific tools and the engineering rationale behind each choice.
-
 > Built with [Agent Harness](https://github.com/yacosta738/agent-harness) — a personal framework for AI-assisted engineering.
 
 ---
@@ -15,6 +14,7 @@ ProfileTailors needs a spec-driven workflow: ticket → spec → implementation 
 ### Solution Used by ProfileTailors
 
 **OpenSpec** is a spec-driven development (SDD) system with:
+
 - Phase DAG: `init → explore → propose → [spec + design] → tasks → apply → verify → qa → archive`
 - `state.yaml` tracking for every change
 - `config.yaml` defining testing capabilities and quality gates
@@ -22,6 +22,7 @@ ProfileTailors needs a spec-driven workflow: ticket → spec → implementation 
 - Phase ownership with explicit deliverables
 
 **Files**:
+
 - `openspec/config.yaml` — configuration
 - `openspec/README.md` — lifecycle documentation
 - `openspec/changes/<name>/` — change artifacts
@@ -84,6 +85,7 @@ ProfileTailors needs 3-4 reusable skills for common tasks.
 ```
 
 **AgentSync**: `.agents/agentsync.toml` synchronizes skills to:
+
 - `.claude/skills/` (Claude Code)
 - `.codex/skills/` (GitHub Copilot)
 - `.gemini/skills/` (Gemini)
@@ -145,6 +147,7 @@ ProfileTailors uses Jira as an example. The workflow requires reading tickets an
 ```
 
 **Features**:
+
 - Read/write issues
 - List projects, teams, cycles
 - Create comments and attachments
@@ -242,12 +245,14 @@ ProfileTailors requires a non-mutating review command that reads specs and repor
 **Four-R Review Pattern**:
 
 `docs/reviews/4r-review-tenancy-remediation.md` documents a comprehensive review covering:
+
 - **Risk**: Security and architectural risks
 - **Readability**: Code clarity and documentation
 - **Reliability**: Error handling and edge cases
 - **Resilience**: Concurrency, transactions, rollback
 
 **Agent-based review** via maintenance agents:
+
 - `adr-consistency-auditor.md`
 - `api-contract-drift-auditor.md`
 - `security-configuration-drift-auditor.md`
@@ -294,6 +299,7 @@ Multiple AI agents need consistent instructions and skills.
 ### Solution Used by ProfileTailors
 
 **AgentSync** (`.agents/agentsync.toml`) automatically:
+
 - Syncs `AGENTS.md` to root, `.claude/`, `.codex/`, `.gemini/`
 - Propagates skills to agent-specific directories
 - Manages MCP configuration across tools

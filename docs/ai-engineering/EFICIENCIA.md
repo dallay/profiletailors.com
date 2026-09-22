@@ -17,6 +17,7 @@ A developer working without a structured AI workflow:
 5. Iterates based on feedback
 
 **Assumptions**:
+
 - Same developer capability in both scenarios
 - Same codebase complexity
 - Same IDE (VS Code with GitHub Copilot)
@@ -33,6 +34,7 @@ A developer using ProfileTailors' workflow:
 6. Submits to structured review
 
 **Tools used**:
+
 - GitHub Copilot with `.github/copilot-instructions.md`
 - OpenSpec phase artifacts
 - `just` command hub
@@ -53,7 +55,8 @@ The same task: Implement a small bounded change (e.g., add a new endpoint with t
 
 **Start**: Developer receives task description (Linear issue or PR description)
 
-**End**: 
+**End**:
+
 - Baseline: Code committed with informal review
 - Structured: OpenSpec archived with `state.yaml` showing `current_phase: archive`
 
@@ -89,6 +92,7 @@ To collect these metrics:
 ### Why Baseline Uses More Output Tokens
 
 Without structured guidance:
+
 - Developer asks more follow-up questions
 - More back-and-forth for clarification
 - Repeated context re-explanation
@@ -97,6 +101,7 @@ Without structured guidance:
 ### Why Structured Uses More Input Tokens
 
 With structured workflow:
+
 - Initial skill loading (~2,000 tokens)
 - OpenSpec artifact reading (~3,000 tokens)
 - Quality gate verification commands (~1,500 tokens)
@@ -111,6 +116,7 @@ With structured workflow:
 #### 1. Larger Initial Context (Structured Wins)
 
 The structured workflow has higher upfront cost:
+
 - Reading `AGENTS.md` (~500 tokens)
 - Loading relevant skills (~2,000 tokens)
 - Understanding OpenSpec phase (~3,000 tokens)
@@ -120,11 +126,13 @@ The structured workflow has higher upfront cost:
 #### 2. Fewer Implementation Retries (Structured Wins)
 
 Without structured guidance, developers often:
+
 - Implement wrong architecture (requires rework)
 - Miss edge cases (requires additional tests)
 - Violate patterns (requires refactoring)
 
 With structured workflow:
+
 - Skills prevent wrong architecture from the start
 - TDD ensures edge cases are covered
 - Quality gates catch violations before review
@@ -134,11 +142,13 @@ With structured workflow:
 #### 3. Specification Reuse (Structured Wins)
 
 OpenSpec artifacts are **amortized across the team**:
+
 - Future developers read the same spec
 - Consistency is automatic, not enforced manually
 - Onboarding is faster
 
 Without OpenSpec:
+
 - Each developer invents their own approach
 - Institutional knowledge is lost when developers leave
 - Inconsistency requires additional review effort
@@ -146,11 +156,13 @@ Without OpenSpec:
 #### 4. Reduced Ambiguity (Structured Wins)
 
 Structured workflow requires:
+
 - Explicit scope definition (proposal)
 - Clear acceptance criteria (spec)
 - Defined deliverable format (tasks)
 
 This eliminates:
+
 - "I thought you meant X" misunderstandings
 - Scope creep during implementation
 - Unclear completion criteria
@@ -158,11 +170,13 @@ This eliminates:
 #### 5. Review Cost (Structured Wins)
 
 Review under structured workflow:
+
 - Reviewer reads the same spec
 - Findings are categorized (4R: Risk, Readability, Reliability, Resilience)
 - Verdict is explicit (PASS/WARNINGS/FAIL)
 
 Without structure:
+
 - Reviewer must infer what "good" means
 - Findings may be subjective
 - Verdict is often implicit ("lgtm" with hidden concerns)
@@ -170,10 +184,12 @@ Without structure:
 #### 6. Cheaper Isolated Task Conversations (Baseline Wins)
 
 For trivial tasks (typo fixes, simple refactors):
+
 - Structured workflow overhead exceeds benefit
 - Skills and artifacts add noise without value
 
 **Recommendation**: Use structured workflow for tasks with:
+
 - Non-trivial scope (>1 hour)
 - Architecture implications
 - Multiple test types required
@@ -317,6 +333,7 @@ The structured ProfileTailors workflow has:
 **Lower total cost**: ~25–40% less duration for typical tasks
 
 **Better outcomes**:
+
 - More consistent code structure
 - Comprehensive test coverage
 - Explicit review criteria

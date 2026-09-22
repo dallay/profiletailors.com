@@ -69,6 +69,7 @@ This is not a demonstration or exercise. This is how ProfileTailors is actually 
 ### AGENTS.md
 
 Canonical instructions for all AI agents. Synchronized to:
+
 - Root `AGENTS.md` (symlink)
 - `.claude/`
 - `.codex/`
@@ -98,6 +99,7 @@ init → explore → propose → [spec + design] → tasks → apply → verify 
 ### MCP Servers
 
 Configured in `.mcp.json` and `.vscode/mcp.json`:
+
 - **Linear**: Issue tracking
 - **Playwright**: E2E testing
 - **Chrome DevTools**: Browser automation

@@ -39,6 +39,7 @@ openspec/specs/
 ### 2. Read Specification
 
 Read the specification completely, noting:
+
 - **Scope**: What is in scope, what is out
 - **Acceptance criteria**: How success is measured
 - **Key decisions**: Architecture choices, trade-offs
@@ -113,15 +114,18 @@ Structure findings using the 4R model:
 ## Verdict Definitions
 
 ### PASS
+
 - No findings, OR
 - Only LOW severity findings, OR
 - All findings are suggestions (not required changes)
 
 ### WARNINGS
+
 - At least one MEDIUM severity finding, OR
 - Multiple LOW severity findings that together indicate a pattern issue
 
 ### FAIL
+
 - At least one HIGH severity finding, OR
 - A finding that violates a spec requirement
 
@@ -151,6 +155,7 @@ Structure findings using the 4R model:
 ## Example Finding
 
 **Finding**: Missing null check for invitation ID
+
 - **File**: `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/AcceptInvitationHandler.kt:47`
 - **Spec violation**: "The handler MUST return 404 when invitation does not exist" (from `openspec/specs/invitations/spec.md`)
 - **Risk**: HIGH — Could throw NullPointerException if invitation ID is malformed
