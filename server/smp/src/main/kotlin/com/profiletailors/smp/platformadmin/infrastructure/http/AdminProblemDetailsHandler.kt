@@ -1,8 +1,12 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.smp.governance.application.AdminTakedownNotReviewableException
+import com.profiletailors.smp.governance.application.AdminTakedownReportNotFoundException
 import com.profiletailors.smp.identity.application.InvalidPrincipalStatusTransitionException
 import com.profiletailors.smp.identity.application.PrincipalNotFoundException
 import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyConflictException
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyInProgressException
 import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
@@ -147,6 +151,22 @@ class AdminProblemDetailsHandler {
 
     @ExceptionHandler(UserControlIdempotencyInProgressException::class)
     fun handle(ex: UserControlIdempotencyInProgressException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_IN_PROGRESS", ex.message)
+
+    @ExceptionHandler(AdminTakedownReportNotFoundException::class)
+    fun handle(ex: AdminTakedownReportNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "TAKEDOWN_REPORT_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(AdminTakedownNotReviewableException::class)
+    fun handle(ex: AdminTakedownNotReviewableException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "TAKEDOWN_REPORT_NOT_REVIEWABLE", ex.message)
+
+    @ExceptionHandler(ConfigurationIdempotencyConflictException::class)
+    fun handle(ex: ConfigurationIdempotencyConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED", ex.message)
+
+    @ExceptionHandler(ConfigurationIdempotencyInProgressException::class)
+    fun handle(ex: ConfigurationIdempotencyInProgressException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_IN_PROGRESS", ex.message)
 
     @ExceptionHandler(IllegalArgumentException::class)

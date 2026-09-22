@@ -98,7 +98,7 @@ internal class ResetPasswordHandler(
      */
     private fun validatePassword(password: String) {
         if (password.length !in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
-            throw PasswordRecoveryPasswordException(password)
+            throw PasswordRecoveryPasswordException()
         }
     }
 

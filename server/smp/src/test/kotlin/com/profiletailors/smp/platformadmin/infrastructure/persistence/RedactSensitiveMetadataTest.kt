@@ -84,4 +84,14 @@ class RedactSensitiveMetadataTest {
         assertEquals(1, redactParameters.size)
         assertEquals(Map::class, redactParameters.single().type.classifier)
     }
+
+    @Test
+    fun `redact keeps takedown report workspace and asset ids`() {
+        val input = mapOf(
+            "reportId" to "report-1",
+            "workspaceId" to "ws-a",
+            "assetId" to "asset-1",
+        )
+        assertEquals(input, redact(input))
+    }
 }

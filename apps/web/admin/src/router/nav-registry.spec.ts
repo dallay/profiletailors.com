@@ -58,10 +58,19 @@ describe('NAV_REGISTRY', () => {
     }
   })
 
-  it('marks overview and governance as planned', () => {
-    for (const key of ['overview', 'governance']) {
-      expect(NAV_REGISTRY.find((entry) => entry.key === key)?.status).toBe('planned')
-    }
+  it('marks overview as planned', () => {
+    expect(NAV_REGISTRY.find((entry) => entry.key === 'overview')?.status).toBe('planned')
+  })
+
+  it('marks governance as live with correct permission', () => {
+    const entry = NAV_REGISTRY.find((candidate) => candidate.key === 'governance')
+    expect(entry).toBeDefined()
+    expect(entry).toMatchObject({
+      routeName: 'governance',
+      path: 'governance',
+      permission: 'platform.governance.read',
+      status: 'live',
+    })
   })
 
   it('marks notifications as live with correct permission', () => {
@@ -71,13 +80,14 @@ describe('NAV_REGISTRY', () => {
     expect(entry?.permission).toBe('platform.notifications.read')
   })
 
-  it('keeps dashboard, waitlist, users, direct-invitations, audit and configuration live', () => {
+  it('keeps dashboard, waitlist, users, direct-invitations, audit, governance and configuration live', () => {
     for (const key of [
       'dashboard',
       'waitlist',
       'users',
       'direct-invitations',
       'audit',
+      'governance',
       'configuration',
     ]) {
       expect(NAV_REGISTRY.find((entry) => entry.key === key)?.status).toBe('live')

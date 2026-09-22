@@ -113,4 +113,36 @@ class PlatformPermissionTest {
         )
         assertFalse(PlatformPermission.CONFIGURATION_MANAGE in setOf(PlatformRole.AUDITOR).effectivePermissions())
     }
+
+    @Test
+    fun `registry includes governance read and manage keys`() {
+        assertEquals("platform.governance.read", PlatformPermission.GOVERNANCE_READ.key)
+        assertEquals("platform.governance.manage", PlatformPermission.GOVERNANCE_MANAGE.key)
+        assertTrue(PlatformPermission.GOVERNANCE_READ in PlatformPermission.entries)
+        assertTrue(PlatformPermission.GOVERNANCE_MANAGE in PlatformPermission.entries)
+    }
+
+    @Test
+    fun `owner and operator hold both governance keys`() {
+        for (role in listOf(PlatformRole.PLATFORM_OWNER, PlatformRole.PLATFORM_OPERATOR)) {
+            val perms = setOf(role).effectivePermissions()
+            assertTrue(PlatformPermission.GOVERNANCE_READ in perms)
+            assertTrue(PlatformPermission.GOVERNANCE_MANAGE in perms)
+        }
+    }
+
+    @Test
+    fun `auditor is governance read-only`() {
+        val perms = setOf(PlatformRole.AUDITOR).effectivePermissions()
+        assertTrue(PlatformPermission.GOVERNANCE_READ in perms)
+        assertFalse(PlatformPermission.GOVERNANCE_MANAGE in perms)
+    }
+
+    @Test
+    fun `support agent holds neither governance key`() {
+        val perms = setOf(PlatformRole.SUPPORT_AGENT).effectivePermissions()
+        assertFalse(PlatformPermission.GOVERNANCE_READ in perms)
+        assertFalse(PlatformPermission.GOVERNANCE_MANAGE in perms)
+        assertFalse(PlatformPermission.OPERATORS_READ in perms)
+    }
 }

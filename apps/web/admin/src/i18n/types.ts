@@ -33,6 +33,7 @@ export type MessageSchema = {
     previous: string
     yes: string
     no: string
+    back: string
   }
   auth: {
     signIn: string
@@ -160,6 +161,38 @@ export type MessageSchema = {
     filterByAction: string
     allResults: string
     results: { succeeded: string; rejected: string; failed: string }
+  }
+  governance: {
+    title: string
+    reportId: string
+    workspace: string
+    assetId: string
+    reportedBy: string
+    reason: string
+    status: string
+    reportedAt: string
+    reviewedAt: string
+    reviewer: string
+    rejectionReason: string
+    reporterEmail: string
+    mediaUrl: string
+    filterByStatus: string
+    allStatuses: string
+    approve: string
+    reject: string
+    approveConfirm: string
+    rejectConfirm: string
+    noAssetStatus: string
+    assetStatus: {
+      active: string
+      suspended: string
+      deleted: string
+    }
+    statuses: {
+      REPORTED: string
+      APPROVED: string
+      DISMISSED: string
+    }
   }
   operators: {
     title: string

@@ -5,7 +5,6 @@ import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
 import com.profiletailors.smp.identity.domain.EmailStatus
 import io.r2dbc.spi.Readable
-import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
@@ -83,7 +82,7 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
         """.trimIndent(),
     )
         .bind("tokenHash", tokenHash)
-        .map(::mapTokenData)
+        .map { row, _ -> mapTokenData(row) }
         .one()
         .awaitSingleOrNull()
 
@@ -141,14 +140,11 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
         """.trimIndent(),
     )
         .bind("email", email)
-        .map(::mapTokenData)
+        .map { row, _ -> mapTokenData(row) }
         .one()
         .awaitSingleOrNull()
 
-    private fun mapTokenData(
-        row: Readable,
-        @Suppress("UNUSED_PARAMETER") metadata: RowMetadata,
-    ): EmailVerificationTokenData = EmailVerificationTokenData(
+    private fun mapTokenData(row: Readable): EmailVerificationTokenData = EmailVerificationTokenData(
         email = requireNotNull(row.get("email", String::class.java)),
         tokenHash = requireNotNull(row.get("token_hash", String::class.java)),
         expiresAt = requireNotNull(row.get("expires_at", Instant::class.java)),

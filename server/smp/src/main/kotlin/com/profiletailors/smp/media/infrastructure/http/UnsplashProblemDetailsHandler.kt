@@ -18,12 +18,10 @@ class UnsplashProblemDetailsHandler {
     /**
      * Creates a problem detail response for an unconfigured Unsplash provider.
      *
-     * @param exception The exception describing the provider configuration issue.
      * @return A service-unavailable problem detail with the configuration error code.
      */
     @ExceptionHandler(UnsplashProviderNotConfiguredException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UnsplashProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleProviderNotConfigured(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
         UNSPLASH_NOT_CONFIGURED_DETAIL,
     ).apply {
@@ -34,13 +32,11 @@ class UnsplashProblemDetailsHandler {
     /**
      * Creates a not-found problem response for an unavailable Unsplash photo.
      *
-     * @param exception The exception containing the photo's external identifier and optional detail message.
      * @return A problem detail with HTTP status 404. The photo's external identifier is omitted
      * from the response to avoid leaking provider-side identifiers to the caller.
      */
     @ExceptionHandler(UnsplashPhotoNotFoundException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UnsplashPhotoNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleUnsplashPhotoNotFound(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.NOT_FOUND,
         UNSPLASH_PHOTO_NOT_FOUND_DETAIL,
     ).apply {

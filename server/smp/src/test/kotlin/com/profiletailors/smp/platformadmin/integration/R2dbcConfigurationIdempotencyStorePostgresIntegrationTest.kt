@@ -78,7 +78,7 @@ class R2dbcConfigurationIdempotencyStorePostgresIntegrationTest : PostgresIntegr
 
     @Test
     fun `should propagate non-duplicate storage failures`() = runTest {
-        val record = ConfigurationIdempotencyRecord(UUID.randomUUID(), "x".repeat(40), "key-1")
+        val record = ConfigurationIdempotencyRecord(UUID.randomUUID(), "x".repeat(129), "key-1")
 
         assertThrows(DataAccessException::class.java) {
             kotlinx.coroutines.runBlocking { store.claim(record) }

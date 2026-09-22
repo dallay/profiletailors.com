@@ -4,6 +4,8 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
+import com.profiletailors.smp.governance.application.AdminTakedownCommandPort
+import com.profiletailors.smp.governance.application.AdminTakedownQueryPort
 import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalLifecycle
@@ -30,6 +32,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.UserControlTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.handler.AdminTakedownHandlers
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.BulkInviteWaitlistEntriesHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
@@ -373,6 +376,19 @@ class PlatformAdminBootstrapConfiguration {
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
         transactionRunner = transactionRunner,
+        clock = clock,
+    )
+
+    @Bean
+    fun adminTakedownHandlers(
+        queryPort: AdminTakedownQueryPort,
+        commandPort: AdminTakedownCommandPort,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): AdminTakedownHandlers = AdminTakedownHandlers(
+        queryPort = queryPort,
+        commandPort = commandPort,
+        auditPublisher = auditPublisher,
         clock = clock,
     )
 }

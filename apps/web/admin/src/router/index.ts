@@ -85,6 +85,18 @@ const router = createRouter({
           component: () => import('@/views/NotificationsView.vue'),
           meta: { permission: 'platform.notifications.read' },
         },
+        {
+          path: 'governance',
+          name: 'governance',
+          component: () => import('@/views/GovernanceView.vue'),
+          meta: { permission: 'platform.governance.read' },
+        },
+        {
+          path: 'governance/:reportId',
+          name: 'governance-detail',
+          component: () => import('@/views/GovernanceView.vue'),
+          meta: { permission: 'platform.governance.read' },
+        },
         ...plannedNavEntries().map((entry) => ({
           path: entry.path,
           name: entry.routeName,

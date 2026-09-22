@@ -48,6 +48,7 @@ class PlatformAdminBddSteps {
         state.bulkEntryIds.clear()
         state.lastUserId = null
         state.idempotencyKey = null
+        state.takedownReportIds.clear()
         cleanupPlatformAdminData()
     }
 
