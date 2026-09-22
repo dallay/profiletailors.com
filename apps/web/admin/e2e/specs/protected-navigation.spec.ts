@@ -7,7 +7,7 @@ test.describe('protected admin navigation (mocked lane)', () => {
     await page.goto('/waitlist')
 
     await expect(page).toHaveURL(/\/login\?redirect=\/waitlist/)
-    await expect(page.getByTestId('admin-login-form')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible()
   })
 
   test('denies a support operator access to invitation administration', async ({ page }) => {
