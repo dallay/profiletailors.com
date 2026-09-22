@@ -161,7 +161,10 @@ internal class SendInvitationEmailConsumerTest {
         saved.captured.status shouldBe NotificationStatus.PENDING
         updated.captured.status shouldBe NotificationStatus.SENT
         saved.captured.payload.variables.containsKey("rawToken") shouldBe false
-        saved.captured.payload.variables.containsValue(rawToken) shouldBe false
+        saved.captured.payload.variables.containsKey("acceptUrl") shouldBe false
+        saved.captured.payload.variables.values.forEach { value ->
+            value.contains(rawToken) shouldBe false
+        }
         coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
     }
 
@@ -235,18 +238,22 @@ internal class SendInvitationEmailConsumerTest {
 
         rendered.captured.text shouldContain acceptUrl
         saved.captured.payload.variables.containsKey("rawToken") shouldBe false
-        saved.captured.payload.variables.containsValue(rawToken) shouldBe false
-        saved.captured.payload.variables["acceptUrl"] shouldBe acceptUrl
+        saved.captured.payload.variables.containsKey("acceptUrl") shouldBe false
+        saved.captured.payload.variables.values.forEach { value ->
+            value.contains(rawToken) shouldBe false
+        }
+        saved.captured.payload.variables["invitationId"] shouldBe invitationId.toString()
     }
 
     @Test
     fun `uses the accept URL template to build the delivery URL`() = runTest {
         val saved = slot<Notification>()
         val updated = slot<Notification>()
+        val rendered = slot<RenderedEmail>()
         coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
         coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
         coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
+        coEvery { emailDispatcher.dispatch(inviteeEmail, capture(rendered)) } returns EmailDispatchResult.Success
 
         consumer.onInvitationIssued(
             InvitationIssued(
@@ -260,7 +267,9 @@ internal class SendInvitationEmailConsumerTest {
         )
 
         io.mockk.verify(exactly = 1) { acceptUrlTemplate.build(rawToken) }
-        saved.captured.payload.variables["acceptUrl"] shouldBe acceptUrl
+        rendered.captured.text shouldContain acceptUrl
+        saved.captured.payload.variables.containsKey("acceptUrl") shouldBe false
+        saved.captured.payload.variables["invitationId"] shouldBe invitationId.toString()
     }
 
     @Test

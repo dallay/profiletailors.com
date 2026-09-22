@@ -17,6 +17,7 @@ import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionComman
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
@@ -121,6 +122,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
             resourceContextProvider = FixedResourceContextProvider(),
             socialConnectionProvider = FakeSocialConnectionProvider(),
             oauthStateSigner = FixedOAuthStateSigner(),
+            authorizationUrlBuilder = AllowlistedAuthorizationUrlBuilder(),
             socialConnectionRepository = socialConnectionRepository,
             socialAccountRepository = FailingSocialAccountRepository(socialAccountRepository),
             channelEventPublisher = eventPublisher,
@@ -686,6 +688,16 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
             issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
             expiresAt = Instant.parse("2026-05-26T12:10:00Z"),
         )
+    }
+
+    private class AllowlistedAuthorizationUrlBuilder : LinkedInAuthorizationUrlBuilder {
+        override fun buildAuthorizationUrl(state: String, redirectUri: String): String =
+            "https://linkedin.example/authorize?state=$state"
+
+        override fun isConfigured(): Boolean = true
+
+        override fun isAllowedRedirectUri(redirectUri: String): Boolean =
+            redirectUri == "https://app.example.com/callback"
     }
 
     private class FakeSocialConnectionProvider : SocialConnectionProvider {

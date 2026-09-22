@@ -33,6 +33,14 @@ enum class ConsentStatus { ACTIVE, WITHDRAWN }
 @ValueObject
 enum class SubjectKind { WORKSPACE, USER, ANONYMOUS }
 
+@ValueObject
+enum class ConsentPurpose(val wireValue: String) {
+    AGE_ELIGIBILITY("age-eligibility.18-plus"),
+    TERMS_ACCEPTANCE("terms.acceptance"),
+    WAITLIST_EARLY_ACCESS("waitlist.early_access"),
+    MARKETING_EMAILS("marketing.emails"),
+}
+
 /**
  * Identifier of the entity that gave (or withdrew) consent.
  *

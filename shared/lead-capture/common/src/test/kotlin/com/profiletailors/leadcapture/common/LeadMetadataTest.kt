@@ -2,6 +2,7 @@ package com.profiletailors.leadcapture.common
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 internal class LeadMetadataTest {
@@ -36,6 +37,13 @@ internal class LeadMetadataTest {
         assertNull(metadata.utmSource)
         assertNull(metadata.pagePath)
         assertNull(metadata.consentVersion)
+    }
+
+    @Test
+    fun `rejects oversized metadata values`() {
+        assertFailsWith<IllegalArgumentException> {
+            LeadMetadata(referrer = "r".repeat(501))
+        }
     }
 
     @Test

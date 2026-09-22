@@ -44,6 +44,8 @@ import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.util.*
 
+private val IPV4_LITERAL = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$""")
+
 @ConfigurationProperties(prefix = "publishing.linkedin")
 data class LinkedInPublishingProperties(
     val clientId: String = "",
@@ -57,6 +59,22 @@ data class LinkedInPublishingProperties(
     val apiVersion: String = "202601",
 ) {
     fun isConfigured(): Boolean = clientId.isNotBlank() && clientSecret.isNotBlank() && redirectUri.isNotBlank()
+
+    fun isAllowedRedirectUri(candidate: String): Boolean {
+        if (redirectUri.isBlank() || candidate != redirectUri) return false
+        val uri = try {
+            URI.create(candidate)
+        } catch (_: IllegalArgumentException) {
+            return false
+        }
+        val host = uri.host ?: return false
+        return uri.scheme == "https" &&
+            host.isNotBlank() &&
+            uri.userInfo == null &&
+            uri.fragment == null &&
+            !host.contains(":") &&
+            !IPV4_LITERAL.matches(host)
+    }
 }
 
 class RealLinkedInConnectionProvider(
@@ -75,6 +93,9 @@ class RealLinkedInConnectionProvider(
         }
         require(properties.clientSecret.isNotBlank()) {
             "LinkedIn clientSecret is required in real mode."
+        }
+        require(properties.isAllowedRedirectUri(command.redirectUri)) {
+            "LinkedIn redirect URI is not registered."
         }
 
         val formBody = formUrlEncoded(

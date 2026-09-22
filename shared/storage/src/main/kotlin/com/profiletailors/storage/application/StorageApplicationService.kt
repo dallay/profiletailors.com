@@ -323,12 +323,7 @@ class StorageApplicationService(
      * @throws StorageSecurityException If the bucket name or key contains `..`.
      */
     private fun validateBucketAndKey(bucket: String, key: String) {
-        if (bucket.contains("..")) {
-            throw StorageSecurityException("Invalid bucket name: path traversal detected")
-        }
-        if (key.contains("..")) {
-            throw StorageSecurityException("Invalid key: path traversal detected")
-        }
+        StoragePathValidator.validateBucketAndKey(bucket, key)
     }
 
     private companion object

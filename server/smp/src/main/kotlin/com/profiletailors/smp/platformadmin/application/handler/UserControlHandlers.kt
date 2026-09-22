@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.domain.UserAccountState
+import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.DisableUserCommand
 import com.profiletailors.smp.platformadmin.application.command.EnableUserCommand
 import com.profiletailors.smp.platformadmin.application.command.RevokeUserSessionsCommand
@@ -53,6 +54,12 @@ open class UserControlHandlers(
             command.targetPrincipalId,
             AdminAuditAction.USER_DISABLED,
         )
+        requireNoSelfTarget(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_DISABLED,
+        )
         return executeStateChange(
             operation = "disable",
             context = AuditContext(
@@ -76,6 +83,12 @@ open class UserControlHandlers(
             command.targetPrincipalId,
             AdminAuditAction.USER_ENABLED,
         )
+        requireNoSelfTarget(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_ENABLED,
+        )
         return executeStateChange(
             operation = "enable",
             context = AuditContext(
@@ -94,6 +107,12 @@ open class UserControlHandlers(
 
     suspend fun revokeSessions(command: RevokeUserSessionsCommand): UserSessionsRevokeResult {
         requirePermission(
+            command.operatorRoles,
+            command.operatorPrincipalId,
+            command.targetPrincipalId,
+            AdminAuditAction.USER_SESSIONS_REVOKED,
+        )
+        requireNoSelfTarget(
             command.operatorRoles,
             command.operatorPrincipalId,
             command.targetPrincipalId,
@@ -190,6 +209,31 @@ open class UserControlHandlers(
                     ),
                     result = AdminAuditResult.REJECTED,
                     reason = "Platform user-management permission required.",
+                ),
+            )
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_MANAGE)
+        }
+    }
+
+    private suspend fun requireNoSelfTarget(
+        roles: Set<com.profiletailors.smp.platformadmin.domain.PlatformRole>,
+        operatorPrincipalId: UUID,
+        targetPrincipalId: String,
+        action: AdminAuditAction,
+    ) {
+        val targetUuid = runCatching { PlatformPrincipalIds.toUuid(targetPrincipalId) }.getOrNull()
+        if (targetUuid != null && operatorPrincipalId == targetUuid) {
+            telemetry.recordAuthorizationRejected(action.metricOperation)
+            auditPublisher.publish(
+                auditEvent(
+                    AuditContext(
+                        operatorPrincipalId = operatorPrincipalId,
+                        operatorRoles = roles,
+                        targetPrincipalId = targetPrincipalId,
+                        action = action,
+                    ),
+                    AdminAuditResult.REJECTED,
+                    reason = "Self-targeted user control operation is not allowed.",
                 ),
             )
             throw PlatformAccessDeniedException(PlatformPermission.USERS_MANAGE)

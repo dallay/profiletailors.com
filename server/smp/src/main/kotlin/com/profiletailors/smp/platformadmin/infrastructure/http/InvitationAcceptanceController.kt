@@ -6,7 +6,6 @@ import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationCommand
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceResult
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -24,7 +23,6 @@ class InvitationAcceptanceController(
     private val acceptInvitationHandler: AcceptInvitationHandler,
     private val requestContextStore: RequestContextStore,
     private val acceptAttemptRateLimit: RateLimit,
-    private val invitationTokenCandidateKey: InvitationTokenCandidateKey,
     private val clock: Clock,
 ) {
     @PostMapping("/accept", consumes = ["application/json"])
@@ -41,7 +39,7 @@ class InvitationAcceptanceController(
             ?.takeIf { it.isNotEmpty() }
             ?: return ResponseEntity.badRequest().build()
 
-        if (!admitAttempt(token, exchange)) {
+        if (!admitAttempt(principal.principalId, exchange)) {
             throw InvitationRateLimitExceededException.acceptAttemptThrottled()
         }
 
@@ -55,9 +53,8 @@ class InvitationAcceptanceController(
         return ResponseEntity.ok(result)
     }
 
-    private fun admitAttempt(token: String, exchange: ServerWebExchange): Boolean {
-        val throttleKey = ACCEPT_ATTEMPT_BUCKET +
-            ":${invitationTokenCandidateKey.candidateKey(token)}:${clientIp(exchange)}"
+    private fun admitAttempt(principalId: String, exchange: ServerWebExchange): Boolean {
+        val throttleKey = ACCEPT_ATTEMPT_BUCKET + ":$principalId:${clientIp(exchange)}"
         return acceptAttemptRateLimit.tryAcquire(
             throttleKey,
             ACCEPT_ATTEMPT_WINDOW,

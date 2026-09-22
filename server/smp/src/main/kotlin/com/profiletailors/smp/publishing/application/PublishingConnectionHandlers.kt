@@ -65,6 +65,9 @@ internal class InitiateLinkedInConnectionHandler(
         if (!authorizationUrlBuilder.isConfigured()) {
             throw ProviderNotConfiguredException(SocialProvider.LINKEDIN)
         }
+        if (!authorizationUrlBuilder.isAllowedRedirectUri(command.redirectUri)) {
+            throw InvalidOAuthStateException("LinkedIn initiation redirect URI is not allowed.")
+        }
         val issuedAt = clock.instant()
         val expiresAt = issuedAt.plus(STATE_TTL)
         val state = oauthStateSigner.sign(
@@ -100,6 +103,7 @@ internal class CompleteLinkedInConnectionHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val socialConnectionProvider: SocialConnectionProvider,
     private val oauthStateSigner: OAuthStateSigner,
+    private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
     private val socialConnectionRepository: SocialConnectionRepository,
     private val socialAccountRepository: SocialAccountRepository,
     private val channelEventPublisher: ChannelEventPublisher,
@@ -205,6 +209,12 @@ internal class CompleteLinkedInConnectionHandler(
         }
         requireOAuthState(payload.redirectUri == command.redirectUri) {
             "OAuth state redirect URI does not match the completion request."
+        }
+        requireOAuthState(
+            authorizationUrlBuilder.isAllowedRedirectUri(command.redirectUri) &&
+                authorizationUrlBuilder.isAllowedRedirectUri(payload.redirectUri),
+        ) {
+            "OAuth redirect URI is not allowed."
         }
     }
 

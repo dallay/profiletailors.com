@@ -38,7 +38,7 @@ class ConsentControllerWebTest {
                 workspaceId = "ws-001",
                 subjectReference = SubjectReference.user("user-123"),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
-                purpose = "terms.v1",
+                purpose = "terms.acceptance",
                 policyVersion = "2026-07-01",
                 source = "registration",
                 locale = "en",
@@ -55,7 +55,7 @@ class ConsentControllerWebTest {
                     "subjectValue": "user-123",
                     "subjectKind": "USER",
                     "consentType": "CONTRACT_ACCEPTANCE",
-                    "purpose": "terms.v1",
+                    "purpose": "terms.acceptance",
                     "policyVersion": "2026-07-01",
                     "source": "registration",
                     "locale": "en"
@@ -118,7 +118,7 @@ class ConsentControllerWebTest {
                     "subjectValue": "user-123",
                     "subjectKind": "ALIEN",
                     "consentType": "CONSENT",
-                    "purpose": "terms.v1",
+                    "purpose": "terms.acceptance",
                     "policyVersion": "2026-07-01",
                     "source": "registration",
                     "locale": "en"
@@ -139,10 +139,73 @@ class ConsentControllerWebTest {
                     "subjectValue": "user-123",
                     "subjectKind": "USER",
                     "consentType": "CONSENT",
-                    "purpose": "terms.v1",
+                    "purpose": "terms.acceptance",
                     "policyVersion": "2026-07-01",
                     "source": "registration",
                     "locale": "zz-ZZ-bogus"
+                }
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `POST consent returns 400 when purpose is unknown`() {
+        client.post().uri("/api/governance/consent")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                    "subjectValue": "user-123",
+                    "subjectKind": "USER",
+                    "consentType": "CONSENT",
+                    "purpose": "<img src=x onerror=alert(1)>",
+                    "policyVersion": "2026-07-01",
+                    "source": "registration",
+                    "locale": "en"
+                }
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `POST consent returns 400 when policyVersion escapes taxonomy`() {
+        client.post().uri("/api/governance/consent")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                    "subjectValue": "user-123",
+                    "subjectKind": "USER",
+                    "consentType": "CONSENT",
+                    "purpose": "marketing.emails",
+                    "policyVersion": "../../etc/passwd",
+                    "source": "registration",
+                    "locale": "en"
+                }
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `POST consent returns 400 when source has illegal characters`() {
+        client.post().uri("/api/governance/consent")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                    "subjectValue": "user-123",
+                    "subjectKind": "USER",
+                    "consentType": "CONSENT",
+                    "purpose": "marketing.emails",
+                    "policyVersion": "2026-07-01",
+                    "source": "evil source!",
+                    "locale": "en"
                 }
                 """.trimIndent(),
             )
