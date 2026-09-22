@@ -6,7 +6,6 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.domain.UserAccountState
 import io.r2dbc.spi.Readable
-import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
@@ -30,7 +29,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         """.trimIndent(),
     )
         .bind("email", email)
-        .map(::mapPrincipalIdentityFacts)
+        .map { row, _ -> mapPrincipalIdentityFacts(row) }
         .one()
         .awaitSingleOrNull()
 
@@ -51,7 +50,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         """.trimIndent(),
     )
         .bind("principalId", principalId)
-        .map(::mapPrincipalIdentityFacts)
+        .map { row, _ -> mapPrincipalIdentityFacts(row) }
         .one()
         .awaitSingleOrNull()
 
@@ -105,15 +104,12 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         }
 
         return spec
-            .map(::mapPrincipalIdentityFacts)
+            .map { row, _ -> mapPrincipalIdentityFacts(row) }
             .one()
             .awaitSingleOrNull()
     }
 
-    private fun mapPrincipalIdentityFacts(
-        row: Readable,
-        @Suppress("UNUSED_PARAMETER") metadata: RowMetadata,
-    ): PrincipalIdentityFacts {
+    private fun mapPrincipalIdentityFacts(row: Readable): PrincipalIdentityFacts {
         val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
         val emailStatusRaw = row.get("email_status", String::class.java)
         return PrincipalIdentityFacts(

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.mcp.infrastructure
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.common.domain.Service
 import org.slf4j.LoggerFactory
@@ -9,13 +10,19 @@ open class McpAuditEmitter(private val objectMapper: ObjectMapper = ObjectMapper
 
     private val logger = LoggerFactory.getLogger(AUDIT_LOGGER_NAME)
 
-    @Suppress("TooGenericExceptionCaught")
     open fun emit(fact: McpToolInvocationAuditFact) {
         try {
             val payload = objectMapper.writeValueAsString(fact.toMap())
             val marker = "mcp.audit.correlation=${fact.correlationId}"
             logger.info("$marker $payload")
-        } catch (ex: RuntimeException) {
+        } catch (ex: JsonProcessingException) {
+            logger.warn(
+                "mcp.audit-emit-failed tool={} correlation={}",
+                fact.toolName,
+                fact.correlationId,
+                ex,
+            )
+        } catch (ex: IllegalArgumentException) {
             logger.warn(
                 "mcp.audit-emit-failed tool={} correlation={}",
                 fact.toolName,

@@ -126,4 +126,49 @@ class McpAuditEmitterTest {
         emitter.emit(fact)
         assertThat(appender.list).hasSize(1)
     }
+
+    @Test
+    fun `logs warning and suppresses JsonProcessingException`() {
+        val mapper = io.mockk.mockk<com.fasterxml.jackson.databind.ObjectMapper>()
+        io.mockk.every { mapper.writeValueAsString(any()) } throws object :
+            com.fasterxml.jackson.core.JsonProcessingException("serialization error") {}
+        val emitter = McpAuditEmitter(mapper)
+        val fact = McpToolInvocationAuditFact(
+            toolName = "list_channels",
+            scopeChecked = "mcp:channels:read",
+            grantedScopes = setOf("mcp:channels:read"),
+            workspaceId = "ws-1",
+            correlationId = "corr-err-1",
+            outcome = McpToolInvocationOutcome.ERROR,
+        )
+
+        emitter.emit(fact)
+
+        val events = appender.list
+        assertThat(events).hasSize(1)
+        assertThat(events.first().level).isEqualTo(Level.WARN)
+        assertThat(events.first().formattedMessage).contains("mcp.audit-emit-failed")
+    }
+
+    @Test
+    fun `logs warning and suppresses IllegalArgumentException`() {
+        val mapper = io.mockk.mockk<com.fasterxml.jackson.databind.ObjectMapper>()
+        io.mockk.every { mapper.writeValueAsString(any()) } throws IllegalArgumentException("invalid argument")
+        val emitter = McpAuditEmitter(mapper)
+        val fact = McpToolInvocationAuditFact(
+            toolName = "list_channels",
+            scopeChecked = "mcp:channels:read",
+            grantedScopes = setOf("mcp:channels:read"),
+            workspaceId = "ws-1",
+            correlationId = "corr-err-2",
+            outcome = McpToolInvocationOutcome.ERROR,
+        )
+
+        emitter.emit(fact)
+
+        val events = appender.list
+        assertThat(events).hasSize(1)
+        assertThat(events.first().level).isEqualTo(Level.WARN)
+        assertThat(events.first().formattedMessage).contains("mcp.audit-emit-failed")
+    }
 }
