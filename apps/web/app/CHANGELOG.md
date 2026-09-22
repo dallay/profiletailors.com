@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.11](https://github.com/dallay/profiletailors.com/compare/app@v0.3.10...app@v0.3.11) (2026-09-21)
+
+
+### Features
+
+* **invitation:** add registration preflight contract ([#1114](https://github.com/dallay/profiletailors.com/issues/1114)) ([41b893d](https://github.com/dallay/profiletailors.com/commit/41b893dc4e1375e4fd53e0a577845413ec00583b))
+
 ## [0.3.10](https://github.com/dallay/profiletailors.com/compare/app@v0.3.9...app@v0.3.10) (2026-09-20)
 
 

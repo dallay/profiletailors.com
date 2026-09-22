@@ -1,0 +1,39 @@
+---
+import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useTranslations(locale)
+---
+
+<section id="how" class="px-6 pt-20 pb-24 max-w-5xl mx-auto">
+  <h2 data-animate-scroll class="font-display text-3xl sm:text-4xl font-medium text-text-display tracking-tight mb-12 max-w-2xl">
+    {t.scope.title}
+  </h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+    <div data-animate-scroll>
+      <h3 class="font-mono text-xs uppercase tracking-[0.08em] text-text-display mb-6">{t.scope.includedTitle}</h3>
+      <ul class="flex flex-col gap-4">
+        {t.scope.included.map((item) => (
+          <li class="font-display text-base text-text-body leading-relaxed border-t border-border pt-4 first:border-t-0 first:pt-0">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div data-animate-scroll>
+      <h3 class="font-mono text-xs uppercase tracking-[0.08em] text-text-secondary mb-6">{t.scope.excludedTitle}</h3>
+      <ul class="flex flex-col gap-4">
+        {t.scope.excluded.map((item) => (
+          <li class="font-display text-base text-text-secondary leading-relaxed border-t border-border pt-4 first:border-t-0 first:pt-0">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
