@@ -74,7 +74,7 @@ describe('sitemap.xml — 12 URL SEO contract', () => {
     expect(homeEntry, 'home url entry missing').toBeTruthy();
     expect(homeEntry).toContain('<priority>1.0</priority>');
     const legalEntry: string | undefined = xml.match(/<url><loc>https:\/\/profiletailors\.com\/privacy\/<\/loc>[\s\S]*?<\/url>/)?.[0];
-    expect(legalEntry).toContain('<priority>0.7</priority>');
+    expect(legalEntry).toContain('<priority>0.3</priority>');
   });
 
   it('every url entry has lastmod, changefreq, and priority', async () => {

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.5](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.4...smp@v0.5.5) (2026-09-21)
+
+
+### Features
+
+* **governance:** admin takedown ports and asset-status reader ([#671](https://github.com/dallay/profiletailors.com/issues/671)) ([#1125](https://github.com/dallay/profiletailors.com/issues/1125)) ([082b42f](https://github.com/dallay/profiletailors.com/commit/082b42fc3146a1f2846178528745b03588c11783))
+* **invitation:** add registration preflight contract ([#1114](https://github.com/dallay/profiletailors.com/issues/1114)) ([41b893d](https://github.com/dallay/profiletailors.com/commit/41b893dc4e1375e4fd53e0a577845413ec00583b))
+* **platformadmin:** notification admin queries and safe retry operations ([#670](https://github.com/dallay/profiletailors.com/issues/670)) ([#1119](https://github.com/dallay/profiletailors.com/issues/1119)) ([0e9107f](https://github.com/dallay/profiletailors.com/commit/0e9107f53c835ab7ba350d6ad466176d89249d78))
+
+
+### Bug Fixes
+
+* **media:** align DDD markers for MediaAsset and WorkspaceFileBlob ([#1108](https://github.com/dallay/profiletailors.com/issues/1108)) ([24727ec](https://github.com/dallay/profiletailors.com/commit/24727ec06b737163dd195da34839340c32b86b9a))
+
 ## [0.5.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.3...smp@v0.5.4) (2026-09-20)
 
 

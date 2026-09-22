@@ -15,6 +15,9 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableExcept
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
+import com.profiletailors.smp.platformadmin.domain.NotificationNotFoundForRetryException
+import com.profiletailors.smp.platformadmin.domain.NotificationNotRetryableException
+import com.profiletailors.smp.platformadmin.domain.NotificationRetryConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
@@ -114,6 +117,18 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(InvitationVersionConflictException::class)
     fun handle(ex: InvitationVersionConflictException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "INVITATION_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(NotificationNotFoundForRetryException::class)
+    fun handle(ex: NotificationNotFoundForRetryException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(NotificationNotRetryableException::class)
+    fun handle(ex: NotificationNotRetryableException): ProblemDetail =
+        problem(HttpStatus.BAD_REQUEST, "NOTIFICATION_NOT_RETRYABLE", ex.message)
+
+    @ExceptionHandler(NotificationRetryConflictException::class)
+    fun handle(ex: NotificationRetryConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED", ex.message)
 
     @ExceptionHandler(OptimisticLockException::class)
     fun handle(ex: OptimisticLockException): ProblemDetail =

@@ -435,7 +435,7 @@ container border or button style.
 - **Framework:** Astro 6, static-first, no SSR
 - **Package manager:** pnpm
 - **CSS:** Tailwind CSS v4 with `@theme` custom properties
-- **Fonts:** Google Fonts (Doto, Space Grotesk, Space Mono)
+- **Fonts:** Self-hosted Doto, Space Grotesk, Space Mono
 - **Dev server:** `localhost:4321`
 - **Build output:** `./dist/`
 

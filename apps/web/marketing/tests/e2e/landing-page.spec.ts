@@ -144,7 +144,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
     const form = formContainer.locator('[data-waitlist-form]').first();
     await expect(form).toBeVisible();
 
-    const successMessage = formContainer.locator('p[data-waitlist-success]');
+    const successMessage = formContainer.locator('[data-waitlist-success]');
     await expect(successMessage).toHaveCount(1);
     await expect(successMessage).toBeHidden();
   });
@@ -153,7 +153,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.getByRole('form', { name: /early access waitlist form/i });
+    const form = page.getByRole('form', { name: /early access waitlist form/i }).first();
     await expect(form).toBeVisible();
 
     const apiBase = await form.getAttribute('data-waitlist-api-base');
