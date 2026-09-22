@@ -148,7 +148,7 @@ class PlatformAdminBootstrapConfiguration {
         eventPublisher: EventPublisher<DomainEvent>,
         clock: Clock,
         tokenHasher: TokenHasher,
-        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+        @Value("\${platform.admin.invitation.ttl-days:2}") ttlDays: Long,
     ): InviteWaitlistEntryHandler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
@@ -170,7 +170,7 @@ class PlatformAdminBootstrapConfiguration {
         tokenHasher: TokenHasher,
         acceptUrlTemplate: AcceptUrlTemplate,
         waitlistEntryAdmin: WaitlistEntryAdmin,
-        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+        @Value("\${platform.admin.invitation.ttl-days:2}") ttlDays: Long,
         @Value("\${platform.admin.invitation.resend-limit:3}") resendLimit: Int,
         @Value("\${platform.admin.invitation.resend-window-hours:24}") resendWindowHours: Int,
     ): ResendWaitlistInvitationHandler = ResendWaitlistInvitationHandler(
@@ -311,7 +311,7 @@ class PlatformAdminBootstrapConfiguration {
         tokenHasher: TokenHasher,
         invitationTokenCandidateKey: InvitationTokenCandidateKey,
         telemetry: InvitationTelemetry,
-        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+        @Value("\${platform.admin.invitation.ttl-days:2}") ttlDays: Long,
     ): CreateInvitationHandler = CreateInvitationHandler(
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
@@ -350,7 +350,7 @@ class PlatformAdminBootstrapConfiguration {
         tokenHasher: TokenHasher,
         invitationTokenCandidateKey: InvitationTokenCandidateKey,
         acceptUrlTemplate: AcceptUrlTemplate,
-        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+        @Value("\${platform.admin.invitation.ttl-days:2}") ttlDays: Long,
     ): ResendInvitationHandler = ResendInvitationHandler(
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,

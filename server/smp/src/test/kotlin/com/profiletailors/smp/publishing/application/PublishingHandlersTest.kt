@@ -284,6 +284,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
             oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
@@ -339,6 +340,23 @@ class PublishingHandlersTest {
         assertThrows(ProviderNotConfiguredException::class.java) {
             kotlinx.coroutines.runBlocking {
                 handler.handle(InitiateLinkedInConnectionCommand("https://app.example.com/callback"))
+            }
+        }
+    }
+
+    @Test
+    fun `rejects linkedin initiation with unregistered redirect uri`() = runTest {
+        val handler = InitiateLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            oauthStateSigner = CapturingOAuthStateSigner(),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
+            clock = fixedClock,
+        )
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(InitiateLinkedInConnectionCommand("https://evil.example/cb"))
             }
         }
     }
@@ -407,6 +425,7 @@ class PublishingHandlersTest {
             oauthStateSigner = CapturingOAuthStateSigner(
                 payload = validStatePayload(workspaceId = "other-workspace"),
             ),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = InMemorySocialConnectionRepository(),
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
@@ -438,6 +457,7 @@ class PublishingHandlersTest {
             oauthStateSigner = CapturingOAuthStateSigner(
                 payload = validStatePayload(expiresAt = Instant.parse("2026-05-26T11:59:59Z")),
             ),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = InMemorySocialConnectionRepository(),
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
@@ -451,6 +471,38 @@ class PublishingHandlersTest {
                     CompleteLinkedInConnectionCommand(
                         authorizationCode = "oauth-code-123",
                         redirectUri = "https://app.example.com/callback",
+                        state = "state-1",
+                    ),
+                )
+            }
+        }
+        assertEquals(0, provider.callCount)
+    }
+
+    @Test
+    fun `rejects completion with unregistered redirect uri before provider exchange`() = runTest {
+        val provider = FakeSocialConnectionProvider()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = provider,
+            oauthStateSigner = CapturingOAuthStateSigner(
+                payload = validStatePayload(redirectUri = "https://evil.example/cb"),
+            ),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
+            socialConnectionRepository = InMemorySocialConnectionRepository(),
+            socialAccountRepository = InMemorySocialAccountRepository(),
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
+        )
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://evil.example/cb",
                         state = "state-1",
                     ),
                 )
@@ -1950,6 +2002,9 @@ class PublishingHandlersTest {
             "https://linkedin.example/authorize?state=$state"
 
         override fun isConfigured(): Boolean = configured
+
+        override fun isAllowedRedirectUri(redirectUri: String): Boolean =
+            redirectUri == "https://app.example.com/callback"
     }
 
     private class InMemoryConnectedSocialChannelReadRepository(private val channels: List<ConnectedSocialChannel>) :
@@ -2814,6 +2869,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
             oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
@@ -2850,6 +2906,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
             oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
             channelEventPublisher = eventPublisher,
@@ -2890,6 +2947,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
             oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
             channelEventPublisher = eventPublisher,

@@ -200,6 +200,31 @@ class WaitlistControllerTest {
     }
 
     @Test
+    fun `join returns 400 invalid_metadata when metadata value is oversized`() {
+        val oversizedReferrer = "r".repeat(501)
+        webClient()
+            .post()
+            .uri("/api/waitlists/profile-tailors-launch/entries")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                  "email": "user@example.com",
+                  "source": "marketing-site",
+                  "formId": "waitlist-hero",
+                  "locale": "en",
+                  "consent": { "earlyAccess": true, "marketing": false, "version": "2026-07-17" },
+                  "metadata": { "referrer": "$oversizedReferrer" }
+                }
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.error").isEqualTo("invalid_metadata")
+    }
+
+    @Test
     fun `join does not coerce unknown IllegalArgumentException into invalid_email`() {
         webClient(entryRepository = UnknownDomainErrorEntryRepository)
             .post()

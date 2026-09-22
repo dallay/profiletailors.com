@@ -47,7 +47,7 @@ internal class InvitationEmailTest {
         val email = invitation()
         val payload = email.toPayload()
         assertEquals("user@example.com", payload["email"])
-        assertEquals("https://app.profiletailors.com/invitations/accept?token=raw-token", payload["acceptUrl"])
+        assertEquals(email.invitationId.toString(), payload["invitationId"])
         assertEquals("Profile Tailors Launch", payload["workspaceName"])
         assertEquals("es", payload["locale"])
         assertEquals("EXISTING_WORKSPACE", payload["target"])
@@ -111,14 +111,14 @@ internal class InvitationEmailTest {
     }
 
     @Test
-    fun `persisted payload key set is limited to template params plus scoped acceptUrl`() {
+    fun `persisted payload key set carries correlation without bearer material`() {
         val payload = invitation().toPayload()
 
-        assertEquals(setOf("email", "workspaceName", "target", "acceptUrl", "locale"), payload.variables.keys)
+        assertEquals(setOf("invitationId", "email", "workspaceName", "target", "locale"), payload.variables.keys)
     }
 
     @Test
-    fun `persisted payload carries no raw token value outside scoped acceptUrl`() {
+    fun `persisted payload carries no raw token value in any variable`() {
         val raw = "super-secret-token-do-not-leak"
         val email = invitation(
             rawToken = raw,
@@ -126,13 +126,13 @@ internal class InvitationEmailTest {
         )
         val payload = email.toPayload()
 
-        payload.variables.filterKeys { it != "acceptUrl" }.values.forEach { value ->
+        payload.variables.values.forEach { value ->
             assertFalse(value.contains(raw))
         }
     }
 
     @Test
-    fun `raw invitation token is exposed only through acceptUrl, never as a separate payload key`() {
+    fun `persisted payload never exposes a token key and render keeps the accept URL`() {
         val email = invitation(
             rawToken = "super-secret-token-do-not-leak",
             acceptUrl = "https://app.example.com/invitations/accept?token=super-secret-token-do-not-leak",
@@ -140,7 +140,27 @@ internal class InvitationEmailTest {
         val payload = email.toPayload()
         assertTrue(payload["token"] == null, "payload MUST NOT expose a raw token key")
         assertTrue(payload["rawToken"] == null, "payload MUST NOT expose a rawToken key")
-        assertTrue(payload["acceptUrl"]!!.contains("super-secret-token-do-not-leak"))
+        assertTrue(payload["acceptUrl"] == null, "payload MUST NOT persist the bearer accept URL")
+        assertTrue(email.render().text.contains("super-secret-token-do-not-leak"))
+    }
+
+    @Test
+    fun `persisted payload carries no bearer material while render keeps the accept URL`() {
+        val raw = "super-secret-bearer-do-not-persist"
+        val email = invitation(
+            rawToken = raw,
+            acceptUrl = "https://app.example.com/invitations/accept?token=$raw",
+        )
+        val payload = email.toPayload()
+
+        assertFalse(payload.variables.containsKey("acceptUrl"))
+        assertFalse(payload.variables.containsKey("token"))
+        assertFalse(payload.variables.containsKey("rawToken"))
+        payload.variables.values.forEach { value ->
+            assertFalse(value.contains(raw))
+        }
+        assertEquals(email.invitationId.toString(), payload["invitationId"])
+        assertTrue(email.render().text.contains(raw))
     }
 
     @Test

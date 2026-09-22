@@ -160,5 +160,8 @@ class PublishingProviderCatalogHandlersTest {
                 "https://linkedin.example/authorize?state=$state"
 
             override fun isConfigured(): Boolean = true
+
+            override fun isAllowedRedirectUri(redirectUri: String): Boolean =
+                redirectUri == "https://app.example.com/callback"
         }
 }

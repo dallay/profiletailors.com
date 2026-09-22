@@ -12,6 +12,10 @@ import java.net.InetSocketAddress
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class AuthRateLimitWebFilterTest {
 
@@ -57,6 +61,32 @@ class AuthRateLimitWebFilterTest {
         blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
         blocked.response.headers.getFirst("Retry-After") shouldNotBe null
         blocked.response.headers.getFirst("Retry-After").orEmpty().isNotBlank() shouldBe true
+    }
+
+    @Test
+    fun `limits waitlist joins per IP`() {
+        val filter = AuthRateLimitWebFilter()
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.44", 0)
+
+        repeat(10) {
+            val exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries")
+                    .remoteAddress(remoteAddress)
+                    .build(),
+            )
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries")
+                .remoteAddress(remoteAddress)
+                .build(),
+        )
+        filter.filter(blocked, chain).block()
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        blocked.response.headers.getFirst("Retry-After") shouldNotBe null
     }
 
     @Test
@@ -140,6 +170,78 @@ class AuthRateLimitWebFilterTest {
         filter.filter(blocked, chain).block()
 
         blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+    }
+
+    @Test
+    fun `rejects new identifiers when active windows reach capacity`() {
+        val baseline = Instant.parse("2026-07-01T00:00:00Z")
+        val clock = MutableClock(baseline)
+        val filter = AuthRateLimitWebFilter(clock, maxTrackedWindows = 2)
+        val chain = WebFilterChain { Mono.empty() }
+
+        repeat(2) { index ->
+            val exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/auth/login")
+                    .remoteAddress(InetSocketAddress("198.51.100.$index", 0))
+                    .build(),
+            )
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/auth/login")
+                .remoteAddress(InetSocketAddress("192.0.2.1", 0))
+                .build(),
+        )
+        filter.filter(blocked, chain).block()
+
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        filter.trackedWindowCount() shouldBe 2
+
+        val existing = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/auth/login")
+                .remoteAddress(InetSocketAddress("198.51.100.0", 0))
+                .build(),
+        )
+        filter.filter(existing, chain).block()
+
+        existing.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        filter.trackedWindowCount() shouldBe 2
+    }
+
+    @Test
+    fun `serializes admission when concurrent identifiers reach capacity`() {
+        val filter = AuthRateLimitWebFilter(maxTrackedWindows = 2)
+        val admitted = AtomicInteger()
+        val chain = WebFilterChain {
+            admitted.incrementAndGet()
+            Mono.empty()
+        }
+        val start = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(3)
+
+        try {
+            val futures = (0..2).map { index ->
+                executor.submit {
+                    start.await()
+                    val exchange = MockServerWebExchange.from(
+                        MockServerHttpRequest.post("/api/auth/login")
+                            .remoteAddress(InetSocketAddress("192.0.2.$index", 0))
+                            .build(),
+                    )
+                    filter.filter(exchange, chain).block()
+                    exchange.response.statusCode
+                }
+            }
+            start.countDown()
+
+            futures.forEach { it.get(5, TimeUnit.SECONDS) }
+            admitted.get() shouldBe 2
+            filter.trackedWindowCount() shouldBe 2
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Test

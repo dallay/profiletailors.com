@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Lightweight in-process rate limit for authentication endpoints.
+ * Lightweight in-process rate limit for authentication and waitlist endpoints.
  *
  * Prevents credential stuffing / brute-force against login, register, refresh,
- * resend-verification, and verify-email. Limits are per remote socket address.
+ * resend-verification, verify-email, and mass waitlist spam. Limits are per remote socket address.
  *
  * Windows are stored in an in-process map with opportunistic eviction to prevent
  * unbounded growth from many distinct remote addresses. When the live identifier
@@ -40,37 +40,62 @@ class AuthRateLimitWebFilter internal constructor(
 ) : WebFilter {
 
     private val windows = ConcurrentHashMap<String, Window>()
+    private val admissionLock = Any()
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val path = exchange.request.path.pathWithinApplication().value().trimEnd('/')
-        if (!isAuthEndpoint(path)) {
+        if (!isAuthEndpoint(path) && !isWaitlistEndpoint(path)) {
             return chain.filter(exchange)
         }
 
         val policy = policyFor(path)
         val identifier = "${policy.bucket}:${clientIdentifier(exchange)}"
         val now = currentTimeMillis()
-        if (windows.size >= maxTrackedWindows) {
-            evictExpiredEntries(now)
+        val admission = synchronized(admissionLock) {
+            if (windows.size >= maxTrackedWindows) {
+                evictExpiredEntries(now)
+            }
+            val existing = windows[identifier]
+            if (existing == null && windows.size >= maxTrackedWindows) {
+                RateLimitAdmission.Rejected(
+                    requireNotNull(windows.values.minByOrNull { it.startedAtMs + it.windowMs }) {
+                        "Rate-limit capacity must have an active window."
+                    },
+                )
+            } else {
+                RateLimitAdmission.Admitted(
+                    requireNotNull(
+                        windows.compute(identifier) { _, current ->
+                            if (current == null || now - current.startedAtMs >= policy.windowMs) {
+                                Window(startedAtMs = now, count = AtomicInteger(1), windowMs = policy.windowMs)
+                            } else {
+                                current.count.incrementAndGet()
+                                current
+                            }
+                        },
+                    ) { "Rate-limit window must be present after compute()." },
+                )
+            }
         }
-        val window = requireNotNull(
-            windows.compute(identifier) { _, existing ->
-                if (existing == null || now - existing.startedAtMs >= policy.windowMs) {
-                    Window(startedAtMs = now, count = AtomicInteger(1), windowMs = policy.windowMs)
-                } else {
-                    existing.count.incrementAndGet()
-                    existing
-                }
-            },
-        ) { "Rate-limit window must be present after compute()." }
 
-        if (window.count.get() > policy.maxRequests) {
-            return reject(exchange, window, now)
+        return when (admission) {
+            is RateLimitAdmission.Rejected -> {
+                reject(exchange, admission.window, now)
+            }
+            is RateLimitAdmission.Admitted -> {
+                if (admission.window.count.get() > policy.maxRequests) {
+                    reject(exchange, admission.window, now)
+                } else {
+                    chain.filter(exchange)
+                }
+            }
         }
-        return chain.filter(exchange)
     }
 
     private fun isAuthEndpoint(path: String): Boolean = AUTH_ENDPOINTS.any { path == it || path.startsWith("$it/") }
+
+    private fun isWaitlistEndpoint(path: String): Boolean =
+        path == WAITLIST_PREFIX || path.startsWith("$WAITLIST_PREFIX/")
 
     private fun clientIdentifier(exchange: ServerWebExchange): String {
         val remote = exchange.request.remoteAddress?.address?.hostAddress
@@ -79,16 +104,21 @@ class AuthRateLimitWebFilter internal constructor(
         return remote ?: "unknown"
     }
 
-    private fun policyFor(path: String): Policy = when (path) {
-        "/api/auth/forgot-password" -> Policy(
+    private fun policyFor(path: String): Policy = when {
+        path == "/api/auth/forgot-password" -> Policy(
             "password-reset-request-ip",
             PASSWORD_RESET_REQUEST_MAX_REQUESTS,
             FIFTEEN_MINUTES_MS,
         )
-        "/api/auth/reset-password" -> Policy(
+        path == "/api/auth/reset-password" -> Policy(
             "password-reset-attempt-ip",
             PASSWORD_RESET_ATTEMPT_MAX_REQUESTS,
             FIFTEEN_MINUTES_MS,
+        )
+        isWaitlistEndpoint(path) -> Policy(
+            WAITLIST_BUCKET,
+            WAITLIST_MAX_REQUESTS,
+            WINDOW_MS,
         )
         else -> Policy("auth-ip", MAX_REQUESTS_PER_WINDOW, WINDOW_MS)
     }
@@ -122,11 +152,19 @@ class AuthRateLimitWebFilter internal constructor(
 
     private fun currentTimeMillis(): Long = clock.millis()
 
+    private sealed interface RateLimitAdmission {
+        data class Admitted(val window: Window) : RateLimitAdmission
+        data class Rejected(val window: Window) : RateLimitAdmission
+    }
+
     private data class Window(val startedAtMs: Long, val count: AtomicInteger, val windowMs: Long)
     private data class Policy(val bucket: String, val maxRequests: Int, val windowMs: Long)
 
     private companion object {
         const val MAX_REQUESTS_PER_WINDOW = 20
+        const val WAITLIST_MAX_REQUESTS = 10
+        const val WAITLIST_BUCKET = "waitlist-ip"
+        const val WAITLIST_PREFIX = "/api/waitlists"
         const val WINDOW_MS = 60_000L
         const val FIFTEEN_MINUTES_MS = 15 * 60_000L
         const val PASSWORD_RESET_REQUEST_MAX_REQUESTS = 5

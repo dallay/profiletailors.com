@@ -5,6 +5,7 @@ import com.profiletailors.smp.governance.application.GetConsentHistoryQuery
 import com.profiletailors.smp.governance.application.GetWorkspaceConsentRecordsQuery
 import com.profiletailors.smp.governance.application.RecordWorkspaceConsentCommand
 import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCommand
+import com.profiletailors.smp.governance.domain.ConsentPurpose
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
@@ -31,6 +32,7 @@ class EnumValidationException(val field: String, value: String, valid: Set<Strin
 class ConsentController(private val mediator: Mediator) {
     private val subjectKinds: Set<String> = SubjectKind.entries.map { it.name }.toSet()
     private val consentTypes: Set<String> = ConsentType.entries.map { it.name }.toSet()
+    private val purposes: Set<String> = ConsentPurpose.entries.map { it.wireValue }.toSet()
 
     /**
      * Records consent for the specified subject.
@@ -43,6 +45,9 @@ class ConsentController(private val mediator: Mediator) {
     suspend fun record(@Valid @RequestBody request: RecordConsentRequest): ResponseEntity<ConsentRecordResponse> {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
         validateEnum(CONSENT_TYPE_FIELD, request.consentType, consentTypes)
+        validateEnum(PURPOSE_FIELD, request.purpose, purposes)
+        validateSource(request.source)
+        validatePolicyVersion(request.policyVersion)
         validateLocale(request.locale)
         val outcome = mediator.send(request.toCommand())
         return ResponseEntity.status(if (outcome.created) HttpStatus.CREATED else HttpStatus.OK)
@@ -59,6 +64,8 @@ class ConsentController(private val mediator: Mediator) {
     @PostMapping("/withdraw")
     suspend fun withdraw(@Valid @RequestBody request: WithdrawConsentRequest): ConsentRecordResponse {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
+        validateEnum(PURPOSE_FIELD, request.purpose, purposes)
+        validatePolicyVersion(request.policyVersion)
         return mediator.send(request.toCommand()).toResponse()
     }
 
@@ -112,6 +119,18 @@ class ConsentController(private val mediator: Mediator) {
         if (value !in valid) throw EnumValidationException(field, value, valid)
     }
 
+    private fun validateSource(value: String) {
+        if (value.length > SOURCE_MAX_LENGTH || value.any { !it.isLetterOrDigit() && it != '-' }) {
+            throw EnumValidationException(SOURCE_FIELD, value, setOf("alphanumeric-and-hyphens, max 50"))
+        }
+    }
+
+    private fun validatePolicyVersion(value: String) {
+        if (!POLICY_VERSION_PATTERN.matches(value)) {
+            throw EnumValidationException(POLICY_VERSION_FIELD, value, setOf("letters-digits-dot-dash, max 64"))
+        }
+    }
+
     /**
      * Validates that a locale is an ISO 639-1 language tag.
      *
@@ -128,7 +147,12 @@ class ConsentController(private val mediator: Mediator) {
     companion object {
         private const val SUBJECT_KIND_FIELD = "subjectKind"
         private const val CONSENT_TYPE_FIELD = "consentType"
+        private const val PURPOSE_FIELD = "purpose"
+        private const val SOURCE_FIELD = "source"
+        private const val POLICY_VERSION_FIELD = "policyVersion"
         private const val LOCALE_FIELD = "locale"
+        private const val SOURCE_MAX_LENGTH = 50
+        private val POLICY_VERSION_PATTERN = Regex("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
         private val ISO_LANGUAGES: Set<String> = Locale.getISOLanguages().toSet()
     }
 }

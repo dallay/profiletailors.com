@@ -48,6 +48,7 @@ as a historical record and a guide for current and future development.
 | 0021 | [Shared Operational Event Safety Boundary](./0021-operational-event-safety-boundary.md) | Accepted | 2026-09-10 |
 | 0022 | [Release-Driven Frontend Deployment to Cloudflare Pages](./0022-release-driven-frontend-deployment.md) | Accepted | 2026-09-18 |
 | 0023 | [platformadmin May Consume governance Application Ports for Back Office Takedown](./0023-platformadmin-governance-application-takedown.md) | Accepted | 2026-09-21 |
+| 0024 | [Durable Admin-Mutable Operational Configuration](./0024-durable-admin-mutable-operational-configuration.md) | Accepted | 2026-09-19 |
 
 ## Relationship with other docs
 
