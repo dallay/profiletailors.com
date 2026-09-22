@@ -89,9 +89,42 @@ class LinkedInPublishingWiringTest {
         assertEquals("linkedin-member-abcd1234", result.providerConnectionRef)
         assertEquals("abcd1234", result.account.providerAccountId)
         assertEquals("urn:li:person:abcd1234", result.account.profileUrn)
-        // Verify credentials were stored with derived UUID
         val expectedUuid = UUID.nameUUIDFromBytes("linkedin:abcd1234".toByteArray())
         assertEquals(expectedUuid.toString(), result.credentialReference)
+    }
+
+    @Test
+    fun `real connection provider rejects unregistered redirect uri before token exchange`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"access_token":"access-123","expires_in":5184000}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"sub":"abcd1234","name":"Yuniel Acosta"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                provider.completeConnection(
+                    CompleteProviderConnectionCommand(
+                        workspaceId = "workspace-1",
+                        actorPrincipalId = "principal-1",
+                        authorizationCode = "auth-code-1",
+                        redirectUri = "https://evil.example/cb",
+                    ),
+                )
+            }
+        }
+        assertTrue(transport.capturedRequests.isEmpty())
     }
 
     @Test

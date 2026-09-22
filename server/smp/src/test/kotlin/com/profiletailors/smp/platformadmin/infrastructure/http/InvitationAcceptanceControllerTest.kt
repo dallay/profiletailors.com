@@ -145,7 +145,7 @@ class InvitationAcceptanceControllerTest {
     }
 
     @Test
-    fun `accept throttle key binds candidate key without raw token material`() {
+    fun `accept throttle key binds principal without token material`() {
         coEvery { requestContextStore.currentPrincipalContext() } returns principal()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult("workspace-123", "ACTIVE")
@@ -163,9 +163,47 @@ class InvitationAcceptanceControllerTest {
             .exchange()
             .expectStatus().isOk
 
-        val expectedCandidateKey = BCryptTokenHasher().candidateKey("raw-invitation-token")
-        assertTrue(throttleKey.captured.contains(expectedCandidateKey))
+        val candidateKey = BCryptTokenHasher().candidateKey("raw-invitation-token")
+        assertTrue(throttleKey.captured.contains("user-123"))
         assertFalse(throttleKey.captured.contains("raw-invitation-token"))
+        assertFalse(throttleKey.captured.contains(candidateKey))
+    }
+
+    @Test
+    fun `accept throttles distinct guesses sharing principal bucket`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { acceptInvitationHandler.handle(any()) } returns
+            InvitationAcceptanceResult("workspace-123", "ACTIVE")
+        val sharedBucket = object : RateLimit {
+            private val attemptsByKey = mutableMapOf<String, Int>()
+
+            override fun tryAcquire(key: String, window: Duration, now: Instant): Boolean = true
+
+            override fun tryAcquire(key: String, window: Duration, now: Instant, maxRequests: Int): Boolean {
+                val attempts = (attemptsByKey[key] ?: 0) + 1
+                attemptsByKey[key] = attempts
+                return attempts <= maxRequests
+            }
+        }
+        val client = webClient(rateLimit = sharedBucket)
+
+        repeat(10) { index ->
+            client
+                .post()
+                .uri("/api/invitations/accept")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""{"token":"guess-token-$index"}""")
+                .exchange()
+                .expectStatus().isOk
+        }
+
+        client
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"guess-token-10"}""")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS)
     }
 
     @Test
@@ -203,7 +241,6 @@ class InvitationAcceptanceControllerTest {
                 acceptInvitationHandler = acceptInvitationHandler,
                 requestContextStore = requestContextStore,
                 acceptAttemptRateLimit = rateLimit,
-                invitationTokenCandidateKey = BCryptTokenHasher(),
                 clock = Clock.fixed(Instant.parse("2026-09-17T10:00:00Z"), ZoneOffset.UTC),
             ),
         )

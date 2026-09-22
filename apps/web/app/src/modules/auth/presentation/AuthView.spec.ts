@@ -51,7 +51,7 @@ function mountView(): ReturnType<typeof mount> {
           props: ['email'],
           emits: ['update:email', 'success'],
           template:
-            '<div data-testid="login"><button @click="$emit(\'update:email\', \'kept@example.com\')">email</button></div>',
+            '<div data-testid="login"><button @click="$emit(\'update:email\', \'kept@example.com\')">email</button><button data-testid="login-success" @click="$emit(\'success\')">ok</button></div>',
         },
         RegisterForm: {
           name: 'RegisterForm',
@@ -115,5 +115,26 @@ describe('AuthView orchestration', () => {
     expect(wrapper.getComponent({ name: 'RegisterForm' }).props('invitationToken')).toBe(
       'raw-token',
     )
+  })
+
+  it('falls back to root for protocol-relative redirect after login', async (): Promise<void> => {
+    route.query = { redirect: '//evil.example/phish' }
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="login-success"]').trigger('click')
+    expect(replace).toHaveBeenCalledWith('/')
+  })
+
+  it('falls back to root for absolute redirect after login', async (): Promise<void> => {
+    route.query = { redirect: 'https://evil.example/phish' }
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="login-success"]').trigger('click')
+    expect(replace).toHaveBeenCalledWith('/')
+  })
+
+  it('keeps internal redirect after login', async (): Promise<void> => {
+    route.query = { redirect: '/invitations/accept?token=x' }
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="login-success"]').trigger('click')
+    expect(replace).toHaveBeenCalledWith('/invitations/accept?token=x')
   })
 })

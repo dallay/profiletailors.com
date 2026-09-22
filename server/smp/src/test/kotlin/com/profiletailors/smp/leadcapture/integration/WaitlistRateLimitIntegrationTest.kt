@@ -31,6 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.liveness.include=livenessState",
         "application.rate-limit.enabled=true",
         "application.rate-limit.waitlist.enabled=true",
+        "app.security.auth-rate-limit.enabled=false",
         "application.rate-limit.waitlist.endpoints=/api/waitlists",
         "application.rate-limit.waitlist.limit.name=waitlist-test",
         "application.rate-limit.waitlist.limit.capacity=10",

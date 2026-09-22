@@ -6,6 +6,7 @@ class ConfigurableLinkedInAuthorizationUrlBuilder(private val properties: Linked
     LinkedInAuthorizationUrlBuilder {
     override fun buildAuthorizationUrl(state: String, redirectUri: String): String {
         require(isConfigured()) { "LinkedIn OAuth provider is not configured." }
+        require(isAllowedRedirectUri(redirectUri)) { "LinkedIn redirect URI is not allowed." }
         val query = formUrlEncoded(
             "response_type" to "code",
             "client_id" to properties.clientId,
@@ -19,4 +20,6 @@ class ConfigurableLinkedInAuthorizationUrlBuilder(private val properties: Linked
     override fun isConfigured(): Boolean = properties.clientId.isNotBlank() &&
         properties.authorizationBaseUrl.isNotBlank() &&
         properties.scopes.isNotBlank()
+
+    override fun isAllowedRedirectUri(redirectUri: String): Boolean = properties.isAllowedRedirectUri(redirectUri)
 }

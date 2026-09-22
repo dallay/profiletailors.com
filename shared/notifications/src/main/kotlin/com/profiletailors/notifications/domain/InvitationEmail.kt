@@ -33,10 +33,10 @@ data class InvitationEmail(
 
     fun toPayload(): NotificationPayload = NotificationPayload(
         mapOf(
+            "invitationId" to invitationId.toString(),
             "email" to recipient.value,
             "workspaceName" to workspaceName,
             "target" to target.name,
-            "acceptUrl" to acceptUrl,
             "locale" to (locale ?: "en"),
         ),
     )

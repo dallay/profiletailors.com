@@ -13,6 +13,7 @@ import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
+import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.CancellationException
 import java.time.Instant
@@ -59,6 +60,12 @@ class GeneratePresignedUrlUseCase(
      * @throws StorageServiceException If there's an error generating the URL
      */
     suspend fun execute(bucket: String, key: String, expirySeconds: Long, requesterId: String): String {
+        try {
+            StoragePathValidator.validateBucketAndKey(bucket, key)
+        } catch (e: StorageSecurityException) {
+            recordPresignFailure(bucket, StorageObservation.ErrorTypes.SECURITY)
+            throw e
+        }
         validateExpiry(expirySeconds)
 
         enforceRateLimit(bucket, requesterId)
