@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.10](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.9...admin@v0.0.10) (2026-09-22)
+
+
+### Features
+
+* **admin:** notifications list and retry UI after [#670](https://github.com/dallay/profiletailors.com/issues/670) archive ([#1124](https://github.com/dallay/profiletailors.com/issues/1124)) ([7aa0d3f](https://github.com/dallay/profiletailors.com/commit/7aa0d3fd0e96a8b35f2a23bc139da4aacc71c8f4))
+* **invitation:** add registration preflight contract ([#1114](https://github.com/dallay/profiletailors.com/issues/1114)) ([41b893d](https://github.com/dallay/profiletailors.com/commit/41b893dc4e1375e4fd53e0a577845413ec00583b))
+* **platformadmin:** notification admin queries and safe retry operations ([#670](https://github.com/dallay/profiletailors.com/issues/670)) ([#1119](https://github.com/dallay/profiletailors.com/issues/1119)) ([0e9107f](https://github.com/dallay/profiletailors.com/commit/0e9107f53c835ab7ba350d6ad466176d89249d78))
+
 ## [0.0.9](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.8...admin@v0.0.9) (2026-09-20)
 
 
