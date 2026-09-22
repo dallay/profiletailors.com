@@ -1,9 +1,7 @@
 package com.profiletailors.smp.media.infrastructure.http
 
-import com.profiletailors.smp.media.application.UnsplashPhotoNotFoundException
 import com.profiletailors.smp.media.application.UnsplashPhotoTooLargeException
 import com.profiletailors.smp.media.application.UnsplashProviderException
-import com.profiletailors.smp.media.application.UnsplashProviderNotConfiguredException
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus

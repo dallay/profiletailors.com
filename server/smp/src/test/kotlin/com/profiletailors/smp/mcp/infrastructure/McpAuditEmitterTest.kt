@@ -128,7 +128,7 @@ class McpAuditEmitterTest {
     }
 
     @Test
-    fun `should log warning and suppress JsonProcessingException when serialization fails`() {
+    fun `logs warning and suppresses JsonProcessingException`() {
         val mapper = io.mockk.mockk<com.fasterxml.jackson.databind.ObjectMapper>()
         io.mockk.every { mapper.writeValueAsString(any()) } throws object :
             com.fasterxml.jackson.core.JsonProcessingException("serialization error") {}
@@ -151,7 +151,7 @@ class McpAuditEmitterTest {
     }
 
     @Test
-    fun `should log warning and suppress IllegalArgumentException when serialization fails`() {
+    fun `logs warning and suppresses IllegalArgumentException`() {
         val mapper = io.mockk.mockk<com.fasterxml.jackson.databind.ObjectMapper>()
         io.mockk.every { mapper.writeValueAsString(any()) } throws IllegalArgumentException("invalid argument")
         val emitter = McpAuditEmitter(mapper)

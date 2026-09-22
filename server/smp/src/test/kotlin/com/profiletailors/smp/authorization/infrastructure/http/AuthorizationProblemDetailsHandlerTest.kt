@@ -1,6 +1,5 @@
 package com.profiletailors.smp.authorization.infrastructure.http
 
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
