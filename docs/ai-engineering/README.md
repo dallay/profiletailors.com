@@ -187,6 +187,6 @@ export LINEAR_API_KEY="lin_api_xxxxx"
 ## Related
 
 - [Agent Harness](https://github.com/yacosta738/agent-harness) — Framework powering this setup
-- [OpenSpec](../openspec/) — Spec-driven development system
+- [OpenSpec](../../openspec/) — Spec-driven development system
 - [Architecture](../architecture/) — System architecture
-- [Skills](../.agents/skills/) — Domain skills
+- [Skills](../../.agents/skills/) — Domain skills
