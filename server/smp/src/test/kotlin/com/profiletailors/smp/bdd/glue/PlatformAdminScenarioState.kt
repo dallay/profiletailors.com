@@ -11,4 +11,5 @@ class PlatformAdminScenarioState {
     var lastUserId: String? = null
     var idempotencyKey: String? = null
     val notificationIds: MutableMap<String, String> = mutableMapOf()
+    val takedownReportIds: MutableMap<String, String> = mutableMapOf()
 }

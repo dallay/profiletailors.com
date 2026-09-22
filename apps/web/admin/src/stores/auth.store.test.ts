@@ -93,6 +93,44 @@ describe('useAdminAuthStore', () => {
     }
   })
 
+  it('OWNER and OPERATOR hold both governance keys', () => {
+    const store = useAdminAuthStore()
+    for (const role of ['PLATFORM_OWNER', 'PLATFORM_OPERATOR'] as const) {
+      store.principal = {
+        principalId: 'test-id',
+        email: 'operator@example.com',
+        displayName: null,
+        platformRoles: [role],
+      }
+      expect(store.hasPermission('platform.governance.read')).toBe(true)
+      expect(store.hasPermission('platform.governance.manage')).toBe(true)
+    }
+  })
+
+  it('AUDITOR is governance read-only', () => {
+    const store = useAdminAuthStore()
+    store.principal = {
+      principalId: 'test-id',
+      email: 'auditor@example.com',
+      displayName: null,
+      platformRoles: ['AUDITOR'],
+    }
+    expect(store.hasPermission('platform.governance.read')).toBe(true)
+    expect(store.hasPermission('platform.governance.manage')).toBe(false)
+  })
+
+  it('SUPPORT_AGENT holds neither governance key', () => {
+    const store = useAdminAuthStore()
+    store.principal = {
+      principalId: 'test-id',
+      email: 'support@example.com',
+      displayName: null,
+      platformRoles: ['SUPPORT_AGENT'],
+    }
+    expect(store.hasPermission('platform.governance.read')).toBe(false)
+    expect(store.hasPermission('platform.governance.manage')).toBe(false)
+  })
+
   it('SUPPORT_AGENT has no configuration permissions', () => {
     const store = useAdminAuthStore()
     store.principal = {

@@ -125,6 +125,8 @@ databaseChangeLog:
       file: db/changelog/platform-admin/009-fix-user-control-idempotency-scope.yaml
   - include:
       file: db/changelog/platform-admin/010-create-configuration-idempotency.yaml
+  - include:
+      file: db/changelog/platform-admin/011-widen-configuration-idempotency-command.yaml
 
 
   - include:

@@ -94,3 +94,87 @@ None from design except `AdminTakedownPage.from` instead of `of` to avoid a new 
 ## Issues
 
 None blocking. ADR-0023 remains untracked from design (T-5.2 / PR3 cite). Not part of PR1 code.
+
+---
+
+# Apply Progress — #671 Takedown Governance Admin (PR 2 + Review Fixes + BDD + Frontend)
+
+## Layer
+
+PR2 (platformadmin API) was committed as `79bb83d3` on branch `issue-671-admin-api`. This batch adds
+PR2 follow-ups from review findings, the BDD suite, and the admin frontend (GovernanceView).
+
+## Completed
+
+- `JacksonConfigurationIdempotencyCodec` owns a private `ObjectMapper` with `JavaTimeModule`
+  registered. Rationale: Spring injects the shared Jackson-2 `ObjectMapper` bean (Kotlin module only)
+  into the codec constructor, ignoring the Kotlin default argument — so the constructor default never
+  took effect at runtime and `encode(AdminTakedownReport)` threw `InvalidDefinitionException` on
+  `Instant` fields. Unit-proven with an `AdminTakedownReport` round-trip test.
+- `010-create-configuration-idempotency.yaml` left untouched; new changeset
+  `011-widen-configuration-idempotency-command.yaml` widens `command` 32 → 128
+  (`approve_takedown:<reportId>` needs ~66 chars). Immutable migration history preserved.
+- `RetryNotificationHandler`-style outcome audits already present in `AdminTakedownHandlers`
+  (SUCCESS/REJECTED/FAILED); no change needed.
+- BDD `takedown-admin.feature` (14 scenarios) + `TakedownAdminBddSteps.kt` glue:
+  reporter principal seeding (FK), `items` response shape, `principalHasRole` clear-then-seed for
+  SUPPORT_AGENT/AUDITOR guard scenarios, seeded report for AUDITOR mutate, reviewed-field seeding
+  for DISMISSED/APPROVED fixtures (domain invariants), deterministic empty-query via unmatched
+  recipient filter, values-only payload redaction assertion.
+- `GovernanceView.vue` + spec, live `/governance` + `/governance/:reportId` routes,
+  `nav-registry` governance `live` on `platform.governance.read`, EN+ES labels.
+- `docs/architecture/c4/03-component.md`: `Rel(platformadmin, governance, "Admin takedown ports")`.
+
+## Verification
+
+- `compileKotlin` / `compileTestKotlin`, `detekt`, `spotlessCheck`: green.
+- Focused unit suites green (handlers, controller, codec, consumer, ports/adapters, permissions,
+  audit actions, redaction, arch/modularity).
+- Admin: `type-check`, `biome check`, `test:run`, `build` green.
+- `bddFastTest` takedown feature: PENDING (running at time of writing; outcome to be recorded here).
+
+---
+
+# Apply Progress — #671 Takedown Governance Admin (PR2 + Review Fixes + BDD + Frontend)
+
+## Layer
+
+PR2 (`AdminTakedownHandlers`, `AdminTakedownController`, permissions, dual audit) was committed as
+`79bb83d3` on branch `issue-671-admin-api`. This batch adds review-driven fixes, the BDD suite,
+and the admin frontend (GovernanceView).
+
+## Review Findings Fixed (all verified against current code; docs-restructure/produces/time-window
+findings skipped with reasons in-session)
+
+- `JacksonConfigurationIdempotencyCodec` owns a private `ObjectMapper` with `JavaTimeModule`.
+  Root cause of approve/reject HTTP 500: Spring injects the shared Jackson-2 `ObjectMapper` bean
+  (Kotlin module only) into the codec constructor, ignoring the Kotlin default argument — so
+  `encode(AdminTakedownReport)` threw `InvalidDefinitionException` on `Instant` fields. Proven by a
+  new round-trip unit test (failed before, green after). `R2dbcNotificationAdminQueryAdapter`-style
+  standalone mappers were audited; only this codec serializes `Instant`-holding DTOs.
+- New Liquibase changeset `011-widen-configuration-idempotency-command.yaml` widens `command`
+  32 → 128 (`approve_takedown:<reportId>` needs ~66 chars). `010` left untouched (immutable history).
+- BDD glue: reporter-principal seeding (FK), `items` response shape, clear-then-seed role guards
+  (`principalHasRole`), seeded report for AUDITOR mutate, reviewed-field seeding for
+  DISMISSED/APPROVED fixtures (domain invariants), deterministic empty-query, values-only payload
+  redaction assertion, `requireNotNull` instead of `!!`.
+- Feature `takedown-admin.feature`: 14 scenarios; role-guard scenarios use clear-then-seed steps.
+- Frontend: `GovernanceView.vue` (list/filter/detail/approve/reject, manage-gated, `Idempotency-Key`,
+  confirm), live `/governance` + `/governance/:reportId` routes, `nav-registry` governance `live`
+  on `platform.governance.read`, EN+ES labels, view spec (6 tests).
+- `docs/architecture/c4/03-component.md`: `Rel(platformadmin, governance, "Admin takedown ports")`.
+
+## Verification (all green before PR)
+
+- `compileKotlin` / `compileTestKotlin`, `detekt`, `spotlessCheck`: green.
+- Focused unit suites green: takedown handlers/controller, governance ports/adapters, codec
+  round-trip, permissions, audit actions, redaction, arch/modularity.
+- `bddFastTest`: 291/291 green (takedown feature 14/14).
+- `bddPostgresTest`: 291/291 green, BUILD SUCCESSFUL (takedown feature 14/14).
+- Admin: `type-check`, `biome check`, `test:run` (115), `build` green.
+
+## Residual Risks (documented, not blocking)
+
+- Concurrent same-key approve/reject relies on the DB unique constraint (sequential reuse → 409).
+- `notifications` table deliberately absent from BDD cleanup; takedown scenarios use unique
+  workspaces/filters and stay deterministic.

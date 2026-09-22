@@ -3,6 +3,10 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.profiletailors.smp.governance.application.AdminTakedownNotReviewableException
+import com.profiletailors.smp.governance.application.AdminTakedownReportNotFoundException
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyConflictException
+import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyInProgressException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
 import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
@@ -236,5 +240,38 @@ class AdminProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("VALIDATION_ERROR", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps AdminTakedownReportNotFoundException to 404 not IllegalArgumentException 400`() {
+        val problem = handler.handle(AdminTakedownReportNotFoundException("report-1"))
+
+        assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
+        assertEquals("TAKEDOWN_REPORT_NOT_FOUND", problem.properties?.get("code"))
+        assertEquals("urn:profiletailors:error:TAKEDOWN_REPORT_NOT_FOUND", problem.type.toString())
+    }
+
+    @Test
+    fun `maps AdminTakedownNotReviewableException to 409`() {
+        val problem = handler.handle(AdminTakedownNotReviewableException("report-1", "APPROVED"))
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("TAKEDOWN_REPORT_NOT_REVIEWABLE", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps ConfigurationIdempotencyConflictException to 409`() {
+        val problem = handler.handle(ConfigurationIdempotencyConflictException())
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("IDEMPOTENCY_KEY_REUSED", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps ConfigurationIdempotencyInProgressException to 409`() {
+        val problem = handler.handle(ConfigurationIdempotencyInProgressException())
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("IDEMPOTENCY_KEY_IN_PROGRESS", problem.properties?.get("code"))
     }
 }
