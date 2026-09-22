@@ -4,6 +4,11 @@
 
 ## 📖 Table of Contents
 
+### AI-Assisted Engineering
+
+- [AI Engineering](./ai-engineering/) - How ProfileTailors uses Agent Harness for structured, spec-driven development with AI agents
+- [OpenSpec](../openspec/README.md) - Spec-driven development system with phase DAG
+
 ### Architecture & Design
 
 - [API Versioning](./api-versioning.md) - Spring Boot 4 media-type versioning implementation
