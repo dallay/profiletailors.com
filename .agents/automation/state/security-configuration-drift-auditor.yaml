@@ -1,5 +1,23 @@
 schemaVersion: 1
 task: security-configuration-drift-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-03-31T20:00:00Z"
+findings:
+  - id: DRIFT-SEC-001
+    title: Actuator prometheus endpoint exposed in public permitAll pathMatchers
+    risk: HIGH
+    status: resolved
+    remediation:
+      status: implemented
+      pullRequest: null
+    firstDetected: "2026-03-31T20:00:00Z"
+    lastVerified: "2026-03-31T20:00:00Z"
+    occurrences: 1
+    evidence:
+      - "IdentitySecurityConfiguration.kt had /actuator/prometheus listed under permitAll() pathMatchers, directly contradicting docs/monitoring/actuator-security.md which restricts actuator access to health endpoints publicly."
+checks:
+  - name: Spring Security PermitAll Audit
+    status: Passed
+    target: server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt
+  - name: Actuator Endpoint Exposure Alignment
+    status: Passed
+    target: docs/monitoring/actuator-security.md

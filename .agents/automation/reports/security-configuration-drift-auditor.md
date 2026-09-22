@@ -6,27 +6,36 @@ Audit the codebase to detect drift between the specified security architecture, 
 
 ## Execution Result
 
-No automation execution has been recorded yet. This report is awaiting its first scheduled run.
+Security configuration drift detected and remediated. `/actuator/prometheus` was exposed via public `permitAll()` in `IdentitySecurityConfiguration.kt`, contradicting `docs/monitoring/actuator-security.md`. The configuration was updated to require authentication for `/actuator/prometheus`.
 
 ## Scope Inspected
 
-Not yet inspected.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/security/CredentialsSecurityConfiguration.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/infrastructure/McpSecurityConfiguration.kt`
+- `docs/monitoring/actuator-security.md`
+- `docs/architecture/adr/0009-jwt-and-httponly-cookie-authentication.md`
 
 ## Changes Applied
 
-None.
+- Removed `"/actuator/prometheus"` from public `permitAll()` pathMatchers in `IdentitySecurityConfiguration.kt`.
 
 ## Evidence Table
 
-No evidence collected yet.
+| Target | Expected Security Control | Actual Security Control | Alignment Status |
+| :--- | :--- | :--- | :--- |
+| `/actuator/prometheus` | Internal / Authenticated only | Unauthenticated `permitAll()` | Fixed (now requires authentication) |
+| `/actuator/health` | Publicly accessible | Unauthenticated `permitAll()` | Aligned |
+| Refresh session cookies | `HttpOnly`, `SameSite=Lax/Strict` | `HttpOnly`, `SameSite=Lax` | Aligned |
+| CORS origins & headers | Strict configuration via properties | Filtered and explicit | Aligned |
+| MCP endpoints | Bearer JWT required | `mcpSecurityWebFilterChain` enforced | Aligned |
 
 ## Validation Table
 
-No validation checks have been run.
-
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| (none) | — | Not run | Awaiting first execution. |
+| Spring Security PermitAll Audit | `IdentitySecurityConfiguration.kt` | Passed | Verified `/actuator/prometheus` removed from `permitAll()`. |
+| Actuator Endpoint Exposure Alignment | `docs/monitoring/actuator-security.md` | Passed | Verified runtime matches documented architecture. |
 
 ## Unresolved Findings
 
@@ -38,14 +47,14 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `null`
+- **Last Execution:** `2026-03-31T20:00:00Z`
 - **Schema Version:** `1`
 - **Task Identity:** `security-configuration-drift-auditor`
 
 ## Risk Assessment
 
-- **Overall Risk:** N/A (no execution yet).
+- **Overall Risk:** LOW (High-risk finding remediated safely without weakening any security controls).
 
 ## Human Review Notes
 
-No execution has been recorded. The task will run on its next scheduled execution.
+Remediated public exposure of `/actuator/prometheus` endpoint in Spring Security configuration to conform with actuator security architecture documentation (`docs/monitoring/actuator-security.md`).
