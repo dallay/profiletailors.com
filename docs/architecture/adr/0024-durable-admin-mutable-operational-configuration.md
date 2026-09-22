@@ -1,4 +1,4 @@
-# ADR-0022: Durable Admin-Mutable Operational Configuration
+# ADR-0024: Durable Admin-Mutable Operational Configuration
 
 - Status: Accepted
 - Date: 2026-09-19
