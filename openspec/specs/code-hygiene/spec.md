@@ -308,5 +308,6 @@ architectural decision.
 #### Scenario: Static analysis and unit tests pass
 
 - GIVEN the refactored code and unit test updates
-- WHEN `node scripts/gradle-run.mjs detekt` and related backend unit tests run
-- THEN all pass with zero new findings and zero new suppressions introduced
+- WHEN `node scripts/gradle-run.mjs detekt`, related backend unit tests, `just backend-lint`, and
+  `just backend-check` run
+- THEN all validation commands pass with zero new findings and zero new suppressions introduced
