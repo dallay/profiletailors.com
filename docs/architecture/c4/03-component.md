@@ -91,6 +91,7 @@ Rel(identity, governance, "Logs authentication events")
 Rel(authorization, governance, "Logs authorization decisions")
 Rel(tenancy, governance, "Logs workspace changes")
 Rel(credentials, governance, "Logs credential operations")
+Rel(platformadmin, governance, "Admin takedown ports")
 
 Rel(identity, audit, "Logs request outcomes")
 Rel(authorization, audit, "Logs authorization decisions")

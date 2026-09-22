@@ -41,33 +41,33 @@ TDD: RED then GREEN. No comments. Workspace `/api/governance/takedown/**` untouc
 
 ## Phase 2: platformadmin API (PR2)
 
-- [ ] 2.1 **T-2.1** RED/GREEN `PlatformPermission.kt` + `PlatformPermissionTest.kt`: `GOVERNANCE_READ`/`MANAGE`. AC: OWNER+OPERATOR both; AUDITOR read; SUPPORT_AGENT neither; no `platform.operators.read`. Deps: none.
-- [ ] 2.2 **T-2.2** RED/GREEN `AdminAuditEvent.kt`: `TAKEDOWN_APPROVED`/`TAKEDOWN_REJECTED`. AC: registry contains both; `MEDIA_TAKEDOWN_*` unnamed. Deps: none.
-- [ ] 2.3 **T-2.3** RED/GREEN admin 404/409 types + `AdminProblemDetailsHandler.kt`. AC: not-found 404; not-reviewable 409; `ConfigurationIdempotency*` → 409; no `IllegalArgumentException` 400 for missing report. Deps: none.
-- [ ] 2.4 **T-2.4** RED `AdminTakedownHandlersTest.kt`. AC: read/manage via `OperatorAccessResolver`; SUPPORT_AGENT 403 no email; AUDITOR mutate 403 + admin audit `REJECTED` ids-only; success dual audit; idempotent replay; 409 no transition. Deps: 1.7, 2.1, 2.2.
-- [ ] 2.5 **T-2.5** GREEN `platformadmin/application/handler/AdminTakedownHandlers.kt`. AC: 2.4 green; no `TakedownReport` import; `MEDIA_*` success-only. Deps: 2.4.
-- [ ] 2.6 **T-2.6** RED `AdminTakedownControllerTest.kt` WebTestClient. AC: 401 none; 403 `PLATFORM_ACCESS_DENIED`; GET list/detail 200 + `PagedResult`/`ADMIN_PAGE_MAX_SIZE`; POST approve/reject require `Idempotency-Key`; `Accept: application/vnd.api.v1+json`; no `X-Workspace-Id`. Deps: 2.3, 2.5.
-- [ ] 2.7 **T-2.7** GREEN `AdminTakedownController.kt` `/api/admin/takedown-reports`. AC: 2.6 green; thin HTTP; reuse `ConfigurationIdempotencyService`; workspace controllers unedited. Deps: 2.6.
-- [ ] 2.8 **T-2.8** `platformadmin/ModuleMetadata.kt` add `governance :: application` only. AC: `ModularityVerificationTest`/`ModularStructureTest` pass; fail if `TakedownReport` imported. Deps: 2.5.
-- [ ] 2.9 **T-2.9** `RedactSensitiveMetadataTest` ids-only metadata (report/workspace/asset); never reporter email. AC: `redact()` keeps ids. Deps: 2.5.
+- [x] 2.1 **T-2.1** RED/GREEN `PlatformPermission.kt` + `PlatformPermissionTest.kt`: `GOVERNANCE_READ`/`MANAGE`. AC: OWNER+OPERATOR both; AUDITOR read; SUPPORT_AGENT neither; no `platform.operators.read`. Deps: none.
+- [x] 2.2 **T-2.2** RED/GREEN `AdminAuditEvent.kt`: `TAKEDOWN_APPROVED`/`TAKEDOWN_REJECTED`. AC: registry contains both; `MEDIA_TAKEDOWN_*` unnamed. Deps: none.
+- [x] 2.3 **T-2.3** RED/GREEN admin 404/409 types + `AdminProblemDetailsHandler.kt`. AC: not-found 404; not-reviewable 409; `ConfigurationIdempotency*` → 409; no `IllegalArgumentException` 400 for missing report. Deps: none.
+- [x] 2.4 **T-2.4** RED `AdminTakedownHandlersTest.kt`. AC: read/manage via `OperatorAccessResolver`; SUPPORT_AGENT 403 no email; AUDITOR mutate 403 + admin audit `REJECTED` ids-only; success dual audit; idempotent replay; 409 no transition. Deps: 1.7, 2.1, 2.2.
+- [x] 2.5 **T-2.5** GREEN `platformadmin/application/handler/AdminTakedownHandlers.kt`. AC: 2.4 green; no `TakedownReport` import; `MEDIA_*` success-only. Deps: 2.4.
+- [x] 2.6 **T-2.6** RED `AdminTakedownControllerTest.kt` WebTestClient. AC: 401 none; 403 `PLATFORM_ACCESS_DENIED`; GET list/detail 200 + `PagedResult`/`ADMIN_PAGE_MAX_SIZE`; POST approve/reject require `Idempotency-Key`; `Accept: application/vnd.api.v1+json`; no `X-Workspace-Id`. Deps: 2.3, 2.5.
+- [x] 2.7 **T-2.7** GREEN `AdminTakedownController.kt` `/api/admin/takedown-reports`. AC: 2.6 green; thin HTTP; reuse `ConfigurationIdempotencyService`; workspace controllers unedited. Deps: 2.6.
+- [x] 2.8 **T-2.8** `platformadmin/ModuleMetadata.kt` add `governance :: application` only. AC: `ModularityVerificationTest`/`ModularStructureTest` pass; fail if `TakedownReport` imported. Deps: 2.5.
+- [x] 2.9 **T-2.9** `RedactSensitiveMetadataTest` ids-only metadata (report/workspace/asset); never reporter email. AC: `redact()` keeps ids. Deps: 2.5.
 
 ## Phase 3: BDD (PR3)
 
-- [ ] 3.1 **T-3.1** RED `server/smp/src/test/resources/features/platformadmin/takedown-admin.feature` `@smoke @fast @postgres`. Deliverable: spec scenarios (list/filter/401; detail+assetStatus/404; approve/reject lifecycle; idempotency replay; SUPPORT_AGENT 403; AUDITOR 403 mutate; 409 decided; reporter email no secrets; dual audit). Deps: 2.7.
-- [ ] 3.2 **T-3.2** GREEN `bdd/glue/TakedownAdminBddSteps.kt`. AC: `BddDatabaseSupport`; `Accept: application/vnd.api.v1+json`; `Idempotency-Key`; role tokens; 3.1 green. Deps: 3.1.
+- [x] 3.1 **T-3.1** RED `server/smp/src/test/resources/features/platformadmin/takedown-admin.feature` `@smoke @fast @postgres`. Deliverable: spec scenarios (list/filter/401; detail+assetStatus/404; approve/reject lifecycle; idempotency replay; SUPPORT_AGENT 403; AUDITOR 403 mutate; 409 decided; reporter email no secrets; dual audit). Deps: 2.7.
+- [x] 3.2 **T-3.2** GREEN `bdd/glue/TakedownAdminBddSteps.kt`. AC: `BddDatabaseSupport`; `Accept: application/vnd.api.v1+json`; `Idempotency-Key`; role tokens; 3.1 green. Deps: 3.1.
 - [ ] 3.3 **T-3.3** `just backend-bdd-fast`. AC: new scenarios pass; workspace takedown features unchanged. Deps: 3.2.
 
 ## Phase 4: Admin frontend (PR3)
 
-- [ ] 4.1 **T-4.1** RED/GREEN `auth.store.ts` + test: mirror server governance matrix. AC: OWNER/OPERATOR both; AUDITOR read; SUPPORT_AGENT neither. Deps: 2.1.
-- [ ] 4.2 **T-4.2** RED/GREEN `nav-registry.ts` + `nav-registry.spec.ts`: `governance` `live` on `platform.governance.read` (not `platform.operators.read`). AC: not planned; overview stays planned. Deps: 4.1.
-- [ ] 4.3 **T-4.3** GREEN `router/index.ts`: `GovernanceView` + `governance/:reportId`; drop from `plannedNavEntries()` map. AC: not `PlannedAreaView`. Deps: 4.2.
-- [ ] 4.4 **T-4.4** RED `GovernanceView.spec.ts`. AC: list/filter/detail+assetStatus; confirm before mutate; `Idempotency-Key`; AUDITOR no controls; no-read → access-denied + zero fetch. Deps: 4.1.
-- [ ] 4.5 **T-4.5** GREEN `apps/web/admin/src/views/GovernanceView.vue`. AC: 4.4 green. Deps: 4.3, 4.4.
-- [ ] 4.6 **T-4.6** GREEN `i18n/index.ts` + `types.ts` EN+ES governance labels. AC: no hardcoded copy. Deps: 4.5.
+- [x] 4.1 **T-4.1** RED/GREEN `auth.store.ts` + test: mirror server governance matrix. AC: OWNER/OPERATOR both; AUDITOR read; SUPPORT_AGENT neither. Deps: 2.1.
+- [x] 4.2 **T-4.2** RED/GREEN `nav-registry.ts` + `nav-registry.spec.ts`: `governance` `live` on `platform.governance.read` (not `platform.operators.read`). AC: not planned; overview stays planned. Deps: 4.1.
+- [x] 4.3 **T-4.3** GREEN `router/index.ts`: `GovernanceView` + `governance/:reportId`; drop from `plannedNavEntries()` map. AC: not `PlannedAreaView`. Deps: 4.2.
+- [x] 4.4 **T-4.4** RED `GovernanceView.spec.ts`. AC: list/filter/detail+assetStatus; confirm before mutate; `Idempotency-Key`; AUDITOR no controls; no-read → access-denied + zero fetch. Deps: 4.1.
+- [x] 4.5 **T-4.5** GREEN `apps/web/admin/src/views/GovernanceView.vue`. AC: 4.4 green. Deps: 4.3, 4.4.
+- [x] 4.6 **T-4.6** GREEN `i18n/index.ts` + `types.ts` EN+ES governance labels. AC: no hardcoded copy. Deps: 4.5.
 
 ## Phase 5: C4 / docs / gates (PR3)
 
-- [ ] 5.1 **T-5.1** `docs/architecture/c4/03-component.md`: `Rel(platformadmin, governance, "Admin takedown ports")`. AC: ADR-0023 follow-up. Deps: 2.8.
-- [ ] 5.2 **T-5.2** Cite-only: ADR-0023 Accepted in `docs/architecture/adr/README.md`; no ADR rewrite. Deps: none.
+- [x] 5.1 **T-5.1** `docs/architecture/c4/03-component.md`: `Rel(platformadmin, governance, "Admin takedown ports")`. AC: ADR-0023 follow-up. Deps: 2.8.
+- [x] 5.2 **T-5.2** Cite-only: ADR-0023 Accepted in `docs/architecture/adr/README.md`; no ADR rewrite. Deps: none.
 - [ ] 5.3 **T-5.3** `just backend-check`, `just backend-bdd-fast`, `just admin-check`, `just admin-test`, `just admin-build`. AC: no new suppressions/baselines/`any`. Deps: 3.3, 4.6, 5.1.

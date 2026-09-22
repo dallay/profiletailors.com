@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-011-widen-configuration-idempotency-command
+      author: platform-admin
+      changes:
+        - modifyDataType:
+            tableName: platform_admin_configuration_idempotency
+            columnName: command
+            newDataType: varchar(128)
