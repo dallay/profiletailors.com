@@ -1,5 +1,29 @@
 schemaVersion: 1
 task: adr-consistency-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-09-22T18:00:00Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: FINDING-ADR-001
+    title: "Duplicate ADR ID 0022 and missing index entry in README"
+    description: "Two ADR files were created with ID 0022: 0022-release-driven-frontend-deployment.md and 0022-durable-admin-mutable-operational-configuration.md. The operational configuration ADR was missing from docs/architecture/adr/README.md."
+    severity: LOW
+    status: resolved
+    firstDetected: "2026-09-22T18:00:00Z"
+    lastVerified: "2026-09-22T18:00:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      summary: "Renamed 0022-durable-admin-mutable-operational-configuration.md to 0024-durable-admin-mutable-operational-configuration.md, updated title header to ADR-0024, and added row 0024 to docs/architecture/adr/README.md."
+checks:
+  - name: adr-index-alignment
+    target: docs/architecture/adr/README.md
+    status: Passed
+    notes: Verified all 24 ADRs (0001 to 0024) are indexed in README.md with matching filenames and non-colliding IDs.
+  - name: adr-content-verification
+    target: docs/architecture/adr/
+    status: Passed
+    notes: Confirmed titles, statuses, and cross-references for all 24 ADRs.
+  - name: markdown-lint
+    target: docs/architecture/adr/
+    status: Passed
+    notes: Ran markdownlint-cli2 across docs/ with 0 errors.
