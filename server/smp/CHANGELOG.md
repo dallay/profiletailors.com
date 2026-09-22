@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.6](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.5...smp@v0.5.6) (2026-09-22)
+
+
+### Features
+
+* **platformadmin:** Back Office takedown governance ([#671](https://github.com/dallay/profiletailors.com/issues/671)) ([#1130](https://github.com/dallay/profiletailors.com/issues/1130)) ([a3e2386](https://github.com/dallay/profiletailors.com/commit/a3e2386ec8f6f680bb0436d0d260d47fa398ac69))
+
+
+### Bug Fixes
+
+* **security:** remediate deep-audit findings in invitations, waitlist, storage and publishing ([#1122](https://github.com/dallay/profiletailors.com/issues/1122)) ([c4dae57](https://github.com/dallay/profiletailors.com/commit/c4dae5781bdf57e34ef323165a10bca4cc6e7ec4))
+
 ## [0.5.5](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.4...smp@v0.5.5) (2026-09-21)
 
 
