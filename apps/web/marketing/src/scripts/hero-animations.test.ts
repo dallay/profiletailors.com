@@ -13,13 +13,11 @@ describe('splitToChars', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('creates one span per character for simple text', () => {
+  it('creates one span per word so lines wrap on word boundaries', () => {
     const el = document.createElement('div')
-    el.textContent = 'hi'
+    el.textContent = 'hi there'
     const result = splitToChars(el)
-    expect(result).toHaveLength(2)
-    expect(result[0].textContent).toBe('h')
-    expect(result[1].textContent).toBe('i')
+    expect(result.map((span) => span.textContent)).toEqual(['hi', ' ', 'there'])
   })
 
   it('converts newline to br element instead of span', () => {
@@ -28,7 +26,7 @@ describe('splitToChars', () => {
     const result = splitToChars(el)
     const brs = Array.from(el.childNodes).filter((n) => n.nodeName === 'BR')
     expect(brs).toHaveLength(1)
-    expect(result).toHaveLength(10)
+    expect(result.map((span) => span.textContent)).toEqual(['hello', 'world'])
   })
 
   it('handles single character', () => {

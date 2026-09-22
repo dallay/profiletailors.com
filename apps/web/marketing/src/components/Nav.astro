@@ -2,6 +2,7 @@
 import ThemeToggle from './ThemeToggle.astro'
 import Logo from './Logo.astro'
 import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
 
 interface Props {
   langSwitch: string
@@ -10,12 +11,29 @@ interface Props {
   locale?: Locale
 }
 
-const { langSwitch, langHref, langLabel, locale } = Astro.props
+const { langSwitch, langHref, langLabel, locale = 'en' } = Astro.props
+const t = useTranslations(locale)
+const homeHref = locale === 'es' ? '/es/' : '/'
+const productHref = `${homeHref}#product`
+const howHref = `${homeHref}#how`
+const joinHref = `${homeHref}#waitlist`
 ---
 
-<nav aria-label="Main" class="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto border-b border-border/40">
+<nav aria-label="Main" class="flex items-center justify-between gap-4 px-6 py-4 max-w-6xl mx-auto border-b border-border/40 min-h-16">
   <Logo size="md" locale={locale} />
-  <div class="flex items-center gap-6">
+  <div class="flex items-center gap-3 sm:gap-5">
+    <a
+      href={productHref}
+      class="hidden md:inline-flex items-center min-h-[44px] font-mono text-xs tracking-wider uppercase text-text-secondary hover:text-text-display transition-colors duration-200"
+    >
+      {t.nav.product}
+    </a>
+    <a
+      href={howHref}
+      class="hidden md:inline-flex items-center min-h-[44px] font-mono text-xs tracking-wider uppercase text-text-secondary hover:text-text-display transition-colors duration-200"
+    >
+      {t.nav.how}
+    </a>
     <ThemeToggle />
     <a
       href={langHref}
@@ -23,6 +41,12 @@ const { langSwitch, langHref, langLabel, locale } = Astro.props
       aria-label={langLabel}
     >
       {langSwitch}
+    </a>
+    <a
+      href={joinHref}
+      class="inline-flex items-center justify-center min-h-[44px] px-4 font-mono text-xs font-bold uppercase tracking-[0.06em] bg-text-display text-bg-primary rounded-full hover:opacity-90 active:scale-[0.98] transition-all duration-150"
+    >
+      {t.nav.join}
     </a>
   </div>
 </nav>

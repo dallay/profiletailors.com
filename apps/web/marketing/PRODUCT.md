@@ -16,11 +16,11 @@ Early-access prospects — people interested in social media management who disc
 
 ## Product Purpose
 
-Convert early-access prospects into registered users on the waitlist. Serve legal documents that govern the operator-hosted instance and the software under AGPL-3.0. The site earns trust, manages expectations (publishing is still being validated), and collects consent for future contact.
+Convert early-access prospects into waitlist registrations. Show a LinkedIn-first calendar workspace, say clearly what early access includes, and serve legal documents for the operator-hosted instance and the AGPL-3.0 software. Publishing is still being validated; that caveat sits below the form, not in the offer.
 
 ## Positioning
 
-Not another social media scheduler landing page. Profile Tailors is a focused, opinionated workspace — deliberately minimal, non-generative, not trying to be everything. The Nothing-inspired aesthetic signals that restraint is a feature. "Early access preview" manages expectations honestly: publishing integrations are still being validated.
+Not another social media scheduler landing page. Profile Tailors is a focused, opinionated LinkedIn-first workspace for deliberate content: calendar, drafts, and review. Not an AI generator, not a 12-network suite. The Nothing-inspired aesthetic signals that restraint is a feature. Early access opens in waves; publishing integrations are still being validated.
 
 ## Operating Context
 
@@ -33,7 +33,7 @@ Not another social media scheduler landing page. Profile Tailors is a focused, o
 ## Capabilities and Constraints
 
 - Static Astro pages with locale routing (EN default, ES under `/es/`)
-- Waitlist form collects email + consent; submission is client-side only (no backend yet per ADR-0011)
+- Waitlist form collects email plus optional marketing consent; submit posts to the waitlist API and sends `earlyAccess: true` as the join act (ADR-0011)
 - No commercial transactions on this surface
 - LinkedIn OAuth is planned but not yet live
 - Legal documents (privacy policy, ToS, cookies, AUP, accessibility statement) are published here
@@ -44,7 +44,7 @@ Not another social media scheduler landing page. Profile Tailors is a focused, o
 ## Brand Commitments
 
 - Name: "Profile Tailors"
-- Tagline: "Schedule smarter. Post everywhere."
+- Tagline (future): "Schedule smarter. Post everywhere." Current marketing offer is LinkedIn-first.
 - Aesthetic: Nothing-inspired monochrome, dark-first; Swiss typography + industrial design references
 - Fonts: Doto (hero), Space Grotesk (body/UI), Space Mono (labels/data)
 - Color philosophy: Color is an event, not a default

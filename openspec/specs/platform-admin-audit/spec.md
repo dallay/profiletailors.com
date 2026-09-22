@@ -180,3 +180,59 @@ unredacted — they are operational state, not sensitive material.
 - THEN one `CONFIGURATION_CHANGED` event exists with result `FAILED`
 - AND no success event is emitted
 - AND the persisted registration mode did not change
+
+### Requirement: Notification-retry audit outcomes (dallay/profiletailors.com#670)
+
+The platform-admin audit stream MUST support a `NOTIFICATION_RETRIED` action. Each attempted
+retry MUST produce one audit event regardless of outcome (`SUCCESS`, `REJECTED`,
+`DISPATCH_FAILED`), carrying the operator, occurred time, action, target type `NOTIFICATION`,
+target id of the original notification (not the new attempt id), and metadata:
+
+- `notificationId` — same as target id
+- `channel` — EMAIL, SMS, PUSH, or WEBHOOK
+- `templateId` — template identifier
+- `retryOutcome` — `SUCCESS`, `REJECTED`, or `DISPATCH_FAILED`
+- `priorStatus` — status before the retry attempt (typically FAILED)
+- `priorError` — original `error_message` when present, processed by existing `redact()`
+  enforcement; denylisted substrings (`password`, `token`, `secret`, and the established
+  denylist) MUST store as `[REDACTED]`
+
+Successful events MUST be emitted when a new notification row is created. Rejected eligibility
+MUST still be audited with `REJECTED` and MUST NOT create a new notification. Dispatch failures
+after eligibility passes MUST be audited as `DISPATCH_FAILED`. Metadata MUST NOT duplicate the
+full notification payload.
+
+#### Scenario: Retry success audited with full context
+
+- GIVEN notification `abc-123` has status FAILED, channel EMAIL, template PASSWORD_RECOVERY,
+  error "SMTP timeout"
+- AND operator `op-456` has `platform.notifications.manage`
+- WHEN the operator posts `POST /api/admin/notifications/abc-123/retry`
+- AND retry dispatch succeeds (new notification created)
+- THEN one `NOTIFICATION_RETRIED` event exists with result `SUCCESS`
+- AND its target type is `NOTIFICATION` and target id is `abc-123`
+- AND metadata contains `notificationId`, `channel=EMAIL`, `templateId=PASSWORD_RECOVERY`,
+  `retryOutcome=SUCCESS`, `priorStatus=FAILED`, `priorError=SMTP timeout`
+
+#### Scenario: Retry rejected eligibility audited
+
+- GIVEN notification `xyz-789` has status FAILED, template WORKSPACE_INVITATION
+- AND an operator attempts retry
+- WHEN the eligibility check fails (invitation template not whitelisted)
+- THEN one `NOTIFICATION_RETRIED` event exists with result `REJECTED`
+- AND metadata contains `templateId=WORKSPACE_INVITATION` and `retryOutcome=REJECTED`
+- AND no new notification is created
+
+#### Scenario: Redacted priorError in audit event
+
+- GIVEN notification `def-456` has error_message "Failed to send email: authentication token expired"
+- WHEN an operator retries notification `def-456`
+- THEN the `NOTIFICATION_RETRIED` event metadata `priorError` is `[REDACTED]` because it contains
+  "token"
+
+#### Scenario: Event type registry includes NOTIFICATION_RETRIED
+
+- GIVEN the platform-admin audit action registry is loaded
+- WHEN the system initializes
+- THEN the registry contains `NOTIFICATION_RETRIED`
+- AND `NOTIFICATION_RETRIED` events can be persisted and queried

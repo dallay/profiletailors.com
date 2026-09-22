@@ -29,13 +29,13 @@ describe('i18n utils', () => {
       {
         pathname: 'https://example.com/',
         expectedLangSwitch: 'ES',
-        expectedHeroLabel: 'EARLY ACCESS PREVIEW',
+        expectedHeroLabel: 'LINKEDIN · EARLY ACCESS',
         scenario: 'root URL',
       },
       {
         pathname: 'https://example.com/es/',
         expectedLangSwitch: 'EN',
-        expectedHeroLabel: 'VISTA PREVIA DE ACCESO ANTICIPADO',
+        expectedHeroLabel: 'LINKEDIN · ACCESO ANTICIPADO',
         scenario: '/es/',
       },
     ])('returns translations for $scenario', ({ pathname, expectedLangSwitch, expectedHeroLabel }) => {
@@ -234,7 +234,7 @@ describe('i18n utils', () => {
   });
 
   describe('marketing claims', () => {
-    it('does not advertise unverified integrations, demand, registration, pricing, or worldwide availability', () => {
+    it('does not advertise unverified integrations, fake demand, pricing, or worldwide availability', () => {
       const tEn = useTranslations(new URL('https://example.com/'));
       const tEs = useTranslations(new URL('https://example.com/es/'));
       const marketingCopy = JSON.stringify({
@@ -246,18 +246,20 @@ describe('i18n utils', () => {
         'Twitter/X',
         'Facebook',
         '847',
-        'Join waitlist',
-        'Únete a la lista',
-        "you're on the list",
-        'estás en la lista',
         'Worldwide',
+        'not open yet',
+        'todavía no está abierta',
       ];
 
       for (const claim of unsupportedClaims) {
         expect(marketingCopy).not.toContain(claim);
       }
-      expect(tEn.hero.status).toContain('not open yet');
-      expect(tEs.hero.status).toContain('todavía no está abierta');
+      expect(tEn.hero.status).toContain('JavaScript is required');
+      expect(tEs.hero.status).toContain('Hace falta JavaScript');
+      expect(tEn.meta.description.length).toBeGreaterThanOrEqual(120);
+      expect(tEn.meta.description.length).toBeLessThanOrEqual(160);
+      expect(tEs.meta.description.length).toBeGreaterThanOrEqual(120);
+      expect(tEs.meta.description.length).toBeLessThanOrEqual(160);
     });
   });
 

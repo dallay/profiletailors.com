@@ -6,33 +6,28 @@ interface FeatureItem {
 }
 
 interface Props {
-  label: string
+  title: string
   items: readonly FeatureItem[]
 }
 
-const { label, items } = Astro.props
+const { title, items } = Astro.props
 ---
 
-<section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <div data-animate-scroll class="flex items-center gap-4 mb-14">
-    <h2 class="inline-flex items-center px-3 py-1 rounded-full border border-border-visible bg-bg-surface/50 font-mono text-xs uppercase tracking-wider text-text-secondary">
-      {label}
-    </h2>
-    <div class="h-px flex-1 bg-border" aria-hidden="true"></div>
-  </div>
+<section class="px-6 pt-8 pb-24 max-w-5xl mx-auto">
+  <h2 data-animate-scroll class="font-display text-3xl sm:text-4xl font-medium text-text-display tracking-tight mb-12 max-w-2xl">
+    {title}
+  </h2>
 
   <div class="flex flex-col">
     {items.map((feature, i) => (
       <div
         data-animate-scroll
-        class="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4 sm:gap-10 py-8 border-b border-border/60 last:border-b-0"
+        class="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-3 sm:gap-10 py-8 border-t border-border last:border-b"
         style={`transition-delay: ${i * 80}ms`}
       >
-        <div class="pt-0.5">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-border-visible font-mono text-[11px] tracking-wider text-text-secondary uppercase">
-            {feature.tag}
-          </span>
-        </div>
+        <p class="font-mono text-xs uppercase tracking-[0.08em] text-text-secondary pt-1">
+          {feature.tag}
+        </p>
         <div>
           <h3 class="font-display text-xl sm:text-2xl font-medium text-text-display mb-2.5 tracking-tight">
             {feature.title}
