@@ -74,13 +74,11 @@ jobs:
         run: pnpm --filter app build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          command: pages deploy dist --project-name=app-profile-tailors --branch=production --commit-dirty=true
-          workingDirectory: ./apps/web/app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=app-profile-tailors --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        working-directory: ./apps/web/app
 
       - name: Verify production deployment
         env:
@@ -141,13 +139,11 @@ jobs:
         run: pnpm --filter @profiletailors/admin build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          command: pages deploy dist --project-name=profiletailors-admin --branch=production --commit-dirty=true
-          workingDirectory: ./apps/web/admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=profiletailors-admin --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        working-directory: ./apps/web/admin
 
       - name: Verify production deployment
         env:
@@ -207,13 +203,11 @@ jobs:
         run: pnpm --filter marketing build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          command: pages deploy dist --project-name=profiletailors --branch=production --commit-dirty=true
-          workingDirectory: ./apps/web/marketing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=profiletailors --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        working-directory: ./apps/web/marketing
 
       - name: Verify production deployment
         env:
