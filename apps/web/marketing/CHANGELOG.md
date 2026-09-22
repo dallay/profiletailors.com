@@ -1,13 +1,5 @@
 # Changelog
 
-## [0.2.15](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.14...landing@v0.2.15) (2026-09-21)
-
-
-### Features
-
-* **invitation:** add registration preflight contract ([#1114](https://github.com/dallay/profiletailors.com/issues/1114)) ([41b893d](https://github.com/dallay/profiletailors.com/commit/41b893dc4e1375e4fd53e0a577845413ec00583b))
-* **marketing:** turn the landing into a LinkedIn-first waitlist ([#1123](https://github.com/dallay/profiletailors.com/issues/1123)) ([7b33556](https://github.com/dallay/profiletailors.com/commit/7b335560fcffbdb96c2229dc1c001ef69a9c96a0))
-
 ## [0.2.14](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.13...landing@v0.2.14) (2026-09-20)
 
 

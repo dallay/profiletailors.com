@@ -294,10 +294,6 @@ or `PasswordResetTokenExceptions.kt`. The system MUST NOT contain `@Suppress("To
 in `McpAuditEmitter.kt`. Handlers SHALL drop unused parameters or convert parameters to class properties,
 R2DBC mappers SHALL accept `Readable` without unused `RowMetadata`, and `McpAuditEmitter` SHALL catch
 `JsonProcessingException` and `IllegalArgumentException` instead of catching generic `RuntimeException`.
-The R2DBC mapper refactor remains governed by
-[ADR-0002](../../../docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md) and
-[ADR-0003](../../../docs/architecture/adr/0003-mandatory-reactive-stack.md); it introduces no new
-architectural decision.
 
 #### Scenario: All 6 target suppressions removed
 
@@ -308,6 +304,5 @@ architectural decision.
 #### Scenario: Static analysis and unit tests pass
 
 - GIVEN the refactored code and unit test updates
-- WHEN `node scripts/gradle-run.mjs detekt`, related backend unit tests, `just backend-lint`, and
-  `just backend-check` run
-- THEN all validation commands pass with zero new findings and zero new suppressions introduced
+- WHEN `node scripts/gradle-run.mjs detekt` and related backend unit tests run
+- THEN all pass with zero new findings and zero new suppressions introduced

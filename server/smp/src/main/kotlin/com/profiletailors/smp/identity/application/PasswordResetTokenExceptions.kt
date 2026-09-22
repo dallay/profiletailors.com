@@ -7,7 +7,8 @@ class ExpiredPasswordResetTokenException : InvalidPasswordResetTokenException()
 
 class UsedPasswordResetTokenException : InvalidPasswordResetTokenException()
 
-class PasswordRecoveryPasswordException : RuntimeException("Password does not meet policy requirements.")
+class PasswordRecoveryPasswordException(val password: String = "") :
+    RuntimeException("Password does not meet policy requirements.")
 
 class PasswordResetRateLimitExceededException :
     RuntimeException(

@@ -39,8 +39,8 @@ class PasswordResetTokenExceptionsTest {
     }
 
     @Test
-    fun `should carry its public message when constructed`() {
-        val exception = PasswordRecoveryPasswordException()
+    fun `InvalidPasswordException receives the password for logging only and surfaces the message`() {
+        val exception = PasswordRecoveryPasswordException(password = "secret")
         assertEquals("Password does not meet policy requirements.", exception.message)
     }
 }

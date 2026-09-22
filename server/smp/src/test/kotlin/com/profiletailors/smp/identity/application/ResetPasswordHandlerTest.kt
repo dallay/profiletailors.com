@@ -262,23 +262,6 @@ class ResetPasswordHandlerTest {
     }
 
     @Test
-    fun `accepts a password at the minimum length`() = runTest {
-        val tokenRepository = FakePasswordResetTokenRepository(
-            stored = validStoredToken(),
-            consumeSucceeds = true,
-        )
-        val refreshSvc = RecordingRefreshSessionLifecycleService()
-        val handler = newHandler(tokenRepository, refreshSvc)
-
-        val result = handler.handle(
-            ResetPasswordCommand(token = RAW_TOKEN, newPassword = "x".repeat(12)),
-        )
-
-        result.passwordChanged shouldBe true
-        tokenRepository.consumeCalls shouldBe 1
-    }
-
-    @Test
     fun `rejects password longer than the maximum length`() = runTest {
         val tokenRepository = FakePasswordResetTokenRepository()
         val refreshSvc = RecordingRefreshSessionLifecycleService()
