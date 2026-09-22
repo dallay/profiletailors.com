@@ -10,6 +10,12 @@ open class McpAuditEmitter(private val objectMapper: ObjectMapper = ObjectMapper
 
     private val logger = LoggerFactory.getLogger(AUDIT_LOGGER_NAME)
 
+    /**
+     * Serializes an MCP tool invocation fact and writes it to the dedicated audit logger.
+     *
+     * Serialization and invalid-argument failures are written as warnings and do not propagate.
+     * Other failures are not intercepted.
+     */
     open fun emit(fact: McpToolInvocationAuditFact) {
         try {
             val payload = objectMapper.writeValueAsString(fact.toMap())

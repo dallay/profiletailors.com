@@ -74,6 +74,11 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             .awaitSingle()
     }
 
+    /**
+     * Finds persisted verification-token data by its token hash.
+     *
+     * @return The matching token data, or `null` when the hash is unknown.
+     */
     override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? = databaseClient.sql(
         """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
@@ -130,6 +135,11 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             .awaitSingle()
     }
 
+    /**
+     * Finds the newest unused, unexpired verification token for an email address.
+     *
+     * @return The active token data, or `null` when no active token exists.
+     */
     override suspend fun findActiveTokenByEmail(email: String): EmailVerificationTokenData? = databaseClient.sql(
         """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
@@ -144,6 +154,11 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
         .one()
         .awaitSingleOrNull()
 
+    /**
+     * Converts a selected verification-token row into application token data.
+     *
+     * @throws IllegalArgumentException If a required token column is missing.
+     */
     private fun mapTokenData(row: Readable): EmailVerificationTokenData = EmailVerificationTokenData(
         email = requireNotNull(row.get("email", String::class.java)),
         tokenHash = requireNotNull(row.get("token_hash", String::class.java)),

@@ -12,6 +12,11 @@ import org.springframework.stereotype.Repository
 
 @Repository
 class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) : PrincipalIdentityLookup {
+    /**
+     * Finds principal and user-identity facts for an email address.
+     *
+     * @return The matching identity facts, or `null` when no user identity has the email address.
+     */
     override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = databaseClient.sql(
         """
             SELECT p.id,
@@ -33,6 +38,11 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         .one()
         .awaitSingleOrNull()
 
+    /**
+     * Finds identity facts by principal ID, including principals without a user-identity record.
+     *
+     * @return The matching identity facts, or `null` when the principal does not exist.
+     */
     override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = databaseClient.sql(
         """
             SELECT p.id,
@@ -54,6 +64,13 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
         .one()
         .awaitSingleOrNull()
 
+    /**
+     * Finds identity facts by principal type, subject, and provider.
+     *
+     * A `null` provider matches only principals whose provider is also `null`.
+     *
+     * @return The matching identity facts, or `null` when no principal matches all criteria.
+     */
     override suspend fun findBySubject(
         principalType: PrincipalType,
         subject: String,
@@ -109,6 +126,11 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
             .awaitSingleOrNull()
     }
 
+    /**
+     * Converts a selected principal row and its optional user identity into identity facts.
+     *
+     * @throws IllegalArgumentException If a required column is missing or an enum value is unsupported.
+     */
     private fun mapPrincipalIdentityFacts(row: Readable): PrincipalIdentityFacts {
         val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
         val emailStatusRaw = row.get("email_status", String::class.java)
