@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.identity.application.AccountStateGateway
 import com.profiletailors.smp.identity.domain.UserAccountState
+import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.DisableUserCommand
 import com.profiletailors.smp.platformadmin.application.command.EnableUserCommand
 import com.profiletailors.smp.platformadmin.application.command.RevokeUserSessionsCommand
@@ -220,7 +221,8 @@ open class UserControlHandlers(
         targetPrincipalId: String,
         action: AdminAuditAction,
     ) {
-        if (operatorPrincipalId.toString() == targetPrincipalId) {
+        val targetUuid = runCatching { PlatformPrincipalIds.toUuid(targetPrincipalId) }.getOrNull()
+        if (targetUuid != null && operatorPrincipalId == targetUuid) {
             telemetry.recordAuthorizationRejected(action.metricOperation)
             auditPublisher.publish(
                 auditEvent(

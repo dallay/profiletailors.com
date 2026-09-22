@@ -4,19 +4,35 @@ import com.profiletailors.storage.domain.StorageSecurityException
 
 internal object StoragePathValidator {
     fun validateBucketAndKey(bucket: String, key: String) {
-        requireValid(bucket, "bucket name")
-        requireValid(key, "key")
+        requireValidBucket(bucket)
+        requireValidKey(key)
     }
 
-    private fun requireValid(value: String, kind: String) {
-        val reason = validationReason(value) ?: return
-        throw StorageSecurityException("Invalid $kind: $reason")
+    private fun requireValidBucket(value: String) {
+        val reason = bucketReason(value) ?: return
+        throw StorageSecurityException("Invalid bucket name: $reason")
     }
 
-    private fun validationReason(value: String): String? {
+    private fun requireValidKey(value: String) {
+        val reason = keyReason(value) ?: return
+        throw StorageSecurityException("Invalid key: $reason")
+    }
+
+    private fun bucketReason(value: String): String? {
         if (value.contains("..")) {
             return "path traversal detected"
         }
+        return commonReason(value)
+    }
+
+    private fun keyReason(value: String): String? {
+        if (value.split("/").any { it == ".." }) {
+            return "path traversal detected"
+        }
+        return commonReason(value)
+    }
+
+    private fun commonReason(value: String): String? {
         if (value.contains('\u0000')) {
             return "malformed path"
         }

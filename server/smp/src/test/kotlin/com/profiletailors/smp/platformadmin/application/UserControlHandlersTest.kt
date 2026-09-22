@@ -395,6 +395,37 @@ class UserControlHandlersTest {
     }
 
     @Test
+    fun `rejects self-disable with uppercase target id`() = runTest {
+        val selfTarget = operatorId.toString().uppercase()
+        val gateway = mockk<AccountStateGateway>()
+        coEvery { gateway.findAccountState(any()) } returns UserAccountState.ACTIVE
+        coEvery { gateway.changeAccountState(any(), any(), any()) } returns true
+        val sessions = FakeRefreshSessionLifecycleService(3)
+        val audit = RecordingAuditPublisher()
+        val telemetry = RecordingUserControlTelemetry()
+        val handlers = handlers(gateway, sessions, audit, telemetry)
+
+        assertThrows(PlatformAccessDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handlers.disable(
+                    DisableUserCommand(
+                        operatorId,
+                        setOf(PlatformRole.PLATFORM_OWNER),
+                        selfTarget,
+                    ),
+                )
+            }
+        }
+
+        assertEquals("REJECTED", audit.events.single().result.name)
+        assertEquals("USER_DISABLED", audit.events.single().action.name)
+        assertEquals(selfTarget, audit.events.single().targetId)
+        assertEquals(listOf("disable:rejected"), telemetry.records)
+        assertEquals(emptyList<String>(), sessions.revoked)
+        coVerify(exactly = 0) { gateway.changeAccountState(any(), any(), any()) }
+    }
+
+    @Test
     fun `rejects self-revoke without revoking sessions`() = runTest {
         val selfTarget = operatorId.toString()
         val gateway = mockk<AccountStateGateway>()

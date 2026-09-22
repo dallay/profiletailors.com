@@ -25,129 +25,19 @@ function runAnalyticsScript(ahrefsAnalyticsKey: string | undefined): void {
   if (!match) {
     throw new Error('Could not find the <script> block in Analytics.astro')
   }
-  new Function(
-    'AHREFS_ANALYTICS_KEY',
-    'CONSENT_KEY',
-    'CURRENT_POLICY_VERSION',
-    match[1]
-  )(ahrefsAnalyticsKey, 'pt-consent', '2026-07-23')
+  new Function('AHREFS_ANALYTICS_KEY', match[1])(ahrefsAnalyticsKey)
 }
 
 const AHREFS_URL = 'https://analytics.ahrefs.com/analytics.js'
-const CONSENT_KEY = 'pt-consent'
-
-function storeAnalyticsReceipt(analytics: boolean): void {
-  localStorage.setItem(
-    CONSENT_KEY,
-    JSON.stringify({
-      consentVersion: 1,
-      policyVersion: '2026-07-23',
-      timestamp: '2026-07-23T10:00:00.000Z',
-      region: 'EU',
-      categories: { necessary: true, analytics },
-      dnt: false,
-      source: 'banner',
-  it('does not inject the Ahrefs script when analytics consent is denied', () => {
-    storeAnalyticsReceipt(false)
-
-    runAnalyticsScript('test-key-123')
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-
-  it('does not inject the Ahrefs script when consent is granted but key is missing', () => {
-    storeAnalyticsReceipt(true)
-
-    runAnalyticsScript(undefined)
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-
-  it('does not inject the Ahrefs script when analytics consent is absent', () => {
-    runAnalyticsScript('test-key-123')
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-
-  it('does not inject the Ahrefs script when consent receipt has wrong policy version', () => {
-    localStorage.setItem(
-      CONSENT_KEY,
-      JSON.stringify({
-        consentVersion: 1,
-        policyVersion: '2025-01-01',
-        timestamp: '2025-01-01T10:00:00.000Z',
-        region: 'EU',
-        categories: { necessary: true, analytics: true },
-        dnt: false,
-        source: 'banner',
-      })
-    )
-
-    runAnalyticsScript('test-key-123')
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-
-  it('prevents stale receipts with wrong policy version from enabling analytics', () => {
-    localStorage.setItem(
-      CONSENT_KEY,
-      JSON.stringify({
-        consentVersion: 1,
-        policyVersion: '2024-01-01',
-        timestamp: '2024-01-01T10:00:00.000Z',
-        region: 'EU',
-        categories: { necessary: true, analytics: true },
-        dnt: false,
-        source: 'banner',
-      })
-    )
-
-    runAnalyticsScript('test-key-123')
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-
-  it('does not inject the Ahrefs script when DNT is enabled without consent', () => {
-    Object.defineProperty(global.navigator, 'doNotTrack', {
-      value: '1',
-      writable: true,
-      configurable: true,
-    })
-
-    runAnalyticsScript('test-key-123')
-
-    const injected = document.head.querySelector<HTMLScriptElement>(
-      `script[src="${AHREFS_URL}"]`
-    )
-    expect(injected).toBeNull()
-  })
-})
-  )
-}
 
 describe('Analytics conditional loader', () => {
   beforeEach(() => {
     document.head.innerHTML = ''
-    localStorage.removeItem(CONSENT_KEY)
+    delete window.__PT_CONSENT_ANALYTICS
   })
 
-  it('injects the Ahrefs script into <head> when analytics consent is granted via localStorage and a key is configured', () => {
-    storeAnalyticsReceipt(true)
+  it('injects the Ahrefs script into <head> when analytics consent is granted and a key is configured', () => {
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript('test-key-123')
 
@@ -160,22 +50,22 @@ describe('Analytics conditional loader', () => {
     expect(injected?.async).toBe(true)
   })
 
-  it('does not inject the Ahrefs script when no analytics consent exists in localStorage', () => {
+  it('does not inject the Ahrefs script when analytics consent is not granted', () => {
+    window.__PT_CONSENT_ANALYTICS = false
+
     runAnalyticsScript('test-key-123')
 
     expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).toBeNull()
   })
 
-  it('does not inject the Ahrefs script when localStorage has a receipt without analytics category', () => {
-    storeAnalyticsReceipt(false)
-
+  it('does not inject the Ahrefs script when the consent flag is unset', () => {
     runAnalyticsScript('test-key-123')
 
     expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).toBeNull()
   })
 
   it('does not inject the Ahrefs script when no analytics key is configured, even with consent', () => {
-    storeAnalyticsReceipt(true)
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript(undefined)
 
@@ -183,33 +73,9 @@ describe('Analytics conditional loader', () => {
   })
 
   it('does not inject the Ahrefs script when the analytics key is an empty string', () => {
-    storeAnalyticsReceipt(true)
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript('')
-
-    expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).toBeNull()
-  })
-
-  it('refuses to grant analytics consent if no receipt exists in localStorage', () => {
-    localStorage.removeItem(CONSENT_KEY)
-
-    runAnalyticsScript('test-key-123')
-
-    expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).toBeNull()
-  })
-
-  it('grants analytics consent only when localStorage holds a valid analytics receipt', () => {
-    storeAnalyticsReceipt(true)
-
-    runAnalyticsScript('test-key-123')
-
-    expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).not.toBeNull()
-  })
-
-  it('denies analytics consent when localStorage holds a receipt without analytics category', () => {
-    storeAnalyticsReceipt(false)
-
-    runAnalyticsScript('test-key-123')
 
     expect(document.head.querySelector(`script[src="${AHREFS_URL}"]`)).toBeNull()
   })

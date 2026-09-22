@@ -415,6 +415,28 @@ class GeneratePresignedUrlUseCaseTest {
     }
 
     @Test
+    fun `accept presigned URL key with double dots outside path segments`() = runTest {
+        val storage = MockPresignableStorage()
+        storage.upload(
+            "test-bucket",
+            "report..final.pdf",
+            kotlinx.coroutines.flow.flowOf("test content".toByteArray()),
+        )
+        val useCase =
+            GeneratePresignedUrlUseCase(
+                storage,
+                createMockEventPublisher(),
+                TestStorageMetrics(),
+                MockRateLimiter(),
+                maxExpirySeconds = 3600,
+            )
+
+        val url = useCase.execute("test-bucket", "report..final.pdf", 3600, "user-123")
+
+        assertTrue(url.isNotEmpty())
+    }
+
+    @Test
     fun `cancellation during publish rethrows without emitting`() = runTest {
         val storage = MockPresignableStorage()
         val bucket = "test-bucket"
