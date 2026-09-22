@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.12](https://github.com/dallay/profiletailors.com/compare/app@v0.3.11...app@v0.3.12) (2026-09-22)
+
+
+### Bug Fixes
+
+* **security:** remediate deep-audit findings in invitations, waitlist, storage and publishing ([#1122](https://github.com/dallay/profiletailors.com/issues/1122)) ([c4dae57](https://github.com/dallay/profiletailors.com/commit/c4dae5781bdf57e34ef323165a10bca4cc6e7ec4))
+
 ## [0.3.11](https://github.com/dallay/profiletailors.com/compare/app@v0.3.10...app@v0.3.11) (2026-09-21)
 
 
