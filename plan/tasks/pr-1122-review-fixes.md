@@ -10,9 +10,11 @@ Esta iteración añade la remediación de CWE-770 en el rate limiter: la admisi�
 - [x] 2. UserControlHandlers.kt — comparación self-target insensible a mayúsculas + test regresión
 - [x] 3. StoragePathValidator.kt — traversal por segmentos en keys + test regresión
 - [x] 4. AuthRateLimitWebFilter.kt — admisión serializada y limitada para CWE-770 + test regresión
+- [x] 5. WaitlistRateLimitIntegrationTest.kt — isolate the waitlist limiter from the global authentication filter
 
 ## Evidencia
 
 - Review PR 1122 (3 hallazgos accionables)
 - Rama: fix/security-audit-deep-fixes, worktree limpio al inicio
 - Verificación por fix: suite enfocada + lint narrow sin nuevos findings
+- CI remoto: Backend Unit, Backend Postgres y Quality Gate fallan en los tests de waitlist porque el filtro global puede responder antes que Bucket4j
