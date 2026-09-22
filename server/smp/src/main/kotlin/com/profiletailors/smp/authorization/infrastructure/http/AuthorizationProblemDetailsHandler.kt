@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class AuthorizationProblemDetailsHandler {
 
-    /** Converts an authorization denial into a generic forbidden response. */
     @ExceptionHandler(AuthorizationDeniedException::class)
     fun handleAuthorizationDenied(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, AUTHORIZATION_DENIED_DETAIL).apply {

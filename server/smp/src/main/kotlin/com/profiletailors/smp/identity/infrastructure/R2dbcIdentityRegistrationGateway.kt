@@ -74,7 +74,6 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             .awaitSingle()
     }
 
-    /** Finds the verification token data associated with [tokenHash]. */
     override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? = databaseClient.sql(
         """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
@@ -131,7 +130,6 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             .awaitSingle()
     }
 
-    /** Finds the newest active verification token for [email]. */
     override suspend fun findActiveTokenByEmail(email: String): EmailVerificationTokenData? = databaseClient.sql(
         """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
@@ -146,7 +144,6 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
         .one()
         .awaitSingleOrNull()
 
-    /** Maps a database [row] to email verification token data. */
     private fun mapTokenData(row: Readable): EmailVerificationTokenData = EmailVerificationTokenData(
         email = requireNotNull(row.get("email", String::class.java)),
         tokenHash = requireNotNull(row.get("token_hash", String::class.java)),

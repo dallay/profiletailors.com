@@ -39,7 +39,7 @@ class PasswordResetTokenExceptionsTest {
     }
 
     @Test
-    fun `PasswordRecoveryPasswordException carries its public message`() {
+    fun `should carry its public message when constructed`() {
         val exception = PasswordRecoveryPasswordException()
         assertEquals("Password does not meet policy requirements.", exception.message)
     }
