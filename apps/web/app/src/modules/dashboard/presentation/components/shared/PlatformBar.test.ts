@@ -49,10 +49,7 @@ describe('PlatformBar', () => {
   it('handles unknown platform gracefully', () => {
     const wrapper = mount(PlatformBar, {
       props: {
-        channel: makeChannel({
-          platform: 'unknown' as unknown as ChannelPerformance['platform'],
-          followers: 5000,
-        }),
+        channel: makeChannel({ platform: 'unknown' as any, followers: 5000 }),
         maxFollowers: 10000,
       },
     })

@@ -20,12 +20,11 @@ const sizeClasses: Record<string, string> = {
 
 const iconSizes: Record<string, number> = { sm: 14, md: 18 }
 
-const iconsRecord = LucideIcons as unknown as Record<string, Component>
-
 const iconComponent = computed<Component | null>(() => {
   if (!props.icon) return null
   const iconName = toPascalCase(props.icon)
-  return iconsRecord[iconName] ?? null
+  // biome-ignore lint/performance/noDynamicNamespaceImportAccess: icon name is user-provided at runtime, static imports are not feasible
+  return LucideIcons[iconName as keyof typeof LucideIcons] as Component ?? null
 })
 
 </script>

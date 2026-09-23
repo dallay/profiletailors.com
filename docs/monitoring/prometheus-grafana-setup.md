@@ -50,23 +50,6 @@ The monitoring stack is defined in `infra/monitoring/compose.yaml`:
 
 ### 1. Start Infrastructure
 
-Prometheus authenticates its SMP scrape with a bearer token. Put only the raw token value (without
-the `Bearer` prefix) in a local file, keep the file outside the repository, and export its absolute
-path before starting the monitoring stack:
-
-```bash
-mkdir -p "$HOME/.config/profiletailors"
-install -m 600 /dev/null "$HOME/.config/profiletailors/smp-prometheus-token"
-read -rsp "SMP bearer token: " smp_prometheus_bearer_token
-printf '%s' "$smp_prometheus_bearer_token" > "$HOME/.config/profiletailors/smp-prometheus-token"
-unset smp_prometheus_bearer_token
-export SMP_PROMETHEUS_BEARER_TOKEN_FILE="$HOME/.config/profiletailors/smp-prometheus-token"
-```
-
-Use a bearer token issued by the SMP local login flow or by its configured JWT issuer. Refresh the
-file before that token expires and reload Prometheus with `POST /-/reload` so subsequent scrapes use
-the new credential. Never commit the token file.
-
 From the `server/smp` directory:
 
 ```bash
@@ -101,10 +84,8 @@ includes panels for all key metrics mentioned above.
 ### Prometheus cannot scrape the server
 
 1. Verify the server is running: `curl http://localhost:7638/actuator/health`
-2. Verify the token file contains a current raw bearer token and is mounted at
-   `/etc/prometheus/secrets/smp-bearer-token` in the Prometheus container.
-3. Check Prometheus targets: [http://localhost:9090/targets](http://localhost:9090/targets)
-4. If running inside Docker, ensure the target is set to `host.docker.internal` or the service name.
+2. Check Prometheus targets: [http://localhost:9090/targets](http://localhost:9090/targets)
+3. If running inside Docker, ensure the target is set to `host.docker.internal` or the service name.
 
 ### Grafana is empty
 

@@ -42,8 +42,7 @@ The `IdentitySecurityConfiguration.kt` file defines granular access rules:
 ### Development (profile: `dev`)
 
 - **Management Port**: Dedicated (`9091`) to match production posture.
-- **Security**: Health is public; all other endpoints require a bearer token, including local
-  Prometheus scrapes.
+- **Security**: All endpoints are accessible locally for easier debugging.
 - **Configuration**: `management.server.port: 9091`
 
 ### Production (default)
@@ -90,9 +89,8 @@ curl https://api.profiletailors.com/actuator/prometheus
 ### Internal Check (VPN/SSH)
 
 ```bash
-# Should return full metrics for an authenticated operator or scraper
-curl -H "Authorization: Bearer $SMP_BEARER_TOKEN" \
-  http://smp-internal:9091/actuator/prometheus
+# Should return full metrics
+curl http://smp-internal:9091/actuator/prometheus
 ```
 
 ## References

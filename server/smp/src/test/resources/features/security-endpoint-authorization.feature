@@ -25,7 +25,7 @@ Feature: Endpoint authorization security controls
     Then the security response status should be 200
 
   @sec-001
-  Scenario: Unauthenticated request to Prometheus metrics is rejected with 401
+  Scenario: Unauthenticated request to prometheus metrics endpoint is rejected with 401
     When an unauthenticated client sends GET "/actuator/prometheus"
     Then the security response status should be 401
 
