@@ -116,7 +116,8 @@ jobs:
           echo "Verifying ${TARGET_URL} serves SPA metadata: ${expected_version} · ${expected_sha}"
           success=0
           for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}/" 2>/dev/null || true)
+            probe_url="${TARGET_URL%/}/?release=${expected_sha}"
+            body=$(curl -fsSL -H "Cache-Control: no-cache" --max-time 15 "${probe_url}" 2>/dev/null || true)
             asset_body=""
             queue=()
             visited=""
@@ -228,7 +229,8 @@ jobs:
           echo "Verifying ${TARGET_URL} serves SPA metadata: ${expected_version} · ${expected_sha}"
           success=0
           for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}/" 2>/dev/null || true)
+            probe_url="${TARGET_URL%/}/?release=${expected_sha}"
+            body=$(curl -fsSL -H "Cache-Control: no-cache" --max-time 15 "${probe_url}" 2>/dev/null || true)
             asset_body=""
             queue=()
             visited=""
