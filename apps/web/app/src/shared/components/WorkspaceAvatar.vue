@@ -20,7 +20,7 @@ const sizeClasses: Record<string, string> = {
 
 const iconSizes: Record<string, number> = { sm: 14, md: 18 }
 
-const iconsRecord = LucideIcons as Record<string, Component>
+const iconsRecord = LucideIcons as unknown as Record<string, Component>
 
 const iconComponent = computed<Component | null>(() => {
   if (!props.icon) return null

@@ -11,14 +11,14 @@ const props = defineProps<WithClassAsProps>()
 
 const { carouselRef, orientation } = useCarousel()
 
-defineExpose({
-  carouselRef,
-})
+function setCarouselRef(el: unknown) {
+  carouselRef.value = (el as HTMLElement) || null
+}
 </script>
 
 <template>
   <div
-    :ref="carouselRef"
+    :ref="setCarouselRef"
     data-slot="carousel-content"
     class="overflow-hidden"
   >

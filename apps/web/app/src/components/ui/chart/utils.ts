@@ -40,7 +40,8 @@ export function componentToString<P>(
   // https://unovis.dev/docs/auxiliary/Crosshair#component-props
   return (_data: Record<string, unknown> | { data: Record<string, unknown> }, x: number | Date) => {
     const data = _data && typeof _data === 'object' && 'data' in _data ? _data.data : _data
-    const serializedKey = `${id}-${serializeKey(data)}`
+    const keyData = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
+    const serializedKey = `${id}-${serializeKey(keyData)}`
     const cachedContent = cache.get(serializedKey)
     if (cachedContent) return cachedContent
 
