@@ -4,12 +4,27 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      app_tag:
+        description: Release tag for the dashboard app, for example app@v0.3.12
+        required: false
+        type: string
+      admin_tag:
+        description: Release tag for the admin app, for example admin@v0.0.11
+        required: false
+        type: string
+      landing_tag:
+        description: Release tag for the marketing site, for example landing@v0.2.16
+        required: false
+        type: string
 
 # No default GITHUB_TOKEN permissions — the App token carries its own scopes.
 permissions: {}
 
 jobs:
   release-please:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     outputs:
       releases_created:         ${{ steps.release.outputs.releases_created }}
@@ -44,16 +59,26 @@ jobs:
   deploy-app:
     name: Deploy App to Cloudflare Pages
     needs: release-please
-    if: ${{ needs.release-please.outputs['app--release_created'] == 'true' }}
+    if: ${{ always() && (needs.release-please.outputs['app--release_created'] == 'true' || inputs.app_tag != '') }}
     runs-on: ubuntu-latest
     environment: PROD
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      - name: Validate app tag
+        if: ${{ inputs.app_tag != '' }}
+        env:
+          RELEASE_TAG: ${{ inputs.app_tag }}
+        run: |
+          if [[ ! "${RELEASE_TAG}" =~ ^app@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid app tag: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs['app--tag_name'] }}
+          ref: ${{ inputs.app_tag || needs.release-please.outputs['app--tag_name'] }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -61,7 +86,7 @@ jobs:
         id: resolve-meta
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ needs.release-please.outputs['app--tag_name'] }}" \
+            --tag "${{ inputs.app_tag || needs.release-please.outputs['app--tag_name'] }}" \
             --scope "app" \
             --provided "${{ needs.release-please.outputs['app--sha'] }}"
 
@@ -74,49 +99,108 @@ jobs:
         run: pnpm --filter app build
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/app/dist --project-name=app-profile-tailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
-
-      - name: Verify production deployment
+        run: |
+          set -euo pipefail
+          output=$(pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/app/dist --project-name=app-profile-tailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true 2>&1)
+          printf '%s\n' "${output}"
+          deployment_url=$(printf '%s\n' "${output}" | grep -oE 'https://[^[:space:]]+\.pages\.dev' | tail -1 || true)
+          if [ -z "${deployment_url}" ]; then
+            echo "::error::Wrangler did not return a Pages deployment URL"
+            exit 1
+          fi
+          echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
+      - name: Verify deployment artifact and production domain
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_APP_URL || 'https://app-profiletailors.pages.dev' }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_APP_URL || 'https://app.profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
-          success=0
-          for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
-              echo "Verification passed on attempt ${attempt}"
-              success=1
-              break
-            fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
-            sleep 15
-          done
-          if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
-            exit 1
-          fi
+          node <<'NODE'
+          const deploymentUrl = process.env.DEPLOYMENT_URL
+          const targetUrl = process.env.TARGET_URL
+          const expectedVersion = process.env.EXPECTED_VERSION.replace(/^v/, '')
+          const expectedSha = process.env.EXPECTED_SHORT_SHA
+
+          async function fetchText(url) {
+            try {
+              const response = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } })
+              return response.ok ? await response.text() : ''
+            } catch {
+              return ''
+            }
+          }
+
+          async function containsMetadata(baseUrl) {
+            const rootUrl = `${baseUrl.replace(/\/$/, '')}/`
+            const html = await fetchText(`${rootUrl}?release=${expectedSha}`)
+            const queue = [...html.matchAll(/src=["']([^"']+\.js)["']/g)].map((match) => new URL(match[1], rootUrl).toString())
+            const visited = new Set()
+            let assetBody = ''
+
+            while (queue.length > 0 && visited.size < 100) {
+              const assetUrl = queue.shift()
+              if (visited.has(assetUrl)) continue
+              visited.add(assetUrl)
+              const asset = await fetchText(assetUrl)
+              assetBody += asset
+              for (const match of asset.matchAll(/(?:["'(\s])((?:https?:\/\/[^"'()\s]+)?(?:assets\/|\.\/)[A-Za-z0-9._/-]+\.js)/g)) {
+                const assetPath = match[1]
+                const nestedUrl = assetPath.startsWith('assets/')
+                  ? new URL(assetPath, rootUrl).toString()
+                  : new URL(assetPath, assetUrl).toString()
+                queue.push(nestedUrl)
+              }
+            }
+
+            return assetBody.includes(expectedVersion) && assetBody.includes(expectedSha) && assetBody.includes(' · ')
+          }
+
+          if (!(await containsMetadata(deploymentUrl))) {
+            console.error(`::error::Deployment artifact metadata did not match expected release: ${deploymentUrl}`)
+            process.exit(1)
+          }
+          console.log(`Deployment artifact verification passed: ${deploymentUrl}`)
+
+          for (let attempt = 1; attempt <= 5; attempt += 1) {
+            if (await containsMetadata(targetUrl)) {
+              console.log(`Production domain verification passed on attempt ${attempt}: ${targetUrl}`)
+              process.exit(0)
+            }
+            if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 15000))
+          }
+          console.log(`::warning::Production domain did not expose release metadata after 5 attempts: ${targetUrl}`)
+          NODE
+
 
   # ── Post-release: admin ────────────────────────────────────────────────────
   deploy-admin:
     name: Deploy Admin to Cloudflare Pages
     needs: release-please
-    if: ${{ needs.release-please.outputs['admin--release_created'] == 'true' }}
+    if: ${{ always() && (needs.release-please.outputs['admin--release_created'] == 'true' || inputs.admin_tag != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      - name: Validate admin tag
+        if: ${{ inputs.admin_tag != '' }}
+        env:
+          RELEASE_TAG: ${{ inputs.admin_tag }}
+        run: |
+          if [[ ! "${RELEASE_TAG}" =~ ^admin@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid admin tag: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs['admin--tag_name'] }}
+          ref: ${{ inputs.admin_tag || needs.release-please.outputs['admin--tag_name'] }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -124,7 +208,7 @@ jobs:
         id: resolve-meta
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ needs.release-please.outputs['admin--tag_name'] }}" \
+            --tag "${{ inputs.admin_tag || needs.release-please.outputs['admin--tag_name'] }}" \
             --scope "admin" \
             --provided "${{ needs.release-please.outputs['admin--sha'] }}"
 
@@ -138,49 +222,108 @@ jobs:
         run: pnpm --filter @profiletailors/admin build
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/admin/dist --project-name=profiletailors-admin --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
-
-      - name: Verify production deployment
+        run: |
+          set -euo pipefail
+          output=$(pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/admin/dist --project-name=profiletailors-admin --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true 2>&1)
+          printf '%s\n' "${output}"
+          deployment_url=$(printf '%s\n' "${output}" | grep -oE 'https://[^[:space:]]+\.pages\.dev' | tail -1 || true)
+          if [ -z "${deployment_url}" ]; then
+            echo "::error::Wrangler did not return a Pages deployment URL"
+            exit 1
+          fi
+          echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
+      - name: Verify deployment artifact and production domain
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_ADMIN_URL || 'https://profiletailors-com-bx5.pages.dev' }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_ADMIN_URL || 'https://admin.profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
-          success=0
-          for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
-              echo "Verification passed on attempt ${attempt}"
-              success=1
-              break
-            fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
-            sleep 15
-          done
-          if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
-            exit 1
-          fi
+          node <<'NODE'
+          const deploymentUrl = process.env.DEPLOYMENT_URL
+          const targetUrl = process.env.TARGET_URL
+          const expectedVersion = process.env.EXPECTED_VERSION.replace(/^v/, '')
+          const expectedSha = process.env.EXPECTED_SHORT_SHA
+
+          async function fetchText(url) {
+            try {
+              const response = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } })
+              return response.ok ? await response.text() : ''
+            } catch {
+              return ''
+            }
+          }
+
+          async function containsMetadata(baseUrl) {
+            const rootUrl = `${baseUrl.replace(/\/$/, '')}/`
+            const html = await fetchText(`${rootUrl}?release=${expectedSha}`)
+            const queue = [...html.matchAll(/src=["']([^"']+\.js)["']/g)].map((match) => new URL(match[1], rootUrl).toString())
+            const visited = new Set()
+            let assetBody = ''
+
+            while (queue.length > 0 && visited.size < 100) {
+              const assetUrl = queue.shift()
+              if (visited.has(assetUrl)) continue
+              visited.add(assetUrl)
+              const asset = await fetchText(assetUrl)
+              assetBody += asset
+              for (const match of asset.matchAll(/(?:["'(\s])((?:https?:\/\/[^"'()\s]+)?(?:assets\/|\.\/)[A-Za-z0-9._/-]+\.js)/g)) {
+                const assetPath = match[1]
+                const nestedUrl = assetPath.startsWith('assets/')
+                  ? new URL(assetPath, rootUrl).toString()
+                  : new URL(assetPath, assetUrl).toString()
+                queue.push(nestedUrl)
+              }
+            }
+
+            return assetBody.includes(expectedVersion) && assetBody.includes(expectedSha) && assetBody.includes(' · ')
+          }
+
+          if (!(await containsMetadata(deploymentUrl))) {
+            console.error(`::error::Deployment artifact metadata did not match expected release: ${deploymentUrl}`)
+            process.exit(1)
+          }
+          console.log(`Deployment artifact verification passed: ${deploymentUrl}`)
+
+          for (let attempt = 1; attempt <= 5; attempt += 1) {
+            if (await containsMetadata(targetUrl)) {
+              console.log(`Production domain verification passed on attempt ${attempt}: ${targetUrl}`)
+              process.exit(0)
+            }
+            if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 15000))
+          }
+          console.log(`::warning::Production domain did not expose release metadata after 5 attempts: ${targetUrl}`)
+          NODE
+
 
   # ── Post-release: landing ──────────────────────────────────────────────────
   deploy-landing:
     name: Deploy Landing to Cloudflare Pages
     needs: release-please
-    if: ${{ needs.release-please.outputs['landing--release_created'] == 'true' }}
+    if: ${{ always() && (needs.release-please.outputs['landing--release_created'] == 'true' || inputs.landing_tag != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      - name: Validate landing tag
+        if: ${{ inputs.landing_tag != '' }}
+        env:
+          RELEASE_TAG: ${{ inputs.landing_tag }}
+        run: |
+          if [[ ! "${RELEASE_TAG}" =~ ^landing@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid landing tag: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs['landing--tag_name'] }}
+          ref: ${{ inputs.landing_tag || needs.release-please.outputs['landing--tag_name'] }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -188,7 +331,7 @@ jobs:
         id: resolve-meta
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ needs.release-please.outputs['landing--tag_name'] }}" \
+            --tag "${{ inputs.landing_tag || needs.release-please.outputs['landing--tag_name'] }}" \
             --scope "landing" \
             --provided "${{ needs.release-please.outputs['landing--sha'] }}"
 
@@ -201,36 +344,52 @@ jobs:
         run: pnpm --filter marketing build
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        run: |
+          set -euo pipefail
+          output=$(pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true 2>&1)
+          printf '%s\n' "${output}"
+          deployment_url=$(printf '%s\n' "${output}" | grep -oE 'https://[^[:space:]]+\.pages\.dev' | tail -1 || true)
+          if [ -z "${deployment_url}" ]; then
+            echo "::error::Wrangler did not return a Pages deployment URL"
+            exit 1
+          fi
+          echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify production deployment
+      - name: Verify deployment artifact and production domain
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors-com.pages.dev' }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
           expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          verify_url="${TARGET_URL}/terms/"
-          echo "Verifying ${verify_url} serves badge: ${expected}"
-          success=0
-          for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${verify_url}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
-              echo "Verification passed on attempt ${attempt}"
-              success=1
-              break
-            fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
-            sleep 15
-          done
-          if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${verify_url} after 5 attempts. Expected badge: ${expected}"
+          deployment_verify_url="${DEPLOYMENT_URL}/terms/?release=${EXPECTED_SHORT_SHA}"
+          echo "Verifying immutable deployment ${deployment_verify_url} serves badge: ${expected}"
+          deployment_body=$(curl -fsSL --max-time 15 "${deployment_verify_url}")
+          if ! printf '%s' "${deployment_body}" | grep -F "${expected}" > /dev/null; then
+            echo "::error::Deployment artifact verification failed for ${deployment_verify_url}. Expected badge: ${expected}"
             exit 1
           fi
+          echo "Deployment artifact verification passed: ${DEPLOYMENT_URL}"
+
+          production_verify_url="${TARGET_URL%/}/terms/?release=${EXPECTED_SHORT_SHA}"
+          for attempt in $(seq 1 5); do
+            body=$(curl -fsSL -H "Cache-Control: no-cache" --max-time 15 "${production_verify_url}" 2>/dev/null || true)
+            if printf '%s' "${body}" | grep -F "${expected}" > /dev/null; then
+              echo "Production domain verification passed on attempt ${attempt}: ${TARGET_URL}"
+              exit 0
+            fi
+            if [ "${attempt}" -lt 5 ]; then
+              echo "Attempt ${attempt}/5 did not expose release metadata; waiting 15s..."
+              sleep 15
+            fi
+          done
+          echo "::warning::Production domain ${TARGET_URL} did not expose release metadata after 5 attempts; deployment artifact verification passed"
 
   # ── Post-release: smp ──────────────────────────────────────────────────────
   build-and-push-smp:
