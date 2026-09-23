@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: smp
+  modulith:
+    default-dependencies:
+      allowed:
+        analytics->authorization::application
+        analytics->tenancy::application
+        hashtags->authorization::application
+        hashtags->tenancy::application
+        ideas->authorization::application
+        ideas->tenancy::application
+        media->authorization::application
+        media->tenancy::application
+        publishing->authorization::application
+        publishing->tenancy::application
   security:
     oauth2:
       resourceserver:
