@@ -70,7 +70,7 @@ app:
       ttl-seconds: ${SMP_LOCAL_JWT_TTL_SECONDS:900}
     refresh-session:
       cookie-name: ${SMP_REFRESH_COOKIE_NAME:pt_refresh}
-      cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api/auth}
+      cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api}
       same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
       secure: ${SMP_REFRESH_COOKIE_SECURE:true}
       ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}

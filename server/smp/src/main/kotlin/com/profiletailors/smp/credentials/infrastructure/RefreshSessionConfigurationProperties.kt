@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties(prefix = "app.security.refresh-session")
 class RefreshSessionConfigurationProperties(
     val cookieName: String = "pt_refresh",
-    val cookiePath: String = "/api/auth",
+    val cookiePath: String = "/api",
     val sameSite: String = "Lax",
     val secure: Boolean = true,
     val ttlSeconds: Long = 604800,
