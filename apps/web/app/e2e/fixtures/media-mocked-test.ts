@@ -35,8 +35,7 @@ interface MediaMockFixtures {
 
 export const test = base.extend<MediaMockFixtures>({
   mockState: [
-    // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require object destructuring.
-    async ({}, use) => {
+    async ({ _ }, use) => {
       const state = new MediaRouteState()
       resetMediaMocks()
       await use(state)
@@ -104,8 +103,7 @@ export const test = base.extend<MediaMockFixtures>({
     provider.reset()
   },
 
-  // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require object destructuring.
-  transitionQueue: async ({}, use) => {
+  transitionQueue: async ({ _ }, use) => {
     const queue = new TransitionQueue<{ progress: number }>()
     await use(queue)
     queue.reset()
