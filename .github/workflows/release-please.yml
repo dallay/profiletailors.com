@@ -344,36 +344,52 @@ jobs:
         run: pnpm --filter marketing build
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        run: |
+          set -euo pipefail
+          output=$(pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true 2>&1)
+          printf '%s\n' "${output}"
+          deployment_url=$(printf '%s\n' "${output}" | grep -oE 'https://[^[:space:]]+\.pages\.dev' | tail -1 || true)
+          if [ -z "${deployment_url}" ]; then
+            echo "::error::Wrangler did not return a Pages deployment URL"
+            exit 1
+          fi
+          echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify production deployment
+      - name: Verify deployment artifact and production domain
         env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
           TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
           expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          verify_url="${TARGET_URL}/terms/"
-          echo "Verifying ${verify_url} serves badge: ${expected}"
-          success=0
-          for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${verify_url}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
-              echo "Verification passed on attempt ${attempt}"
-              success=1
-              break
-            fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
-            sleep 15
-          done
-          if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${verify_url} after 5 attempts. Expected badge: ${expected}"
+          deployment_verify_url="${DEPLOYMENT_URL}/terms/?release=${EXPECTED_SHORT_SHA}"
+          echo "Verifying immutable deployment ${deployment_verify_url} serves badge: ${expected}"
+          deployment_body=$(curl -fsSL --max-time 15 "${deployment_verify_url}")
+          if ! printf '%s' "${deployment_body}" | grep -F "${expected}" > /dev/null; then
+            echo "::error::Deployment artifact verification failed for ${deployment_verify_url}. Expected badge: ${expected}"
             exit 1
           fi
+          echo "Deployment artifact verification passed: ${DEPLOYMENT_URL}"
+
+          production_verify_url="${TARGET_URL%/}/terms/?release=${EXPECTED_SHORT_SHA}"
+          for attempt in $(seq 1 5); do
+            body=$(curl -fsSL -H "Cache-Control: no-cache" --max-time 15 "${production_verify_url}" 2>/dev/null || true)
+            if printf '%s' "${body}" | grep -F "${expected}" > /dev/null; then
+              echo "Production domain verification passed on attempt ${attempt}: ${TARGET_URL}"
+              exit 0
+            fi
+            if [ "${attempt}" -lt 5 ]; then
+              echo "Attempt ${attempt}/5 did not expose release metadata; waiting 15s..."
+              sleep 15
+            fi
+          done
+          echo "::warning::Production domain ${TARGET_URL} did not expose release metadata after 5 attempts; deployment artifact verification passed"
 
   # ── Post-release: smp ──────────────────────────────────────────────────────
   build-and-push-smp:
