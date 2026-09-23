@@ -154,31 +154,28 @@ describe('useComposerTextFormatting', () => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      // Mock prompt
-      const originalPrompt = global.prompt
-      global.prompt = vi.fn(() => 'socialmedia') as any
+      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue('socialmedia')
 
       const result = formatting.appendHashtagFromPrompt()
 
       expect(result).toBe(true)
       expect(postText.value).toBe('#socialmedia')
 
-      global.prompt = originalPrompt
+      promptSpy.mockRestore()
     })
 
     it('returns false when user cancels', () => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      const originalPrompt = global.prompt
-      global.prompt = vi.fn(() => null) as any
+      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue(null)
 
       const result = formatting.appendHashtagFromPrompt()
 
       expect(result).toBe(false)
       expect(postText.value).toBe('')
 
-      global.prompt = originalPrompt
+      promptSpy.mockRestore()
     })
   })
 
