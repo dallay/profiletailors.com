@@ -1,50 +1,93 @@
-# Cierre QA de Back Office
+# Back Office QA Closure
 
-## Ruta
+## Overview
 
-Delegated direct mediante RPI. Objetivo: preparar cobertura QA ejecutable y evidencia auditable para cerrar GitHub #656 / Linear DALLAY-560 sin confundir el cierre de las issues hijas con la prueba de la journey operativa completa.
+This document records the executable QA coverage and auditable evidence for GitHub #656 and Linear DALLAY-560. It covers the invitation-to-first-login journey across waitlist intake, invitation creation, delivery state, acceptance, activation, workspace membership, and first login. It distinguishes completed local evidence from CI, deployed, provider, and manual evidence.
 
-## Criterios de aceptación
+The functional milestone remains blocked. DALLAY-556 / GitHub #652 is still outstanding, and deployed provider delivery, deployed invitee activation, deployed first login, and operator evidence have not been collected.
 
-- [ ] El plan cubre la journey desde waitlist hasta invitación, estado de delivery, aceptación, activación, membresía del workspace y primer login.
-- [ ] Se cubren los caminos negativos y operativos: expiración, reenvío, revocación, idempotencia, email duplicado, fallo de delivery, auditoría y límites de permisos.
-- [x] Se reutiliza la cobertura existente de Cucumber, Vitest y Playwright donde ya es autoridad; no se añade cobertura sintética duplicada sin demostrar un gap.
-- [x] El comportamiento frontend crítico tiene cobertura E2E ejecutable en el lane mockeado o un prerrequisito de entorno explícito.
-- [x] El comportamiento backend observable externamente ya tiene escenarios Cucumber con media type, autenticación y reset según las convenciones del repositorio.
-- [x] Se ejecutan y registran los tests enfocados, lint/type-checks y gates relevantes de backend/admin.
-- [x] La evidencia QA queda persistida en el reporte OpenSpec aplicable y la recomendación de cierre separa evidencia local, CI y desplegada.
+## Changes
 
-## Matriz de cobertura actual
+- Reused existing authoritative Cucumber, Vitest, and Playwright coverage for invitation lifecycle, expiry, resend, revoke, idempotency, duplicate email, delivery failure, audit behavior, activation, workspace membership, and backend permission boundaries.
+- Added `apps/web/admin/e2e/specs/protected-navigation.spec.ts` for the missing mocked-browser permission boundary coverage:
+  - unauthenticated visitors are redirected from `/waitlist` to `/login?redirect=/waitlist`;
+  - `SUPPORT_AGENT` operators are denied access to `/direct-invitations`.
+- Persisted the evidence in `openspec/changes/private-beta-launch-readiness/qa-report.md`.
+- No production behavior was changed.
 
-| Criterio | Autoridad existente | Estado | Gap o evidencia pendiente |
+### Coverage matrix
+
+| Area | Authoritative coverage | Status | Remaining boundary |
 | --- | --- | --- | --- |
-| Waitlist, invitación y estados | `platform-admin.feature`, `platformadmin/invitations-direct.feature`, `apps/web/admin/src/views/WaitlistView.spec.ts`, `WaitlistEntryView.spec.ts`, `e2e/specs/waitlist-bulk-invite.spec.ts` | Parcial | Falta una comprobación E2E del acceso protegido y de la navegación por permiso; el lane mockeado no modela la invitación directa ni delivery. |
-| Aceptación, activación, workspace y primer login | `local-auth.feature`, especialmente el escenario de registro invite-only válido | Parcial | Existe cobertura backend, pero falta evidencia local reciente de ejecución y falta prueba desplegada/manual de la journey completa. |
-| Expiración y revocación | `local-auth.feature`; `platform-admin.feature`; `invitations-direct.feature` | Cubierto en código de prueba | Ejecutar y registrar la suite; confirmar evidencia de aceptación no mutante. |
-| Reenvío e idempotencia | `invitations-direct.feature`; `DirectInvitationBddSteps.kt`; `notifications-admin.feature` | Cubierto en código de prueba | Ejecutar y registrar escenarios de reenvío, versión y retry idempotente. |
-| Email duplicado | `invitations-direct.feature`; `DirectInvitationsView.spec.ts` | Cubierto en código de prueba | Ejecutar y registrar el 409 y el manejo UI. |
-| Fallo de delivery y estado operativo | `notifications-admin.feature`; `DirectInvitationBddSteps.kt`; `NotificationsView.spec.ts` | Cubierto en código de prueba | Ejecutar y registrar fallo, retry, redacción y permisos; falta evidencia de proveedor/deploy. |
-| Auditoría | `platform-admin.feature`, `PlatformAdminBddSteps.kt`, `GovernanceView.spec.ts` | Parcial | Confirmar escenarios de eventos y registrar query de auditoría; falta evidencia operatoria desplegada. |
-| Límites de permisos | `platform-admin.feature`, `invitations-direct.feature`, `notifications-admin.feature`, `auth.store.test.ts`, `waitlist-bulk-invite.spec.ts` | Cubierto | Añadir la navegación protegida E2E que falta y ejecutar. |
+| Waitlist, invitations, and delivery states | `platform-admin.feature`, `platformadmin/invitations-direct.feature`, `platformadmin/notifications-admin.feature`, `apps/web/admin/src/views/WaitlistView.spec.ts`, `WaitlistEntryView.spec.ts`, and `e2e/specs/waitlist-bulk-invite.spec.ts` | Local coverage complete | The mocked admin lane does not model real direct-invitation delivery. |
+| Acceptance, activation, workspace membership, and first login | `local-auth.feature` and `DirectInvitationBddSteps.kt` | Local backend coverage complete | Deployed invitee acceptance and first login remain unverified. |
+| Permission boundaries | Backend Cucumber scenarios and `protected-navigation.spec.ts` | Local coverage complete | Deployed operator evidence remains unverified. |
+| Operational evidence | OpenSpec QA report and local test results | Partially complete | CI, provider delivery, deployed behavior, and manual operator evidence remain pending. |
 
-## Slices verticales
+### Completed local evidence
 
-- [x] RPI-001 Inventariar rutas Back Office, fixtures, features Cucumber, specs Vitest, reportes OpenSpec y la journey P0 de activación pendiente.
-- [x] RPI-002 Definir las slices verticales mínimas y mapear cada criterio a un test ejecutable o a un prerrequisito manual/de despliegue explícito.
-- [x] RPI-003 Añadir o completar escenarios backend de aceptación para la journey invitación/activación y los fallos operativos que no tengan cobertura.
-- [x] RPI-004 Añadir o completar cobertura Playwright del lane mockeado para navegación protegida y workflows operativos que no estén cubiertos por Vitest.
-- [ ] RPI-005 Ejecutar tests enfocados de backend/admin y corregir solamente defectos o problemas de estabilidad expuestos por QA.
-- [x] RPI-006 Persistir resultados en el reporte OpenSpec aplicable y emitir recomendación separada para el contenedor #656 y el hito funcional bloqueado por DALLAY-556 / #652.
+- Admin Vitest: **PASS**
+- Admin type-check: **PASS**
+- Admin lint and Biome: **PASS**
+- Focused mocked Playwright: **2/2 passed**
+- Full mocked admin Playwright lane: **15/15 passed**
+- Backend fast Cucumber suite: **291 tests, 0 failures, 0 errors, 0 skipped**
+- `git diff --check`: **PASS**
+- Pre-push backend Detekt hook: **PASS**
 
-## Estado
+## Usage
 
-- Tests y cambios de código: slice E2E añadida; no se modificó producción.
-- Evidencia local: admin Vitest, type-check, lint, Playwright mockeado 15/15 y BDD backend 291/291 escenarios pasaron.
-- Evidencia CI: no inferida; pendiente de un run remoto.
-- Evidencia desplegada/manual: pendiente; no se sustituye por cobertura de mocks ni por BDD local.
-- Reporte OpenSpec: actualizado en `openspec/changes/private-beta-launch-readiness/qa-report.md` con resultados exactos y límites de evidencia.
-- Bloqueador conocido: el cierre funcional continúa bloqueado por DALLAY-556 / GitHub #652, aunque las issues hijas DALLAY-561 a DALLAY-576 estén Done.
+Run the focused browser test from the repository root with:
 
-## Próximo paso
+```sh
+pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts e2e/specs/protected-navigation.spec.ts
+```
 
-Añadir primero la slice E2E de navegación protegida y permisos, ejecutar RED, implementar solo lo necesario en fixtures/tests, y luego correr los checks enfocados de admin y backend.
+Run the full mocked admin browser lane with:
+
+```sh
+pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts
+```
+
+Run the admin unit, type, and lint checks with:
+
+```sh
+pnpm --filter admin test:run
+pnpm --filter admin type-check
+pnpm --filter admin lint
+```
+
+Run the authoritative fast backend acceptance suite with:
+
+```sh
+just backend-bdd-fast
+```
+
+### Next steps
+
+1. Inspect the applicable GitHub Actions results for this change; do not infer CI status from local runs.
+2. Collect provider delivery evidence in the configured deployed environment.
+3. Execute the deployed operator workflow and invitee acceptance through first login.
+4. Resolve DALLAY-556 / GitHub #652 before recommending functional milestone closure.
+5. Reconcile the OpenSpec QA report with the deployed and operator evidence.
+
+The focused and full mocked Playwright results listed above are completed evidence, not pending work.
+
+## Troubleshooting
+
+- A mocked Playwright pass proves route and UI behavior against intercepted APIs only. It does not prove deployed API behavior, real email delivery, or provider configuration.
+- A passing local Cucumber suite proves the repository's local backend scenarios, not production activation or first login.
+- If the login assertion fails after a route change, verify the accessible `Email` textbox and the redirect query value before changing selectors.
+- If CI is unavailable, record it as not inspected rather than treating local checks as remote evidence.
+- Do not close the functional milestone while DALLAY-556 / GitHub #652 or the required deployed and manual evidence remains unresolved.
+
+## References
+
+- [GitHub #656](https://github.com/dallay/profiletailors.com/issues/656)
+- Linear `DALLAY-560`
+- [OpenSpec acceptance QA report](../../openspec/changes/private-beta-launch-readiness/qa-report.md)
+- [Platform admin Cucumber coverage](../../server/smp/src/test/resources/features/platform-admin.feature)
+- [Direct invitation Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature)
+- [Notification delivery Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/notifications-admin.feature)
+- [Local authentication Cucumber coverage](../../server/smp/src/test/resources/features/local-auth.feature)
+- [Protected admin navigation Playwright coverage](../../apps/web/admin/e2e/specs/protected-navigation.spec.ts)

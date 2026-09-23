@@ -1,8 +1,13 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-09-20
+**Last Updated:** 2026-09-23
 
 ## 📖 Table of Contents
+
+### AI-Assisted Engineering
+
+- [AI Engineering](./ai-engineering/) - How ProfileTailors uses Agent Harness for structured, spec-driven development with AI agents
+- [OpenSpec](../openspec/README.md) - Spec-driven development system with phase DAG
 
 ### Architecture & Design
 
@@ -48,6 +53,7 @@
 
 ### Development & Testing
 
+- [Back Office QA Closure](../plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
 - [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
