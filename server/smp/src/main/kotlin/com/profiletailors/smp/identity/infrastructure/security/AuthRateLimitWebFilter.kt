@@ -44,7 +44,7 @@ class AuthRateLimitWebFilter internal constructor(
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val path = exchange.request.path.pathWithinApplication().value().trimEnd('/')
-        if (!isAuthEndpoint(path) && !isWaitlistEndpoint(path)) {
+        if (!isAuthEndpoint(path) && !isWaitlistEndpoint(path) && !isProxyEndpoint(path)) {
             return chain.filter(exchange)
         }
 
@@ -97,6 +97,8 @@ class AuthRateLimitWebFilter internal constructor(
     private fun isWaitlistEndpoint(path: String): Boolean =
         path == WAITLIST_PREFIX || path.startsWith("$WAITLIST_PREFIX/")
 
+    private fun isProxyEndpoint(path: String): Boolean = path == MEDIA_PROXY_PATH
+
     private fun clientIdentifier(exchange: ServerWebExchange): String {
         val remote = exchange.request.remoteAddress?.address?.hostAddress
             ?.replace(IP_SANITIZE_REGEX, "")
@@ -118,6 +120,11 @@ class AuthRateLimitWebFilter internal constructor(
         isWaitlistEndpoint(path) -> Policy(
             WAITLIST_BUCKET,
             WAITLIST_MAX_REQUESTS,
+            WINDOW_MS,
+        )
+        isProxyEndpoint(path) -> Policy(
+            PROXY_BUCKET,
+            PROXY_MAX_REQUESTS,
             WINDOW_MS,
         )
         else -> Policy("auth-ip", MAX_REQUESTS_PER_WINDOW, WINDOW_MS)
@@ -165,6 +172,9 @@ class AuthRateLimitWebFilter internal constructor(
         const val WAITLIST_MAX_REQUESTS = 10
         const val WAITLIST_BUCKET = "waitlist-ip"
         const val WAITLIST_PREFIX = "/api/waitlists"
+        const val PROXY_BUCKET = "proxy-ip"
+        const val PROXY_MAX_REQUESTS = 60
+        const val MEDIA_PROXY_PATH = "/api/media/proxy"
         const val WINDOW_MS = 60_000L
         const val FIFTEEN_MINUTES_MS = 15 * 60_000L
         const val PASSWORD_RESET_REQUEST_MAX_REQUESTS = 5

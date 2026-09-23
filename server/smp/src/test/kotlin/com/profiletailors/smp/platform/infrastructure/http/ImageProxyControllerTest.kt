@@ -156,6 +156,20 @@ class ImageProxyControllerTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_GATEWAY)
     }
 
+    @Test
+    fun `rejects non-image upstream content type with 502`() = runBlocking<Unit> {
+        val controller = buildController(okExchange(MediaType.TEXT_HTML, byteArrayOf(1, 2, 3)))
+        val response = controller.proxyImage("https://media.licdn.com/media/test.jpg")
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+
+    @Test
+    fun `rejects script upstream content type with 502`() = runBlocking<Unit> {
+        val controller = buildController(okExchange(MediaType("application", "javascript"), byteArrayOf(1, 2, 3)))
+        val response = controller.proxyImage("https://pbs.twimg.com/media/test.png")
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+
     // -----------------------------------------------------------------------
     // Helpers — real WebClient with mock ExchangeFunction
     // -----------------------------------------------------------------------

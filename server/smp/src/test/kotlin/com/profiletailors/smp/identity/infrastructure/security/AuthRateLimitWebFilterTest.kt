@@ -90,6 +90,32 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
+    fun `limits media proxy fetches per IP`() {
+        val filter = AuthRateLimitWebFilter()
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.77", 0)
+
+        repeat(60) {
+            val exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/media/proxy?url=https://media.licdn.com/media/test.jpg")
+                    .remoteAddress(remoteAddress)
+                    .build(),
+            )
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = MockServerWebExchange.from(
+            MockServerHttpRequest.get("/api/media/proxy?url=https://media.licdn.com/media/test.jpg")
+                .remoteAddress(remoteAddress)
+                .build(),
+        )
+        filter.filter(blocked, chain).block()
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        blocked.response.headers.getFirst("Retry-After") shouldNotBe null
+    }
+
+    @Test
     fun `forgot password uses five request IP bucket and coded problem detail`() {
         val filter = AuthRateLimitWebFilter()
         val chain = WebFilterChain { Mono.empty() }
