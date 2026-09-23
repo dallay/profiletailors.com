@@ -65,9 +65,9 @@ Deployment requires least-privilege credentials configured in GitHub Actions sec
 
 #### GitHub Variables (Optional overrides)
 
-- `PT_PRODUCTION_APP_URL`: Target production URL for app verification. Defaults to `https://app-profiletailors.pages.dev`.
-- `PT_PRODUCTION_ADMIN_URL`: Target production URL for admin verification. Defaults to `https://profiletailors-com-bx5.pages.dev`.
-- `PT_PRODUCTION_MARKETING_URL`: Target production URL for marketing verification. Defaults to `https://profiletailors-com.pages.dev`.
+- `PT_PRODUCTION_APP_URL`: Target production URL for app verification. Defaults to `https://app.profiletailors.com`.
+- `PT_PRODUCTION_ADMIN_URL`: Target production URL for admin verification. Defaults to `https://admin.profiletailors.com`.
+- `PT_PRODUCTION_MARKETING_URL`: Target production URL for marketing verification. Defaults to `https://profiletailors.com`.
 
 #### Token Permission Scope
 
@@ -82,14 +82,11 @@ Do not grant account-wide administrator privileges or zone DNS permissions.
 
 ### Production Verification
 
-After deployment, the workflow queries the live endpoint with retry logic (up to 5 attempts, 15 seconds apart) to ensure CDN cache propagation has occurred and the expected version badge is rendered:
+After deployment, the workflow queries the live endpoint with retry logic (up to 5 attempts, 15 seconds apart) to ensure CDN cache propagation has occurred and the expected build metadata is published.
 
-```bash
-expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
-curl -fsSL "${TARGET_URL}" | grep -F "${expected}"
-```
+For the Vue SPAs, the probe downloads the JavaScript assets referenced by the root HTML and checks for the expected version, SHA, and ` · ` separator. The badge is client-rendered, so it is not expected in the initial HTML response.
 
-For marketing, verification probes `/legal/terms` where the version badge is permanently present in the footer layout.
+For marketing, verification probes `/terms/` where the version badge is statically rendered in the footer layout.
 
 ### Rollback Procedure
 

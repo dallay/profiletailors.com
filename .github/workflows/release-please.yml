@@ -102,30 +102,68 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/app/dist --project-name=app-profile-tailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/app/dist --project-name=app-profile-tailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_APP_URL || 'https://app-profiletailors.pages.dev' }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_APP_URL || 'https://app.profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
+          expected_version="${EXPECTED_VERSION#v}"
+          expected_sha="${EXPECTED_SHORT_SHA}"
+          echo "Verifying ${TARGET_URL} serves SPA metadata: ${expected_version} · ${expected_sha}"
           success=0
           for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
+            body=$(curl -fsSL --max-time 15 "${TARGET_URL}/" 2>/dev/null || true)
+            asset_body=""
+            queue=()
+            visited=""
+            while IFS= read -r asset_path; do
+              [ -z "${asset_path}" ] && continue
+              queue+=("${asset_path}")
+            done < <(
+              printf '%s' "${body}" | grep -oE 'src="[^"]+\.js"' | sed -nE 's/src="([^"]+)"/\1/p'
+            )
+            while [ "${#queue[@]}" -gt 0 ]; do
+              asset_path="${queue[0]}"
+              queue=("${queue[@]:1}")
+              case " ${visited} " in
+                *" ${asset_path} "*) continue ;;
+              esac
+              visited="${visited}${asset_path} "
+              case "${asset_path}" in
+                http://*|https://*) asset_url="${asset_path}" ;;
+                /*) asset_url="${TARGET_URL}${asset_path}" ;;
+                *) asset_url="${TARGET_URL}/${asset_path}" ;;
+              esac
+              asset=$(curl -fsSL --max-time 15 "${asset_url}" 2>/dev/null || true)
+              asset_body="${asset_body}${asset}"
+              while IFS= read -r nested_asset; do
+                [ -z "${nested_asset}" ] && continue
+                queue+=("/${nested_asset}")
+              done < <(
+                printf '%s' "${asset}" | grep -oE 'assets/[A-Za-z0-9._-]+\.js' || true
+              )
+            done
+            if [ -z "${asset_body}" ]; then
+              echo "Attempt ${attempt}/5 found no JavaScript assets. Waiting 15s..."
+              sleep 15
+              continue
+            fi
+            if printf '%s' "${asset_body}" | grep -F "${expected_version}" > /dev/null 2>&1 && \
+              printf '%s' "${asset_body}" | grep -F "${expected_sha}" > /dev/null 2>&1 && \
+              printf '%s' "${asset_body}" | grep -F ' · ' > /dev/null 2>&1; then
               echo "Verification passed on attempt ${attempt}"
               success=1
               break
             fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
+            echo "Attempt ${attempt}/5 failed to match expected SPA metadata. Waiting 15s..."
             sleep 15
           done
           if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
+            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected version: ${expected_version}; expected SHA: ${expected_sha}"
             exit 1
           fi
 
@@ -176,30 +214,68 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/admin/dist --project-name=profiletailors-admin --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/admin/dist --project-name=profiletailors-admin --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_ADMIN_URL || 'https://profiletailors-com-bx5.pages.dev' }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_ADMIN_URL || 'https://admin.profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
-          echo "Verifying ${TARGET_URL} serves badge: ${expected}"
+          expected_version="${EXPECTED_VERSION#v}"
+          expected_sha="${EXPECTED_SHORT_SHA}"
+          echo "Verifying ${TARGET_URL} serves SPA metadata: ${expected_version} · ${expected_sha}"
           success=0
           for attempt in $(seq 1 5); do
-            body=$(curl -fsSL --max-time 15 "${TARGET_URL}" 2>/dev/null || true)
-            if echo "${body}" | grep -F "${expected}" > /dev/null 2>&1; then
+            body=$(curl -fsSL --max-time 15 "${TARGET_URL}/" 2>/dev/null || true)
+            asset_body=""
+            queue=()
+            visited=""
+            while IFS= read -r asset_path; do
+              [ -z "${asset_path}" ] && continue
+              queue+=("${asset_path}")
+            done < <(
+              printf '%s' "${body}" | grep -oE 'src="[^"]+\.js"' | sed -nE 's/src="([^"]+)"/\1/p'
+            )
+            while [ "${#queue[@]}" -gt 0 ]; do
+              asset_path="${queue[0]}"
+              queue=("${queue[@]:1}")
+              case " ${visited} " in
+                *" ${asset_path} "*) continue ;;
+              esac
+              visited="${visited}${asset_path} "
+              case "${asset_path}" in
+                http://*|https://*) asset_url="${asset_path}" ;;
+                /*) asset_url="${TARGET_URL}${asset_path}" ;;
+                *) asset_url="${TARGET_URL}/${asset_path}" ;;
+              esac
+              asset=$(curl -fsSL --max-time 15 "${asset_url}" 2>/dev/null || true)
+              asset_body="${asset_body}${asset}"
+              while IFS= read -r nested_asset; do
+                [ -z "${nested_asset}" ] && continue
+                queue+=("/${nested_asset}")
+              done < <(
+                printf '%s' "${asset}" | grep -oE 'assets/[A-Za-z0-9._-]+\.js' || true
+              )
+            done
+            if [ -z "${asset_body}" ]; then
+              echo "Attempt ${attempt}/5 found no JavaScript assets. Waiting 15s..."
+              sleep 15
+              continue
+            fi
+            if printf '%s' "${asset_body}" | grep -F "${expected_version}" > /dev/null 2>&1 && \
+              printf '%s' "${asset_body}" | grep -F "${expected_sha}" > /dev/null 2>&1 && \
+              printf '%s' "${asset_body}" | grep -F ' · ' > /dev/null 2>&1; then
               echo "Verification passed on attempt ${attempt}"
               success=1
               break
             fi
-            echo "Attempt ${attempt}/5 failed to match expected badge. Waiting 15s..."
+            echo "Attempt ${attempt}/5 failed to match expected SPA metadata. Waiting 15s..."
             sleep 15
           done
           if [ "${success}" -ne 1 ]; then
-            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected badge: ${expected}"
+            echo "::error::Production verification failed for ${TARGET_URL} after 5 attempts. Expected version: ${expected_version}; expected SHA: ${expected_sha}"
             exit 1
           fi
 
@@ -249,11 +325,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
+        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20250718.0 --package=wrangler@3.114.17 wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
-          TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors-com.pages.dev' }}
+          TARGET_URL: ${{ vars.PT_PRODUCTION_MARKETING_URL || 'https://profiletailors.com' }}
           EXPECTED_VERSION: ${{ steps.resolve-meta.outputs.version }}
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
