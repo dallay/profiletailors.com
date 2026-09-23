@@ -1,6 +1,6 @@
 # Level 2: Container Diagram
 
-**Last Updated:** 2026-09-20
+**Last Updated:** 2026-09-23
 
 ## Overview
 
@@ -34,7 +34,7 @@ System_Boundary(profile_tailors, "Profile Tailors") {
     
     ContainerDb(db, "Database", "PostgreSQL 18", "Stores user data, workspaces, posts, schedules, credentials, and audit logs. R2DBC for reactive access.")
     
-    ContainerDb(cache, "Cache", "Redis / Caffeine (optional)", "Optional rate limiting cache store (default Caffeine local)")
+    ContainerDb(cache, "Cache", "Caffeine local (0.1.0)", "Per-JVM rate limiting bucket store; distributed store is future work, not implemented")
 }
 
 System_Ext(social_media, "Social Media APIs", "Twitter, LinkedIn, Instagram, Facebook, TikTok")
@@ -48,7 +48,7 @@ Rel(spa, api, "Makes API calls", "HTTPS/REST, JSON")
 Rel(web_app, api, "Submits waitlist", "HTTPS/REST, JSON")
 
 Rel(api, db, "Reads/writes", "R2DBC, PostgreSQL wire protocol")
-Rel(api, cache, "Reads/writes when enabled", "Redis/In-memory")
+Rel(api, cache, "Reads/writes in-process", "Caffeine in-memory")
 Rel(api, storage, "Stores/retrieves media", "HTTPS/S3 API")
 Rel(api, social_media, "Publishes posts, fetches engagement", "HTTPS/REST")
 Rel(api, email, "Sends notifications", "HTTPS/REST")
@@ -70,7 +70,7 @@ graph TB
         API[API Application<br/>Spring Boot 4, Kotlin, WebFlux<br/>Reactive Modular Monolith]
         
         DB[(Database<br/>PostgreSQL 18<br/>R2DBC)]
-        CACHE[(Cache<br/>Caffeine local / Redis optional)]
+        CACHE[(Cache<br/>Caffeine local only, 0.1.0)]
     end
 
     SOCIAL[Social Media APIs<br/>Twitter, LinkedIn, etc.]
@@ -150,12 +150,13 @@ graph TB
   credentials/tokens, audit logs, analytics metrics.
 - **Access Pattern**: Reactive via R2DBC (non-blocking)
 
-#### Cache (Caffeine Local / Redis Optional)
+#### Cache (Caffeine Local Only, 0.1.0)
 
-- **Technology**: Caffeine local in-memory cache, optional Redis via `shared:shield:ratelimit`
-- **Deployment**: Embedded JVM in-memory / optional container
-- **Purpose**: Rate-limit state storage for Bucket4j.
+- **Technology**: Caffeine local in-memory cache via `shared:shield:ratelimit`
+- **Deployment**: Embedded JVM in-memory, one bucket store per SMP replica
+- **Purpose**: Rate-limit state storage for Bucket4j in the single-backend-replica 0.1.0 topology.
 - **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). The JWT access token is validated statelessly from the `Authorization: Bearer` header, while only the refresh token is stored in an HttpOnly cookie.
+- **Future scaling**: a distributed bucket backend (Redis first, Hazelcast as fallback) is deferred until SMP runs more than one backend replica receiving the same public traffic (dallay/profiletailors.com#380). No Redis implementation exists yet.
 
 #### Event Bus (In-Process Event Dispatch)
 
@@ -212,7 +213,7 @@ graph TB
 | Component    | Technology       | Rationale                                   |
 | ------------ | ---------------- | ------------------------------------------- |
 | **Database** | PostgreSQL 18    | Robust, ACID, JSON support, mature          |
-| **Cache**    | Redis            | Fast, simple, widely supported              |
+| **Cache**    | Caffeine (0.1.0); Redis future | Per-JVM buckets now; distributed store only when horizontally scaled |
 | **Event Bus**| Reactor Channels | Reactive in-process event publishing        |
 | **Storage**  | S3-compatible    | Standard API, multiple providers            |
 | **Auth**     | OAuth2/OIDC      | Industry standard, delegated authentication |
@@ -233,7 +234,7 @@ graph TB
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Target State (Production)
+### Target State (Production, 0.1.0 Single Backend Replica)
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
@@ -246,7 +247,7 @@ graph TB
 ┌─────────────────────────────────────────────────────────┐
 │ Docker Swarm (`infra/apps/smp/swarm/stack.yaml`)        │
 │ • Dashboard Service (Vue 3 SPA, port 8080)              │
-│ • Backend Service (API Application, port 7638)          │
+│ • Backend Service (API Application, port 7638, replicas: 1) │
 └─────────────────────────────────────────────────────────┘
                         │
                         ▼
@@ -256,6 +257,13 @@ graph TB
 │ • Local Storage (/var/lib/profiletailors/media)         │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Future Target (Horizontally Scaled, Not 0.1.0)
+
+Scaling the backend service beyond one replica changes the rate-limiting contract: per-JVM
+Caffeine buckets no longer enforce a global per-IP/per-waitlist limit. That topology is blocked
+on dallay/profiletailors.com#380 (distributed bucket backend) plus trusted-proxy address
+resolution, and MUST NOT be adopted by only raising the replica count.
 
 ---
 
@@ -279,8 +287,9 @@ graph TB
 
 - Per-user rate limits enforced by API gateway
 - Per-workspace rate limits for fair usage
-- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until distributed
-  buckets and trusted-proxy address resolution are implemented
+- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until the
+  distributed bucket backend (dallay/profiletailors.com#380) and trusted-proxy address
+  resolution are implemented; enabling it on more than one replica without those is unsafe
 - Social media API rate limit tracking and backoff
 
 ---
@@ -289,7 +298,7 @@ graph TB
 
 ### Horizontal Scaling
 
-- API Application: Stateless, can scale horizontally; in-process workers (`PublishingWorker`) handle scheduled tasks within the modular monolith
+- API Application: Stateless except per-JVM rate-limit buckets and in-process workers (`PublishingWorker`); horizontal backend scaling is a future topology gated on dallay/profiletailors.com#380, not a 0.1.0 operation
 - Analytics Context: In-monolith analytics processing and metric aggregation
 
 ### Database Scaling
@@ -300,7 +309,7 @@ graph TB
 
 ### Caching Strategy
 
-- Local Caffeine or optional Redis store for Bucket4j rate limiting (`shared:shield:ratelimit`)
+- Caffeine per-JVM store for Bucket4j rate limiting (`shared:shield:ratelimit`); correct for the 0.1.0 single-backend-replica topology, not a global limiter once replicas scale
 - The SPA keeps the short-lived JWT access token in memory and sends it in the `Authorization: Bearer` header; only the refresh token is stored in an HttpOnly cookie
 
 ---
@@ -325,4 +334,4 @@ graph TB
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23
