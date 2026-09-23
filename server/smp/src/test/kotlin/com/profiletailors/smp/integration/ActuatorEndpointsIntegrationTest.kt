@@ -69,11 +69,16 @@ class ActuatorEndpointsIntegrationTest {
     @TestConfiguration
     class TestSecurityConfig {
         @Bean
-        @Primary
-        fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
             .csrf { it.disable() }
             .authorizeExchange {
-                it.anyExchange().permitAll()
+                it.pathMatchers(
+                    "/actuator/health",
+                    "/actuator/health/**",
+                    "/actuator/prometheus",
+                    "/actuator/info",
+                ).permitAll()
+                it.anyExchange().denyAll()
             }
             .build()
     }
@@ -184,7 +189,7 @@ class ActuatorEndpointsIntegrationTest {
             .get()
             .uri("/actuator/info")
             .exchange()
-            .expectStatus().isUnauthorized
+            .expectStatus().isNotFound
     }
 
     companion object {
