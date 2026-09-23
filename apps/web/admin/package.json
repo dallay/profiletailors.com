@@ -47,7 +47,7 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.5",
-    "@types/node": "^24.13.4",
+    "@types/node": "^24.13.6",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.9.1",
