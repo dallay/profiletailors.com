@@ -2,7 +2,7 @@
 
 > **Document ID:** COMP-007
 > **Version:** v1.0.0
-> **Last Updated:** 2026-09-20
+> **Last Updated:** 2026-09-23
 > **Owner:** Legal & Compliance Team
 > **Review Cadence:** Annual
 
