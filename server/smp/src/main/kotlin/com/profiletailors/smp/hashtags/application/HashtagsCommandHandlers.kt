@@ -3,6 +3,7 @@ package com.profiletailors.smp.hashtags.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
@@ -14,12 +15,14 @@ internal class SaveHashtagSetHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val repository: HashtagSavedSetRepository,
     private val clock: Clock,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<SaveHashtagSetCommand, HashtagSavedSetResult> {
     override suspend fun handle(command: SaveHashtagSetCommand): HashtagSavedSetResult {
         if (command.name.isBlank()) throw HashtagSetNameBlankException()
         if (command.hashtags.isEmpty()) throw HashtagSetEmptyException()
 
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val now = clock.instant()
         val set = HashtagSavedSet(
             id = "htset-${UUID.randomUUID()}",
@@ -39,9 +42,11 @@ internal class SaveHashtagSetHandler(
 internal class DeleteHashtagSetHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val repository: HashtagSavedSetRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<DeleteHashtagSetCommand, Unit> {
     override suspend fun handle(command: DeleteHashtagSetCommand) {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val deleted = repository.delete(workspaceId, command.setId)
         if (!deleted) throw HashtagSavedSetNotFoundException(command.setId)
     }

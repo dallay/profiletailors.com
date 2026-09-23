@@ -19,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.ProviderLockReason
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceCapacityPolicy
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceEntitlementPolicy
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -132,7 +133,7 @@ class PublishingProviderCatalogHandlersTest {
                     canConnectMore = true,
                 )
             },
-        )
+            membershipGate = mockk(relaxed = true))
 
         val result = handler.handle(ListProviderCatalogQuery)
 

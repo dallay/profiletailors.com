@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -20,7 +21,8 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `save handler trims names and normalizes hashtag prefixes`() = runTest {
-        val result = SaveHashtagSetHandler(context, repository, clock)
+        val result = SaveHashtagSetHandler(context, repository, clock,
+            membershipGate = mockk(relaxed = true))
             .handle(SaveHashtagSetCommand("  Engineering  ", listOf("testing", "#quality")))
 
         assertEquals("Engineering", result.name)
@@ -30,7 +32,8 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `save handler rejects blank names and empty sets`() = runTest {
-        val handler = SaveHashtagSetHandler(context, repository, clock)
+        val handler = SaveHashtagSetHandler(context, repository, clock,
+            membershipGate = mockk(relaxed = true))
 
         assertThrows(HashtagSetNameBlankException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(SaveHashtagSetCommand(" ", listOf("#tag"))) }
@@ -42,7 +45,8 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `delete handler rejects a set outside the workspace`() = runTest {
-        val handler = DeleteHashtagSetHandler(context, repository)
+        val handler = DeleteHashtagSetHandler(context, repository,
+            membershipGate = mockk(relaxed = true))
 
         assertThrows(HashtagSavedSetNotFoundException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(DeleteHashtagSetCommand("missing")) }

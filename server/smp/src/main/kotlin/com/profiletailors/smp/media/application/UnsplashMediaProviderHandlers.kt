@@ -3,6 +3,7 @@ package com.profiletailors.smp.media.application
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -194,6 +195,7 @@ class ImportUnsplashPhotoHandler(
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
     /**
      * Authorizes and rate-limits Unsplash import requests before delegating the media import.
@@ -203,6 +205,7 @@ class ImportUnsplashPhotoHandler(
      */
     override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
         val principalContext = principalContextProvider.require()
+        membershipGate.requireActiveMember(command.workspaceId)
         requireEmailVerification(
             principalContext,
             principalIdentityLookup,

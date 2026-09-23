@@ -9,6 +9,7 @@ import com.profiletailors.smp.hashtags.domain.HashtagPopularity
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipOperationRequiresWorkspaceContextException
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -58,7 +59,7 @@ class HashtagsQueryHandlersTest {
         val handler = ListHashtagSavedSetsHandler(
             FixedResourceContextProvider("workspace-1"),
             repository,
-        )
+            membershipGate = mockk(relaxed = true))
 
         val result = handler.handle(ListHashtagSavedSetsQuery(workspaceId = "ignored"))
 
@@ -92,6 +93,7 @@ class HashtagsQueryHandlersTest {
                 ListHashtagSavedSetsHandler(
                     FixedResourceContextProvider(null),
                     FakeSavedSetRepository(emptyList()),
+                    membershipGate = mockk(relaxed = true)
                 ).handle(ListHashtagSavedSetsQuery("ignored"))
             }
         }

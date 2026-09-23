@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
@@ -46,9 +47,11 @@ class SocialContentSyncCommandHandler(
     private val clock: Clock = Clock.systemUTC(),
     private val featureGates: SocialContentFeatureGates = SocialContentFeatureGates(),
     private val socialAccountRepository: SocialAccountRepository? = null,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<SocialContentSyncCommand, SocialContentSyncResult> {
     override suspend fun handle(command: SocialContentSyncCommand): SocialContentSyncResult {
         val scope = currentWorkspaceScope(resourceContextProvider)
+        membershipGate.requireActiveMember(scope.value)
         if (!featureGates.importEnabled) {
             throw SocialContentAccessDeniedException(SocialContentAccessDenial.OPERATION_DISABLED)
         }
@@ -118,11 +121,14 @@ data class WorkspaceSocialContentCalendarQuery(
 class WorkspaceSocialContentCalendarQueryHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val calendarQueryHandler: SocialContentCalendarQueryHandler,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<WorkspaceSocialContentCalendarQuery, SocialContentCalendarResponse> {
-    override suspend fun handle(query: WorkspaceSocialContentCalendarQuery): SocialContentCalendarResponse =
-        calendarQueryHandler.handle(
+    override suspend fun handle(query: WorkspaceSocialContentCalendarQuery): SocialContentCalendarResponse {
+        val scope = currentWorkspaceScope(resourceContextProvider)
+        membershipGate.requireActiveMember(scope.value)
+        return calendarQueryHandler.handle(
             SocialContentCalendarQuery(
-                scope = currentWorkspaceScope(resourceContextProvider),
+                scope = scope,
                 from = query.from,
                 to = query.to,
                 actorId = query.actorId,
@@ -132,6 +138,8 @@ class WorkspaceSocialContentCalendarQueryHandler(
             ),
         )
 }
+
+    }
 
 typealias SocialContentCalendarRequest = WorkspaceSocialContentCalendarQuery
 

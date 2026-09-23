@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.domain.ProviderCatalogAvailability
 import com.profiletailors.smp.publishing.domain.ProviderCatalogConnectionCounter
 import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
@@ -25,9 +26,11 @@ data class ProviderCatalogResponse(val providers: List<ProviderCatalogItem>)
 internal class ListProviderCatalogHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val providerCatalogPolicy: ProviderCatalogPolicy,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<ListProviderCatalogQuery, ProviderCatalogResponse> {
     override suspend fun handle(query: ListProviderCatalogQuery): ProviderCatalogResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         return ProviderCatalogResponse(
             SocialProvider.entries
                 .map { providerCatalogPolicy.evaluate(it, workspaceId) }

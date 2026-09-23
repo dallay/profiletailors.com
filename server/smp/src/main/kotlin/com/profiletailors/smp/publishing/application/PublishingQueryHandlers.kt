@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
@@ -29,9 +30,11 @@ internal class GetCalendarPublicationsHandler(
     private val mediaAssetResolver: MediaAssetResolver,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
     override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
 
         val statuses = query.status?.let { setOf(it) }
         val accountIds = query.socialAccountId?.let { setOf(it) }
@@ -118,10 +121,12 @@ internal class GetCalendarPublicationsHandler(
 internal class ListPublicationsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<ListPublicationsQuery, ListPublicationsResponse> {
 
     override suspend fun handle(query: ListPublicationsQuery): ListPublicationsResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
 
         val from = query.from
         val to = query.to
