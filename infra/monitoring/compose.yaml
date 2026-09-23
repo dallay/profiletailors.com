@@ -8,6 +8,10 @@ services:
       - "${PROMETHEUS_HOST_PORT:-0}:9090"
     volumes:
       - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - type: bind
+        source: ${SMP_PROMETHEUS_BEARER_TOKEN_FILE:?Set SMP_PROMETHEUS_BEARER_TOKEN_FILE}
+        target: /etc/prometheus/secrets/smp-bearer-token
+        read_only: true
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
