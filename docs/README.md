@@ -53,6 +53,7 @@
 
 ### Development & Testing
 
+- [Back Office QA Closure](../plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
 - [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
