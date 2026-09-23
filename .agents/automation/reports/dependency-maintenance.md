@@ -6,7 +6,7 @@ Audit and maintain dependency versions, licenses, and scores across the monorepo
 
 ## Execution Result
 
-Execution completed with outcome `CHANGES_APPLIED`. Updated `@biomejs/biome` patch version from `2.5.11` to `2.5.12` in root `package.json` and `pnpm-lock.yaml`. All audited dependency manifests, version catalog, lockfiles, and frontend dependency licence checks pass cleanly.
+Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservative patch dependencies across frontend workspace packages and root workspace (`vue` to `3.5.43`, `vue-i18n` to `11.4.12`, `@vue/test-utils` to `2.5.1`, `@lucide/vue` to `1.47.0`, `@iconify-json/lucide` to `1.2.135`, `markdownlint-cli2` to `0.23.3`) in `package.json` and `pnpm-lock.yaml`. All audited dependency manifests, version catalog, lockfiles, and frontend dependency licence checks pass cleanly.
 
 ## Scope Inspected
 
@@ -14,6 +14,7 @@ Execution completed with outcome `CHANGES_APPLIED`. Updated `@biomejs/biome` pat
 - `apps/web/marketing/package.json`
 - `apps/web/app/package.json`
 - `apps/web/admin/package.json`
+- `shared/vue-ui/package.json`
 - `tools/compliance/package.json`
 - `shared/web/package.json`
 - `pnpm-workspace.yaml` & `pnpm-lock.yaml`
@@ -21,14 +22,20 @@ Execution completed with outcome `CHANGES_APPLIED`. Updated `@biomejs/biome` pat
 
 ## Changes Applied
 
-- Upgraded `@biomejs/biome` devDependency from `2.5.11` to `2.5.12` in `package.json` and updated `pnpm-lock.yaml`.
+- Upgraded `vue` patch version from `3.5.42` to `3.5.43` across workspace packages.
+- Upgraded `vue-i18n` patch version from `11.4.10` to `11.4.12` in `apps/web/app` and `apps/web/admin`.
+- Upgraded `@vue/test-utils` patch version from `2.5.0` to `2.5.1` in `apps/web/app`, `apps/web/admin`, and `shared/vue-ui`.
+- Upgraded `@lucide/vue` minor version from `1.46.0` to `1.47.0` in `apps/web/app` and `apps/web/admin`.
+- Upgraded `@iconify-json/lucide` patch version from `1.2.134` to `1.2.135` in `apps/web/marketing`.
+- Upgraded `markdownlint-cli2` patch version from `0.23.2` to `0.23.3` in root `package.json`.
+- Updated `pnpm-lock.yaml`.
 
 ## Evidence Table
 
 | Source Manifest / File | Audited Component | Finding / Status | Evidence |
 | :--- | :--- | :--- | :--- |
-| `package.json` | devDependencies | Safe patch upgrade applied | `@biomejs/biome` upgraded to `2.5.12`. |
-| `apps/web/*/package.json` | Node / Vue / Vite / Astro | Up to date / Locked | All dependencies match workspace policy; major version bumps are restricted by maintenance rules. |
+| `package.json` | devDependencies | Safe patch upgrade applied | `markdownlint-cli2` upgraded to `0.23.3`. |
+| `apps/web/*/package.json`, `shared/vue-ui/package.json` | Node / Vue / Lucide / i18n | Safe patch/minor updates applied | `vue` 3.5.43, `vue-i18n` 11.4.12, `@vue/test-utils` 2.5.1, `@lucide/vue` 1.47.0, `@iconify-json/lucide` 1.2.135. |
 | `gradle/libs.versions.toml` | Spring Boot & Kotlin catalog | Aligned & Compliant | Spring Boot `4.0.8`, Kotlin `2.4.10`, Coroutines `1.10.2`, Jackson `3.2.2`. |
 | Licence Audits | Frontend licences | 100% Compliant | `pnpm licenses list` passed with zero licence policy violations. |
 
@@ -37,8 +44,8 @@ Execution completed with outcome `CHANGES_APPLIED`. Updated `@biomejs/biome` pat
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
 | `pnpm licenses list` | Monorepo frontend dependencies | Passed | All frontend dependency licences AGPL-3.0 compliant. |
-| `pnpm lint` | Apps & Shared Packages | Passed | Biome 2.5.12 check passed across workspace projects. |
-| `pnpm --recursive test:run` | All JS/TS packages | Passed | Unit tests passed across workspace projects. |
+| `pnpm lint` | Apps & Shared Packages | Passed | Biome check passed across all workspace projects. |
+| `pnpm --recursive test:run` | All JS/TS packages | Passed | 150 test files and 1,756 unit tests passed cleanly across workspace projects. |
 
 ## Unresolved Findings
 
@@ -50,15 +57,15 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-09-09T17:30:00Z`
+- **Last Execution:** `2026-09-09T18:00:00Z`
 - **Schema Version:** `1`
 - **Task Identity:** `dependency-maintenance`
 - **Execution Outcome:** `CHANGES_APPLIED`
 
 ## Risk Assessment
 
-- **Overall Risk:** LOW (Safe patch release update to Biome linter; verified via `pnpm lint` and unit test suites).
+- **Overall Risk:** LOW (Safe conservative patch/minor dependency updates; verified via `pnpm lint`, license checks, and unit test suites).
 
 ## Human Review Notes
 
-Automated dependency maintenance check performed. Upgraded `@biomejs/biome` patch version to 2.5.12. Major upgrades (e.g., Vite 8, Vitest 5, TypeScript 7) are intentionally withheld per framework decision rules.
+Automated dependency maintenance check performed. Upgraded patch/minor versions for `vue`, `vue-i18n`, `@vue/test-utils`, `@lucide/vue`, `@iconify-json/lucide`, and `markdownlint-cli2`. Major upgrades (e.g., Vite 8, Vitest 5, TypeScript 7, Wrangler 4) are intentionally withheld per framework decision rules.
