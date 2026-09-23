@@ -142,7 +142,6 @@ class IdentitySecurityConfiguration {
                 HttpMethod.GET,
                 "/actuator/health",
                 "/actuator/health/**",
-                "/actuator/prometheus",
                 "/api/capabilities/public",
                 "/api/media/assets/*/preview",
                 "/api/media/assets/*/content",

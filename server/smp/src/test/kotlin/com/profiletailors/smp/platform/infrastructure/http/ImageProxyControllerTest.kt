@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.ExchangeFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.concurrent.atomic.AtomicInteger
 
 class ImageProxyControllerTest {
 
@@ -154,6 +155,24 @@ class ImageProxyControllerTest {
         val controller = buildController(errorExchange(502))
         val response = controller.proxyImage("https://media.licdn.com/media/error.jpg")
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+
+    @Test
+    fun `does not follow redirects to non-allowlisted targets`() = runBlocking<Unit> {
+        val calls = AtomicInteger()
+        val redirect = ExchangeFunction {
+            calls.incrementAndGet()
+            Mono.just(
+                ClientResponse.create(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "https://evil.com/internal")
+                    .body(Flux.empty())
+                    .build(),
+            )
+        }
+        val controller = buildController(redirect)
+        val response = controller.proxyImage("https://media.licdn.com/media/test.jpg")
+        assertThat(response.statusCode).isNotEqualTo(HttpStatus.OK)
+        assertThat(calls.get()).isEqualTo(1)
     }
 
     @Test
