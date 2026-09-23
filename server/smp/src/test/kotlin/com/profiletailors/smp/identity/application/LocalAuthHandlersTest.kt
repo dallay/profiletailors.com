@@ -25,6 +25,7 @@ import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
+import com.profiletailors.smp.identity.infrastructure.InMemoryRateLimit
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import io.kotest.matchers.collections.shouldNotContain
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @Suppress("LargeClass")
@@ -53,6 +55,15 @@ class LocalAuthHandlersTest {
         secure = false,
         ttlSeconds = 604800,
     )
+
+    private fun advancingClock(): Clock {
+        var now = Instant.parse("2026-05-20T10:15:30Z")
+        return object : Clock() {
+            override fun getZone(): ZoneId = ZoneOffset.UTC
+            override fun withZone(zone: ZoneId): Clock = this
+            override fun instant(): Instant = now.also { now = now.plusSeconds(1) }
+        }
+    }
 
     @Test
     fun `register wraps writes in transaction and defers side effects until after commit`() = runTest {
@@ -636,6 +647,53 @@ class LocalAuthHandlersTest {
 
         assertThrows<DisabledUserException> {
             handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+        }
+    }
+
+    @Test
+    fun `rejects login when per-email attempts are exhausted`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(principalFacts = null),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = advancingClock(),
+            rateLimit = InMemoryRateLimit(),
+        )
+
+        repeat(10) {
+            assertThrows<InvalidEmailPasswordException> {
+                handler.handle(LoginUserCommand("victim@example.com", "wrong-password"))
+            }
+        }
+        assertThrows<LoginRateLimitExceededException> {
+            handler.handle(LoginUserCommand("victim@example.com", "wrong-password"))
+        }
+    }
+
+    @Test
+    fun `isolates login budgets by email`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(principalFacts = null),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = advancingClock(),
+            rateLimit = InMemoryRateLimit(),
+        )
+
+        repeat(10) {
+            assertThrows<InvalidEmailPasswordException> {
+                handler.handle(LoginUserCommand("exhausted@example.com", "wrong-password"))
+            }
+        }
+        assertThrows<LoginRateLimitExceededException> {
+            handler.handle(LoginUserCommand("exhausted@example.com", "wrong-password"))
+        }
+        assertThrows<InvalidEmailPasswordException> {
+            handler.handle(LoginUserCommand("fresh@example.com", "wrong-password"))
         }
     }
 

@@ -17,6 +17,7 @@ import com.profiletailors.smp.identity.domain.RegistrationDecision
 import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
+import java.time.Duration
 import java.util.UUID
 
 internal data class AuthSessionContext(
@@ -323,15 +324,13 @@ internal class LoginUserHandler(
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
     private val clock: Clock,
+    private val rateLimit: RateLimit = RateLimit { _, _, _ -> true },
 ) : CommandWithResultHandler<LoginUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: LoginUserCommand): LocalAuthSessionResult {
         val normalizedEmail = normalizeEmail(command.email)
-        val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
-
-        if (credential == null || !passwordHasher.matches(command.password, credential.passwordHash)) {
-            throw InvalidEmailPasswordException()
-        }
+        enforceLoginThrottle(normalizedEmail)
+        val credential = verifyCredentials(command, normalizedEmail)
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
         if (identityFacts?.accountState == UserAccountState.DISABLED) {
@@ -354,6 +353,35 @@ internal class LoginUserHandler(
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
             ),
         )
+    }
+
+    private suspend fun enforceLoginThrottle(normalizedEmail: String) {
+        val admitted = rateLimit.tryAcquire(
+            key = "$LOGIN_EMAIL_BUCKET:$normalizedEmail",
+            window = LOGIN_EMAIL_WINDOW,
+            now = clock.instant(),
+            maxRequests = LOGIN_EMAIL_MAX_REQUESTS,
+        )
+        if (!admitted) {
+            throw LoginRateLimitExceededException()
+        }
+    }
+
+    private suspend fun verifyCredentials(
+        command: LoginUserCommand,
+        normalizedEmail: String,
+    ): LocalPasswordCredentialRecord {
+        val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
+        if (credential == null || !passwordHasher.matches(command.password, credential.passwordHash)) {
+            throw InvalidEmailPasswordException()
+        }
+        return credential
+    }
+
+    private companion object {
+        const val LOGIN_EMAIL_BUCKET = "auth-login-email"
+        const val LOGIN_EMAIL_MAX_REQUESTS = 10
+        val LOGIN_EMAIL_WINDOW: Duration = Duration.ofMinutes(15)
     }
 }
 

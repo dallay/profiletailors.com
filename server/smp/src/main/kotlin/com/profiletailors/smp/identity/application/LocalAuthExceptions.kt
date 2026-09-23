@@ -7,6 +7,8 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 
 class InvalidEmailPasswordException : RuntimeException("Invalid email or password.")
 
+class LoginRateLimitExceededException : RuntimeException("Authentication rate limit exceeded. Try again later.")
+
 class UserAlreadyExistsException(email: String) : RuntimeException("User already exists.")
 
 class InvalidRegistrationInputException(message: String) : RuntimeException(message)
