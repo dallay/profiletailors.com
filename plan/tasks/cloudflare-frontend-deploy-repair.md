@@ -15,7 +15,7 @@ Conseguir que `app`, `admin` y `landing` publiquen sus releases en producción y
 - [x] RPI-003 Corregir la configuración de producción de `app-profile-tailors`, `profiletailors-admin` y `profiletailors` sin tocar secretos ni dominios.
 - [ ] RPI-004 Ejecutar los despliegues de los tres releases existentes o relanzar el flujo equivalente de forma segura.
 
-  Bloqueado: los tres releases existentes fallaron antes de dejar un deployment válido para estos SHA (`app@v0.3.12`, `admin@v0.0.11`, `landing@v0.2.16`); todavía no se ha ejecutado un nuevo build remoto.
+  El push del workflow terminó correctamente, pero los jobs quedaron `skipped` porque no creó releases nuevas; se necesita un dispatch controlado para los tags existentes (`app@v0.3.12`, `admin@v0.0.11`, `landing@v0.2.16`).
 - [ ] RPI-005 Verificar cada URL de producción y revisar el diff final.
 
 ## Criterios de aceptación
