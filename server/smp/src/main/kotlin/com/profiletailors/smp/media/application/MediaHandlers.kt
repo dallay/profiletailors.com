@@ -9,6 +9,7 @@ import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
 import com.profiletailors.observability.emit
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -85,6 +86,7 @@ class CreateUploadedAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
     companion object {
@@ -93,6 +95,7 @@ class CreateUploadedAssetHandler(
     }
 
     override suspend fun handle(command: CreateUploadedAssetCommand): CreateUploadedAssetResult {
+        membershipGate.requireActiveMember(command.workspaceId)
         requireMediaUploadVerification()
         validateCreateCommand(command)
         enforceCreationRateLimit(command.workspaceId)
@@ -227,6 +230,7 @@ class UploadAssetHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val transactionRunner: AtomicTransactionRunner,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
 
     companion object {
@@ -250,6 +254,7 @@ class UploadAssetHandler(
     }
 
     override suspend fun handle(command: LegacyUploadAssetCommand): LegacyUploadAssetResult {
+        membershipGate.requireActiveMember(command.workspaceId)
         requireEmailVerification(
             principalContextProvider.require(),
             principalIdentityLookup,
@@ -626,9 +631,11 @@ class ListWorkspaceAssetsHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<ListWorkspaceAssetsQuery, ListWorkspaceAssetsResult> {
 
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
+        membershipGate.requireActiveMember(query.workspaceId)
         val result = mediaAssetRepository.listByWorkspace(
             workspaceId = query.workspaceId,
             statuses = query.statuses,
@@ -650,9 +657,11 @@ class GetWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<GetWorkspaceAssetQuery, MediaAssetSummary> {
 
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
+        membershipGate.requireActiveMember(query.workspaceId)
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
             ?: throw AssetNotFoundException(query.assetId)
 
@@ -665,8 +674,10 @@ class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val transactionRunner: AtomicTransactionRunner,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<DeleteWorkspaceAssetCommand, DeleteWorkspaceAssetResult> {
     override suspend fun handle(command: DeleteWorkspaceAssetCommand): DeleteWorkspaceAssetResult {
+        membershipGate.requireActiveMember(command.workspaceId)
         val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
             ?: throw AssetNotFoundException(command.assetId)
 
@@ -718,6 +729,7 @@ class PutAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
 
     companion object {
@@ -727,6 +739,7 @@ class PutAssetHandler(
     }
 
     override suspend fun handle(command: PutAssetCommand): PutAssetResult {
+        membershipGate.requireActiveMember(command.workspaceId)
         requireEmailVerification(
             principalContextProvider.require(),
             principalIdentityLookup,
@@ -1027,6 +1040,7 @@ class CasUploadAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
 
     companion object {
@@ -1048,6 +1062,7 @@ class CasUploadAssetHandler(
     }
 
     override suspend fun handle(command: CasUploadAssetCommand): CasUploadAssetResult {
+        membershipGate.requireActiveMember(command.workspaceId)
         requireEmailVerification(
             principalContextProvider.require(),
             principalIdentityLookup,
@@ -1501,11 +1516,13 @@ class DeleteAssetHandler(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val transactionRunner: AtomicTransactionRunner,
     private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
 
     override suspend fun handle(command: DeleteAssetCommand): DeleteAssetResult {
         val assetId = command.assetId
         val workspaceId = command.workspaceId
+        membershipGate.requireActiveMember(workspaceId)
 
         // Step 1: Find asset
         val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)

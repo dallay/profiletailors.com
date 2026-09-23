@@ -46,6 +46,13 @@ class MediaBddSteps {
         latestAssetId = BddDatabaseSupport.MEDIA_ASSET_ID
     }
 
+    @Given("a media asset exists in another workspace")
+    fun givenForeignMediaAssetExists() = runBlocking {
+        bddDatabaseSupport.seedWorkspace("workspace-2")
+        bddDatabaseSupport.seedMediaAsset(assetId = "asset-foreign-1", workspaceId = "workspace-2")
+        latestAssetId = "asset-foreign-1"
+    }
+
     // ---------------------------------------------------------------------------
     // When
     // ---------------------------------------------------------------------------
@@ -70,6 +77,32 @@ class MediaBddSteps {
             .expectBody()
             .returnResult()
         latestAssetId = assetId
+    }
+
+    @When("the client requests the foreign media asset")
+    fun whenClientRequestsForeignMediaAsset() {
+        val assetId = requireNotNull(latestAssetId) { "No asset ID available from previous step" }
+        latestMediaResponse = webTestClient.get()
+            .uri("${bddDatabaseSupport.mediaAssetsPath()}/$assetId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, "workspace-2")
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client deletes the foreign media asset")
+    fun whenClientDeletesForeignMediaAsset() {
+        val assetId = requireNotNull(latestAssetId) { "No asset ID available from previous step" }
+        latestMediaResponse = webTestClient.delete()
+            .uri("${bddDatabaseSupport.mediaAssetsPath()}/$assetId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, "workspace-2")
+            .exchange()
+            .expectBody()
+            .returnResult()
     }
 
     @When("the client requests the media asset")

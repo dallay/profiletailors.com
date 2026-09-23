@@ -4,9 +4,13 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEvent
 import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
@@ -97,6 +101,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.PENDING),
             emailVerificationPolicyOf(),
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<FeatureEmailVerificationRequired> {
@@ -116,6 +121,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
             emailVerificationPolicyOf(),
+            membershipGate = allowAllMembershipGate(),
         )
 
         val result = handler.handle(
@@ -140,6 +146,7 @@ class MediaCasHandlersTest {
             FixedPrincipalIdentityLookup(EmailStatus.PENDING),
             emailVerificationPolicyOf(),
             NoopAtomicTransactionRunner,
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<FeatureEmailVerificationRequired> {
@@ -753,6 +760,7 @@ class MediaCasHandlersTest {
             media,
             txRunner,
             blobs,
+            membershipGate = allowAllMembershipGate(),
         )
         val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
 
@@ -850,6 +858,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
             emailVerificationPolicyOf(),
+            membershipGate = allowAllMembershipGate(),
         )
 
         val result = handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
@@ -878,6 +887,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
             emailVerificationPolicyOf(),
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<IllegalStateException> {
@@ -905,6 +915,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
             emailVerificationPolicyOf(),
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<RateLimitExceededException> {
@@ -934,6 +945,7 @@ class MediaCasHandlersTest {
             media,
             txRunner,
             blobs,
+            membershipGate = allowAllMembershipGate(),
         )
         val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
 
@@ -964,6 +976,7 @@ class MediaCasHandlersTest {
             media,
             txRunner,
             blobs,
+            membershipGate = allowAllMembershipGate(),
         )
         val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
 
@@ -984,6 +997,7 @@ class MediaCasHandlersTest {
             media,
             txRunner,
             blobs,
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<AssetNotFoundException> {
@@ -1059,6 +1073,7 @@ class MediaCasHandlersTest {
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
             emailVerificationPolicyOf(),
             NoopAtomicTransactionRunner,
+            membershipGate = allowAllMembershipGate(),
         )
 
         assertThrows<IllegalStateException> {
@@ -1327,6 +1342,20 @@ private class FakeStorage(private val uploadFailure: Throwable? = null, private 
     }
 }
 
+private fun allowAllMembershipGate(): WorkspaceMembershipGate = WorkspaceMembershipGate(
+    FixedPrincipalContextProvider,
+    WorkspaceMembershipResolver { _, resource ->
+        object : WorkspaceMembershipSnapshot {
+            override val id: String = "membership-1"
+            override val workspaceId: String = resource.workspaceId.orEmpty()
+            override val principalId: String = "principal-1"
+            override val principalType: PrincipalType = PrincipalType.USER
+            override val status: WorkspaceMembershipStatus = WorkspaceMembershipStatus.ACTIVE
+            override val roleKeys: Set<String> = emptySet()
+        }
+    },
+)
+
 private fun putHandler(
     media: InMemoryMediaAssetRepository,
     blobs: InMemoryWorkspaceFileBlobRepository,
@@ -1341,6 +1370,7 @@ private fun putHandler(
     FixedPrincipalContextProvider,
     FixedPrincipalIdentityLookup(emailStatus),
     emailVerificationPolicyOf(),
+    membershipGate = allowAllMembershipGate(),
 )
 private fun uploadHandler(
     media: InMemoryMediaAssetRepository,
@@ -1358,6 +1388,7 @@ private fun uploadHandler(
     FixedPrincipalIdentityLookup(emailStatus),
     emailVerificationPolicyOf(),
     operationalEvents,
+    membershipGate = allowAllMembershipGate(),
 )
 
 private fun uploadLegacyHandler(
@@ -1377,6 +1408,7 @@ private fun uploadLegacyHandler(
     emailVerificationPolicyOf(),
     transactionRunner,
     operationalEvents,
+    membershipGate = allowAllMembershipGate(),
 )
 
 private class RecordingOperationalEventSink : OperationalEventSink {
@@ -1387,13 +1419,14 @@ private class RecordingOperationalEventSink : OperationalEventSink {
     }
 }
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
-    DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
+    DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner, membershipGate = allowAllMembershipGate())
 
 private fun deleteWorkspaceHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
     DeleteWorkspaceAssetHandler(
         media,
         NoopAtomicTransactionRunner,
         blobs,
+        membershipGate = allowAllMembershipGate(),
     )
 
 /**

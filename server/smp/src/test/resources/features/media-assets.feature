@@ -30,3 +30,13 @@ Feature: Media asset management
     Then the media response status should be 200
     And the asset should be marked as deleted
     And the media asset should be deleted from the database
+
+  Scenario: Cross-tenant read is rejected
+    Given a media asset exists in another workspace
+    When the client requests the foreign media asset
+    Then the media response status should be 403
+
+  Scenario: Cross-tenant delete is rejected
+    Given a media asset exists in another workspace
+    When the client deletes the foreign media asset
+    Then the media response status should be 403
