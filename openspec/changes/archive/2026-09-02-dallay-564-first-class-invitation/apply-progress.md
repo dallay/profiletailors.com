@@ -226,8 +226,8 @@ are preserved; no commit, push, or PR operation was performed.
     - `docs/architecture/data-model/README.md` entity-relationship table corrected to use proper
       arrow character for `principals ↔ invitations`.
     -
-    `openspec/changes/dallay-564-first-class-invitation/{proposal.md,design.md,specs/invitations/spec.md,tasks.md,state.yaml,verify-report.md}`
-    aligned and updated.
+  `openspec/changes/dallay-564-first-class-invitation/{proposal.md,design.md,specs/invitations/spec.md,tasks.md,state.yaml,verify-report.md}`
+  aligned and updated.
 
 ### Compatibility Evidence
 

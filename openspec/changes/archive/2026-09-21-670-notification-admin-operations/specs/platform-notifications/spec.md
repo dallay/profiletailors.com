@@ -2,19 +2,22 @@
 
 ## Purpose
 
-Provides administrative visibility and safe operational intervention for notification delivery state. Enables platform operators to query notification history, inspect redacted delivery failures, and retry eligible failed notifications without compromising security tokens or one-time action semantics.
+Provides administrative visibility and safe operational intervention for notification delivery
+state. Enables platform operators to query notification history, inspect redacted delivery failures,
+and retry eligible failed notifications without compromising security tokens or one-time action
+semantics.
 
 ## Requirements
 
-| REQ-ID | Statement | Rationale | Acceptance |
-|--------|-----------|-----------|------------|
-| REQ-PN-001 | Query notifications by status, channel, template, recipient, and time range | Operators need filtered views to diagnose channel-specific failures and delivery patterns | Query returns paginated notifications matching all supplied filters; omitted filters return all values for that dimension |
-| REQ-PN-002 | Redact sensitive payload fields in admin responses | Tokens, passwords, token-bearing links, PII beyond recipient identifier must not leak to operator views | Response payloads strip `token`, `password`, `acceptUrl`, `inviteLink`, `resetLink`, `resetUrl`, `rawToken`, `verificationToken` fields; recipient email/phone retained for correlation |
-| REQ-PN-003 | Retry eligible failed notifications through a retry-requested domain event | Password recovery and non-token-bound failures can be safely re-dispatched; avoids duplicate notification engine | Retry persists a new PENDING attempt and publishes `NotificationRetryRequested`; the established email dispatch consumer delivers it and marks it SENT or FAILED; original row unchanged |
-| REQ-PN-004 | Block retry for invitation and waitlist notification templates | Invitation tokens are consumed/expired; retry would send invalid tokens or require new token creation (domain concern, not admin concern) | Retry command validates template_id against eligibility whitelist; invitation/waitlist template_ids return 400 with explicit denial reason |
-| REQ-PN-005 | Expose delivery state observability | Operators need visibility into PENDING, SENT, FAILED status with error messages | Admin response includes `status`, `error_message`, `channel`, `template_id`, `sent_at`, `created_at` without payload mutation |
-| REQ-PN-006 | Enforce platform.notifications.read for query operations | Read-only access must be separated from mutating operations | Query endpoint enforces `platform.notifications.read` permission via `OperatorAccessResolver` |
-| REQ-PN-007 | Enforce platform.notifications.manage for retry operations | Retry is a mutating operation requiring higher privilege | Retry endpoint enforces `platform.notifications.manage` permission via `OperatorAccessResolver` |
+| REQ-ID     | Statement                                                                   | Rationale                                                                                                                                 | Acceptance                                                                                                                                                                               |
+|------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| REQ-PN-001 | Query notifications by status, channel, template, recipient, and time range | Operators need filtered views to diagnose channel-specific failures and delivery patterns                                                 | Query returns paginated notifications matching all supplied filters; omitted filters return all values for that dimension                                                                |
+| REQ-PN-002 | Redact sensitive payload fields in admin responses                          | Tokens, passwords, token-bearing links, PII beyond recipient identifier must not leak to operator views                                   | Response payloads strip `token`, `password`, `acceptUrl`, `inviteLink`, `resetLink`, `resetUrl`, `rawToken`, `verificationToken` fields; recipient email/phone retained for correlation  |
+| REQ-PN-003 | Retry eligible failed notifications through a retry-requested domain event  | Password recovery and non-token-bound failures can be safely re-dispatched; avoids duplicate notification engine                          | Retry persists a new PENDING attempt and publishes `NotificationRetryRequested`; the established email dispatch consumer delivers it and marks it SENT or FAILED; original row unchanged |
+| REQ-PN-004 | Block retry for invitation and waitlist notification templates              | Invitation tokens are consumed/expired; retry would send invalid tokens or require new token creation (domain concern, not admin concern) | Retry command validates template_id against eligibility whitelist; invitation/waitlist template_ids return 400 with explicit denial reason                                               |
+| REQ-PN-005 | Expose delivery state observability                                         | Operators need visibility into PENDING, SENT, FAILED status with error messages                                                           | Admin response includes `status`, `error_message`, `channel`, `template_id`, `sent_at`, `created_at` without payload mutation                                                            |
+| REQ-PN-006 | Enforce platform.notifications.read for query operations                    | Read-only access must be separated from mutating operations                                                                               | Query endpoint enforces `platform.notifications.read` permission via `OperatorAccessResolver`                                                                                            |
+| REQ-PN-007 | Enforce platform.notifications.manage for retry operations                  | Retry is a mutating operation requiring higher privilege                                                                                  | Retry endpoint enforces `platform.notifications.manage` permission via `OperatorAccessResolver`                                                                                          |
 
 ## Scenarios
 
@@ -115,8 +118,17 @@ GIVEN notification def-456 has status PENDING, channel SMS, created_at 2026-09-2
 
 ## Technical Notes
 
-- **Idempotency Key Strategy**: Retry reuses the caller-supplied idempotency key when present (a repeated key returns 409), otherwise generates `retry-{notificationId}-{uuid}`. A pre-save lookup rejects already-used keys; the UNIQUE constraint remains the backstop against concurrent duplicates. Original row status/error_message never mutated (append-only contract).
-- **Eligibility Whitelist**: Implementation maintains exact-match `ELIGIBLE_TEMPLATES = setOf("platform.password-recovery", "platform.password-reset")`; expand cautiously after domain review.
-- **Redaction Implementation**: `redactPayload(JsonNode): JsonNode` function mirrors `platform-admin-audit` redaction pattern (case-insensitive field name matching against denylist: `token`, `password`, `acceptUrl`, `rawToken`, `verificationToken`).
-- **No Attempt Tracking Schema**: Retry creates new `notifications` row; no `notification_attempts` join table. Prior attempts queryable via `idempotency_key` prefix search if needed.
-- **Channel Failure Context**: `error_message` field in `notifications` table already captures provider-specific failure reasons (SMTP timeout, SMS quota, etc.); no new error taxonomy needed.
+- **Idempotency Key Strategy**: Retry reuses the caller-supplied idempotency key when present (a
+  repeated key returns 409), otherwise generates `retry-{notificationId}-{uuid}`. A pre-save lookup
+  rejects already-used keys; the UNIQUE constraint remains the backstop against concurrent
+  duplicates. Original row status/error_message never mutated (append-only contract).
+- **Eligibility Whitelist**: Implementation maintains exact-match
+  `ELIGIBLE_TEMPLATES = setOf("platform.password-recovery", "platform.password-reset")`; expand
+  cautiously after domain review.
+- **Redaction Implementation**: `redactPayload(JsonNode): JsonNode` function mirrors
+  `platform-admin-audit` redaction pattern (case-insensitive field name matching against denylist:
+  `token`, `password`, `acceptUrl`, `rawToken`, `verificationToken`).
+- **No Attempt Tracking Schema**: Retry creates new `notifications` row; no `notification_attempts`
+  join table. Prior attempts queryable via `idempotency_key` prefix search if needed.
+- **Channel Failure Context**: `error_message` field in `notifications` table already captures
+  provider-specific failure reasons (SMTP timeout, SMS quota, etc.); no new error taxonomy needed.

@@ -29,30 +29,42 @@ for migration.
 - `server/smp/src/test/kotlin/com/profiletailors/smp/HexagonalArchTest.kt` — current enforcement
   boundary; any rule change here must not weaken existing assertions per ARCH-001 governance.
 -
+
 `shared/storage/src/main/kotlin/com/profiletailors/storage/application/StorageApplicationService.kt` —
 3 slf4j warns to migrate; constructor currently `(storage, eventPublisher, metrics, provider)`.
+
 -
+
 `shared/storage/src/main/kotlin/com/profiletailors/storage/application/GeneratePresignedUrlUseCase.kt` —
 1 slf4j warn to migrate; constructor currently
 `(storage, eventPublisher, metrics, rateLimiter, ...)`.
+
 -
+
 `shared/presentation/src/main/kotlin/com/profiletailors/common/domain/presentation/filter/RHSFilterParser.kt` —
 slf4j + Jackson in `..domain..` package; decision is migrate vs reclassify/move.
+
 -
+
 `shared/spring-boot-common/src/main/kotlin/com/profiletailors/spring/boot/presentation/filter/RHSFilterParserFactory.kt` —
 Spring `@Component` bridge that keeps the parser alive despite no `server/smp` main caller.
+
 - `shared/observability/src/main/kotlin/com/profiletailors/observability/OperationalEventSink.kt` —
   legacy `info/warn/error` adapters vs preferred structured `emit`; deprecation is a shared-contract
   compatibility decision.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSink.kt` —
 zero-redaction sink; hardening target. Test `Slf4jOperationalEventSinkTest` proves only no-throw
 rendering, not redaction.
+
 -
+
 `shared/storage/src/test/kotlin/com/profiletailors/storage/application/StorageApplicationServiceTest.kt`,
 `shared/storage/src/test/kotlin/com/profiletailors/storage/StorageUseCaseTest.kt` — ~12 construction
 sites per service plus `MockEventPublisher.shouldThrowOnPublish` swallow-and-continue semantics that
 migration must preserve.
+
 - `shared/storage/build.gradle.kts`, `shared/presentation/build.gradle.kts` — neither depends on
   `:shared:observability` today; adding it is acyclic (observability has no outgoing deps) but is a
   new module edge needing dependency-graph documentation.

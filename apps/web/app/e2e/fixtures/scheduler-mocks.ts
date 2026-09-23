@@ -30,9 +30,20 @@ import type { BrowserContext } from '@playwright/test'
 // We model exactly the property chain we access so no `any` is needed.
 // ---------------------------------------------------------------------------
 
+interface PiniaChannel {
+  id: string
+  accountId: string
+  name: string
+  provider: string
+  avatar: string
+  handle: string
+  status: string
+}
+
 interface PiniaStateValue {
   publishing?: {
     publications?: Array<Record<string, unknown>>
+    channels?: PiniaChannel[]
   }
 }
 
@@ -367,7 +378,7 @@ export function resetSchedulerMocks(): void {
  */
 export async function ensureChannelsLoaded(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
-    const channel = {
+    const channel: PiniaChannel = {
       id: 'sa-linkedin-001',
       accountId: 'sa-linkedin-001',
       name: 'Dev User',
@@ -376,13 +387,11 @@ export async function ensureChannelsLoaded(page: import('@playwright/test').Page
       handle: 'Dev User',
       status: 'ACTIVE',
     }
-    // biome-ignore lint/suspicious/noExplicitAny: Vue internals access
-    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const app = (document.querySelector('#app') as VueAppElement | null)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
     if (pinia?.state?.value?.publishing) {
-      const channels = pinia.state.value.publishing.channels
-      // biome-ignore lint/suspicious/noExplicitAny: dynamic channel type from Pinia
-      if (!channels.some((c: any) => c.id === channel.id)) {
+      const channels = pinia.state.value.publishing.channels ?? []
+      if (!channels.some((c) => c.id === channel.id)) {
         channels.push(channel)
       }
     }

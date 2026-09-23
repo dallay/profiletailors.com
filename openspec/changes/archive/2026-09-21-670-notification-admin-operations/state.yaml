@@ -67,7 +67,7 @@ artifacts:
   verify: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/verify-report.md"
   qa: "openspec/changes/archive/2026-09-21-670-notification-admin-operations/qa-report.md"
 
-next_steps: []
+next_steps: [ ]
 
 archive_note: >-
   Archived 2026-09-21. Gate: verify-report.md + qa-report.md present, both PASS WITH

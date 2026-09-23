@@ -16,7 +16,7 @@
 
 ### OpenSpec Change
 
-- **Path**: `openspec/archive/2026-09-20-dallay-567-invitation-registration-flow/`
+- **Path**: `../../openspec/changes/archive/2026-09-20-dallay-567-invitation-registration-flow`
 - **Type**: Delta spec for invitations capability
 
 ### Artifacts

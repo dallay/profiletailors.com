@@ -225,7 +225,8 @@ full notification payload.
 
 #### Scenario: Redacted priorError in audit event
 
-- GIVEN notification `def-456` has error_message "Failed to send email: authentication token expired"
+- GIVEN notification `def-456` has error_message "Failed to send email: authentication token
+  expired"
 - WHEN an operator retries notification `def-456`
 - THEN the `NOTIFICATION_RETRIED` event metadata `priorError` is `[REDACTED]` because it contains
   "token"

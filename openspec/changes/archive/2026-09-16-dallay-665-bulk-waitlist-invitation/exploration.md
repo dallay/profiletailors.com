@@ -49,37 +49,51 @@ preserve or retire that dual-write, not silently extend it.
 ### Affected Areas
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/command/AdminCommands.kt` —
 new bulk command (`BulkInviteWaitlistEntriesCommand`: entry-id list + operator identity) belongs
 here
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/InviteWaitlistEntryHandler.kt` —
 single-entry logic to reuse per entry; bulk handler must not duplicate lifecycle rules
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/` (new
   `BulkInviteWaitlistEntriesHandler.kt`) — per-entry loop, per-entry success/failure collection, new
   home for bulk orchestration
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminWaitlistController.kt` —
 new `POST /api/admin/waitlist-entries/invitations:bulk` (or equivalent) route; existing
 `/{entryId}/invitations` stays untouched
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/WaitlistEntryAdmin.kt` —
 bulk path reuses `findById/save/findInvitationContext`; may need batch-read consideration only
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/AdministrativeAuditPublisher.kt` +
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/AdminAuditEvent.kt` — one
 audit event per entry (existing `WAITLIST_ENTRY_INVITED` + failure/reject outcomes) is the
 auditability seam
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/InvitationIssued.kt` — one
   event per successful entry; raw-token handling follows DALLAY-565/566 contract, never in bulk
   response
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/InvitationTelemetry.kt` +
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/observability/InvitationObservability.kt` —
 per-entry counters plus a bulk-operation counter to add
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcAdminWaitlistQuery.kt` —
 eligibility selection reuses existing list filters (`status=PENDING`); no query change expected
+
 - `server/smp/src/test/resources/features/platform-admin.feature` — new bulk BDD scenarios (partial
   success, per-entry errors, audit rows, permission denial)
 - `apps/web/admin/src/views/WaitlistView.vue` — bulk selection + bulk invite action + per-entry
@@ -175,6 +189,7 @@ under concurrency in design).
 Yes — dependencies verified present, reuse seam identified (`InviteWaitlistEntryHandler` +
 `WaitlistEntryAdmin` + existing query filters), and the recommended approach fits hexagonal/DDD
 rules with no invented APIs. The orchestrator should tell the user: (a) confirm batch cap (proposed
+
 50) and `INVITED`-entry semantics (proposed `skipped`), (b) decide the dual-write question, (c)
-supply the RFC doc if sections 19/20/34/45 contain binding requirements, then proceed to
-`sdd-propose` for `dallay-665-bulk-waitlist-invitation`.
+    supply the RFC doc if sections 19/20/34/45 contain binding requirements, then proceed to
+    `sdd-propose` for `dallay-665-bulk-waitlist-invitation`.

@@ -54,8 +54,10 @@
 ## Verification Evidence
 
 -
+
 `./gradlew :server:smp:compileKotlin :shared:observability:compileKotlin :shared:storage:compileKotlin --no-daemon` —
 PASS (`BUILD SUCCESSFUL in 3s`).
+
 - `./gradlew :server:smp:spotlessKotlinCheck --no-daemon` — PASS (`BUILD SUCCESSFUL in 6s`).
 - `./gradlew :server:smp:detekt --no-daemon` — PASS (`BUILD SUCCESSFUL in 13s`).
 - `just backend-lint` — PASS (`BUILD SUCCESSFUL`).

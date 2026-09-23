@@ -36,34 +36,52 @@ durable state. Resend also currently derives the same `:initial` idempotency key
 ### Affected Areas
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationController.kt` —
 direct create/resend methods establish the current declarative transaction boundary.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/CreateInvitationHandler.kt` —
 persists direct invitations and publishes `InvitationIssued` with nullable workspace-name handling.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/ResendInvitationHandler.kt` —
 rotates token material and publishes `DirectInvitationResent`.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/bus/SpringDomainEventPublisher.kt` —
 event fan-out and exception handling; both channels currently catch and log failures.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumer.kt` —
 post-commit listener, notification persistence, idempotency, and dispatch.
+
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/InvitationEmail.kt` —
 workspace-name validation, accept URL construction, payload, and idempotency contract.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/persistence/R2dbcNotificationRepository.kt` —
 notification persistence evidence boundary.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/config/PersistenceConfig.kt` and
   `docs/architecture/transaction-policy.md` — authoritative reactive transaction pattern.
 -
+
 `shared/spring-boot-common/src/main/kotlin/com/profiletailors/spring/boot/bus/event/EventConfiguration.kt`
 and `EventEmitter.kt` — working `@Subscribe` comparison path.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumerTest.kt`
 and invitation handler/integration tests — current coverage gaps and regression targets.
+
 - `openspec/changes/dallay-565-invitation-notification-integration/` — notification contract and
   explicitly pending real commit/rollback proof.
 - `openspec/changes/dallay-568-direct-invitation-admin-commands/` — active direct invitation owner

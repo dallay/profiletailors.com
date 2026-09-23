@@ -40,8 +40,8 @@ Merged to main via the review fixup in the PR chain; the archived
 `tasks.md` 4.2 / `design.md` UI row / `verify-report.md` UI row predate them.
 No UI-behavior spec domain exists for this change, so nothing stays stale:
 
-- Bulk success now refreshes entries AND summary
-  (`Promise.all([fetchEntries(), fetchSummary()])` in `WaitlistView.vue`).
+- Bulk success now refreshes entries AND summary (`Promise.all([fetchEntries(), fetchSummary()])` in
+  `WaitlistView.vue`).
 - 50-entry client guard (`BULK_INVITE_MAX_ENTRIES`) with `bulkTooMany` copy
   in EN+ES (`apps/web/admin/src/i18n/`), blocking oversized submissions
   without sending the request.

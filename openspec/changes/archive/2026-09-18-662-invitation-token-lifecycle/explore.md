@@ -62,32 +62,50 @@ subsystem from scratch.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/InvitationIssued.kt` —
   rawToken bearer field; spec-forbidden, ADR-marked temporary
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/DirectInvitationResent.kt` —
 same bearer field + token-bearing acceptUrl
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumer.kt` —
 after-commit consumer; renders/sends raw token; logs are clean
+
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/InvitationEmail.kt` —
 `toPayload()` persists token-bearing `acceptUrl`; `rawToken` correctly excluded
+
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationCreated.kt`,
 `InvitationResent.kt` — rawToken in shared contract
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/observability/InvitationObservability.kt` —
 `recordBulkInvite` high-cardinality tags
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/InviteWaitlistEntryHandler.kt` —
 discarded CAS boolean (line ~92), manual REVOKED copy
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/InvitationActivationCoordinator.kt` —
 validation/CAS core; candidateKey cast-fail path; reconcile-after-CAS ordering
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/BCryptTokenHasher.kt` —
 BCrypt + SHA-256 pair; pepper/none, cost, timing notes for proposal
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt` —
 FOR UPDATE + version CAS; resend rotates candidateKey+hash
+
 - `server/smp/src/main/resources/db/changelog/platform-admin/004-create-invitations.yaml`,
   `005-harden-invitations.yaml` — unique token_hash on salted BCrypt is vacuous; candidate_key
   uniqueness is the real guard

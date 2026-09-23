@@ -193,10 +193,10 @@ are read-only governance/investigation visibility over operational state AUDITOR
 `SUPPORT_AGENT` MUST hold neither key, consistent with it holding no `platform.operators.*`
 permission today. No role other than `PLATFORM_OWNER` MUST hold `platform.configuration.manage`.
 
-| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
-|------------|:-----:|:--------:|:-------------:|:-------:|
-| `platform.configuration.read` | ✓ | ✓ | — | ✓ |
-| `platform.configuration.manage` | ✓ | — | — | — |
+| Permission                      | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|---------------------------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.configuration.read`   |  ✓   |    ✓    |       —       |   ✓    |
+| `platform.configuration.manage` |  ✓   |    —     |       —       |    —    |
 
 #### Scenario: Read permission is granted to OWNER, OPERATOR, and AUDITOR
 
@@ -236,10 +236,10 @@ hold `platform.notifications.manage`.
 `platform.notifications.manage`. Eligible retry MUST return HTTP 200 (shipped contract;
 `platform-notifications` REQ-PN-003).
 
-| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
-|------------|:-----:|:--------:|:-------------:|:-------:|
-| `platform.notifications.read` | ✓ | ✓ | ✓ | ✓ |
-| `platform.notifications.manage` | ✓ | ✓ | — | — |
+| Permission                      | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|---------------------------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.notifications.read`   |  ✓   |    ✓    |      ✓       |   ✓    |
+| `platform.notifications.manage` |  ✓   |    ✓    |       —       |    —    |
 
 #### Scenario: AUDITOR can query notifications
 

@@ -130,10 +130,12 @@
 
 - `./gradlew :shared:spring-boot-common:compileKotlin --no-daemon`: BUILD SUCCESSFUL.
 -
+
 `./gradlew :shared:spring-boot-common:test --tests "com.profiletailors.spring.boot.presentation.filter.*" --no-daemon`:
 BUILD SUCCESSFUL. `RHSFilterParserTest` 12 tests, 0 failures; `RHSFilterParserFactoryTest` 2 tests,
 0 failures; 14/14 pass. Pre-existing test-compile warnings in `ApiControllerTest`,
 `OffsetPagePresenterTest`, `ReactiveSearchRepositoryImplTest` unchanged and outside this slice.
+
 - `./gradlew :shared:presentation:compileKotlin --no-daemon`: BUILD SUCCESSFUL (old home still
   compiles with the parser gone).
 - Repo-wide grep for `common.domain.presentation.filter` returns no matches; grep for
@@ -160,13 +162,17 @@ BUILD SUCCESSFUL. `RHSFilterParserTest` 12 tests, 0 failures; `RHSFilterParserFa
   `.allowEmptyShould(true)` pattern, after which the fail leg shows exactly 1 failure (domain ban)
   and the application rule passes. Probe and temporary edge deleted afterwards.
 -
+
 `./gradlew :shared:storage:test --tests "*.StorageArchTest" :shared:shield:ratelimit:test --tests "*.RatelimitArchTest" :shared:presentation:test --no-daemon`
 (final, probes gone): BUILD SUCCESSFUL. `StorageArchTest` 4/4 pass, `RatelimitArchTest` 4/4 pass,
 `:shared:presentation:test` full suite 182/182 pass with 0 failures (incl. new
 `PresentationArchTest` 2/2), proving the Jackson/SLF4J dependency removal is safe.
+
 -
+
 `./gradlew :shared:storage:detekt :shared:storage:spotlessKotlinCheck :shared:presentation:detekt :shared:presentation:spotlessKotlinCheck :shared:shield:ratelimit:detekt :shared:shield:ratelimit:spotlessKotlinCheck --no-daemon`:
 BUILD SUCCESSFUL, no new findings.
+
 - Scratch-probe grep after the runs returns no matches; `StorageAutoConfiguration.kt:81`
   `logger.warn` confirmed still present and allowlisted infrastructure logging, untouched.
 

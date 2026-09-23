@@ -158,6 +158,7 @@ schema migration is confirmed in the container.
 ## 7. Findings
 
 ### Finding 1 —
+
 `PlatformAdminInvitationTransactionPostgresIntegrationTest`: DataIntegrityViolationException
 
 - **Severity**: P1

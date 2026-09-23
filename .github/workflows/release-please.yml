@@ -77,8 +77,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=app-profile-tailors --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
-        working-directory: ./apps/web/app
+        run: pnpm exec wrangler pages deploy apps/web/app/dist --project-name=app-profile-tailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
@@ -87,7 +86,7 @@ jobs:
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
+          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
           echo "Verifying ${TARGET_URL} serves badge: ${expected}"
           success=0
           for attempt in $(seq 1 5); do
@@ -142,8 +141,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=profiletailors-admin --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
-        working-directory: ./apps/web/admin
+        run: pnpm exec wrangler pages deploy apps/web/admin/dist --project-name=profiletailors-admin --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
@@ -152,7 +150,7 @@ jobs:
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
+          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
           echo "Verifying ${TARGET_URL} serves badge: ${expected}"
           success=0
           for attempt in $(seq 1 5); do
@@ -206,8 +204,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm dlx --ignore-workspace --allow-build=workerd@1.20241106.1 --package=wrangler@3.90.0 wrangler pages deploy dist --project-name=profiletailors --branch=production --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
-        working-directory: ./apps/web/marketing
+        run: pnpm exec wrangler pages deploy apps/web/marketing/dist --project-name=profiletailors --branch=main --commit-hash "${{ steps.resolve-meta.outputs.git_sha }}" --commit-dirty=true
 
       - name: Verify production deployment
         env:
@@ -216,8 +213,8 @@ jobs:
           EXPECTED_SHORT_SHA: ${{ steps.resolve-meta.outputs.short_sha }}
         run: |
           set -euo pipefail
-          expected="v${EXPECTED_VERSION} · ${EXPECTED_SHORT_SHA}"
-          verify_url="${TARGET_URL}/legal/terms"
+          expected="${EXPECTED_VERSION} (${EXPECTED_SHORT_SHA})"
+          verify_url="${TARGET_URL}/terms/"
           echo "Verifying ${verify_url} serves badge: ${expected}"
           success=0
           for attempt in $(seq 1 5); do

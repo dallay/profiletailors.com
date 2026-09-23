@@ -13,6 +13,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   maplibre-gl: true
+  workerd: true
 
 overrides:
   fast-uri: '3.1.8'
@@ -36,3 +37,5 @@ minimumReleaseAgeExclude:
   - '@vitest/coverage-v8@4.1.12'
   - '@vitest/ui@4.1.12'
   - '@playwright/test@1.63.0'
+  # Renovate security update: wrangler@3.114.17
+  - wrangler@3.114.17

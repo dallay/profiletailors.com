@@ -44,19 +44,27 @@ state file covers this final observability closure slice.
   migrate all production callers from deprecated severity helpers, then remove the deprecated
   extensions and private `emitLegacy` only after a production-wide zero-call-site proof.
 -
+
 `shared/observability/src/main/kotlin/com/profiletailors/observability/BestEffortOperationalEventSink.kt` —
 retain the sole ordinary-failure isolation boundary and define cancellation propagation clearly.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSink.kt` —
 remove independent swallowing and likely adapter-side sanitization once the outer boundary is
 authoritative; keep formatting and severity mapping adapter responsibilities.
+
 -
+
 `shared/observability/src/main/kotlin/com/profiletailors/observability/OperationalEventSanitizer.kt` —
 refine sensitive-key matching to distinguish secret-bearing authentication keys from safe
 operational keys, while preserving case-insensitive and nested-key protection.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/observability/infrastructure/ObservabilityBootstrapConfiguration.kt` —
 verify/wire the single best-effort isolation boundary around the adapter.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/AssetPreviewUrlResolver.kt` —
   migrate legacy debug/warn calls to structured events with explicit names and attributes.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaAssetBackfillJob.kt` —
@@ -68,22 +76,32 @@ verify/wire the single best-effort isolation boundary around the adapter.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/CloseAccountHandler.kt` —
   migrate remaining legacy info call.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/privacy/application/CloseAccountOrchestrator.kt` —
 migrate legacy debug/info calls.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/privacy/application/FindExpiredRequestsJob.kt` —
 migrate legacy error/info calls.
+
 -
+
 `shared/observability/src/test/kotlin/com/profiletailors/observability/OperationalEventSafetyTest.kt` —
 add sanitizer boundary tests for safe authentication-related keys and still-sensitive
 credential/token keys; test best-effort isolation and cancellation behavior.
+
 -
+
 `shared/observability/src/test/kotlin/com/profiletailors/observability/OperationalEventSinkTest.kt` —
 remove legacy-helper compatibility coverage and strengthen structured-event contract coverage.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSinkTest.kt` —
 verify adapter failures are not swallowed by the adapter itself and that adapter formatting receives
 already-safe events.
+
 - `shared/storage/src/test/kotlin/com/profiletailors/storage/StorageUseCaseTest.kt` and
   `shared/storage/src/test/kotlin/com/profiletailors/storage/application/StorageApplicationServiceTest.kt` —
   preserve existing structured storage-event assertions while checking no legacy dependency is
