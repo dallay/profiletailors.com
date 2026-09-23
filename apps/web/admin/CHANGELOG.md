@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.11](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.10...admin@v0.0.11) (2026-09-23)
+
+
+### Features
+
+* **platformadmin:** Back Office takedown governance ([#671](https://github.com/dallay/profiletailors.com/issues/671)) ([#1130](https://github.com/dallay/profiletailors.com/issues/1130)) ([a3e2386](https://github.com/dallay/profiletailors.com/commit/a3e2386ec8f6f680bb0436d0d260d47fa398ac69))
+
+
+### Bug Fixes
+
+* **admin:** address Back Office QA review ([#1137](https://github.com/dallay/profiletailors.com/issues/1137)) ([96993b1](https://github.com/dallay/profiletailors.com/commit/96993b1acedd586b45f0ceb99be7918881398834))
+
 ## [0.0.10](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.9...admin@v0.0.10) (2026-09-22)
 
 
