@@ -101,16 +101,22 @@ Existing audit infrastructure is reusable but missing #668 event types and handl
 Existing tests cover the read baseline and generic admin authorization, but not #668 behavior:
 
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminUserControllerTest.kt`
 covers 401, 403, list filters, pagination limit, detail 404/403, and workspace permission behavior.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/R2dbcAdminUserQueryPostgresIntegrationTest.kt`
 covers listing, status/type filter, email filter, pagination/sorting, invalid pagination, detail,
 and workspace membership retrieval.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/credentials/infrastructure/R2dbcRefreshSessionGatewayTest.kt`
 covers create/resolve, rotate, and revoke of an individual session, but not `revokeAllForPrincipal`
 (codegraph found no covering test).
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlersTest.kt`
   covers local auth flows, but the current login/refresh behavior has no disabled-account scenarios.
 - `server/smp/src/test/resources/features/platform-admin.feature` covers admin access control and
@@ -136,23 +142,31 @@ Product and architecture constraints checked:
 ### Affected Areas
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/model/AdminUserModels.kt` —
 add only the operational fields that the approved contract defines; current model lacks account
 status and verification/registration naming needed by the issue.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/query/AdminQueries.kt`
 and `application/contracts/AdminUserQuery.kt` — existing read query seams; list/search semantics and
 detail shape need a precise contract, including whether email search is exact or partial and how
 account status filters.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/command/AdminCommands.kt`
 plus new cohesive command handlers/ports under `platformadmin/application` — likely home for
 disable/enable/revoke orchestration, permission checks at HTTP boundary or existing handler
 convention, audit publication, and refresh-session port calls.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminUserController.kt` —
 existing read controller; issue-preferred mutation routes are `POST /api/admin/users/{id}/disable`,
 `/enable`, and `/sessions/revoke`.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/PlatformPermission.kt` —
   add explicit control permissions only after deciding whether the contract uses one
   `platform.users.manage` permission or separate disable/enable/revoke permissions; update role
@@ -166,24 +180,30 @@ existing read controller; issue-preferred mutation routes are `POST /api/admin/u
   `PrincipalIdentityFacts`/`R2dbcPrincipalIdentityLookup` seam can carry status, but the persistence
   model/migration and domain ownership are not present.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/RefreshSessionGateway.kt`,
 `RefreshSessionLifecycleService.kt`, and
 `credentials/infrastructure/R2dbcRefreshSessionGateway.kt` — reuse/verify revoke-all behavior and
 expose it through an inward-facing port; add focused unit/integration coverage.
+
 - `server/smp/src/main/resources/db/changelog/identity/` — add the account-state persistence
   migration only after the state name/default/index/transition rules are approved.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminProblemDetailsHandler.kt`
 and observability hooks/metrics configuration — define how failed authorization attempts are counted
 without duplicating or weakening the existing 403 handler.
+
 - `apps/web/admin/src/views/UsersView.vue`, `UserDetailView.vue`, `src/stores/auth.store.ts`,
   `src/i18n/index.ts`, and route/view tests — display status and expose safe, permission-gated
   action controls; preserve server enforcement and accessible confirmation/error states.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminUserControllerTest.kt`,
 new command-handler tests, identity/auth tests, `R2dbcRefreshSessionGatewayTest.kt`, Postgres
 integration tests, `server/smp/src/test/resources/features/platform-admin.feature` plus BDD glue —
 mandatory failing-first tests for each externally observable contract and regression.
+
 - `openspec/specs/iam/spec.md`, `openspec/specs/admin-authorization/spec.md`,
   `openspec/specs/platform-admin-audit/spec.md`, and likely a new issue-specific delta spec under
   the change — reconcile durable account-state, authorization, audit, and session semantics rather

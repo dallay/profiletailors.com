@@ -138,42 +138,63 @@ Changed files inspected and verified:
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/InvitationId.kt` — value
   object marker.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/PlatformAdminExceptions.kt` —
 exception types.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/InvitationRepository.kt` —
 framework-free contract.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/AcceptInvitation.kt` —
 facade + handler.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/InvitationAcceptanceRepositoryAdapter.kt` —
 Spring bean wiring.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt` —
 canonical R2DBC adapter.
+
 - `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml` — includes
   `005-harden-invitations.yaml`.
 - `server/smp/src/main/resources/db/changelog/platform-admin/005-harden-invitations.yaml` — additive
   protections.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/PlatformAdminMarkerCoverageTest.kt` —
 DDD marker coverage.
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/domain/InvitationTest.kt` —
   domain invariants.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/AcceptInvitationHandlerTest.kt` —
 handler unit tests.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/InvitationSecurityBoundaryTest.kt` —
 boundary guard.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepositoryTest.kt` —
 repository + concurrency proof.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/infrastructure/db/InvitationLiquibaseChangelogTest.kt` —
 schema test.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/InvitationPersistencePostgresIntegrationTest.kt` —
 integration proof.
 
@@ -214,6 +235,7 @@ Applied in the same worktree without modifying production code or Unit 2 tests:
 - `docs/architecture/data-model/README.md` — entity-relationship table updated to use the correct
   arrow character for `principals ↔ invitations`.
 -
+
 `openspec/changes/dallay-564-first-class-invitation/{proposal.md,design.md,specs/invitations/spec.md,tasks.md,apply-progress.md,state.yaml}` —
 already aligned with Unit 2 and now also reference Unit 3 deliverables.
 

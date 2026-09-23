@@ -26,13 +26,13 @@ on top of the merge commit.
 
 ## Branch and Production-Scope Reconciliation
 
-| Check                                     | Result         | Evidence                                                                                                                                                                                                                                                                                 |
-|-------------------------------------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Current main was merged                   | ✅ PASS        | `HEAD` is merge commit `d4b461f8`; its main parent is `0b551351`, which is also the current `main`/`origin/main` tip.                                                                                                                                                                    |
-| QA-06..QA-10 follow-up is test-only       | ✅ PASS        | Follow-up paths are Cucumber feature files/glue/database assertions and `apps/web/app/e2e/specs/invitee-private-beta.spec.ts`; all are test or test-fixture paths. `apply-progress.md` records no new production-code, API-contract, classifier, copy, or runtime-configuration changes. |
-| Aggregate worktree is production-clean    | ⚠️ NOT CLAIMED | `git status` shows 50 entries, including pre-existing DALLAY-567 production implementation paths and the prior scheduler-sidebar fix. Those changes are preserved baseline work, not attributed to the QA-06..QA-10 follow-up.                                                           |
-| Follow-up changes alter existing behavior | ✅ NO EVIDENCE | Source inspection and the follow-up path diff show assertions, fixtures, route mocks, and database counts only.                                                                                                                                                                          |
-| Whitespace integrity                      | ✅ PASS        | `git diff --check` passed after the test runs.                                                                                                                                                                                                                                           |
+| Check                                     | Result         | Evidence                                                                                                                                                                                                                                                                                             |
+|-------------------------------------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Current main was merged                   | ✅ PASS        | `HEAD` is merge commit `d4b461f8`; its main parent is `0b551351`, which is also the current `main`/`origin/main` tip.                                                                                                                                                                                |
+| QA-06..QA-10 follow-up is test-only       | ✅ PASS        | Follow-up paths are Cucumber feature files/glue/database assertions and `../../../../apps/web/app/e2e/specs/invitee-private-beta.spec.ts`; all are test or test-fixture paths. `apply-progress.md` records no new production-code, API-contract, classifier, copy, or runtime-configuration changes. |
+| Aggregate worktree is production-clean    | ⚠️ NOT CLAIMED | `git status` shows 50 entries, including pre-existing DALLAY-567 production implementation paths and the prior scheduler-sidebar fix. Those changes are preserved baseline work, not attributed to the QA-06..QA-10 follow-up.                                                                       |
+| Follow-up changes alter existing behavior | ✅ NO EVIDENCE | Source inspection and the follow-up path diff show assertions, fixtures, route mocks, and database counts only.                                                                                                                                                                                      |
+| Whitespace integrity                      | ✅ PASS        | `git diff --check` passed after the test runs.                                                                                                                                                                                                                                                       |
 
 The production-scope conclusion is deliberately narrow: the QA-06..QA-10 follow-up did not add
 production behavior. It does not claim that the entire dirty worktree contains no production
@@ -58,7 +58,7 @@ changes.
 The apply-phase evidence also records successful focused identity/platform-admin tests, PostgreSQL
 integration, backend lint, and the same fast/PostgreSQL BDD and 36-test Playwright lanes. Current
 verification supersedes the stale 27/27 invitation count and the stale 1,728 app-test count with the
-current 36/36 and 1,729 results. `openspec/config.yaml` defines no `coverage_threshold`, so no
+current 36/36 and 1,729 results. `../../../config.yaml` defines no `coverage_threshold`, so no
 threshold comparison applies.
 
 ## Spec Compliance Matrix

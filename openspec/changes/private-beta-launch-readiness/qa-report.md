@@ -34,28 +34,39 @@ evidence, provider delivery, and deployed post-accept scheduling/publishing rema
 
 ### Back Office QA follow-up — 2026-09-22
 
-The Back Office QA follow-up added only the missing browser-level permission boundary coverage. Existing invitation lifecycle coverage was reused rather than duplicated: `local-auth.feature`, `platform-admin.feature`, `platformadmin/invitations-direct.feature`, `platformadmin/notifications-admin.feature`, and the existing admin Vitest suites remain the authoritative owners for backend and view behavior.
+The Back Office QA follow-up added only the missing browser-level permission boundary coverage.
+Existing invitation lifecycle coverage was reused rather than duplicated: `local-auth.feature`,
+`platform-admin.feature`, `platformadmin/invitations-direct.feature`,
+`platformadmin/notifications-admin.feature`, and the existing admin Vitest suites remain the
+authoritative owners for backend and view behavior.
 
-The new Playwright coverage is `apps/web/admin/e2e/specs/protected-navigation.spec.ts`. It verifies that an unauthenticated visitor is redirected from `/waitlist` to `/login?redirect=/waitlist` and that a `SUPPORT_AGENT` is denied access to `/direct-invitations`.
+The new Playwright coverage is `apps/web/admin/e2e/specs/protected-navigation.spec.ts`. It verifies
+that an unauthenticated visitor is redirected from `/waitlist` to `/login?redirect=/waitlist` and
+that a `SUPPORT_AGENT` is denied access to `/direct-invitations`.
 
 #### Local evidence
 
-| Command | Result | Boundary |
-| --- | --- | --- |
-| `pnpm --filter admin test:run` | **PASS** | Admin Vitest suite; local unit/component behavior only. |
-| `pnpm --filter admin type-check` | **PASS** | Admin Vue/TypeScript type-check only. |
-| `pnpm --filter admin lint` | **PASS** | Admin Biome lint/check only. |
-| `pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts e2e/specs/protected-navigation.spec.ts` | **PASS**, 2/2 tests | Focused mocked browser coverage for protected navigation only. |
-| `pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts` | **PASS**, 15/15 tests | Full mocked admin browser lane; intercepted APIs, not deployed backend or provider delivery. |
-| `pnpm --filter admin exec biome check e2e/specs/protected-navigation.spec.ts` | **PASS** | Changed-file formatting and lint check. |
-| `just backend-bdd-fast` | **PASS**, 291 tests, 0 failures, 0 errors, 0 skipped | Local fast Cucumber suite using the repository test environment; not deployed acceptance evidence. |
-| `git diff --check` | **PASS** | Local patch whitespace validation. |
+| Command                                                                                                                    | Result                                               | Boundary                                                                                           |
+|----------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| `pnpm --filter admin test:run`                                                                                             | **PASS**                                             | Admin Vitest suite; local unit/component behavior only.                                            |
+| `pnpm --filter admin type-check`                                                                                           | **PASS**                                             | Admin Vue/TypeScript type-check only.                                                              |
+| `pnpm --filter admin lint`                                                                                                 | **PASS**                                             | Admin Biome lint/check only.                                                                       |
+| `pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts e2e/specs/protected-navigation.spec.ts` | **PASS**, 2/2 tests                                  | Focused mocked browser coverage for protected navigation only.                                     |
+| `pnpm --filter admin exec playwright test --config e2e/playwright.mocked.config.ts`                                        | **PASS**, 15/15 tests                                | Full mocked admin browser lane; intercepted APIs, not deployed backend or provider delivery.       |
+| `pnpm --filter admin exec biome check e2e/specs/protected-navigation.spec.ts`                                              | **PASS**                                             | Changed-file formatting and lint check.                                                            |
+| `just backend-bdd-fast`                                                                                                    | **PASS**, 291 tests, 0 failures, 0 errors, 0 skipped | Local fast Cucumber suite using the repository test environment; not deployed acceptance evidence. |
+| `git diff --check`                                                                                                         | **PASS**                                             | Local patch whitespace validation.                                                                 |
 
 #### CI and deployed evidence boundary
 
-No CI run was initiated or inspected during this follow-up. No deployment, provider delivery test, production mutation, operator action, or manual invitee activation was performed. These local results therefore do not prove live email delivery, deployed acceptance, first login against the deployed stack, or post-accept publishing.
+No CI run was initiated or inspected during this follow-up. No deployment, provider delivery test,
+production mutation, operator action, or manual invitee activation was performed. These local
+results therefore do not prove live email delivery, deployed acceptance, first login against the
+deployed stack, or post-accept publishing.
 
-The acceptance verdict remains **BLOCKED** until deployed/operator/provider/user-acceptance evidence is collected and the outstanding DALLAY-556 / GitHub #652 scope is resolved. The existing production snapshot in this report is historical and was not revalidated by this follow-up.
+The acceptance verdict remains **BLOCKED** until deployed/operator/provider/user-acceptance evidence
+is collected and the outstanding DALLAY-556 / GitHub #652 scope is resolved. The existing production
+snapshot in this report is historical and was not revalidated by this follow-up.
 
 ## Usage
 

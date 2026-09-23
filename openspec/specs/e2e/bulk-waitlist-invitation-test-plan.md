@@ -12,8 +12,8 @@ per-entry results → summary refresh → audit trail. Includes the negative,
 authorization, validation, and i18n paths observed during exploration.
 
 Out of scope: campaign segmentation, waitlist scoring, generic bulk mutation
-framework (all explicitly out of scope in #665); single-entry invite flow
-(covered by existing BDD in `platform-admin.feature` and `WaitlistView.spec.ts`
+framework (all explicitly out of scope in #665); single-entry invite flow (covered by existing BDD
+in `platform-admin.feature` and `WaitlistView.spec.ts`
 unit coverage); backend-only BDD/integration suites (already green).
 
 ## Test Infrastructure
@@ -26,8 +26,8 @@ unit coverage); backend-only BDD/integration suites (already green).
   backend, but note below).
 - **Backend URL**: `http://localhost:7638` (dev profile, `just backend-run`).
 - **Browsers**: Chromium (primary).
-- **Critical wiring fact (verified)**: the admin SPA calls the backend
-  **directly** at `VITE_API_BASE_URL` (default `http://localhost:7638`), not
+- **Critical wiring fact (verified)**: the admin SPA calls the backend **directly** at
+  `VITE_API_BASE_URL` (default `http://localhost:7638`), not
   through the vite `/api` proxy (`resolveApiBaseUrl` in `src/lib/api.ts`).
   Browser E2E therefore requires the backend CORS allowlist to include the
   dev origin, otherwise every request fails preflight (`Failed to fetch`,
@@ -78,13 +78,13 @@ VALUES ('<entry-uuid>', '<wl-id>', '<email>', '<normalized-email>', 'organic', '
 
 ### Suggested Data Matrix
 
-| Entry   | Status    | Purpose                                  |
-|---------|-----------|------------------------------------------|
-| 3× PENDING | PENDING | Happy-path bulk + select-all coverage   |
-| 1× INVITED | INVITED | `skipped` / `ALREADY_INVITED` path      |
-| 1× CONVERTED | CONVERTED | `failed` / `ENTRY_ALREADY_CONVERTED` path |
-| 1× operator | PLATFORM_OWNER | Authorized bulk runs               |
-| 1× support | SUPPORT_AGENT | 403 denial path                      |
+| Entry        | Status         | Purpose                                   |
+|--------------|----------------|-------------------------------------------|
+| 3× PENDING   | PENDING        | Happy-path bulk + select-all coverage     |
+| 1× INVITED   | INVITED        | `skipped` / `ALREADY_INVITED` path        |
+| 1× CONVERTED | CONVERTED      | `failed` / `ENTRY_ALREADY_CONVERTED` path |
+| 1× operator  | PLATFORM_OWNER | Authorized bulk runs                      |
+| 1× support   | SUPPORT_AGENT  | 403 denial path                           |
 
 ## Architecture Overview
 
@@ -101,14 +101,14 @@ VALUES ('<entry-uuid>', '<wl-id>', '<email>', '<normalized-email>', 'organic', '
 
 ### Verified API Contract
 
-| Request | Response |
-|---|---|
+| Request                                                             | Response                                                                                                                                          |
+|---------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | `POST …/invitations:bulk` `{"entryIds":["a","b"]}` + Bearer (owner) | 200 `{"results":[{"entryId","outcome":"invited\|skipped\|failed","invitationId?","code?"}],"summary":{"requested","invited","skipped","failed"}}` |
-| Same, `SUPPORT_AGENT` token | 403 `PLATFORM_ACCESS_DENIED`, zero side effects |
-| Same, no token | 401 |
-| `{"entryIds":[]}` | 400 `At least one waitlist entry id is required` |
-| 51 ids | 400 `Bulk invite supports at most 50 entries` |
-| Unknown/converted ids | 200 with per-entry `failed` + stable code (never a batch abort) |
+| Same, `SUPPORT_AGENT` token                                         | 403 `PLATFORM_ACCESS_DENIED`, zero side effects                                                                                                   |
+| Same, no token                                                      | 401                                                                                                                                               |
+| `{"entryIds":[]}`                                                   | 400 `At least one waitlist entry id is required`                                                                                                  |
+| 51 ids                                                              | 400 `Bulk invite supports at most 50 entries`                                                                                                     |
+| Unknown/converted ids                                               | 200 with per-entry `failed` + stable code (never a batch abort)                                                                                   |
 
 Observed codes: `ALREADY_INVITED` (skipped), `ENTRY_ALREADY_CONVERTED`
 (failed). Successful rows create `invitations` with `source=WAITLIST` and one
@@ -122,7 +122,7 @@ Observed codes: `ALREADY_INVITED` (skipped), `ENTRY_ALREADY_CONVERTED`
   pickers, Previous/Next pagination (fixed page size 25).
 - Selection: `bulk-select-all` checkbox + per-row `bulk-select` checkboxes;
   button `INVITE SELECTED (n)`; selection **accumulates across pages**, so
-  >50 is reachable and the client guard matters.
+  > 50 is reachable and the client guard matters.
 - Results: `bulk-results` panel — heading `Bulk invite results`, summary line
   `"{invited} invited · {skipped} skipped · {failed} failed"`, per-entry rows
   `"<id> — <outcome> (<CODE>)"`. Observed live:
@@ -334,7 +334,8 @@ And layouts hold for the longer strings (no fixed-width clipping)
 
 ## Exploration Findings and Follow-ups
 
-- **F1 (robustness, needs a decision, not fixed here)**: `BulkInviteWaitlistEntriesHandler.inviteOne`
+- **F1 (robustness, needs a decision, not fixed here)**:
+  `BulkInviteWaitlistEntriesHandler.inviteOne`
   reads `findById` *outside* its per-entry try/catch. A row that fails domain
   mapping on load (observed: CONVERTED row with NULL `converted_at` →
   `Converted entry must have convertedAt`) escapes per-entry handling and
@@ -350,8 +351,8 @@ And layouts hold for the longer strings (no fixed-width clipping)
   include the `user-<uuid>` principal row or invites die on
   `fk_invitations_issued_by` (surfaced as `VERSION_CONFLICT`); seeded rows
   need status-coherent timestamps.
-- **Traceability to #665**: criteria 1–4 are covered by sections 4–6 and 8
-  (bulk invite of eligible entries; ineligible/duplicate cases reported
+- **Traceability to #665**: criteria 1–4 are covered by sections 4–6 and 8 (bulk invite of eligible
+  entries; ineligible/duplicate cases reported
   without blocking others; per-entry success/failure; auditability).
 
 ## Suggested Lane Split (mirrors repo precedent)

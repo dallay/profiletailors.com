@@ -51,69 +51,93 @@ status, failure handling, and a manual fallback as part of the broader beta gate
 ### Affected Areas
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/InviteWaitlistEntryHandler.kt` —
 owns waitlist invitation creation, raw-token event construction, audit ordering, and the current
 invitation-owned delivery state.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/ResendWaitlistInvitationHandler.kt` —
 supersedes the old invitation, creates a new one, and publishes the resend delivery trigger; its
 logical invitation and idempotency semantics need an explicit decision.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/WaitlistInvitation.kt` and
   `server/smp/src/main/resources/db/changelog/platform-admin/002-create-waitlist-invitations.yaml` —
   model and persist delivery state inside the invitation aggregate; removing or retaining these
   columns is a compatibility decision.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcWaitlistInvitationRepository.kt` —
 reads and writes the delivery columns and is the persistence boundary that would change if
 Notifications becomes the owner.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumer.kt` —
 currently consumes `@Subscribe` events synchronously, dispatches email, and sends the cross-context
 delivery-outcome event; it is the primary separation and post-commit seam.
+
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationCreated.kt`,
 `InvitationResent.kt`, and `InvitationDeliveryAttempted.kt` — current event contracts carry or imply
 raw-token and invitation-delivery coupling; their ownership, payload sensitivity, and replacement
 compatibility need definition.
+
 - `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/InvitationEmail.kt`
   and
   `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/persistence/R2dbcNotificationRepository.kt` —
   render and persist the invitation accept URL, which currently embeds the raw token, and provide
   the Notifications-owned delivery record/idempotency boundary.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/events/UpdateInvitationDeliveryOnNotificationAttempted.kt` —
 writes notification outcomes back into Platformadmin and directly embodies the coupling the change
 is intended to remove.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationController.kt`,
 `AdminInvitationSummary.kt`, and `R2dbcAdminWaitlistQuery.kt` — current admin API/read models expose
 `deliveryStatus` and `deliveryAttemptCount` from `waitlist_invitations`; the replacement exposure
 contract is not specified.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumerTest.kt` —
 asserts the old `InvitationCreated`/`InvitationResent` consumers and `InvitationDeliveryAttempted`
 publication, so it will need a contract-level rewrite after the decision is made.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/events/UpdateInvitationDeliveryOnNotificationAttemptedTest.kt` —
 locks in the current reverse bridge and will become obsolete or change to a Notifications-owned
 query/read-model test.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/handler/InviteWaitlistEntryHandlerTest.kt`,
 `ResendWaitlistInvitationHandlerTest.kt`,
 `R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest.kt`, and
 `PlatformAdminInvitationTransactionPostgresIntegrationTest.kt` — assert raw-token event payloads,
 `PENDING` invitation delivery fields, delivery-column persistence, lifecycle transitions, and
 transaction behavior; they do not prove a post-commit invitation-to-notification handoff.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/notifications/infrastructure/persistence/R2dbcNotificationRepositoryPostgresTest.kt`
 and
 `shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationEmailTest.kt` —
 establish the current Notification idempotency/persistence and invitation-template security
 behavior, including the fact that the accept URL is retained in the notification payload.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationControllerTest.kt` —
 covers the admin invitation endpoints but only verifies invitation-summary fields, not delivery
 state sourced from Notifications.
+
 - `docs/architecture/adr/0001-use-a-modular-monolith-backend.md`,
   `0002-adhere-to-hexagonal-architecture.md`, `0015-aggregate-root-as-sole-entry-point.md`,
   `0016-aggregates-communicate-by-identity-only.md`, and `docs/architecture/transaction-policy.md` —

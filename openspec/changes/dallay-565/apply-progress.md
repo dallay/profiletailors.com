@@ -37,11 +37,13 @@ and race coverage.
 ### Files Changed
 
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationNotificationRequested.kt`
 -
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/application/ports/InvitationDeliverySummaryReader.kt`
 -
 `shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationNotificationContractsTest.kt`
+
 - `openspec/changes/dallay-565/tasks.md`
 - `openspec/changes/dallay-565/state.yaml`
 
@@ -50,8 +52,10 @@ and race coverage.
 ### Commands Run
 
 -
+
 `./gradlew :shared:notifications:test --tests 'com.profiletailors.notifications.domain.InvitationNotificationContractsTest' --no-daemon`
 — RED: failed as expected with five `ClassNotFoundException` failures before production contracts.
+
 - Same command — GREEN: passed, 5 tests completed.
 - Same command — GREEN after event-shape assertion — passed, 7 tests completed.
 - `./gradlew :shared:notifications:spotlessKotlinCheck :shared:notifications:test --no-daemon`
@@ -60,6 +64,7 @@ and race coverage.
   task completed successfully.
 - `./gradlew :server:smp:compileKotlin --no-daemon` — passed; downstream compilation remains valid.
 -
+
 `./gradlew :server:smp:test --tests 'com.profiletailors.smp.platformadmin.domain.InvitationTest' --tests 'com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationAcceptanceRepositoryTest' --no-daemon`
 — compile passed; 11 unit tests passed and 2 PostgreSQL tests failed because the local PostgreSQL
 connection was unavailable (`java.net.ConnectException`).

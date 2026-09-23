@@ -6,23 +6,27 @@
 
 The `AdminAuditEventType` enum MUST include `NOTIFICATION_RETRIED` value.
 
-`NOTIFICATION_RETRIED` events MUST be published when an operator invokes retry on a failed notification, regardless of retry outcome (success, rejected eligibility, dispatch failure).
+`NOTIFICATION_RETRIED` events MUST be published when an operator invokes retry on a failed
+notification, regardless of retry outcome (success, rejected eligibility, dispatch failure).
 
 `NOTIFICATION_RETRIED` event structure:
 
 - `eventType`: `NOTIFICATION_RETRIED`
 - `operatorId`: UUID of operator who invoked retry
 - `targetType`: `NOTIFICATION`
-- `targetId`: UUID of the notification being retried (original notification ID, not new retry attempt ID)
+- `targetId`: UUID of the notification being retried (original notification ID, not new retry
+  attempt ID)
 - `metadata`: map containing:
-  - `notificationId`: same as `targetId` (for consistency with other event types)
-  - `channel`: notification channel (EMAIL, SMS, PUSH, WEBHOOK)
-  - `templateId`: template identifier (PASSWORD_RECOVERY, WORKSPACE_INVITATION, etc.)
-  - `retryOutcome`: outcome of retry operation (SUCCESS, REJECTED, DISPATCH_FAILED)
-  - `priorStatus`: notification status before retry attempt (typically FAILED)
-  - `priorError`: error_message from original notification (if present, redacted per existing redaction rules)
+    - `notificationId`: same as `targetId` (for consistency with other event types)
+    - `channel`: notification channel (EMAIL, SMS, PUSH, WEBHOOK)
+    - `templateId`: template identifier (PASSWORD_RECOVERY, WORKSPACE_INVITATION, etc.)
+    - `retryOutcome`: outcome of retry operation (SUCCESS, REJECTED, DISPATCH_FAILED)
+    - `priorStatus`: notification status before retry attempt (typically FAILED)
+    - `priorError`: error_message from original notification (if present, redacted per existing
+      redaction rules)
 
-Metadata redaction MUST apply existing `redact()` function; if `priorError` contains denylisted substrings (password, token, secret, etc.), value MUST be `[REDACTED]`.
+Metadata redaction MUST apply existing `redact()` function; if `priorError` contains denylisted
+substrings (password, token, secret, etc.), value MUST be `[REDACTED]`.
 
 #### Scenario: Retry success audited with full context
 
@@ -102,14 +106,24 @@ GIVEN AdminAuditEventType enum is loaded
 ## Technical Notes
 
 - **Outcome Semantics**:
-  - `SUCCESS`: Retry dispatched successfully via `NotificationService.notify()`, new notification row created.
-  - `REJECTED`: Eligibility check failed (template not whitelisted, status not FAILED, etc.); no dispatch attempted.
-  - `DISPATCH_FAILED`: Eligibility passed but `NotificationService.notify()` threw exception (rare; indicates infrastructure failure).
-  
-- **TargetType Consistency**: `NOTIFICATION` target type aligns with domain boundary; existing audit events use `WORKSPACE_INVITATION`, `WAITLIST_ENTRY`, `USER`, `OPERATOR`, `CONFIGURATION` — `NOTIFICATION` follows same pattern.
+    - `SUCCESS`: Retry dispatched successfully via `NotificationService.notify()`, new notification
+      row created.
+    - `REJECTED`: Eligibility check failed (template not whitelisted, status not FAILED, etc.); no
+      dispatch attempted.
+    - `DISPATCH_FAILED`: Eligibility passed but `NotificationService.notify()` threw exception
+      (rare; indicates infrastructure failure).
 
-- **Redaction Inheritance**: No new redaction rules needed; `priorError` field processed by existing `redact()` function with established denylist (password, secret, token, key, credential, authorization, bearer, accessurl, reseturl, verificationtoken, rawtoken).
+- **TargetType Consistency**: `NOTIFICATION` target type aligns with domain boundary; existing audit
+  events use `WORKSPACE_INVITATION`, `WAITLIST_ENTRY`, `USER`, `OPERATOR`, `CONFIGURATION` —
+  `NOTIFICATION` follows same pattern.
 
-- **Audit Query Impact**: Existing `GET /api/admin/audit` endpoint automatically supports `?eventType=NOTIFICATION_RETRIED` filtering without modification (event type is indexed column).
+- **Redaction Inheritance**: No new redaction rules needed; `priorError` field processed by existing
+  `redact()` function with established denylist (password, secret, token, key, credential,
+  authorization, bearer, accessurl, reseturl, verificationtoken, rawtoken).
 
-- **No Payload Duplication**: Audit event metadata does NOT duplicate full notification payload; only correlation IDs (notificationId, channel, templateId) and retry-specific context (outcome, priorStatus, priorError) included.
+- **Audit Query Impact**: Existing `GET /api/admin/audit` endpoint automatically supports
+  `?eventType=NOTIFICATION_RETRIED` filtering without modification (event type is indexed column).
+
+- **No Payload Duplication**: Audit event metadata does NOT duplicate full notification payload;
+  only correlation IDs (notificationId, channel, templateId) and retry-specific context (outcome,
+  priorStatus, priorError) included.

@@ -163,7 +163,7 @@ answers are confirmed.
     - Return `200 OK` or `409 Conflict` on version mismatch
 - [ ] 4.7 Add `PATCH /{principalId}/reactivate` route to `AdminUserController`
 - [ ] 4.8 Add `AdminUserControllerTest` scenarios for both PATCH endpoints (success, 401, 403, 404,
-  409)
+    409)
 - [ ] 4.9 Verify controller tests pass
 
 ---
@@ -428,4 +428,5 @@ answers are confirmed.
 
 **Ready for implementation** — chain PRs recommended. Before starting Phase 1, resolve the 4 open
 questions (OQ-1 through OQ-4) with the backend team. Once resolved, begin with `sdd-apply` for Phase
+
 1.

@@ -49,8 +49,8 @@ requests.
 ### Requirement: Inert Planned-Area Placeholders
 
 The system MUST render planned areas (`overview`) via a shared static view that is explicit
-"planned", permission-gated, and performs zero fetch.
-(Previously: planned list included `governance` gated on `platform.operators.read`; `governance` is
+"planned", permission-gated, and performs zero fetch. (Previously: planned list included
+`governance` gated on `platform.operators.read`; `governance` is
 now live.)
 
 #### Scenario: Planned area shows planned state

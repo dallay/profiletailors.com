@@ -34,6 +34,7 @@ endpoints. **Rationale**: Consistent with existing mutation handlers; keeps auth
 co-located with domain logic.
 
 ### Decision: Session/token invalidation is handled inside the handler via the existing
+
 `RefreshSessionGateway`
 
 **Choice**: On deactivation, call `invalidateAllSessionsForPrincipal(principalId)` from within

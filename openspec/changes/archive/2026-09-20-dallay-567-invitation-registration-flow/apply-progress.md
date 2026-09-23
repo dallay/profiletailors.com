@@ -78,24 +78,36 @@
   with signal 15; the final `just backend-test-postgres` run passed, including the invitation
   repository concurrency coverage.
 -
+
 `./gradlew :server:smp:test --tests com.profiletailors.smp.identity.application.LocalAuthHandlersTest`:
 PASS after adding in-transaction identity revalidation coverage.
+
 -
+
 `./gradlew :server:smp:test --tests com.profiletailors.smp.integration.LocalAuthEndpointIntegrationTest`:
 PASS; existing rollback and invitation-registration integration coverage remains green.
+
 -
+
 `./gradlew :server:smp:test --tests com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationRepositoryTest`:
 PASS; concurrent acceptance coverage remains green after transaction ownership moved to the caller.
+
 -
+
 `./gradlew :server:smp:test --tests com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinatorTest --tests com.profiletailors.smp.platformadmin.application.AcceptInvitationHandlerTest --tests com.profiletailors.smp.platformadmin.infrastructure.http.InvitationAcceptanceControllerTest`:
 PASS.
+
 -
+
 `./gradlew :server:smp:test --tests com.profiletailors.smp.identity.integration.LocalAuthHandlersTransactionPostgresIntegrationTest`:
 PASS; failure-after-completion rollback, concurrent one-winner, new-workspace, and
 existing-workspace membership scenarios pass.
+
 -
+
 `just infra-up && ./gradlew :server:smp:test --tests com.profiletailors.smp.identity.integration.LocalAuthHandlersTransactionPostgresIntegrationTest --tests com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationRepositoryTest`:
 PASS; focused PostgreSQL evidence completed in 43s, followed by `just infra-down`.
+
 - `./gradlew :server:smp:spotlessKotlinCheck`: PASS after formatter application.
 - `./gradlew :server:smp:test --tests ...ModularStructureTest`: PASS after moving invitation Problem
   Details mapping out of identity advice.
@@ -121,8 +133,10 @@ PASS; focused PostgreSQL evidence completed in 43s, followed by `just infra-down
   was started for this worktree, the BDD suite passed, and cleanup completed in a separate explicit
   `just infra-down` command after the shell cleanup variable conflicted with zsh.
 -
+
 `cd apps/web/app && node ../../../scripts/run-playwright.mjs -c e2e/playwright.config.ts e2e/specs/invitee-private-beta.spec.ts`:
 PASS; 36 tests passed across Chromium, Firefox, and Mobile Chrome.
+
 - `pnpm --filter app lint`: PASS; Biome checked 830 files without errors.
 - `pnpm --filter app type-check`: PASS; `vue-tsc --build` completed without errors.
 - `git diff --check`: PASS after the acceptance-evidence additions.

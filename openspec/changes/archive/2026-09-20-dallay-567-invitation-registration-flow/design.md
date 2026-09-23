@@ -38,15 +38,15 @@ shares cookies, storage, route state, or invitation tokens.
 
 ## File Changes
 
-| File                                                                                          | Action | Description                                                                                       |
-|-----------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------------------------|
-| `server/smp/src/test/resources/features/local-auth.feature`                                   | Modify | Add expired, revoked, and normalized-email-mismatch registration scenarios.                       |
-| `server/smp/src/test/resources/features/platform-admin.feature`                               | Modify | Add successful matching-identity acceptance with no duplicate assertions.                         |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt`      | Modify | Add expired/revoked test fixtures and lifecycle/status assertions; keep token in glue state only. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` | Modify | Add explicit failure-code and no-mutation assertions for registration.                            |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt`                 | Modify | Add focused count queries for identity, local credential, membership, and workspace uniqueness.   |
-| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts`                                         | Modify | Add mocked `410` expired, `410` revoked, and `403` mismatch journeys with response/code checks.   |
-| `openspec/changes/dallay-567-accept-invitations-registration-flow/qa-report.md`               | Later  | QA reruns QA-06 through QA-10 and retains QA-16/QA-21 warnings.                                   |
+| File                                                                                                      | Action | Description                                                                                       |
+|-----------------------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------------------------|
+| `../../../../server/smp/src/test/resources/features/local-auth.feature`                                   | Modify | Add expired, revoked, and normalized-email-mismatch registration scenarios.                       |
+| `../../../../server/smp/src/test/resources/features/platform-admin.feature`                               | Modify | Add successful matching-identity acceptance with no duplicate assertions.                         |
+| `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt`      | Modify | Add expired/revoked test fixtures and lifecycle/status assertions; keep token in glue state only. |
+| `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` | Modify | Add explicit failure-code and no-mutation assertions for registration.                            |
+| `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt`                 | Modify | Add focused count queries for identity, local credential, membership, and workspace uniqueness.   |
+| `../../../../apps/web/app/e2e/specs/invitee-private-beta.spec.ts`                                         | Modify | Add mocked `410` expired, `410` revoked, and `403` mismatch journeys with response/code checks.   |
+| `openspec/changes/dallay-567-accept-invitations-registration-flow/qa-report.md`                           | Later  | QA reruns QA-06 through QA-10 and retains QA-16/QA-21 warnings.                                   |
 
 ## Interfaces / Contracts
 

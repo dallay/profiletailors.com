@@ -13,7 +13,7 @@ The current QA report has acceptance evidence for valid, invalid, replayed, work
 and concurrency paths. Expired, revoked, email-mismatch, and successful matching-existing-identity
 journeys remain `NOT TESTED`; deployed/manual acceptance is `BLOCKED` because no target or
 credentials were supplied. Unit and classifier tests cover several of these outcomes but cannot be
-promoted to product acceptance under `openspec/config.yaml`.
+promoted to product acceptance under `../../../config.yaml`.
 
 The repository already has the necessary local seams. `DirectInvitationBddSteps` seeds an active
 invitation and raw test token. `PlatformAdminBddSteps` resets platform-admin state and seeds
@@ -28,27 +28,38 @@ config must be invoked directly.
 
 ### Affected Areas
 
-- `server/smp/src/test/resources/features/local-auth.feature` — add registration scenarios for
+- `../../../../server/smp/src/test/resources/features/local-auth.feature` — add registration
+  scenarios for
   expired, revoked, and mismatched invitations.
-- `server/smp/src/test/resources/features/platformadmin/invitations-direct.feature` — existing admin
+- `../../../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature` —
+  existing admin
   lifecycle scenarios provide the revoke behavior that can be reused or paired with an acceptance
   scenario.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt` — extend
-  test-only fixtures/assertions for lifecycle states and authenticated acceptance; preserve
-  raw-token state only inside the fixture.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/PlatformAdminBddSteps.kt` — existing
+-
+`../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/DirectInvitationBddSteps.kt` —
+extend
+test-only fixtures/assertions for lifecycle states and authenticated acceptance; preserve
+raw-token state only inside the fixture.
+- `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/PlatformAdminBddSteps.kt` —
+  existing
   `@platform-admin` hook seeds the authenticated existing identity needed by acceptance scenarios.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` —
-  add registration outcome and no-mutation assertions for the missing cases.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt` — reuse seeded
+-
+`../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/LocalAuthCapabilitiesBddSteps.kt` —
+add registration outcome and no-mutation assertions for the missing cases.
+- `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd/BddDatabaseSupport.kt` — reuse
+  seeded
   matching identity and existing count helpers for no-duplicate assertions.
 -
-`server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/InvitationActivationCoordinatorTest.kt` —
+
+`../../../../server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/InvitationActivationCoordinatorTest.kt` —
 existing unit coverage confirms expiry and email mismatch classification; it is supporting evidence,
 not acceptance evidence.
-- `apps/web/app/e2e/specs/invitee-private-beta.spec.ts` — add browser-facing 410 expired, 410
+
+- `../../../../apps/web/app/e2e/specs/invitee-private-beta.spec.ts` — add browser-facing 410
+  expired, 410
   revoked, and 403 mismatch scenarios with explicit response codes.
-- `apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` — status-only 410 maps to
+- `../../../../apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` — status-only
+  410 maps to
   expired, so revoked browser fixtures must include `code: INVITATION_REVOKED`.
 - `openspec/changes/dallay-567-accept-invitations-registration-flow/qa-report.md` — rerun and update
   the currently blocked scenario rows after evidence exists.
@@ -92,7 +103,8 @@ use the `@platform-admin`-seeded `principal-1`/`jwt-user@example.com` identity f
 acceptance. Assert status, stable code, invitation state, and no unexpected
 identity/password-credential/membership duplication. Run `just backend-bdd-fast` and
 `just backend-bdd-postgres`, then the focused app Playwright command through
-`node ../../../scripts/run-playwright.mjs -c e2e/playwright.config.ts` from `apps/web/app`.
+`node ../../../scripts/run-playwright.mjs -c e2e/playwright.config.ts` from
+`../../../../apps/web/app`.
 
 Keep Approach 3 explicitly separate. It is blocked until an owner supplies a deployed target and
 permissioned test setup. Do not claim deployed acceptance from local BDD, unit tests, HAR replay, or

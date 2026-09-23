@@ -9,7 +9,8 @@ attempted admin approve or reject MUST produce one matching event carrying opera
 action, result, and target report id. Successful events MUST be emitted only after the governance
 transition commits. Denied or failed attempts MUST carry a non-sensitive reason. Metadata MUST use
 report, workspace, and asset ids only — never reporter email, tokens, or secrets. Workspace
-`MEDIA_TAKEDOWN_APPROVED` / `MEDIA_TAKEDOWN_REJECTED` MUST still be recorded and MUST NOT be renamed.
+`MEDIA_TAKEDOWN_APPROVED` / `MEDIA_TAKEDOWN_REJECTED` MUST still be recorded and MUST NOT be
+renamed.
 
 #### Scenario: Successful approve is audited
 

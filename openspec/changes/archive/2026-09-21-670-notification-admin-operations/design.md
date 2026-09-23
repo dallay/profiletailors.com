@@ -2,70 +2,113 @@
 
 ## Technical Approach
 
-Implement administrative notification visibility and safe retry through hexagonal architecture layers:
+Implement administrative notification visibility and safe retry through hexagonal architecture
+layers:
 
-- **Domain**: extend `Notification` aggregate with retry eligibility rules (template-based whitelist)
-- **Application**: new query port `NotificationAdminQuery` for read-only paginated access; new command `RetryNotificationCommand` with eligibility gate; handlers orchestrate existing `NotificationService` for retry dispatch
-- **Infrastructure**: R2DBC adapter for paginated queries with filters; Spring WebFlux controller for `GET /admin/notifications` and `POST /admin/notifications/{id}/retry`; redaction utility; authorization via `OperatorAccessResolver`; audit via `AdminAuditPublisher`
+- **Domain**: extend `Notification` aggregate with retry eligibility rules (template-based
+  whitelist)
+- **Application**: new query port `NotificationAdminQuery` for read-only paginated access; new
+  command `RetryNotificationCommand` with eligibility gate; handlers orchestrate existing
+  `NotificationService` for retry dispatch
+- **Infrastructure**: R2DBC adapter for paginated queries with filters; Spring WebFlux controller
+  for `GET /admin/notifications` and `POST /admin/notifications/{id}/retry`; redaction utility;
+  authorization via `OperatorAccessResolver`; audit via `AdminAuditPublisher`
 
-Maps to proposal scope: query port + adapter (REQ-PN-001), redaction (REQ-PN-002), retry through existing service (REQ-PN-003), eligibility gate (REQ-PN-004), authorization (REQ-PN-006/007), audit (REQ-PN-005), observability (REQ-PN-008).
+Maps to proposal scope: query port + adapter (REQ-PN-001), redaction (REQ-PN-002), retry through
+existing service (REQ-PN-003), eligibility gate (REQ-PN-004), authorization (REQ-PN-006/007), audit
+(REQ-PN-005), observability (REQ-PN-008).
 
-References specs: `platform-notifications`, `admin-authorization` delta (permissions), `platform-admin-audit` delta (`NOTIFICATION_RETRIED` event).
+References specs: `platform-notifications`, `admin-authorization` delta (permissions),
+`platform-admin-audit` delta (`NOTIFICATION_RETRIED` event).
 
 ## Architecture Decisions
 
 ### Decision: Query Port in Application Layer
 
-**Choice**: Define `NotificationAdminQuery` interface in `platformadmin.application.query` with paginated result contract
+**Choice**: Define `NotificationAdminQuery` interface in `platformadmin.application.query` with
+paginated result contract
 
 **Alternatives considered**:
-- Repository extension in notifications domain (violates bounded context isolation — platformadmin should not extend notifications internals)
-- Direct R2DBC calls in controller (violates hexagonal architecture — no domain/application mediation)
 
-**Rationale**: Application port keeps notifications domain unchanged while allowing platformadmin bounded context to query through a stable contract. Adapter implements pagination and filtering without coupling domain model to infrastructure concerns. Follows existing `ConfigurationAdminQuery` precedent from #672.
+- Repository extension in notifications domain (violates bounded context isolation — platformadmin
+  should not extend notifications internals)
+- Direct R2DBC calls in controller (violates hexagonal architecture — no domain/application
+  mediation)
+
+**Rationale**: Application port keeps notifications domain unchanged while allowing platformadmin
+bounded context to query through a stable contract. Adapter implements pagination and filtering
+without coupling domain model to infrastructure concerns. Follows existing `ConfigurationAdminQuery`
+precedent from #672.
 
 ### Decision: Retry via Existing NotificationService
 
-**Choice**: `RetryNotificationHandler` calls `NotificationService.notify()` with original recipient/template/channel plus idempotency key suffix `-retry-{UUID}`
+**Choice**: `RetryNotificationHandler` calls `NotificationService.notify()` with original
+recipient/template/channel plus idempotency key suffix `-retry-{UUID}`
 
 **Alternatives considered**:
-- Direct row update to PENDING + re-queue (bypasses business rules, idempotency, and existing notification pipeline)
-- New `RetryNotificationService` (duplicate notification engine)
-- Resend handlers `ResendInvitationHandler` (creates NEW tokens — not true retry, violates one-time action semantics)
 
-**Rationale**: Reuses domain notification creation logic, idempotency guarantees, and dispatch pipeline. Suffix prevents idempotency collision with original notification. Keeps domain boundary intact — retry is infrastructure orchestration, not domain behavior. Password recovery notifications have no token expiry semantics; retry with same payload is safe. Invitation retry blocked at eligibility gate per REQ-PN-004.
+- Direct row update to PENDING + re-queue (bypasses business rules, idempotency, and existing
+  notification pipeline)
+- New `RetryNotificationService` (duplicate notification engine)
+- Resend handlers `ResendInvitationHandler` (creates NEW tokens — not true retry, violates one-time
+  action semantics)
+
+**Rationale**: Reuses domain notification creation logic, idempotency guarantees, and dispatch
+pipeline. Suffix prevents idempotency collision with original notification. Keeps domain boundary
+intact — retry is infrastructure orchestration, not domain behavior. Password recovery notifications
+have no token expiry semantics; retry with same payload is safe. Invitation retry blocked at
+eligibility gate per REQ-PN-004.
 
 ### Decision: Template-Based Eligibility Whitelist
 
-**Choice**: `NotificationRetryEligibility` domain value object with hardcoded `TemplateId` whitelist (`PASSWORD_RECOVERY` only in initial implementation)
+**Choice**: `NotificationRetryEligibility` domain value object with hardcoded `TemplateId` whitelist
+(`PASSWORD_RECOVERY` only in initial implementation)
 
 **Alternatives considered**:
-- Per-notification `retryable` boolean column (schema change, requires migration, couples retry policy to data model)
+
+- Per-notification `retryable` boolean column (schema change, requires migration, couples retry
+  policy to data model)
 - Configuration-driven whitelist (over-engineering for single known-safe template)
 - No eligibility check (unsafe — invitation retry would send invalid tokens)
 
-**Rationale**: Domain rule expressible without schema change. Whitelist approach allows future expansion (e.g., `WORKSPACE_WELCOME` if deemed safe) without data migration. Invitation/waitlist templates explicitly denied per proposal out-of-scope. Fails fast at handler boundary before touching `NotificationService`.
+**Rationale**: Domain rule expressible without schema change. Whitelist approach allows future
+expansion (e.g., `WORKSPACE_WELCOME` if deemed safe) without data migration. Invitation/waitlist
+templates explicitly denied per proposal out-of-scope. Fails fast at handler boundary before
+touching `NotificationService`.
 
 ### Decision: Payload Redaction Utility in Infrastructure
 
-**Choice**: `NotificationMetadataRedactor` utility class with field denylist (`token`, `rawToken`, `acceptUrl`, `password`, `verificationToken`) applied to `payload` JSONB before response serialization
+**Choice**: `NotificationMetadataRedactor` utility class with field denylist (`token`, `rawToken`,
+`acceptUrl`, `password`, `verificationToken`) applied to `payload` JSONB before response
+serialization
 
 **Alternatives considered**:
+
 - Database view with redaction (couples redaction to schema, not reusable across admin surfaces)
 - Controller-level manual field removal (error-prone, not testable in isolation)
 - Domain-level redaction method (domain should not know about admin visibility rules)
 
-**Rationale**: Infrastructure concern — admin visibility policy is not domain invariant. Utility is testable in isolation, reusable for future admin surfaces (e.g., audit event payloads). Whitelist approach (keep `recipient`, `channel`, `templateId`, `status`, timestamps) simpler than denylist for large payloads. Follows `RedactSensitiveMetadata` precedent from audit implementation.
+**Rationale**: Infrastructure concern — admin visibility policy is not domain invariant. Utility is
+testable in isolation, reusable for future admin surfaces (e.g., audit event payloads). Whitelist
+approach (keep `recipient`, `channel`, `templateId`, `status`, timestamps) simpler than denylist for
+large payloads. Follows `RedactSensitiveMetadata` precedent from audit implementation.
 
 ### Decision: No Separate Retry Attempts Table
 
-**Choice**: Each retry creates a new notification row with suffixed idempotency key; original row unchanged
+**Choice**: Each retry creates a new notification row with suffixed idempotency key; original row
+unchanged
 
 **Alternatives considered**:
-- `notification_retry_attempts` table with foreign key to `notifications.id` (schema change, query complexity, unclear bounded context ownership)
-- In-place row update with `retry_count` column (loses original failure state, complicates audit trail)
 
-**Rationale**: Append-only notifications table design preserved. Original failure preserved for audit/analysis. Retry attempt becomes first-class notification with own `sent_at`/`failed_at`/`error_message`. Idempotency suffix prevents collision. Query adapter can correlate by prefix if needed (not required for MVP).
+- `notification_retry_attempts` table with foreign key to `notifications.id` (schema change, query
+  complexity, unclear bounded context ownership)
+- In-place row update with `retry_count` column (loses original failure state, complicates audit
+  trail)
+
+**Rationale**: Append-only notifications table design preserved. Original failure preserved for
+audit/analysis. Retry attempt becomes first-class notification with own `sent_at`/`failed_at`/
+`error_message`. Idempotency suffix prevents collision. Query adapter can correlate by prefix if
+needed (not required for MVP).
 
 ## Data Flow
 
@@ -585,6 +628,7 @@ CREATE TABLE notifications (
 ```
 
 Retry creates new row:
+
 - Original: `id=notif-001, idempotency_key=original-key, status=FAILED`
 - Retry: `id=notif-retry-001, idempotency_key=original-key-retry-{UUID}, status=PENDING`
 
@@ -593,6 +637,7 @@ Retry creates new row:
 ### GET /api/admin/notifications
 
 **Request**:
+
 ```http
 GET /api/admin/notifications?status=FAILED&channel=EMAIL&page=0&size=20
 Accept: application/vnd.api.v1+json
@@ -600,6 +645,7 @@ Authorization: Bearer <token>
 ```
 
 **Response 200**:
+
 ```json
 {
   "items": [
@@ -628,6 +674,7 @@ Authorization: Bearer <token>
 ### POST /api/admin/notifications/{id}/retry
 
 **Request**:
+
 ```http
 POST /api/admin/notifications/abc-123/retry
 Accept: application/vnd.api.v1+json
@@ -636,6 +683,7 @@ Idempotency-Key: retry-key-001
 ```
 
 **Response 200**:
+
 ```json
 {
   "status": "SUCCESS"
@@ -643,6 +691,7 @@ Idempotency-Key: retry-key-001
 ```
 
 **Response 400**: Eligibility denied
+
 ```json
 {
   "status": "REJECTED",
@@ -681,28 +730,29 @@ Idempotency-Key: retry-key-001
 
 ### Unit Tests
 
-| Component | Test Focus | Approach |
-|---|---|---|
-| `NotificationRetryEligibility` | Whitelist membership, denial reason | Pure object tests |
-| `NotificationMetadataRedactor` | Sensitive key removal, whitelist preservation | Map input/output assertions |
-| `QueryNotificationsHandler` | Filter delegation, redaction application | Fake `NotificationAdminQuery`, verify redactor call |
-| `RetryNotificationHandler` | Eligibility check, service dispatch, audit publish | Mock `NotificationService` + `AdminAuditPublisher`, verify calls |
+| Component                      | Test Focus                                         | Approach                                                         |
+|--------------------------------|----------------------------------------------------|------------------------------------------------------------------|
+| `NotificationRetryEligibility` | Whitelist membership, denial reason                | Pure object tests                                                |
+| `NotificationMetadataRedactor` | Sensitive key removal, whitelist preservation      | Map input/output assertions                                      |
+| `QueryNotificationsHandler`    | Filter delegation, redaction application           | Fake `NotificationAdminQuery`, verify redactor call              |
+| `RetryNotificationHandler`     | Eligibility check, service dispatch, audit publish | Mock `NotificationService` + `AdminAuditPublisher`, verify calls |
 
 ### Integration Tests
 
-| Component | Test Focus | Approach |
-|---|---|---|
-| `R2dbcNotificationAdminQueryAdapter` | SQL WHERE clause construction, pagination, filtering | Testcontainers PostgreSQL, seed rows, verify query results |
-| `NotificationMetadataRedactor` | JSONB payload redaction | Insert notification with sensitive payload, query via adapter, assert redacted |
-| `AdminNotificationController` | Authorization enforcement, DTO serialization, error handling | `WebTestClient`, mock handlers, verify 403/400/200 responses |
+| Component                            | Test Focus                                                   | Approach                                                                       |
+|--------------------------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------|
+| `R2dbcNotificationAdminQueryAdapter` | SQL WHERE clause construction, pagination, filtering         | Testcontainers PostgreSQL, seed rows, verify query results                     |
+| `NotificationMetadataRedactor`       | JSONB payload redaction                                      | Insert notification with sensitive payload, query via adapter, assert redacted |
+| `AdminNotificationController`        | Authorization enforcement, DTO serialization, error handling | `WebTestClient`, mock handlers, verify 403/400/200 responses                   |
 
 ### BDD Tests
 
-| Feature | Coverage | Tags |
-|---|---|---|
+| Feature                               | Coverage                                                           | Tags                                            |
+|---------------------------------------|--------------------------------------------------------------------|-------------------------------------------------|
 | `platformadmin/notifications.feature` | Query filters, redaction, retry success/denial, role authorization | `@platform-admin @platform-notifications @fast` |
 
 Scenarios:
+
 1. Query with status/channel/template filters returns matching notifications
 2. Redacted payload excludes token/acceptUrl, includes recipient
 3. Retry PASSWORD_RECOVERY succeeds, publishes NOTIFICATION_RETRIED
@@ -721,34 +771,51 @@ Scenarios:
 
 ## Dependencies
 
-| Dependency | Usage | Location |
-|---|---|---|
-| `NotificationService` | Retry dispatch through existing pipeline | `notifications.application.NotificationService` |
-| `AdminAuditPublisher` | Publish `NOTIFICATION_RETRIED` events | `platformadmin.application.audit.AdminAuditPublisher` |
-| `OperatorAccessResolver` | Permission enforcement | `platformadmin.infrastructure.security.OperatorAccessResolver` |
-| `BddDatabaseSupport` | BDD test fixture data | `test/bdd/support/BddDatabaseSupport.kt` |
-| `PlatformAdminBddSteps` | Role/permission setup in BDD | `test/bdd/glue/platformadmin/PlatformAdminBddSteps.kt` |
-| Spring WebFlux | Reactive HTTP controllers | `spring-boot-starter-webflux` |
-| R2DBC | Reactive database queries | `spring-boot-starter-data-r2dbc` |
+| Dependency               | Usage                                    | Location                                                       |
+|--------------------------|------------------------------------------|----------------------------------------------------------------|
+| `NotificationService`    | Retry dispatch through existing pipeline | `notifications.application.NotificationService`                |
+| `AdminAuditPublisher`    | Publish `NOTIFICATION_RETRIED` events    | `platformadmin.application.audit.AdminAuditPublisher`          |
+| `OperatorAccessResolver` | Permission enforcement                   | `platformadmin.infrastructure.security.OperatorAccessResolver` |
+| `BddDatabaseSupport`     | BDD test fixture data                    | `test/bdd/support/BddDatabaseSupport.kt`                       |
+| `PlatformAdminBddSteps`  | Role/permission setup in BDD             | `test/bdd/glue/platformadmin/PlatformAdminBddSteps.kt`         |
+| Spring WebFlux           | Reactive HTTP controllers                | `spring-boot-starter-webflux`                                  |
+| R2DBC                    | Reactive database queries                | `spring-boot-starter-data-r2dbc`                               |
 
 ## Risks and Tradeoffs
 
 ### Risks
 
-1. **Retry idempotency collision**: If retry suffix generation duplicates (UUID collision), idempotency constraint fails. **Mitigation**: UUID collision probability negligible; `NotificationService` handles idempotency violation gracefully (returns existing notification).
+1. **Retry idempotency collision**: If retry suffix generation duplicates (UUID collision),
+   idempotency constraint fails. **Mitigation**: UUID collision probability negligible;
+   `NotificationService` handles idempotency violation gracefully (returns existing notification).
 
-2. **Redaction incompleteness**: Future template payloads may introduce new sensitive keys not in denylist. **Mitigation**: Whitelist approach preferred for high-security contexts; consider schema validation at template registration to enforce known payload shape.
+2. **Redaction incompleteness**: Future template payloads may introduce new sensitive keys not in
+   denylist. **Mitigation**: Whitelist approach preferred for high-security contexts; consider
+   schema validation at template registration to enforce known payload shape.
 
-3. **Eligibility whitelist drift**: Domain changes (e.g., password reset adds token expiry) may invalidate retry safety without code update. **Mitigation**: Document eligibility assumptions in `NotificationRetryEligibility`; add domain test asserting `PASSWORD_RECOVERY` has no token expiry.
+3. **Eligibility whitelist drift**: Domain changes (e.g., password reset adds token expiry) may
+   invalidate retry safety without code update. **Mitigation**: Document eligibility assumptions in
+   `NotificationRetryEligibility`; add domain test asserting `PASSWORD_RECOVERY` has no token
+   expiry.
 
-4. **Query performance**: No index on `template_id`, `status`, `failed_at` columns. **Mitigation**: Add composite index `(status, failed_at DESC)` for common operator query (failed notifications by recency) in separate performance optimization change.
+4. **Query performance**: No index on `template_id`, `status`, `failed_at` columns. **Mitigation**:
+   Add composite index `(status, failed_at DESC)` for common operator query (failed notifications by
+   recency) in separate performance optimization change.
 
 ### Tradeoffs
 
-1. **No attempt correlation**: Retry creates independent notification row; operators cannot trace retry lineage without idempotency key prefix parsing. **Accepted**: MVP does not require retry history; future enhancement can add `original_notification_id` foreign key if needed.
+1. **No attempt correlation**: Retry creates independent notification row; operators cannot trace
+   retry lineage without idempotency key prefix parsing. **Accepted**: MVP does not require retry
+   history; future enhancement can add `original_notification_id` foreign key if needed.
 
-2. **Single-template whitelist**: Only `PASSWORD_RECOVERY` eligible; operators cannot retry `WORKSPACE_WELCOME` or similar non-token templates. **Accepted**: Conservative safety default; expand whitelist after domain review confirms safety.
+2. **Single-template whitelist**: Only `PASSWORD_RECOVERY` eligible; operators cannot retry
+   `WORKSPACE_WELCOME` or similar non-token templates. **Accepted**: Conservative safety default;
+   expand whitelist after domain review confirms safety.
 
-3. **In-memory redaction**: Redaction applied after query fetch, not at SQL layer. **Accepted**: Simpler implementation, testable in isolation; payload size small (< 10KB), negligible memory overhead.
+3. **In-memory redaction**: Redaction applied after query fetch, not at SQL layer. **Accepted**:
+   Simpler implementation, testable in isolation; payload size small (< 10KB), negligible memory
+   overhead.
 
-4. **No retry throttling**: Operator can retry same notification multiple times in quick succession. **Accepted**: `Idempotency-Key` header + `NotificationAdminIdempotencyService` prevents duplicate dispatch; rate limiting deferred to future observability-driven tuning.
+4. **No retry throttling**: Operator can retry same notification multiple times in quick succession.
+   **Accepted**: `Idempotency-Key` header + `NotificationAdminIdempotencyService` prevents duplicate
+   dispatch; rate limiting deferred to future observability-driven tuning.
