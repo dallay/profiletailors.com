@@ -45,6 +45,7 @@ workspace_id + status). The unique index from `005-harden-invitations.yaml` rema
 backstop.
 
 ### Decision: New platform permissions `platform.invitations.create` and
+
 `platform.invitations.revoke`
 
 **Choice**: Two distinct permissions — create and revoke — scoped to OWNER and OPERATOR roles only.
@@ -62,6 +63,7 @@ optimistic concurrency control on revoke. **Alternatives considered**: Pessimist
 handling in R2DBC. **Rationale**: The `Invitation` aggregate already carries a version.
 `RevokeInvitationCommand` includes the expected version; the repository implementation throws
 `OptimisticLockingFailureException` on mismatch, which the infrastructure layer translates to HTTP
+
 409.
 
 ## Component Design

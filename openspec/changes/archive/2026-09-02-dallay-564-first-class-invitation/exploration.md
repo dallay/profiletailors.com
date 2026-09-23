@@ -229,39 +229,52 @@ Important gaps are:
   existing
   raw UUID identity without value-object marker or canonical identifier decision.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/InvitationTokenGenerator.kt`
 and `platformadmin/infrastructure/BCryptTokenHasher.kt` — current token mechanics that must be
 separated from DALLAY-564's semantic model.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/AcceptInvitation.kt` —
 existing acceptance command, transaction use, and narrow acceptance port.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/InvitationRegistrationGatewayAdapter.kt`
 and `identity/application/LocalAuthHandlers.kt` — duplicated registration acceptance path.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationAcceptanceRepository.kt`
 — first-class row-lock and conditional-consume adapter, but not a complete aggregate repository.
+
 - `server/smp/src/main/resources/db/changelog/platform-admin/004-create-invitations.yaml` — existing
   first-class schema and missing constraints/index/version/expiry support.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/{application,infrastructure}/**`
   — legacy waitlist command, query, HTTP, and delivery-state ownership that downstream work must
   reconcile without duplicating the canonical model.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumer.kt`
 and
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/{InvitationEmail.kt, event/*}`
 — current raw-token event and token-bearing notification payload boundary; DALLAY-565/566 concern.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/AdminAuditEvent.kt` and
   `R2dbcAdminAuditRepository.kt` — existing audit seam and missing first-class acceptance coverage.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/{domain,application,infrastructure,integration}/**`
 — current first-class and legacy tests; concurrency, lifecycle, audit, and security gaps.
+
 - `server/smp/src/test/resources/features/platform-admin.feature` — mixed acceptance/legacy feature;
   no dedicated canonical invitation feature.
 - `docs/architecture/adr/{0001,0002,0004,0005,0008,0015,0016,0017,0019}-*.md`,
   `docs/architecture/transaction-policy.md`, and `docs/architecture/data-model/README.md` — module,
   layer, CQRS, identity, DDD, transaction, schema, and cross-context ownership constraints.
 -
+
 `openspec/specs/{lead-capture-waitlist,registration,email-verification,email-notifications,iam}/spec.md`
 and `openspec/changes/private-beta-launch-readiness/**` — existing waitlist, registration,
 verification, email, acceptance, and evidence contracts.

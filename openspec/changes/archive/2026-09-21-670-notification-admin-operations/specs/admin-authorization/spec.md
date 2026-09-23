@@ -6,11 +6,15 @@
 
 (Rationale: REQ-PN-006)
 
-The permission registry MUST include `platform.notifications.read` key with description "Read notification delivery logs and status".
+The permission registry MUST include `platform.notifications.read` key with description "Read
+notification delivery logs and status".
 
-`OperatorAccessResolver` MUST grant `platform.notifications.read` to roles: OWNER, OPERATOR, AUDITOR.
+`OperatorAccessResolver` MUST grant `platform.notifications.read` to roles: OWNER, OPERATOR,
+AUDITOR.
 
-`GET /api/admin/notifications` and `GET /api/admin/notifications/{id}` endpoints MUST enforce `platform.notifications.read` permission via `@RequiresPlatformPermission("platform.notifications.read")` or equivalent infrastructure.
+`GET /api/admin/notifications` and `GET /api/admin/notifications/{id}` endpoints MUST enforce
+`platform.notifications.read` permission via
+`@RequiresPlatformPermission("platform.notifications.read")` or equivalent infrastructure.
 
 #### Scenario: AUDITOR can query notifications
 
@@ -36,11 +40,13 @@ GIVEN operator has role VIEWER (lacks platform.notifications.read)
 
 (Rationale: REQ-PN-007)
 
-The permission registry MUST include `platform.notifications.manage` key with description "Retry failed notifications".
+The permission registry MUST include `platform.notifications.manage` key with description "Retry
+failed notifications".
 
 `OperatorAccessResolver` MUST grant `platform.notifications.manage` to roles: OWNER, OPERATOR.
 
-`POST /api/admin/notifications/{id}/retry` endpoint MUST enforce `platform.notifications.manage` permission via `@RequiresPlatformPermission("platform.notifications.manage")`.
+`POST /api/admin/notifications/{id}/retry` endpoint MUST enforce `platform.notifications.manage`
+permission via `@RequiresPlatformPermission("platform.notifications.manage")`.
 
 #### Scenario: OPERATOR can retry eligible notifications
 
@@ -70,29 +76,29 @@ GIVEN operator has role AUDITOR (has read, lacks manage)
 
 The permission registry MUST include these 21 permissions:
 
-| Key | Description |
-|-----|-------------|
-| `platform.dashboard.read` | View platform dashboard metrics |
-| `platform.waitlist.read` | Read waitlist entries |
-| `platform.waitlist.invite` | Convert waitlist entries to invitations |
-| `platform.waitlist.cancel` | Cancel waitlist entries |
-| `platform.invitations.read` | Read invitations |
-| `platform.invitations.create` | Create direct invitations |
-| `platform.invitations.resend` | Resend existing invitations |
-| `platform.invitations.revoke` | Revoke active invitations |
-| `platform.users.read` | Read user profiles |
-| `platform.users.workspaces.read` | Read workspace membership for a user |
-| `platform.users.deactivate` | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
-| `platform.users.reactivate` | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
-| `platform.users.manage` | Disable/enable accounts and revoke sessions |
-| `platform.audit.read` | Read audit logs |
-| `platform.operators.read` | Read platform operator assignments |
-| `platform.operators.manage` | Create and revoke platform operator role assignments |
-| `platform.publishing.stale.read` | Read stale publishing job status |
-| `platform.configuration.read` | Read operational configuration (registration mode) |
-| `platform.configuration.write` | Write operational configuration (registration mode) |
-| **`platform.notifications.read`** | **Read notification delivery logs and status** |
-| **`platform.notifications.manage`** | **Retry failed notifications** |
+| Key                                 | Description                                                                                    |
+|-------------------------------------|------------------------------------------------------------------------------------------------|
+| `platform.dashboard.read`           | View platform dashboard metrics                                                                |
+| `platform.waitlist.read`            | Read waitlist entries                                                                          |
+| `platform.waitlist.invite`          | Convert waitlist entries to invitations                                                        |
+| `platform.waitlist.cancel`          | Cancel waitlist entries                                                                        |
+| `platform.invitations.read`         | Read invitations                                                                               |
+| `platform.invitations.create`       | Create direct invitations                                                                      |
+| `platform.invitations.resend`       | Resend existing invitations                                                                    |
+| `platform.invitations.revoke`       | Revoke active invitations                                                                      |
+| `platform.users.read`               | Read user profiles                                                                             |
+| `platform.users.workspaces.read`    | Read workspace membership for a user                                                           |
+| `platform.users.deactivate`         | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
+| `platform.users.reactivate`         | Retained registry key; no control endpoint enforces it (superseded by `platform.users.manage`) |
+| `platform.users.manage`             | Disable/enable accounts and revoke sessions                                                    |
+| `platform.audit.read`               | Read audit logs                                                                                |
+| `platform.operators.read`           | Read platform operator assignments                                                             |
+| `platform.operators.manage`         | Create and revoke platform operator role assignments                                           |
+| `platform.publishing.stale.read`    | Read stale publishing job status                                                               |
+| `platform.configuration.read`       | Read operational configuration (registration mode)                                             |
+| `platform.configuration.write`      | Write operational configuration (registration mode)                                            |
+| **`platform.notifications.read`**   | **Read notification delivery logs and status**                                                 |
+| **`platform.notifications.manage`** | **Retry failed notifications**                                                                 |
 
 #### Scenario: Permission registry includes notification permissions
 
@@ -111,10 +117,17 @@ GIVEN PlatformPermission enum is loaded
 
 `OperatorAccessResolver` role-permission mapping MUST include:
 
-- **OWNER**: all 21 permissions including `platform.notifications.read` and `platform.notifications.manage`
-- **OPERATOR**: all permissions EXCEPT `platform.operators.manage` (20 permissions including both notification permissions)
-- **AUDITOR**: `platform.dashboard.read`, `platform.waitlist.read`, `platform.invitations.read`, `platform.users.read`, `platform.users.workspaces.read`, `platform.audit.read`, `platform.operators.read`, `platform.publishing.stale.read`, `platform.configuration.read`, **`platform.notifications.read`**
-- **VIEWER**: `platform.dashboard.read`, `platform.waitlist.read`, `platform.invitations.read`, `platform.users.read`, `platform.users.workspaces.read`, `platform.configuration.read` (no notification permissions)
+- **OWNER**: all 21 permissions including `platform.notifications.read` and
+  `platform.notifications.manage`
+- **OPERATOR**: all permissions EXCEPT `platform.operators.manage` (20 permissions including both
+  notification permissions)
+- **AUDITOR**: `platform.dashboard.read`, `platform.waitlist.read`, `platform.invitations.read`,
+  `platform.users.read`, `platform.users.workspaces.read`, `platform.audit.read`,
+  `platform.operators.read`, `platform.publishing.stale.read`, `platform.configuration.read`, **
+  `platform.notifications.read`**
+- **VIEWER**: `platform.dashboard.read`, `platform.waitlist.read`, `platform.invitations.read`,
+  `platform.users.read`, `platform.users.workspaces.read`, `platform.configuration.read` (no
+  notification permissions)
 
 #### Scenario: OWNER has notification permissions
 
@@ -138,6 +151,9 @@ GIVEN operator has role AUDITOR
 
 ## Technical Notes
 
-- **Frontend Mirror**: Dashboard navigation must reflect `platform.notifications.read` for menu visibility and `platform.notifications.manage` for retry button enablement.
-- **Permission Check Infrastructure**: Existing `@RequiresPlatformPermission` annotation and `OperatorAccessResolver.requirePermission()` enforcement apply without modification.
-- **No Backend Role Management Changes**: Role assignment, revocation, and role-permission resolution logic unchanged; only permission registry and mapping tables extended.
+- **Frontend Mirror**: Dashboard navigation must reflect `platform.notifications.read` for menu
+  visibility and `platform.notifications.manage` for retry button enablement.
+- **Permission Check Infrastructure**: Existing `@RequiresPlatformPermission` annotation and
+  `OperatorAccessResolver.requirePermission()` enforcement apply without modification.
+- **No Backend Role Management Changes**: Role assignment, revocation, and role-permission
+  resolution logic unchanged; only permission registry and mapping tables extended.

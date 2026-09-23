@@ -43,12 +43,12 @@ revoked fixtures must include a code because status-only `410` maps to expired.
 
 ## Affected Areas
 
-| Area                                                    | Impact   | Description                              |
-|---------------------------------------------------------|----------|------------------------------------------|
-| `server/smp/src/test/resources/features`                | Modified | Four backend acceptance scenarios.       |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd` | Modified | Lifecycle and mutation assertions.       |
-| `apps/web/app/e2e/specs/invitee-private-beta.spec.ts`   | Modified | Three response-classification scenarios. |
-| `openspec/changes/.../qa-report.md`                     | Later    | Rerun missing scenario results.          |
+| Area                                                                | Impact   | Description                              |
+|---------------------------------------------------------------------|----------|------------------------------------------|
+| `../../../../server/smp/src/test/resources/features`                | Modified | Four backend acceptance scenarios.       |
+| `../../../../server/smp/src/test/kotlin/com/profiletailors/smp/bdd` | Modified | Lifecycle and mutation assertions.       |
+| `../../../../apps/web/app/e2e/specs/invitee-private-beta.spec.ts`   | Modified | Three response-classification scenarios. |
+| `openspec/changes/.../qa-report.md`                                 | Later    | Rerun missing scenario results.          |
 
 ## Risks
 

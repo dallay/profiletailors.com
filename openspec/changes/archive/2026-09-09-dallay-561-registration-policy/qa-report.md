@@ -91,8 +91,10 @@ Exact commands executed (all in `/Users/acosta/Dev/dallay/worktrees/clean-specs`
 throughout):
 
 1.
+
 `./gradlew -p server/smp test --tests "…RegistrationModeTest" --tests "…RegistrationConfigurationPropertiesTest" --tests "…PublicCapabilitiesHandlerTest" --tests "…PublicCapabilitiesControllerTest" --tests "…LocalAuthControllerTest" --tests "…IdentityProblemDetailsHandlerTest" --tests "…LocalAuthHandlersTest" --rerun-tasks` →
 **BUILD SUCCESSFUL**; XML totals: 58 tests, 0 failures, 0 errors, 0 skipped.
+
 2. `just backend-bdd-fast` → **BUILD SUCCESSFUL** (up-to-date; prior 10:56 run: 235 tests, 0
    failures).
 3. `./gradlew -p server/smp bddFastTest --no-build-cache --rerun-tasks -x detekt -x spotlessCheck` →
@@ -100,6 +102,7 @@ throughout):
    chunked" → `IllegalStateException: Timeout on blocking read for 15000000000 NANOSECONDS` at
    `BulkBddSteps.postBulkSchedule` (unrelated scheduling domain, load-induced).
 4.
+
 `CUCUMBER_FEATURES="classpath:features/bulk-scheduling.feature" ./gradlew -p server/smp bddFastTest --no-build-cache`
 (filter not honored by the suite runner; full suite re-executed) → **BUILD SUCCESSFUL in 8m 8s**;
 XML totals: 36 files, 235 tests, 0 failures, 0 errors, 0 skipped — transient failure cleared with no

@@ -160,13 +160,17 @@
   `BulkWorkspaceMismatchException` now extends `RuntimeException` (not `IllegalArgumentException`) →
   403 via `PublishingProblemDetailsHandler`, avoids generic 400 catch.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublicationCreationService.kt`:
 `BulkJobNotFoundException` now `RuntimeException` → 404.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/BulkPublishingController.kt`:
 `requireWorkspacePath` now wraps `requireWorkspaceContext()` exception →
 `BulkWorkspaceMismatchException` (403), path vs context mismatch → 403; `findByWorkspaceAndId`
 miss → 404 via handler.
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/SocialContentBddTestConfiguration.kt`:
   added `SocialConnectionStatus` import for `findFirstActiveByWorkspace`.
 
@@ -185,6 +189,7 @@ miss → 404 via handler.
 ### 5. R2dbc 1000-row chunk
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcBulkImportJobRepository.kt`:
 verified `saveRows` chunk 100 + handler chunk 50 → 20 tx for 1000 rows (10-20), batch inserts
 preserve order; BDD now proves via `bulk_import_rows=1000` count.

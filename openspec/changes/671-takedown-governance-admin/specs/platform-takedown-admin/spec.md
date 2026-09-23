@@ -15,7 +15,8 @@ that dimension.
 
 #### Scenario: Authorized list with filters
 
-- GIVEN OWNER, OPERATOR, or AUDITOR holds `platform.governance.read` and reports exist in two workspaces
+- GIVEN OWNER, OPERATOR, or AUDITOR holds `platform.governance.read` and reports exist in two
+  workspaces
 - WHEN they request a page filtered by `REPORTED` and one workspace id
 - THEN the response is 200 with only matching reports and pagination metadata
 

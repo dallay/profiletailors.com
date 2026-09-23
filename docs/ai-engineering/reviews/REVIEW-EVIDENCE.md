@@ -102,7 +102,7 @@ Verification review of the invitation registration flow change.
 
 ### Location
 
-**Verification report**: `openspec/archive/2026-09-20-dallay-567-invitation-registration-flow/verify-report.md`
+**Verification report**: `../../../openspec/changes/archive/2026-09-20-dallay-567-invitation-registration-flow`
 
 ### Implementation Reviewed
 

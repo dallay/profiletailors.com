@@ -83,9 +83,12 @@ Exact commands executed (all in `/root/workspace/dallay/profiletailors.com`):
 2. `pnpm --filter @profiletailors/admin type-check` (`vue-tsc --build`) → **clean, no errors**.
 3. `pnpm --filter @profiletailors/admin build` → **success** (vite build, all admin views emitted).
 4.
+
 `./gradlew :server:smp:test --tests "…UserControlHandlersTest" --tests "…UserControlIdempotencyServiceTest" --tests "…contracts.UserControlTelemetryTest" --tests "…http.AdminUserControllerTest" --no-daemon --console=plain` →
 **BUILD SUCCESSFUL in 1m 1s**; XML totals: 40 tests, 0 failures, 0 errors, 0 skipped.
+
 5.
+
 `./gradlew :server:smp:bddFastTest --no-daemon --console=plain --rerun-tasks -x :shared:common:test -x :shared:spring-boot-common:test` →
 **no result** (attempt 1: terminated after 10 min with zero output; attempt 2 relaunched with
 `cleanBddFastTest` in background: test worker died silently with no XML written). See F-1.

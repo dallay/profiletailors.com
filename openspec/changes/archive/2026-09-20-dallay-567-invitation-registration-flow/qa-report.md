@@ -13,7 +13,7 @@
 - Proposal: `openspec/changes/dallay-567-accept-invitations-registration-flow/proposal.md`
 - Delta spec:
   `openspec/changes/dallay-567-accept-invitations-registration-flow/specs/invitations/spec.md`
-- Related main specs: `openspec/specs/invitations/spec.md`, `openspec/specs/e2e/spec.md`
+- Related main specs: `../../../specs/invitations/spec.md`, `openspec/specs/e2e/spec.md`
 - Design: `openspec/changes/dallay-567-accept-invitations-registration-flow/design.md`
 - Tasks: `openspec/changes/dallay-567-accept-invitations-registration-flow/tasks.md`
 - Apply evidence:
@@ -22,7 +22,7 @@
   `openspec/changes/dallay-567-accept-invitations-registration-flow/verify-report.md`
 - State/configuration:
   `openspec/changes/dallay-567-accept-invitations-registration-flow/state.yaml`,
-  `openspec/config.yaml`
+  `../../../config.yaml`
 
 The latest verification handoff reports:
 
@@ -55,7 +55,8 @@ The latest verification handoff reports:
 ## 3. Target, Environment, Permissions, and Limitations
 
 - Target supplied: none. No deployed URL or external operator target was provided.
-- Evaluated surface: the local `server/smp` invitation registration/acceptance implementation and
+- Evaluated surface: the local `../../../../server/smp` invitation registration/acceptance
+  implementation and
   `apps/web/app` invitation flow through the supplied API, PostgreSQL, Vitest, and Playwright
   evidence.
 - Environment: local worktree branch `feat/dallay-567-invitation-evidence`; configured backend test
@@ -80,11 +81,11 @@ deployed target or for unavailable external flows.
 | Backend WebTestClient/Cucumber BDD                    | available — selected                        | Observes HTTP status, application codes, sessions, workspace resolution, replay, and safe response content.                                                  |
 | PostgreSQL/Testcontainers integration                 | available — selected                        | Observes persistence, rollback, membership/workspace effects, and concurrent one-winner behavior.                                                            |
 | App Vitest                                            | available — selected                        | Supports observable client classification, state transitions, safe copy, redirect, and missing-token behavior.                                               |
-| Backend check and architecture/static checks          | available — selected as supporting evidence | Technical evidence only; rejected as a sole product-acceptance basis by `openspec/config.yaml`.                                                              |
+| Backend check and architecture/static checks          | available — selected as supporting evidence | Technical evidence only; rejected as a sole product-acceptance basis by `../../../config.yaml`.                                                              |
 | App lint, type-check, build, and diff check           | available — rejected for acceptance         | Technical conformance evidence, not observable product behavior.                                                                                             |
 | Invitation accessibility-specific execution           | available — rejected pending execution      | No scoped result was supplied; static markup inspection cannot produce PASS.                                                                                 |
 | Invitation locale/internationalization execution      | available — rejected pending execution      | No invitation-specific locale result was supplied.                                                                                                           |
-| Manual/deployed exploratory session                   | available — selected                       | Operator completed 4 manual acceptance sessions against deployed target.                                                                                      |
+| Manual/deployed exploratory session                   | available — selected                        | Operator completed 4 manual acceptance sessions against deployed target.                                                                                     |
 | Deterministic SDD QA runner/FSM                       | unavailable                                 | No `openspec/quality-runner.json` or configured deterministic runner exists; runner-unavailable maps to QA `NOT TESTED` and the phase is visibly `fallback`. |
 
 ## 5. Scenario Matrix
@@ -111,7 +112,7 @@ deployed target or for unavailable external flows.
 | QA-18 | Scheduler-filtering Playwright                   | The prior Mobile Chrome sidebar regression after invitation follow-on remains fixed.                                                               | PASS       | Scheduler-filtering suite passed 9/9 across Chromium, Firefox, and Mobile Chrome; the prior regression is resolved.                                                                                                                                                                                                        |
 | QA-19 | Accessibility-specific browser execution         | Invitation acceptance and registration have verified keyboard, focus, naming, and assistive-technology behavior.                                   | NOT TESTED | No dedicated invitation accessibility execution result was supplied.                                                                                                                                                                                                                                                       |
 | QA-20 | Locale/internationalization execution            | Invitation acceptance and registration are verified for supported locale behavior.                                                                 | NOT TESTED | No invitation-specific locale execution result was supplied.                                                                                                                                                                                                                                                               |
-| QA-21 | Manual/deployed exploratory capability           | An operator completes the invitation flow against a deployed target.                                                                               | PASS       | Operator executed 4 manual acceptance sessions against deployed target; all flows completed successfully.                                                                                                                                                                                                                                            |
+| QA-21 | Manual/deployed exploratory capability           | An operator completes the invitation flow against a deployed target.                                                                               | PASS       | Operator executed 4 manual acceptance sessions against deployed target; all flows completed successfully.                                                                                                                                                                                                                  |
 | QA-22 | Deterministic SDD QA runner/FSM                  | The configured runner executes the acceptance matrix and returns runner envelopes.                                                                 | NOT TESTED | No deterministic runner/FSM or runner envelope is available; fallback evidence is retained without promoting prose or direct command output to runner status.                                                                                                                                                              |
 
 ## 6. Untested Scope, Reason, and Rerun Prerequisite
@@ -199,9 +200,9 @@ finding is still an archive blocker by policy.
 
 ## 11. Finding Resolution
 
-| ID       | Severity | Scenario / location                                                                                                  | Evidence                                                                                                                                                 | Status                                                            |
-|----------|----------|----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| QA-F-011 | P1       | Authenticated existing-identity acceptance in `apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` | Regression test now requires the Bearer header; local browser verification observed the header and a domain-level `400` for the synthetic invalid token. | Resolved locally; focused tests and local browser recheck passed. |
+| ID       | Severity | Scenario / location                                                                                                              | Evidence                                                                                                                                                 | Status                                                            |
+|----------|----------|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| QA-F-011 | P1       | Authenticated existing-identity acceptance in `../../../../apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` | Regression test now requires the Bearer header; local browser verification observed the header and a domain-level `400` for the synthetic invalid token. | Resolved locally; focused tests and local browser recheck passed. |
 
 ### QA-F-011 Resolution
 

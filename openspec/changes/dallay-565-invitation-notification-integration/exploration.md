@@ -183,15 +183,22 @@ None. The integration already exists and is functional. The exploration reveals 
 ### Files to Review for Transaction Safety
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/bus/SpringDomainEventPublisher.kt` —
 does NOT guarantee post-commit handoff
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationController.kt` —
 transactional boundary
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/notifications/infrastructure/email/SendInvitationEmailConsumer.kt` —
 idempotency and failure handling
+
 -
+
 `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationCreated.kt` —
 token exclusion from serialization
 

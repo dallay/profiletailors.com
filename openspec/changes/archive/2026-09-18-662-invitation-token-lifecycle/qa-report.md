@@ -75,8 +75,10 @@ Exact commands executed in this QA pass (all in `/root/workspace/dallay/profilet
 `main` post-merge):
 
 1.
+
 `./gradlew :server:smp:test --tests "...InvitationActivationCoordinatorTest" --tests "...InvitationAcceptanceControllerTest" --tests "...R2dbcInvitationRepositoryTest" --no-daemon --console=plain` →
 **BUILD SUCCESSFUL**; XML totals: 44 tests, 0 failures, 0 errors.
+
 2. `./gradlew :server:smp:detekt --no-daemon --console=plain` → **BUILD SUCCESSFUL**, 0 findings.
 3. `./gradlew :server:smp:spotlessCheck --no-daemon --console=plain` → **BUILD SUCCESSFUL**, clean.
 4. `pnpm --filter @profiletailors/admin test:run` (regression check, unrelated surface) → 10 files,
@@ -84,6 +86,7 @@ Exact commands executed in this QA pass (all in `/root/workspace/dallay/profilet
 5. `just backend-check` (full module, background) → **BUILD FAILED**, 2 failures outside this
    change's bounded context (see QA-09).
 6.
+
 `./gradlew :server:smp:test :server:smp:postgresIntegrationTest --tests "*LocalAuthEndpointIntegrationTest*" --tests "*WaitlistRateLimitIntegrationTest*" --rerun-tasks`
 (isolation rerun) → `LocalAuthEndpointIntegrationTest` 22/22 PASS;
 `WaitlistRateLimitIntegrationTest` intermittent (3/4 then re-verified 1 failure again on a second

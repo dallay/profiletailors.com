@@ -288,17 +288,24 @@ blocks documenting deleted params were removed with them. What remains in the fi
 
 ### Requirement: Elimination of Unused Parameter and Generic Catch Debt across Identity, Media, MCP, Authorization
 
-The system MUST NOT contain `@Suppress("UNUSED_PARAMETER")` in `AuthorizationProblemDetailsHandler.kt`,
-`UnsplashProblemDetailsHandler.kt`, `R2dbcPrincipalIdentityLookup.kt`, `R2dbcIdentityRegistrationGateway.kt`,
-or `PasswordResetTokenExceptions.kt`. The system MUST NOT contain `@Suppress("TooGenericExceptionCaught")`
-in `McpAuditEmitter.kt`. Handlers SHALL drop unused parameters or convert parameters to class properties,
-R2DBC mappers SHALL accept `Readable` without unused `RowMetadata`, and `McpAuditEmitter` SHALL catch
-`JsonProcessingException` and `IllegalArgumentException` instead of catching generic `RuntimeException`.
+The system MUST NOT contain `@Suppress("UNUSED_PARAMETER")` in
+`AuthorizationProblemDetailsHandler.kt`,
+`UnsplashProblemDetailsHandler.kt`, `R2dbcPrincipalIdentityLookup.kt`,
+`R2dbcIdentityRegistrationGateway.kt`,
+or `PasswordResetTokenExceptions.kt`. The system MUST NOT contain
+`@Suppress("TooGenericExceptionCaught")`
+in `McpAuditEmitter.kt`. Handlers SHALL drop unused parameters or convert parameters to class
+properties,
+R2DBC mappers SHALL accept `Readable` without unused `RowMetadata`, and `McpAuditEmitter` SHALL
+catch
+`JsonProcessingException` and `IllegalArgumentException` instead of catching generic
+`RuntimeException`.
 
 #### Scenario: All 6 target suppressions removed
 
 - GIVEN the applied changes across the 6 target files
-- WHEN grepping for `UNUSED_PARAMETER` in authorization, media http, identity infrastructure, and identity application, and `TooGenericExceptionCaught` in mcp
+- WHEN grepping for `UNUSED_PARAMETER` in authorization, media http, identity infrastructure, and
+  identity application, and `TooGenericExceptionCaught` in mcp
 - THEN zero `@Suppress` matches return across all 6 files
 
 #### Scenario: Static analysis and unit tests pass

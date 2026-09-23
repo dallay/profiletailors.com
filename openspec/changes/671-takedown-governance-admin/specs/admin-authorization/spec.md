@@ -9,10 +9,10 @@ The permission registry MUST add `platform.governance.read` and `platform.govern
 `platform.governance.read`. `SUPPORT_AGENT` MUST hold neither. Takedown governance MUST NOT reuse
 `platform.operators.read`.
 
-| Permission | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
-|------------|:-----:|:--------:|:-------------:|:-------:|
-| `platform.governance.read` | ✓ | ✓ | — | ✓ |
-| `platform.governance.manage` | ✓ | ✓ | — | — |
+| Permission                   | OWNER | OPERATOR | SUPPORT_AGENT | AUDITOR |
+|------------------------------|:-----:|:--------:|:-------------:|:-------:|
+| `platform.governance.read`   |  ✓   |    ✓    |       —       |   ✓    |
+| `platform.governance.manage` |  ✓   |    ✓    |       —       |    —    |
 
 #### Scenario: Registry includes governance keys
 
@@ -50,8 +50,8 @@ OPERATOR and AUDITOR read-only; SUPPORT_AGENT neither),
 OPERATOR both; SUPPORT_AGENT and AUDITOR read-only), and
 `platform.governance.read`/`platform.governance.manage` per the mapping above (OWNER and OPERATOR
 both; AUDITOR read-only; SUPPORT_AGENT neither). The system MUST NOT imply permissions the API does
-not enforce.
-(Previously: governance planned placeholder reused `platform.operators.read`; no governance keys.)
+not enforce. (Previously: governance planned placeholder reused `platform.operators.read`; no
+governance keys.)
 
 - GIVEN OWNER or OPERATOR session permissions, WHEN the frontend evaluates
   `hasPermission('platform.publishing.stale.read')`, THEN it returns true, matching the server map.
