@@ -21,8 +21,11 @@ class AnalyticsHandlersTest {
     @Test
     fun `overview handler delegates the workspace and date range`() = runTest {
         val repository = FakeAnalyticsRepository()
-        val handler = GetAnalyticsOverviewHandler(FixedResourceContextProvider("workspace-1"), repository,
-            membershipGate = mockk(relaxed = true))
+        val handler = GetAnalyticsOverviewHandler(
+            FixedResourceContextProvider("workspace-1"),
+            repository,
+            membershipGate = mockk(relaxed = true),
+        )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
 
         handler.handle(GetAnalyticsOverviewQuery(range.startDate, range.endDate))
@@ -36,10 +39,16 @@ class AnalyticsHandlersTest {
         val repository = FakeAnalyticsRepository()
         val context = FixedResourceContextProvider("workspace-1")
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
-        val postHandler = GetPostAnalyticsHandler(context, repository,
-            membershipGate = mockk(relaxed = true))
-        val exportHandler = ExportAnalyticsHandler(context, repository,
-            membershipGate = mockk(relaxed = true))
+        val postHandler = GetPostAnalyticsHandler(
+            context,
+            repository,
+            membershipGate = mockk(relaxed = true),
+        )
+        val exportHandler = ExportAnalyticsHandler(
+            context,
+            repository,
+            membershipGate = mockk(relaxed = true),
+        )
 
         postHandler.handle(GetPostAnalyticsQuery(range.startDate, range.endDate, page = 2, size = 10))
         val export = exportHandler.handle(ExportAnalyticsCommand(range.startDate, range.endDate))
@@ -54,8 +63,11 @@ class AnalyticsHandlersTest {
     fun `best times handler scopes the request to the workspace`() = runTest {
         val repository = FakeAnalyticsRepository()
 
-        GetBestTimesHandler(FixedResourceContextProvider("workspace-2"), repository,
-            membershipGate = mockk(relaxed = true))
+        GetBestTimesHandler(
+            FixedResourceContextProvider("workspace-2"),
+            repository,
+            membershipGate = mockk(relaxed = true),
+        )
             .handle(GetBestTimesQuery)
 
         assertEquals("workspace-2", repository.bestTimesWorkspace)
@@ -70,8 +82,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetAnalyticsOverviewHandler(context, repository,
-                    membershipGate = mockk(relaxed = true))
+                GetAnalyticsOverviewHandler(
+                    context,
+                    repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(GetAnalyticsOverviewQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
             }
         }
@@ -79,8 +94,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetPostAnalyticsHandler(context, repository,
-                    membershipGate = mockk(relaxed = true))
+                GetPostAnalyticsHandler(
+                    context,
+                    repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(GetPostAnalyticsQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"), 0, 20))
             }
         }
@@ -96,8 +114,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                ExportAnalyticsHandler(context, repository,
-                    membershipGate = mockk(relaxed = true))
+                ExportAnalyticsHandler(
+                    context,
+                    repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(ExportAnalyticsCommand(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
             }
         }

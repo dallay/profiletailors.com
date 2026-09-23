@@ -85,7 +85,8 @@ class SocialContentApplicationHandlersTest {
                         syncHandler = syncHandler(RecordingCheckpointRepository()),
                         clock = Clock.fixed(now, ZoneOffset.UTC),
                         featureGates = SocialContentFeatureGates(importEnabled = true),
-                        membershipGate = mockk(relaxed = true)),
+                        membershipGate = mockk(relaxed = true),
+                    ),
                     SocialContentPostQueryHandler(
                         resourceContextProvider = contextProvider,
                         reader = RecordingReader(null),
@@ -93,7 +94,8 @@ class SocialContentApplicationHandlersTest {
                     WorkspaceSocialContentCalendarQueryHandler(
                         resourceContextProvider = contextProvider,
                         calendarQueryHandler = SocialContentCalendarQueryHandler(RecordingReader(null)),
-                        membershipGate = mockk(relaxed = true)),
+                        membershipGate = mockk(relaxed = true),
+                    ),
                 ),
             ),
         ).build()
@@ -120,7 +122,8 @@ class SocialContentApplicationHandlersTest {
             syncHandler = syncHandler,
             clock = Clock.fixed(now, ZoneOffset.UTC),
             featureGates = SocialContentFeatureGates(importEnabled = true),
-            membershipGate = mockk(relaxed = true))
+            membershipGate = mockk(relaxed = true),
+        )
 
         val result = handler.handle(SocialContentSyncCommand(actor.id))
 
@@ -141,7 +144,8 @@ class SocialContentApplicationHandlersTest {
             syncHandler = syncHandler(RecordingCheckpointRepository()),
             clock = Clock.fixed(now, ZoneOffset.UTC),
             featureGates = SocialContentFeatureGates(importEnabled = true),
-            membershipGate = mockk(relaxed = true))
+            membershipGate = mockk(relaxed = true),
+        )
 
         val exception = shouldThrow<SocialContentActorNotFoundException> {
             handler.handle(SocialContentSyncCommand("missing-page"))
@@ -193,8 +197,11 @@ class SocialContentApplicationHandlersTest {
     fun `calendar wrapper derives workspace and preserves filters and opaque cursor`() = runTest {
         val reader = RecordingReader(null)
         val calendarHandler = SocialContentCalendarQueryHandler(reader)
-        val handler = WorkspaceSocialContentCalendarQueryHandler(contextProvider, calendarHandler,
-            membershipGate = mockk(relaxed = true))
+        val handler = WorkspaceSocialContentCalendarQueryHandler(
+            contextProvider,
+            calendarHandler,
+            membershipGate = mockk(relaxed = true),
+        )
         val from = now.minusSeconds(60)
         val to = now.plusSeconds(60)
         val cursor = PageCursor("opaque.cursor")

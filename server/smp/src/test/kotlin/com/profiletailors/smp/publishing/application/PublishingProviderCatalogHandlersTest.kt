@@ -133,7 +133,8 @@ class PublishingProviderCatalogHandlersTest {
                     canConnectMore = true,
                 )
             },
-            membershipGate = mockk(relaxed = true))
+            membershipGate = mockk(relaxed = true),
+        )
 
         val result = handler.handle(ListProviderCatalogQuery)
 

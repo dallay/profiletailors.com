@@ -137,9 +137,8 @@ class WorkspaceSocialContentCalendarQueryHandler(
                 limit = query.limit,
             ),
         )
-}
-
     }
+}
 
 typealias SocialContentCalendarRequest = WorkspaceSocialContentCalendarQuery
 

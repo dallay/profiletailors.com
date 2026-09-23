@@ -3,11 +3,11 @@ package com.profiletailors.smp.publishing.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
 import com.profiletailors.observability.emit
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary

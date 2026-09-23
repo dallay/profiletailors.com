@@ -180,7 +180,8 @@ class UnsplashMediaProviderHandlersTest {
             mediaRateLimitRepository = rateLimitRepository,
             mediaImportService = mediaImportService,
             settings = settings,
-            membershipGate = mockk(relaxed = true))
+            membershipGate = mockk(relaxed = true),
+        )
         return Fixture(handler, provider, repository, storage)
     }
 

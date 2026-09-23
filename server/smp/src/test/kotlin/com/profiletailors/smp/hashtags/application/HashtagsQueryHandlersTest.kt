@@ -59,7 +59,8 @@ class HashtagsQueryHandlersTest {
         val handler = ListHashtagSavedSetsHandler(
             FixedResourceContextProvider("workspace-1"),
             repository,
-            membershipGate = mockk(relaxed = true))
+            membershipGate = mockk(relaxed = true),
+        )
 
         val result = handler.handle(ListHashtagSavedSetsQuery(workspaceId = "ignored"))
 
@@ -93,7 +94,7 @@ class HashtagsQueryHandlersTest {
                 ListHashtagSavedSetsHandler(
                     FixedResourceContextProvider(null),
                     FakeSavedSetRepository(emptyList()),
-                    membershipGate = mockk(relaxed = true)
+                    membershipGate = mockk(relaxed = true),
                 ).handle(ListHashtagSavedSetsQuery("ignored"))
             }
         }
