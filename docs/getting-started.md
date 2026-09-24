@@ -1,6 +1,6 @@
 # Getting Started — Local Development Environment
 
-**Last Updated:** 2026-09-23
+**Last Updated:** 2026-09-24
 **Status:** Active
 
 ## Overview
@@ -91,7 +91,7 @@ just setup
     for marketing E2E, plus Chromium for dashboard and admin E2E.
 4. **Git hooks** — runs `just hooks-install` to install Lefthook (skipped if Git hooks are globally
     disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
-5. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations
+5. **AI agents** — runs `pnpm dlx @dallay/agentsync@latest apply` to synchronize AI agent configurations
     and instructions.
 6. **Optional local tooling** — runs `node scripts/setup-optional-tools.mjs` to bootstrap optional
          local tools.

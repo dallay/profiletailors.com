@@ -17,5 +17,5 @@ if (lefthook.status !== 0) {
   process.exit(0)
 }
 
-run('pnpm', ['dlx', '@dallay/agentsync', 'apply'])
+run('pnpm', ['dlx', '@dallay/agentsync@latest', 'apply'])
 process.exit(0)

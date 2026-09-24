@@ -543,7 +543,7 @@ surfaces or the user asks for full validation. Never skip a failing test to obta
 - **`shared/web`:** run its Vitest suite plus checks/builds for both marketing and dashboard
   consumers; include admin when its contract is consumed there.
 - **Docs/agent-only:** validate links and formatting, inspect the exact diff, and run
-  `pnpm dlx @dallay/agentsync status` when canonical agent files change. Do not claim product or
+  `pnpm dlx @dallay/agentsync@latest status` when canonical agent files change. Do not claim product or
   runtime validation from a docs-only check.
 
 ### Agent Definition of Done

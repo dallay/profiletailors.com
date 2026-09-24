@@ -93,7 +93,7 @@ setup:
     just install
     just playwright-install
     just hooks-install
-    pnpm dlx @dallay/agentsync apply
+    pnpm dlx @dallay/agentsync@latest apply
     node scripts/setup-optional-tools.mjs
 
 # Install Lefthook git hooks unless globally disabled

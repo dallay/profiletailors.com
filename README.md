@@ -105,7 +105,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 - install the Chromium, Firefox, and WebKit binaries required by marketing E2E plus Chromium for app
   and admin E2E,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
-- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
+- apply AI agent configurations with `pnpm dlx @dallay/agentsync@latest apply`.
 - run optional local tooling setup via `node scripts/setup-optional-tools.mjs`.
 
 #### 3) Start local development
