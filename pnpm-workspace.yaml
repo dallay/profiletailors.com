@@ -16,7 +16,7 @@ allowBuilds:
   workerd: true
 
 overrides:
-  fast-uri: '3.1.8'
+  fast-uri: '4.2.1'
 
 minimumReleaseAgeExclude:
   - 'fast-uri@3.1.6'
