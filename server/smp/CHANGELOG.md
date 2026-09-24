@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.7](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.6...smp@v0.5.7) (2026-09-24)
+
+
+### Bug Fixes
+
+* **security:** harden proxy and cross-tenant authorization ([#1149](https://github.com/dallay/profiletailors.com/issues/1149)) ([b233d14](https://github.com/dallay/profiletailors.com/commit/b233d143d250d1bbb0d3511d4cd5d66cfc3d4ab8))
+
+
+### Documentation
+
+* **architecture:** bump Last Updated date in 02-container.md ([b233d14](https://github.com/dallay/profiletailors.com/commit/b233d143d250d1bbb0d3511d4cd5d66cfc3d4ab8))
+* unwrap dead private-beta-launch-readiness links to plain text ([b233d14](https://github.com/dallay/profiletailors.com/commit/b233d143d250d1bbb0d3511d4cd5d66cfc3d4ab8))
+
 ## [0.5.6](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.5...smp@v0.5.6) (2026-09-22)
 
 
