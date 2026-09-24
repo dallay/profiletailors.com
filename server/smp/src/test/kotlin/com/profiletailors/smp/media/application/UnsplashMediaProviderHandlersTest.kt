@@ -1,5 +1,7 @@
 package com.profiletailors.smp.media.application
 
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.media.domain.MediaAsset
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -140,12 +142,28 @@ class UnsplashMediaProviderHandlersTest {
         coVerify(exactly = 0) { fixture.storage.upload(any(), any(), any(), any(), any()) }
     }
 
+    @Test
+    fun `import denies without active membership before touching provider or storage`() = runTest {
+        val denyingGate = mockk<WorkspaceMembershipGate>()
+        coEvery { denyingGate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        val fixture = fixture(flowOf(byteArrayOf(1, 2, 3)), gate = denyingGate)
+
+        shouldThrow<AuthorizationDeniedException> {
+            fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+        }
+
+        coVerify(exactly = 0) { fixture.provider.get(any()) }
+        coVerify(exactly = 0) { fixture.repository.create(any()) }
+        coVerify(exactly = 0) { fixture.storage.upload(any(), any(), any(), any(), any()) }
+    }
+
     private fun fixture(
         content: Flow<ByteArray>,
         maxFileSizeBytes: Long = 1024,
         rateLimitAllowed: Boolean = true,
         assetPreviewUrlResolver: AssetPreviewUrlResolver =
             AssetPreviewUrlResolver { assetId, _, _, _, _ -> "/preview/$assetId" },
+        gate: WorkspaceMembershipGate = mockk(relaxed = true),
     ): Fixture {
         val provider = mockk<UnsplashPhotoProvider>()
         val repository = mockk<MediaAssetRepository>()
@@ -180,7 +198,7 @@ class UnsplashMediaProviderHandlersTest {
             mediaRateLimitRepository = rateLimitRepository,
             mediaImportService = mediaImportService,
             settings = settings,
-            membershipGate = mockk(relaxed = true),
+            membershipGate = gate,
         )
         return Fixture(handler, provider, repository, storage)
     }

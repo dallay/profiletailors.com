@@ -3,12 +3,15 @@ package com.profiletailors.smp.hashtags.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.hashtags.domain.HashtagAnalysis
 import com.profiletailors.smp.hashtags.domain.HashtagAnalyzer
 import com.profiletailors.smp.hashtags.domain.HashtagPopularity
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipOperationRequiresWorkspaceContextException
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -98,6 +101,29 @@ class HashtagsQueryHandlersTest {
                 ).handle(ListHashtagSavedSetsQuery("ignored"))
             }
         }
+    }
+
+    @Test
+    fun `saved-set query denies without active membership`() = runTest {
+        val repository = FakeSavedSetRepository(
+            listOf(savedSet("workspace-1", "set-1")),
+        )
+        val handler = ListHashtagSavedSetsHandler(
+            FixedResourceContextProvider("workspace-1"),
+            repository,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(ListHashtagSavedSetsQuery(workspaceId = "ignored")) }
+        }
+        assertEquals(emptyList<String>(), repository.requestedWorkspaces)
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private fun suggestion(hashtag: String, popularity: HashtagPopularity) =

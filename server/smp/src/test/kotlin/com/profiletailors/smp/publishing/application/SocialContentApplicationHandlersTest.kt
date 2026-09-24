@@ -8,6 +8,8 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.publishing.domain.ActorRoleState
 import com.profiletailors.smp.publishing.domain.DefaultCapabilityResolver
 import com.profiletailors.smp.publishing.domain.ExternalPostId
@@ -33,6 +35,7 @@ import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import com.profiletailors.smp.publishing.infrastructure.fake.FakeSocialContentPostRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -225,6 +228,44 @@ class SocialContentApplicationHandlersTest {
             cursor = cursor,
             limit = 25,
         )
+    }
+
+    @Test
+    fun `sync denies without active membership before touching actor storage`() = runTest {
+        val handler = SocialContentSyncCommandHandler(
+            resourceContextProvider = contextProvider,
+            membershipGate = denyingGate(),
+        )
+
+        shouldThrow<AuthorizationDeniedException> {
+            handler.handle(SocialContentSyncCommand(actor.id))
+        }
+    }
+
+    @Test
+    fun `calendar denies without active membership before reading posts`() = runTest {
+        val reader = RecordingReader(null)
+        val handler = WorkspaceSocialContentCalendarQueryHandler(
+            contextProvider,
+            SocialContentCalendarQueryHandler(reader),
+            membershipGate = denyingGate(),
+        )
+
+        shouldThrow<AuthorizationDeniedException> {
+            handler.handle(
+                WorkspaceSocialContentCalendarQuery(
+                    from = now.minusSeconds(60),
+                    to = now.plusSeconds(60),
+                ),
+            )
+        }
+        reader.queries shouldBe emptyList()
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private fun syncHandler(checkpointRepository: RecordingCheckpointRepository): SocialContentSyncHandler {

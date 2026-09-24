@@ -9,6 +9,8 @@ import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.ideas.domain.Idea
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfig
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfigRepository
@@ -24,6 +26,7 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipOperationRequiresWorkspaceContextException
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -347,6 +350,110 @@ class IdeasCommandHandlersTest {
         val response = handler.handle(UpdateColumnsCommand(listOf(IdeaColumn("done", "Done", order = 4))))
         assertEquals("done", response.columns.single().id)
         assertEquals("done", ideas.updated.last().columnId)
+    }
+
+    @Test
+    fun `create handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository()
+        val handler = CreateIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            ideas,
+            FakeBoardRepository(),
+            clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(CreateIdeaCommand(title = "Denied")) }
+        }
+        assertEquals(true, ideas.created.isEmpty())
+    }
+
+    @Test
+    fun `update handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
+        val handler = UpdateIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            ideas,
+            clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(UpdateIdeaCommand("idea-1", title = "Denied")) }
+        }
+        assertEquals(true, ideas.updated.isEmpty())
+    }
+
+    @Test
+    fun `move handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 1)))
+        val handler = MoveIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            ideas,
+            clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(MoveIdeaCommand("idea-1", "done", 0)) }
+        }
+        assertEquals(true, ideas.updated.isEmpty())
+    }
+
+    @Test
+    fun `delete handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
+        val handler = DeleteIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            ideas,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(DeleteIdeaCommand("idea-1")) }
+        }
+    }
+
+    @Test
+    fun `convert handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
+        val handler = ConvertIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            ideas,
+            CapturingMediator(ConnectedChannelsResponse(emptyList())),
+            clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(ConvertIdeaCommand("idea-1")) }
+        }
+        assertEquals(true, ideas.updated.isEmpty())
+    }
+
+    @Test
+    fun `update columns handler denies without active membership`() = runTest {
+        val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
+        val handler = UpdateColumnsHandler(
+            FixedResourceContextProvider(workspaceId),
+            FakeBoardRepository(),
+            ideas,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(UpdateColumnsCommand(listOf(IdeaColumn("done", "Done", order = 1))))
+            }
+        }
+        assertEquals(true, ideas.updated.isEmpty())
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     @Test

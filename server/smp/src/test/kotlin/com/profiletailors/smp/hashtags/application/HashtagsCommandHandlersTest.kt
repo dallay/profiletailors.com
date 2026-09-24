@@ -3,8 +3,11 @@ package com.profiletailors.smp.hashtags.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -62,6 +65,41 @@ class HashtagsCommandHandlersTest {
         assertThrows(HashtagSavedSetNotFoundException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(DeleteHashtagSetCommand("missing")) }
         }
+    }
+
+    @Test
+    fun `save handler denies without active membership`() = runTest {
+        val freshRepository = FakeRepository()
+        val handler = SaveHashtagSetHandler(
+            context,
+            freshRepository,
+            clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(SaveHashtagSetCommand("Set", listOf("#tag"))) }
+        }
+        assertEquals(true, freshRepository.created.isEmpty())
+    }
+
+    @Test
+    fun `delete handler denies without active membership`() = runTest {
+        val handler = DeleteHashtagSetHandler(
+            context,
+            repository,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(DeleteHashtagSetCommand("set-1")) }
+        }
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {

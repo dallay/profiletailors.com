@@ -3,12 +3,15 @@ package com.profiletailors.smp.ideas.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.ideas.domain.Idea
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfig
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfigRepository
 import com.profiletailors.smp.ideas.domain.IdeaColumn
 import com.profiletailors.smp.ideas.domain.IdeaRepository
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipOperationRequiresWorkspaceContextException
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -110,6 +113,57 @@ class IdeasQueryHandlersTest {
                 ).handle(GetColumnsQuery)
             }
         }
+    }
+
+    @Test
+    fun `list handler denies without active membership`() = runTest {
+        val repository = FakeIdeaRepository(
+            listOf(idea("idea-1", columnId = "raw", order = 0)),
+        )
+        val handler = ListIdeasHandler(
+            FixedResourceContextProvider(workspaceId),
+            repository,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(ListIdeasQuery) }
+        }
+        assertEquals(emptyList<String>(), repository.listedWorkspaces)
+    }
+
+    @Test
+    fun `get handler denies without active membership`() = runTest {
+        val repository = FakeIdeaRepository(listOf(idea("idea-1", columnId = "raw", order = 0)))
+        val handler = GetIdeaHandler(
+            FixedResourceContextProvider(workspaceId),
+            repository,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(GetIdeaQuery("idea-1")) }
+        }
+        assertEquals(emptyList<String>(), repository.lookedUpWorkspaces)
+    }
+
+    @Test
+    fun `columns handler denies without active membership`() = runTest {
+        val handler = GetColumnsHandler(
+            FixedResourceContextProvider(workspaceId),
+            FakeBoardRepository(),
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(GetColumnsQuery) }
+        }
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private fun idea(id: String, columnId: String, order: Int) = Idea(
