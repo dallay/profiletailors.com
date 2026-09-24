@@ -3,6 +3,7 @@ package com.profiletailors.smp.hashtags.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.hashtags.domain.HashtagAnalyzer
 import com.profiletailors.smp.hashtags.domain.HashtagPopularity
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
@@ -36,9 +37,11 @@ internal class GetTrendingHashtagsHandler(private val hashtagAnalysis: HashtagAn
 internal class ListHashtagSavedSetsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val repository: HashtagSavedSetRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<ListHashtagSavedSetsQuery, HashtagSavedSetsResult> {
     override suspend fun handle(query: ListHashtagSavedSetsQuery): HashtagSavedSetsResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val sets = repository.listByWorkspace(workspaceId)
         return HashtagSavedSetsResult(sets.map { it.toResult() })
     }

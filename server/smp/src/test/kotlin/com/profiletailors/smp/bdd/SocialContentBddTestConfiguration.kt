@@ -1,6 +1,7 @@
 package com.profiletailors.smp.bdd
 
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.application.SocialContentSyncCommandHandler
 import com.profiletailors.smp.publishing.application.SocialContentSyncHandler
 import com.profiletailors.smp.publishing.domain.ActorRoleState
@@ -67,12 +68,14 @@ class SocialContentBddTestConfiguration {
         syncHandler: SocialContentSyncHandler,
         @Qualifier("socialContentFeatureGates") featureGates: SocialContentFeatureGates,
         @Qualifier("socialContentAccountRepository") socialAccountRepository: SocialAccountRepository,
+        membershipGate: WorkspaceMembershipGate,
     ): SocialContentSyncCommandHandler = SocialContentSyncCommandHandler(
         resourceContextProvider = resourceContextProvider,
         actorRepository = actorRepository,
         syncHandler = syncHandler,
         featureGates = featureGates,
         socialAccountRepository = socialAccountRepository,
+        membershipGate = membershipGate,
     )
 
     @Bean

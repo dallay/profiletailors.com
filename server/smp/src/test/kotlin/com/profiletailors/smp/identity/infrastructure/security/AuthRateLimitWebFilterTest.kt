@@ -1,8 +1,16 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.smp.credentials.application.ActiveRefreshSession
+import com.profiletailors.smp.credentials.application.CreatedRefreshSession
+import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
+import com.profiletailors.smp.credentials.application.RefreshSessionGateway
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
+import com.profiletailors.smp.credentials.application.RefreshSessionProperties
+import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpCookie
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
@@ -21,7 +29,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `allows non-auth endpoints without counting`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/media/assets").build())
         var chainInvoked = false
 
@@ -38,7 +46,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `returns 429 after exceeding login rate limit`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.10", 0)
 
@@ -65,7 +73,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `limits waitlist joins per IP`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.44", 0)
 
@@ -90,8 +98,150 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
+    fun `should return 429 when anonymous proxy requests exceed ten per minute`() {
+        val filter = testFilter()
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.77", 0)
+
+        repeat(10) {
+            val exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/media/proxy?url=https://media.licdn.com/media/test.jpg")
+                    .remoteAddress(remoteAddress)
+                    .build(),
+            )
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = MockServerWebExchange.from(
+            MockServerHttpRequest.get("/api/media/proxy?url=https://media.licdn.com/media/test.jpg")
+                .remoteAddress(remoteAddress)
+                .build(),
+        )
+        filter.filter(blocked, chain).block()
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        blocked.response.headers.getFirst("Retry-After") shouldNotBe null
+    }
+
+    @Test
+    fun `should grant 120 requests when proxy session is valid`() {
+        val filter = testFilter(FakeRefreshSessionGateway(mapOf("k1.s1" to activeSession("principal-a"))))
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.78", 0)
+
+        repeat(120) {
+            val exchange = proxyExchange(remoteAddress, "k1.s1")
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = proxyExchange(remoteAddress, "k1.s1")
+        filter.filter(blocked, chain).block()
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+    }
+
+    @Test
+    fun `should isolate proxy session budgets by principal`() {
+        val filter = testFilter(
+            FakeRefreshSessionGateway(
+                mapOf(
+                    "k1.s1" to activeSession("principal-a"),
+                    "k2.s2" to activeSession("principal-b"),
+                ),
+            ),
+        )
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.79", 0)
+
+        repeat(120) {
+            val exchange = proxyExchange(remoteAddress, "k1.s1")
+            filter.filter(exchange, chain).block()
+        }
+        val exhausted = proxyExchange(remoteAddress, "k1.s1")
+        filter.filter(exhausted, chain).block()
+        exhausted.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+
+        val other = proxyExchange(remoteAddress, "k2.s2")
+        filter.filter(other, chain).block()
+        other.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+    }
+
+    @Test
+    fun `should fall back to strict bucket when proxy cookie is forged`() {
+        val filter = testFilter(FakeRefreshSessionGateway())
+        val chain = WebFilterChain { Mono.empty() }
+        val remoteAddress = InetSocketAddress("203.0.113.80", 0)
+
+        repeat(10) {
+            val exchange = proxyExchange(remoteAddress, "forged.forged")
+            filter.filter(exchange, chain).block()
+            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
+        }
+
+        val blocked = proxyExchange(remoteAddress, "forged.forged")
+        filter.filter(blocked, chain).block()
+        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+    }
+
+    private fun proxyExchange(remoteAddress: InetSocketAddress, cookieValue: String?): MockServerWebExchange {
+        val request = MockServerHttpRequest.get("/api/media/proxy?url=https://media.licdn.com/media/test.jpg")
+            .remoteAddress(remoteAddress)
+        if (cookieValue != null) request.cookie(HttpCookie("pt_refresh", cookieValue))
+        return MockServerWebExchange.from(request.build())
+    }
+
+    private fun activeSession(principalId: String): ActiveRefreshSession = ActiveRefreshSession(
+        id = "session-$principalId",
+        principalId = principalId,
+        lookupKey = "k-$principalId",
+        tokenVerifier = "verifier",
+        expiresAt = Instant.now().plusSeconds(3600),
+        createdAt = Instant.now(),
+        lastUsedAt = null,
+    )
+
+    private class FakeRefreshSessionGateway(private val sessions: Map<String, ActiveRefreshSession> = emptyMap()) :
+        RefreshSessionGateway {
+        override suspend fun create(
+            principalId: String,
+            refreshToken: RefreshSessionToken,
+            expiresAt: Instant,
+        ): CreatedRefreshSession = throw UnsupportedOperationException()
+
+        override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
+            sessions["${refreshToken.lookupKey}.${refreshToken.secret}"]
+                ?: throw RefreshSessionNotActiveException(
+                    lookupKey = refreshToken.lookupKey,
+                    reason = RefreshSessionFailureReason.MISSING,
+                )
+
+        override suspend fun rotate(
+            currentSessionId: String,
+            replacementToken: RefreshSessionToken,
+            expiresAt: Instant,
+            now: Instant,
+        ): CreatedRefreshSession = throw UnsupportedOperationException()
+
+        override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
+    }
+
+    private fun testProperties(): RefreshSessionProperties = RefreshSessionProperties(
+        cookieName = "pt_refresh",
+        cookiePath = "/api",
+        sameSite = "Lax",
+        secure = true,
+        ttlSeconds = 604_800,
+    )
+
+    private fun testFilter(
+        gateway: RefreshSessionGateway = FakeRefreshSessionGateway(),
+        clock: Clock = Clock.systemUTC(),
+        maxTrackedWindows: Int = 4_096,
+    ): AuthRateLimitWebFilter = AuthRateLimitWebFilter(clock, maxTrackedWindows, gateway, testProperties())
+
+    @Test
     fun `forgot password uses five request IP bucket and coded problem detail`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.11", 0)
 
@@ -114,7 +264,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `reset password uses ten attempt IP bucket`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.12", 0)
 
@@ -146,7 +296,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `does not let spoofed forwarded for headers bypass login rate limit`() {
-        val filter = AuthRateLimitWebFilter()
+        val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.10", 0)
 
@@ -176,7 +326,7 @@ class AuthRateLimitWebFilterTest {
     fun `rejects new identifiers when active windows reach capacity`() {
         val baseline = Instant.parse("2026-07-01T00:00:00Z")
         val clock = MutableClock(baseline)
-        val filter = AuthRateLimitWebFilter(clock, maxTrackedWindows = 2)
+        val filter = testFilter(clock = clock, maxTrackedWindows = 2)
         val chain = WebFilterChain { Mono.empty() }
 
         repeat(2) { index ->
@@ -212,7 +362,7 @@ class AuthRateLimitWebFilterTest {
 
     @Test
     fun `serializes admission when concurrent identifiers reach capacity`() {
-        val filter = AuthRateLimitWebFilter(maxTrackedWindows = 2)
+        val filter = testFilter(maxTrackedWindows = 2)
         val admitted = AtomicInteger()
         val chain = WebFilterChain {
             admitted.incrementAndGet()
@@ -248,7 +398,7 @@ class AuthRateLimitWebFilterTest {
     fun `evicts stale windows when the bounded map reaches its capacity`() {
         val baseline = Instant.parse("2026-07-01T00:00:00Z")
         val clock = MutableClock(baseline)
-        val filter = AuthRateLimitWebFilter(clock, maxTrackedWindows = MAX_TRACKED_WINDOWS_FOR_TEST)
+        val filter = testFilter(clock = clock, maxTrackedWindows = MAX_TRACKED_WINDOWS_FOR_TEST)
         val chain = WebFilterChain { Mono.empty() }
 
         repeat(MAX_TRACKED_WINDOWS_FOR_TEST) { index ->
@@ -278,7 +428,7 @@ class AuthRateLimitWebFilterTest {
     private fun assertPasswordRecoveryWindowExpires(path: String, maxRequests: Int) {
         val baseline = Instant.parse("2026-07-01T00:00:00Z")
         val clock = MutableClock(baseline)
-        val filter = AuthRateLimitWebFilter(clock)
+        val filter = testFilter(clock = clock)
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.20", 0)
         fun exchange() = MockServerWebExchange.from(

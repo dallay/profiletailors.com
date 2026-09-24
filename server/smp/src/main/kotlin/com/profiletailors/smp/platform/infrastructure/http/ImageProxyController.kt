@@ -3,6 +3,7 @@ package com.profiletailors.smp.platform.infrastructure.http
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.CacheControl
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,6 +24,16 @@ class ImageProxyController(private val webClient: WebClient) {
         private val CACHE_DURATION = Duration.ofMinutes(30)
     }
 
+    internal val allowedHosts = setOf(
+        "media.licdn.com",
+        "pbs.twimg.com",
+        "platform-lookaside.fbsbx.com",
+        "scontent.xx.fbcdn.net",
+        "instagram.fbog1-1.fna.fbcdn.net",
+    )
+
+    internal val allowedProxiedContentSubtypes = setOf("jpeg", "png", "gif")
+
     private fun validateUrl(url: String): URI? {
         val uri = try {
             URI.create(url)
@@ -32,14 +43,6 @@ class ImageProxyController(private val webClient: WebClient) {
         val host = uri.host?.lowercase()
         return if (uri.scheme == "https" && host != null && host in allowedHosts) uri else null
     }
-
-    internal val allowedHosts = setOf(
-        "media.licdn.com",
-        "pbs.twimg.com",
-        "platform-lookaside.fbsbx.com",
-        "scontent.xx.fbcdn.net",
-        "instagram.fbog1-1.fna.fbcdn.net",
-    )
 
     @Operation(summary = "Proxy external image to bypass browser ad-blocker restrictions")
     @GetMapping("/proxy")
@@ -55,7 +58,12 @@ class ImageProxyController(private val webClient: WebClient) {
 
             val upstreamHeaders = upstream.headers
             val upstreamContentType = upstreamHeaders.contentType
-                ?: MediaType.APPLICATION_OCTET_STREAM
+            if (upstreamContentType == null ||
+                upstreamContentType.type != "image" ||
+                upstreamContentType.subtype !in allowedProxiedContentSubtypes
+            ) {
+                return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()
+            }
 
             ResponseEntity.ok()
                 .contentType(upstreamContentType)

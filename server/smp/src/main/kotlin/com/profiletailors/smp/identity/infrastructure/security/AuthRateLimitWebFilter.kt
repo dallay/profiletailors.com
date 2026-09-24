@@ -1,5 +1,10 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.smp.credentials.application.RefreshSessionGateway
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
+import com.profiletailors.smp.credentials.application.RefreshSessionProperties
+import com.profiletailors.smp.credentials.application.RefreshSessionToken
+import kotlinx.coroutines.reactor.mono
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
@@ -14,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Lightweight in-process rate limit for authentication and waitlist endpoints.
+ * Lightweight in-process rate limit for authentication, waitlist and media-proxy endpoints.
  *
  * Prevents credential stuffing / brute-force against login, register, refresh,
  * resend-verification, verify-email, and mass waitlist spam. Limits are per remote socket address.
@@ -37,6 +42,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class AuthRateLimitWebFilter internal constructor(
     private val clock: Clock = Clock.systemUTC(),
     private val maxTrackedWindows: Int = MAX_TRACKED_WINDOWS,
+    private val refreshSessionGateway: RefreshSessionGateway,
+    private val sessionProperties: RefreshSessionProperties,
 ) : WebFilter {
 
     private val windows = ConcurrentHashMap<String, Window>()
@@ -44,12 +51,23 @@ class AuthRateLimitWebFilter internal constructor(
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val path = exchange.request.path.pathWithinApplication().value().trimEnd('/')
+        if (isProxyEndpoint(path)) {
+            return mono { admitProxy(exchange, chain) }.flatMap { it }
+        }
         if (!isAuthEndpoint(path) && !isWaitlistEndpoint(path)) {
             return chain.filter(exchange)
         }
 
         val policy = policyFor(path)
-        val identifier = "${policy.bucket}:${clientIdentifier(exchange)}"
+        return admit(policy, "${policy.bucket}:${clientIdentifier(exchange)}", exchange, chain)
+    }
+
+    private fun admit(
+        policy: Policy,
+        identifier: String,
+        exchange: ServerWebExchange,
+        chain: WebFilterChain,
+    ): Mono<Void> {
         val now = currentTimeMillis()
         val admission = synchronized(admissionLock) {
             if (windows.size >= maxTrackedWindows) {
@@ -96,6 +114,40 @@ class AuthRateLimitWebFilter internal constructor(
 
     private fun isWaitlistEndpoint(path: String): Boolean =
         path == WAITLIST_PREFIX || path.startsWith("$WAITLIST_PREFIX/")
+
+    private fun isProxyEndpoint(path: String): Boolean = path == MEDIA_PROXY_PATH
+
+    private suspend fun admitProxy(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val principalId = resolveProxyPrincipal(exchange)
+        return if (principalId != null) {
+            admit(
+                Policy(PROXY_SESSION_BUCKET, PROXY_SESSION_MAX_REQUESTS, WINDOW_MS),
+                "$PROXY_SESSION_BUCKET:$principalId",
+                exchange,
+                chain,
+            )
+        } else {
+            admit(
+                Policy(PROXY_ANON_BUCKET, PROXY_ANON_MAX_REQUESTS, WINDOW_MS),
+                "$PROXY_ANON_BUCKET:${clientIdentifier(exchange)}",
+                exchange,
+                chain,
+            )
+        }
+    }
+
+    private suspend fun resolveProxyPrincipal(exchange: ServerWebExchange): String? {
+        val raw = exchange.request.cookies.getFirst(sessionProperties.cookieName)?.value ?: return null
+        val separator = raw.indexOf('.')
+        if (separator <= 0 || separator == raw.lastIndex) return null
+        val token = RefreshSessionToken(raw.substring(0, separator), raw.substring(separator + 1))
+        if (token.lookupKey.isBlank() || token.secret.isBlank()) return null
+        return try {
+            refreshSessionGateway.requireActive(token, clock.instant()).principalId
+        } catch (ignored: RefreshSessionNotActiveException) {
+            null
+        }
+    }
 
     private fun clientIdentifier(exchange: ServerWebExchange): String {
         val remote = exchange.request.remoteAddress?.address?.hostAddress
@@ -165,6 +217,11 @@ class AuthRateLimitWebFilter internal constructor(
         const val WAITLIST_MAX_REQUESTS = 10
         const val WAITLIST_BUCKET = "waitlist-ip"
         const val WAITLIST_PREFIX = "/api/waitlists"
+        const val PROXY_SESSION_BUCKET = "proxy-session"
+        const val PROXY_SESSION_MAX_REQUESTS = 120
+        const val PROXY_ANON_BUCKET = "proxy-ip"
+        const val PROXY_ANON_MAX_REQUESTS = 10
+        const val MEDIA_PROXY_PATH = "/api/media/proxy"
         const val WINDOW_MS = 60_000L
         const val FIFTEEN_MINUTES_MS = 15 * 60_000L
         const val PASSWORD_RESET_REQUEST_MAX_REQUESTS = 5

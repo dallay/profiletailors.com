@@ -10,7 +10,11 @@ import com.profiletailors.smp.analytics.domain.DailyMetric
 import com.profiletailors.smp.analytics.domain.DateRange
 import com.profiletailors.smp.analytics.domain.PostAnalyticsList
 import com.profiletailors.smp.analytics.domain.PostAnalyticsSummary
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipOperationRequiresWorkspaceContextException
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -20,7 +24,11 @@ class AnalyticsHandlersTest {
     @Test
     fun `overview handler delegates the workspace and date range`() = runTest {
         val repository = FakeAnalyticsRepository()
-        val handler = GetAnalyticsOverviewHandler(FixedResourceContextProvider("workspace-1"), repository)
+        val handler = GetAnalyticsOverviewHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
+            membershipGate = mockk(relaxed = true),
+        )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
 
         handler.handle(GetAnalyticsOverviewQuery(range.startDate, range.endDate))
@@ -34,8 +42,16 @@ class AnalyticsHandlersTest {
         val repository = FakeAnalyticsRepository()
         val context = FixedResourceContextProvider("workspace-1")
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
-        val postHandler = GetPostAnalyticsHandler(context, repository)
-        val exportHandler = ExportAnalyticsHandler(context, repository)
+        val postHandler = GetPostAnalyticsHandler(
+            resourceContextProvider = context,
+            analyticsRepository = repository,
+            membershipGate = mockk(relaxed = true),
+        )
+        val exportHandler = ExportAnalyticsHandler(
+            resourceContextProvider = context,
+            analyticsRepository = repository,
+            membershipGate = mockk(relaxed = true),
+        )
 
         postHandler.handle(GetPostAnalyticsQuery(range.startDate, range.endDate, page = 2, size = 10))
         val export = exportHandler.handle(ExportAnalyticsCommand(range.startDate, range.endDate))
@@ -50,7 +66,11 @@ class AnalyticsHandlersTest {
     fun `best times handler scopes the request to the workspace`() = runTest {
         val repository = FakeAnalyticsRepository()
 
-        GetBestTimesHandler(FixedResourceContextProvider("workspace-2"), repository)
+        GetBestTimesHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-2"),
+            analyticsRepository = repository,
+            membershipGate = mockk(relaxed = true),
+        )
             .handle(GetBestTimesQuery)
 
         assertEquals("workspace-2", repository.bestTimesWorkspace)
@@ -65,7 +85,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetAnalyticsOverviewHandler(context, repository)
+                GetAnalyticsOverviewHandler(
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(GetAnalyticsOverviewQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
             }
         }
@@ -73,7 +97,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetPostAnalyticsHandler(context, repository)
+                GetPostAnalyticsHandler(
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(GetPostAnalyticsQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"), 0, 20))
             }
         }
@@ -81,17 +109,97 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetBestTimesHandler(context, repository).handle(GetBestTimesQuery)
+                GetBestTimesHandler(
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
+                    membershipGate = mockk(relaxed = true),
+                )
+                    .handle(GetBestTimesQuery)
             }
         }
         org.junit.jupiter.api.Assertions.assertThrows(
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                ExportAnalyticsHandler(context, repository)
+                ExportAnalyticsHandler(
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(ExportAnalyticsCommand(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
             }
         }
+    }
+
+    @Test
+    fun `overview handler denies without active membership`() = runTest {
+        val repository = FakeAnalyticsRepository()
+        val handler = GetAnalyticsOverviewHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
+            membershipGate = denyingGate(),
+        )
+        val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
+
+        org.junit.jupiter.api.Assertions.assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(GetAnalyticsOverviewQuery(range.startDate, range.endDate)) }
+        }
+        assertEquals(null, repository.overviewWorkspace)
+    }
+
+    @Test
+    fun `post handler denies without active membership`() = runTest {
+        val repository = FakeAnalyticsRepository()
+        val handler = GetPostAnalyticsHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
+            membershipGate = denyingGate(),
+        )
+        val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
+
+        org.junit.jupiter.api.Assertions.assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(GetPostAnalyticsQuery(range.startDate, range.endDate, page = 1, size = 10))
+            }
+        }
+        assertEquals(null, repository.postPage)
+    }
+
+    @Test
+    fun `best times handler denies without active membership`() = runTest {
+        val repository = FakeAnalyticsRepository()
+        val handler = GetBestTimesHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
+            membershipGate = denyingGate(),
+        )
+
+        org.junit.jupiter.api.Assertions.assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(GetBestTimesQuery) }
+        }
+        assertEquals(null, repository.bestTimesWorkspace)
+    }
+
+    @Test
+    fun `export handler denies without active membership`() = runTest {
+        val repository = FakeAnalyticsRepository()
+        val handler = ExportAnalyticsHandler(
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
+            membershipGate = denyingGate(),
+        )
+        val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
+
+        org.junit.jupiter.api.Assertions.assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(ExportAnalyticsCommand(range.startDate, range.endDate)) }
+        }
+        assertEquals(null, repository.postPage)
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String?) : ResourceContextProvider {

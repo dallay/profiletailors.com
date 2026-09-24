@@ -35,6 +35,11 @@ class AnalyticsBddSteps {
         currentSocialAccountId = null
     }
 
+    @Given("a workspace without membership exists")
+    fun givenWorkspaceWithoutMembershipExists() = runBlocking {
+        bddDatabaseSupport.seedWorkspace("workspace-2")
+    }
+
     @Given("a published publication exists")
     fun givenPublishedPublicationExists() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
@@ -112,6 +117,54 @@ class AnalyticsBddSteps {
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client requests analytics overview in workspace {string}")
+    fun clientRequestsAnalyticsOverviewInWorkspace(workspaceId: String) {
+        latestAnalyticsResponse = webTestClient.get()
+            .uri("/api/analytics/overview")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client requests post analytics in workspace {string}")
+    fun clientRequestsPostAnalyticsInWorkspace(workspaceId: String) {
+        latestAnalyticsResponse = webTestClient.get()
+            .uri("/api/analytics/posts")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client requests best posting times in workspace {string}")
+    fun clientRequestsBestTimesInWorkspace(workspaceId: String) {
+        latestAnalyticsResponse = webTestClient.get()
+            .uri("/api/analytics/best-times")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client exports analytics as CSV in workspace {string}")
+    fun clientExportsAnalyticsInWorkspace(workspaceId: String) {
+        latestAnalyticsResponse = webTestClient.post()
+            .uri("/api/analytics/export")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
             .exchange()
             .expectBody()
             .returnResult()

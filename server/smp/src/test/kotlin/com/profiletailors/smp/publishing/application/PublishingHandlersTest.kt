@@ -10,6 +10,8 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.observability.OperationalEvent
 import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -66,6 +68,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotContain
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -1324,6 +1328,7 @@ class PublishingHandlersTest {
                 )
             },
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1368,6 +1373,7 @@ class PublishingHandlersTest {
                 throw IllegalStateException("preview unavailable")
             },
             operationalEvents = OperationalEventSink { events += it },
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1401,6 +1407,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1434,6 +1441,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1458,6 +1466,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1485,6 +1494,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1507,6 +1517,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1765,6 +1776,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1795,6 +1807,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(ListPublicationsQuery())
@@ -1815,6 +1828,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1841,6 +1855,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1869,6 +1884,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -1897,6 +1913,7 @@ class PublishingHandlersTest {
                 ),
             ),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(ListPublicationsQuery())
@@ -1920,6 +1937,7 @@ class PublishingHandlersTest {
         val handler = ListPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(
@@ -3413,5 +3431,54 @@ class PublishingHandlersTest {
         }
         // Repository must NOT be queried when threshold is rejected
         assertEquals(0, jobRepository.findStaleCalls.size)
+    }
+
+    @Test
+    fun `calendar query denies without active membership`() = runTest {
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = mockk(relaxed = true),
+            mediaAssetResolver = mockk(relaxed = true),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    GetCalendarPublicationsQuery(
+                        from = Instant.parse("2026-06-01T00:00:00Z"),
+                        to = Instant.parse("2026-07-01T00:00:00Z"),
+                        timezone = "Europe/Madrid",
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `list query denies without active membership`() = runTest {
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = mockk(relaxed = true),
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ListPublicationsQuery(
+                        from = Instant.parse("2026-06-01T00:00:00Z"),
+                        to = Instant.parse("2026-06-18T00:00:00Z"),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 }

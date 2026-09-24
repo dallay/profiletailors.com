@@ -6,6 +6,8 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
@@ -19,6 +21,8 @@ import com.profiletailors.smp.publishing.domain.ProviderLockReason
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceCapacityPolicy
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceEntitlementPolicy
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -132,11 +136,33 @@ class PublishingProviderCatalogHandlersTest {
                     canConnectMore = true,
                 )
             },
+            membershipGate = mockk(relaxed = true),
         )
 
         val result = handler.handle(ListProviderCatalogQuery)
 
         assertTrue(result.providers.isEmpty())
+    }
+
+    @Test
+    fun `catalog query denies without active membership`() = runTest {
+        val handler = ListProviderCatalogHandler(
+            resourceContextProvider = workspaceContextProvider(),
+            providerCatalogPolicy = ProviderCatalogPolicy { _, _ ->
+                error("policy must not be evaluated without membership")
+            },
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(ListProviderCatalogQuery) }
+        }
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private fun principalContextProvider(): PrincipalContextProvider = object : PrincipalContextProvider {
