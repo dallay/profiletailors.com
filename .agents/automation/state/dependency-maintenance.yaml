@@ -19,7 +19,7 @@ checks:
   - name: pnpm-outdated-check
     target: "root, apps/web/*, shared/web, shared/vue-ui, tools/compliance"
     status: Passed
-    notes: "Upgraded safe patch/minor dependencies: vue (3.5.43), vue-i18n (11.4.12), @vue/test-utils (2.5.1), @lucide/vue (1.47.0), @iconify-json/lucide (1.2.135), markdownlint-cli2 (0.23.3)."
+    notes: "Upgraded safe patch dependencies: vue (3.5.43), vue-i18n (11.4.12), @vue/test-utils (2.5.1), @lucide/vue (1.47.0), @iconify-json/lucide (1.2.135), markdownlint-cli2 (0.23.3)."
   - name: gradle-dependency-check
     target: "gradle/libs.versions.toml"
     status: Passed

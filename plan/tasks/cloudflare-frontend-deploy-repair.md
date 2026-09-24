@@ -13,12 +13,10 @@ Conseguir que `app`, `admin` y `landing` publiquen sus releases en producción y
 - [x] RPI-001 Confirmar el workflow actual, los proyectos Pages y sus estados de producción.
 - [x] RPI-002 Corregir las verificaciones de versión y las rutas de health-check para las tres apps.
 - [x] RPI-003 Corregir la configuración de producción de `app-profile-tailors`, `profiletailors-admin` y `profiletailors` sin tocar secretos ni dominios.
-- [x] RPI-004 Ejecutar los despliegues de los tres releases existentes o relanzar el flujo equivalente de forma segura.
+- [ ] RPI-004 Ejecutar los despliegues de los tres releases existentes o relanzar el flujo equivalente de forma segura.
 
-  El job de `app@v0.3.12` pasó dentro del run `35899061619` (el run global falló por el verificador antiguo de `admin`); `admin@v0.0.11` pasó en el run `35900457602`; y `landing@v0.2.16`, en el run `35902307513`. Los tres jobs de despliegue terminaron correctamente con despliegues de producción en `main`.
-- [x] RPI-005 Verificar cada URL de producción y revisar el diff final.
-
-  Verificación final: artifacts inmutables y dominios públicos sirven `app v0.3.12 (23cc093)`, `admin v0.0.11 (fa0298d)` y `landing v0.2.16 (da74591)`. `actionlint` y `git diff --check` pasaron; no se tocaron secretos, dominios ni código de producto.
+  El push del workflow terminó correctamente, pero los jobs quedaron `skipped` porque no creó releases nuevas; se necesita un dispatch controlado para los tags existentes (`app@v0.3.12`, `admin@v0.0.11`, `landing@v0.2.16`). El workflow ahora usa una versión fijada de Wrangler independiente de las dependencias de cada tag y verifica los assets JavaScript de las SPAs.
+- [ ] RPI-005 Verificar cada URL de producción y revisar el diff final.
 
 ## Criterios de aceptación
 

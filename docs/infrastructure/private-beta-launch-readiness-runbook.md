@@ -276,7 +276,7 @@ LinkedIn integration runbook.
 
 ## References
 
-- [`openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`](../../openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md)
+- [`openspec/specs/publishing/spec.md`](../../openspec/specs/publishing/spec.md)
 - [`docs/README.md`](../README.md)
 - [`docs/architecture/adr/README.md`](../architecture/adr/README.md)
 - [`docs/infrastructure/production-docker-swarm.md`](./production-docker-swarm.md)

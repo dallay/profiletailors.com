@@ -212,4 +212,4 @@ graph TD
 - **Stateless Verification**: API requests evaluate JWT access tokens statelessly without DB roundtrips on protected endpoints.
 - **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
 
-Last updated: 2026-09-23
+Last updated: 2026-09-14

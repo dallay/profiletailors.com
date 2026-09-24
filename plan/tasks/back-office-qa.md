@@ -12,7 +12,7 @@ The functional milestone remains blocked. DALLAY-556 / GitHub #652 is still outs
 - Added `apps/web/admin/e2e/specs/protected-navigation.spec.ts` for the missing mocked-browser permission boundary coverage:
   - unauthenticated visitors are redirected from `/waitlist` to `/login?redirect=/waitlist`;
   - `SUPPORT_AGENT` operators are denied access to `/direct-invitations`.
-- Persisted the evidence in `openspec/changes/private-beta-launch-readiness/qa-report.md`.
+- Persisted the evidence in `openspec/specs/private-beta-launch-readiness/spec.md`.
 - No production behavior was changed.
 
 ### Coverage matrix
@@ -85,7 +85,7 @@ The focused and full mocked Playwright results listed above are completed eviden
 
 - [GitHub #656](https://github.com/dallay/profiletailors.com/issues/656)
 - Linear `DALLAY-560`
-- [OpenSpec acceptance QA report](../../openspec/changes/private-beta-launch-readiness/qa-report.md)
+- [OpenSpec acceptance QA report](../../openspec/specs/private-beta-launch-readiness/spec.md)
 - [Platform admin Cucumber coverage](../../server/smp/src/test/resources/features/platform-admin.feature)
 - [Direct invitation Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature)
 - [Notification delivery Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/notifications-admin.feature)

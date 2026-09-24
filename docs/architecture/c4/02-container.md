@@ -310,22 +310,19 @@ graph TB
 **Implemented**:
 
 - ✅ Marketing Site (Astro 7, deployed)
-- ✅ Web Application (Vue 3 SPA, authenticated)
-- ✅ Admin Application (Vue 3 SPA, operator-only)
-- ✅ API Application (Spring Boot 4, all bounded contexts)
+- ✅ API Application (Spring Boot 4, core bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
 - ✅ Authentication (JWT + API Key)
 - ✅ Lead Capture Waitlist (public endpoint, persistence, marketing form integration)
-- ✅ LinkedIn integration (early-access publishing)
 
 **In Progress**:
 
-- 🔄 Analytics data pipeline (surface exists, backend TBD)
+- 🔄 Web Application (Vue 3, design phase)
 **Planned / In Progress**:
 
-- 🔲 Additional social media platform integrations (post-LinkedIn validation)
+- 🔲 Social media platform publishing execution
 - 🔲 Advanced analytics aggregation
 
 ---
 
-Last updated: 2026-09-23
+Last updated: 2026-09-14
