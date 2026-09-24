@@ -96,6 +96,7 @@ jobs:
       - name: Build app
         env:
           GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
+          VITE_API_BASE_URL: ${{ vars.PT_PRODUCTION_API_URL || 'https://api.profiletailors.com' }}
         run: pnpm --filter app build
 
       - name: Deploy to Cloudflare Pages
@@ -341,6 +342,9 @@ jobs:
       - name: Build marketing
         env:
           GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
+          WAITLIST_ENABLED: ${{ vars.PT_PRODUCTION_WAITLIST_ENABLED || 'true' }}
+          WAITLIST_API_BASE: ${{ vars.PT_PRODUCTION_API_URL || 'https://api.profiletailors.com' }}
+          AHREFS_ANALYTICS_KEY: ${{ vars.PT_PRODUCTION_AHREFS_ANALYTICS_KEY || '' }}
         run: pnpm --filter marketing build
 
       - name: Deploy to Cloudflare Pages
