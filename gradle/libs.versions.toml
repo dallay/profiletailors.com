@@ -19,7 +19,7 @@ commonsText = "1.15.0"
 resend = "4.21.0"
 awsS3 = "2.54.5"
 bucket4j = "8.10.1"
-caffeine = "3.2.4"
+caffeine = "3.3.0"
 
 # Transitive deps requiring explicit versions
 okio = "3.18.2"
