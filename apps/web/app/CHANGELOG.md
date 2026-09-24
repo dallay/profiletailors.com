@@ -1,5 +1,75 @@
 # Changelog
 
+## [0.3.14](https://github.com/dallay/profiletailors.com/compare/app@v0.3.13...app@v0.3.14) (2026-09-24)
+
+
+### Features
+
+* **a11y:** add focus trap, heading hierarchy, and semantic navigation ([#542](https://github.com/dallay/profiletailors.com/issues/542)) ([04a0cad](https://github.com/dallay/profiletailors.com/commit/04a0cad04cc97b43bd225d662806af8677217261))
+* Add gallery view and refine ideas composer experience ([#923](https://github.com/dallay/profiletailors.com/issues/923)) ([52d85cb](https://github.com/dallay/profiletailors.com/commit/52d85cb5893ba4ec9db760620787c615b871bfb5))
+* Add recurring post scheduling across publishing ([#552](https://github.com/dallay/profiletailors.com/issues/552)) ([b94fdfc](https://github.com/dallay/profiletailors.com/commit/b94fdfcd39b8b65de448b4658c01f26eb6b95c58))
+* **analytics:** add post performance details ([#979](https://github.com/dallay/profiletailors.com/issues/979)) ([83d6e11](https://github.com/dallay/profiletailors.com/commit/83d6e1175e1cac8777a6eeeea46bc914cf426357))
+* **app:** complete private beta invitation acceptance ([#853](https://github.com/dallay/profiletailors.com/issues/853)) ([e23aea9](https://github.com/dallay/profiletailors.com/commit/e23aea9eb15d9bcddecd2277f796b1d7fcb43fa3))
+* **app:** prioritize primary dashboard KPI ([#1049](https://github.com/dallay/profiletailors.com/issues/1049)) ([68495da](https://github.com/dallay/profiletailors.com/commit/68495da13623fec3fbd6524d914d0ffda9a54dad))
+* **automation:** rename agent artifacts to match task identity and harden finding lifecycle ([#830](https://github.com/dallay/profiletailors.com/issues/830)) ([72eed11](https://github.com/dallay/profiletailors.com/commit/72eed11589250954a38c2a99d1800959050f1a9a))
+* **consent:** replace blocking consent modal with non-modal banner and harden privacy-browser behavior ([#775](https://github.com/dallay/profiletailors.com/issues/775)) ([26b10a8](https://github.com/dallay/profiletailors.com/commit/26b10a8da1d27b3a6357e8fbc977bca380f812ca))
+* **ddd:** annotate Kotlin domain across contexts and add architecture governance skills ([#680](https://github.com/dallay/profiletailors.com/issues/680)) ([2d279fa](https://github.com/dallay/profiletailors.com/commit/2d279fa2bda598f82e88a1402baa2934e0cc9a73))
+* **frontend:** release-driven deployment to Cloudflare Pages ([#1103](https://github.com/dallay/profiletailors.com/issues/1103)) ([ddd70b5](https://github.com/dallay/profiletailors.com/commit/ddd70b5f672c741e979276df941dee2f894c6d97))
+* **ideas:** redesign idea canvas and unify idea composer with publishing handoff ([#914](https://github.com/dallay/profiletailors.com/issues/914)) ([ad61ee4](https://github.com/dallay/profiletailors.com/commit/ad61ee44845d3f4ac2cdec478e5906fd73882ac2))
+* **invitation:** accept invitations registration flow (DALLAY-567) ([#1011](https://github.com/dallay/profiletailors.com/issues/1011)) ([15c1f67](https://github.com/dallay/profiletailors.com/commit/15c1f67a1a02351fedf22de637fdce57bf7d80a0))
+* **invitation:** add registration preflight contract ([#1114](https://github.com/dallay/profiletailors.com/issues/1114)) ([41b893d](https://github.com/dallay/profiletailors.com/commit/41b893dc4e1375e4fd53e0a577845413ec00583b))
+* isolate worktree runtimes and development services ([ee0c376](https://github.com/dallay/profiletailors.com/commit/ee0c37649c5bc3af829563c389f79cadd75310de))
+* **platform-admin:** add waitlist invitation management with transactional boundary fix ([#544](https://github.com/dallay/profiletailors.com/issues/544)) ([841c65c](https://github.com/dallay/profiletailors.com/commit/841c65c4b25de08d856efeb85248b2303e40014f))
+* **platform:** integrate app capabilities and security hardening ([#577](https://github.com/dallay/profiletailors.com/issues/577)) ([c194f7d](https://github.com/dallay/profiletailors.com/commit/c194f7d7e0a2a60311e0ab3613b3f383ec14d365))
+* **publishing:** add bulk scheduling with CSV validation ([#922](https://github.com/dallay/profiletailors.com/issues/922)) ([2a1946b](https://github.com/dallay/profiletailors.com/commit/2a1946b667d0fac392ad8df93c79d67cef3c2526))
+* **publishing:** add Markdown editor to post composer ([#848](https://github.com/dallay/profiletailors.com/issues/848)) ([ff2c023](https://github.com/dallay/profiletailors.com/commit/ff2c023c546ad22709f824756325ad4e2bf74182))
+* Redesign settings center and add account, security, and user preferences management ([#978](https://github.com/dallay/profiletailors.com/issues/978)) ([b066f17](https://github.com/dallay/profiletailors.com/commit/b066f173a8d5330319de2490c0ca661fcfa6ab96))
+* **settings:** redesign settings center IA and hierarchy ([#985](https://github.com/dallay/profiletailors.com/issues/985)) ([0de42fe](https://github.com/dallay/profiletailors.com/commit/0de42fe3f436e6a7133d81e8525fb4653a42c095))
+* **version-badge:** add version badge to app, admin, and marketing ([#1089](https://github.com/dallay/profiletailors.com/issues/1089)) ([94f4435](https://github.com/dallay/profiletailors.com/commit/94f443508f1f2ff469bd4ced602c476e2bbb3819))
+
+
+### Bug Fixes
+
+* **a11y:** associate waitlist email label and fallback channel avatar alt text ([#1054](https://github.com/dallay/profiletailors.com/issues/1054)) ([da92132](https://github.com/dallay/profiletailors.com/commit/da9213293f343052908b0d1096434a48327e1c3e))
+* **api:** reconcile verified contract drift ([#559](https://github.com/dallay/profiletailors.com/issues/559)) ([348f01d](https://github.com/dallay/profiletailors.com/commit/348f01d347078256de5a43715763b486a4edfa08))
+* **app:** clean Biome lint warnings ([#924](https://github.com/dallay/profiletailors.com/issues/924)) ([bd6bdfa](https://github.com/dallay/profiletailors.com/commit/bd6bdfa9dbe97b8eac984c29d88c575455204146))
+* **app:** stub SidebarNavSection in App.test.ts to eliminate RouterLink warning ([#926](https://github.com/dallay/profiletailors.com/issues/926)) ([a8f8fa5](https://github.com/dallay/profiletailors.com/commit/a8f8fa503e27e0193cf00d43da56b6380029ee70))
+* **beta:** wire private beta activation flow ([#883](https://github.com/dallay/profiletailors.com/issues/883)) ([e1e7fcf](https://github.com/dallay/profiletailors.com/commit/e1e7fcfeb331416b1445a7868771fcf4d5419d38))
+* **deps:** update dependency @lucide/vue to v1.27.0 ([#521](https://github.com/dallay/profiletailors.com/issues/521)) ([01d66f3](https://github.com/dallay/profiletailors.com/commit/01d66f3004d5acbe3660a2e307602a17614cf580))
+* **deps:** update dependency @tanstack/vue-table to v9 ([#758](https://github.com/dallay/profiletailors.com/issues/758)) ([cabfa38](https://github.com/dallay/profiletailors.com/commit/cabfa380d71e0b660dc91393ae019fc271374602))
+* **deps:** update dependency driver.js to ^1.8.0 ([#714](https://github.com/dallay/profiletailors.com/issues/714)) ([c40c28c](https://github.com/dallay/profiletailors.com/commit/c40c28c2a8ad58c5c4680a3ff7b24e9b9a895352))
+* **deps:** update dependency shadcn-vue to v2.8.0 ([#522](https://github.com/dallay/profiletailors.com/issues/522)) ([17ff4e6](https://github.com/dallay/profiletailors.com/commit/17ff4e6fdad3cb0756eb9893245bf9426c5e1732))
+* **deps:** update tailwind css to ^4.3.3 ([#604](https://github.com/dallay/profiletailors.com/issues/604)) ([d123cc2](https://github.com/dallay/profiletailors.com/commit/d123cc25af557ac2a652617e51594cfc16ec251d))
+* **deps:** update vue core ([#622](https://github.com/dallay/profiletailors.com/issues/622)) ([6c0b9b8](https://github.com/dallay/profiletailors.com/commit/6c0b9b8479142d6626cdfc31efa14a240fc535ec))
+* **deps:** update vue core ([#718](https://github.com/dallay/profiletailors.com/issues/718)) ([899e686](https://github.com/dallay/profiletailors.com/commit/899e68665bfd5379a6fcbe00360e8f0f8e3880c9))
+* **e2e:** resolve Playwright strict mode violation on password label ([#541](https://github.com/dallay/profiletailors.com/issues/541)) ([d7396e6](https://github.com/dallay/profiletailors.com/commit/d7396e6cbcae1aa7706e9ca47017e53820589371))
+* **frontend:** reconcile verified route drift ([#939](https://github.com/dallay/profiletailors.com/issues/939)) ([5d06123](https://github.com/dallay/profiletailors.com/commit/5d06123464ea0c6657efa92ddf9d800cf02e5b49))
+* **ideas:** add missing input labels and remove redundant ternary operation ([#917](https://github.com/dallay/profiletailors.com/issues/917)) ([ccf550c](https://github.com/dallay/profiletailors.com/commit/ccf550c08715bf8b8f7e0e46848691e9f407fc5c))
+* local E2E accessibility and landmark landmark findings ([#769](https://github.com/dallay/profiletailors.com/issues/769)) ([f620b59](https://github.com/dallay/profiletailors.com/commit/f620b59caf8018bae3e8682dd3600fad015fa44c))
+* **notifications:** dispatch invitation emails ([#927](https://github.com/dallay/profiletailors.com/issues/927)) ([ed46918](https://github.com/dallay/profiletailors.com/commit/ed469186d873c1b2fb2078e7a496772f2925cdb0))
+* prevent Playwright worktree hangs ([#976](https://github.com/dallay/profiletailors.com/issues/976)) ([fefd3db](https://github.com/dallay/profiletailors.com/commit/fefd3db76b51002dc47d90f3be310ae243e23651))
+* **quality:** resolve SonarQube S107 and accessibility issues ([#1110](https://github.com/dallay/profiletailors.com/issues/1110)) ([0050aa7](https://github.com/dallay/profiletailors.com/commit/0050aa76116631143c9a2934dfad0256929d4776))
+* raise dialog content above overlay ([#639](https://github.com/dallay/profiletailors.com/issues/639)) ([f6488f3](https://github.com/dallay/profiletailors.com/commit/f6488f39421a3bd40c24cf088ed3dfc4cc937514))
+* **security:** remediate deep-audit findings in invitations, waitlist, storage and publishing ([#1122](https://github.com/dallay/profiletailors.com/issues/1122)) ([c4dae57](https://github.com/dallay/profiletailors.com/commit/c4dae5781bdf57e34ef323165a10bca4cc6e7ec4))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+* **sonar:** resolve open quality gate issues ([#1066](https://github.com/dallay/profiletailors.com/issues/1066)) ([5cb33c7](https://github.com/dallay/profiletailors.com/commit/5cb33c763ffd33cf7456fe266edabc54ea2e494f))
+* **tools/compliance:** upgrade vitest to v4.1.11 ([#837](https://github.com/dallay/profiletailors.com/issues/837)) ([06c16f3](https://github.com/dallay/profiletailors.com/commit/06c16f33b5aa5c479135c686d3a3c562e6bba54f))
+
+
+### Refactoring
+
+* **web:** share app and admin UI primitives ([#1109](https://github.com/dallay/profiletailors.com/issues/1109)) ([73f2117](https://github.com/dallay/profiletailors.com/commit/73f21179c1d1a95e7e87c78beb3734ca3ecadee2))
+
+
+### Documentation
+
+* 📝 Add docstrings to `feat/private-beta-launch-config` ([#888](https://github.com/dallay/profiletailors.com/issues/888)) ([ca3e19b](https://github.com/dallay/profiletailors.com/commit/ca3e19bbcf21be13425bf8bee9209d61f250530d))
+* **maintenance:** reconcile Node.js and pnpm version requirements across documentation ([#892](https://github.com/dallay/profiletailors.com/issues/892)) ([b62048b](https://github.com/dallay/profiletailors.com/commit/b62048b6ede9f2a1a99763c1864abe653bbd2e3f))
+* **readme:** generate professional README for every subproject ([#847](https://github.com/dallay/profiletailors.com/issues/847)) ([0824ad7](https://github.com/dallay/profiletailors.com/commit/0824ad7daef98bf3bcc5d146663c750281a71856))
+* reconcile documentation with current implementation ([#957](https://github.com/dallay/profiletailors.com/issues/957)) ([dff392d](https://github.com/dallay/profiletailors.com/commit/dff392d32a0687c4cbe846ffd2a35df527a9c268))
+* Remediate WCAG 2.2 AA / European Accessibility Act Conformance ([#771](https://github.com/dallay/profiletailors.com/issues/771)) ([d9ef2c8](https://github.com/dallay/profiletailors.com/commit/d9ef2c8ddee0705577988efe4ecfeb5b50a870f6))
+* remove dead repository references ([#610](https://github.com/dallay/profiletailors.com/issues/610)) ([2e9fb93](https://github.com/dallay/profiletailors.com/commit/2e9fb93a9882e3e72748ff135a633af092f56a45))
+
 ## [0.3.12](https://github.com/dallay/profiletailors.com/compare/app@v0.3.11...app@v0.3.12) (2026-09-22)
 
 
