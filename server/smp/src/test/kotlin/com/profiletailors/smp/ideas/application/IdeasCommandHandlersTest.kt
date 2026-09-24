@@ -46,10 +46,10 @@ class IdeasCommandHandlersTest {
         val ideas = FakeIdeaRepository()
         val boards = FakeBoardRepository()
         val handler = CreateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            boards,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            boardConfigRepository = boards,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -79,10 +79,10 @@ class IdeasCommandHandlersTest {
             ),
         )
         val handler = CreateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            boards,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            boardConfigRepository = boards,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -98,10 +98,10 @@ class IdeasCommandHandlersTest {
         val ideas = FakeIdeaRepository()
         val boards = FakeBoardRepository(IdeaBoardConfig(workspaceId, emptyList()))
         val handler = CreateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            boards,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            boardConfigRepository = boards,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -115,9 +115,9 @@ class IdeasCommandHandlersTest {
         val existing = idea("idea-1", columnId = "raw", order = 1)
         val ideas = FakeIdeaRepository(mutableListOf(existing, idea("idea-2", "raw", 0)))
         val handler = MoveIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -131,9 +131,9 @@ class IdeasCommandHandlersTest {
     @Test
     fun `update handler reports a missing idea`() = runTest {
         val handler = UpdateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeIdeaRepository(),
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = FakeIdeaRepository(),
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -153,9 +153,9 @@ class IdeasCommandHandlersTest {
         )
         val ideas = FakeIdeaRepository(mutableListOf(existing))
         val handler = UpdateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -172,8 +172,8 @@ class IdeasCommandHandlersTest {
         val existing = idea("idea-1", columnId = "raw", order = 0)
         val ideas = FakeIdeaRepository(mutableListOf(existing))
         val handler = DeleteIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -181,8 +181,8 @@ class IdeasCommandHandlersTest {
 
         val failedDelete = FakeIdeaRepository(mutableListOf(existing), deleteResult = false)
         val failingHandler = DeleteIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            failedDelete,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = failedDelete,
             membershipGate = mockk(relaxed = true),
         )
         assertThrows(IdeaNotFoundException::class.java) {
@@ -194,16 +194,16 @@ class IdeasCommandHandlersTest {
     fun `query handlers normalize list and use configured or default columns`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", "raw", 3), idea("idea-2", "raw", 1)))
         val list = ListIdeasHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
             membershipGate = mockk(relaxed = true),
         )
         assertEquals(listOf(0, 1), list.handle(ListIdeasQuery).ideas.map { it.orderInColumn })
 
         val emptyBoards = FakeBoardRepository()
         val defaultColumns = GetColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            emptyBoards,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = emptyBoards,
             membershipGate = mockk(relaxed = true),
         )
         assertEquals(listOf("raw", "in-progress", "done"), defaultColumns.handle(GetColumnsQuery).columns.map { it.id })
@@ -211,8 +211,8 @@ class IdeasCommandHandlersTest {
         val configured =
             FakeBoardRepository(IdeaBoardConfig(workspaceId, listOf(IdeaColumn("done", "Done", order = 3))))
         val configuredColumns = GetColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            configured,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = configured,
             membershipGate = mockk(relaxed = true),
         )
         assertEquals(listOf("done"), configuredColumns.handle(GetColumnsQuery).columns.map { it.id })
@@ -223,8 +223,8 @@ class IdeasCommandHandlersTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", "raw", 0)))
 
         val result = GetIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
             membershipGate = mockk(relaxed = true),
         )
             .handle(GetIdeaQuery("idea-1"))
@@ -236,8 +236,8 @@ class IdeasCommandHandlersTest {
     @Test
     fun `delete handler rejects a missing idea before deleting`() = runTest {
         val handler = DeleteIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeIdeaRepository(),
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = FakeIdeaRepository(),
             membershipGate = mockk(relaxed = true),
         )
 
@@ -267,10 +267,10 @@ class IdeasCommandHandlersTest {
         )
 
         ConvertIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            mediator,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            mediator = mediator,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
             .handle(ConvertIdeaCommand("idea-plain"))
@@ -299,10 +299,10 @@ class IdeasCommandHandlersTest {
             ),
         )
         val handler = ConvertIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            mediator,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            mediator = mediator,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -322,10 +322,10 @@ class IdeasCommandHandlersTest {
         )
 
         val noChannels = ConvertIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeIdeaRepository(mutableListOf(existing)),
-            CapturingMediator(ConnectedChannelsResponse(emptyList())),
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = FakeIdeaRepository(mutableListOf(existing)),
+            mediator = CapturingMediator(ConnectedChannelsResponse(emptyList())),
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
         assertThrows(InvalidIdeaColumnsException::class.java) {
@@ -338,9 +338,9 @@ class IdeasCommandHandlersTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", "removed", 4)))
         val boards = FakeBoardRepository()
         val handler = UpdateColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            boards,
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = boards,
+            ideaRepository = ideas,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -356,10 +356,10 @@ class IdeasCommandHandlersTest {
     fun `create handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository()
         val handler = CreateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            FakeBoardRepository(),
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            boardConfigRepository = FakeBoardRepository(),
+            clock = clock,
             membershipGate = denyingGate(),
         )
 
@@ -373,9 +373,9 @@ class IdeasCommandHandlersTest {
     fun `update handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = UpdateIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            clock = clock,
             membershipGate = denyingGate(),
         )
 
@@ -389,9 +389,9 @@ class IdeasCommandHandlersTest {
     fun `move handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 1)))
         val handler = MoveIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            clock = clock,
             membershipGate = denyingGate(),
         )
 
@@ -405,8 +405,8 @@ class IdeasCommandHandlersTest {
     fun `delete handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = DeleteIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
             membershipGate = denyingGate(),
         )
 
@@ -419,10 +419,10 @@ class IdeasCommandHandlersTest {
     fun `convert handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = ConvertIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            ideas,
-            CapturingMediator(ConnectedChannelsResponse(emptyList())),
-            clock,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = ideas,
+            mediator = CapturingMediator(ConnectedChannelsResponse(emptyList())),
+            clock = clock,
             membershipGate = denyingGate(),
         )
 
@@ -436,9 +436,9 @@ class IdeasCommandHandlersTest {
     fun `update columns handler denies without active membership`() = runTest {
         val ideas = FakeIdeaRepository(mutableListOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = UpdateColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeBoardRepository(),
-            ideas,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = FakeBoardRepository(),
+            ideaRepository = ideas,
             membershipGate = denyingGate(),
         )
 
@@ -463,8 +463,8 @@ class IdeasCommandHandlersTest {
         assertThrows(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java) {
             kotlinx.coroutines.runBlocking {
                 GetIdeaHandler(
-                    noWorkspace,
-                    FakeIdeaRepository(),
+                    resourceContextProvider = noWorkspace,
+                    ideaRepository = FakeIdeaRepository(),
                     membershipGate = mockk(relaxed = true),
                 ).handle(GetIdeaQuery("idea-1"))
             }
@@ -472,8 +472,8 @@ class IdeasCommandHandlersTest {
         assertThrows(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java) {
             kotlinx.coroutines.runBlocking {
                 ListIdeasHandler(
-                    noWorkspace,
-                    FakeIdeaRepository(),
+                    resourceContextProvider = noWorkspace,
+                    ideaRepository = FakeIdeaRepository(),
                     membershipGate = mockk(relaxed = true),
                 ).handle(ListIdeasQuery)
             }

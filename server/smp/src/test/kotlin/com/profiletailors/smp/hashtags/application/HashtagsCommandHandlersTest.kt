@@ -25,9 +25,9 @@ class HashtagsCommandHandlersTest {
     @Test
     fun `save handler trims names and normalizes hashtag prefixes`() = runTest {
         val result = SaveHashtagSetHandler(
-            context,
-            repository,
-            clock,
+            resourceContextProvider = context,
+            repository = repository,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
             .handle(SaveHashtagSetCommand("  Engineering  ", listOf("testing", "#quality")))
@@ -40,9 +40,9 @@ class HashtagsCommandHandlersTest {
     @Test
     fun `save handler rejects blank names and empty sets`() = runTest {
         val handler = SaveHashtagSetHandler(
-            context,
-            repository,
-            clock,
+            resourceContextProvider = context,
+            repository = repository,
+            clock = clock,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -57,8 +57,8 @@ class HashtagsCommandHandlersTest {
     @Test
     fun `delete handler rejects a set outside the workspace`() = runTest {
         val handler = DeleteHashtagSetHandler(
-            context,
-            repository,
+            resourceContextProvider = context,
+            repository = repository,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -71,9 +71,9 @@ class HashtagsCommandHandlersTest {
     fun `save handler denies without active membership`() = runTest {
         val freshRepository = FakeRepository()
         val handler = SaveHashtagSetHandler(
-            context,
-            freshRepository,
-            clock,
+            resourceContextProvider = context,
+            repository = freshRepository,
+            clock = clock,
             membershipGate = denyingGate(),
         )
 
@@ -86,8 +86,8 @@ class HashtagsCommandHandlersTest {
     @Test
     fun `delete handler denies without active membership`() = runTest {
         val handler = DeleteHashtagSetHandler(
-            context,
-            repository,
+            resourceContextProvider = context,
+            repository = repository,
             membershipGate = denyingGate(),
         )
 

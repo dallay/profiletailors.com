@@ -14,14 +14,14 @@ import org.junit.jupiter.api.assertThrows
 class WorkspaceMembershipGateTest {
 
     @Test
-    fun `allows active members`() = runTest {
+    fun `should allow access when membership is active`() = runTest {
         val gate = WorkspaceMembershipGate(fixedPrincipal(), memberResolver(WorkspaceMembershipStatus.ACTIVE))
 
         gate.requireActiveMember("workspace-1")
     }
 
     @Test
-    fun `denies principals without membership`() = runTest {
+    fun `should deny access when membership is missing`() = runTest {
         val gate = WorkspaceMembershipGate(fixedPrincipal(), memberResolver(null))
 
         assertThrows<AuthorizationDeniedException> {
@@ -30,7 +30,7 @@ class WorkspaceMembershipGateTest {
     }
 
     @Test
-    fun `denies suspended members`() = runTest {
+    fun `should deny access when membership is suspended`() = runTest {
         val gate = WorkspaceMembershipGate(fixedPrincipal(), memberResolver(WorkspaceMembershipStatus.SUSPENDED))
 
         assertThrows<AuthorizationDeniedException> {
@@ -39,7 +39,7 @@ class WorkspaceMembershipGateTest {
     }
 
     @Test
-    fun `denies removed members`() = runTest {
+    fun `should deny access when membership is removed`() = runTest {
         val gate = WorkspaceMembershipGate(fixedPrincipal(), memberResolver(WorkspaceMembershipStatus.REMOVED))
 
         assertThrows<AuthorizationDeniedException> {

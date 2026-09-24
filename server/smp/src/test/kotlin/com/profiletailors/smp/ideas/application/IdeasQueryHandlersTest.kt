@@ -34,8 +34,8 @@ class IdeasQueryHandlersTest {
         )
 
         val result = ListIdeasHandler(
-            FixedResourceContextProvider(workspaceId),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
             .handle(ListIdeasQuery)
@@ -49,8 +49,8 @@ class IdeasQueryHandlersTest {
     fun `get handler returns an owned idea and rejects a missing idea`() = runTest {
         val repository = FakeIdeaRepository(listOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = GetIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -73,16 +73,16 @@ class IdeasQueryHandlersTest {
             ),
         )
         val handler = GetColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            configured,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = configured,
             membershipGate = mockk(relaxed = true),
         )
 
         assertEquals(listOf("raw", "done"), handler.handle(GetColumnsQuery).columns.map { it.id })
 
         val defaults = GetColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeBoardRepository(),
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = FakeBoardRepository(),
             membershipGate = mockk(relaxed = true),
         )
         assertEquals(
@@ -98,8 +98,8 @@ class IdeasQueryHandlersTest {
         assertThrows(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java) {
             kotlinx.coroutines.runBlocking {
                 ListIdeasHandler(
-                    context,
-                    FakeIdeaRepository(emptyList()),
+                    resourceContextProvider = context,
+                    ideaRepository = FakeIdeaRepository(emptyList()),
                     membershipGate = mockk(relaxed = true),
                 ).handle(ListIdeasQuery)
             }
@@ -107,8 +107,8 @@ class IdeasQueryHandlersTest {
         assertThrows(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java) {
             kotlinx.coroutines.runBlocking {
                 GetColumnsHandler(
-                    context,
-                    FakeBoardRepository(),
+                    resourceContextProvider = context,
+                    boardConfigRepository = FakeBoardRepository(),
                     membershipGate = mockk(relaxed = true),
                 ).handle(GetColumnsQuery)
             }
@@ -121,8 +121,8 @@ class IdeasQueryHandlersTest {
             listOf(idea("idea-1", columnId = "raw", order = 0)),
         )
         val handler = ListIdeasHandler(
-            FixedResourceContextProvider(workspaceId),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = repository,
             membershipGate = denyingGate(),
         )
 
@@ -136,8 +136,8 @@ class IdeasQueryHandlersTest {
     fun `get handler denies without active membership`() = runTest {
         val repository = FakeIdeaRepository(listOf(idea("idea-1", columnId = "raw", order = 0)))
         val handler = GetIdeaHandler(
-            FixedResourceContextProvider(workspaceId),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            ideaRepository = repository,
             membershipGate = denyingGate(),
         )
 
@@ -150,8 +150,8 @@ class IdeasQueryHandlersTest {
     @Test
     fun `columns handler denies without active membership`() = runTest {
         val handler = GetColumnsHandler(
-            FixedResourceContextProvider(workspaceId),
-            FakeBoardRepository(),
+            resourceContextProvider = FixedResourceContextProvider(workspaceId),
+            boardConfigRepository = FakeBoardRepository(),
             membershipGate = denyingGate(),
         )
 

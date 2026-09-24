@@ -98,7 +98,7 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
-    fun `limits anonymous proxy fetches per IP with a strict budget`() {
+    fun `should return 429 when anonymous proxy requests exceed ten per minute`() {
         val filter = testFilter()
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.77", 0)
@@ -124,7 +124,7 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
-    fun `grants a generous budget to proxy requests with a valid session`() {
+    fun `should grant 120 requests when proxy session is valid`() {
         val filter = testFilter(FakeRefreshSessionGateway(mapOf("k1.s1" to activeSession("principal-a"))))
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.78", 0)
@@ -141,7 +141,7 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
-    fun `isolates proxy session budgets by principal`() {
+    fun `should isolate proxy session budgets by principal`() {
         val filter = testFilter(
             FakeRefreshSessionGateway(
                 mapOf(
@@ -167,7 +167,7 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
-    fun `falls back to the strict bucket when the proxy cookie is forged`() {
+    fun `should fall back to strict bucket when proxy cookie is forged`() {
         val filter = testFilter(FakeRefreshSessionGateway())
         val chain = WebFilterChain { Mono.empty() }
         val remoteAddress = InetSocketAddress("203.0.113.80", 0)

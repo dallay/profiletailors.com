@@ -28,6 +28,7 @@ import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.identity.infrastructure.InMemoryRateLimit
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -651,7 +652,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `rejects login when per-email attempts are exhausted`() = runTest {
+    fun `should reject login when per-email attempts are exhausted`() = runTest {
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -663,17 +664,17 @@ class LocalAuthHandlersTest {
         )
 
         repeat(10) {
-            assertThrows<InvalidEmailPasswordException> {
+            shouldThrow<InvalidEmailPasswordException> {
                 handler.handle(LoginUserCommand("victim@example.com", "wrong-password"))
             }
         }
-        assertThrows<LoginRateLimitExceededException> {
+        shouldThrow<LoginRateLimitExceededException> {
             handler.handle(LoginUserCommand("victim@example.com", "wrong-password"))
         }
     }
 
     @Test
-    fun `isolates login budgets by email`() = runTest {
+    fun `should isolate login budgets by email`() = runTest {
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -685,14 +686,14 @@ class LocalAuthHandlersTest {
         )
 
         repeat(10) {
-            assertThrows<InvalidEmailPasswordException> {
+            shouldThrow<InvalidEmailPasswordException> {
                 handler.handle(LoginUserCommand("exhausted@example.com", "wrong-password"))
             }
         }
-        assertThrows<LoginRateLimitExceededException> {
+        shouldThrow<LoginRateLimitExceededException> {
             handler.handle(LoginUserCommand("exhausted@example.com", "wrong-password"))
         }
-        assertThrows<InvalidEmailPasswordException> {
+        shouldThrow<InvalidEmailPasswordException> {
             handler.handle(LoginUserCommand("fresh@example.com", "wrong-password"))
         }
     }

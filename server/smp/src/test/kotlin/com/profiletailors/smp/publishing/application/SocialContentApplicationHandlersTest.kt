@@ -201,8 +201,8 @@ class SocialContentApplicationHandlersTest {
         val reader = RecordingReader(null)
         val calendarHandler = SocialContentCalendarQueryHandler(reader)
         val handler = WorkspaceSocialContentCalendarQueryHandler(
-            contextProvider,
-            calendarHandler,
+            resourceContextProvider = contextProvider,
+            calendarQueryHandler = calendarHandler,
             membershipGate = mockk(relaxed = true),
         )
         val from = now.minusSeconds(60)
@@ -246,8 +246,8 @@ class SocialContentApplicationHandlersTest {
     fun `calendar denies without active membership before reading posts`() = runTest {
         val reader = RecordingReader(null)
         val handler = WorkspaceSocialContentCalendarQueryHandler(
-            contextProvider,
-            SocialContentCalendarQueryHandler(reader),
+            resourceContextProvider = contextProvider,
+            calendarQueryHandler = SocialContentCalendarQueryHandler(reader),
             membershipGate = denyingGate(),
         )
 

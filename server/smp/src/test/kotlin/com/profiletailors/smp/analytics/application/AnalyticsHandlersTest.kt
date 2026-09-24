@@ -25,8 +25,8 @@ class AnalyticsHandlersTest {
     fun `overview handler delegates the workspace and date range`() = runTest {
         val repository = FakeAnalyticsRepository()
         val handler = GetAnalyticsOverviewHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
@@ -43,13 +43,13 @@ class AnalyticsHandlersTest {
         val context = FixedResourceContextProvider("workspace-1")
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
         val postHandler = GetPostAnalyticsHandler(
-            context,
-            repository,
+            resourceContextProvider = context,
+            analyticsRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
         val exportHandler = ExportAnalyticsHandler(
-            context,
-            repository,
+            resourceContextProvider = context,
+            analyticsRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -67,8 +67,8 @@ class AnalyticsHandlersTest {
         val repository = FakeAnalyticsRepository()
 
         GetBestTimesHandler(
-            FixedResourceContextProvider("workspace-2"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-2"),
+            analyticsRepository = repository,
             membershipGate = mockk(relaxed = true),
         )
             .handle(GetBestTimesQuery)
@@ -86,8 +86,8 @@ class AnalyticsHandlersTest {
         ) {
             kotlinx.coroutines.runBlocking {
                 GetAnalyticsOverviewHandler(
-                    context,
-                    repository,
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
                     membershipGate = mockk(relaxed = true),
                 )
                     .handle(GetAnalyticsOverviewQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
@@ -98,8 +98,8 @@ class AnalyticsHandlersTest {
         ) {
             kotlinx.coroutines.runBlocking {
                 GetPostAnalyticsHandler(
-                    context,
-                    repository,
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
                     membershipGate = mockk(relaxed = true),
                 )
                     .handle(GetPostAnalyticsQuery(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"), 0, 20))
@@ -109,7 +109,11 @@ class AnalyticsHandlersTest {
             WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java,
         ) {
             kotlinx.coroutines.runBlocking {
-                GetBestTimesHandler(context, repository, membershipGate = mockk(relaxed = true))
+                GetBestTimesHandler(
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
+                    membershipGate = mockk(relaxed = true),
+                )
                     .handle(GetBestTimesQuery)
             }
         }
@@ -118,8 +122,8 @@ class AnalyticsHandlersTest {
         ) {
             kotlinx.coroutines.runBlocking {
                 ExportAnalyticsHandler(
-                    context,
-                    repository,
+                    resourceContextProvider = context,
+                    analyticsRepository = repository,
                     membershipGate = mockk(relaxed = true),
                 )
                     .handle(ExportAnalyticsCommand(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03")))
@@ -131,8 +135,8 @@ class AnalyticsHandlersTest {
     fun `overview handler denies without active membership`() = runTest {
         val repository = FakeAnalyticsRepository()
         val handler = GetAnalyticsOverviewHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
             membershipGate = denyingGate(),
         )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
@@ -147,8 +151,8 @@ class AnalyticsHandlersTest {
     fun `post handler denies without active membership`() = runTest {
         val repository = FakeAnalyticsRepository()
         val handler = GetPostAnalyticsHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
             membershipGate = denyingGate(),
         )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))
@@ -165,8 +169,8 @@ class AnalyticsHandlersTest {
     fun `best times handler denies without active membership`() = runTest {
         val repository = FakeAnalyticsRepository()
         val handler = GetBestTimesHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
             membershipGate = denyingGate(),
         )
 
@@ -180,8 +184,8 @@ class AnalyticsHandlersTest {
     fun `export handler denies without active membership`() = runTest {
         val repository = FakeAnalyticsRepository()
         val handler = ExportAnalyticsHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            analyticsRepository = repository,
             membershipGate = denyingGate(),
         )
         val range = DateRange(LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-03"))

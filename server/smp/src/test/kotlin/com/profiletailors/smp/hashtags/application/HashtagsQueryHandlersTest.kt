@@ -60,8 +60,8 @@ class HashtagsQueryHandlersTest {
             listOf(savedSet("workspace-1", "set-1")),
         )
         val handler = ListHashtagSavedSetsHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            repository = repository,
             membershipGate = mockk(relaxed = true),
         )
 
@@ -95,8 +95,8 @@ class HashtagsQueryHandlersTest {
         assertThrows(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class.java) {
             kotlinx.coroutines.runBlocking {
                 ListHashtagSavedSetsHandler(
-                    FixedResourceContextProvider(null),
-                    FakeSavedSetRepository(emptyList()),
+                    resourceContextProvider = FixedResourceContextProvider(null),
+                    repository = FakeSavedSetRepository(emptyList()),
                     membershipGate = mockk(relaxed = true),
                 ).handle(ListHashtagSavedSetsQuery("ignored"))
             }
@@ -109,8 +109,8 @@ class HashtagsQueryHandlersTest {
             listOf(savedSet("workspace-1", "set-1")),
         )
         val handler = ListHashtagSavedSetsHandler(
-            FixedResourceContextProvider("workspace-1"),
-            repository,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            repository = repository,
             membershipGate = denyingGate(),
         )
 
