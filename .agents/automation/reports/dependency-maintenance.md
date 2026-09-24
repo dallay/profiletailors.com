@@ -6,7 +6,7 @@ Audit and maintain dependency versions, licenses, and scores across the monorepo
 
 ## Execution Result
 
-Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservative patch dependencies across frontend workspace packages and root workspace (`vue` to `3.5.43`, `vue-i18n` to `11.4.12`, `@vue/test-utils` to `2.5.1`, `@lucide/vue` to `1.47.0`, `@iconify-json/lucide` to `1.2.135`, `markdownlint-cli2` to `0.23.3`) in `package.json` and `pnpm-lock.yaml`. All audited dependency manifests, version catalog, lockfiles, and frontend dependency licence checks pass cleanly.
+Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservative patch/minor dependencies across frontend workspace packages and root workspace (`vue` to `3.5.43`, `vue-i18n` to `11.4.12`, `@vue/test-utils` to `2.5.1`, `@lucide/vue` to `1.47.0`, `@iconify-json/lucide` to `1.2.135`, `markdownlint-cli2` to `0.23.3`) in `package.json` and `pnpm-lock.yaml`. All audited dependency manifests, version catalog, lockfiles, and frontend dependency licence checks pass cleanly.
 
 ## Scope Inspected
 
