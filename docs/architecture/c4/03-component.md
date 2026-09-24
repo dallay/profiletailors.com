@@ -12,6 +12,10 @@ using bounded contexts from Domain-Driven Design.
 **Purpose**: Understand the internal organization, bounded contexts, and component interactions
 within the API Application.
 
+The diagrams and module index show implemented contexts; the detailed component entries also
+include planned capabilities within those contexts. Analytics Context is implemented, but its
+advanced aggregation and reporting components below are planned.
+
 ---
 
 ## Diagram
@@ -53,7 +57,7 @@ Container_Boundary(api, "API Application") {
     
     Component(publishing, "Publishing Context", "Bounded Context", "Post creation, scheduling, OAuth channel connections, publishing handlers")
     
-    Component(analytics, "Analytics Context", "Bounded Context", "Metrics aggregation, reporting")
+    Component(analytics, "Analytics Context", "Bounded Context", "Post analytics queries, posting-time recommendations, CSV export")
     
     Component(media, "Media Context", "Bounded Context", "Media asset storage, CAS deduplication")
 
@@ -198,8 +202,11 @@ graph TB
         
         subgraph "Domain Bounded Contexts (Planned)"
             CONTENT[Content Context<br/>Posts & Scheduling]
-            ANALYTICS_CTX[Analytics Context<br/>Metrics & Reporting]
             INTEGRATIONS[Integrations Context<br/>Platform Adapters]
+        end
+
+        subgraph "Domain Bounded Contexts (Implemented)"
+            ANALYTICS_CTX[Analytics Context<br/>Post Analytics & Export]
         end
     end
 
@@ -267,8 +274,8 @@ graph TB
     classDef external fill:#999999,stroke:#6B6B6B,color:#fff
     classDef shared fill:#1a3a5c,stroke:#2a5a8c,color:#fff
 
-    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS,LEAD implemented
-    class CONTENT,ANALYTICS_CTX,INTEGRATIONS planned
+    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS,LEAD,ANALYTICS_CTX implemented
+    class CONTENT,INTEGRATIONS planned
     class DB,CACHE infrastructure
     class SPA,SCHED,SOCIAL,AUTH external
     class KERNEL,SHARED_BUS,SHARED_SEC,SHARED_PRES,SHARED_SBC,SHARED_STORAGE,SHARED_RL,SHARED_LC_COMMON,SHARED_LC_WAIT shared
@@ -543,7 +550,7 @@ graph TB
 
 ---
 
-### Domain Contexts (Planned)
+### Domain Contexts (Implemented and Planned)
 
 #### 9. Content Context
 
@@ -585,7 +592,9 @@ graph TB
 
 #### 10. Analytics Context
 
-**Purpose**: Metrics aggregation and reporting
+**Status**: Implemented context with planned advanced aggregation and reporting components.
+
+**Purpose**: Post analytics queries, posting-time recommendations, and CSV export
 
 **Responsibilities**:
 
@@ -892,4 +901,4 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23

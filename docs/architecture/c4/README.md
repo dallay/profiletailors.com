@@ -46,6 +46,10 @@ Diagrams are written in:
 
 **Status**: Early development (v0.0.1-SNAPSHOT)
 
+This index lists existing containers and modules; detailed C4 sections may also describe planned
+capabilities within them. In particular, the Web Application and Analytics Context exist, while
+some of their features remain planned.
+
 **What's implemented**:
 
 - Marketing site (Astro 7, bilingual static site)
@@ -57,4 +61,4 @@ Diagrams are written in:
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23

@@ -6,7 +6,7 @@ Audit and maintain dependency versions, licenses, and scores across the monorepo
 
 ## Execution Result
 
-Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservative patch dependencies across frontend workspace packages and root workspace (`vue` to `3.5.43`, `vue-i18n` to `11.4.12`, `@vue/test-utils` to `2.5.1`, `@lucide/vue` to `1.47.0`, `@iconify-json/lucide` to `1.2.135`, `markdownlint-cli2` to `0.23.3`) in `package.json` and `pnpm-lock.yaml`. All audited dependency manifests, version catalog, lockfiles, and frontend dependency licence checks pass cleanly.
+Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservative patch dependencies across frontend workspace packages and root workspace (`vue` to `3.5.43`, `vue-i18n` to `11.4.12`, `@vue/test-utils` to `2.5.1`, `@lucide/vue` to `1.47.0`, `@iconify-json/lucide` to `1.2.135`, `markdownlint-cli2` to `0.23.3`) in `package.json` and `pnpm-lock.yaml`. The validation table records the checks reported as passed; their execution location was not recorded. No CI, remote, or deployed validation evidence is cited here.
 
 ## Scope Inspected
 
@@ -41,11 +41,11 @@ Execution completed with outcome `CHANGES_APPLIED`. Updated eligible conservativ
 
 ## Validation Table
 
-| Check Name | Target | Status | Notes |
-| :--- | :--- | :--- | :--- |
-| `pnpm licenses list` | Monorepo frontend dependencies | Passed | All frontend dependency licences AGPL-3.0 compliant. |
-| `pnpm lint` | Apps & Shared Packages | Passed | Biome check passed across all workspace projects. |
-| `pnpm --recursive test:run` | All JS/TS packages | Passed | 150 test files and 1,756 unit tests passed cleanly across workspace projects. |
+| Check Name | Target | Reported Status | Execution Source | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `pnpm licenses list` | Monorepo frontend dependencies | Passed | Not recorded (local/CI/remote/deployed unknown) | Frontend dependency licences reported AGPL-3.0 compliant. |
+| `pnpm lint` | Apps & Shared Packages | Passed | Not recorded (local/CI/remote/deployed unknown) | Biome check reported passed across workspace projects. |
+| `pnpm --recursive test:run` | All JS/TS packages | Passed | Not recorded (local/CI/remote/deployed unknown) | 150 test files and 1,756 unit tests reported passed across workspace projects. |
 
 ## Unresolved Findings
 

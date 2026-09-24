@@ -218,9 +218,12 @@ Managed & Local Storage
 - [ ] Facebook integration
 - [ ] TikTok integration
 
-### Phase 4: Analytics (🔲 Planned)
+### Phase 4: Advanced Analytics (🔲 Planned)
 
-- [ ] Analytics Context (metrics collection)
+The Analytics Context already provides overview, per-post analytics, posting-time recommendations,
+and CSV export. The following advanced capabilities remain planned:
+
+- [ ] Advanced metrics collection and aggregation
 - [ ] Analytics Service (aggregation)
 - [ ] Reporting dashboards
 - [ ] Data export
@@ -279,4 +282,4 @@ Managed & Local Storage
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23

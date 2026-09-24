@@ -310,14 +310,12 @@ graph TB
 **Implemented**:
 
 - ✅ Marketing Site (Astro 7, deployed)
+- ✅ Web Application (Vue 3 SPA; further features remain planned)
 - ✅ API Application (Spring Boot 4, core bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
 - ✅ Authentication (JWT + API Key)
 - ✅ Lead Capture Waitlist (public endpoint, persistence, marketing form integration)
 
-**In Progress**:
-
-- 🔄 Web Application (Vue 3, design phase)
 **Planned / In Progress**:
 
 - 🔲 Social media platform publishing execution
@@ -325,4 +323,4 @@ graph TB
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23

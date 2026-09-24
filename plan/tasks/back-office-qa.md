@@ -12,7 +12,7 @@ The functional milestone remains blocked. DALLAY-556 / GitHub #652 is still outs
 - Added `apps/web/admin/e2e/specs/protected-navigation.spec.ts` for the missing mocked-browser permission boundary coverage:
   - unauthenticated visitors are redirected from `/waitlist` to `/login?redirect=/waitlist`;
   - `SUPPORT_AGENT` operators are denied access to `/direct-invitations`.
-- Persisted the evidence in `openspec/specs/private-beta-launch-readiness/spec.md`.
+- Recorded the completed local evidence in this QA closure document; the linked OpenSpec document defines launch-readiness requirements.
 - No production behavior was changed.
 
 ### Coverage matrix
@@ -22,7 +22,7 @@ The functional milestone remains blocked. DALLAY-556 / GitHub #652 is still outs
 | Waitlist, invitations, and delivery states | `platform-admin.feature`, `platformadmin/invitations-direct.feature`, `platformadmin/notifications-admin.feature`, `apps/web/admin/src/views/WaitlistView.spec.ts`, `WaitlistEntryView.spec.ts`, and `e2e/specs/waitlist-bulk-invite.spec.ts` | Local coverage complete | The mocked admin lane does not model real direct-invitation delivery. |
 | Acceptance, activation, workspace membership, and first login | `local-auth.feature` and `DirectInvitationBddSteps.kt` | Local backend coverage complete | Deployed invitee acceptance and first login remain unverified. |
 | Permission boundaries | Backend Cucumber scenarios and `protected-navigation.spec.ts` | Local coverage complete | Deployed operator evidence remains unverified. |
-| Operational evidence | OpenSpec QA report and local test results | Partially complete | CI, provider delivery, deployed behavior, and manual operator evidence remain pending. |
+| Operational evidence | This QA closure document and completed local test results | Partially complete | CI, provider delivery, deployed behavior, and manual operator evidence remain pending. |
 
 ### Completed local evidence
 
@@ -69,7 +69,7 @@ just backend-bdd-fast
 2. Collect provider delivery evidence in the configured deployed environment.
 3. Execute the deployed operator workflow and invitee acceptance through first login.
 4. Resolve DALLAY-556 / GitHub #652 before recommending functional milestone closure.
-5. Reconcile the OpenSpec QA report with the deployed and operator evidence.
+5. Reconcile this QA closure document with the deployed and operator evidence.
 
 The focused and full mocked Playwright results listed above are completed evidence, not pending work.
 
@@ -85,7 +85,7 @@ The focused and full mocked Playwright results listed above are completed eviden
 
 - [GitHub #656](https://github.com/dallay/profiletailors.com/issues/656)
 - Linear `DALLAY-560`
-- [OpenSpec acceptance QA report](../../openspec/specs/private-beta-launch-readiness/spec.md)
+- [Private beta launch readiness specification](../../openspec/specs/private-beta-launch-readiness/spec.md)
 - [Platform admin Cucumber coverage](../../server/smp/src/test/resources/features/platform-admin.feature)
 - [Direct invitation Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature)
 - [Notification delivery Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/notifications-admin.feature)

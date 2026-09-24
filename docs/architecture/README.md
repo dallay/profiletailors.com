@@ -132,10 +132,15 @@ architecture at different levels of abstraction.
 
 ## 📊 Current Status
 
+These indexes describe which containers and bounded-context modules exist. Detailed C4 component
+and container sections also describe planned capabilities within implemented modules; a planned
+feature does not mean its enclosing context or application is unimplemented.
+
 **Implemented** (✅):
 
 - Marketing site (Astro 7)
 - Web application (Vue 3)
+- Analytics Context (overview, per-post analytics, posting-time recommendations, and CSV export)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
 - JWT and API Key authentication
@@ -149,7 +154,7 @@ architecture at different levels of abstraction.
 **Planned** (🔲):
 
 - Social media integrations
-- Analytics Context
+- Advanced analytics aggregation and reporting capabilities
 - Team collaboration features
 
 ---
@@ -183,4 +188,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last updated: 2026-09-14
+Last updated: 2026-09-23
