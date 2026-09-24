@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.19](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.18...landing@v0.2.19) (2026-09-24)
+
+
+### Bug Fixes
+
+* **marketing:** disallow SEO crawlers from /cdn-cgi/ Cloudflare email protection paths ([#1161](https://github.com/dallay/profiletailors.com/issues/1161)) ([4673d6e](https://github.com/dallay/profiletailors.com/commit/4673d6e297b2852768d8619556ec550819a8c4f9))
+
 ## [0.2.18](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.17...landing@v0.2.18) (2026-09-24)
 
 
