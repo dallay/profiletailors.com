@@ -319,17 +319,20 @@ resolution, and MUST NOT be adopted by only raising the replica count.
 **Implemented**:
 
 - ✅ Marketing Site (Astro 7, deployed)
-- ✅ API Application (Spring Boot 4, core bounded contexts)
+- ✅ Web Application (Vue 3 SPA, authenticated)
+- ✅ Admin Application (Vue 3 SPA, operator-only)
+- ✅ API Application (Spring Boot 4, all bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
 - ✅ Authentication (JWT + API Key)
 - ✅ Lead Capture Waitlist (public endpoint, persistence, marketing form integration)
+- ✅ LinkedIn integration (early-access publishing)
 
 **In Progress**:
 
-- 🔄 Web Application (Vue 3, design phase)
+- 🔄 Analytics data pipeline (surface exists, backend TBD)
 **Planned / In Progress**:
 
-- 🔲 Social media platform publishing execution
+- 🔲 Additional social media platform integrations (post-LinkedIn validation)
 - 🔲 Advanced analytics aggregation
 
 ---
