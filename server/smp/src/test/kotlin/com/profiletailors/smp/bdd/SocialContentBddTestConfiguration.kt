@@ -1,11 +1,6 @@
 package com.profiletailors.smp.bdd
 
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
-import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.application.SocialContentSyncCommandHandler
 import com.profiletailors.smp.publishing.application.SocialContentSyncHandler
@@ -50,37 +45,6 @@ import java.time.Instant
 class SocialContentBddTestConfiguration {
     @Bean
     fun socialContentBddState(): SocialContentBddState = SocialContentBddState()
-
-    @Bean
-    fun bddPrincipalContextProvider(): PrincipalContextProvider = object : PrincipalContextProvider {
-        override suspend fun current() = PrincipalContext(
-            principalId = "principal-1",
-            principalType = PrincipalType.USER,
-            subject = "local:bdd-test",
-            displayIdentity = "BddTest",
-            authenticationMethod = "TEST",
-        )
-    }
-
-    @Bean
-    @Primary
-    fun bddWorkspaceMembershipGate(
-        principalContextProvider: PrincipalContextProvider,
-        databaseClientOpt: java.util.Optional<org.springframework.r2dbc.core.DatabaseClient>,
-    ): WorkspaceMembershipGate {
-        val resolver: com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver =
-            if (databaseClientOpt.isPresent) {
-                val dbClient = databaseClientOpt.get()
-                val r2dbcResolver =
-                    com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceMembershipResolver(dbClient)
-                com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver { principal, resource ->
-                    r2dbcResolver.resolve(principal, resource)
-                }
-            } else {
-                com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver { _, _ -> null }
-            }
-        return WorkspaceMembershipGate(principalContextProvider, resolver)
-    }
 
     @Bean
     @Primary
