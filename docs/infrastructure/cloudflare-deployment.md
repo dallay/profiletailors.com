@@ -1,6 +1,6 @@
 # Cloudflare Pages Release-Driven Deployment
 
-**Last Updated:** 2026-09-23
+**Last Updated:** 2026-09-24
 
 ## Overview
 
@@ -68,6 +68,9 @@ Deployment requires least-privilege credentials configured in GitHub Actions sec
 - `PT_PRODUCTION_APP_URL`: Target production URL for app verification. Defaults to `https://app.profiletailors.com`.
 - `PT_PRODUCTION_ADMIN_URL`: Target production URL for admin verification. Defaults to `https://admin.profiletailors.com`.
 - `PT_PRODUCTION_MARKETING_URL`: Target production URL for marketing verification. Defaults to `https://profiletailors.com`.
+- `PT_PRODUCTION_API_URL`: Backend origin consumed at build time by `app`, `admin`, and `marketing` (Astro `WAITLIST_API_BASE`). Defaults to `https://api.profiletailors.com`.
+- `PT_PRODUCTION_WAITLIST_ENABLED`: Toggle forwarded to the Astro build as `WAITLIST_ENABLED` so `astro:env/client` ships a boolean instead of an empty default. Defaults to `true`.
+- `PT_PRODUCTION_AHREFS_ANALYTICS_KEY`: Site identifier forwarded to the Astro build as `AHREFS_ANALYTICS_KEY`. Empty by default. Exposed client-side by design (`access: 'public'` in the schema).
 
 #### Token Permission Scope
 
@@ -110,6 +113,12 @@ CDN propagation on Cloudflare Pages can take up to 75 seconds. The workflow retr
 ### Automatic production deploy still triggering after disabling
 
 Confirm the change was saved in Cloudflare Pages dashboard. The setting lives under **Settings > Builds & deployments > Configure Production deployments**. Check that the correct branch (`main`) is targeted and that the toggle is fully disabled, not just set to a different branch.
+
+### Dashboard variables exist but the deployed bundle ignores them
+
+Since Release Please owns the build, the build-time env vars consumed by Vite and Astro are injected by the GitHub Actions job, not by the Cloudflare Pages dashboard. The dashboard's **Variables and secrets** view still receives `wrangler pages deploy` input, but for static frontends it only affects Pages Functions at runtime; the static bundle is already baked at that point.
+
+If the dashboard contains entries like `PUBLIC_WAITLIST_API_BASE` or `PUBLIC_WAITLIST_ENABLED` for the `profiletailors` project, treat them as legacy artifacts and remove them. The Astro schema in `apps/web/marketing/astro.config.mjs` reads `WAITLIST_API_BASE`, `WAITLIST_ENABLED`, and `AHREFS_ANALYTICS_KEY` without the `PUBLIC_` prefix, so dashboard entries prefixed with `PUBLIC_` are silently ignored by the static build. Renaming them inside the dashboard would not change that, because GitHub Actions drives the build, not the dashboard. Configure build-time values through the GitHub Variables listed above instead.
 
 ## References
 
