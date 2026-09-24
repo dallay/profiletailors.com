@@ -51,7 +51,7 @@ management:
 
 app:
   email:
-    publicAppUrl: ${SMP_PUBLIC_APP_URL:https://pt-app.localhost}
+    publicAppUrl: ${SMP_EMAIL_PUBLIC_APP_URL:${SMP_PUBLIC_APP_URL:https://pt-app.localhost}}
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:https://pt-app.localhost,https://pt-admin.localhost,http://localhost:5173,http://localhost:5174}

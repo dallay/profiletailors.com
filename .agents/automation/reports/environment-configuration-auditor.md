@@ -6,12 +6,13 @@ Audit environment configuration, `.env.example`, and application properties for 
 
 ## Execution Result
 
-`NO_DRIFT_DETECTED` — The audit completed successfully. All environment variables in `.env.example` are aligned with Spring Boot application properties, production credentials validation policies, Docker compose definitions, and frontend configuration schemas.
+`CHANGES_APPLIED` — Audit completed successfully. Identified and reconciled variable name drift in `server/smp/src/main/resources/application-dev.yaml` for `app.email.publicAppUrl`.
 
 ## Scope Inspected
 
 - `.env.example` (Canonical environment template)
 - `server/smp/src/main/resources/application.yaml` (Spring Boot configuration properties)
+- `server/smp/src/main/resources/application-dev.yaml` (Dev profile configuration properties)
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/security/ProductionCredentialsValidator.kt` (Production credential safety check)
 - `apps/web/marketing/astro.config.mjs` (Astro marketing env schema)
 - `apps/web/app/vite.config.ts` (App dashboard Vite proxy env setup)
@@ -19,13 +20,14 @@ Audit environment configuration, `.env.example`, and application properties for 
 
 ## Changes Applied
 
-None.
+- Reconciled `app.email.publicAppUrl` binding in `server/smp/src/main/resources/application-dev.yaml` to `${SMP_EMAIL_PUBLIC_APP_URL:${SMP_PUBLIC_APP_URL:https://pt-app.localhost}}` so canonical `.env.example` key `SMP_EMAIL_PUBLIC_APP_URL` is respected in dev mode while retaining worktree fallback `SMP_PUBLIC_APP_URL`.
 
 ## Evidence Table
 
 | Environment Variable / Resource | Canonical Location | Application / Deployment Binding | Alignment Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | `SMP_BACKEND_PORT` | `.env.example` | `application.yaml` (`server.port`) | Aligned | Defaults to `7638` |
+| `SMP_EMAIL_PUBLIC_APP_URL` | `.env.example` | `application.yaml` & `application-dev.yaml` | Aligned (Fixed) | Prioritized over `SMP_PUBLIC_APP_URL` in `application-dev.yaml` |
 | `SMP_DB_PASSWORD` | `.env.example` | `application.yaml` & `ProductionCredentialsValidator` | Aligned | Validates min length 32 in non-test profiles |
 | `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` | `.env.example` | `application.yaml` & `ProductionCredentialsValidator` | Aligned | Required for AES-256 token encryption |
 | `SMP_LOCAL_JWT_SECRET` | `.env.example` | `application.yaml` & `ProductionCredentialsValidator` | Aligned | Required outside dev profile |
@@ -38,9 +40,10 @@ None.
 
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `env-example-spring-bindings-alignment` | `.env.example`, `application.yaml` | PASSED | All properties accurately mapped with safe defaults or mandatory placeholders. |
+| `env-example-spring-bindings-alignment` | `.env.example`, `application.yaml`, `application-dev.yaml` | PASSED | All properties accurately mapped with safe defaults or mandatory placeholders. |
 | `production-credentials-validator-audit` | `ProductionCredentialsValidator.kt` | PASSED | Hardening check for production secret overrides verified intact. |
 | `frontend-env-schema-alignment` | `astro.config.mjs`, `vite.config.ts` | PASSED | Client public and proxy environment configurations validated. |
+| `backend-unit-and-integration-tests` | `:server:smp:test` | PASSED | Spring Boot configuration property loading and identity tests passed. |
 
 ## Unresolved Findings
 
@@ -52,15 +55,15 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-09-11T19:20:27Z`
-- **Execution Outcome:** `NO_DRIFT_DETECTED`
+- **Last Execution:** `2026-09-18T19:30:00Z`
+- **Execution Outcome:** `CHANGES_APPLIED`
 - **Schema Version:** `1`
 - **Task Identity:** `environment-configuration-auditor`
 
 ## Risk Assessment
 
-- **Overall Risk:** LOW (Audit complete, zero configuration drift detected, no code modifications required).
+- **Overall Risk:** LOW (Reconciled property binding in dev profile configuration; no breaking changes or production impact).
 
 ## Human Review Notes
 
-No environment configuration drift was detected across Spring Boot application YAML properties, production security validators, Docker/Swarm deployment stacks, or frontend web client schemas. All variables conform to monorepo specifications.
+Reconciled `app.email.publicAppUrl` in `application-dev.yaml` to accept `SMP_EMAIL_PUBLIC_APP_URL` alongside `SMP_PUBLIC_APP_URL`. All other environment configurations align with monorepo specifications.
