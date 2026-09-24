@@ -20,6 +20,7 @@ class WebFluxConfiguration : WebFluxConfigurer {
     @Bean
     fun webClient(): WebClient {
         val httpClient = HttpClient.create()
+            .followRedirect(false)
             .responseTimeout(Duration.ofSeconds(IMAGE_PROXY_TIMEOUT_SECONDS))
 
         return WebClient.builder()

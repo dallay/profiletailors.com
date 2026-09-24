@@ -3,6 +3,7 @@ package com.profiletailors.smp.ideas.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.ideas.domain.Idea
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfig
 import com.profiletailors.smp.ideas.domain.IdeaBoardConfigRepository
@@ -22,9 +23,11 @@ internal class CreateIdeaHandler(
     private val ideaRepository: IdeaRepository,
     private val boardConfigRepository: IdeaBoardConfigRepository,
     private val clock: Clock,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<CreateIdeaCommand, IdeaResult> {
     override suspend fun handle(command: CreateIdeaCommand): IdeaResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val now = clock.instant()
         val board = ensureBoard(workspaceId)
 
@@ -67,9 +70,11 @@ internal class UpdateIdeaHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val ideaRepository: IdeaRepository,
     private val clock: Clock,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<UpdateIdeaCommand, IdeaResult> {
     override suspend fun handle(command: UpdateIdeaCommand): IdeaResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val existing = ideaRepository.findByWorkspaceAndId(workspaceId, command.ideaId)
             ?: throw IdeaNotFoundException(command.ideaId)
 
@@ -92,9 +97,11 @@ internal class MoveIdeaHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val ideaRepository: IdeaRepository,
     private val clock: Clock,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<MoveIdeaCommand, IdeaResult> {
     override suspend fun handle(command: MoveIdeaCommand): IdeaResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val existing = ideaRepository.findByWorkspaceAndId(workspaceId, command.ideaId)
             ?: throw IdeaNotFoundException(command.ideaId)
 
@@ -117,9 +124,11 @@ internal class MoveIdeaHandler(
 internal class DeleteIdeaHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val ideaRepository: IdeaRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<DeleteIdeaCommand, IdeaResult> {
     override suspend fun handle(command: DeleteIdeaCommand): IdeaResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val existing = ideaRepository.findByWorkspaceAndId(workspaceId, command.ideaId)
             ?: throw IdeaNotFoundException(command.ideaId)
 
@@ -139,9 +148,11 @@ internal class ConvertIdeaHandler(
     private val ideaRepository: IdeaRepository,
     private val mediator: com.profiletailors.common.domain.bus.Mediator,
     private val clock: Clock,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<ConvertIdeaCommand, ConvertIdeaResult> {
     override suspend fun handle(command: ConvertIdeaCommand): ConvertIdeaResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val idea = ideaRepository.findByWorkspaceAndId(workspaceId, command.ideaId)
             ?: throw IdeaNotFoundException(command.ideaId)
 
@@ -187,9 +198,11 @@ internal class UpdateColumnsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val boardConfigRepository: IdeaBoardConfigRepository,
     private val ideaRepository: IdeaRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<UpdateColumnsCommand, ColumnsResponse> {
     override suspend fun handle(command: UpdateColumnsCommand): ColumnsResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         if (command.columns.isEmpty()) {
             throw InvalidIdeaColumnsException("At least one column is required.")
         }

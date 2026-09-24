@@ -282,6 +282,7 @@ class PublishingBddSteps {
 
     @When("the client lists configured providers")
     fun whenClientListsConfiguredProviders() {
+        runBlocking { bddDatabaseSupport.seedAuthenticatedUserWithWorkspace() }
         latestPublishingResponse = webTestClient.get()
             .uri(bddDatabaseSupport.publishingChannelProvidersPath())
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
@@ -319,6 +320,14 @@ class PublishingBddSteps {
 
     @When("the client lists configured providers for workspace {string}")
     fun whenClientListsConfiguredProvidersForWorkspace(workspaceId: String) {
+        runBlocking {
+            bddDatabaseSupport.seedAuthenticatedUserWithWorkspace()
+            bddDatabaseSupport.seedWorkspace(workspaceId)
+            bddDatabaseSupport.seedWorkspaceMembershipIdempotent(
+                BddDatabaseSupport.PRINCIPAL_ID,
+                workspaceId,
+            )
+        }
         latestPublishingResponse = webTestClient.get()
             .uri(bddDatabaseSupport.publishingChannelProvidersPath())
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)

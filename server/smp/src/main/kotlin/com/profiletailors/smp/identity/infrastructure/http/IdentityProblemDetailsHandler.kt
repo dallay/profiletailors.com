@@ -12,6 +12,7 @@ import com.profiletailors.smp.identity.application.InvalidRegistrationInputExcep
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
 import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalPasswordCredentialNotFoundException
+import com.profiletailors.smp.identity.application.LoginRateLimitExceededException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.PasswordRecoveryPasswordException
 import com.profiletailors.smp.identity.application.PasswordResetRateLimitExceededException
@@ -145,6 +146,13 @@ class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(PasswordResetRateLimitExceededException::class)
     fun handle(exception: PasswordResetRateLimitExceededException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, exception.message ?: RATE_LIMIT_DETAIL).apply {
+            title = "Authentication rate limit exceeded"
+            setProperty("code", "AUTH_RATE_LIMIT_EXCEEDED")
+        }
+
+    @ExceptionHandler(LoginRateLimitExceededException::class)
+    fun handle(exception: LoginRateLimitExceededException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, exception.message ?: RATE_LIMIT_DETAIL).apply {
             title = "Authentication rate limit exceeded"
             setProperty("code", "AUTH_RATE_LIMIT_EXCEEDED")

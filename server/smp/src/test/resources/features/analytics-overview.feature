@@ -44,3 +44,23 @@ Feature: Analytics Dashboard
     Then the analytics response status should be 200
     And the overview totalImpressions is 0
     And the overview totalEngagements is 0
+
+  Scenario: Non-member is denied analytics overview
+    Given a workspace without membership exists
+    When the client requests analytics overview in workspace "workspace-2"
+    Then the analytics response status should be 403
+
+  Scenario: Non-member is denied post analytics
+    Given a workspace without membership exists
+    When the client requests post analytics in workspace "workspace-2"
+    Then the analytics response status should be 403
+
+  Scenario: Non-member is denied best posting times
+    Given a workspace without membership exists
+    When the client requests best posting times in workspace "workspace-2"
+    Then the analytics response status should be 403
+
+  Scenario: Non-member is denied analytics CSV export
+    Given a workspace without membership exists
+    When the client exports analytics as CSV in workspace "workspace-2"
+    Then the analytics response status should be 403

@@ -3,8 +3,12 @@ package com.profiletailors.smp.hashtags.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -20,7 +24,12 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `save handler trims names and normalizes hashtag prefixes`() = runTest {
-        val result = SaveHashtagSetHandler(context, repository, clock)
+        val result = SaveHashtagSetHandler(
+            resourceContextProvider = context,
+            repository = repository,
+            clock = clock,
+            membershipGate = mockk(relaxed = true),
+        )
             .handle(SaveHashtagSetCommand("  Engineering  ", listOf("testing", "#quality")))
 
         assertEquals("Engineering", result.name)
@@ -30,7 +39,12 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `save handler rejects blank names and empty sets`() = runTest {
-        val handler = SaveHashtagSetHandler(context, repository, clock)
+        val handler = SaveHashtagSetHandler(
+            resourceContextProvider = context,
+            repository = repository,
+            clock = clock,
+            membershipGate = mockk(relaxed = true),
+        )
 
         assertThrows(HashtagSetNameBlankException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(SaveHashtagSetCommand(" ", listOf("#tag"))) }
@@ -42,11 +56,50 @@ class HashtagsCommandHandlersTest {
 
     @Test
     fun `delete handler rejects a set outside the workspace`() = runTest {
-        val handler = DeleteHashtagSetHandler(context, repository)
+        val handler = DeleteHashtagSetHandler(
+            resourceContextProvider = context,
+            repository = repository,
+            membershipGate = mockk(relaxed = true),
+        )
 
         assertThrows(HashtagSavedSetNotFoundException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(DeleteHashtagSetCommand("missing")) }
         }
+    }
+
+    @Test
+    fun `save handler denies without active membership`() = runTest {
+        val freshRepository = FakeRepository()
+        val handler = SaveHashtagSetHandler(
+            resourceContextProvider = context,
+            repository = freshRepository,
+            clock = clock,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(SaveHashtagSetCommand("Set", listOf("#tag"))) }
+        }
+        assertEquals(true, freshRepository.created.isEmpty())
+    }
+
+    @Test
+    fun `delete handler denies without active membership`() = runTest {
+        val handler = DeleteHashtagSetHandler(
+            resourceContextProvider = context,
+            repository = repository,
+            membershipGate = denyingGate(),
+        )
+
+        assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking { handler.handle(DeleteHashtagSetCommand("set-1")) }
+        }
+    }
+
+    private fun denyingGate(): WorkspaceMembershipGate {
+        val gate = mockk<WorkspaceMembershipGate>()
+        coEvery { gate.requireActiveMember(any()) } throws AuthorizationDeniedException()
+        return gate
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {

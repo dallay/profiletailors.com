@@ -2,7 +2,9 @@ package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.ExpiredPasswordResetTokenException
 import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
+import com.profiletailors.smp.identity.application.LoginRateLimitExceededException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
+import com.profiletailors.smp.identity.application.PasswordResetRateLimitExceededException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.RegistrationInvitationRequiredException
 import com.profiletailors.smp.identity.application.UsedPasswordResetTokenException
@@ -186,5 +188,25 @@ class IdentityProblemDetailsHandlerTest {
         result.type shouldBe URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
         result.detail shouldBe "Account closure rate limit exceeded."
         result.properties?.get("code") shouldBe "ACCOUNT_CLOSURE_RATE_LIMIT"
+    }
+
+    @Test
+    fun `login rate limit maps to throttled problem detail`() {
+        val result = handler.handle(LoginRateLimitExceededException())
+
+        result.status shouldBe HttpStatus.TOO_MANY_REQUESTS.value()
+        result.title shouldBe "Authentication rate limit exceeded"
+        result.detail shouldBe "Authentication rate limit exceeded. Try again later."
+        result.properties?.get("code") shouldBe "AUTH_RATE_LIMIT_EXCEEDED"
+    }
+
+    @Test
+    fun `password reset rate limit maps to throttled problem detail`() {
+        val result = handler.handle(PasswordResetRateLimitExceededException())
+
+        result.status shouldBe HttpStatus.TOO_MANY_REQUESTS.value()
+        result.title shouldBe "Authentication rate limit exceeded"
+        result.detail shouldBe "Authentication rate limit exceeded. Try again later."
+        result.properties?.get("code") shouldBe "AUTH_RATE_LIMIT_EXCEEDED"
     }
 }

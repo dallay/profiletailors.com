@@ -57,7 +57,10 @@ class SocialContentBddSteps {
     @Given("the social-content BDD state is reset")
     fun givenSocialContentBddStateIsReset() {
         state.reset()
-        runBlocking { bddDatabaseSupport.resetDatabase() }
+        runBlocking {
+            bddDatabaseSupport.resetDatabase()
+            bddDatabaseSupport.seedAuthenticatedUserWithWorkspace()
+        }
     }
 
     /**

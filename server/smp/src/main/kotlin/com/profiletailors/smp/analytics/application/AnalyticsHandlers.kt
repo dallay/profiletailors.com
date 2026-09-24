@@ -9,15 +9,18 @@ import com.profiletailors.smp.analytics.domain.AnalyticsRepository
 import com.profiletailors.smp.analytics.domain.BestTimesRecommendation
 import com.profiletailors.smp.analytics.domain.DateRange
 import com.profiletailors.smp.analytics.domain.PostAnalyticsList
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 
 @Service
 internal class GetAnalyticsOverviewHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val analyticsRepository: AnalyticsRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<GetAnalyticsOverviewQuery, AnalyticsOverview> {
     override suspend fun handle(query: GetAnalyticsOverviewQuery): AnalyticsOverview {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         return analyticsRepository.getOverview(workspaceId, DateRange(query.startDate, query.endDate))
     }
 }
@@ -26,9 +29,11 @@ internal class GetAnalyticsOverviewHandler(
 internal class GetPostAnalyticsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val analyticsRepository: AnalyticsRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<GetPostAnalyticsQuery, PostAnalyticsList> {
     override suspend fun handle(query: GetPostAnalyticsQuery): PostAnalyticsList {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         return analyticsRepository.getPostAnalytics(
             workspaceId = workspaceId,
             range = DateRange(query.startDate, query.endDate),
@@ -42,9 +47,11 @@ internal class GetPostAnalyticsHandler(
 internal class GetBestTimesHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val analyticsRepository: AnalyticsRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : QueryHandler<GetBestTimesQuery, BestTimesRecommendation> {
     override suspend fun handle(query: GetBestTimesQuery): BestTimesRecommendation {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         return analyticsRepository.getBestTimes(workspaceId)
     }
 }
@@ -53,9 +60,11 @@ internal class GetBestTimesHandler(
 internal class ExportAnalyticsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val analyticsRepository: AnalyticsRepository,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<ExportAnalyticsCommand, ExportAnalyticsResult> {
     override suspend fun handle(command: ExportAnalyticsCommand): ExportAnalyticsResult {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
         val posts = analyticsRepository.exportPostAnalytics(
             workspaceId = workspaceId,
             range = DateRange(command.startDate, command.endDate),

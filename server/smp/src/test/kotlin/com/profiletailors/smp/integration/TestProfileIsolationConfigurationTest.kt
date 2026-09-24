@@ -1,8 +1,15 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.bdd.SocialContentBddTestConfiguration
 import com.profiletailors.smp.bdd.fast.CucumberSpringConfiguration
 import com.profiletailors.smp.bdd.postgres.CucumberPostgresSpringConfiguration
@@ -58,6 +65,33 @@ private class SocialAccountRepositoryWiringTestConfiguration {
             workspaceId = "workspace-1",
         )
     }
+
+    @Bean
+    fun testPrincipalContextProvider(): PrincipalContextProvider = object : PrincipalContextProvider {
+        override suspend fun current(): PrincipalContext = PrincipalContext(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "local:wiring-test",
+            displayIdentity = "WiringTest",
+            authenticationMethod = "TEST",
+        )
+    }
+
+    @Bean
+    fun testMembershipGate(principalContextProvider: PrincipalContextProvider): WorkspaceMembershipGate =
+        WorkspaceMembershipGate(
+            principalContextProvider,
+            WorkspaceMembershipResolver { _, resource ->
+                object : WorkspaceMembershipSnapshot {
+                    override val id: String = "membership-1"
+                    override val workspaceId: String = resource.workspaceId.orEmpty()
+                    override val principalId: String = "principal-1"
+                    override val principalType: PrincipalType = PrincipalType.USER
+                    override val status: WorkspaceMembershipStatus = WorkspaceMembershipStatus.ACTIVE
+                    override val roleKeys: Set<String> = emptySet()
+                }
+            },
+        )
 
     @Bean
     fun r2dbcSocialAccountRepository(): R2dbcSocialAccountRepository = R2dbcSocialAccountRepository(

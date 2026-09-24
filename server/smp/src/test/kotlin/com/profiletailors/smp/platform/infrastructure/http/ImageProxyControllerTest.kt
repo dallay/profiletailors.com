@@ -1,5 +1,7 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
+import com.sun.net.httpserver.HttpServer
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -12,6 +14,8 @@ import org.springframework.web.reactive.function.client.ExchangeFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicInteger
 
 class ImageProxyControllerTest {
 
@@ -154,6 +158,66 @@ class ImageProxyControllerTest {
         val controller = buildController(errorExchange(502))
         val response = controller.proxyImage("https://media.licdn.com/media/error.jpg")
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+
+    @Test
+    fun `does not follow redirects to non-allowlisted targets`() = runBlocking<Unit> {
+        val calls = AtomicInteger()
+        val redirect = ExchangeFunction {
+            calls.incrementAndGet()
+            Mono.just(
+                ClientResponse.create(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "https://evil.com/internal")
+                    .body(Flux.empty())
+                    .build(),
+            )
+        }
+        val controller = buildController(redirect)
+        val response = controller.proxyImage("https://media.licdn.com/media/test.jpg")
+        assertThat(response.statusCode).isNotEqualTo(HttpStatus.OK)
+        assertThat(calls.get()).isEqualTo(1)
+    }
+
+    @Test
+    fun `should not follow redirects through the configured web client`() = runBlocking<Unit> {
+        val targetHits = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/start") { exchange ->
+            exchange.responseHeaders.add(HttpHeaders.LOCATION, "/target")
+            exchange.sendResponseHeaders(HttpStatus.FOUND.value(), -1)
+            exchange.close()
+        }
+        server.createContext("/target") { exchange ->
+            targetHits.incrementAndGet()
+            exchange.sendResponseHeaders(HttpStatus.OK.value(), -1)
+            exchange.close()
+        }
+        server.start()
+        try {
+            val response = WebFluxConfiguration().webClient().get()
+                .uri("http://127.0.0.1:${server.address.port}/start")
+                .retrieve()
+                .toBodilessEntity()
+                .block()
+            response?.statusCode shouldBe HttpStatus.FOUND
+            targetHits.get() shouldBe 0
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `should reject non-image upstream content type with 502`() = runBlocking<Unit> {
+        val controller = buildController(okExchange(MediaType.TEXT_HTML, byteArrayOf(1, 2, 3)))
+        val response = controller.proxyImage("https://media.licdn.com/media/test.jpg")
+        response.statusCode shouldBe HttpStatus.BAD_GATEWAY
+    }
+
+    @Test
+    fun `should reject script upstream content type with 502`() = runBlocking<Unit> {
+        val controller = buildController(okExchange(MediaType("application", "javascript"), byteArrayOf(1, 2, 3)))
+        val response = controller.proxyImage("https://pbs.twimg.com/media/test.png")
+        response.statusCode shouldBe HttpStatus.BAD_GATEWAY
     }
 
     // -----------------------------------------------------------------------

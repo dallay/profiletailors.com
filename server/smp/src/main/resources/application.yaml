@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: smp
+  modulith:
+    default-dependencies:
+      allowed:
+        analytics->authorization::application
+        analytics->tenancy::application
+        hashtags->authorization::application
+        hashtags->tenancy::application
+        ideas->authorization::application
+        ideas->tenancy::application
+        media->authorization::application
+        media->tenancy::application
+        publishing->authorization::application
+        publishing->tenancy::application
   security:
     oauth2:
       resourceserver:
@@ -45,7 +58,7 @@ application:
     waitlist:
       # Default OFF. Two production blockers (DALLAY-512 distributed bucket backend and
       # DALLAY-513 trusted-proxy / ForwardedHeaderFilter wiring) prevent safe enablement
-      # while SMP runs behind Kubernetes or Cloud Run ingress with multiple replicas.
+      # once SMP runs more than one backend replica behind shared ingress.
       # Operators must set SMP_WAITLIST_RATE_LIMIT_ENABLED=true explicitly to turn it on.
       enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}
       endpoints:
@@ -70,7 +83,7 @@ app:
       ttl-seconds: ${SMP_LOCAL_JWT_TTL_SECONDS:900}
     refresh-session:
       cookie-name: ${SMP_REFRESH_COOKIE_NAME:pt_refresh}
-      cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api/auth}
+      cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api}
       same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
       secure: ${SMP_REFRESH_COOKIE_SECURE:true}
       ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}

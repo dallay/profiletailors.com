@@ -1,6 +1,7 @@
 package com.profiletailors.smp.media.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
@@ -128,6 +129,7 @@ class MediaConfiguration {
         principalContextProvider: PrincipalContextProvider,
         principalIdentityLookup: PrincipalIdentityLookup,
         emailVerificationPolicy: EmailVerificationPolicy,
+        membershipGate: WorkspaceMembershipGate,
     ): ImportUnsplashPhotoHandler = ImportUnsplashPhotoHandler(
         mediaRateLimitRepository = mediaRateLimitRepository,
         mediaImportService = mediaImportService,
@@ -135,6 +137,7 @@ class MediaConfiguration {
         principalContextProvider = principalContextProvider,
         principalIdentityLookup = principalIdentityLookup,
         emailVerificationPolicy = emailVerificationPolicy,
+        membershipGate = membershipGate,
     )
 
     private companion object {
