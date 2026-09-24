@@ -118,7 +118,7 @@ Confirm the change was saved in Cloudflare Pages dashboard. The setting lives un
 
 Since Release Please owns the build, the build-time env vars consumed by Vite and Astro are injected by the GitHub Actions job, not by the Cloudflare Pages dashboard. The dashboard's **Variables and secrets** view still receives `wrangler pages deploy` input, but for static frontends it only affects Pages Functions at runtime; the static bundle is already baked at that point.
 
-If the dashboard contains entries like `PUBLIC_WAITLIST_API_BASE` or `PUBLIC_WAITLIST_ENABLED` for the `profiletailors` project, treat them as legacy artifacts. The Astro schema in `apps/web/marketing/astro.config.mjs` reads `WAITLIST_API_BASE`, `WAITLIST_ENABLED`, and `AHREFS_ANALYTICS_KEY` without the `PUBLIC_` prefix, so dashboard entries prefixed with `PUBLIC_` are silently ignored. Remove them or rename them to the schema keys to avoid confusion; the real source of truth is the GitHub Variables listed above.
+If the dashboard contains entries like `PUBLIC_WAITLIST_API_BASE` or `PUBLIC_WAITLIST_ENABLED` for the `profiletailors` project, treat them as legacy artifacts and remove them. The Astro schema in `apps/web/marketing/astro.config.mjs` reads `WAITLIST_API_BASE`, `WAITLIST_ENABLED`, and `AHREFS_ANALYTICS_KEY` without the `PUBLIC_` prefix, so dashboard entries prefixed with `PUBLIC_` are silently ignored by the static build. Renaming them inside the dashboard would not change that, because GitHub Actions drives the build, not the dashboard. Configure build-time values through the GitHub Variables listed above instead.
 
 ## References
 
