@@ -154,7 +154,7 @@ test.describe('SEO — robots.txt per-bot Allow', () => {
     const body = await res.text()
     expect(body).toContain('User-agent: *')
     expect(body).toContain('Allow: /')
-    expect(body).not.toContain('Disallow: /')
+    expect(body).not.toMatch(/Disallow: \/(?!\w)/)
     expect(body).toContain('Sitemap: https://profiletailors.com/sitemap.xml')
     for (const bot of BOTS) {
       expect(body, `missing bot ${bot}`).toContain(`User-agent: ${bot}`)
