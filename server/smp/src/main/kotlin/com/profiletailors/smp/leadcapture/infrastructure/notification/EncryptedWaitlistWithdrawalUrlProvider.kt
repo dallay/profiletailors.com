@@ -21,6 +21,7 @@ internal class EncryptedWaitlistWithdrawalUrlProvider(
     private val publicUrlBase = validatePublicUrl(properties.publicUrlBase)
     private val secureRandom = SecureRandom()
 
+    /** Encrypts [token] and replaces any stored withdrawal material for [entryId]. */
     override suspend fun remember(entryId: WaitlistEntryId, token: String, expiresAt: Instant) {
         val iv = ByteArray(IV_LENGTH_BYTES).also(secureRandom::nextBytes)
         val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
@@ -34,6 +35,13 @@ internal class EncryptedWaitlistWithdrawalUrlProvider(
         )
     }
 
+    /**
+     * Resolves a stored token to a withdrawal URL, deleting it when [now] reaches its expiry.
+     *
+     * Returns `null` when no token exists or it has expired. Persistence failures propagate.
+     * @throws IllegalArgumentException If the stored ciphertext version or format is invalid.
+     * @throws javax.crypto.AEADBadTagException If the stored ciphertext fails authentication.
+     */
     override suspend fun urlFor(entryId: WaitlistEntryId, now: Instant): String? {
         val stored = repository.findByEntryId(entryId) ?: return null
         if (!now.isBefore(stored.expiresAt)) {

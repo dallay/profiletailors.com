@@ -27,6 +27,12 @@ internal class WaitlistWelcomeEmailReconciler(
 ) {
     private val log = LoggerFactory.getLogger(WaitlistWelcomeEmailReconciler::class.java)
 
+    /**
+     * Claims up to 20 pending or at least five-minute-stale welcome notifications and retries them.
+     * An unavailable withdrawal URL returns a claim to pending; a dispatch failure result marks it
+     * failed. Missing required payload data throws [IllegalStateException], and dependency errors
+     * propagate, stopping the current batch.
+     */
     @Scheduled(
         fixedDelayString = "\${app.notifications.waitlist-welcome-recovery.interval:1m}",
         initialDelayString = "\${app.notifications.waitlist-welcome-recovery.initial-delay:1m}",

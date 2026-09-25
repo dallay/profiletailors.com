@@ -32,18 +32,24 @@ class WaitlistApplicationConfiguration {
     }
 
     /**
+     * Provides the secure issuer used for new waitlist withdrawal tokens.
+     */
+    @Bean
+    fun waitlistWithdrawalTokenIssuer(): WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure
+
+    /**
      * Creates the handler for joining a waitlist.
      *
      * @param waitlistRepository Repository for waitlist data.
      * @param entryRepository Repository for waitlist entry data.
      * @param idGenerator Generator for waitlist entry identifiers.
+     * @param transactionRunner Runs entry persistence and join side effects in a transaction.
+     * @param withdrawalTokenIssuer Issues withdrawal tokens for new entries.
+     * @param withdrawalUrlProvider Retains withdrawal material for welcome emails.
      * @param consentRecorder Records waitlist consent.
      * @param notifier Notifies subscribers when an entry joins a waitlist.
      * @return A configured waitlist join handler.
      */
-    @Bean
-    fun waitlistWithdrawalTokenIssuer(): WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure
-
     @Bean
     fun joinWaitlistHandler(
         waitlistRepository: WaitlistRepository,

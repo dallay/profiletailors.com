@@ -47,6 +47,7 @@ data class Notification(
         updatedAt = at,
     )
 
+    /** Returns a pending copy with dispatch outcome fields cleared and [updatedAt] set to [at]. */
     fun markPending(at: Instant): Notification = copy(
         status = NotificationStatus.PENDING,
         sentAt = null,

@@ -204,6 +204,7 @@ class R2dbcWaitlistEntryRepository(
         )
         .bind("lastExplicitActionAt", OffsetDateTime.ofInstant(entry.joinedAt, ZoneOffset.UTC))
 
+    /** Restores withdrawn entries with their anonymized addresses and rejects inconsistent stored email pairs. */
     private fun Readable.toWaitlistEntry(): WaitlistEntry {
         val persistedEmail = requireNotNull(get("email_original", String::class.java))
         val persistedNormalizedEmail = requireNotNull(get("normalized_email", String::class.java))

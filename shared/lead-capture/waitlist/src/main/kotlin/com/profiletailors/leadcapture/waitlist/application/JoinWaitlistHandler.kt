@@ -26,6 +26,8 @@ class JoinWaitlistHandler(
 
     /**
      * Adds a new entry to the requested waitlist when the waitlist accepts entries.
+     * For a new entry, also stores withdrawal material, records consent, and notifies subscribers.
+     * Errors from those collaborators propagate to the caller.
      *
      * @param command The command containing the waitlist and entry details.
      * @return `JOINED_NEW` for a saved entry or `ALREADY_JOINED` when the email is already registered.

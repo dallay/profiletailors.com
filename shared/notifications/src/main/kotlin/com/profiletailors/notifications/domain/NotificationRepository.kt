@@ -33,6 +33,13 @@ interface NotificationRepository {
      */
     suspend fun findById(id: NotificationId): Notification?
 
+    /**
+     * Claims up to [limit] notifications for [templateId], marking them dispatching at [now].
+     * Pending records qualify immediately; dispatching records qualify when their last update is
+     * at or before [staleBefore]. Returns the claimed records.
+     *
+     * @throws IllegalArgumentException If [limit] is not positive.
+     */
     suspend fun claimPending(
         templateId: TemplateId,
         now: Instant,

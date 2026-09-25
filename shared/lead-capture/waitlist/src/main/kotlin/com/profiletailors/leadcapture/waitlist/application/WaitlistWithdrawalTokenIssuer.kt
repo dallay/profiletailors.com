@@ -8,6 +8,10 @@ import java.time.Instant
 import java.util.Base64
 
 fun interface WaitlistWithdrawalTokenIssuer {
+    /**
+     * Issues a raw withdrawal token and the candidate, hash, and expiry to persist with an entry.
+     * The secure issuer expires its tokens 90 days after [now].
+     */
     fun issue(now: Instant): IssuedToken
 
     data class IssuedToken(val raw: String, val persisted: WithdrawalToken)

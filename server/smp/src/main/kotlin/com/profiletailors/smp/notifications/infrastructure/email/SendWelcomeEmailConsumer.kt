@@ -44,6 +44,12 @@ internal class SendWelcomeEmailConsumer(
 
     private val log = LoggerFactory.getLogger(SendWelcomeEmailConsumer::class.java)
 
+    /**
+     * For an unrecorded join, records the welcome notification and sends it only when a
+     * withdrawal URL is available.
+     * A missing URL leaves the notification pending for reconciliation; a dispatch failure result
+     * records it as failed. Repository, URL provider, and dispatcher exceptions propagate.
+     */
     override suspend fun consume(event: WaitlistEntryJoined) {
         val now = Instant.now(clock)
         val idempotencyKey = IdempotencyKey("waitlist.welcome:${event.waitlistEntryId.value}")

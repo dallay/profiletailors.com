@@ -12,6 +12,7 @@ interface AtomicTransactionRunner {
 
     companion object {
         val noop: AtomicTransactionRunner = object : AtomicTransactionRunner {
+            /** Runs [block] directly, returning its result or propagating its exception without a transaction. */
             override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
         }
     }
