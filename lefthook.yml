@@ -64,6 +64,13 @@ pre-commit:
     docs-lint:
       run: '{ command -v pnpm >/dev/null || { echo "pnpm not installed, skipping docs lint"; exit 0; }; files=$(git diff --cached --name-only --diff-filter=ACM -- "*.md" "*.mdx" ":!openspec/**" ":!**/CHANGELOG.md"); if [ -z "$files" ]; then exit 0; fi; printf "%s\n" "$files" | sed "s/^/:/" | xargs pnpm exec markdownlint-cli2 --no-globs; }'
 
+    # Docs: check "Last Updated" header is not older than the last git commit
+    # for any doc file that is staged. Blocks the commit if a staged doc has
+    # a stale date, preventing the error from reaching CI.
+    doc-date-check:
+      run: '{ files=$(git diff --cached --name-only --diff-filter=ACM -- "docs/**/*.md" "docs/*.md" 2>/dev/null); if [ -z "$files" ]; then exit 0; fi; printf "%s\n" "$files" | xargs node scripts/check-doc-last-updated.mjs; }'
+      fail_text: 'Documentation date validation failed. Update the "Last Updated" header in the affected files before committing.'
+
 
 # ---------- PRE-PUSH ----------
 pre-push:

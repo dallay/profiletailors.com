@@ -18,7 +18,10 @@ function getDocFiles(dir) {
   return results
 }
 
-const docFiles = getDocFiles('docs')
+const cliFiles = process.argv.slice(2)
+const docFiles = cliFiles.length > 0
+  ? cliFiles.map(f => path.resolve(f))
+  : getDocFiles('docs')
 let hasErrors = false
 
 for (const file of docFiles) {
