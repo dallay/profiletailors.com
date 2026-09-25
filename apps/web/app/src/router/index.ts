@@ -119,6 +119,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/offline',
+      name: 'offline',
+      component: () => import('../views/OfflineView.vue'),
+      meta: { standalone: true },
+    },
+    {
       path: '/integrations/linkedin/callback',
       name: 'linkedin-callback',
       component: () => import('@modules/auth/presentation/LinkedInCallbackView.vue'),
@@ -132,6 +138,13 @@ router.beforeEach(async (to) => {
 
   if (!auth.sessionChecked) {
     await auth.hydrateSession()
+  }
+
+  if (requiresAuth(to) && auth.bootstrapState === 'unreachable') {
+    return {
+      path: '/offline',
+      query: { redirect: to.fullPath },
+    }
   }
 
   if (requiresAuth(to) && !auth.isAuthenticated) {

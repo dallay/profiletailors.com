@@ -90,6 +90,18 @@ describe('Auth store — hydrateSession', () => {
     expect(mockRefreshSession).toHaveBeenCalledOnce()
   })
 
+  it('marks unreachable when refreshSession throws network error', async () => {
+    mockRefreshSession.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const auth = useAuthStore()
+
+    await auth.hydrateSession()
+
+    expect(auth.isAuthenticated).toBe(false)
+    expect(auth.sessionChecked).toBe(true)
+    expect(auth.bootstrapState).toBe('unreachable')
+  })
+
   it('marks sessionChecked when refreshSession throws', async () => {
     mockRefreshSession.mockRejectedValue(new Error('network error'))
 
