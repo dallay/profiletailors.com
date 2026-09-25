@@ -335,3 +335,15 @@ MAY differ.
 - GIVEN an English route and its Spanish counterpart
 - WHEN links, headings, canonicals, alternates, and JSON-LD are compared
 - THEN each MUST retain its route identity and language navigation MUST point to the counterpart
+
+## Change Record: cloudflare-email-obfuscation-ahrefs-bypass (2026-09-24)
+
+### Requirement: Edge Invariant vs Origin Invariant Isolation
+
+Cloudflare Edge transformations (Email Obfuscation) MUST be managed via Edge Configuration Rules for verified bot traffic (`AhrefsSiteAudit`) rather than repository-level `robots.txt` Disallow directives. Origin build output MUST publish clean `mailto:` links and allow-all per-bot `robots.txt`.
+
+#### Scenario: Ahrefs Site Audit bypasses Cloudflare Email Obfuscation
+
+- GIVEN a request from verified `AhrefsSiteAudit` bot (`cf.client.bot and http.user_agent contains "AhrefsSiteAudit"`)
+- WHEN served through Cloudflare Edge
+- THEN Email Obfuscation MUST be OFF, returning unmodified `mailto:` links and preventing `/cdn-cgi/l/email-protection` link discovery
