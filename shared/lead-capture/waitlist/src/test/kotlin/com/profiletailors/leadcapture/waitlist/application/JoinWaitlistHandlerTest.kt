@@ -1,5 +1,6 @@
 package com.profiletailors.leadcapture.waitlist.application
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
@@ -17,6 +18,8 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistNotFoundException
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -32,6 +35,7 @@ internal class JoinWaitlistHandlerTest {
     private val waitlistRepo: WaitlistRepository = mockk()
     private val entryRepo: WaitlistEntryRepository = mockk()
     private val idGenerator: WaitlistEntryIdGenerator = mockk()
+    private val withdrawalUrlProvider: WaitlistWithdrawalUrlProvider = mockk(relaxed = true)
     private val consentRecorder: WaitlistConsentRecorder = mockk(relaxed = true)
     private val clock: () -> Instant = { Instant.parse("2026-07-16T12:00:00Z") }
 
@@ -39,6 +43,8 @@ internal class JoinWaitlistHandlerTest {
         waitlistRepository = waitlistRepo,
         entryRepository = entryRepo,
         idGenerator = idGenerator,
+        transactionRunner = AtomicTransactionRunner.noop,
+        withdrawalUrlProvider = withdrawalUrlProvider,
         consentRecorder = consentRecorder,
         clock = clock,
     )
@@ -55,8 +61,8 @@ internal class JoinWaitlistHandlerTest {
         )
         every { waitlistRepo.findByKey(WaitlistKey("profile-tailors-launch")) } returns activeWaitlist
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.saveIfNotExists(any()) } answers {
-            WaitlistEntryRepository.SaveResult.Saved(firstArg())
+        coEvery { entryRepo.saveIfNotExists(any(), any()) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(this.firstArg())
         }
 
         val result = handler.handle(
@@ -73,7 +79,14 @@ internal class JoinWaitlistHandlerTest {
 
         assertEquals(JoinResult.JOINED_NEW, result)
         assertEquals("Accepted", result.toString())
-        verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
+        coVerify(exactly = 1) { entryRepo.saveIfNotExists(any(), any()) }
+        coVerify(exactly = 1) {
+            withdrawalUrlProvider.remember(
+                entryId = WaitlistEntryId("e-new"),
+                token = any(),
+                expiresAt = Instant.parse("2026-10-14T12:00:00Z"),
+            )
+        }
         verify(exactly = 1) {
             consentRecorder.record(
                 match {
@@ -112,7 +125,7 @@ internal class JoinWaitlistHandlerTest {
         )
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.saveIfNotExists(any()) } returns
+        coEvery { entryRepo.saveIfNotExists(any(), any()) } returns
             WaitlistEntryRepository.SaveResult.AlreadyExists(existingEntry)
 
         val result = handler.handle(
@@ -128,7 +141,7 @@ internal class JoinWaitlistHandlerTest {
         )
 
         assertEquals(JoinResult.ALREADY_JOINED, result)
-        verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
+        coVerify(exactly = 1) { entryRepo.saveIfNotExists(any(), any()) }
         verify(exactly = 0) { consentRecorder.record(any()) }
     }
 

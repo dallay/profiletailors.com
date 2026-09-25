@@ -1,9 +1,11 @@
 package com.profiletailors.smp.leadcapture.infrastructure.http
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.controllers.GlobalExceptionHandler
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTokenIssuer
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -249,6 +251,17 @@ class WaitlistControllerTest {
             idGenerator = WaitlistEntryIdGenerator { _, normalizedEmail ->
                 WaitlistEntryId("entry-${normalizedEmail.value.hashCode().toUInt()}")
             },
+            transactionRunner = AtomicTransactionRunner.noop,
+            withdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer { now ->
+                WaitlistWithdrawalTokenIssuer.IssuedToken(
+                    raw = "raw-token",
+                    persisted = WaitlistEntryRepository.WithdrawalToken(
+                        candidate = "candidate",
+                        hash = "hash",
+                        expiresAt = now.plusSeconds(90),
+                    ),
+                )
+            },
             clock = { Instant.parse("2026-07-17T10:00:00Z") },
         )
         return WebTestClient.bindToController(WaitlistController(handler))
@@ -296,12 +309,16 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
-            if (normalizedEmails.add(entry.normalizedEmail.value)) {
-                WaitlistEntryRepository.SaveResult.Saved(entry)
-            } else {
-                WaitlistEntryRepository.SaveResult.AlreadyExists(entry)
-            }
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult = if (normalizedEmails.add(entry.normalizedEmail.value)) {
+            WaitlistEntryRepository.SaveResult.Saved(entry)
+        } else {
+            WaitlistEntryRepository.SaveResult.AlreadyExists(entry)
+        }
     }
 
     private object FailingWaitlistEntryRepository : WaitlistEntryRepository {
@@ -309,8 +326,12 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
-            throw IllegalStateException("database unavailable")
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult = throw IllegalStateException("database unavailable")
     }
 
     private object UnknownDomainErrorEntryRepository : WaitlistEntryRepository {
@@ -318,7 +339,12 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult =
             throw IllegalArgumentException("Some unmodeled domain invariant was violated")
     }
 
@@ -327,8 +353,12 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
-            throw IllegalArgumentException("Capture locale must not be blank")
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult = throw IllegalArgumentException("Capture locale must not be blank")
     }
 
     private object CaptureSourceErrorEntryRepository : WaitlistEntryRepository {
@@ -336,7 +366,12 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult =
             throw IllegalArgumentException("Capture source must contain only alphanumeric characters and hyphens")
     }
 }

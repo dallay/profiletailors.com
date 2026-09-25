@@ -7,6 +7,7 @@ import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository.WithdrawalToken
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
@@ -21,6 +22,8 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.security.MessageDigest
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -66,22 +69,49 @@ class R2dbcWaitlistEntryRepository(
         requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail))
     }
 
-    override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
-        kotlinx.coroutines.runBlocking {
-            val inserted = databaseClient.sql(insertSql(onConflictDoNothing = true))
-                .bindEntry(entry)
-                .fetch()
-                .rowsUpdated()
-                .awaitSingle() > 0
-
-            val persisted = requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail))
-
-            if (inserted) {
-                WaitlistEntryRepository.SaveResult.Saved(persisted)
-            } else {
-                WaitlistEntryRepository.SaveResult.AlreadyExists(persisted)
-            }
+    override suspend fun saveIfNotExists(
+        entry: WaitlistEntry,
+        withdrawalToken: WithdrawalToken,
+    ): WaitlistEntryRepository.SaveResult {
+        val inserted = databaseClient.sql(insertSql(onConflictDoNothing = true))
+            .bindEntry(entry, withdrawalToken)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle() > 0
+        val persisted = requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail))
+        return if (inserted) {
+            WaitlistEntryRepository.SaveResult.Saved(persisted)
+        } else {
+            WaitlistEntryRepository.SaveResult.AlreadyExists(persisted)
         }
+    }
+
+    override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? {
+        val candidate = token.take(CANDIDATE_LENGTH)
+        val hash = sha256(token)
+        return databaseClient.sql(
+            """
+            UPDATE waitlist_entries
+            SET status = 'CANCELLED', cancelled_at = :now, last_explicit_action_at = :now,
+                email_original = 'withdrawn-' || id || '@invalid.example', normalized_email = 'withdrawn-' || id,
+                consent_marketing = false, metadata = '{}'::jsonb, withdrawal_token_used_at = :now
+            WHERE withdrawal_token_candidate = :candidate
+              AND withdrawal_token_hash = :hash
+              AND withdrawal_token_expires_at > :now
+              AND withdrawal_token_used_at IS NULL
+              AND status <> 'CONVERTED'
+            RETURNING id, waitlist_id, email_original, normalized_email, source, form_id, locale, metadata,
+                      consent_early_access, consent_marketing, consent_version, status, joined_at,
+                      invited_at, converted_at, cancelled_at
+            """.trimIndent(),
+        )
+            .bind("candidate", candidate)
+            .bind("hash", hash)
+            .bind("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
+            .map { row, _ -> row.toWaitlistEntry() }
+            .one()
+            .awaitSingleOrNull()
+    }
 
     private suspend fun findByNormalizedEmailAsync(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry? =
         databaseClient.sql(
@@ -101,7 +131,7 @@ class R2dbcWaitlistEntryRepository(
 
     private suspend fun insert(entry: WaitlistEntry) {
         databaseClient.sql(insertSql(onConflictDoNothing = false))
-            .bindEntry(entry)
+            .bindEntry(entry, null)
             .then()
             .awaitSingleOrNull()
     }
@@ -116,59 +146,76 @@ class R2dbcWaitlistEntryRepository(
             INSERT INTO waitlist_entries (
                 id, waitlist_id, email_original, normalized_email, source, form_id, locale, metadata,
                 consent_early_access, consent_marketing, consent_version, status, joined_at,
-                invited_at, converted_at, cancelled_at
+                invited_at, converted_at, cancelled_at, withdrawal_token_hash, withdrawal_token_candidate,
+                withdrawal_token_expires_at, last_explicit_action_at
             ) VALUES (
                 :id, :waitlistId, :emailOriginal, :normalizedEmail, :source, :formId, :locale, CAST(:metadata AS JSONB),
                 :consentEarlyAccess, :consentMarketing, :consentVersion, :status, :joinedAt,
-                :invitedAt, :convertedAt, :cancelledAt
+                :invitedAt, :convertedAt, :cancelledAt, :withdrawalTokenHash, :withdrawalTokenCandidate,
+                :withdrawalTokenExpiresAt, :lastExplicitActionAt
             )
             $conflictClause
         """.trimIndent()
     }
 
-    private fun DatabaseClient.GenericExecuteSpec.bindEntry(entry: WaitlistEntry): DatabaseClient.GenericExecuteSpec =
-        bind("id", entry.id.value)
-            .bind("waitlistId", entry.waitlistId.value)
-            .bind("emailOriginal", entry.email.value)
-            .bind("normalizedEmail", entry.normalizedEmail.value)
-            .bind("source", entry.source.value)
-            .bindNullable("formId", entry.formId, String::class.java)
-            .bindNullable("locale", entry.locale?.value, String::class.java)
-            .bind("metadata", objectMapper.writeValueAsString(entry.metadata.toStorageMap()))
-            .bind("consentEarlyAccess", entry.consent.earlyAccess)
-            .bind("consentMarketing", entry.consent.marketing)
-            .bind("consentVersion", entry.consent.version)
-            .bind("status", entry.status.name)
-            .bind("joinedAt", OffsetDateTime.ofInstant(entry.joinedAt, ZoneOffset.UTC))
-            .bindNullable(
-                "invitedAt",
-                entry.invitedAt?.let {
-                    OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
-                },
-                OffsetDateTime::class.java,
-            )
-            .bindNullable(
-                "convertedAt",
-                entry.convertedAt?.let {
-                    OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
-                },
-                OffsetDateTime::class.java,
-            )
-            .bindNullable(
-                "cancelledAt",
-                entry.cancelledAt?.let {
-                    OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
-                },
-                OffsetDateTime::class.java,
-            )
+    private fun DatabaseClient.GenericExecuteSpec.bindEntry(
+        entry: WaitlistEntry,
+        withdrawalToken: WithdrawalToken?,
+    ): DatabaseClient.GenericExecuteSpec = bind("id", entry.id.value)
+        .bind("waitlistId", entry.waitlistId.value)
+        .bind("emailOriginal", entry.email.value)
+        .bind("normalizedEmail", entry.normalizedEmail.value)
+        .bind("source", entry.source.value)
+        .bindNullable("formId", entry.formId, String::class.java)
+        .bindNullable("locale", entry.locale?.value, String::class.java)
+        .bind("metadata", objectMapper.writeValueAsString(entry.metadata.toStorageMap()))
+        .bind("consentEarlyAccess", entry.consent.earlyAccess)
+        .bind("consentMarketing", entry.consent.marketing)
+        .bind("consentVersion", entry.consent.version)
+        .bind("status", entry.status.name)
+        .bind("joinedAt", OffsetDateTime.ofInstant(entry.joinedAt, ZoneOffset.UTC))
+        .bindNullable(
+            "invitedAt",
+            entry.invitedAt?.let {
+                OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            },
+            OffsetDateTime::class.java,
+        )
+        .bindNullable(
+            "convertedAt",
+            entry.convertedAt?.let {
+                OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            },
+            OffsetDateTime::class.java,
+        )
+        .bindNullable(
+            "cancelledAt",
+            entry.cancelledAt?.let {
+                OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            },
+            OffsetDateTime::class.java,
+        )
+        .bindNullable("withdrawalTokenHash", withdrawalToken?.hash, String::class.java)
+        .bindNullable("withdrawalTokenCandidate", withdrawalToken?.candidate, String::class.java)
+        .bindNullable(
+            "withdrawalTokenExpiresAt",
+            withdrawalToken?.expiresAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) },
+            OffsetDateTime::class.java,
+        )
+        .bind("lastExplicitActionAt", OffsetDateTime.ofInstant(entry.joinedAt, ZoneOffset.UTC))
 
     private fun Readable.toWaitlistEntry(): WaitlistEntry {
-        val email = EmailAddress(requireNotNull(get("email_original", String::class.java)))
-        val normalizedEmail = NormalizedEmail.fromPersisted(
-            requireNotNull(get("normalized_email", String::class.java)),
-        )
-        check(normalizedEmail == NormalizedEmail.from(email)) {
-            "Persisted normalized email does not match original email"
+        val persistedEmail = requireNotNull(get("email_original", String::class.java))
+        val persistedNormalizedEmail = requireNotNull(get("normalized_email", String::class.java))
+        val withdrawn = persistedEmail.startsWith("withdrawn-") && persistedEmail.endsWith("@invalid.example")
+        val email = EmailAddress(persistedEmail)
+        val normalizedEmail = NormalizedEmail.fromPersisted(persistedNormalizedEmail)
+        val withdrawnId = persistedEmail.substringAfter("withdrawn-").substringBefore("@invalid.example")
+        check(withdrawn == (persistedNormalizedEmail == "withdrawn-$withdrawnId"))
+        if (!withdrawn) {
+            check(normalizedEmail == NormalizedEmail.from(email)) {
+                "Persisted normalized email does not match original email"
+            }
         }
         return WaitlistEntry(
             id = WaitlistEntryId(requireNotNull(get("id", String::class.java))),
@@ -195,6 +242,10 @@ class R2dbcWaitlistEntryRepository(
         )
     }
 
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+        .joinToString(separator = "") { byte -> "%02x".format(byte) }
+
     private fun LeadMetadata.toStorageMap(): Map<String, String> = buildMap {
         utmSource?.let { put("utm_source", it) }
         utmMedium?.let { put("utm_medium", it) }
@@ -218,6 +269,10 @@ class R2dbcWaitlistEntryRepository(
         userAgentFamily = this["user_agent_family"] as? String,
         consentVersion = this["consent_version"] as? String,
     )
+
+    private companion object {
+        const val CANDIDATE_LENGTH = 16
+    }
 }
 
 private fun <T : Any> DatabaseClient.GenericExecuteSpec.bindNullable(

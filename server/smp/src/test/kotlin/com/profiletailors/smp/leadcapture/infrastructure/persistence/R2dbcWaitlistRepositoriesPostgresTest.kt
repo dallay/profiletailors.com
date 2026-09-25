@@ -15,11 +15,13 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.leadcapture.infrastructure.notification.R2dbcWaitlistWithdrawalUrlRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -42,11 +44,39 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @BeforeEach
     fun cleanLeadCaptureTables() {
         runBlocking {
+            databaseClient.sql("DELETE FROM waitlist_withdrawal_urls").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("DELETE FROM waitlist_entries").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql(
                 "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
             ).fetch().rowsUpdated().awaitSingle()
         }
+    }
+
+    @Test
+    fun `withdrawal url repository stores and deletes encrypted ciphertext`() = runTest {
+        val repository = R2dbcWaitlistWithdrawalUrlRepository(databaseClient)
+        val entry = testEntry(id = "entry-withdrawal-url", email = "withdrawal@example.com")
+        entryRepository.save(entry)
+        val expiresAt = Instant.parse("2026-10-01T00:00:00Z")
+
+        repository.save(entry.id, "v1", "ciphertext", expiresAt)
+
+        val stored = repository.findByEntryId(entry.id)
+        assertNotNull(stored)
+        assertEquals("v1", stored?.ciphertextVersion)
+        assertEquals("ciphertext", stored?.ciphertext)
+        assertEquals(expiresAt, stored?.expiresAt)
+
+        val restartedRepository = R2dbcWaitlistWithdrawalUrlRepository(databaseClient)
+        val restartedStored = restartedRepository.findByEntryId(entry.id)
+        assertNotNull(restartedStored)
+        assertEquals("v1", restartedStored?.ciphertextVersion)
+        assertEquals("ciphertext", restartedStored?.ciphertext)
+        assertEquals(expiresAt, restartedStored?.expiresAt)
+
+        repository.deleteByEntryId(entry.id)
+
+        assertNull(restartedRepository.findByEntryId(entry.id))
     }
 
     @Test
@@ -118,8 +148,8 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         val first = testEntry(id = "entry-1", email = "User@example.com")
         val duplicate = testEntry(id = "entry-2", email = "user@example.com")
 
-        val firstResult = entryRepository.saveIfNotExists(first)
-        val duplicateResult = entryRepository.saveIfNotExists(duplicate)
+        val firstResult = entryRepository.saveIfNotExists(first, tokenFor(first.id.value))
+        val duplicateResult = entryRepository.saveIfNotExists(duplicate, tokenFor(duplicate.id.value))
 
         assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
         val alreadyExists = assertIs<WaitlistEntryRepository.SaveResult.AlreadyExists>(duplicateResult)
@@ -135,14 +165,21 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         insertWaitlist(otherWaitlistId.value, "another-launch")
         val second = testEntry(id = "entry-2", waitlistId = otherWaitlistId, email = "USER@example.com")
 
-        val firstResult = entryRepository.saveIfNotExists(first)
-        val secondResult = entryRepository.saveIfNotExists(second)
+        val firstResult = entryRepository.saveIfNotExists(first, tokenFor(first.id.value))
+        val secondResult = entryRepository.saveIfNotExists(second, tokenFor(second.id.value))
 
         assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
         assertIs<WaitlistEntryRepository.SaveResult.Saved>(secondResult)
         assertEquals(1, countEntries(first.waitlistId))
         assertEquals(1, countEntries(otherWaitlistId))
     }
+
+    private fun tokenFor(value: String): WaitlistEntryRepository.WithdrawalToken =
+        WaitlistEntryRepository.WithdrawalToken(
+            candidate = "candidate-$value",
+            hash = "hash-$value",
+            expiresAt = Instant.parse("2026-10-16T00:00:00Z"),
+        )
 
     private fun testEntry(
         id: String,

@@ -7,7 +7,11 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 interface WaitlistEntryRepository {
     fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry?
     fun save(entry: WaitlistEntry): WaitlistEntry
-    fun saveIfNotExists(entry: WaitlistEntry): SaveResult
+    suspend fun saveIfNotExists(entry: WaitlistEntry, withdrawalToken: WithdrawalToken): SaveResult
+
+    suspend fun withdrawByToken(token: String, now: java.time.Instant): WaitlistEntry?
+
+    data class WithdrawalToken(val candidate: String, val hash: String, val expiresAt: java.time.Instant)
 
     sealed interface SaveResult {
         data class Saved(val entry: WaitlistEntry) : SaveResult

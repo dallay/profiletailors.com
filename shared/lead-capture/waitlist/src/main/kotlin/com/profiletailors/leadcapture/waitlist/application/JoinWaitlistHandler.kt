@@ -1,5 +1,6 @@
 package com.profiletailors.leadcapture.waitlist.application
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecordRequest
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification
@@ -15,6 +16,9 @@ class JoinWaitlistHandler(
     private val waitlistRepository: WaitlistRepository,
     private val entryRepository: WaitlistEntryRepository,
     private val idGenerator: WaitlistEntryIdGenerator,
+    private val transactionRunner: AtomicTransactionRunner = AtomicTransactionRunner.noop,
+    private val withdrawalTokenIssuer: WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure,
+    private val withdrawalUrlProvider: WaitlistWithdrawalUrlProvider = WaitlistWithdrawalUrlProvider.noop,
     private val consentRecorder: WaitlistConsentRecorder = WaitlistConsentRecorder.noop,
     private val notifier: WaitlistEntryJoinedNotifier = WaitlistEntryJoinedNotifier.noop,
     private val clock: () -> Instant = Instant::now,
@@ -37,6 +41,8 @@ class JoinWaitlistHandler(
 
         val normalized = command.normalizedEmail()
 
+        val now = clock()
+        val issuedToken = withdrawalTokenIssuer.issue(now)
         val entry = WaitlistEntry(
             id = idGenerator.generate(waitlist.id, normalized),
             waitlistId = waitlist.id,
@@ -47,33 +53,40 @@ class JoinWaitlistHandler(
             locale = command.locale,
             metadata = command.metadata,
             consent = command.consent,
-            joinedAt = clock(),
+            joinedAt = now,
         )
-        return when (val result = entryRepository.saveIfNotExists(entry)) {
-            is WaitlistEntryRepository.SaveResult.Saved -> {
-                consentRecorder.record(
-                    WaitlistConsentRecordRequest(
-                        waitlistKey = command.waitlistKey,
+        return transactionRunner.runAtomically {
+            when (val result = entryRepository.saveIfNotExists(entry, issuedToken.persisted)) {
+                is WaitlistEntryRepository.SaveResult.Saved -> {
+                    withdrawalUrlProvider.remember(
                         entryId = result.entry.id,
-                        normalizedEmail = result.entry.normalizedEmail,
-                        consent = result.entry.consent,
-                        locale = result.entry.locale,
-                        source = result.entry.source,
-                    ),
-                )
-                notifier.notify(
-                    WaitlistEntryJoinedNotification(
-                        waitlistEntryId = result.entry.id,
-                        waitlistKey = command.waitlistKey,
-                        waitlistName = waitlist.name,
-                        normalizedEmail = result.entry.normalizedEmail,
-                        locale = result.entry.locale,
-                    ),
-                )
-                JoinResult.JOINED_NEW
-            }
-            is WaitlistEntryRepository.SaveResult.AlreadyExists -> {
-                JoinResult.ALREADY_JOINED
+                        token = issuedToken.raw,
+                        expiresAt = issuedToken.persisted.expiresAt,
+                    )
+                    consentRecorder.record(
+                        WaitlistConsentRecordRequest(
+                            waitlistKey = command.waitlistKey,
+                            entryId = result.entry.id,
+                            normalizedEmail = result.entry.normalizedEmail,
+                            consent = result.entry.consent,
+                            locale = result.entry.locale,
+                            source = result.entry.source,
+                        ),
+                    )
+                    notifier.notify(
+                        WaitlistEntryJoinedNotification(
+                            waitlistEntryId = result.entry.id,
+                            waitlistKey = command.waitlistKey,
+                            waitlistName = waitlist.name,
+                            normalizedEmail = result.entry.normalizedEmail,
+                            locale = result.entry.locale,
+                        ),
+                    )
+                    JoinResult.JOINED_NEW
+                }
+                is WaitlistEntryRepository.SaveResult.AlreadyExists -> {
+                    JoinResult.ALREADY_JOINED
+                }
             }
         }
     }

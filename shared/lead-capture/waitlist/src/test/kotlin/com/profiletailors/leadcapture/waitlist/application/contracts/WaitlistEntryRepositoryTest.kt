@@ -8,6 +8,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -33,7 +34,12 @@ internal class WaitlistEntryRepositoryTest {
             return entry
         }
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult {
+        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult {
             val key = entry.waitlistId to entry.normalizedEmail
             return store[key]?.let(WaitlistEntryRepository.SaveResult::AlreadyExists)
                 ?: WaitlistEntryRepository.SaveResult.Saved(entry).also { store[key] = entry }
@@ -111,26 +117,32 @@ internal class WaitlistEntryRepositoryTest {
     }
 
     @Test
-    fun `saveIfNotExists returns Saved when key is absent`() {
+    fun `saveIfNotExists returns Saved when key is absent`() = runTest {
         val repository: WaitlistEntryRepository = InMemoryWaitlistEntryRepository()
         val newEntry = entry(WaitlistId("w-1"), "user@example.com")
 
-        val result = repository.saveIfNotExists(newEntry)
+        val result = repository.saveIfNotExists(newEntry, withdrawalToken())
 
         val saved = assertIs<WaitlistEntryRepository.SaveResult.Saved>(result)
         assertSame(newEntry, saved.entry)
     }
 
     @Test
-    fun `saveIfNotExists returns AlreadyExists with existing entry when key is present`() {
+    fun `saveIfNotExists returns AlreadyExists with existing entry when key is present`() = runTest {
         val repository: WaitlistEntryRepository = InMemoryWaitlistEntryRepository()
         val existing = entry(WaitlistId("w-1"), "user@example.com")
         val duplicate = entry(WaitlistId("w-1"), "USER@example.com")
         repository.save(existing)
 
-        val result = repository.saveIfNotExists(duplicate)
+        val result = repository.saveIfNotExists(duplicate, withdrawalToken())
 
         val alreadyExists = assertIs<WaitlistEntryRepository.SaveResult.AlreadyExists>(result)
         assertSame(existing, alreadyExists.existing)
     }
+
+    private fun withdrawalToken() = WaitlistEntryRepository.WithdrawalToken(
+        candidate = "candidate",
+        hash = "hash",
+        expiresAt = Instant.parse("2026-07-17T12:00:00Z"),
+    )
 }
