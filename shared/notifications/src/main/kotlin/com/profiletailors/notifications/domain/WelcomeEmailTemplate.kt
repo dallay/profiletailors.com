@@ -23,6 +23,7 @@ data class WelcomeEmail(
     val recipient: NormalizedEmail,
     val waitlistName: String,
     val locale: String?,
+    val withdrawalUrl: String,
 ) {
     init {
         require(waitlistName.isNotBlank()) { "Waitlist name cannot be blank" }
@@ -73,6 +74,8 @@ data class WelcomeEmail(
         |
         |In the meantime, keep an eye on your inbox — that's where invitations go.
         |
+        |You can withdraw your waitlist entry here: $withdrawalUrl
+        |
         |— The Profile Tailors team
     """.trimMargin()
 
@@ -94,9 +97,12 @@ data class WelcomeEmail(
     )} <strong>${escapeHtml(
         waitlistName,
     )}</strong> ${escapeHtml("waitlist. We'll let you know as soon as a spot opens up.")}</p>
-        |            <p style="margin:0;color:#a3a3a3;font-size:14px;line-height:1.5;">${escapeHtml(
+        |            <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">${escapeHtml(
         "In the meantime, keep an eye on your inbox — that's where invitations go.",
     )}</p>
+        |            <p style="margin:0;color:#a3a3a3;font-size:14px;line-height:1.5;"><a href="${escapeHtml(
+        withdrawalUrl,
+    )}" style="color:#ffffff;">${escapeHtml("Withdraw from the waitlist")}</a></p>
         |          </td></tr>
         |        </table>
         |      </td></tr>

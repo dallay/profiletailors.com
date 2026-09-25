@@ -23,6 +23,16 @@ internal class WelcomeEmailTest {
         assertEquals("user@example.com", payload["email"])
         assertEquals("Profile Tailors Launch", payload["waitlistName"])
         assertEquals("es", payload["locale"])
+        assertEquals(null, payload["withdrawalUrl"])
+    }
+
+    @Test
+    fun `render includes the withdrawal URL without placing it in the notification payload`() {
+        val email = welcome(withdrawalUrl = "https://profiletailors.com/waitlist/withdraw?token=opaque")
+
+        assertTrue(email.render().text.contains("https://profiletailors.com/waitlist/withdraw?token=opaque"))
+        assertTrue(email.render().html?.contains("https://profiletailors.com/waitlist/withdraw?token=opaque") == true)
+        assertEquals(null, email.toPayload()["withdrawalUrl"])
     }
 
     @Test
@@ -74,10 +84,12 @@ internal class WelcomeEmailTest {
         ),
         waitlistName: String = "Profile Tailors Launch",
         locale: String? = "es",
+        withdrawalUrl: String = "https://profiletailors.com/waitlist/withdraw?token=opaque",
     ): WelcomeEmail = WelcomeEmail(
         waitlistEntryId = waitlistEntryId,
         recipient = recipient,
         waitlistName = waitlistName,
         locale = locale,
+        withdrawalUrl = withdrawalUrl,
     )
 }

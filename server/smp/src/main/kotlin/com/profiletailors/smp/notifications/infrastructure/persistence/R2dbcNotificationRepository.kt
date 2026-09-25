@@ -10,6 +10,7 @@ import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
 import com.profiletailors.notifications.domain.TemplateId
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.r2dbc.core.DatabaseClient
@@ -95,6 +96,24 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
         .asFlow()
         .firstOrNull()
 
+    override suspend fun claimPending(
+        templateId: TemplateId,
+        now: Instant,
+        staleBefore: Instant,
+        limit: Int,
+    ): List<Notification> {
+        require(limit > 0) { "limit must be positive" }
+        return databaseClient.sql(CLAIM_PENDING_SQL)
+            .bind("templateId", templateId.value)
+            .bind("now", now.toUtcLocalDateTime())
+            .bind("staleBefore", staleBefore.toUtcLocalDateTime())
+            .bind("limit", limit)
+            .map { row, _ -> row.toNotification() }
+            .all()
+            .asFlow()
+            .toList()
+    }
+
     companion object {
         private val JSONB_PAIR: Regex = Regex(""""([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"""")
 
@@ -129,6 +148,25 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
                    status, sent_at, failed_at, error_message, created_at, updated_at
             FROM notifications
             WHERE id = :id
+        """
+
+        private const val CLAIM_PENDING_SQL = """
+            UPDATE notifications
+            SET status = 'DISPATCHING', updated_at = :now
+            WHERE id IN (
+                SELECT id
+                FROM notifications
+                WHERE template_id = :templateId
+                  AND (
+                      status = 'PENDING'
+                      OR (status = 'DISPATCHING' AND updated_at <= :staleBefore)
+                  )
+                ORDER BY updated_at, id
+                FOR UPDATE SKIP LOCKED
+                LIMIT :limit
+            )
+            RETURNING id, idempotency_key, channel, recipient, template_id, payload,
+                      status, sent_at, failed_at, error_message, created_at, updated_at
         """
 
         private fun Instant.toUtcLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(this, ZoneOffset.UTC)

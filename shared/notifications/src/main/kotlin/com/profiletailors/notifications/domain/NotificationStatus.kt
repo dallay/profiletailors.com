@@ -9,6 +9,7 @@ package com.profiletailors.notifications.domain
  */
 enum class NotificationStatus {
     PENDING,
+    DISPATCHING,
     SENT,
     FAILED,
 }
