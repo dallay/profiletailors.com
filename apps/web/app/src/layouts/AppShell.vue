@@ -34,6 +34,7 @@ import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
 import UpdatePrompt from '@/pwa/UpdatePrompt.vue'
+import InstallPrompt from '@/pwa/InstallPrompt.vue'
 import { VersionBadge } from '@profiletailors/vue-ui'
 import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
@@ -321,6 +322,7 @@ onBeforeUnmount(() => {
         </SidebarContent>
 
         <SidebarFooter>
+          <InstallPrompt />
           <SidebarAccountSection
             :user="{
               displayName: auth.displayName,

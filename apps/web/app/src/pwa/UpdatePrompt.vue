@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRegisterSW } from 'virtual:pwa-register/vue'
+import { updatePwa } from './registerPwa'
 
 const { t } = useI18n()
 const visible = ref(false)
 let showHandler: (() => void) | null = null
-
-const { updateServiceWorker } = useRegisterSW({
-  onNeedRefresh() {
-    visible.value = true
-  },
-})
 
 function onNeedRefresh(): void {
   visible.value = true
@@ -28,7 +22,7 @@ onUnmounted(() => {
 
 async function refresh(): Promise<void> {
   visible.value = false
-  await updateServiceWorker(true)
+  await updatePwa()
 }
 
 function dismiss(): void {

@@ -15,6 +15,6 @@ export default {
   },
   install: {
     cta: 'Instalar app',
-    iosGuide: 'En iPhone: Compartir → Agregar a inicio para instalar.',
+    iosGuide: 'En iPhone o iPad: Compartir → Agregar a inicio para instalar.',
   },
 }

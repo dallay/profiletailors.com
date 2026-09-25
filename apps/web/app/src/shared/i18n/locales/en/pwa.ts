@@ -15,6 +15,6 @@ export default {
   },
   install: {
     cta: 'Install app',
-    iosGuide: 'On iPhone: Share → Add to Home Screen to install.',
+    iosGuide: 'On iPhone or iPad: Share → Add to Home Screen to install.',
   },
 }

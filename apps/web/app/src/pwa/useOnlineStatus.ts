@@ -1,29 +1,37 @@
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, type Ref } from 'vue'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 
 export type Connectivity = 'checking' | 'online' | 'offline' | 'api-unreachable'
 
-export function useOnlineStatus() {
+export interface UseOnlineStatusReturn {
+  status: Ref<Connectivity>
+  retry: () => Promise<void>
+}
+
+export function useOnlineStatus(): UseOnlineStatusReturn {
   const status = ref<Connectivity>('checking')
+  let generation = 0
 
   async function probe(): Promise<void> {
+    const request = ++generation
     if (!navigator.onLine) {
       status.value = 'offline'
       return
     }
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
     try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3000)
       const response = await fetch(resolveApiUrl('/api/capabilities/public'), {
         method: 'GET',
         credentials: 'include',
         cache: 'no-store',
         signal: controller.signal,
       })
-      clearTimeout(timeout)
-      status.value = response.ok ? 'online' : 'api-unreachable'
+      if (request === generation) status.value = response.ok ? 'online' : 'api-unreachable'
     } catch {
-      status.value = navigator.onLine ? 'api-unreachable' : 'offline'
+      if (request === generation) status.value = navigator.onLine ? 'api-unreachable' : 'offline'
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
@@ -33,6 +41,7 @@ export function useOnlineStatus() {
     window.addEventListener('offline', probe)
   })
   onUnmounted(() => {
+    generation++
     window.removeEventListener('online', probe)
     window.removeEventListener('offline', probe)
   })

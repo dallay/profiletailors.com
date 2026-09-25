@@ -75,6 +75,21 @@ describe('Session hydration — restore session after page refresh', () => {
     expect(auth.sessionChecked).toBe(true)
   })
 
+  it('hydrateSession clears an old in-memory session when refresh returns no tokens', async () => {
+    mockRefreshSession.mockResolvedValueOnce(fakeTokens).mockResolvedValueOnce(null)
+
+    const auth = useAuthStore()
+    await auth.hydrateSession()
+    expect(auth.isAuthenticated).toBe(true)
+
+    await auth.hydrateSession()
+
+    expect(auth.isAuthenticated).toBe(false)
+    expect(auth.accessToken).toBeNull()
+    expect(auth.user).toBeNull()
+    expect(auth.bootstrapState).toBe('unauthenticated')
+  })
+
   it('hydrateSession sets sessionChecked when refreshSession throws', async () => {
     mockRefreshSession.mockRejectedValue(new Error('network'))
 

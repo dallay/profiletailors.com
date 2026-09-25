@@ -223,8 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (!tokens) {
           // No active session — that's fine (401 swallowed)
-          bootstrapState.value = 'unauthenticated'
-          sessionChecked.value = true
+          _clearSession()
           return
         }
 
@@ -361,6 +360,7 @@ export const useAuthStore = defineStore('auth', () => {
     apiFetchRaw,
     bootstrapState,
     clearError,
+    clearLocalSession: _clearSession,
     displayName,
     error,
     hydrateSession,

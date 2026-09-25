@@ -31,6 +31,7 @@ async function handleRetry(): Promise<void> {
 }
 
 function goLogin(): void {
+  if (auth.isAuthenticated) auth.clearLocalSession()
   void router.replace({ path: '/login', query: { redirect: redirectTarget.value } })
 }
 </script>
@@ -44,7 +45,7 @@ function goLogin(): void {
     <p class="text-center text-sm text-text-secondary">{{ t('pwa.offline.description') }}</p>
     <p
       v-if="status === 'api-unreachable'"
-      class="text-center text-sm text-amber-200"
+      class="text-center text-sm text-warning"
     >
       {{ t('pwa.offline.apiUnreachable') }}
     </p>

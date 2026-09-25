@@ -7,7 +7,9 @@ type BeforeInstallPromptEvent = Event & {
 
 function isIosSafari(): boolean {
   const ua = navigator.userAgent
-  const isIos = /iPad|iPhone|iPod/.test(ua)
+  const isIos =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
   return isIos && isSafari && !(navigator as { standalone?: boolean }).standalone
 }
