@@ -35,7 +35,7 @@ To maintain reliable SEO auditing while protecting user email addresses, SEO inv
 Operator executes in Cloudflare Dashboard:
 
 1. Dashboard → Rules → Configuration Rules → Create rule `Bypass Email Obfuscation for Ahrefs Site Audit`
-2. Set Expression: `cf.client.bot and http.user_agent contains "AhrefsSiteAudit"`
+2. Set Expression: `http.user_agent contains "AhrefsSiteAudit/" and http.user_agent contains "/robot/site-audit"`
 3. Set Option: **Email Obfuscation** = **Off**
 4. Save and Deploy rule.
 
@@ -119,7 +119,7 @@ Re-crawl:
 
 ## Troubleshooting
 
-- `cdn-cgi` reappears for AhrefsSiteAudit: Cloudflare Configuration Rule inactive or user agent match failed — verify rule `cf.client.bot and http.user_agent contains "AhrefsSiteAudit"` with Email Obfuscation = Off in Cloudflare Dashboard.
+- `cdn-cgi` reappears for AhrefsSiteAudit: Cloudflare Configuration Rule inactive or user agent match failed — verify rule `http.user_agent contains "AhrefsSiteAudit/" and http.user_agent contains "/robot/site-audit"` with Email Obfuscation = Off in Cloudflare Dashboard.
 - `cdn-cgi` in origin build artifacts: raw email leaked — ensure `mailto:` link format `[a@b.com](mailto:a@b.com)` in `en.ts`/`es.ts`.
 - Orphan still flagged: stale Ahrefs snapshot — re-crawl after 10 min; E2E proves parity.
 - 3XX still flagged: operator Bulk Redirect not deployed — check curl `location` headers.
