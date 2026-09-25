@@ -13,6 +13,16 @@ class LeadCaptureLiquibaseChangelogTest {
 
         master shouldContain "db/changelog/lead-capture/001-create-waitlists.yaml"
         master shouldContain "db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml"
+        master shouldContain "db/changelog/lead-capture/004-add-waitlist-withdrawal.yaml"
+    }
+
+    @Test
+    fun `withdrawal changelog creates encrypted url store`() {
+        val withdrawal = changelog("lead-capture/004-add-waitlist-withdrawal.yaml")
+        withdrawal shouldContain "tableName: waitlist_withdrawal_urls"
+        withdrawal shouldContain "name: ciphertext_version"
+        withdrawal shouldContain "name: ciphertext"
+        withdrawal shouldContain "deleteCascade: true"
     }
 
     @Test

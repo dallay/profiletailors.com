@@ -71,6 +71,7 @@ object PostgresDatabaseCleanup {
         "DELETE FROM platform_admin_configuration_idempotency",
         "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",
+        "DELETE FROM waitlist_withdrawal_urls",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",
         "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",

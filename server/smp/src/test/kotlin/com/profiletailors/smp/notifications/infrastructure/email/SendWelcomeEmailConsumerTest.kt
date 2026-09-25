@@ -1,5 +1,6 @@
 package com.profiletailors.smp.notifications.infrastructure.email
 
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalUrlProvider
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
@@ -38,17 +39,41 @@ internal class SendWelcomeEmailConsumerTest {
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Success
 
-        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, clock)
+        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event())
 
-        val pending = saved.captured
-        assertEquals(NotificationStatus.PENDING, pending.status)
-        assertEquals("user@example.com", pending.recipient.value)
-        assertEquals("Profile Tailors Launch", pending.payload["waitlistName"])
+        val dispatching = saved.captured
+        assertEquals(NotificationStatus.DISPATCHING, dispatching.status)
+        assertEquals("user@example.com", dispatching.recipient.value)
+        assertEquals("Profile Tailors Launch", dispatching.payload["waitlistName"])
         coVerify(exactly = 1) {
             dispatcher.dispatch("user@example.com", match { it.subject.contains("Welcome") && it.html != null })
         }
         coVerify(exactly = 1) { repository.update(match { it.status == NotificationStatus.SENT }) }
+    }
+
+    @Test
+    fun `records pending notification when withdrawal URL is temporarily unavailable`() = runTest {
+        val repository = mockk<NotificationRepository>()
+        val dispatcher = mockk<EmailDispatcher>()
+        coEvery { repository.findByIdempotencyKey(any()) } returns null
+        val saved = slot<Notification>()
+        coEvery { repository.save(capture(saved)) } answers { saved.captured }
+        coEvery { repository.update(any()) } answers { firstArg() }
+
+        val consumer = SendWelcomeEmailConsumer(
+            dispatcher,
+            repository,
+            withdrawalUrlProvider(url = null),
+            clock,
+        )
+        consumer.consume(event())
+
+        assertEquals(NotificationStatus.DISPATCHING, saved.captured.status)
+        assertEquals("entry-1", saved.captured.payload["waitlistEntryId"])
+        assertEquals(null, saved.captured.payload["withdrawalUrl"])
+        coVerify(exactly = 1) { repository.update(match { it.status == NotificationStatus.PENDING }) }
+        coVerify(exactly = 0) { dispatcher.dispatch(any(), any()) }
     }
 
     @Test
@@ -60,7 +85,7 @@ internal class SendWelcomeEmailConsumerTest {
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Failure("smtp 5xx")
 
-        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, clock)
+        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event())
 
         coVerify(exactly = 1) {
@@ -78,7 +103,7 @@ internal class SendWelcomeEmailConsumerTest {
         val dispatcher = mockk<EmailDispatcher>()
         coEvery { repository.findByIdempotencyKey(any()) } returns mockk<Notification>(relaxed = true)
 
-        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, clock)
+        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event())
 
         coVerify(exactly = 0) { dispatcher.dispatch(any(), any()) }
@@ -95,7 +120,7 @@ internal class SendWelcomeEmailConsumerTest {
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Success
 
-        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, clock)
+        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event(entryId = WaitlistEntryId("entry-42")))
 
         assertEquals("waitlist.welcome:entry-42", seenKey.captured.value)
@@ -111,11 +136,21 @@ internal class SendWelcomeEmailConsumerTest {
         val rendered = slot<RenderedEmail>()
         coEvery { dispatcher.dispatch(any(), capture(rendered)) } returns EmailDispatchResult.Success
 
-        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, clock)
+        val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event())
 
         assertNotNull(rendered.captured.html)
         assertTrue(rendered.captured.subject.startsWith("Welcome to the"))
+    }
+
+    private fun withdrawalUrlProvider(
+        url: String? = "https://profiletailors.com/waitlist/withdraw?token=raw-token",
+    ): WaitlistWithdrawalUrlProvider = object : WaitlistWithdrawalUrlProvider {
+        override suspend fun remember(entryId: WaitlistEntryId, token: String, expiresAt: Instant) = Unit
+
+        override suspend fun urlFor(entryId: WaitlistEntryId, now: Instant): String? = url
+
+        override suspend fun forget(entryId: WaitlistEntryId) = Unit
     }
 
     private fun event(entryId: WaitlistEntryId = WaitlistEntryId("entry-1")): WaitlistEntryJoined = WaitlistEntryJoined(

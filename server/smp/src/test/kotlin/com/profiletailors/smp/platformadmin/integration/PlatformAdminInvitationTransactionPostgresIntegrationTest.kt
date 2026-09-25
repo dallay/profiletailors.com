@@ -138,10 +138,10 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source,
-               consent_early_access, consent_marketing, consent_version, status, joined_at)
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
               ('entry-test-1', 'wl-1', 'test@example.com', 'test@example.com', 'web',
-               true, false, '1.0', 'PENDING', NOW())
+               true, false, '1.0', 'PENDING', NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -150,10 +150,10 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source,
-               consent_early_access, consent_marketing, consent_version, status, joined_at)
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
               ('entry-test-2', 'wl-1', 'invited@example.com', 'invited@example.com', 'web',
-               true, false, '1.0', 'PENDING', NOW())
+               true, false, '1.0', 'PENDING', NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()

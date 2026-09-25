@@ -8,11 +8,13 @@ package com.profiletailors.common.domain.persistence
  * is achieved must not leak into the application layer.
  */
 interface AtomicTransactionRunner {
-    /**
-     * Executes [block] inside a single atomic transaction.
-     *
-     * On any uncaught exception inside [block] the transaction is rolled back and the
-     * exception is re-thrown. On normal completion the transaction is committed.
-     */
+    /** Rolls back on uncaught exceptions and commits when [block] completes normally. */
     suspend fun <T : Any> runAtomically(block: suspend () -> T): T
+
+    companion object {
+        /** For tests only. Executes [AtomicTransactionRunner.runAtomically] blocks without atomicity guarantees. */
+        val noop: AtomicTransactionRunner = object : AtomicTransactionRunner {
+            override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+        }
+    }
 }

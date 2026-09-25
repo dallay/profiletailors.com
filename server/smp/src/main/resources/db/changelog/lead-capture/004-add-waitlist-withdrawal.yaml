@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: lead-capture-004-add-waitlist-withdrawal-url-store
+      author: opencode
+      changes:
+        - createTable:
+            tableName: waitlist_withdrawal_urls
+            columns:
+              - column:
+                  name: entry_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_waitlist_withdrawal_urls_entry
+                    references: waitlist_entries(id)
+                    deleteCascade: true
+              - column:
+                  name: ciphertext_version
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ciphertext
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: waitlist_withdrawal_urls
+  - changeSet:
+      id: lead-capture-004-add-waitlist-withdrawal
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: waitlist_entries
+            columns:
+              - column:
+                  name: withdrawal_token_hash
+                  type: varchar(255)
+              - column:
+                  name: withdrawal_token_candidate
+                  type: varchar(64)
+              - column:
+                  name: withdrawal_token_expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: withdrawal_token_used_at
+                  type: timestamp with time zone
+              - column:
+                  name: last_explicit_action_at
+                  type: timestamp with time zone
+        - sql:
+            sql: UPDATE waitlist_entries SET last_explicit_action_at = joined_at WHERE last_explicit_action_at IS NULL
+        - addNotNullConstraint:
+            tableName: waitlist_entries
+            columnName: last_explicit_action_at
+            columnDataType: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: waitlist_entries
+            columnNames: withdrawal_token_candidate
+            constraintName: uq_waitlist_entries_withdrawal_token_candidate
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_retention
+            columns:
+              - column:
+                  name: last_explicit_action_at
+              - column:
+                  name: status
+      rollback:
+        - dropIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_retention
+        - dropUniqueConstraint:
+            tableName: waitlist_entries
+            constraintName: uq_waitlist_entries_withdrawal_token_candidate
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: withdrawal_token_used_at
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: withdrawal_token_expires_at
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: withdrawal_token_candidate
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: withdrawal_token_hash
+        - dropColumn:
+            tableName: waitlist_entries
+            columnName: last_explicit_action_at

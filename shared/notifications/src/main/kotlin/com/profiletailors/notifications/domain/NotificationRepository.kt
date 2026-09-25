@@ -1,5 +1,7 @@
 package com.profiletailors.notifications.domain
 
+import java.time.Instant
+
 /**
  * Outbound port for persisting [Notification] records.
  *
@@ -30,4 +32,11 @@ interface NotificationRepository {
      * Find a notification by its ID, or `null` if no notification with that ID exists.
      */
     suspend fun findById(id: NotificationId): Notification?
+
+    suspend fun claimPending(
+        templateId: TemplateId,
+        now: Instant,
+        staleBefore: Instant,
+        limit: Int,
+    ): List<Notification>
 }
