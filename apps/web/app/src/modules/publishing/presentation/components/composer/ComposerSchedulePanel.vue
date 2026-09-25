@@ -118,7 +118,7 @@ function onTimeInput(event: Event) {
     <!-- Date picker and time input (only in custom mode) -->
     <div
       v-if="scheduleMode === 'custom'"
-      class="grid grid-cols-[1fr_112px] gap-3"
+      class="grid grid-cols-1 xs:grid-cols-[1fr_112px] gap-2 sm:gap-3"
     >
       <Popover :open="isDatePickerOpen" @update:open="(open) => emit('update:isDatePickerOpen', open)">
         <PopoverTrigger as-child>
