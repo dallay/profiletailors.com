@@ -1101,6 +1101,24 @@ class MediaCasHandlersTest {
     }
 
     @Test
+    fun `handlers return asset summaries for active members`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val previewResolver = AssetPreviewUrlResolver { _, _, _, _, _ -> null }
+        val tokenService = MediaPreviewTokenService("test-secret", 60)
+        media.create(readyAsset(ASSET_A, HASH_A))
+
+        val getResult = GetWorkspaceAssetHandler(
+            media,
+            previewResolver,
+            tokenService,
+            allowAllMembershipGate(),
+        ).handle(GetWorkspaceAssetQuery(ASSET_A, WORKSPACE))
+
+        assertEquals(ASSET_A, getResult.assetId)
+        assertEquals(WORKSPACE, getResult.workspaceId)
+    }
+
+    @Test
     fun `verified user cannot create asset without active membership`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val handler = CreateUploadedAssetHandler(
