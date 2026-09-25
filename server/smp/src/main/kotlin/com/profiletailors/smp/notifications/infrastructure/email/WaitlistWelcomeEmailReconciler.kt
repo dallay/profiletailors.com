@@ -43,7 +43,7 @@ internal class WaitlistWelcomeEmailReconciler(
     }
 
     private suspend fun dispatch(notification: Notification, now: Instant) {
-        val entryId = WaitlistEntryId(notification.payload["waitlistEntryId"] ?: returnToPending(notification, now))
+        val entryId = WaitlistEntryId(notification.payload["waitlistEntryId"] ?: returnToPending(notification))
         val withdrawalUrl = withdrawalUrlProvider.urlFor(entryId, now)
         if (withdrawalUrl == null) {
             notificationRepository.update(notification.markPending(Instant.now(clock)))
@@ -52,7 +52,7 @@ internal class WaitlistWelcomeEmailReconciler(
         val welcome = WelcomeEmail(
             waitlistEntryId = entryId,
             recipient = NormalizedEmail.from(EmailAddress(notification.recipient.value)),
-            waitlistName = notification.payload["waitlistName"] ?: returnToPending(notification, now),
+            waitlistName = notification.payload["waitlistName"] ?: returnToPending(notification),
             locale = notification.payload["locale"],
             withdrawalUrl = withdrawalUrl,
         )
@@ -67,7 +67,7 @@ internal class WaitlistWelcomeEmailReconciler(
         }
     }
 
-    private fun returnToPending(notification: Notification, now: Instant): Nothing =
+    private fun returnToPending(notification: Notification): Nothing =
         throw MissingWelcomePayload(notification.id.value)
 
     private class MissingWelcomePayload(id: String) :
