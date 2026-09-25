@@ -75,18 +75,13 @@ curl -I https://profiletailors.com/ | grep -i strict-transport
 
 ### Deployed Edge Verification (Cloudflare Runbook)
 
-To validate the deployed response as seen through Cloudflare for `AhrefsSiteAudit`:
+The Email Obfuscation bypass requires both `cf.client.bot` and the `AhrefsSiteAudit` user agent. Validate the bypass with an actual Ahrefs Site Audit crawl, or another request method that satisfies both conditions. A spoofed user-agent curl request cannot prove this behavior; use it only for behavior independent of `cf.client.bot`.
+
+In the Ahrefs crawl results, confirm that the privacy page contains `mailto:` links and no `/cdn-cgi/` email-protection rewrites.
+
+For the independent `robots.txt` check:
 
 ```bash
-# 1. Confirm AhrefsSiteAudit user agent receives clean mailto: links with NO cdn-cgi rewrites
-curl -s -A "Mozilla/5.0 (compatible; AhrefsSiteAudit/6.1; +http://ahrefs.com/robot/site-audit)" https://profiletailors.com/privacy/ | grep -i "cdn-cgi"
-# Expected output: (empty, exit code 1)
-
-# 2. Confirm mailto: links are present in the response returned to AhrefsSiteAudit
-curl -s -A "Mozilla/5.0 (compatible; AhrefsSiteAudit/6.1; +http://ahrefs.com/robot/site-audit)" https://profiletailors.com/privacy/ | grep -i "mailto:"
-# Expected output: href="mailto:contact@profiletailors.com"
-
-# 3. Confirm robots.txt contains no Disallow rules
 curl -s https://profiletailors.com/robots.txt | grep -i "Disallow"
 # Expected output: (empty, exit code 1)
 ```
