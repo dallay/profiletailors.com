@@ -18,6 +18,7 @@ import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.ProviderActorId
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
+import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentActorRepository
 import com.profiletailors.smp.publishing.domain.SocialContentBatchWriter
@@ -137,6 +138,19 @@ class SocialContentApplicationHandlersTest {
             status = SocialContentSyncStatus.COMPLETED,
         )
         checkpointRepository.saved.single().lastSuccessfulAt shouldBe now
+    }
+
+    @Test
+    fun `sync blocks when the import feature is disabled`() = runTest {
+        val handler = SocialContentSyncCommandHandler(
+            resourceContextProvider = contextProvider,
+            featureGates = SocialContentFeatureGates(importEnabled = false),
+            membershipGate = mockk(relaxed = true),
+        )
+
+        shouldThrow<SocialContentAccessDeniedException> {
+            handler.handle(SocialContentSyncCommand(actor.id))
+        }
     }
 
     @Test
