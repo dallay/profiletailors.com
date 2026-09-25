@@ -1,26 +1,26 @@
 schemaVersion: 1
 task: api-contract-drift-auditor
-lastExecution: "2026-09-18T18:52:28Z"
+lastExecution: "2026-09-25T18:54:57Z"
 outcome: NO_DRIFT_DETECTED
 findings: []
 checks:
-  - name: backend-fast-tests
+  - name: backend-controller-tests
     target: server/smp
     status: Passed
     notes: Controller tests and REST contracts verified against backend domain modules.
-  - name: frontend-unit-tests
+  - name: frontend-app-unit-tests
     target: apps/web/app
     status: Passed
-    notes: 149 test files / 1750 tests passed in frontend app unit test suite.
-  - name: frontend-admin-tests
+    notes: 150 test files / 1756 tests passed in frontend app unit test suite.
+  - name: frontend-admin-unit-tests
     target: apps/web/admin
     status: Passed
-    notes: 9 test files / 87 tests passed in frontend admin unit test suite.
-  - name: frontend-marketing-tests
+    notes: 14 test files / 120 tests passed in frontend admin unit test suite.
+  - name: frontend-marketing-unit-tests
     target: apps/web/marketing
     status: Passed
-    notes: 15 test files / 139 tests passed in marketing unit test suite.
+    notes: Unit tests passed in marketing unit test suite.
   - name: frontend-lint-check
-    target: apps/web/app
+    target: apps/web/
     status: Passed
-    notes: Biome lint check completed across frontend web application files.
+    notes: Biome lint check completed cleanly across all frontend workspaces.
