@@ -8,7 +8,7 @@ describe('robots.txt', (): void => {
     const body: string = await res.text();
     expect(body).toContain('User-agent: *');
     expect(body).toContain('Allow: /');
-    expect(body).not.toMatch(/^disallow\s*:/im);
+    expect(body).not.toContain('Disallow:');
     expect(body).toContain('Sitemap: https://profiletailors.com/sitemap.xml');
     for (const bot of ['OAI-SearchBot', 'GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'GoogleOther', 'Bingbot']) {
       expect(body, `missing ${bot}`).toContain(`User-agent: ${bot}`);
