@@ -67,11 +67,11 @@ internal class WaitlistWelcomeEmailReconciler(
         }
     }
 
-    private fun returnToPending(notification: Notification, now: Instant): Nothing {
+    private fun returnToPending(notification: Notification, now: Instant): Nothing =
         throw MissingWelcomePayload(notification.id.value)
-    }
 
-    private class MissingWelcomePayload(id: String) : IllegalStateException("Welcome notification payload is missing required data: $id")
+    private class MissingWelcomePayload(id: String) :
+        IllegalStateException("Welcome notification payload is missing required data: $id")
 
     private companion object {
         val STALE_AFTER: Duration = Duration.ofMinutes(5)
