@@ -13,17 +13,21 @@ internal class WelcomeEmailTest {
     @Test
     fun `idempotencyKey is stable per waitlist entry`() {
         val email = welcome()
-        assertEquals("waitlist.welcome:${email.waitlistEntryId.value}", email.idempotencyKey().value)
+        assertEquals(
+            "waitlist.welcome:${email.waitlistEntryId.value}",
+            WelcomeEmail.idempotencyKeyFor(email.waitlistEntryId).value,
+        )
     }
 
     @Test
     fun `payload exposes the variables the template needs`() {
         val email = welcome()
-        val payload = email.toPayload()
-        assertEquals("user@example.com", payload["email"])
+        val payload = WelcomeEmail.payloadFor(email.waitlistEntryId, email.waitlistName, email.locale)
+        assertEquals("entry-1", payload["waitlistEntryId"])
         assertEquals("Profile Tailors Launch", payload["waitlistName"])
         assertEquals("es", payload["locale"])
         assertEquals(null, payload["withdrawalUrl"])
+        assertEquals(email, WelcomeEmail.fromPayload(payload, email.recipient, email.withdrawalUrl))
     }
 
     @Test
@@ -32,13 +36,16 @@ internal class WelcomeEmailTest {
 
         assertTrue(email.render().text.contains("https://profiletailors.com/waitlist/withdraw?token=opaque"))
         assertTrue(email.render().html?.contains("https://profiletailors.com/waitlist/withdraw?token=opaque") == true)
-        assertEquals(null, email.toPayload()["withdrawalUrl"])
+        assertEquals(
+            null,
+            WelcomeEmail.payloadFor(email.waitlistEntryId, email.waitlistName, email.locale)["withdrawalUrl"],
+        )
     }
 
     @Test
     fun `default locale is en when not provided`() {
         val email = welcome(locale = null)
-        assertEquals("en", email.toPayload()["locale"])
+        assertEquals("en", WelcomeEmail.payloadFor(email.waitlistEntryId, email.waitlistName, email.locale)["locale"])
     }
 
     @Test

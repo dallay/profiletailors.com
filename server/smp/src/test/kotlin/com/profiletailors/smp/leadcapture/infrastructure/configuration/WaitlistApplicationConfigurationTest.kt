@@ -29,7 +29,7 @@ class WaitlistApplicationConfigurationTest {
     private val configuration = WaitlistApplicationConfiguration()
 
     @Test
-    fun `waitlistEntryIdGenerator produces deterministic UUIDs from waitlist and email`() {
+    fun `waitlistEntryIdGenerator produces a fresh UUID for each join attempt`() {
         val generator = configuration.waitlistEntryIdGenerator()
 
         val waitlistId = WaitlistId("waitlist-1")
@@ -37,7 +37,7 @@ class WaitlistApplicationConfigurationTest {
         val firstId = generator.generate(waitlistId, email).value
         val secondId = generator.generate(waitlistId, email).value
 
-        assertEquals(firstId, secondId)
+        assertNotEquals(firstId, secondId)
         assertTrue(firstId.length == 36)
     }
 
@@ -163,7 +163,7 @@ class WaitlistApplicationConfigurationTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,

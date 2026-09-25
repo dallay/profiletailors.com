@@ -205,9 +205,9 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source,
-               consent_early_access, consent_marketing, consent_version, status, joined_at)
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
-              (:id, 'wl-bulk', :email, :email, 'web', true, false, '1.0', :status, NOW())
+              (:id, 'wl-bulk', :email, :email, 'web', true, false, '1.0', :status, NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )

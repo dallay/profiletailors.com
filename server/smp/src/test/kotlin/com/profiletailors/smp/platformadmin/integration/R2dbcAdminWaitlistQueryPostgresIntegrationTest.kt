@@ -75,11 +75,11 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source, locale,
-               consent_early_access, consent_marketing, consent_version, status, joined_at,
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at,
                invited_at, converted_at, cancelled_at)
             VALUES
               (:id, :waitlistId, 'alice@example.com', 'alice@example.com', 'marketing', 'en',
-               true, true, '1', 'PENDING', :joinedAt, NULL, NULL, NULL)
+               true, true, '1', 'PENDING', :joinedAt, :joinedAt, NULL, NULL, NULL)
             """.trimIndent(),
         )
             .bind("id", entryId)
@@ -91,11 +91,11 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source, locale,
-               consent_early_access, consent_marketing, consent_version, status, joined_at,
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at,
                invited_at, converted_at, cancelled_at)
             VALUES
               (:id, :waitlistId, 'bob@example.com', 'bob@example.com', 'organic', 'es',
-               true, false, '1', 'INVITED', :joinedAt, :invitedAt, NULL, NULL)
+               true, false, '1', 'INVITED', :joinedAt, :joinedAt, :invitedAt, NULL, NULL)
             """.trimIndent(),
         )
             .bind("id", "entry-2")

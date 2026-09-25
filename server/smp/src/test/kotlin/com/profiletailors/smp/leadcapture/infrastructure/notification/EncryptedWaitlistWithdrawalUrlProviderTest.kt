@@ -109,6 +109,17 @@ internal class EncryptedWaitlistWithdrawalUrlProviderTest {
     }
 
     @Test
+    fun `rejects ciphertext copied to another entry`() = runTest {
+        val repository = RecordingRepository()
+        val provider = EncryptedWaitlistWithdrawalUrlProvider(repository, properties)
+        provider.remember(entryId, "raw-token", expiresAt)
+
+        assertFailsWith<AEADBadTagException> {
+            provider.urlFor(WaitlistEntryId("entry-2"), Instant.parse("2026-09-30T00:00:00Z"))
+        }
+    }
+
+    @Test
     fun `stores can be read by a provider restarted with the same key`() = runTest {
         val repository = RecordingRepository()
         val firstProvider = EncryptedWaitlistWithdrawalUrlProvider(repository, properties)

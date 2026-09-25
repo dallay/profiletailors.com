@@ -16,12 +16,14 @@ import com.profiletailors.notifications.domain.WelcomeEmailTemplateId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlin.test.assertFailsWith
 
 internal class WaitlistWelcomeEmailReconcilerTest {
 
@@ -92,6 +94,64 @@ internal class WaitlistWelcomeEmailReconcilerTest {
                 },
             )
         }
+    }
+
+    @Test
+    fun `marks missing payload and dispatch failures failed while continuing the batch`() = runTest {
+        val repository = mockk<NotificationRepository>()
+        val dispatcher = mockk<EmailDispatcher>()
+        val withdrawalUrls = mockk<WaitlistWithdrawalUrlProvider>()
+        val missing = notification().copy(payload = NotificationPayload(emptyMap()))
+        val failing = notification().copy(
+            id = NotificationId("notification-2"),
+            recipient = Recipient("bad@example.com"),
+        )
+        val succeeding = notification().copy(id = NotificationId("notification-3"))
+        coEvery { repository.claimPending(any(), any(), any(), any()) } returns listOf(missing, failing, succeeding)
+        coEvery { withdrawalUrls.urlFor(any(), any()) } returns
+            "https://profiletailors.com/waitlist/withdraw?token=opaque"
+        coEvery { dispatcher.dispatch("bad@example.com", any()) } throws IllegalStateException("SMTP unavailable")
+        coEvery { dispatcher.dispatch("user@example.com", any()) } returns EmailDispatchResult.Success
+        coEvery { repository.update(any()) } answers { firstArg() }
+
+        WaitlistWelcomeEmailReconciler(dispatcher, repository, withdrawalUrls, clock).reconcile()
+
+        coVerify(exactly = 1) {
+            repository.update(
+                match {
+                    it.id == missing.id &&
+                        it.status == NotificationStatus.FAILED &&
+                        it.errorMessage?.contains("missing required data") == true
+                },
+            )
+        }
+        coVerify(exactly = 1) {
+            repository.update(
+                match {
+                    it.id == failing.id &&
+                        it.status == NotificationStatus.FAILED &&
+                        it.errorMessage == "SMTP unavailable"
+                },
+            )
+        }
+        coVerify(exactly = 1) {
+            repository.update(match { it.id == succeeding.id && it.status == NotificationStatus.SENT })
+        }
+    }
+
+    @Test
+    fun `rethrows cancellation without marking a notification failed`() = runTest {
+        val repository = mockk<NotificationRepository>()
+        val dispatcher = mockk<EmailDispatcher>()
+        val withdrawalUrls = mockk<WaitlistWithdrawalUrlProvider>()
+        coEvery { repository.claimPending(any(), any(), any(), any()) } returns listOf(notification())
+        coEvery { withdrawalUrls.urlFor(any(), any()) } throws CancellationException("cancelled")
+
+        assertFailsWith<CancellationException> {
+            WaitlistWelcomeEmailReconciler(dispatcher, repository, withdrawalUrls, clock).reconcile()
+        }
+
+        coVerify(exactly = 0) { repository.update(any()) }
     }
 
     private fun notification(): Notification = Notification(

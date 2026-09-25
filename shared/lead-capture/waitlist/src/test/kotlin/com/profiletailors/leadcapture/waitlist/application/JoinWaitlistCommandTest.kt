@@ -8,6 +8,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 internal class JoinWaitlistCommandTest {
@@ -70,5 +71,12 @@ internal class JoinWaitlistCommandTest {
         val cmd2 = command(email = EmailAddress("second@example.com"))
         assertEquals("first@example.com", cmd1.normalizedEmail().value)
         assertEquals("second@example.com", cmd2.normalizedEmail().value)
+    }
+
+    @Test
+    fun `join requires early access consent`() {
+        assertFailsWith<IllegalArgumentException> {
+            command().copy(consent = WaitlistConsent(earlyAccess = false, version = "2026-06-25"))
+        }
     }
 }

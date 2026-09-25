@@ -17,5 +17,9 @@ data class JoinWaitlistCommand(
     val metadata: LeadMetadata,
     val consent: WaitlistConsent,
 ) {
+    init {
+        require(consent.earlyAccess) { "Early access consent is required (ADR-0011)" }
+    }
+
     fun normalizedEmail(): NormalizedEmail = NormalizedEmail.from(email)
 }

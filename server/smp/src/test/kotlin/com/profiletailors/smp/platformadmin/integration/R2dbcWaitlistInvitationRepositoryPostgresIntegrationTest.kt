@@ -77,10 +77,10 @@ class R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest : PostgresIntegra
             """
             INSERT INTO waitlist_entries
               (id, waitlist_id, email_original, normalized_email, source, locale,
-               consent_early_access, consent_marketing, consent_version, status, joined_at)
+               consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
               (:id, :waitlistId, 'alice@example.com', 'alice@example.com', 'marketing', 'en',
-               true, true, '1', 'PENDING', :now)
+               true, true, '1', 'PENDING', :now, :now)
             """.trimIndent(),
         )
             .bind("id", entryId)

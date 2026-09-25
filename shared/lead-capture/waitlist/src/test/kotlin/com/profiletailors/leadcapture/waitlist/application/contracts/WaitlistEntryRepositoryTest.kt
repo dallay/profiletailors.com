@@ -34,7 +34,7 @@ internal class WaitlistEntryRepositoryTest {
             return entry
         }
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,

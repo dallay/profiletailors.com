@@ -22,6 +22,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -79,14 +80,19 @@ internal class JoinWaitlistHandlerTest {
 
         assertEquals(JoinResult.JOINED_NEW, result)
         assertEquals("Accepted", result.toString())
-        coVerify(exactly = 1) { entryRepo.saveIfNotExists(any(), any()) }
+        val savedToken = slot<WaitlistEntryRepository.WithdrawalToken>()
+        coVerify(exactly = 1) { entryRepo.saveIfNotExists(any(), capture(savedToken)) }
+        val rememberedToken = slot<String>()
         coVerify(exactly = 1) {
             withdrawalUrlProvider.remember(
                 entryId = WaitlistEntryId("e-new"),
-                token = any(),
+                token = capture(rememberedToken),
                 expiresAt = Instant.parse("2026-10-14T12:00:00Z"),
             )
         }
+        val fingerprint = WaitlistWithdrawalTokenIssuer.fingerprint(rememberedToken.captured)
+        assertEquals(fingerprint.candidate, savedToken.captured.candidate)
+        assertEquals(fingerprint.hash, savedToken.captured.hash)
         verify(exactly = 1) {
             consentRecorder.record(
                 match {
@@ -142,6 +148,7 @@ internal class JoinWaitlistHandlerTest {
 
         assertEquals(JoinResult.ALREADY_JOINED, result)
         coVerify(exactly = 1) { entryRepo.saveIfNotExists(any(), any()) }
+        coVerify(exactly = 0) { withdrawalUrlProvider.remember(any(), any(), any()) }
         verify(exactly = 0) { consentRecorder.record(any()) }
     }
 

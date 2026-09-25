@@ -11,7 +11,6 @@ import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationChannel
 import com.profiletailors.notifications.domain.NotificationId
-import com.profiletailors.notifications.domain.NotificationPayload
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
@@ -46,7 +45,7 @@ internal class SendWelcomeEmailConsumer(
 
     override suspend fun consume(event: WaitlistEntryJoined) {
         val now = Instant.now(clock)
-        val idempotencyKey = IdempotencyKey("waitlist.welcome:${event.waitlistEntryId.value}")
+        val idempotencyKey = WelcomeEmail.idempotencyKeyFor(event.waitlistEntryId)
         if (notificationRepository.findByIdempotencyKey(idempotencyKey) != null) {
             log.info(
                 "Welcome email already dispatched for entry '{}' on waitlist '{}' — skipping",
@@ -55,7 +54,9 @@ internal class SendWelcomeEmailConsumer(
             )
             return
         }
-        val persisted = notificationRepository.save(pendingNotification(event, idempotencyKey, now))
+        val persisted = notificationRepository.save(
+            pendingNotification(event, idempotencyKey, now).markDispatching(now),
+        )
         val withdrawalUrl = withdrawalUrlProvider.urlFor(event.waitlistEntryId, now)
         if (withdrawalUrl == null) {
             notificationRepository.update(persisted.markPending(Instant.now(clock)))
@@ -114,13 +115,7 @@ internal class SendWelcomeEmailConsumer(
         channel = NotificationChannel.EMAIL,
         recipient = Recipient(event.normalizedEmail),
         templateId = WelcomeEmailTemplateId.INSTANCE,
-        payload = NotificationPayload(
-            mapOf(
-                "waitlistEntryId" to event.waitlistEntryId.value,
-                "waitlistName" to event.waitlistName,
-                "locale" to (event.locale ?: "en"),
-            ),
-        ),
+        payload = WelcomeEmail.payloadFor(event.waitlistEntryId, event.waitlistName, event.locale),
         status = NotificationStatus.PENDING,
         sentAt = null,
         failedAt = null,

@@ -5,6 +5,7 @@ import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTokenIssuer
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
@@ -13,9 +14,20 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
+import com.profiletailors.notifications.domain.Notification
+import com.profiletailors.notifications.domain.NotificationChannel
+import com.profiletailors.notifications.domain.NotificationId
+import com.profiletailors.notifications.domain.NotificationStatus
+import com.profiletailors.notifications.domain.Recipient
+import com.profiletailors.notifications.domain.WelcomeEmail
+import com.profiletailors.notifications.domain.WelcomeEmailTemplateId
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.leadcapture.infrastructure.notification.EncryptedWaitlistWithdrawalUrlProvider
 import com.profiletailors.smp.leadcapture.infrastructure.notification.R2dbcWaitlistWithdrawalUrlRepository
+import com.profiletailors.smp.leadcapture.infrastructure.notification.WaitlistWithdrawalProperties
+import com.profiletailors.smp.notifications.infrastructure.persistence.NotificationsSchemaInitializer
+import com.profiletailors.smp.notifications.infrastructure.persistence.R2dbcNotificationRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -29,7 +41,10 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.Base64
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -39,11 +54,27 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     override val postgres = postgresContainer
 
     private val waitlistRepository by lazy { R2dbcWaitlistRepository(databaseClient) }
-    private val entryRepository by lazy { R2dbcWaitlistEntryRepository(databaseClient) }
+    private val withdrawalUrlRepository by lazy { R2dbcWaitlistWithdrawalUrlRepository(databaseClient) }
+    private val withdrawalUrlProvider by lazy {
+        EncryptedWaitlistWithdrawalUrlProvider(
+            withdrawalUrlRepository,
+            WaitlistWithdrawalProperties(
+                encryptionKey = Base64.getEncoder().encodeToString(ByteArray(32) { 7 }),
+                publicUrlBase = "https://profiletailors.com/waitlist/withdraw",
+            ),
+        )
+    }
+    private val entryRepository by lazy {
+        R2dbcWaitlistEntryRepository(databaseClient, withdrawalUrlProvider = withdrawalUrlProvider)
+    }
+    private val notificationRepository by lazy { R2dbcNotificationRepository(databaseClient) }
 
     @BeforeEach
     fun cleanLeadCaptureTables() {
+        NotificationsSchemaInitializer(databaseClient).initializeSchema()
         runBlocking {
+            databaseClient.sql("DELETE FROM notifications WHERE template_id = 'waitlist.welcome'")
+                .fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("DELETE FROM waitlist_withdrawal_urls").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("DELETE FROM waitlist_entries").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql(
@@ -172,6 +203,94 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertIs<WaitlistEntryRepository.SaveResult.Saved>(secondResult)
         assertEquals(1, countEntries(first.waitlistId))
         assertEquals(1, countEntries(otherWaitlistId))
+    }
+
+    @Test
+    fun `withdrawal anonymizes the entry and welcome notification and allows rejoin`() = runTest {
+        val now = Instant.parse("2026-07-20T10:00:00Z")
+        val entry = testEntry(id = "entry-withdraw", email = "returning@example.com")
+        val issued = WaitlistWithdrawalTokenIssuer.secure.issue(now)
+        assertIs<WaitlistEntryRepository.SaveResult.Saved>(entryRepository.saveIfNotExists(entry, issued.persisted))
+        withdrawalUrlProvider.remember(entry.id, issued.raw, issued.persisted.expiresAt)
+        notificationRepository.save(
+            Notification(
+                id = NotificationId("welcome-entry-withdraw"),
+                idempotencyKey = WelcomeEmail.idempotencyKeyFor(entry.id),
+                channel = NotificationChannel.EMAIL,
+                recipient = Recipient(entry.normalizedEmail.value),
+                templateId = WelcomeEmailTemplateId.INSTANCE,
+                payload = WelcomeEmail.payloadFor(entry.id, "Profile Tailors Launch", "en"),
+                status = NotificationStatus.PENDING,
+                sentAt = null,
+                failedAt = null,
+                errorMessage = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+
+        val fingerprint = WaitlistWithdrawalTokenIssuer.fingerprint(issued.raw)
+        val withdrawn = requireNotNull(entryRepository.withdrawByToken(fingerprint.candidate, fingerprint.hash, now))
+        assertEquals(WaitlistEntryStatus.CANCELLED, withdrawn.status)
+        assertEquals("withdrawn-${entry.id.value}@invalid.example", withdrawn.email.value)
+        assertEquals("withdrawn-${entry.id.value}", withdrawn.normalizedEmail.value)
+        assertFalse(withdrawn.consent.earlyAccess)
+        assertFalse(withdrawn.consent.marketing)
+        assertEquals(now, withdrawn.cancelledAt)
+        val persisted = entryRepository.findByNormalizedEmail(entry.waitlistId, withdrawn.normalizedEmail)
+        assertEquals(withdrawn.id, persisted?.id)
+        assertEquals(withdrawn.status, persisted?.status)
+        assertEquals(withdrawn.email, persisted?.email)
+        assertNull(withdrawalUrlRepository.findByEntryId(entry.id))
+        val notification = notificationRepository.findById(NotificationId("welcome-entry-withdraw"))
+        assertEquals("withdrawn-${entry.id.value}@invalid.example", notification?.recipient?.value)
+        assertEquals(NotificationStatus.FAILED, notification?.status)
+        assertNull(entryRepository.withdrawByToken(fingerprint.candidate, fingerprint.hash, now))
+
+        val returning = testEntry(id = "entry-rejoined", email = "returning@example.com")
+        val rejoinToken = WaitlistWithdrawalTokenIssuer.secure.issue(now)
+        assertIs<WaitlistEntryRepository.SaveResult.Saved>(
+            entryRepository.saveIfNotExists(returning, rejoinToken.persisted),
+        )
+        assertEquals(2, countEntries(entry.waitlistId))
+        assertTrue(returning.id != withdrawn.id)
+    }
+
+    @Test
+    fun `expired converted and wrong-hash tokens cannot withdraw entries`() = runTest {
+        val now = Instant.parse("2026-07-20T10:00:00Z")
+        val expiredEntry = testEntry(id = "entry-expired", email = "expired@example.com")
+        val expiredToken = WaitlistWithdrawalTokenIssuer.secure.issue(now)
+        entryRepository.saveIfNotExists(expiredEntry, expiredToken.persisted)
+        val expiredFingerprint = WaitlistWithdrawalTokenIssuer.fingerprint(expiredToken.raw)
+        assertNull(
+            entryRepository.withdrawByToken(
+                expiredFingerprint.candidate,
+                expiredFingerprint.hash,
+                expiredToken.persisted.expiresAt,
+            ),
+        )
+
+        val convertedEntry = testEntry(id = "entry-converted", email = "converted@example.com")
+        convertedEntry.invite(now)
+        convertedEntry.convert(now.plusSeconds(1))
+        val convertedToken = WaitlistWithdrawalTokenIssuer.secure.issue(now)
+        entryRepository.saveIfNotExists(convertedEntry, convertedToken.persisted)
+        val convertedFingerprint = WaitlistWithdrawalTokenIssuer.fingerprint(convertedToken.raw)
+        assertNull(entryRepository.withdrawByToken(convertedFingerprint.candidate, convertedFingerprint.hash, now))
+
+        val wrongHashEntry = testEntry(id = "entry-wrong-hash", email = "wrong-hash@example.com")
+        val wrongHashToken = WaitlistWithdrawalTokenIssuer.secure.issue(now)
+        entryRepository.saveIfNotExists(wrongHashEntry, wrongHashToken.persisted)
+        val wrongHashFingerprint = WaitlistWithdrawalTokenIssuer.fingerprint(wrongHashToken.raw)
+        assertNull(entryRepository.withdrawByToken(wrongHashFingerprint.candidate, "0".repeat(64), now))
+        assertEquals(
+            WaitlistEntryStatus.PENDING,
+            entryRepository.findByNormalizedEmail(
+                wrongHashEntry.waitlistId,
+                wrongHashEntry.normalizedEmail,
+            )?.status,
+        )
     }
 
     private fun tokenFor(value: String): WaitlistEntryRepository.WithdrawalToken =

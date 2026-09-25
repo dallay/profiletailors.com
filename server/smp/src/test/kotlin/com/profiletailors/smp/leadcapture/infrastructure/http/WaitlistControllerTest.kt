@@ -6,6 +6,7 @@ import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
 import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTokenIssuer
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalUrlProvider
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -252,6 +253,7 @@ class WaitlistControllerTest {
                 WaitlistEntryId("entry-${normalizedEmail.value.hashCode().toUInt()}")
             },
             transactionRunner = AtomicTransactionRunner.noop,
+            withdrawalUrlProvider = WaitlistWithdrawalUrlProvider.noop,
             withdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer { now ->
                 WaitlistWithdrawalTokenIssuer.IssuedToken(
                     raw = "raw-token",
@@ -309,7 +311,7 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,
@@ -326,7 +328,7 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,
@@ -339,7 +341,7 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,
@@ -353,7 +355,7 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,
@@ -366,7 +368,7 @@ class WaitlistControllerTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override suspend fun withdrawByToken(token: String, now: Instant): WaitlistEntry? = null
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
 
         override suspend fun saveIfNotExists(
             entry: WaitlistEntry,

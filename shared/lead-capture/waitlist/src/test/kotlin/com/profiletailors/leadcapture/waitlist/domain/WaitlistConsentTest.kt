@@ -16,10 +16,10 @@ internal class WaitlistConsentTest {
     }
 
     @Test
-    fun `consent with earlyAccess false is rejected`() {
-        assertThrows<IllegalArgumentException> {
-            WaitlistConsent(earlyAccess = false, marketing = false, version = "2026-06-25")
-        }
+    fun `cleared consent can be represented for a withdrawn entry`() {
+        val consent = WaitlistConsent(earlyAccess = false, marketing = false, version = "2026-06-25")
+        assertFalse(consent.earlyAccess)
+        assertFalse(consent.marketing)
     }
 
     @Test

@@ -14,7 +14,6 @@ import com.profiletailors.smp.leadcapture.infrastructure.notification.WaitlistWi
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -23,13 +22,12 @@ import java.util.UUID
 class WaitlistApplicationConfiguration {
 
     @Bean
-    fun waitlistEntryIdGenerator(): WaitlistEntryIdGenerator = WaitlistEntryIdGenerator { waitlistId, normalizedEmail ->
-        WaitlistEntryId(
-            UUID.nameUUIDFromBytes(
-                "${waitlistId.value}|${normalizedEmail.value}".toByteArray(StandardCharsets.UTF_8),
-            ).toString(),
-        )
+    fun waitlistEntryIdGenerator(): WaitlistEntryIdGenerator = WaitlistEntryIdGenerator { _, _ ->
+        WaitlistEntryId(UUID.randomUUID().toString())
     }
+
+    @Bean
+    fun waitlistWithdrawalTokenIssuer(): WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure
 
     /**
      * Creates the handler for joining a waitlist.
@@ -37,13 +35,13 @@ class WaitlistApplicationConfiguration {
      * @param waitlistRepository Repository for waitlist data.
      * @param entryRepository Repository for waitlist entry data.
      * @param idGenerator Generator for waitlist entry identifiers.
+     * @param transactionRunner Runs the join operation atomically.
+     * @param withdrawalTokenIssuer Issues the withdrawal token.
+     * @param withdrawalUrlProvider Stores the withdrawal URL until it expires.
      * @param consentRecorder Records waitlist consent.
      * @param notifier Notifies subscribers when an entry joins a waitlist.
      * @return A configured waitlist join handler.
      */
-    @Bean
-    fun waitlistWithdrawalTokenIssuer(): WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure
-
     @Bean
     fun joinWaitlistHandler(
         waitlistRepository: WaitlistRepository,

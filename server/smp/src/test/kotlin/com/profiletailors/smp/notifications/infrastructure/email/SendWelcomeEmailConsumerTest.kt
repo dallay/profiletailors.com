@@ -42,10 +42,10 @@ internal class SendWelcomeEmailConsumerTest {
         val consumer = SendWelcomeEmailConsumer(dispatcher, repository, withdrawalUrlProvider(), clock)
         consumer.consume(event())
 
-        val pending = saved.captured
-        assertEquals(NotificationStatus.PENDING, pending.status)
-        assertEquals("user@example.com", pending.recipient.value)
-        assertEquals("Profile Tailors Launch", pending.payload["waitlistName"])
+        val dispatching = saved.captured
+        assertEquals(NotificationStatus.DISPATCHING, dispatching.status)
+        assertEquals("user@example.com", dispatching.recipient.value)
+        assertEquals("Profile Tailors Launch", dispatching.payload["waitlistName"])
         coVerify(exactly = 1) {
             dispatcher.dispatch("user@example.com", match { it.subject.contains("Welcome") && it.html != null })
         }
@@ -69,9 +69,10 @@ internal class SendWelcomeEmailConsumerTest {
         )
         consumer.consume(event())
 
-        assertEquals(NotificationStatus.PENDING, saved.captured.status)
+        assertEquals(NotificationStatus.DISPATCHING, saved.captured.status)
         assertEquals("entry-1", saved.captured.payload["waitlistEntryId"])
         assertEquals(null, saved.captured.payload["withdrawalUrl"])
+        coVerify(exactly = 1) { repository.update(match { it.status == NotificationStatus.PENDING }) }
         coVerify(exactly = 0) { dispatcher.dispatch(any(), any()) }
     }
 

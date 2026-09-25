@@ -30,29 +30,6 @@ data class WelcomeEmail(
     }
 
     /**
-     * Build the [NotificationPayload] used to render the email template.
-     *
-     * Variables are intentionally a flat string→string map so the persistence layer can
-     * serialise it without bespoke codecs. Templates downstream can be either inline
-     * Kotlin string interpolation or a templating engine.
-     */
-    fun toPayload(): NotificationPayload = NotificationPayload(
-        mapOf(
-            "email" to recipient.value,
-            "waitlistName" to waitlistName,
-            "locale" to (locale ?: "en"),
-        ),
-    )
-
-    /**
-     * Compute the [IdempotencyKey] that identifies this welcome email across retries.
-     *
-     * One welcome email per waitlist entry. Re-dispatching the same entry (e.g. after a
-     * crash mid-send) must NOT produce a second email to the same address.
-     */
-    fun idempotencyKey(): IdempotencyKey = IdempotencyKey("waitlist.welcome:${waitlistEntryId.value}")
-
-    /**
      * Render the plain-text and HTML bodies for this welcome email.
      */
     fun render(): RenderedEmail = RenderedEmail(
@@ -123,6 +100,35 @@ data class WelcomeEmail(
                     else -> character
                 },
             )
+        }
+    }
+
+    companion object {
+        /** Identifies the welcome notification for one waitlist entry across retries. */
+        fun idempotencyKeyFor(entryId: WaitlistEntryId): IdempotencyKey =
+            IdempotencyKey("waitlist.welcome:${entryId.value}")
+
+        /** Stores only the fields needed to reconstruct the email during reconciliation. */
+        fun payloadFor(entryId: WaitlistEntryId, waitlistName: String, locale: String?): NotificationPayload =
+            NotificationPayload(
+                mapOf(
+                    "waitlistEntryId" to entryId.value,
+                    "waitlistName" to waitlistName,
+                    "locale" to (locale ?: "en"),
+                ),
+            )
+
+        fun entryIdFrom(payload: NotificationPayload): WaitlistEntryId? =
+            payload["waitlistEntryId"]?.let(::WaitlistEntryId)
+
+        fun fromPayload(
+            payload: NotificationPayload,
+            recipient: NormalizedEmail,
+            withdrawalUrl: String,
+        ): WelcomeEmail? {
+            val entryId = entryIdFrom(payload) ?: return null
+            val waitlistName = payload["waitlistName"] ?: return null
+            return WelcomeEmail(entryId, recipient, waitlistName, payload["locale"], withdrawalUrl)
         }
     }
 }
