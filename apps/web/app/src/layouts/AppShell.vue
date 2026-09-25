@@ -33,6 +33,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/Si
 import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
+import UpdatePrompt from '@/pwa/UpdatePrompt.vue'
 import { VersionBadge } from '@profiletailors/vue-ui'
 import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
@@ -408,6 +409,7 @@ onBeforeUnmount(() => {
           </div>
 
           <UploadProgressToast />
+          <UpdatePrompt />
           <Toaster position="bottom-right" />
           <ConsentBanner />
           <CookieSettings v-model:open="showCookieSettings" />

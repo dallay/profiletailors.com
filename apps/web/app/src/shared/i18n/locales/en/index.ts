@@ -19,6 +19,7 @@ import settings from './settings'
 import governance from './governance'
 import consent from './consent'
 import tour from './tour'
+import pwa from './pwa'
 
 export default {
   common,
@@ -42,4 +43,5 @@ export default {
   governance,
   consent,
   tour,
+  pwa,
 }

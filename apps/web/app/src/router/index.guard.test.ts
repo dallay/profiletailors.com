@@ -50,6 +50,17 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
     vi.resetModules()
   })
 
+  it('redirects unreachable session from requiresAuth to /offline instead of /login', async () => {
+    mockRefreshSession.mockRejectedValue(new TypeError('Failed to fetch'))
+    const { default: router } = await import('./index')
+
+    await router.push('/scheduler/calendar/week')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/offline')
+    expect(router.currentRoute.value.query.redirect).toBe('/scheduler/calendar/week')
+  })
+
   it('redirects unauthenticated user from canonical scheduler route to /login', async () => {
     mockRefreshSession.mockResolvedValue(null)
     const { default: router } = await import('./index')

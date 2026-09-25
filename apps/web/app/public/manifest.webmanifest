@@ -1,12 +1,16 @@
 {
+  "id": "/",
+  "scope": "/",
   "name": "Profile Tailors",
-  "short_name": "Profile Tailors",
-  "description": "Social media management platform — schedule, publish, analyze, engage, collaborate",
+  "short_name": "Tailors",
+  "description": "Schedule and review LinkedIn content from a focused workspace",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -31,6 +35,18 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scheduler",
+      "url": "/scheduler/calendar/week",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Media",
+      "url": "/media",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
