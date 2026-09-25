@@ -5,7 +5,7 @@ status: 🔄 In Progress
 
 # Profile Tailors — C4 Architecture Summary
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-25
 
 ## Executive Summary
 

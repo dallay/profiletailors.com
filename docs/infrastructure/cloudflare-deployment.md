@@ -1,6 +1,6 @@
 # Cloudflare Pages Release-Driven Deployment
 
-**Last Updated:** 2026-09-24
+**Last Updated:** 2026-09-25
 
 ## Overview
 
@@ -53,6 +53,19 @@ For each of `app-profile-tailors`, `profiletailors`, and `profiletailors-admin`:
 3. Open **Settings > Builds & deployments**.
 4. Under **Configure Production deployments**, disable automatic builds for the `main` branch (or set deployment branch to a non-existent branch / disable automated Git deployments).
 5. Ensure Preview deployments remain available for pull requests if needed, without promoting to production.
+
+#### Ahrefs Site Audit Email Obfuscation Configuration Rule
+
+To prevent Cloudflare Email Address Obfuscation from rewriting `mailto:` links into `/cdn-cgi/l/email-protection` URLs during Ahrefs Site Audit crawls:
+
+1. Navigate to **Cloudflare Dashboard > Rules > Configuration Rules**.
+2. Select **Create rule**.
+3. Set Name: `Bypass Email Obfuscation for Ahrefs Site Audit`.
+4. Set Match Expression: `cf.client.bot and http.user_agent contains "AhrefsSiteAudit"`.
+5. Under Settings, select **Email Obfuscation** and set it to **Off**.
+6. Save and deploy the rule.
+
+This rule ensures `AhrefsSiteAudit` receives clean `mailto:` links without triggering false-positive 4XX broken link errors, while keeping global Email Obfuscation active for regular site visitors.
 
 ### Credentials and Secrets
 

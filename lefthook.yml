@@ -124,16 +124,16 @@ pre-push:
 post-checkout:
   commands:
     agentsync-apply:
-      run: pnpm dlx @dallay/agentsync apply || true
+      run: pnpm dlx @dallay/agentsync@latest apply || true
 
 post-merge:
   commands:
     agentsync-apply:
-      run: pnpm dlx @dallay/agentsync apply || true
+      run: pnpm dlx @dallay/agentsync@latest apply || true
 
 post-rewrite:
   commands:
     agentsync-apply:
-      run: pnpm dlx @dallay/agentsync apply || true
+      run: pnpm dlx @dallay/agentsync@latest apply || true
 
 
