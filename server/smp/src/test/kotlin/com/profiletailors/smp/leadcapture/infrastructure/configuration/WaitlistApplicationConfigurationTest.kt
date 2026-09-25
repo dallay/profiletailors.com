@@ -1,8 +1,11 @@
 package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTokenIssuer
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalUrlProvider
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
@@ -26,7 +29,7 @@ class WaitlistApplicationConfigurationTest {
     private val configuration = WaitlistApplicationConfiguration()
 
     @Test
-    fun `waitlistEntryIdGenerator produces deterministic UUIDs from waitlist and email`() {
+    fun `waitlistEntryIdGenerator produces a fresh UUID for each join attempt`() {
         val generator = configuration.waitlistEntryIdGenerator()
 
         val waitlistId = WaitlistId("waitlist-1")
@@ -34,7 +37,7 @@ class WaitlistApplicationConfigurationTest {
         val firstId = generator.generate(waitlistId, email).value
         val secondId = generator.generate(waitlistId, email).value
 
-        assertEquals(firstId, secondId)
+        assertNotEquals(firstId, secondId)
         assertTrue(firstId.length == 36)
     }
 
@@ -67,6 +70,18 @@ class WaitlistApplicationConfigurationTest {
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
+            transactionRunner = AtomicTransactionRunner.noop,
+            withdrawalTokenIssuer = { now ->
+                WaitlistWithdrawalTokenIssuer.IssuedToken(
+                    raw = "raw-token",
+                    persisted = WaitlistEntryRepository.WithdrawalToken(
+                        candidate = "candidate",
+                        hash = "hash",
+                        expiresAt = now.plusSeconds(90),
+                    ),
+                )
+            },
+            withdrawalUrlProvider = WaitlistWithdrawalUrlProvider.noop,
             consentRecorder = WaitlistConsentRecorder.noop,
             notifier = notifier,
         )
@@ -95,6 +110,18 @@ class WaitlistApplicationConfigurationTest {
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(alreadyExists = true),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
+            transactionRunner = AtomicTransactionRunner.noop,
+            withdrawalTokenIssuer = { now ->
+                WaitlistWithdrawalTokenIssuer.IssuedToken(
+                    raw = "raw-token",
+                    persisted = WaitlistEntryRepository.WithdrawalToken(
+                        candidate = "candidate",
+                        hash = "hash",
+                        expiresAt = now.plusSeconds(90),
+                    ),
+                )
+            },
+            withdrawalUrlProvider = WaitlistWithdrawalUrlProvider.noop,
             consentRecorder = WaitlistConsentRecorder.noop,
             notifier = notifier,
         )
@@ -136,7 +163,12 @@ class WaitlistApplicationConfigurationTest {
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult = if (alreadyExists) {
+        override suspend fun withdrawByToken(candidate: String, hash: String, now: Instant): WaitlistEntry? = null
+
+        override suspend fun saveIfNotExists(
+            entry: WaitlistEntry,
+            withdrawalToken: WaitlistEntryRepository.WithdrawalToken,
+        ): WaitlistEntryRepository.SaveResult = if (alreadyExists) {
             WaitlistEntryRepository.SaveResult.AlreadyExists(entry)
         } else {
             WaitlistEntryRepository.SaveResult.Saved(entry)

@@ -34,6 +34,9 @@ class WaitlistEntry(
         private set
 
     init {
+        require(status == WaitlistEntryStatus.CANCELLED || consent.earlyAccess) {
+            "Early access consent is required for active waitlist entries"
+        }
         when (status) {
             WaitlistEntryStatus.PENDING -> {
                 require(invitedAt == null) { "Pending entry must not have invitedAt" }
