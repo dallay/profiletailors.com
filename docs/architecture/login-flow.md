@@ -1,6 +1,6 @@
 # Login Flow Architecture & Sequence Diagrams
 
-**Last Updated:** 2026-09-24
+**Last Updated:** 2026-09-25
 
 - **Status**: Active / Implemented
 - **Bounded Contexts**: `com.profiletailors.smp.identity`, `com.profiletailors.smp.credentials`

@@ -1,6 +1,6 @@
 # ADR 0022: Release-Driven Frontend Deployment to Cloudflare Pages
 
-**Last Updated:** 2026-09-24
+**Last Updated:** 2026-09-25
 
 ## Overview
 

@@ -61,11 +61,11 @@ To prevent Cloudflare Email Address Obfuscation from rewriting `mailto:` links i
 1. Navigate to **Cloudflare Dashboard > Rules > Configuration Rules**.
 2. Select **Create rule**.
 3. Set Name: `Bypass Email Obfuscation for Ahrefs Site Audit`.
-4. Set Match Expression: `http.user_agent contains "AhrefsSiteAudit/" and http.user_agent contains "/robot/site-audit"`.
+4. Set Match Expression: `cf.client.bot and http.user_agent contains "AhrefsSiteAudit"`.
 5. Under Settings, select **Email Obfuscation** and set it to **Off**.
 6. Save and deploy the rule.
 
-This rule matches the verified desktop and mobile AhrefsSiteAudit user-agent strings across minor versions per [Ahrefs bots](https://ahrefs.com/robot). It ensures `AhrefsSiteAudit` receives clean `mailto:` links without triggering false-positive 4XX broken link errors, while keeping global Email Obfuscation active for regular site visitors.
+This rule ensures `AhrefsSiteAudit` receives clean `mailto:` links without triggering false-positive 4XX broken link errors, while keeping global Email Obfuscation active for regular site visitors.
 
 ### Credentials and Secrets
 

@@ -344,6 +344,6 @@ Cloudflare Edge transformations (Email Obfuscation) MUST be managed via Edge Con
 
 #### Scenario: Ahrefs Site Audit bypasses Cloudflare Email Obfuscation
 
-- GIVEN a request whose User-Agent contains `AhrefsSiteAudit/` and `/robot/site-audit` (the verified AhrefsSiteAudit desktop and mobile user-agent tokens per [Ahrefs bots](https://ahrefs.com/robot))
+- GIVEN a request from verified `AhrefsSiteAudit` bot (`cf.client.bot and http.user_agent contains "AhrefsSiteAudit"`)
 - WHEN served through Cloudflare Edge
 - THEN Email Obfuscation MUST be OFF, returning unmodified `mailto:` links and preventing `/cdn-cgi/l/email-protection` link discovery
