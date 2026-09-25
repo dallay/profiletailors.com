@@ -8,6 +8,7 @@
     ":labels(dependencies)",
     ":prNotPending"
   ],
+  "assignees": ["yacosta738"],
   "labels": ["dependencies"],
   "dependencyDashboardLabels": ["type:dependency", "dependencies"],
   "osvVulnerabilityAlerts": true,
