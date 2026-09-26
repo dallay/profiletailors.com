@@ -82,6 +82,9 @@ const reconnect = usePublicationEventReconnect({
 })
 
 let invalidationChannel: ReturnType<typeof createCalendarInvalidationChannel> | null = null
+/**
+ * Requests a coalesced refresh of the currently displayed calendar range.
+ */
 const refreshFromInvalidation = (): void => {
   revalidation.request(currentRange.value)
 }
@@ -549,6 +552,9 @@ async function handleEditPublication(publication: Publication) {
   await closePostDetail()
 }
 
+/**
+ * Closes and clears the editor, then requests a calendar refresh without awaiting the fetch.
+ */
 async function handleUpdated() {
   isModalOpen.value = false
   editingPublication.value = null
@@ -560,12 +566,18 @@ function handleBulkScheduled(jobId: string) {
   handleUpdated()
 }
 
+/**
+ * Requests a calendar refresh and shows success, keeping the composer open only when requested.
+ */
 function onPostCreated(options: { keepOpen?: boolean } = {}) {
   if (!options.keepOpen) isModalOpen.value = false
   revalidation.request(currentRange.value)
   toast.success(t('composer.scheduleSuccessToast'))
 }
 
+/**
+ * Requests a calendar refresh and closes the detail route, ignoring close failures.
+ */
 function onReschedule() {
   revalidation.request(currentRange.value)
   closePostDetail().catch(() => undefined)

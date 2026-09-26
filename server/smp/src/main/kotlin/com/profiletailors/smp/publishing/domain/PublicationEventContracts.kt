@@ -23,6 +23,9 @@ enum class PublicationEventType {
     STATUS_CHANGED,
 }
 
+/**
+ * Returns the dotted SSE change type, using a hyphen for status-changed.
+ */
 fun PublicationEventType.wireName(): String = when (this) {
     PublicationEventType.CREATED -> "publication.created"
     PublicationEventType.UPDATED -> "publication.updated"
@@ -32,9 +35,15 @@ fun PublicationEventType.wireName(): String = when (this) {
 }
 
 fun interface PublicationEventPublisher {
+    /**
+     * Publishes publication-change metadata; delivery and failure handling depend on the implementation.
+     */
     fun publish(event: PublicationEvent)
 }
 
 object NoOpPublicationEventPublisher : PublicationEventPublisher {
+    /**
+     * Discards the event without delivery or other side effects.
+     */
     override fun publish(event: PublicationEvent) = Unit
 }

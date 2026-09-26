@@ -50,6 +50,7 @@ class PublishingSchedulingConfiguration(
     @Bean
     fun publishingLifecycleLogger(): PublishingLifecycleLogger = PublishingLifecycleLogger()
 
+    /** Creates the job executor with retry handling and publication-change notifications. */
     @Bean
     fun publishingJobExecutor(
         notificationEventRepository: NotificationEventRepository?,
@@ -72,6 +73,7 @@ class PublishingSchedulingConfiguration(
         publicationEventPublisher = publicationEventPublisher,
     )
 
+    /** Creates a worker with a unique identity, configured claim timing, and change notifications. */
     @Bean
     fun publishingWorker(
         publicationJobRepository: PublicationJobRepository,

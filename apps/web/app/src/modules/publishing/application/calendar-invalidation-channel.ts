@@ -36,6 +36,9 @@ const REASONS = new Set<CalendarInvalidationReason>([
   'cancelled',
 ])
 
+/**
+ * Accepts supported invalidations for the workspace with a parseable occurrence time.
+ */
 function isCalendarInvalidation(
   value: unknown,
   workspaceId: string,
@@ -55,6 +58,15 @@ function isCalendarInvalidation(
   )
 }
 
+/**
+ * Opens a calendar invalidation channel scoped to a workspace. Incoming malformed or
+ * foreign-workspace messages are ignored; publishing also ignores foreign workspaces
+ * and unsupported reasons. Published messages contain metadata and the current time.
+ *
+ * Returns publish and close controls, both no-ops when BroadcastChannel is unavailable.
+ * Call close to release the channel. Channel construction and publishing errors propagate;
+ * listener errors are not caught.
+ */
 export function createCalendarInvalidationChannel(
   workspaceId: string,
   onMessage?: CalendarInvalidationListener,

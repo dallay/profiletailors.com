@@ -47,7 +47,7 @@ export type UseComposerSchedulingResult = {
  * - Modes: now, next, custom
  * - Date and time validation
  * - Label formatting
- * - Real-time clock for "today" validation (handles midnight rollover)
+ * - Minute-aligned clock for minimum-time validation, paused while hidden
  *
  * @example
  * ```ts
@@ -76,6 +76,9 @@ export function useComposerScheduling(
   const clock = useReactiveClock()
   const now = clock.now
 
+  /**
+   * Permanently stops clock updates and removes the clock visibility listener.
+   */
   function stopTicker() {
     clock.stop()
   }

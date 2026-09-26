@@ -47,6 +47,9 @@ internal fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary =
     lastSyncedAt = lastSyncedAt,
 )
 
+/**
+ * Copies the publication into a mutation result, including provider outcome and update timestamps.
+ */
 internal fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,
     workspaceId = workspaceId,

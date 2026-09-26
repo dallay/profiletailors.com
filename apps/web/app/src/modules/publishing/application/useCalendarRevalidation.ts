@@ -19,6 +19,16 @@ export type CalendarRevalidation = {
 const DEFAULT_DEBOUNCE_MS = 150
 const DEFAULT_MAX_AGE_MS = 60_000
 
+/**
+ * Coalesces requests into a fetch of the latest range while visible, without overlapping
+ * fetches. The delay starts with the first pending request and defaults to 150 ms.
+ * Visibility restoration fetches dirty data or data at least maxAgeMs old (default 60,000 ms).
+ * The optional now clock must return milliseconds on a consistent time scale.
+ *
+ * Fetch rejections are not caught; fetchCalendar must handle errors to avoid an unhandled
+ * rejection from the timer. Stop cancels pending work but does not abort an active fetch.
+ * When called in component setup, stop runs on unmount.
+ */
 export function useCalendarRevalidation(
   options: CalendarRevalidationOptions,
 ): CalendarRevalidation {
@@ -67,12 +77,18 @@ export function useCalendarRevalidation(
     }, debounceMs)
   }
 
+  /**
+   * Marks the latest range dirty and schedules a fetch when visible.
+   */
   const request = (range: CalendarRange): void => {
     latestRange = range
     dirty = true
     schedule()
   }
 
+  /**
+   * Pauses pending work while hidden and schedules dirty or stale data when visible.
+   */
   const setVisible = (nextVisible: boolean): void => {
     visible = nextVisible
     if (!visible) {
@@ -84,6 +100,9 @@ export function useCalendarRevalidation(
     schedule()
   }
 
+  /**
+   * Permanently stops scheduling and clears the pending timer without aborting a fetch.
+   */
   const stop = (): void => {
     if (stopped) return
     stopped = true

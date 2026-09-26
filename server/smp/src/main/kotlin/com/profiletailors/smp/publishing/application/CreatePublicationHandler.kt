@@ -64,6 +64,13 @@ internal class CreatePublicationHandler(
         permissiveEmailVerificationPolicy,
     private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
+    /**
+     * Validates and queues a publication in the current workspace, atomically saving its job.
+     * Returns the persisted publication and attempts a created notification after the transaction.
+     * Context, email verification, account lookup, media resolution, validation, and persistence
+     * failures propagate. Media resolution times out after five seconds when enabled.
+     * Publisher failures are swallowed except cancellation, which may propagate after commit.
+     */
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -124,6 +131,10 @@ internal class CreatePublicationHandler(
         return persisted.toResult()
     }
 
+    /**
+     * Emits created metadata for the persisted publication using the current clock time.
+     * Publisher failures are ignored except cancellation; blank workspace or publication IDs throw.
+     */
     private fun emitCreated(workspaceId: String, persisted: PublicationDraft) {
         publicationEventPublisher.publishBestEffort(
             PublicationEvent(

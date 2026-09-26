@@ -23,12 +23,27 @@ function jitter(maxDelayMs: number): number {
   return Math.random() * maxDelayMs
 }
 
+/**
+ * Returns a retry delay in milliseconds for a nonnegative, zero-based attempt index.
+ * Base delays are 1, 2, 5, 10, then 30 seconds, plus 0–499 ms of jitter.
+ */
 function computeNextDelayMs(retryCount: number): number {
   const clampedCount = Math.min(retryCount, BACKOFF_DELAYS_MS.length - 1)
   const baseDelay = BACKOFF_DELAYS_MS[clampedCount] as number
   return Math.floor(baseDelay + jitter(500))
 }
 
+/**
+ * Creates explicit start/stop controls for a publication subscription in the browser.
+ * Connection attempts require authentication, a workspace, and a visible document.
+ * A resolved subscription schedules another attempt if disconnected; retry state resets
+ * before each attempt, so repeated disconnects currently use the first delay (1–1.499 s).
+ * Subscribe should settle when the stream ends and handle its own errors: rejections
+ * are not caught or retried here.
+ *
+ * Hiding cancels pending retries without unsubscribing. Visibility callbacks remain
+ * registered after stop; stop unsubscribes and also runs on component unmount.
+ */
 export function usePublicationEventReconnect(
   options: PublicationEventReconnectOptions,
 ): PublicationEventReconnect {
@@ -100,6 +115,9 @@ export function usePublicationEventReconnect(
     }, delayMs)
   }
 
+  /**
+   * Enables connection attempts immediately when visible, or on the next visible transition.
+   */
   const start = (): void => {
     stopped = false
     pendingImmediateConnect = true
@@ -112,6 +130,9 @@ export function usePublicationEventReconnect(
     }
   }
 
+  /**
+   * Cancels pending retries and unsubscribes; a later start can enable connections again.
+   */
   const stop = (): void => {
     stopped = true
     pendingImmediateConnect = false

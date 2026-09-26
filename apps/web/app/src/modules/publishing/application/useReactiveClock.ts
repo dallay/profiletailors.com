@@ -12,6 +12,13 @@ export type ReactiveClock = {
 
 const MINUTE = 60_000
 
+/**
+ * Starts a reactive browser clock aligned to the next wall-clock minute.
+ * Updates pause while hidden and refresh immediately when the document becomes visible.
+ * Optional callbacks run on visibility changes, not on initial setup or each tick.
+ * The returned stop permanently removes timers and the listener; component unmount
+ * also stops the clock when called in setup. Callback errors are not caught.
+ */
 export function useReactiveClock(options: ReactiveClockOptions = {}): ReactiveClock {
   const now = ref(new Date())
   let alignmentTimer: ReturnType<typeof setTimeout> | null = null

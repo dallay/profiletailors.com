@@ -12,6 +12,9 @@ export type CalendarRange = {
   to: string
 }
 
+/**
+ * Parses an exact YYYY-MM-DD date, rejecting malformed or normalized dates with an Error.
+ */
 function parseCalendarDate(value: string): CalendarDateType {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) throw new Error('Invalid calendar date')
@@ -26,10 +29,20 @@ function parseCalendarDate(value: string): CalendarDateType {
   return date
 }
 
+/**
+ * Returns the date's start in the requested timezone as a UTC ISO timestamp.
+ * Timezone conversion errors propagate.
+ */
 function atStartOfDay(date: CalendarDateType, timezone: string): string {
   return date.toDate(timezone).toISOString()
 }
 
+/**
+ * Returns UTC ISO boundaries for the month or Sunday-based week containing dateValue.
+ * The start is inclusive and the end is exclusive, using calendar days in timezone.
+ *
+ * @throws If dateValue is not a valid YYYY-MM-DD date or timezone conversion fails.
+ */
 export function getCalendarRange(
   dateValue: string,
   surface: CalendarSurface,

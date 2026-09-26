@@ -179,6 +179,11 @@ class PublishingChannelController(
     suspend fun listConfiguredProviders(): ProviderCatalogHttpResponse =
         mediator.send(ListProviderCatalogQuery).toHttpResponse()
 
+    /**
+     * Streams channel changes for the current workspace with data-free heartbeats every 20 seconds.
+     * Context resolution failures propagate before a stream is returned; source stream errors
+     * are forwarded to subscribers.
+     */
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamEvents(): Flux<ServerSentEvent<ChannelEventResponse>> {
@@ -254,6 +259,12 @@ class PublishingPublicationSseController(
     private val publicationEventStreamRegistry: PublicationEventStreamRegistry,
     private val membershipGate: WorkspaceMembershipGate,
 ) {
+    /**
+     * Requires active workspace membership, then streams that workspace's publication metadata
+     * with data-free heartbeats every 20 seconds. Membership is checked when opening the stream.
+     * Context, principal, and membership lookup failures propagate; inactive or absent membership
+     * throws AuthorizationDeniedException. Source stream errors are forwarded to subscribers.
+     */
     @Operation(summary = "Stream publication change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     suspend fun streamEvents(): Flux<ServerSentEvent<PublicationEventResponse>> {
@@ -284,6 +295,9 @@ data class PublicationEventResponse(
     val occurredAt: Instant,
 )
 
+/**
+ * Maps publication metadata to an SSE payload using the same change type as the event name.
+ */
 private fun PublicationEvent.toResponse(): PublicationEventResponse = PublicationEventResponse(
     workspaceId = workspaceId,
     publicationId = publicationId,
