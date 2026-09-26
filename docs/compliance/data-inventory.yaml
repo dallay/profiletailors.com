@@ -1,7 +1,7 @@
-schema_version: "2.0"
+schema_version: "2.1"
 status: draft
 production_release_status: blocked
-last_verified_on: 2026-09-18
+last_verified_on: 2026-09-25
 processing_entity: UNRESOLVED - legal person required before publication
 DPO_contact: null
 
@@ -558,7 +558,7 @@ processing_activities:
       - sidebar_state cookie containing a boolean UI preference
       - theme and pt_settings_v1 local-storage preferences for theme and locale
       - pt_active_workspace_id and pt_active_workspace_name local-storage values
-      - pt_publications local-storage copy of publication content and channel metadata
+      - pt_publications local-storage copy of anonymous-fallback publication content; authenticated callers no longer write to this key
       - pt-dashboard-new local-storage feature preference
     data_subjects: Marketing visitors and dashboard users
     recipients:
@@ -571,13 +571,14 @@ processing_activities:
         agreement_status: not_applicable
     retention:
       trigger: Logout, user action, expiry, or browser-data deletion
-      duration: pt_refresh defaults to P7D; sidebar_state is P7D; local-storage items have no automatic expiry
+      duration: pt_refresh defaults to P7D; sidebar_state is P7D; local-storage items have no automatic expiry; the authenticated path of pt_publications was removed, leaving only the documented anonymous fallback
       action: delete
       control_status: partial
       evidence:
         - Logout revokes and clears pt_refresh
         - Workspace store can clear workspace identifiers but auth logout does not evidence that call
         - Other local-storage values persist until overwritten or browser storage is cleared
+        - Authenticated publication writes to pt_publications were removed; only the anonymous fallback persists
     security_measures:
       - Refresh token cookie is HttpOnly and Secure by default
       - Access token remains in application memory rather than local storage
@@ -589,7 +590,7 @@ processing_activities:
       - path: apps/web/app/src/modules/workspace/infrastructure/workspace.store.ts
         reason: Workspace identifier and name local storage
       - path: apps/web/app/src/modules/publishing/infrastructure/publishing.store.ts
-        reason: Publication content local storage
+        reason: Anonymous-fallback publication persistence; authenticated callers now skip the local-storage write and revalidate against the backend
       - path: apps/web/app/src/components/ui/sidebar/SidebarProvider.vue
         reason: Sidebar preference cookie
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/RefreshSessionCookieFactory.kt

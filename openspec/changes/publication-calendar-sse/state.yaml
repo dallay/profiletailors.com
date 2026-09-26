@@ -1,0 +1,101 @@
+change: publication-calendar-sse
+current_phase: apply
+completed: [explore, propose, spec, design, tasks]
+next: verify
+updated: 2026-09-25T00:00:00Z
+artifact_store: openspec
+strict_tdd: true
+source_implementation_authorized: true
+review_workload: high
+review_units: 3
+sse_scope: in_scope
+verification_report: null
+qa_report: null
+archive_target: null
+base_dependency:
+  change: reactive-calendar-browser-sync
+  branch: reactive-calendar
+  commit: d87d33f5
+  status: untracked-in-worktree-absent-from-main
+  note: Both changes are currently untracked in this worktree and absent from main. This change MUST NOT be applied against a main that does not contain the coordinator, the shared clock, and the BroadcastChannel adapter.
+exploration_summary:
+  evidence:
+    - publishing store SSE consumer pattern (subscribeChannelEvents)
+    - shared consumeSseStream with heartbeat-friendly framing
+    - CalendarRevalidationCoordinator single-coordinator invariant
+    - Reactor Sinks.many.multicast.directBestEffort substrate (channel events)
+    - WorkspaceMembershipGate.requireActiveMember available as the tenant gate
+    - transactionRunner.runAtomically generic success-return semantics
+    - DeletePublicationHandler performs deleteUnpublished outside the transaction boundary
+    - publishing worker transitions including recovered success, blocked recovery, ambiguous outcome
+    - markProcessing defined without a located persisting call site
+    - default-deny authorization + Bearer-only SSE
+  recommended_units:
+    - Unit 1: publication domain event + port
+    - Unit 2: backend adapter + controller + worker wiring
+    - Unit 3: SPA subscription + revalidation wiring + Playwright
+  deferred:
+    - cross-replica fan-out (no shared bus yet, ADR-0011)
+    - optimistic concurrency on worker writes (separate change)
+    - native EventSource support (rejected by current convention)
+    - PROCESSING reactivity (no persisting write site identified)
+proposal_summary:
+  intent: Cross-process invalidation stream for publication state changes
+  in_scope:
+    - workspace-scoped SSE endpoint with dotted changeType wire values
+    - PublicationEvent domain port with publish(event) + Reactor adapter
+    - post-commit emission on success-return from the transaction boundary
+    - SPA subscribePublicationEvents(onInvalidation) input adapter feeding the coordinator
+    - Playwright SSE-only cross-tab coverage
+  out_of_scope:
+    - cross-replica fan-out via shared bus
+    - native EventSource support
+    - replacing REST with SSE payloads
+    - optimistic concurrency on worker writes
+  success_criteria:
+    - one SSE event per committed transition per the frozen emitter matrix; zero on rollback; zero for retryable attempts with no publication-visible change
+    - membership-gated subscription; foreign events never delivered
+    - at most one coalesced fetch per invalidation window even when duplicated
+    - SSE failure never breaks the SPA and never fails a committed mutation
+    - backend focused tests + Playwright SSE-only spec pass
+spec_summary:
+  durable_spec: openspec/specs/calendar-publication-sse/spec.md
+  requirements:
+    - workspace-scoped stream gated by principal plus active membership
+    - native EventSource rejected (401)
+    - closed dotted changeType vocabulary with Kotlin enum mapping
+    - post-commit emission only; rolled-back transactions emit zero
+    - publisher failure is best effort and never fails the business operation
+    - 20-second heartbeat; SPA tolerates without refetch
+    - bounded reconnect while visible; no aggressive reconnect while hidden
+    - SSE failure non-critical; visibility/BroadcastChannel remain
+    - cross-tab duplication absorbed at-most-once by the coordinator
+    - frozen emitter matrix including recovered success and blocked recovery
+design_summary:
+  design_doc: openspec/changes/publication-calendar-sse/design.md
+  decisions:
+    - REST authoritative; SSE best-effort invalidation only
+    - Reactor directBestEffort substrate reused; multi-replica explicitly unsupported
+    - post-commit on success-return, not on Boolean true
+    - tenant boundary is principal plus active membership
+    - payload is workspaceId, publicationId, optional socialAccountId, changeType, occurredAt
+    - dotted wire names with a single Kotlin enum mapping
+    - domain port publish(event); tryEmitNext hidden in the adapter
+    - publisher failure never fails the business operation
+    - coalescing is at-most-once per window
+    - bounded reconnect with visibility as safety net
+    - SSE is an input adapter; the store never knows the coordinator
+open_decisions:
+  - id: delete-boundary
+    question: Option A (single atomic delete boundary) versus Option B (authoritative deletion equals deleteUnpublished success)
+    resolution: Option A decided by the user on 2026-09-25; recorded in design.md, proposal.md, and tasks.md
+    status: resolved
+tasks_status:
+  status: revised-pending-approval
+  note: tasks.md was revised against the 13-point review (correct server paths, backend versus Vitest labeling, publish naming, blank-identifier rejection, membership-denied test, publisher-failure test, recovered and blocked-recovery coverage, retryable no-event test, at-most-once coalescing test, workspace-switch abort test, bounded reconnect tests, SSE-only E2E) and against the decided Option A delete boundary. Design.md plus revised proposal, spec, and tasks need approval before apply is authorized.
+notes: |
+  Previous state.yaml claimed tasks completed without design.md; that state
+  was ahead of reality and is hereby reconciled. exploration.md is kept as
+  the point-in-time investigation record; corrections live in proposal.md,
+  design.md, the durable spec, tasks.md, and this state file. Strict TDD,
+  OpenSpec-only persistence. Apply remains unauthorized.

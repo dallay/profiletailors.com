@@ -5,6 +5,7 @@ import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type { Channel } from '@modules/publishing/domain/channel'
+import { createCalendarInvalidationChannel } from '@modules/publishing/application/calendar-invalidation-channel'
 
 export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 export type { Channel } from '@modules/publishing/domain/channel'
@@ -67,6 +68,7 @@ export type Publication = {
   publicUrl?: string
   /** Wall-clock instant the provider confirmed publish. */
   publishedAt?: string
+  updatedAt?: string | null
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
   /** Provider or domain error code explaining a FAILED publication. */
@@ -137,6 +139,7 @@ export type CalendarPublicationResult = {
   publicUrl?: string | null
   publishedAt?: string | null
   previewUrl?: string | null
+  updatedAt?: string | null
   blockedReason?: string | null
   errorCode?: string | null
 }
@@ -174,6 +177,7 @@ type PublicationMutationResult = {
   externalPublicationId?: string | null
   publicUrl?: string | null
   publishedAt?: string | null
+  updatedAt?: string | null
 }
 
 export type ConnectedSocialChannelSummary = {
@@ -207,6 +211,55 @@ export type CalendarFilters = {
   status?: string
   socialAccountId?: string
   timezone?: string
+}
+
+export type PublicationInvalidation = {
+  workspaceId: string
+  publicationId: string
+  socialAccountId?: string
+  changeType: string
+  occurredAt: string
+}
+
+const PUBLICATION_INVALIDATION_TYPES = new Set([
+  'publication.created',
+  'publication.updated',
+  'publication.rescheduled',
+  'publication.deleted',
+  'publication.status-changed',
+])
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
+/**
+ * Returns supported event metadata or null for an invalid shape or unknown change type.
+ * Occurrence time must be nonempty but is not parsed; workspace filtering is left to callers.
+ */
+function toPublicationInvalidation(data: unknown): PublicationInvalidation | null {
+  if (!data || typeof data !== 'object') return null
+  const record = data as Record<string, unknown>
+  if (!isNonEmptyString(record.workspaceId)) return null
+  if (!isNonEmptyString(record.publicationId)) return null
+  if (!isNonEmptyString(record.occurredAt)) return null
+  if (
+    typeof record.changeType !== 'string' ||
+    !PUBLICATION_INVALIDATION_TYPES.has(record.changeType)
+  ) {
+    return null
+  }
+  if (record.socialAccountId !== undefined && typeof record.socialAccountId !== 'string')
+    return null
+  return {
+    workspaceId: record.workspaceId,
+    publicationId: record.publicationId,
+    ...(typeof record.socialAccountId === 'string'
+      ? { socialAccountId: record.socialAccountId }
+      : {}),
+    changeType: record.changeType,
+    occurredAt: record.occurredAt,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -337,12 +390,18 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     externalPublicationId: api.externalPublicationId ?? undefined,
     publicUrl: api.publicUrl ?? undefined,
     publishedAt: api.publishedAt ?? undefined,
+    updatedAt: api.updatedAt ?? null,
     blockedReason: api.blockedReason ?? undefined,
     errorCode: api.errorCode ?? undefined,
     thumbnail: api.previewUrl ? resolveApiUrl(api.previewUrl) : undefined,
   }
 }
 
+/**
+ * Merges server mutation fields into the current publication, preserving other UI fields.
+ * NEXT_SLOT uses nextSlotAfter for scheduledAt; absent scheduling becomes an empty string.
+ * A missing updatedAt retains the current timestamp, and prior failure details are cleared.
+ */
 function publicationMutationResultToPublication(
   result: PublicationMutationResult,
   current: Publication,
@@ -364,6 +423,7 @@ function publicationMutationResultToPublication(
     externalPublicationId: result.externalPublicationId ?? undefined,
     publicUrl: result.publicUrl ?? undefined,
     publishedAt: result.publishedAt ?? undefined,
+    updatedAt: result.updatedAt ?? current.updatedAt ?? null,
     blockedReason: undefined,
     errorCode: undefined,
   }
@@ -411,6 +471,8 @@ export const usePublishingStore = defineStore('publishing', () => {
   const channelsError = ref<string | null>(null)
   const channelEventsConnected = ref(false)
   const channelEventsAbortController = ref<AbortController | null>(null)
+  const publicationEventsConnected = ref(false)
+  const publicationEventsAbortController = ref<AbortController | null>(null)
   const latestChannelsFetchId = ref(0)
 
   // Monotonic counter that tracks the most recent in-flight fetchCalendar call.
@@ -418,6 +480,30 @@ export const usePublishingStore = defineStore('publishing', () => {
   // writing to publications/activity/conflicts, so overlapping requests (e.g.
   // rapid watcher firings when URL state changes) cannot clobber newer data.
   const latestCalendarFetchId = ref(0)
+  let invalidationChannel: ReturnType<typeof createCalendarInvalidationChannel> | null = null
+  let invalidationWorkspaceId: string | null = null
+
+  /**
+   * Broadcasts mutation metadata for the authenticated active workspace; otherwise does nothing.
+   * Channel errors propagate even when the mutation has already succeeded.
+   */
+  function emitCalendarInvalidation(
+    publicationId: string | undefined,
+    reason: 'created' | 'updated' | 'deleted' | 'rescheduled' | 'cancelled',
+  ): void {
+    const workspaceId = workspace.activeWorkspaceId
+    if (!auth.isAuthenticated || !workspaceId) return
+    if (invalidationWorkspaceId !== workspaceId) {
+      invalidationChannel?.close()
+      invalidationChannel = createCalendarInvalidationChannel(workspaceId)
+      invalidationWorkspaceId = workspaceId
+    }
+    invalidationChannel?.publish({
+      workspaceId,
+      ...(publicationId ? { publicationId } : {}),
+      reason,
+    })
+  }
 
   const providerCatalog = ref<ProviderCatalogItem[]>([])
   const providerCatalogError = ref<string | null>(null)
@@ -463,16 +549,19 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Track object URLs for memory cleanup
   const objectUrls = new Map<string, string>()
 
-  // Load from localStorage or seed
-  const stored = readStoredPublications()
-  if (stored) {
-    try {
-      publications.value = JSON.parse(stored)
-    } catch {
+  if (!auth.isAuthenticated) {
+    const stored = readStoredPublications()
+    if (stored) {
+      try {
+        publications.value = JSON.parse(stored)
+      } catch {
+        publications.value = initialPublications
+      }
+    } else {
       publications.value = initialPublications
     }
   } else {
-    publications.value = initialPublications
+    publications.value = []
   }
 
   // Activity & conflicts from calendar API
@@ -513,8 +602,12 @@ export const usePublishingStore = defineStore('publishing', () => {
   }))
 
   // Save changes helper
+  /**
+   * Persists guest publications when localStorage exists; authenticated data is not saved.
+   * Serialization and storage errors propagate.
+   */
   function saveToStorage(): void {
-    if (typeof localStorage === 'undefined') return
+    if (auth.isAuthenticated || typeof localStorage === 'undefined') return
     localStorage.setItem('pt_publications', JSON.stringify(publications.value))
   }
 
@@ -754,13 +847,71 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelEventsConnected.value = false
   }
 
+  /**
+   * Replaces the active stream and forwards valid invalidations for the current workspace.
+   * Resolves to null when unauthenticated or when the stream ends, fails, or is aborted.
+   * Request and read failures are swallowed; malformed frames and callback errors are ignored.
+   * Connection state is cleared when consumption ends.
+   */
+  async function subscribePublicationEvents(
+    onInvalidation: (event: PublicationInvalidation) => void,
+  ): Promise<null> {
+    if (!auth.isAuthenticated) {
+      publicationEventsConnected.value = false
+      return null
+    }
+
+    unsubscribePublicationEvents()
+    const abortController = new AbortController()
+    publicationEventsAbortController.value = abortController
+
+    try {
+      const response = await auth.apiFetchRaw('/api/publishing/publications/events', {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
+        workspaceScoped: true,
+        signal: abortController.signal,
+      })
+      publicationEventsConnected.value = true
+      await consumeSseStream<unknown>(response, async ({ data }) => {
+        const invalidation = toPublicationInvalidation(data)
+        if (!invalidation) return
+        if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
+        onInvalidation(invalidation)
+      })
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        console.warn('Publication event stream unavailable; continuing with REST calendar.', err)
+      }
+    } finally {
+      if (publicationEventsAbortController.value === abortController) {
+        publicationEventsAbortController.value = null
+      }
+      publicationEventsConnected.value = false
+    }
+
+    return null
+  }
+
+  /**
+   * Aborts the current publication stream and clears its connection state.
+   */
+  function unsubscribePublicationEvents(): void {
+    publicationEventsAbortController.value?.abort()
+    publicationEventsAbortController.value = null
+    publicationEventsConnected.value = false
+  }
+
   // -----------------------------------------------------------------------
   // Actions — Calendar API
   // -----------------------------------------------------------------------
 
   /**
    * Fetch publications, conflicts, and activity for a date range.
-   * Falls back to localStorage-filtered data when unauthenticated or on network error.
+   * from is inclusive and to is exclusive for authenticated API requests.
+   * Request failures are caught and leave authenticated calendar data unchanged.
+   * Guests filter existing local publications, without applying the requested date range,
+   * and clear conflicts and activity. Local storage failures propagate.
    *
    * Overlapping calls are guarded by `latestCalendarFetchId`: each invocation
    * captures a monotonic id on entry and only writes to the store if its id
@@ -777,10 +928,11 @@ export const usePublishingStore = defineStore('publishing', () => {
         await applyRemoteCalendar(fetchId, params)
         return
       } catch (err) {
-        console.warn('Calendar API unavailable, falling back to local data', err)
+        console.warn('Calendar API unavailable', err)
       }
     }
 
+    if (auth.isAuthenticated) return
     if (isStaleFetch(fetchId)) return
     applyLocalCalendarFallback()
   }
@@ -810,7 +962,12 @@ export const usePublishingStore = defineStore('publishing', () => {
     saveToStorage()
   }
 
+  /**
+   * Filters guest publications with the current store filters, clears activity and conflicts,
+   * then persists the result. Authenticated calls do nothing; storage failures propagate.
+   */
   function applyLocalCalendarFallback(): void {
+    if (auth.isAuthenticated) return
     publications.value = applyLocalFilters(publications.value)
     activity.value = []
     conflicts.value = []
@@ -831,7 +988,11 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  /** Quick-create a publication from calendar cells (no assets, no multi-channel). */
+  /**
+   * Quick-creates a scheduled publication from a calendar cell without assets or multiple channels.
+   * Inserts the API result when authenticated, otherwise creates a guest publication locally.
+   * API errors propagate before insertion; storage or broadcast errors can occur after insertion.
+   */
   async function quickCreatePost(opts: {
     socialAccountId: string
     title?: string
@@ -873,12 +1034,15 @@ export const usePublishingStore = defineStore('publishing', () => {
 
     publications.value.unshift(newPub)
     saveToStorage()
+    emitCalendarInvalidation(newPub.id, 'created')
     return newPub
   }
 
   /**
    * Reschedule a publication with optimistic update + rollback on failure.
-   * Returns the updated publication on success, or rolls back and throws.
+   * Returns the updated publication and broadcasts authenticated changes. Missing IDs throw.
+   * Authenticated request or broadcast errors restore the previous entry if still present
+   * and are rethrown. Guest changes are saved locally; storage errors propagate.
    */
   async function reschedulePublication(id: string, newScheduledFor: string): Promise<Publication> {
     const idx = publications.value.findIndex((p) => p.id === id)
@@ -908,6 +1072,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         const updatedIdx = publications.value.findIndex((p) => p.id === id)
         const updated = publications.value[updatedIdx]
         if (!updated) throw new Error(`Publication ${id} not found after reschedule`)
+        emitCalendarInvalidation(id, 'rescheduled')
         return updated
       } catch (err) {
         // Rollback
@@ -928,6 +1093,12 @@ export const usePublishingStore = defineStore('publishing', () => {
     return updated
   }
 
+  /**
+   * Retries an existing publication in NOW mode through the API and broadcasts the change.
+   * Guests only set the local status to QUEUED and clear failure details. Returns the result.
+   * Missing IDs throw; authenticated errors restore the previous entry if present and propagate.
+   * Guest storage errors propagate after the local update.
+   */
   async function retryPublication(id: string): Promise<Publication> {
     const idx = publications.value.findIndex((p) => p.id === id)
     if (idx === -1) throw new Error(`Publication ${id} not found`)
@@ -956,6 +1127,7 @@ export const usePublishingStore = defineStore('publishing', () => {
           publications.value[updatedIdx] = updated
         }
         saveToStorage()
+        emitCalendarInvalidation(id, 'updated')
         return updated
       } catch (err) {
         const rollbackIdx = publications.value.findIndex((p) => p.id === id)
@@ -1042,6 +1214,9 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Actions — Existing  (modified with fallback awareness)
   /**
    * Creates and queues a publication using the selected channels and scheduling options.
+   * Authenticated creation requires a connected LinkedIn channel and propagates API errors
+   * before insertion. Guests save locally. Storage or broadcast errors can propagate after
+   * insertion; blob thumbnails are tracked for later cleanup.
    *
    * @param post - Publication content, channels, scheduling options, priority, and optional media.
    * @param post.scheduleMode - Scheduling mode: `NOW`, `SCHEDULED_AT`, or `NEXT_SLOT`; defaults to `SCHEDULED_AT`.
@@ -1105,6 +1280,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       objectUrls.set(persistedPub.id, persistedPub.thumbnail)
     }
     saveToStorage()
+    emitCalendarInvalidation(persistedPub.id, 'created')
     return persistedPub
   }
 
@@ -1141,6 +1317,11 @@ export const usePublishingStore = defineStore('publishing', () => {
     })
   }
 
+  /**
+   * Deletes through the API when authenticated, removes the local entry, and releases its blob URL.
+   * Missing IDs and API failures throw before local removal. Storage or broadcast errors can
+   * propagate after removal.
+   */
   async function deletePost(id: string): Promise<void> {
     if (!publications.value.some((p) => p.id === id)) {
       throw new Error(`Publication ${id} not found`)
@@ -1160,13 +1341,19 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
+    emitCalendarInvalidation(id, 'deleted')
   }
 
+  /**
+   * Marks an existing local entry CANCELLED and broadcasts authenticated changes; missing IDs
+   * are ignored. Makes no cancellation API request. Storage or broadcast errors propagate.
+   */
   function cancelPost(id: string): void {
     const post = publications.value.find((p) => p.id === id)
     if (post) {
       post.status = 'CANCELLED'
       saveToStorage()
+      emitCalendarInvalidation(id, 'cancelled')
     }
   }
 
@@ -1193,6 +1380,13 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
+  /**
+   * Updates an existing publication through the API when authenticated, otherwise locally.
+   * Returns the merged entry, updates tracked thumbnail URLs, and broadcasts authenticated changes.
+   * Omitted assetIds preserve assets; explicitly supplied nullish assetIds clear them in API requests.
+   * Missing IDs and API failures throw before local changes; storage or broadcast failures can
+   * propagate after the update.
+   */
   async function updatePost(id: string, updates: PublicationUpdate): Promise<Publication> {
     const current = publications.value.find((p) => p.id === id)
     if (!current) {
@@ -1225,6 +1419,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       })
       publications.value[publications.value.indexOf(current)] = merged
       saveToStorage()
+      emitCalendarInvalidation(id, 'updated')
       return merged
     }
 
@@ -1232,6 +1427,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     const updated = { ...current, ...updates }
     publications.value[publications.value.indexOf(current)] = updated
     saveToStorage()
+    emitCalendarInvalidation(id, 'updated')
     return updated
   }
 
@@ -1261,6 +1457,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelsError,
     channelEventsConnected,
     channelEventsAbortController,
+    publicationEventsConnected,
+    publicationEventsAbortController,
     providerCatalog,
     providerCatalogError,
     publications,
@@ -1297,6 +1495,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,
     unsubscribeChannelEvents,
+    subscribePublicationEvents,
+    unsubscribePublicationEvents,
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,

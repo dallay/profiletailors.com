@@ -5,7 +5,12 @@
     "**/node_modules/**",
     "**/build/**",
     "openspec/**",
-    "**/CHANGELOG.md"
+    "**/CHANGELOG.md",
+    "**/playwright-report/**",
+    "**/playwright-scheduler-report/**",
+    "**/playwright-media-mocked-report/**",
+    "**/playwright-mocked-report/**",
+    "**/test-results/**"
   ],
   "config": {
     "default": true,

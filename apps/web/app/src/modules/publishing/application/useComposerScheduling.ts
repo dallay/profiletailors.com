@@ -1,6 +1,7 @@
-import { ref, computed, onUnmounted, getCurrentInstance, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
+import { useReactiveClock } from './useReactiveClock'
 
 export type ComposerScheduleMode = 'now' | 'next' | 'custom'
 
@@ -46,7 +47,7 @@ export type UseComposerSchedulingResult = {
  * - Modes: now, next, custom
  * - Date and time validation
  * - Label formatting
- * - Real-time clock for "today" validation (handles midnight rollover)
+ * - Minute-aligned clock for minimum-time validation, paused while hidden
  *
  * @example
  * ```ts
@@ -72,28 +73,14 @@ export function useComposerScheduling(
   const scheduleTime = ref('10:00')
   const isDatePickerOpen = ref(false)
 
-  const now = ref(new Date())
+  const clock = useReactiveClock()
+  const now = clock.now
 
-  // ============================================================================
-  // LIFECYCLE - Clock ticker
-  // ============================================================================
-
-  let ticker: ReturnType<typeof setInterval> | null = null
-
-  ticker = setInterval(() => {
-    now.value = new Date()
-  }, 60_000)
-
+  /**
+   * Permanently stops clock updates and removes the clock visibility listener.
+   */
   function stopTicker() {
-    if (ticker) {
-      clearInterval(ticker)
-      ticker = null
-    }
-  }
-
-  const instance = getCurrentInstance()
-  if (instance) {
-    onUnmounted(stopTicker)
+    clock.stop()
   }
 
   // ============================================================================
