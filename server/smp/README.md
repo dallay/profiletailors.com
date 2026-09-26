@@ -1,5 +1,11 @@
 # SMP Server — Social Media Platform Backend
 
+[![Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=smp%40v*&display_name=tag&style=flat-square&color=2d3748&label=Release)](https://github.com/dallay/profiletailors.com/releases?q=smp%40v)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0-2d3748?style=flat-square&logo=springboot&logoColor=6db33f)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-2d3748?style=flat-square&logo=postgresql&logoColor=4169e1)](https://www.postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-Swarm-2d3748?style=flat-square&logo=docker&logoColor=2496ed)](https://www.docker.com)
+
 Reactive Spring Boot 4 modular monolith written in Kotlin, powering core Profile Tailors services including authentication, post scheduling, multi-network social publishing, workspace administration, and lead capture.
 
 ## Role in the platform

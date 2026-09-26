@@ -13,6 +13,10 @@ shared modules, and infrastructure).
 
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
+[![Landing Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=landing%40v*&display_name=tag&style=for-the-badge&color=2d3748&label=Landing)](https://github.com/dallay/profiletailors.com/releases?q=landing%40v)
+[![App Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=app%40v*&display_name=tag&style=for-the-badge&color=2d3748&label=App)](https://github.com/dallay/profiletailors.com/releases?q=app%40v)
+[![Admin Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=admin%40v*&display_name=tag&style=for-the-badge&color=2d3748&label=Admin)](https://github.com/dallay/profiletailors.com/releases?q=admin%40v)
+[![SMP Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=smp%40v*&display_name=tag&style=for-the-badge&color=2d3748&label=SMP)](https://github.com/dallay/profiletailors.com/releases?q=smp%40v)
 [![Astro](https://img.shields.io/badge/Astro-7.x-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
 [![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)

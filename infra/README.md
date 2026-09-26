@@ -1,5 +1,8 @@
 # Profile Tailors Infrastructure
 
+[![Docker](https://img.shields.io/badge/Docker-Compose_&_Swarm-2d3748?style=flat-square&logo=docker&logoColor=2496ed)](https://www.docker.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-2d3748?style=flat-square&logo=postgresql&logoColor=4169e1)](https://www.postgresql.org)
+
 ## Overview
 
 This directory contains the Docker infrastructure for local development and supported self-hosted

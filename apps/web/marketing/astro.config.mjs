@@ -6,7 +6,7 @@ import icon from '@dallay/astro-icon'
 import { codecovVitePlugin } from '@codecov/vite-plugin'
 import { resolve, join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cpSync, createReadStream, existsSync, statSync } from 'node:fs'
+import { cpSync, createReadStream, existsSync, statSync, writeFileSync } from 'node:fs'
 import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
 const SHARED_ASSETS = resolve('../../../shared/assets')
@@ -40,6 +40,7 @@ const sharedAssetsPlugin = {
   },
   closeBundle() {
     cpSync(SHARED_WEB_ASSETS, 'dist', { recursive: true })
+    writeFileSync(join('dist', 'version.json'), `${JSON.stringify(buildInfo, null, 2)}\n`, 'utf8')
   },
 }
 
@@ -107,3 +108,5 @@ export default defineConfig({
 
   integrations: [icon(), vue()],
 })
+
+// Fix: deploy static version.json for dynamic deployed version badge
