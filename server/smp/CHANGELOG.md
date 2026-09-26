@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.8](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.7...smp@v0.5.8) (2026-09-26)
+
+
+### Features
+
+* **scheduling:** reactive calendar browser-sync via SSE ([#1185](https://github.com/dallay/profiletailors.com/issues/1185)) ([f02b0e4](https://github.com/dallay/profiletailors.com/commit/f02b0e4b0e24275d943e7a7ce02e4ad267465f26))
+* **waitlist:** add WithdrawWaitlistEntryHandler application service ([#1175](https://github.com/dallay/profiletailors.com/issues/1175)) ([02f666a](https://github.com/dallay/profiletailors.com/commit/02f666a68070049084ba3fc85d48ff09211d43f9))
+
+
+### Bug Fixes
+
+* **deps:** force FreeMarker to 2.3.35 as belt-and-suspenders ([4a7a439](https://github.com/dallay/profiletailors.com/commit/4a7a4391206b9137efc538b3d785e38056cc6fdc))
+* **publishing:** graceful LinkedIn avatar degradation + refresh endpoint ([534f2e7](https://github.com/dallay/profiletailors.com/commit/534f2e750bbb3e96804a7cf9b9a826c89f88eb51))
+* **waitlist:** recover pending welcome emails after withdrawal ([#1172](https://github.com/dallay/profiletailors.com/issues/1172)) ([e53579a](https://github.com/dallay/profiletailors.com/commit/e53579a935757e027e47d4705d8b1a9dafe8f83d))
+* **waitlist:** wire withdrawal env config for dev and prod ([7fc67a8](https://github.com/dallay/profiletailors.com/commit/7fc67a835a961af8fd867239dcb12db0b4e6c6cf))
+
+
+### Documentation
+
+* standardize technology, release, and deployed-version badges across READMEs ([#1188](https://github.com/dallay/profiletailors.com/issues/1188)) ([cf5120e](https://github.com/dallay/profiletailors.com/commit/cf5120e82c87bdb7f6af5c56e43ae0229a4169de))
+
 ## [0.5.7](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.6...smp@v0.5.7) (2026-09-24)
 
 
