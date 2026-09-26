@@ -1,5 +1,8 @@
 # Shared Common Module (`shared:common`)
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Framework-agnostic Kotlin domain primitives, immutable value objects, error hierarchies, domain event interfaces, and common model abstractions used across all Profile Tailors backend modules.
 
 ## Role in the platform

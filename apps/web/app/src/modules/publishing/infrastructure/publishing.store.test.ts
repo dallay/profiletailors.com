@@ -712,6 +712,103 @@ describe('publishing store', () => {
     })
   })
 
+  describe('subscribePublicationEvents', () => {
+    function sseStream(frames: string[]): ReadableStream<Uint8Array> {
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          const encoder = new TextEncoder()
+          for (const frame of frames) controller.enqueue(encoder.encode(frame))
+          controller.close()
+        },
+      })
+    }
+
+    it('opens the publications events stream and forwards matching workspace invalidations', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetchRaw = vi
+        .spyOn(auth, 'apiFetchRaw')
+        .mockResolvedValue(
+          new Response(
+            sseStream([
+              'event: publication.status-changed\ndata: {"workspaceId":"workspace-1","publicationId":"pub-1","socialAccountId":"acc-1","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+            ]),
+          ),
+        )
+      const onInvalidation = vi.fn()
+
+      await store.subscribePublicationEvents(onInvalidation)
+
+      expect(apiFetchRaw).toHaveBeenCalledWith('/api/publishing/publications/events', {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
+        workspaceScoped: true,
+        signal: expect.any(AbortSignal),
+      })
+      expect(onInvalidation).toHaveBeenCalledOnce()
+      expect(onInvalidation).toHaveBeenCalledWith({
+        workspaceId: 'workspace-1',
+        publicationId: 'pub-1',
+        socialAccountId: 'acc-1',
+        changeType: 'publication.status-changed',
+        occurredAt: '2026-09-25T12:00:00.000Z',
+      })
+      expect(store.publicationEventsConnected).toBe(false)
+    })
+
+    it('ignores foreign workspace frames, heartbeats, and malformed payloads', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetchRaw').mockResolvedValue(
+        new Response(
+          sseStream([
+            'event: publication.updated\ndata: {"workspaceId":"workspace-2","publicationId":"pub-9","changeType":"publication.updated","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+            'event: heartbeat\ndata: {}\n\n',
+            'event: publication.updated\ndata: {"workspaceId":"workspace-1","changeType":"bogus"}\n\n',
+          ]),
+        ),
+      )
+      const onInvalidation = vi.fn()
+
+      await store.subscribePublicationEvents(onInvalidation)
+
+      expect(onInvalidation).not.toHaveBeenCalled()
+    })
+
+    it('returns null without connecting when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw')
+
+      const result = await store.subscribePublicationEvents(vi.fn())
+
+      expect(result).toBeNull()
+      expect(apiFetchRaw).not.toHaveBeenCalled()
+      expect(store.publicationEventsConnected).toBe(false)
+    })
+
+    it('aborts the active publication event stream on unsubscribe', () => {
+      const store = usePublishingStore()
+      const abortController = new AbortController()
+      const abort = vi.spyOn(abortController, 'abort')
+      store.publicationEventsAbortController = abortController
+      store.publicationEventsConnected = true
+
+      store.unsubscribePublicationEvents()
+
+      expect(abort).toHaveBeenCalledOnce()
+      expect(store.publicationEventsAbortController).toBeNull()
+      expect(store.publicationEventsConnected).toBe(false)
+    })
+  })
+
   describe('hasNoChannels', () => {
     it('returns true when there are no connected channels', () => {
       const store = usePublishingStore()

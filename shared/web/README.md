@@ -1,5 +1,9 @@
 # Shared Web Workspace (`@profiletailors/shared-web`)
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-2d3748?style=flat-square&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-2d3748?style=flat-square&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
+[![Zod](https://img.shields.io/badge/Zod-4.x-2d3748?style=flat-square&logo=zod&logoColor=3e67b1)](https://zod.dev)
+
 Framework-agnostic TypeScript library defining canonical GDPR consent models, Zod validation schemas, localStorage persistence utilities, and privacy signal detectors shared across web applications.
 
 ## Role in the platform

@@ -4,12 +4,14 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.publishBestEffort
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
@@ -21,6 +23,9 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.ProviderPublishingRegistry
 import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.ProviderUploadException
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -57,6 +62,7 @@ class PublishingJobExecutor(
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
     private val providerPublishingRegistry: ProviderPublishingRegistry? = null,
     private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -255,6 +261,30 @@ class PublishingJobExecutor(
         }
     }
 
+    /**
+     * Emits status-change metadata with [now] as the occurrence time.
+     * Publisher failures are ignored except cancellation; blank event IDs throw.
+     */
+    private fun emitStatusChanged(
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        now: Instant,
+    ) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = publication.workspaceId,
+                publicationId = publication.id,
+                socialAccountId = publication.socialAccountId,
+                occurredAt = now,
+            ),
+        )
+    }
+
+    /**
+     * Blocks the job and publication and records a notification only if the claim is still current.
+     * Attempts a status-change event after commit. Lifecycle and persistence failures propagate;
+     * publisher failures are ignored except cancellation.
+     */
     private suspend fun blockPublication(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -285,6 +315,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -296,6 +327,12 @@ class PublishingJobExecutor(
         )
     }
 
+    /**
+     * Fails the job and publication and records a notification only if the claim is still current.
+     * [reason] must match a PublishingFailureCategory code; an unknown code throws after persistence.
+     * Attempts a status-change event after commit. Persistence failures propagate; publisher
+     * failures are ignored except cancellation.
+     */
     private suspend fun failPublicationTerminal(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -324,6 +361,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.terminalFailure(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -335,6 +373,12 @@ class PublishingJobExecutor(
         )
     }
 
+    /**
+     * Blocks a current claim, records a failed delivery attempt, and requests account reconnection.
+     * Attempts a status-change event after commit; stale claims leave publication state unchanged.
+     * Throws IllegalStateException if the attempt cannot be updated for this claim. Persistence
+     * failures propagate; publisher failures are ignored except cancellation.
+     */
     private suspend fun handleReconnectRequired(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -383,6 +427,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -526,6 +571,12 @@ class PublishingJobExecutor(
         Result.failure(exception)
     }
 
+    /**
+     * Completes a current claim, records the successful attempt, and marks the publication published.
+     * Attempts a status-change event after commit; stale claims leave publication state unchanged.
+     * Throws IllegalStateException if the attempt update is rejected. Persistence failures propagate;
+     * publisher failures are ignored except cancellation.
+     */
     private suspend fun finalizeSuccessfulPublication(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -553,6 +604,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -599,6 +651,12 @@ class PublishingJobExecutor(
         }
     }
 
+    /**
+     * Completes a current claim using a previously recorded provider success, without publishing again.
+     * Requires an external publication ID or throws IllegalArgumentException. Stale claims are ignored.
+     * Persistence failures propagate; the post-commit status event ignores publisher failures except
+     * cancellation.
+     */
     private suspend fun finalizeRecoveredSuccess(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -615,6 +673,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -625,6 +684,12 @@ class PublishingJobExecutor(
         )
     }
 
+    /**
+     * Blocks a current claim and records an ambiguous attempt requiring provider reconciliation.
+     * Attempts a status-change event after commit; stale claims leave publication state unchanged.
+     * Throws IllegalStateException if the attempt update is rejected. Persistence failures propagate;
+     * publisher failures are ignored except cancellation.
+     */
     private suspend fun handleAmbiguousOutcome(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -668,6 +733,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -699,6 +765,13 @@ class PublishingJobExecutor(
         }
     }
 
+    /**
+     * Records failure for a current claim, scheduling a retry when policy allows or marking the
+     * publication failed and recording a notification otherwise. Stale claims are ignored.
+     * Only terminal failure emits a status-change event after commit. Throws IllegalStateException
+     * if the attempt update is rejected. Persistence failures propagate; publisher failures are
+     * ignored except cancellation.
+     */
     @Suppress("LongMethod")
     private suspend fun handlePublishFailure(
         claim: PublicationJobClaim,
@@ -767,6 +840,7 @@ class PublishingJobExecutor(
                 durationMs = attemptDurationMs(now),
             )
         } else {
+            emitStatusChanged(publication, now)
             lifecycleLogger.terminalFailure(
                 publicationId = publication.id,
                 jobId = claim.jobId,
@@ -792,6 +866,7 @@ class PublishingWorker(
     private val claimLease: Duration = Duration.parse("PT2M"),
     private val staleGrace: Duration = Duration.parse("PT5M"),
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -842,6 +917,13 @@ class PublishingWorker(
         log.debug("BLOCKED-recovery scan completed; requeued {} publication(s)", publications.size)
     }
 
+    /**
+     * Applies blocked-retry policy and atomically saves the result with a replacement pending job.
+     * Throws IllegalArgumentException for a non-BLOCKED publication. Retry delay starts at one minute
+     * and doubles; an existing retry count of at least five produces a failed snapshot.
+     * Attempts a status-change event after commit. Persistence failures propagate; publisher failures
+     * are ignored except cancellation.
+     */
     private suspend fun requeueBlockedPublication(
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
     ) {
@@ -866,10 +948,30 @@ class PublishingWorker(
                 ),
             )
         }
+        emitStatusChanged(prepared, now)
         log.info(
             "Requeued BLOCKED publication {} for retry (attempt {})",
             publication.id,
             prepared.retryCount,
+        )
+    }
+
+    /**
+     * Emits status-change metadata with [now] as the occurrence time.
+     * Publisher failures are ignored except cancellation; blank event IDs throw.
+     */
+    private fun emitStatusChanged(
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        now: Instant,
+    ) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = publication.workspaceId,
+                publicationId = publication.id,
+                socialAccountId = publication.socialAccountId,
+                occurredAt = now,
+            ),
         )
     }
 

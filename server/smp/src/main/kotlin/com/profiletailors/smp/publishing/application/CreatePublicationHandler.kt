@@ -14,12 +14,16 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -58,7 +62,15 @@ internal class CreatePublicationHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
+    /**
+     * Validates and queues a publication in the current workspace, atomically saving its job.
+     * Returns the persisted publication and attempts a created notification after the transaction.
+     * Context, email verification, account lookup, media resolution, validation, and persistence
+     * failures propagate. Media resolution times out after five seconds when enabled.
+     * Publisher failures are swallowed except cancellation, which may propagate after commit.
+     */
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -115,7 +127,24 @@ internal class CreatePublicationHandler(
             publicationJobRepository.enqueue(newJobFor(created, now))
             created
         }
+        emitCreated(workspaceId, persisted)
         return persisted.toResult()
+    }
+
+    /**
+     * Emits created metadata for the persisted publication using the current clock time.
+     * Publisher failures are ignored except cancellation; blank workspace or publication IDs throw.
+     */
+    private fun emitCreated(workspaceId: String, persisted: PublicationDraft) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.CREATED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
     }
 
     /**

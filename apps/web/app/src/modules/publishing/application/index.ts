@@ -52,6 +52,24 @@ export { useComposerMediaPicker } from './useComposerMediaPicker'
 // CALENDAR URL
 // ============================================================================
 
+export { getCalendarRange, type CalendarRange, type CalendarSurface } from './calendarRange'
+export { useReactiveClock, type ReactiveClock, type ReactiveClockOptions } from './useReactiveClock'
+export {
+  createCalendarInvalidationChannel,
+  type CalendarInvalidation,
+  type CalendarInvalidationReason,
+} from './calendar-invalidation-channel'
+export {
+  useCalendarRevalidation,
+  type CalendarRevalidation,
+  type CalendarRevalidationOptions,
+} from './useCalendarRevalidation'
+export {
+  usePublicationEventReconnect,
+  type PublicationEventReconnect,
+  type PublicationEventReconnectOptions,
+} from './usePublicationEventReconnect'
+
 export { useCalendarUrl } from './useCalendarUrl'
 
 // ============================================================================

@@ -2,6 +2,7 @@ package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
@@ -41,6 +42,7 @@ import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
+import com.profiletailors.smp.publishing.domain.PublicationEvent
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
@@ -50,7 +52,9 @@ import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.domain.wireName
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
+import com.profiletailors.smp.publishing.infrastructure.events.PublicationEventStreamRegistry
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import io.swagger.v3.oas.annotations.Operation
@@ -80,6 +84,8 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+
+private const val SSE_HEARTBEAT_INTERVAL_SECONDS = 20L
 
 @Validated
 @RestController
@@ -212,6 +218,11 @@ class PublishingChannelController(
     suspend fun listConfiguredProviders(): ProviderCatalogHttpResponse =
         mediator.send(ListProviderCatalogQuery).toHttpResponse()
 
+    /**
+     * Streams channel changes for the current workspace with data-free heartbeats every 20 seconds.
+     * Context resolution failures propagate before a stream is returned; source stream errors
+     * are forwarded to subscribers.
+     */
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamEvents(): Flux<ServerSentEvent<ChannelEventResponse>> {
@@ -223,7 +234,7 @@ class PublishingChannelController(
                     .event(event.type.eventName())
                     .build()
             }
-        val heartbeats = Flux.interval(Duration.ofSeconds(20))
+        val heartbeats = Flux.interval(Duration.ofSeconds(SSE_HEARTBEAT_INTERVAL_SECONDS))
             .map {
                 ServerSentEvent.builder<ChannelEventResponse>()
                     .event("heartbeat")
@@ -277,6 +288,62 @@ private fun ChannelEventType.eventName(): String = when (this) {
     ChannelEventType.CONNECTED_CHANNEL_UPDATED -> "connected-channel.updated"
     ChannelEventType.CONNECTED_CHANNEL_REMOVED -> "connected-channel.removed"
 }
+
+@Validated
+@RestController
+@RequestMapping(value = ["/api/publishing/publications"])
+@Tag(name = "Publishing Publication Events", description = "Workspace-scoped publication change notifications")
+class PublishingPublicationSseController(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationEventStreamRegistry: PublicationEventStreamRegistry,
+    private val membershipGate: WorkspaceMembershipGate,
+) {
+    /**
+     * Requires active workspace membership, then streams that workspace's publication metadata
+     * with data-free heartbeats every 20 seconds. Membership is checked when opening the stream.
+     * Context, principal, and membership lookup failures propagate; inactive or absent membership
+     * throws AuthorizationDeniedException. Source stream errors are forwarded to subscribers.
+     */
+    @Operation(summary = "Stream publication change notifications")
+    @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    suspend fun streamEvents(): Flux<ServerSentEvent<PublicationEventResponse>> {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
+        val publicationEvents = publicationEventStreamRegistry.stream()
+            .filter { it.workspaceId == workspaceId }
+            .map { event ->
+                ServerSentEvent.builder(event.toResponse())
+                    .event(event.type.wireName())
+                    .build()
+            }
+        val heartbeats = Flux.interval(Duration.ofSeconds(SSE_HEARTBEAT_INTERVAL_SECONDS))
+            .map {
+                ServerSentEvent.builder<PublicationEventResponse>()
+                    .event("heartbeat")
+                    .build()
+            }
+        return Flux.merge(publicationEvents, heartbeats)
+    }
+}
+
+data class PublicationEventResponse(
+    val workspaceId: String,
+    val publicationId: String,
+    val socialAccountId: String?,
+    val changeType: String,
+    val occurredAt: Instant,
+)
+
+/**
+ * Maps publication metadata to an SSE payload using the same change type as the event name.
+ */
+private fun PublicationEvent.toResponse(): PublicationEventResponse = PublicationEventResponse(
+    workspaceId = workspaceId,
+    publicationId = publicationId,
+    socialAccountId = socialAccountId,
+    changeType = type.wireName(),
+    occurredAt = occurredAt,
+)
 
 @Validated
 @RestController

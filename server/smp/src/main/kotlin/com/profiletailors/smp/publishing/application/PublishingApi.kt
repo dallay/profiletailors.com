@@ -146,6 +146,7 @@ data class PublicationResult(
     val externalPublicationId: String? = null,
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
+    val updatedAt: Instant? = null,
 )
 
 data class PublicationAssetSummary(val assetId: String, val sourceType: AssetSourceType, val mediaType: String)
@@ -198,6 +199,7 @@ data class CalendarPublicationResult(
     val externalPublicationId: String? = null,
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
+    val updatedAt: Instant? = null,
     val previewUrl: String? = null,
     val blockedReason: String? = null,
     val errorCode: String? = null,
