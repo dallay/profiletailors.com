@@ -3,6 +3,7 @@ import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 plugins {
     id("com.profiletailors.spring.boot.application")
     id("com.profiletailors.legal.licence-report")
+    id("com.profiletailors.mutation.testing")
 }
 
 group = "com.profiletailors"
