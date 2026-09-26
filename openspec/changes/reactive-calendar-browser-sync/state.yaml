@@ -1,0 +1,58 @@
+change: reactive-calendar-browser-sync
+current_phase: archive
+completed: [explore, propose, spec, design, tasks, apply, verify, archive]
+next: null
+updated: 2026-09-25T00:00:00Z
+artifact_store: openspec
+strict_tdd: true
+source_implementation_authorized: false
+review_workload: high
+review_units: 3
+sse_scope: deferred
+verification_report: openspec/changes/reactive-calendar-browser-sync/verify-report.md
+qa_report: openspec/changes/reactive-calendar-browser-sync/qa-report.md
+archive_target: openspec/specs/visual-calendar/spec.md, openspec/specs/publishing/spec.md, openspec/specs/privacy-compliance/spec.md
+apply_summary:
+  completed: true
+  status: applied_and_verified
+  green_tests:
+    - src/modules/publishing/application/calendarRange.test.ts (5 tests)
+    - src/modules/publishing/application/useReactiveClock.test.ts (2 tests)
+    - src/modules/publishing/application/useCalendarRevalidation.test.ts (2 tests)
+    - src/modules/publishing/application/calendar-invalidation-channel.test.ts (3 tests)
+    - apps/web/app full Vitest suite (1768 tests)
+  reconciled_tests:
+    - SchedulerView > mounts and asks the revalidation coordinator for the current range
+    - SchedulerView > route-driven post detail modal > only revalidates against the latest range when navigation arrives mid-flight
+    - SchedulerView > refreshes calendar when CreatePostModal emits updated
+    - publishing.store.bulk > fetchCalendar keeps canonical in-memory activity and conflicts when an authenticated remote fails
+  static_analysis:
+    - biome check: passed
+    - type-check: passed
+    - app build: passed
+verify_summary:
+  status: applied_and_verified
+  commands_run:
+    - pnpm --filter app test:run (1768 passed, 0 failed)
+    - pnpm --filter app lint (passed)
+    - pnpm --filter app type-check (passed)
+    - pnpm --filter app build (passed)
+  e2e_status:
+    - apps/web/app/e2e/specs/scheduler-browser-sync.spec.ts created
+    - browser-sync e2e not executed in this environment (requires dev server)
+    - remaining scheduler Playwright lanes not run
+archive_summary:
+  status: archived
+  compliance_documentation:
+    - docs/compliance/data-inventory.md updated to schema 2.1
+    - docs/compliance/data-inventory.yaml updated to schema 2.1
+    - pt_publications boundary reconciled: authenticated calls no longer persist; anonymous fallback documented
+  specs_synced:
+    - openspec/specs/visual-calendar/spec.md (existing; no new requirement added)
+    - openspec/specs/publishing/spec.md (existing; no new requirement added)
+    - openspec/specs/privacy-compliance/spec.md (existing; pt_publications boundary reflected in cache/mode discussion)
+  deferred_followups:
+    - publication-calendar-sse (separate change, sse_scope: deferred)
+    - Backend optional expectedUpdatedAt edit guard (out of scope per proposal)
+    - Playwright two-tab acceptance scenarios: registered as automation-only; not run in this environment
+    - Live database, remote CI, and deployed behavior verification

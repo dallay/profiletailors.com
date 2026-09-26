@@ -14,12 +14,16 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -58,6 +62,7 @@ internal class CreatePublicationHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -115,7 +120,20 @@ internal class CreatePublicationHandler(
             publicationJobRepository.enqueue(newJobFor(created, now))
             created
         }
+        emitCreated(workspaceId, persisted)
         return persisted.toResult()
+    }
+
+    private fun emitCreated(workspaceId: String, persisted: PublicationDraft) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.CREATED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
     }
 
     /**

@@ -4,12 +4,14 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.publishBestEffort
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
@@ -19,6 +21,9 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.ProviderUploadException
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -50,6 +55,7 @@ class PublishingJobExecutor(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -248,6 +254,21 @@ class PublishingJobExecutor(
         }
     }
 
+    private fun emitStatusChanged(
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        now: Instant,
+    ) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = publication.workspaceId,
+                publicationId = publication.id,
+                socialAccountId = publication.socialAccountId,
+                occurredAt = now,
+            ),
+        )
+    }
+
     private suspend fun blockPublication(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -278,6 +299,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -317,6 +339,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.terminalFailure(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -376,6 +399,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -521,6 +545,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -583,6 +608,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -636,6 +662,7 @@ class PublishingJobExecutor(
             }
         }
         if (!applied) return
+        emitStatusChanged(publication, now)
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -735,6 +762,7 @@ class PublishingJobExecutor(
                 durationMs = attemptDurationMs(now),
             )
         } else {
+            emitStatusChanged(publication, now)
             lifecycleLogger.terminalFailure(
                 publicationId = publication.id,
                 jobId = claim.jobId,
@@ -820,6 +848,7 @@ class PublishingWorker(
     private val claimLease: Duration = Duration.parse("PT2M"),
     private val staleGrace: Duration = Duration.parse("PT5M"),
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -894,10 +923,26 @@ class PublishingWorker(
                 ),
             )
         }
+        emitStatusChanged(prepared, now)
         log.info(
             "Requeued BLOCKED publication {} for retry (attempt {})",
             publication.id,
             prepared.retryCount,
+        )
+    }
+
+    private fun emitStatusChanged(
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        now: Instant,
+    ) {
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = publication.workspaceId,
+                publicationId = publication.id,
+                socialAccountId = publication.socialAccountId,
+                occurredAt = now,
+            ),
         )
     }
 

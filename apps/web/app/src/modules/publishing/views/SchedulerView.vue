@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus,
@@ -7,6 +7,13 @@ import {
 } from '@lucide/vue'
 import { usePublishingStore, type Publication, type ActivityEntry, type RecurringSchedule } from '@modules/publishing/infrastructure/publishing.store'
 import { useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
+import { getCalendarRange } from '@modules/publishing/application/calendarRange'
+import { useReactiveClock } from '@modules/publishing/application/useReactiveClock'
+import { createCalendarInvalidationChannel } from '@modules/publishing/application/calendar-invalidation-channel'
+import { useCalendarRevalidation } from '@modules/publishing/application/useCalendarRevalidation'
+import { usePublicationEventReconnect } from '@modules/publishing/application/usePublicationEventReconnect'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
 import RecurringScheduleModal from '@modules/publishing/presentation/components/RecurringScheduleModal.vue'
@@ -21,6 +28,8 @@ import { getProviderColor } from '@shared/lib/provider-styles'
 import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
+const authStore = useAuthStore()
+const workspaceStore = useWorkspaceStore()
 const { locale: i18nLocale, t } = useI18n()
 
 
@@ -38,6 +47,70 @@ const currentBaseDate = computed(() => {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 })
 
+const currentRange = computed(() =>
+  getCalendarRange(
+    url.state.value.date,
+    calendarView.value,
+    url.state.value.timezone,
+  ),
+)
+
+const revalidation = useCalendarRevalidation({
+  fetchCalendar: ({ from, to }) =>
+    publishingStore.fetchCalendar(from, to, {
+      status: url.state.value.status === 'all' ? undefined : url.state.value.status,
+      socialAccountId: url.state.value.channelIds[0],
+      timezone: url.state.value.timezone,
+    }),
+})
+
+const clock = useReactiveClock({
+  onVisible: () => {
+    revalidation.setVisible(true)
+  },
+  onHidden: () => revalidation.setVisible(false),
+})
+const reconnect = usePublicationEventReconnect({
+  subscribe: (onInvalidation) =>
+    publishingStore.subscribePublicationEvents(onInvalidation),
+  unsubscribe: () => publishingStore.unsubscribePublicationEvents(),
+  isConnected: toRef(publishingStore, 'publicationEventsConnected'),
+  isAuthenticated: toRef(authStore, 'isAuthenticated'),
+  workspaceId: toRef(workspaceStore, 'activeWorkspaceId'),
+  onVisible: () => revalidation.setVisible(true),
+  onHidden: () => revalidation.setVisible(false),
+})
+
+let invalidationChannel: ReturnType<typeof createCalendarInvalidationChannel> | null = null
+const refreshFromInvalidation = (): void => {
+  revalidation.request(currentRange.value)
+}
+if (workspaceStore.activeWorkspaceId) {
+  invalidationChannel = createCalendarInvalidationChannel(
+    workspaceStore.activeWorkspaceId,
+    refreshFromInvalidation,
+  )
+}
+
+watch(
+  () => workspaceStore.activeWorkspaceId,
+  (workspaceId, previousWorkspaceId) => {
+    if (workspaceId === previousWorkspaceId) return
+    reconnect.stop()
+    invalidationChannel?.close()
+    invalidationChannel = workspaceId
+      ? createCalendarInvalidationChannel(workspaceId, refreshFromInvalidation)
+      : null
+  },
+)
+
+onUnmounted(() => {
+  clock.stop()
+  revalidation.stop()
+  reconnect.stop()
+  invalidationChannel?.close()
+})
+
 
 const isModalOpen = ref(false)
 const isBulkModalOpen = ref(false)
@@ -49,6 +122,18 @@ const recurringPublication = ref<Publication | null>(null)
 onMounted(() => {
   publishingStore.fetchRecurringSchedules().catch(() => undefined)
 })
+
+watch(
+  () => [authStore.isAuthenticated, workspaceStore.activeWorkspaceId] as const,
+  ([isAuthenticated, workspaceId]) => {
+    if (!isAuthenticated || !workspaceId) {
+      reconnect.stop()
+      return
+    }
+    reconnect.start()
+  },
+  { immediate: true },
+)
 
 async function toggleRecurringSchedule(schedule: RecurringSchedule): Promise<void> {
   try {
@@ -129,7 +214,6 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
   try {
     await publishingStore.reschedulePublication(pubId, newDateIso)
   } catch {
-    // Rollback is handled in the store; we just show feedback
     console.warn('Reschedule failed, rolled back')
   }
   dragData.value = null
@@ -468,27 +552,7 @@ async function handleEditPublication(publication: Publication) {
 async function handleUpdated() {
   isModalOpen.value = false
   editingPublication.value = null
-
-  const state = url.state.value
-  const baseDate = new Date(`${state.date}T00:00:00`)
-  const from =
-    state.surface === 'calendar-month'
-      ? new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
-      : new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() - baseDate.getDay())
-  const to =
-    state.surface === 'calendar-month'
-      ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-      // Week view: end is exclusive (backend uses `scheduled_for < :to`),
-      // so add 7 days to cover Sunday→Saturday fully including the last day.
-      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
-
-  try {
-    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-      status: state.status === 'all' ? undefined : state.status,
-      socialAccountId: state.channelIds[0],
-      timezone: state.timezone,
-    })
-  } catch {}
+  revalidation.request(currentRange.value)
 }
 
 function handleBulkScheduled(jobId: string) {
@@ -498,11 +562,12 @@ function handleBulkScheduled(jobId: string) {
 
 function onPostCreated(options: { keepOpen?: boolean } = {}) {
   if (!options.keepOpen) isModalOpen.value = false
+  revalidation.request(currentRange.value)
   toast.success(t('composer.scheduleSuccessToast'))
 }
 
 function onReschedule() {
-  // Store already updated by PostDetailModal; just close
+  revalidation.request(currentRange.value)
   closePostDetail().catch(() => undefined)
 }
 
@@ -527,38 +592,10 @@ watch(
   { immediate: true },
 )
 
-let latestFetchToken = 0
-
 watch(
   () => url.state.value,
   async (state) => {
-    const fetchToken = ++latestFetchToken
-    const baseDate = new Date(`${state.date}T00:00:00`)
-    const from =
-      state.surface === 'calendar-month'
-        ? new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
-        : new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() - baseDate.getDay())
-    const to =
-      state.surface === 'calendar-month'
-        ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-        // Week view: end is exclusive (backend uses `scheduled_for < :to`),
-        // so add 7 days to cover Sunday→Saturday fully including the last day.
-        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
-
-    try {
-      await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-        status: state.status === 'all' ? undefined : state.status,
-        socialAccountId: state.channelIds[0],
-        timezone: state.timezone,
-      })
-    } catch {
-      return
-    }
-
-    if (fetchToken !== latestFetchToken) {
-      return
-    }
-
+    revalidation.request(currentRange.value)
     if (state.postId && !filteredPublications.value.some((pub) => pub.id === state.postId)) {
       await closePostDetail({ replace: true })
     }

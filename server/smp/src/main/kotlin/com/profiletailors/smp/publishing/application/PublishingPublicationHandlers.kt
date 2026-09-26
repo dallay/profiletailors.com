@@ -14,6 +14,7 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -21,6 +22,9 @@ import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -52,6 +56,7 @@ internal class EditPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -99,6 +104,15 @@ internal class EditPublicationHandler(
                 publicationJobRepository.replaceForPublication(newJobFor(persisted, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.UPDATED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 
@@ -170,6 +184,7 @@ internal class DeletePublicationHandler(
         com.profiletailors.smp.publishing.domain.NoOpNotificationEventRepository,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
     override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -182,9 +197,9 @@ internal class DeletePublicationHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
-        val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
-        if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
         transactionRunner.runAtomically {
+            val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
+            if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
             recurringScheduleRepository.pauseByTemplatePost(workspaceId, current.id)
             notificationEventRepository.record(
                 com.profiletailors.smp.publishing.domain.NotificationEvent(
@@ -198,6 +213,15 @@ internal class DeletePublicationHandler(
                 ),
             )
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.DELETED,
+                workspaceId = workspaceId,
+                publicationId = current.id,
+                socialAccountId = current.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return current.toResult()
     }
 }
@@ -214,6 +238,7 @@ internal class CancelPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<CancelPublicationCommand, PublicationResult> {
     override suspend fun handle(command: CancelPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -232,6 +257,15 @@ internal class CancelPublicationHandler(
             publicationRepository.markCancelled(cancelled.id, cancelledAt)
             publicationJobRepository.cancel(cancelled.id, cancelledAt)
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = workspaceId,
+                publicationId = cancelled.id,
+                socialAccountId = cancelled.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return cancelled.toResult()
     }
 }
@@ -249,6 +283,7 @@ internal class RetryPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<RetryPublicationCommand, PublicationResult> {
     override suspend fun handle(command: RetryPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -278,6 +313,15 @@ internal class RetryPublicationHandler(
                 publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 }
@@ -295,6 +339,7 @@ internal class ReschedulePublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<ReschedulePublicationCommand, PublicationResult> {
     override suspend fun handle(command: ReschedulePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -332,6 +377,15 @@ internal class ReschedulePublicationHandler(
                 publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.RESCHEDULED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 }

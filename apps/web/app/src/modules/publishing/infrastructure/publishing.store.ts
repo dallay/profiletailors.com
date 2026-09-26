@@ -5,6 +5,7 @@ import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type { Channel } from '@modules/publishing/domain/channel'
+import { createCalendarInvalidationChannel } from '@modules/publishing/application/calendar-invalidation-channel'
 
 export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 export type { Channel } from '@modules/publishing/domain/channel'
@@ -67,6 +68,7 @@ export type Publication = {
   publicUrl?: string
   /** Wall-clock instant the provider confirmed publish. */
   publishedAt?: string
+  updatedAt?: string | null
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
   /** Provider or domain error code explaining a FAILED publication. */
@@ -137,6 +139,7 @@ export type CalendarPublicationResult = {
   publicUrl?: string | null
   publishedAt?: string | null
   previewUrl?: string | null
+  updatedAt?: string | null
   blockedReason?: string | null
   errorCode?: string | null
 }
@@ -174,6 +177,7 @@ type PublicationMutationResult = {
   externalPublicationId?: string | null
   publicUrl?: string | null
   publishedAt?: string | null
+  updatedAt?: string | null
 }
 
 export type ConnectedSocialChannelSummary = {
@@ -207,6 +211,51 @@ export type CalendarFilters = {
   status?: string
   socialAccountId?: string
   timezone?: string
+}
+
+export type PublicationInvalidation = {
+  workspaceId: string
+  publicationId: string
+  socialAccountId?: string
+  changeType: string
+  occurredAt: string
+}
+
+const PUBLICATION_INVALIDATION_TYPES = new Set([
+  'publication.created',
+  'publication.updated',
+  'publication.rescheduled',
+  'publication.deleted',
+  'publication.status-changed',
+])
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
+function toPublicationInvalidation(data: unknown): PublicationInvalidation | null {
+  if (!data || typeof data !== 'object') return null
+  const record = data as Record<string, unknown>
+  if (!isNonEmptyString(record.workspaceId)) return null
+  if (!isNonEmptyString(record.publicationId)) return null
+  if (!isNonEmptyString(record.occurredAt)) return null
+  if (
+    typeof record.changeType !== 'string' ||
+    !PUBLICATION_INVALIDATION_TYPES.has(record.changeType)
+  ) {
+    return null
+  }
+  if (record.socialAccountId !== undefined && typeof record.socialAccountId !== 'string')
+    return null
+  return {
+    workspaceId: record.workspaceId,
+    publicationId: record.publicationId,
+    ...(typeof record.socialAccountId === 'string'
+      ? { socialAccountId: record.socialAccountId }
+      : {}),
+    changeType: record.changeType,
+    occurredAt: record.occurredAt,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -337,6 +386,7 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     externalPublicationId: api.externalPublicationId ?? undefined,
     publicUrl: api.publicUrl ?? undefined,
     publishedAt: api.publishedAt ?? undefined,
+    updatedAt: api.updatedAt ?? null,
     blockedReason: api.blockedReason ?? undefined,
     errorCode: api.errorCode ?? undefined,
     thumbnail: api.previewUrl ? resolveApiUrl(api.previewUrl) : undefined,
@@ -364,6 +414,7 @@ function publicationMutationResultToPublication(
     externalPublicationId: result.externalPublicationId ?? undefined,
     publicUrl: result.publicUrl ?? undefined,
     publishedAt: result.publishedAt ?? undefined,
+    updatedAt: result.updatedAt ?? current.updatedAt ?? null,
     blockedReason: undefined,
     errorCode: undefined,
   }
@@ -411,6 +462,8 @@ export const usePublishingStore = defineStore('publishing', () => {
   const channelsError = ref<string | null>(null)
   const channelEventsConnected = ref(false)
   const channelEventsAbortController = ref<AbortController | null>(null)
+  const publicationEventsConnected = ref(false)
+  const publicationEventsAbortController = ref<AbortController | null>(null)
   const latestChannelsFetchId = ref(0)
 
   // Monotonic counter that tracks the most recent in-flight fetchCalendar call.
@@ -418,6 +471,26 @@ export const usePublishingStore = defineStore('publishing', () => {
   // writing to publications/activity/conflicts, so overlapping requests (e.g.
   // rapid watcher firings when URL state changes) cannot clobber newer data.
   const latestCalendarFetchId = ref(0)
+  let invalidationChannel: ReturnType<typeof createCalendarInvalidationChannel> | null = null
+  let invalidationWorkspaceId: string | null = null
+
+  function emitCalendarInvalidation(
+    publicationId: string | undefined,
+    reason: 'created' | 'updated' | 'deleted' | 'rescheduled' | 'cancelled',
+  ): void {
+    const workspaceId = workspace.activeWorkspaceId
+    if (!auth.isAuthenticated || !workspaceId) return
+    if (invalidationWorkspaceId !== workspaceId) {
+      invalidationChannel?.close()
+      invalidationChannel = createCalendarInvalidationChannel(workspaceId)
+      invalidationWorkspaceId = workspaceId
+    }
+    invalidationChannel?.publish({
+      workspaceId,
+      ...(publicationId ? { publicationId } : {}),
+      reason,
+    })
+  }
 
   const providerCatalog = ref<ProviderCatalogItem[]>([])
   const providerCatalogError = ref<string | null>(null)
@@ -463,16 +536,19 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Track object URLs for memory cleanup
   const objectUrls = new Map<string, string>()
 
-  // Load from localStorage or seed
-  const stored = readStoredPublications()
-  if (stored) {
-    try {
-      publications.value = JSON.parse(stored)
-    } catch {
+  if (!auth.isAuthenticated) {
+    const stored = readStoredPublications()
+    if (stored) {
+      try {
+        publications.value = JSON.parse(stored)
+      } catch {
+        publications.value = initialPublications
+      }
+    } else {
       publications.value = initialPublications
     }
   } else {
-    publications.value = initialPublications
+    publications.value = []
   }
 
   // Activity & conflicts from calendar API
@@ -514,7 +590,7 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Save changes helper
   function saveToStorage(): void {
-    if (typeof localStorage === 'undefined') return
+    if (auth.isAuthenticated || typeof localStorage === 'undefined') return
     localStorage.setItem('pt_publications', JSON.stringify(publications.value))
   }
 
@@ -754,6 +830,52 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelEventsConnected.value = false
   }
 
+  async function subscribePublicationEvents(
+    onInvalidation: (event: PublicationInvalidation) => void,
+  ): Promise<null> {
+    if (!auth.isAuthenticated) {
+      publicationEventsConnected.value = false
+      return null
+    }
+
+    unsubscribePublicationEvents()
+    const abortController = new AbortController()
+    publicationEventsAbortController.value = abortController
+
+    try {
+      const response = await auth.apiFetchRaw('/api/publishing/publications/events', {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
+        workspaceScoped: true,
+        signal: abortController.signal,
+      })
+      publicationEventsConnected.value = true
+      await consumeSseStream<unknown>(response, async ({ data }) => {
+        const invalidation = toPublicationInvalidation(data)
+        if (!invalidation) return
+        if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
+        onInvalidation(invalidation)
+      })
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        console.warn('Publication event stream unavailable; continuing with REST calendar.', err)
+      }
+    } finally {
+      if (publicationEventsAbortController.value === abortController) {
+        publicationEventsAbortController.value = null
+      }
+      publicationEventsConnected.value = false
+    }
+
+    return null
+  }
+
+  function unsubscribePublicationEvents(): void {
+    publicationEventsAbortController.value?.abort()
+    publicationEventsAbortController.value = null
+    publicationEventsConnected.value = false
+  }
+
   // -----------------------------------------------------------------------
   // Actions — Calendar API
   // -----------------------------------------------------------------------
@@ -777,10 +899,11 @@ export const usePublishingStore = defineStore('publishing', () => {
         await applyRemoteCalendar(fetchId, params)
         return
       } catch (err) {
-        console.warn('Calendar API unavailable, falling back to local data', err)
+        console.warn('Calendar API unavailable', err)
       }
     }
 
+    if (auth.isAuthenticated) return
     if (isStaleFetch(fetchId)) return
     applyLocalCalendarFallback()
   }
@@ -811,6 +934,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   function applyLocalCalendarFallback(): void {
+    if (auth.isAuthenticated) return
     publications.value = applyLocalFilters(publications.value)
     activity.value = []
     conflicts.value = []
@@ -873,6 +997,7 @@ export const usePublishingStore = defineStore('publishing', () => {
 
     publications.value.unshift(newPub)
     saveToStorage()
+    emitCalendarInvalidation(newPub.id, 'created')
     return newPub
   }
 
@@ -908,6 +1033,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         const updatedIdx = publications.value.findIndex((p) => p.id === id)
         const updated = publications.value[updatedIdx]
         if (!updated) throw new Error(`Publication ${id} not found after reschedule`)
+        emitCalendarInvalidation(id, 'rescheduled')
         return updated
       } catch (err) {
         // Rollback
@@ -956,6 +1082,7 @@ export const usePublishingStore = defineStore('publishing', () => {
           publications.value[updatedIdx] = updated
         }
         saveToStorage()
+        emitCalendarInvalidation(id, 'updated')
         return updated
       } catch (err) {
         const rollbackIdx = publications.value.findIndex((p) => p.id === id)
@@ -1105,6 +1232,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       objectUrls.set(persistedPub.id, persistedPub.thumbnail)
     }
     saveToStorage()
+    emitCalendarInvalidation(persistedPub.id, 'created')
     return persistedPub
   }
 
@@ -1160,6 +1288,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
+    emitCalendarInvalidation(id, 'deleted')
   }
 
   function cancelPost(id: string): void {
@@ -1167,6 +1296,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     if (post) {
       post.status = 'CANCELLED'
       saveToStorage()
+      emitCalendarInvalidation(id, 'cancelled')
     }
   }
 
@@ -1225,6 +1355,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       })
       publications.value[publications.value.indexOf(current)] = merged
       saveToStorage()
+      emitCalendarInvalidation(id, 'updated')
       return merged
     }
 
@@ -1232,6 +1363,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     const updated = { ...current, ...updates }
     publications.value[publications.value.indexOf(current)] = updated
     saveToStorage()
+    emitCalendarInvalidation(id, 'updated')
     return updated
   }
 
@@ -1261,6 +1393,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelsError,
     channelEventsConnected,
     channelEventsAbortController,
+    publicationEventsConnected,
+    publicationEventsAbortController,
     providerCatalog,
     providerCatalogError,
     publications,
@@ -1297,6 +1431,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,
     unsubscribeChannelEvents,
+    subscribePublicationEvents,
+    unsubscribePublicationEvents,
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,

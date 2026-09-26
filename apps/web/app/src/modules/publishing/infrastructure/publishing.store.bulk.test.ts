@@ -212,7 +212,7 @@ describe('publishing store bulk', () => {
     expect(url).toContain('socialAccountId=acc-1')
   })
 
-  it('fetchCalendar falls back to local filtered data when remote fails', async () => {
+  it('fetchCalendar keeps canonical in-memory activity and conflicts when an authenticated remote fails', async () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
@@ -233,8 +233,10 @@ describe('publishing store bulk', () => {
       { publicationId: 'local-1', conflictingPublicationIds: [], reason: 'x' },
     ] as never
     await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
-    expect(store.activity).toEqual([])
-    expect(store.conflicts).toEqual([])
+    expect(store.activity).toEqual([{ date: '2026-06-10', density: 'HIGH', count: 3 }])
+    expect(store.conflicts).toEqual([
+      { publicationId: 'local-1', conflictingPublicationIds: [], reason: 'x' },
+    ])
   })
 
   it('initial publications loads from localStorage when valid JSON present', () => {
