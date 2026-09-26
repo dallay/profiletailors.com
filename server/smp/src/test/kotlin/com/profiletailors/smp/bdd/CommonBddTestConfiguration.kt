@@ -13,6 +13,11 @@ import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInCapabilityValidator
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsCapabilityValidator
 import io.cucumber.spring.CucumberTestContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.test.context.TestConfiguration
@@ -26,6 +31,19 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import reactor.core.publisher.Mono
 import java.time.Instant
+
+private class BddProviderCapabilityValidator : ProviderCapabilityValidator {
+    private val validators = mapOf(
+        SocialProvider.LINKEDIN to LinkedInCapabilityValidator(),
+        SocialProvider.THREADS to ThreadsCapabilityValidator(),
+    )
+
+    override fun validate(input: ProviderCapabilityValidationInput) {
+        requireNotNull(validators[input.provider]) {
+            "No BDD capability validator is registered for ${input.provider}."
+        }.validate(input)
+    }
+}
 
 private val BDD_USER_TOKEN_PREFIXES = setOf(
     "e2e-",
@@ -192,6 +210,10 @@ class CommonBddTestConfiguration {
         ): MediaRateLimitRepository.RateLimitIncrementResult =
             MediaRateLimitRepository.RateLimitIncrementResult(1, true)
     }
+
+    @Bean("bddProviderCapabilityValidator")
+    @Primary
+    fun bddProviderCapabilityValidator(): ProviderCapabilityValidator = BddProviderCapabilityValidator()
 
     @Bean
     @Primary

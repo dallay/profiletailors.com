@@ -15,10 +15,12 @@ import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
+import com.profiletailors.smp.publishing.domain.ProviderPublishingRegistry
 import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationEvent
@@ -56,6 +58,8 @@ class PublishingJobExecutor(
     private val clock: Clock,
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
     private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
+    private val providerPublishingRegistry: ProviderPublishingRegistry? = null,
+    private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -459,14 +463,13 @@ class PublishingJobExecutor(
         )
     }
 
-    private suspend fun validateAndPublish(
-        claim: PublicationJobClaim,
+    private fun validateCapabilities(
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount,
         assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
-        now: Instant,
     ) {
-        providerCapabilityValidator.validate(
+        val validator = providerCapabilityRegistry?.validator(socialAccount.provider) ?: providerCapabilityValidator
+        validator.validate(
             ProviderCapabilityValidationInput(
                 provider = socialAccount.provider,
                 socialAccount = socialAccount,
@@ -474,6 +477,16 @@ class PublishingJobExecutor(
                 assets = assets,
             ),
         )
+    }
+
+    private suspend fun validateAndPublish(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount,
+        assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
+        now: Instant,
+    ) {
+        validateCapabilities(publication, socialAccount, assets)
         val operationKey = claim.operationKey
         val existingAttempt = deliveryAttemptRepository.findByOperationKey(operationKey)
         if (existingAttempt != null) {
@@ -488,7 +501,8 @@ class PublishingJobExecutor(
         }
         val startedAttempt = startDeliveryAttempt(claim, publication, operationKey, now)
         val providerOutcome = invokeProvider(
-            ProviderPublishCommand(
+            provider = providerPublishingRegistry?.publisher(socialAccount.provider) ?: socialPublisher,
+            command = ProviderPublishCommand(
                 publicationId = publication.id,
                 workspaceId = publication.workspaceId,
                 socialAccount = socialAccount,
@@ -507,13 +521,24 @@ class PublishingJobExecutor(
                 throw providerException
             }
             if (providerException is ProviderTransportUncertaintyException) {
-                handleAmbiguousOutcome(claim, publication, startedAttempt, now)
+                handleAmbiguousOutcome(
+                    claim,
+                    publication,
+                    startedAttempt.copy(providerOperationRef = providerException.providerOperationRef),
+                    now,
+                )
                 return
             }
             throw providerException
         }
         val result = requireNotNull(providerOutcome.getOrNull())
-        finalizeSuccessfulPublication(claim, publication, startedAttempt, result, now)
+        finalizeSuccessfulPublication(
+            claim,
+            publication,
+            startedAttempt.copy(providerOperationRef = result.providerOperationRef),
+            result,
+            now,
+        )
     }
 
     private suspend fun startDeliveryAttempt(
@@ -534,8 +559,11 @@ class PublishingJobExecutor(
         phase = DeliveryAttemptPhase.PROVIDER_CREATE,
     ).also { deliveryAttemptRepository.record(it) }
 
-    private suspend fun invokeProvider(command: ProviderPublishCommand): Result<ProviderPublishResult> = try {
-        Result.success(socialPublisher.publish(command))
+    private suspend fun invokeProvider(
+        provider: SocialPublisher,
+        command: ProviderPublishCommand,
+    ): Result<ProviderPublishResult> = try {
+        Result.success(provider.publish(command))
     } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
         Result.failure(exception)
     }
@@ -563,6 +591,7 @@ class PublishingJobExecutor(
                             outcome = DeliveryAttemptOutcome.SUCCEEDED,
                             providerMessage = sanitizeDiagnostic(result.providerMessage),
                             externalPublicationId = result.externalPublicationId,
+                            providerOperationRef = result.providerOperationRef,
                             phase = DeliveryAttemptPhase.FINALIZATION,
                         ),
                     ),
@@ -667,7 +696,7 @@ class PublishingJobExecutor(
         val ambiguousAttempt = existingAttempt.copy(
             outcome = DeliveryAttemptOutcome.AMBIGUOUS,
             retryable = false,
-            providerMessage = null,
+            providerMessage = existingAttempt.providerMessage,
             providerErrorCode = PublishingFailureCategory.AMBIGUOUS_OUTCOME.code,
             attemptedAt = now,
             claimVersion = claim.claimVersion,

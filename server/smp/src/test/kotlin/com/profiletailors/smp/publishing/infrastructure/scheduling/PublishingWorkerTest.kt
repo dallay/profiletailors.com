@@ -1634,6 +1634,8 @@ class PublishingWorkerTest {
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account
         override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> = listOf(account)
+
+        override suspend fun deleteByConnectionId(connectionId: String) = Unit
     }
 
     private class InMemoryMediaAssetResolver(private val assets: List<ResolvedAssetSummary>) : MediaAssetResolver {

@@ -63,7 +63,23 @@ describe('SidebarChannelRow', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('@')
+    expect(wrapper.find('[data-testid="provider-icon-threads"]').exists()).toBe(true)
+  })
+
+  it('announces when a connected account needs reconnecting', () => {
+    const wrapper = mount(SidebarChannelRow, {
+      props: {
+        channel: makeChannel({
+          provider: 'threads' as Channel['provider'],
+          status: 'REQUIRES_RECONNECT',
+        }),
+        isActive: false,
+        queuedCount: 0,
+      },
+    })
+
+    expect(wrapper.get('button').attributes('aria-label')).toContain('Needs reconnect')
+    expect(wrapper.text()).toContain('Needs reconnect')
   })
 
   it('swaps to the fallback badge and emits avatarError on img @error', async () => {

@@ -38,6 +38,7 @@ import InstallPrompt from '@/pwa/InstallPrompt.vue'
 import { VersionBadge } from '@profiletailors/vue-ui'
 import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'vue-sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'
 import CookieSettings from '@/components/consent/CookieSettings.vue'
 import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts'
@@ -62,6 +63,7 @@ const pageTitle = computed(() => {
     return t(`nav.${name}`)
   }
   if (name === 'linkedin-callback') return 'LinkedIn'
+  if (name === 'provider-callback') return String(route.params.provider ?? 'Provider')
   return String(name ?? '')
 })
 
@@ -192,17 +194,22 @@ function selectWorkspace(ws: { workspaceId: string }) {
 }
 
 async function handleConnectProvider(provider: ProviderCatalogItem) {
+  if (provider.state !== 'AVAILABLE') return
+
+  const action = getProviderPresentation(provider.provider).action
   if (
-    provider.state !== 'AVAILABLE' ||
-    getProviderPresentation(provider.provider).action !== PROVIDER_ACTIONS.CONNECT_LINKEDIN_PERSONAL_PROFILE
+    action !== PROVIDER_ACTIONS.CONNECT_LINKEDIN_PERSONAL_PROFILE &&
+    action !== PROVIDER_ACTIONS.CONNECT_THREADS_PERSONAL_PROFILE
   ) {
     return
   }
 
   try {
-    await publishingStore.connectLinkedInPersonalProfile()
-  } catch (err) {
-    console.error('Failed to connect LinkedIn', err)
+    await publishingStore.connectProviderPersonalProfile(
+      provider.provider === 'threads' ? 'threads' : 'linkedin',
+    )
+  } catch {
+    toast.error(t('channels.connectionFailed'))
   }
 }
 
