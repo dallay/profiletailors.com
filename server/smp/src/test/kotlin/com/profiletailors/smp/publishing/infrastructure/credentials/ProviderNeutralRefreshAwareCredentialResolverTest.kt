@@ -1,18 +1,25 @@
 package com.profiletailors.smp.publishing.infrastructure.credentials
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties
+import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
@@ -62,6 +69,55 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         assertEquals("threads-access-token", resolver.resolve(account))
     }
 
+    @Test
+    fun `should refresh Threads with its access token when inside the configured refresh window`() = runTest {
+        val now = Instant.parse("2026-09-26T12:00:00Z")
+        val id = UUID.randomUUID()
+        val gateway = FakeProviderCredentialGateway(
+            id,
+            ProviderCredentials(
+                SocialProvider.THREADS,
+                "long-lived-token",
+                null,
+                now.plusSeconds(1800).epochSecond,
+                scope = "threads_basic",
+            ),
+        )
+        val account = SocialAccount(
+            "account", "connection", "workspace", SocialProvider.THREADS, "threads-user",
+            SocialAccountKind.PERSONAL_PROFILE, "User", status = SocialConnectionStatus.ACTIVE,
+        )
+        val repository = mockk<SocialConnectionRepository>()
+        coEvery { repository.findByWorkspaceAndId("workspace", "connection") } returns SocialConnection(
+            "connection", "workspace", SocialProvider.THREADS, "threads-user", SocialConnectionStatus.ACTIVE,
+            id.toString(),
+        )
+        val requests = mutableListOf<HttpRequest>()
+        val resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = gateway,
+            socialConnectionRepository = repository,
+            httpTransport = ProviderHttpTransport { request ->
+                requests += request
+                ProviderHttpResponse(200, HttpHeaders.of(emptyMap()) { _, _ -> true },
+                    """{"access_token":"renewed-token","expires_in":5184000}""")
+            },
+            objectMapper = ObjectMapper(),
+            clock = Clock.fixed(now, ZoneOffset.UTC),
+            threadsProperties = ThreadsPublishingProperties(
+                apiBaseUrl = "https://threads.example.test",
+                refreshAhead = Duration.ofHours(1),
+            ),
+        )
+
+        resolver.resolve(account) shouldBe "renewed-token"
+        requests.single().method() shouldBe "GET"
+        requests.single().uri().toString() shouldBe
+            "https://threads.example.test/refresh_access_token?grant_type=th_refresh_token&access_token=long-lived-token"
+        gateway.resolveCredential(id).refreshToken shouldBe null
+        resolver.resolve(account) shouldBe "renewed-token"
+        requests.size shouldBe 1
+    }
+
     private class FakeProviderCredentialGateway(private val id: UUID, private var credentials: ProviderCredentials) :
         ProviderCredentialGateway {
         override suspend fun storeForOwner(ownerType: String, ownerId: UUID, credentials: ProviderCredentials): UUID {
@@ -79,6 +135,8 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
 
     private class FakeSocialConnectionRepository(private val connection: SocialConnection) :
         SocialConnectionRepository {
+        override suspend fun existsByCredentialReference(credentialReference: String): Boolean = false
+
         override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
@@ -87,7 +145,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) = Unit
     }
 
-    private object NoopHttpTransport : LinkedInHttpTransport {
-        override suspend fun send(request: HttpRequest): LinkedInHttpResponse = error("No refresh request expected")
+    private object NoopHttpTransport : ProviderHttpTransport {
+        override suspend fun send(request: HttpRequest): ProviderHttpResponse = error("No refresh request expected")
     }
 }

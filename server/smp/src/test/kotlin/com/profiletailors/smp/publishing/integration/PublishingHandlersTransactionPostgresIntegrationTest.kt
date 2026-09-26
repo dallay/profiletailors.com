@@ -19,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
@@ -678,6 +679,8 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
     private class FixedOAuthStateSigner : OAuthStateSigner {
         override fun sign(payload: LinkedInOAuthStatePayload): String = "state-193"
+
+        override suspend fun consume(payload: OAuthStatePayload) = Unit
 
         override fun verify(state: String): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
             provider = SocialProvider.LINKEDIN,

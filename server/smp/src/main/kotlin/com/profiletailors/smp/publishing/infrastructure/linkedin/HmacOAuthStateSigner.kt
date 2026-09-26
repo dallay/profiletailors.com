@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.OAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateReplayStore
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.nio.charset.StandardCharsets
@@ -11,7 +12,6 @@ import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
 import java.util.Base64
-import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -23,8 +23,8 @@ class HmacOAuthStateSigner(
     private val secret: String,
     private val objectMapper: ObjectMapper,
     private val clock: Clock,
+    private val replayStore: OAuthStateReplayStore,
 ) : OAuthStateSigner {
-    private val consumedStates = ConcurrentHashMap.newKeySet<String>()
     init {
         require(secret.isNotBlank()) { "OAuth state signing secret is required." }
         require(INSECURE_PLACEHOLDER_PREFIXES.none { secret.startsWith(it, ignoreCase = true) }) {
@@ -58,10 +58,14 @@ class HmacOAuthStateSigner(
         if (!payload.expiresAt.isAfter(clock.instant())) {
             throw ExpiredOAuthStateException()
         }
-        if (!consumedStates.add(state)) {
+        return payload
+    }
+
+    override suspend fun consume(payload: OAuthStatePayload) {
+        if (!payload.expiresAt.isAfter(clock.instant())) throw ExpiredOAuthStateException()
+        if (!replayStore.consume(payload.nonce, payload.expiresAt)) {
             throw InvalidOAuthStateException("OAuth state has already been consumed.")
         }
-        return payload
     }
 
     private fun signEncodedPayload(encodedPayload: String): String {

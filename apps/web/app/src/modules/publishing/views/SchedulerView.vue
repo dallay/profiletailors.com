@@ -17,6 +17,7 @@ import ConflictBadge from '@modules/publishing/presentation/components/ConflictB
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { getProviderPresentation } from '@shared/lib/provider-presentation'
 import { getProviderColor } from '@shared/lib/provider-styles'
 import { toast } from 'vue-sonner'
 
@@ -93,6 +94,10 @@ function onDragEnd(e: DragEvent) {
   dragData.value = null
 }
 
+const reconnectableChannels = computed(() => publishingStore.reconnectRequiredChannels.filter(
+  (channel) => channel.provider === 'linkedin' || channel.provider === 'threads',
+))
+
 async function reconnectProvider(provider: string): Promise<void> {
   if (provider !== 'linkedin' && provider !== 'threads') return
   try {
@@ -103,7 +108,7 @@ async function reconnectProvider(provider: string): Promise<void> {
 }
 
 async function handleReconnect(): Promise<void> {
-  const provider = publishingStore.reconnectRequiredChannels[0]?.provider
+  const provider = reconnectableChannels.value[0]?.provider
   if (provider) await reconnectProvider(provider)
 }
 
@@ -598,21 +603,21 @@ watch(
       aria-live="polite"
     >
       <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
-        Reconnect Required
+        {{ t('scheduler.reconnectRequired') }}
       </span>
       <span class="text-xs text-text-secondary">
-        {{ publishingStore.reconnectRequiredChannels.map((channel) => channel.provider === 'threads' ? 'Threads' : 'LinkedIn').join(', ') }} accounts need re-authentication to resume publishing.
+        {{ t('scheduler.reconnectNotice', { providers: publishingStore.reconnectRequiredChannels.map((channel) => getProviderPresentation(channel.provider).label).join(', ') }) }}
       </span>
       <div class="ml-auto flex gap-2">
         <Button
-          v-for="channel in publishingStore.reconnectRequiredChannels"
+          v-for="channel in reconnectableChannels"
           :key="channel.id"
           :data-testid="`reconnect-provider-${channel.provider}`"
-          :aria-label="`Reconnect ${channel.provider === 'threads' ? 'Threads' : 'LinkedIn'} account`"
+          :aria-label="t('scheduler.reconnectAccount', { provider: getProviderPresentation(channel.provider).label })"
           @click="reconnectProvider(channel.provider)"
           class="gap-1.5 text-[10px] uppercase font-mono tracking-wider bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20"
         >
-          Reconnect {{ channel.provider === 'threads' ? 'Threads' : 'LinkedIn' }}
+          {{ t('scheduler.reconnectProvider', { provider: getProviderPresentation(channel.provider).label }) }}
         </Button>
       </div>
     </div>

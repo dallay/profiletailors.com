@@ -23,7 +23,7 @@ onMounted(() => {
         </div>
 
         <CardTitle class="text-2xl font-light tracking-tight text-text-display">
-          {{ status === 'success' ? `${providerLabel} connected` : status === 'error' ? `${providerLabel} connection failed` : `Connecting ${providerLabel}` }}
+          {{ $t(status === 'success' ? 'providerCallback.titleSuccess' : status === 'error' ? 'providerCallback.titleError' : 'providerCallback.titleConnecting', { provider: providerLabel }) }}
         </CardTitle>
       </CardHeader>
 

@@ -7,9 +7,10 @@ import com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
-import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -24,11 +25,12 @@ import java.util.UUID
 class RefreshAwareCredentialResolverImpl @Autowired constructor(
     private val credentialGateway: ProviderCredentialGateway,
     private val socialConnectionRepository: SocialConnectionRepository,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val objectMapper: ObjectMapper,
     private val clock: Clock,
     private val linkedInProperties: LinkedInPublishingProperties? = null,
     private val legacyLinkedInCredentialGateway: LinkedInCredentialGateway? = null,
+    private val threadsProperties: ThreadsPublishingProperties = ThreadsPublishingProperties(),
 ) : RefreshAwareCredentialResolver {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -36,7 +38,7 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
         credentialGateway: LinkedInCredentialGateway,
         socialConnectionRepository: SocialConnectionRepository,
         properties: LinkedInPublishingProperties,
-        httpTransport: LinkedInHttpTransport,
+        httpTransport: ProviderHttpTransport,
         objectMapper: ObjectMapper,
         clock: Clock,
     ) : this(
@@ -60,17 +62,26 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
         val credentials = resolveCredentials(account.provider, credentialId)
         val nowEpoch = clock.instant().epochSecond
         val expiresAt = credentials.expiresAtEpochSeconds
-        if (expiresAt == null || nowEpoch < expiresAt - REFRESH_AHEAD_SECONDS) {
+        val refreshAhead = refreshAheadSeconds(account.provider)
+        if (expiresAt == null || nowEpoch < expiresAt - refreshAhead) {
             return credentials.accessToken
         }
-        val refreshToken = credentials.refreshToken
+        val refreshToken = if (account.provider == SocialProvider.THREADS) {
+            credentials.accessToken
+        } else {
+            credentials.refreshToken
+        }
         if (refreshToken.isNullOrBlank()) {
             throw ReconnectRequiredException(
                 "No refresh token is available for ${account.provider} account.",
                 ReconnectReason.REFRESH_UNAVAILABLE,
             )
         }
-        val refreshExpiresAt = credentials.refreshTokenExpiresAtEpochSeconds
+        val refreshExpiresAt = if (account.provider == SocialProvider.THREADS) {
+            credentials.expiresAtEpochSeconds
+        } else {
+            credentials.refreshTokenExpiresAtEpochSeconds
+        }
         if (refreshExpiresAt != null && nowEpoch >= refreshExpiresAt) {
             throw ReconnectRequiredException(
                 "${account.provider} refresh token has expired.",
@@ -85,7 +96,11 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
         val updated = credentials.copy(
             accessToken = refreshed.accessToken,
             expiresAtEpochSeconds = refreshed.expiresAtEpochSeconds,
-            refreshToken = refreshed.refreshToken ?: refreshToken,
+            refreshToken = if (account.provider == SocialProvider.THREADS) {
+                null
+            } else {
+                refreshed.refreshToken ?: refreshToken
+            },
             refreshTokenExpiresAtEpochSeconds = refreshed.refreshTokenExpiresAtEpochSeconds
                 ?: credentials.refreshTokenExpiresAtEpochSeconds,
             lastRefreshAttemptAtEpochSeconds = nowEpoch,
@@ -93,6 +108,12 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
         )
         storeCredentials(account.provider, credentialId, updated)
         return updated.accessToken
+    }
+
+    private fun refreshAheadSeconds(provider: SocialProvider): Long = if (provider == SocialProvider.THREADS) {
+        threadsProperties.refreshAhead.seconds
+    } else {
+        REFRESH_AHEAD_SECONDS
     }
 
     private suspend fun resolveCredentials(provider: SocialProvider, id: UUID): ProviderCredentials {
@@ -171,15 +192,17 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
                 "access_token" to refreshToken,
             )
         }
-        return HttpRequest.newBuilder(URI.create(refreshEndpoint(provider)))
+        if (provider == SocialProvider.THREADS) {
+            return HttpRequest.newBuilder(
+                URI.create(
+                    "${threadsProperties.apiBaseUrl}/refresh_access_token?${formUrlEncoded(*parts.toTypedArray())}",
+                ),
+            ).GET().build()
+        }
+        return HttpRequest.newBuilder(URI.create(requireNotNull(linkedInProperties).tokenBaseUrl))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(formUrlEncoded(*parts.toTypedArray())))
             .build()
-    }
-
-    private fun refreshEndpoint(provider: SocialProvider): String = when (provider) {
-        SocialProvider.LINKEDIN -> requireNotNull(linkedInProperties).tokenBaseUrl
-        SocialProvider.THREADS -> "https://graph.threads.net/v1.0/refresh_access_token"
     }
 
     private data class RefreshResult(

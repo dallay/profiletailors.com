@@ -29,4 +29,4 @@ Integrate Meta Threads as the second first-class social publishing provider with
 
 ## Status
 
-Working: OpenSpec initialization and exploration.
+Working: Apply phase. Units 1–3 are complete; Unit 4 frontend callback and provider presentation work is partial. BDD, E2E, operations, documentation, and broader Unit 4 verification remain outstanding.

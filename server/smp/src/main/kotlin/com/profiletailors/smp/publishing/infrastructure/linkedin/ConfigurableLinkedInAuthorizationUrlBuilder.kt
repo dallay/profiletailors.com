@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.linkedin
 
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
 
 class ConfigurableLinkedInAuthorizationUrlBuilder(private val properties: LinkedInPublishingProperties) :
     LinkedInAuthorizationUrlBuilder {

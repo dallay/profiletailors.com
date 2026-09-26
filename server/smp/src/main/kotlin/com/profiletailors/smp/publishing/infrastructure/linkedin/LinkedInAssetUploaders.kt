@@ -10,6 +10,7 @@ import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import com.profiletailors.storage.domain.Storage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -58,7 +59,7 @@ class RealLinkedInAssetUploader(
     private val properties: LinkedInPublishingProperties,
     private val assetUploadProperties: LinkedInAssetUploadProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val storage: Storage?,
     private val assetRepository: PublicationAssetRepository,
 ) : AssetUploader {

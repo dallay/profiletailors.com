@@ -213,6 +213,8 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
     }
 
     private class InMemoryConnectionRepository(private val connection: SocialConnection) : SocialConnectionRepository {
+        override suspend fun existsByCredentialReference(credentialReference: String): Boolean = false
+
         override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
             connection.takeIf { it.workspaceId == workspaceId && it.id == connectionId }

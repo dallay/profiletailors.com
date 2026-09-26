@@ -1,4 +1,10 @@
 export default {
+  reconnectRequired: 'Reconexión necesaria',
+  reconnectNotice:
+    'Las cuentas de {providers} necesitan autenticarse de nuevo para reanudar la publicación.',
+  reconnectAccount: 'Reconectar cuenta de {provider}',
+  reconnectProvider: 'Reconectar {provider}',
+
   subtitle: 'Gestiona tu pipeline de contenido en una vista de calendario estructurada.',
   mon: 'LUN',
   tue: 'MAR',

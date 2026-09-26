@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.credentials
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -149,6 +150,20 @@ class ProviderCredentialGatewayPostgresTest : PostgresDatabaseTestBase() {
         assertEquals(2L, count)
         assertEquals(refreshed, gateway.resolveCredential(firstId))
         assertEquals(linkedin, gateway.resolveCredential(linkedinId))
+    }
+
+    @Test
+    fun `should prevent resolution when a stored credential is invalidated`() = runTest {
+        val id = gateway.storeForOwner(
+            "threads:user",
+            UUID.randomUUID(),
+            ProviderCredentials(SocialProvider.THREADS, "access-token", null, null, scope = "threads_basic"),
+        )
+        assertEquals("access-token", gateway.resolveCredential(id).accessToken)
+
+        gateway.invalidateCredential(id)
+
+        shouldThrow<NoSuchElementException> { gateway.resolveCredential(id) }
     }
 
     companion object {

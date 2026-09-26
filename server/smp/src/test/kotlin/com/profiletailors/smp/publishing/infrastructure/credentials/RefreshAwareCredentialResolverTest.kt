@@ -46,7 +46,7 @@ class RefreshAwareCredentialResolverTest {
             credentialGateway = fakeCredentialGateway,
             socialConnectionRepository = fakeConnectionRepository,
             properties = properties,
-            httpTransport = ControllableFakeLinkedInHttpTransport(
+            httpTransport = ControllableFakeProviderHttpTransport(
                 throwException = UnsupportedOperationException("Stub transport — no refresh response configured"),
             ),
             objectMapper = objectMapper,
@@ -210,8 +210,8 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
-            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse(
                 statusCode = 200,
                 headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
                 body = """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"new-refresh-token"}""",
@@ -257,8 +257,8 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
-            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse(
                 statusCode = 401,
                 headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
                 body = """{"error":"invalid_client"}""",
@@ -301,7 +301,7 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
             throwException = java.net.http.HttpTimeoutException("Request timed out"),
         )
         resolver = RefreshAwareCredentialResolverImpl(
@@ -341,7 +341,7 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
             throwException = java.io.IOException("Connection refused"),
         )
         resolver = RefreshAwareCredentialResolverImpl(
@@ -381,7 +381,7 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
             throwException = IllegalStateException("Unexpected failure"),
         )
         resolver = RefreshAwareCredentialResolverImpl(
@@ -449,8 +449,8 @@ class RefreshAwareCredentialResolverTest {
         )
         fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
 
-        val fakeTransport = ControllableFakeLinkedInHttpTransport(
-            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+        val fakeTransport = ControllableFakeProviderHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse(
                 statusCode = 200,
                 headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
                 body = """{"access_token":"refreshed-token","expires_in":7200}""",
@@ -498,6 +498,8 @@ class RefreshAwareCredentialResolverTest {
             connections["${connection.workspaceId}:${connection.id}"] = connection
         }
 
+        override suspend fun existsByCredentialReference(credentialReference: String): Boolean = false
+
         override suspend fun upsert(connection: SocialConnection): SocialConnection {
             connections["${connection.workspaceId}:${connection.id}"] = connection
             return connection
@@ -510,16 +512,16 @@ class RefreshAwareCredentialResolverTest {
         }
     }
 
-    private class ControllableFakeLinkedInHttpTransport(
-        private val response: com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse? = null,
+    private class ControllableFakeProviderHttpTransport(
+        private val response: com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse? = null,
         private val throwException: Exception? = null,
-    ) : com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport {
+    ) : com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport {
         var lastRequest: java.net.http.HttpRequest? = null
             private set
 
         override suspend fun send(
             request: java.net.http.HttpRequest,
-        ): com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse {
+        ): com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse {
             lastRequest = request
             if (throwException != null) throw throwException
             return response!!

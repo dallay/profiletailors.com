@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.threads
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ProviderMediaUrl
@@ -16,8 +17,9 @@ import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
@@ -55,9 +57,9 @@ class ThreadsPublishingAdapterTest {
     @Test
     fun `publishes text through create poll and finalize`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(200, headers(), """{"id":"container-1"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
-            LinkedInHttpResponse(200, headers(), """{"id":"post-1"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"container-1"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"post-1"}"""),
         )
         val result = adapter(transport).publish(command(body = "Hello Threads"))
 
@@ -74,15 +76,20 @@ class ThreadsPublishingAdapterTest {
     @Test
     fun `publishes mixed carousel children before parent`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(200, headers(), """{"id":"child-1"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
-            LinkedInHttpResponse(200, headers(), """{"id":"child-2"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
-            LinkedInHttpResponse(200, headers(), """{"id":"parent-1"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
-            LinkedInHttpResponse(200, headers(), """{"id":"post-2"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"child-1"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"child-2"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"parent-1"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"post-2"}"""),
         )
-        val result = adapter(transport).publish(
+        val resolver = ProviderMediaUrlResolver { _, assets, deadline ->
+            deadline shouldBe Instant.parse("2026-09-24T12:00:00Z")
+                .plus(properties.containerPollTimeout.multipliedBy(3))
+            assets.map { ProviderMediaUrl("https://cdn.example/${it.id}", deadline.plusSeconds(5)) }
+        }
+        val result = adapter(transport, resolver).publish(
             command(
                 assets = listOf(
                     asset("image/jpeg"),
@@ -100,10 +107,10 @@ class ThreadsPublishingAdapterTest {
     @Test
     fun `polling is bounded and retains operation reference`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(200, headers(), """{"id":"container-2"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"container-2"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
         )
         val exception = runCatching {
             adapter(transport).publish(command(body = "bounded"))
@@ -122,15 +129,25 @@ class ThreadsPublishingAdapterTest {
             assets.map { ProviderMediaUrl("https://cdn.example/${it.id}", Instant.parse("2026-09-24T13:00:00Z")) }
         }
         val transport = RecordingTransport(
-            LinkedInHttpResponse(200, headers(), """{"id":"container-3"}"""),
-            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
-            LinkedInHttpResponse(200, headers(), """{"id":"post-3"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"container-3"}"""),
+            ProviderHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            ProviderHttpResponse(200, headers(), """{"id":"post-3"}"""),
         )
 
         adapter(transport, mediaResolver).publish(command(assets = listOf(asset("image/jpeg"))))
 
         resolved.get() shouldBe 1
         check(transport.bodies.first().contains("https://cdn.example/asset-1"))
+    }
+
+    @Test
+    fun `should wrap parsing failures when Threads returns malformed JSON`() = runTest {
+        val transport = RecordingTransport(ProviderHttpResponse(200, headers(), "{invalid"))
+
+        val failure = shouldThrow<IllegalStateException> { adapter(transport).publish(command()) }
+
+        failure.message shouldBe "Threads container create returned an invalid response."
+        failure.cause.shouldBeInstanceOf<JsonProcessingException>()
     }
 
     private fun adapter(
@@ -179,12 +196,12 @@ class ThreadsPublishingAdapterTest {
 
     private fun headers() = HttpHeaders.of(emptyMap()) { _, _ -> true }
 
-    private class RecordingTransport(private vararg val responses: LinkedInHttpResponse) : LinkedInHttpTransport {
+    private class RecordingTransport(private vararg val responses: ProviderHttpResponse) : ProviderHttpTransport {
         val requests = mutableListOf<HttpRequest>()
         val bodies = mutableListOf<String>()
         private var index = 0
 
-        override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
+        override suspend fun send(request: HttpRequest): ProviderHttpResponse {
             requests += request
             request.bodyPublisher().ifPresent { publisher ->
                 val bytes = java.io.ByteArrayOutputStream()

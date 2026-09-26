@@ -11,9 +11,9 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentials
-import com.profiletailors.smp.publishing.infrastructure.linkedin.CONTENT_TYPE
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
-import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
+import com.profiletailors.smp.publishing.infrastructure.http.CONTENT_TYPE
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.net.http.HttpRequest
@@ -23,7 +23,7 @@ import java.util.UUID
 class ThreadsConnectionProvider(
     private val properties: ThreadsPublishingProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val credentialGateway: ProviderCredentialGateway,
     private val clock: Clock = Clock.systemUTC(),
 ) : SocialConnectionProvider {
@@ -40,6 +40,7 @@ class ThreadsConnectionProvider(
         val credentials = ProviderCredentials(
             provider = SocialProvider.THREADS,
             accessToken = longLived.accessToken,
+            // Threads refresh derives its input from the current long-lived access token.
             refreshToken = null,
             expiresAtEpochSeconds = longLived.expiresIn?.let { clock.instant().epochSecond + it },
             grantedScopes = properties.requiredScopes.sorted().joinToString(" "),
@@ -113,7 +114,7 @@ class ThreadsConnectionProvider(
     }
 
     private inline fun <reified T> decodeOrThrow(
-        response: com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse,
+        response: com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse,
         operation: String,
     ): T {
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {

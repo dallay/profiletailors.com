@@ -1,4 +1,8 @@
 export default {
+  titleSuccess: '{provider} conectado',
+  titleError: 'Error de conexión con {provider}',
+  titleConnecting: 'Conectando con {provider}',
+
   loadingMessage: 'Completando tu conexión con {provider} y actualizando los canales.',
   retryingMessage: 'Reiniciando el flujo de conexión con {provider}.',
   retryFailedMessage: 'No se pudo reiniciar el flujo de conexión con {provider}.',

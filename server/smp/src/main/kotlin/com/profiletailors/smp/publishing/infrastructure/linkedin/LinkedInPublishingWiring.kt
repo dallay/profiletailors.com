@@ -8,6 +8,7 @@ import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.OAuthStateReplayStore
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
@@ -20,8 +21,12 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureException
+import com.profiletailors.smp.publishing.infrastructure.http.CONTENT_TYPE
+import com.profiletailors.smp.publishing.infrastructure.http.JdkProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.Storage
@@ -37,11 +42,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import java.net.HttpURLConnection
 import java.net.URI
-import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.util.*
 
@@ -81,7 +83,7 @@ data class LinkedInPublishingProperties(
 class RealLinkedInConnectionProvider(
     private val properties: LinkedInPublishingProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
 ) : SocialConnectionProvider {
@@ -253,7 +255,7 @@ class LinkedInCapabilityValidator(
 class RealLinkedInPublisher(
     private val properties: LinkedInPublishingProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
     private val assetUploader: AssetUploader,
     private val attachmentsBinding: AttachmentsStorageBinding,
@@ -488,30 +490,6 @@ class RealLinkedInPublisher(
     }
 }
 
-internal const val CONTENT_TYPE = "Content-Type"
-
-fun interface LinkedInHttpTransport {
-    suspend fun send(request: HttpRequest): LinkedInHttpResponse
-}
-
-data class LinkedInHttpResponse(val statusCode: Int, val headers: java.net.http.HttpHeaders, val body: String)
-
-class JdkLinkedInHttpTransport(private val httpClient: HttpClient) : LinkedInHttpTransport {
-    override suspend fun send(request: HttpRequest): LinkedInHttpResponse = try {
-        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        LinkedInHttpResponse(
-            statusCode = response.statusCode(),
-            headers = response.headers(),
-            body = response.body(),
-        )
-    } catch (exception: InterruptedException) {
-        Thread.currentThread().interrupt()
-        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
-    } catch (exception: java.io.IOException) {
-        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
-    }
-}
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LinkedInTokenResponse(
     @JsonProperty("access_token") val accessToken: String,
@@ -555,10 +533,11 @@ class LinkedInPublishingConfiguration(
         @Value("\${publishing.linkedin.state-signing-secret}") stateSigningSecret: String,
         objectMapper: ObjectMapper,
         clock: Clock,
-    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)
+        replayStore: OAuthStateReplayStore,
+    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock, replayStore)
 
     @Bean
-    fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
+    fun linkedInHttpTransport(): ProviderHttpTransport = JdkProviderHttpTransport(HttpClient.newHttpClient())
 
     @Bean
     fun attachmentsStorageBinding(
@@ -578,7 +557,7 @@ class LinkedInPublishingConfiguration(
         properties: LinkedInPublishingProperties,
         assetUploadProperties: LinkedInAssetUploadProperties,
         objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
+        linkedInHttpTransport: ProviderHttpTransport,
         attachmentsStorageBinding: AttachmentsStorageBinding,
         publicationAssetRepository: com.profiletailors.smp.publishing.domain.PublicationAssetRepository,
     ): AssetUploader = RealLinkedInAssetUploader(
@@ -594,7 +573,7 @@ class LinkedInPublishingConfiguration(
     fun socialConnectionProvider(
         properties: LinkedInPublishingProperties,
         objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
+        linkedInHttpTransport: ProviderHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
     ): RealLinkedInConnectionProvider = RealLinkedInConnectionProvider(
         properties,
@@ -608,7 +587,7 @@ class LinkedInPublishingConfiguration(
     fun socialPublisher(
         properties: LinkedInPublishingProperties,
         objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
+        linkedInHttpTransport: ProviderHttpTransport,
         credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
         assetUploader: AssetUploader,
         attachmentsStorageBinding: AttachmentsStorageBinding,
@@ -623,9 +602,6 @@ class LinkedInPublishingConfiguration(
 
     @Bean
     @org.springframework.context.annotation.Primary
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(
-        name = ["bddProviderCapabilityValidator"],
-    )
     fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator(
         enabledBundles = setOf(
             com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_TEXT,
@@ -633,9 +609,3 @@ class LinkedInPublishingConfiguration(
         ),
     )
 }
-
-fun formUrlEncoded(vararg parts: Pair<String, String>): String = parts.joinToString("&") { (key, value) ->
-    "${urlEncode(key)}=${urlEncode(value)}"
-}
-
-fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)

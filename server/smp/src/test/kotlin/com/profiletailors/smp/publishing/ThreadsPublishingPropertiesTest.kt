@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing
 
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingConfiguration
 import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -20,7 +21,9 @@ class ThreadsPublishingPropertiesTest {
         val properties = ThreadsPublishingProperties(enabled = true)
 
         properties.isConfigured() shouldBe false
-        shouldThrow<IllegalStateException> { properties.validate() }
+        shouldThrow<IllegalStateException> {
+            ThreadsPublishingConfiguration().threadsAuthorizationUrlBuilder(properties)
+        }
     }
 
     @Test

@@ -166,13 +166,14 @@ publishing:
     client-secret: ${SMP_THREADS_CLIENT_SECRET:}
     redirect-uri: ${SMP_THREADS_REDIRECT_URI:}
     api-base-url: ${SMP_THREADS_API_BASE_URL:https://graph.threads.net}
+    authorization-base-url: ${SMP_THREADS_AUTHORIZATION_BASE_URL:https://threads.net/oauth/authorize}
     api-version: ${SMP_THREADS_API_VERSION:v1.0}
     required-scopes: ${SMP_THREADS_REQUIRED_SCOPES:threads_basic,threads_content_publish}
     refresh-ahead: ${SMP_THREADS_REFRESH_AHEAD:PT1H}
     container-poll-interval: ${SMP_THREADS_CONTAINER_POLL_INTERVAL:PT2S}
     container-poll-timeout: ${SMP_THREADS_CONTAINER_POLL_TIMEOUT:PT60S}
     container-poll-max-attempts: ${SMP_THREADS_CONTAINER_POLL_MAX_ATTEMPTS:30}
-    media-url-ttl: ${SMP_THREADS_MEDIA_URL_TTL:PT10M}
+    media-url-ttl: ${SMP_THREADS_MEDIA_URL_TTL:PT25M}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:}  # Sin default — debe configurarse via env var

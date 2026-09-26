@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
@@ -18,8 +19,9 @@ const props = defineProps<{
 
 const needsReconnect = (status: Channel['status']): boolean =>
   status === 'REQUIRES_RECONNECT' || status === 'REVOKED' || status === 'EXPIRED'
-const providerLabel = getProviderPresentation(props.channel.provider).label
-const reconnectLabel = 'Needs reconnect'
+const { t } = useI18n()
+const providerLabel = computed(() => getProviderPresentation(props.channel.provider).label)
+const reconnectLabel = computed(() => t('channels.needsReconnect'))
 
 const emit = defineEmits<{
   (e: 'select'): void

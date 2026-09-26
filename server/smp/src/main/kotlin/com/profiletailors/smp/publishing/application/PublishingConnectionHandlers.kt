@@ -20,8 +20,11 @@ import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
+import com.profiletailors.smp.publishing.domain.ProviderAuthorizationRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCatalogPolicy
+import com.profiletailors.smp.publishing.domain.ProviderConnectionRegistry
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
 import com.profiletailors.smp.publishing.domain.ProviderCredentialInvalidator
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
@@ -47,7 +50,7 @@ internal class InitiateProviderConnectionHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val oauthStateSigner: OAuthStateSigner,
-    private val authorizationRegistry: com.profiletailors.smp.publishing.domain.ProviderAuthorizationRegistry,
+    private val authorizationRegistry: ProviderAuthorizationRegistry,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
@@ -72,7 +75,7 @@ internal class InitiateProviderConnectionHandler(
         val issuedAt = clock.instant()
         val expiresAt = issuedAt.plus(STATE_TTL)
         val state = oauthStateSigner.sign(
-            com.profiletailors.smp.publishing.domain.OAuthStatePayload(
+            OAuthStatePayload(
                 provider = command.provider,
                 workspaceId = workspaceId,
                 principalId = principalCtx.principalId,
@@ -156,9 +159,9 @@ internal class InitiateLinkedInConnectionHandler(
 internal class CompleteProviderConnectionHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
-    private val connectionRegistry: com.profiletailors.smp.publishing.domain.ProviderConnectionRegistry,
+    private val connectionRegistry: ProviderConnectionRegistry,
     private val oauthStateSigner: OAuthStateSigner,
-    private val authorizationRegistry: com.profiletailors.smp.publishing.domain.ProviderAuthorizationRegistry,
+    private val authorizationRegistry: ProviderAuthorizationRegistry,
     private val socialConnectionRepository: SocialConnectionRepository,
     private val socialAccountRepository: SocialAccountRepository,
     private val channelEventPublisher: ChannelEventPublisher,
@@ -167,11 +170,11 @@ internal class CompleteProviderConnectionHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<
-    com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand,
+    CompleteProviderConnectionCommand,
     SocialConnectionResult,
     > {
     override suspend fun handle(
-        command: com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand,
+        command: CompleteProviderConnectionCommand,
     ): SocialConnectionResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -188,6 +191,7 @@ internal class CompleteProviderConnectionHandler(
         requireOAuthState(builder.isAllowedRedirectUri(command.redirectUri)) {
             "OAuth redirect URI is not allowed."
         }
+        oauthStateSigner.consume(payload)
         val result = connectionRegistry.requireProvider(command.provider).completeConnection(
             ProviderCompletion(
                 workspaceId,
@@ -200,8 +204,8 @@ internal class CompleteProviderConnectionHandler(
     }
 
     private fun validateState(
-        command: com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand,
-        payload: com.profiletailors.smp.publishing.domain.OAuthStatePayload,
+        command: CompleteProviderConnectionCommand,
+        payload: OAuthStatePayload,
         workspaceId: String,
         principalId: String,
     ) {
@@ -299,116 +303,29 @@ internal class CompleteLinkedInConnectionHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
-    override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
-        val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.CONNECT_SOCIAL,
-        )
-        val resourceContext = resourceContextProvider.requireWorkspaceContext()
-        val workspaceId = requireNotNull(resourceContext.workspaceId)
-        validateState(command, principalCtx.principalId, workspaceId)
-        val providerResult = socialConnectionProvider.completeConnection(
-            ProviderCompletion(
-                workspaceId = workspaceId,
-                actorPrincipalId = principalCtx.principalId,
-                authorizationCode = command.authorizationCode,
-                redirectUri = command.redirectUri,
-            ),
-        )
-
-        val (connection, account) = persistConnectionAndAccount(workspaceId, providerResult)
-
-        channelEventPublisher.publish(
-            ChannelEvent(
-                type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
-                workspaceId = workspaceId,
-                socialAccountId = account.id,
-                occurredAt = clock.instant(),
-            ),
-        )
-
-        return SocialConnectionResult(
-            connectionId = connection.id,
-            workspaceId = connection.workspaceId,
-            provider = connection.provider,
-            status = connection.status,
-            account = account.toSocialAccountSummary(),
-        )
-    }
-
-    private suspend fun persistConnectionAndAccount(
-        workspaceId: String,
-        providerResult: ProviderConnectionResult,
-    ): Pair<SocialConnection, SocialAccount> = transactionRunner.runAtomically {
-        val conn = socialConnectionRepository.upsert(
-            SocialConnection(
-                id = "soconn-${UUID.randomUUID()}",
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = providerResult.providerConnectionRef,
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = providerResult.credentialReference,
-                connectedAt = clock.instant(),
-            ),
-        )
-        val acc = socialAccountRepository.upsert(
-            SocialAccount(
-                id = "soacc-${UUID.randomUUID()}",
-                socialConnectionId = conn.id,
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerAccountId = providerResult.account.providerAccountId,
-                kind = providerResult.account.kind,
-                displayName = providerResult.account.displayName,
-                profileUrn = providerResult.account.profileUrn,
-                avatarUrl = providerResult.account.avatarUrl,
-                status = SocialConnectionStatus.ACTIVE,
-            ),
-        )
-        conn to acc
-    }
-
-    private fun SocialAccount.toSocialAccountSummary() = SocialAccountSummary(
-        accountId = id,
-        providerAccountId = providerAccountId,
-        displayName = displayName,
-        kind = kind,
-        profileUrn = profileUrn,
+    private val delegate = CompleteProviderConnectionHandler(
+        principalContextProvider = principalContextProvider,
+        resourceContextProvider = resourceContextProvider,
+        connectionRegistry = ProviderConnectionRegistry.from(SocialProvider.LINKEDIN to socialConnectionProvider),
+        oauthStateSigner = oauthStateSigner,
+        authorizationRegistry = ProviderAuthorizationRegistry.from(SocialProvider.LINKEDIN to authorizationUrlBuilder),
+        socialConnectionRepository = socialConnectionRepository,
+        socialAccountRepository = socialAccountRepository,
+        channelEventPublisher = channelEventPublisher,
+        clock = clock,
+        transactionRunner = transactionRunner,
+        principalIdentityLookup = principalIdentityLookup,
+        emailVerificationPolicy = emailVerificationPolicy,
     )
 
-    private fun validateState(command: CompleteLinkedInConnectionCommand, principalId: String, workspaceId: String) {
-        val payload = oauthStateSigner.verify(command.state)
-        if (!payload.expiresAt.isAfter(clock.instant())) {
-            throw ExpiredOAuthStateException()
-        }
-        requireOAuthState(payload.provider == SocialProvider.LINKEDIN) {
-            "OAuth state provider does not match LinkedIn."
-        }
-        requireOAuthState(payload.workspaceId == workspaceId) {
-            "OAuth state workspace does not match the active workspace."
-        }
-        requireOAuthState(payload.principalId == principalId) {
-            "OAuth state principal does not match the active principal."
-        }
-        requireOAuthState(payload.redirectUri == command.redirectUri) {
-            "OAuth state redirect URI does not match the completion request."
-        }
-        requireOAuthState(
-            authorizationUrlBuilder.isAllowedRedirectUri(command.redirectUri) &&
-                authorizationUrlBuilder.isAllowedRedirectUri(payload.redirectUri),
-        ) {
-            "OAuth redirect URI is not allowed."
-        }
-    }
-
-    private fun requireOAuthState(condition: Boolean, message: () -> String) {
-        if (!condition) {
-            throw InvalidOAuthStateException(message())
-        }
-    }
+    override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult = delegate.handle(
+        CompleteProviderConnectionCommand(
+            provider = SocialProvider.LINKEDIN,
+            authorizationCode = command.authorizationCode,
+            redirectUri = command.redirectUri,
+            state = command.state,
+        ),
+    )
 }
 
 @Service
@@ -430,8 +347,13 @@ internal class DisconnectProviderConnectionHandler(
         require(connection.provider == command.provider) { "Publishing provider does not match the connection." }
         transactionRunner.runAtomically {
             socialAccountRepository.deleteByConnectionId(connection.id)
-            connection.credentialReference?.let { credentialGateway.invalidateCredential(UUID.fromString(it)) }
             socialConnectionRepository.deleteByWorkspaceAndId(workspaceId, connection.id)
+            connection.credentialReference?.let { reference ->
+                if (!socialConnectionRepository.existsByCredentialReference(reference)) {
+                    credentialGateway.invalidateCredential(UUID.fromString(reference))
+                }
+            }
+            Unit
         }
         channelEventPublisher.publish(
             ChannelEvent(

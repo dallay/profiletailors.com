@@ -116,6 +116,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/023-provider-aware-secure-credentials.yaml
   - include:
+      file: db/changelog/publishing/024-add-provider-operation-ref.yaml
+  - include:
+      file: db/changelog/publishing/025-create-oauth-replay-store.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:

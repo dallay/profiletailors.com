@@ -63,6 +63,9 @@ vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) => {
+      if (key === 'scheduler.reconnectRequired') return 'Reconnect Required'
+      if (key.startsWith('scheduler.reconnect') && params)
+        return `Reconnect ${params.provider ?? params.providers}`
       if (!params) return key
       // Mirror the real translation pattern for keys tested with placeholders.
       if (key === 'scheduler.morePosts') {
@@ -302,6 +305,25 @@ describe('SchedulerView', () => {
     const reconnectButton = wrapper.get('[data-testid="reconnect-provider-threads"]')
     await reconnectButton.trigger('click')
     expect(store.connectProviderPersonalProfile).toHaveBeenCalledWith('threads')
+  })
+
+  it('omits reconnect actions for unsupported providers', async () => {
+    const store = usePublishingStore()
+    store.channels = [
+      {
+        id: 'instagram-1',
+        accountId: 'instagram-1',
+        name: 'Instagram account',
+        provider: 'instagram',
+        avatar: '',
+        handle: '@company',
+        status: 'REQUIRES_RECONNECT',
+      },
+    ]
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Instagram')
+    expect(wrapper.find('[data-testid="reconnect-provider-instagram"]').exists()).toBe(false)
   })
 
   it('renders thumbnail image in week view scheduled post cards', async () => {

@@ -9,6 +9,8 @@ interface ProviderCredentialInvalidator {
 }
 
 interface SocialConnectionRepository {
+    suspend fun existsByCredentialReference(credentialReference: String): Boolean
+
     suspend fun upsert(connection: SocialConnection): SocialConnection
 
     suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection?

@@ -10,6 +10,7 @@ import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderCatalogAvailability
 import com.profiletailors.smp.publishing.domain.ProviderCatalogConnectionCounter
@@ -102,7 +103,9 @@ class PublishingProviderCatalogHandlersTest {
             oauthStateSigner = object : OAuthStateSigner {
                 override fun sign(payload: LinkedInOAuthStatePayload): String = "signed-state"
 
-                override fun verify(state: String): LinkedInOAuthStatePayload = error("Not used by initiation")
+                override suspend fun consume(payload: OAuthStatePayload) = Unit
+
+        override fun verify(state: String): LinkedInOAuthStatePayload = error("Not used by initiation")
             },
             authorizationUrlBuilder = configuredAuthorizationUrlBuilder(),
             clock = Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC),

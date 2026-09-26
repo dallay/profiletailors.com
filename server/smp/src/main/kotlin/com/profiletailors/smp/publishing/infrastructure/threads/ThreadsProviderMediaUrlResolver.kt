@@ -16,7 +16,7 @@ class ThreadsProviderMediaUrlResolver(
     private val properties: ThreadsPublishingProperties,
     private val storage: AttachmentsStorageBinding,
     private val clock: Clock = Clock.systemUTC(),
-    private val safetyMargin: Duration = Duration.ofSeconds(SAFETY_MARGIN_SECONDS),
+    private val safetyMargin: Duration = ThreadsPublishingProperties.MEDIA_URL_SAFETY_MARGIN,
 ) : ProviderMediaUrlResolver {
     override suspend fun resolve(
         workspaceId: String,
@@ -47,6 +47,5 @@ class ThreadsProviderMediaUrlResolver(
 
     private companion object {
         const val MILLIS_PER_SECOND = 1_000L
-        const val SAFETY_MARGIN_SECONDS = 5L
     }
 }

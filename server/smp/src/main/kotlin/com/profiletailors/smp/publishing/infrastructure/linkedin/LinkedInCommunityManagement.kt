@@ -25,6 +25,8 @@ import com.profiletailors.smp.publishing.domain.SocialContentProviderFailure
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.ThreadState
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpRequest
@@ -42,7 +44,7 @@ import java.time.Instant
 class LinkedInCommunityManagement(
     private val properties: LinkedInPublishingProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val accessTokenResolver: LinkedInSocialContentAccessTokenResolver,
     private val accessGate: SocialContentAccessGate = DefaultSocialContentAccessGate(
         approvalEvidenceRepository = SocialContentApprovalEvidenceRepository { _, _ -> null },
@@ -293,7 +295,7 @@ class LinkedInCommunityManagement(
         return LinkedInJsonResponse(response, objectMapper.readTree(response.body))
     }
 
-    private fun providerException(response: LinkedInHttpResponse): SocialContentProviderException {
+    private fun providerException(response: ProviderHttpResponse): SocialContentProviderException {
         val failure = when (response.statusCode) {
             HTTP_UNAUTHORIZED -> SocialContentProviderFailure.UNAUTHORIZED
             HTTP_FORBIDDEN -> SocialContentProviderFailure.ROLE_FORBIDDEN
@@ -326,7 +328,7 @@ class LinkedInCommunityManagement(
 
     private fun epochMillis(value: Long): Instant = Instant.ofEpochMilli(value)
 
-    private data class LinkedInJsonResponse(val response: LinkedInHttpResponse, val body: JsonNode)
+    private data class LinkedInJsonResponse(val response: ProviderHttpResponse, val body: JsonNode)
 
     private companion object {
         const val CONTENT_TYPE = "Content-Type"

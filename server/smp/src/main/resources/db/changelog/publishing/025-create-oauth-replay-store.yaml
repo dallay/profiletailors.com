@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-025-create-oauth-replay-store
+      author: profiletailors
+      changes:
+        - createTable:
+            tableName: publishing_oauth_consumed_states
+            columns:
+              - column:
+                  name: nonce
+                  type: text
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: publishing_oauth_consumed_states
+            indexName: idx_publishing_oauth_consumed_states_expiry
+            columns:
+              - column:
+                  name: expires_at

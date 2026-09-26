@@ -19,10 +19,14 @@ import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureCategory
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentials
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureCategory
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
+import com.profiletailors.smp.publishing.infrastructure.http.urlEncode
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
@@ -60,13 +64,13 @@ class LinkedInPublishingWiringTest {
     fun `real connection provider exchanges token and resolves profile`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000,"scope":""" +
                         """"openid profile email w_member_social"}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"abcd1234","name":"Yuniel Acosta","email":"yuniel@example.com"}""",
@@ -97,12 +101,12 @@ class LinkedInPublishingWiringTest {
     fun `real connection provider rejects unregistered redirect uri before token exchange`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"abcd1234","name":"Yuniel Acosta"}""",
@@ -131,7 +135,7 @@ class LinkedInPublishingWiringTest {
     fun `real connection provider maps token exchange failure`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     400,
                     emptyHeaders(),
                     "invalid_request",
@@ -161,12 +165,12 @@ class LinkedInPublishingWiringTest {
     fun `real connection provider maps profile lookup failure`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     401,
                     emptyHeaders(),
                     "Unauthorized",
@@ -196,12 +200,12 @@ class LinkedInPublishingWiringTest {
     fun `real connection provider throws when profile missing sub`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"name":"No Sub User"}""",
@@ -231,7 +235,7 @@ class LinkedInPublishingWiringTest {
     fun `real publisher escapes little text reserved characters in multiline commentary`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     201,
                     headersOf("x-restli-id" to "post-little-text"),
                     """{"id":"post-little-text"}""",
@@ -276,7 +280,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real publisher builds article post and publishes with resolved token`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     201,
                     headersOf("x-restli-id" to "post-123"),
                     """{"id":"post-123"}""",
@@ -339,7 +343,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `should throw typed retryable rate limit failure when LinkedIn returns 429`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     429,
                     emptyHeaders(),
                     """{"message":"Too many requests"}""",
@@ -401,7 +405,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `should throw typed retryable provider unavailable failure when LinkedIn returns 500`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     500,
                     emptyHeaders(),
                     """{"message":"Internal server error"}""",
@@ -463,7 +467,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `should throw typed reconnect failure when LinkedIn returns 403`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     403,
                     emptyHeaders(),
                     """{"message":"Forbidden"}""",
@@ -525,7 +529,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `should throw typed reconnect failure when LinkedIn returns 401`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     401,
                     emptyHeaders(),
                     """{"message":"Unauthorized"}""",
@@ -587,7 +591,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real publisher throws when social account missing profile urn`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     201,
                     headersOf("x-restli-id" to "post-123"),
                     """{"id":"post-123"}""",
@@ -647,7 +651,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real publisher builds post with asset content entities and article link`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     201,
                     headersOf("x-restli-id" to "post-456"),
                     """{"id":"post-456"}""",
@@ -716,7 +720,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real publisher builds post with assets only no article link`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     201,
                     headersOf("x-restli-id" to "post-789"),
                     """{"id":"post-789"}""",
@@ -876,7 +880,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     ): RealLinkedInPublisher {
         val transport = StubTransport(
             listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     statusCode = 201,
                     headers = headersOf("x-restli-id" to "post-123"),
                     body = """{"id":"post-123"}""",
@@ -975,12 +979,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `connection provider maps valid https picture to avatarUrl`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000,"scope":"openid profile email"}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"user-123","name":"Yuniel",""" +
@@ -1007,12 +1011,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `connection provider sets null avatarUrl when picture is absent`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"user-123","name":"Yuniel"}""",
@@ -1038,12 +1042,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `connection provider rejects data-uri picture and sets null avatarUrl`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"user-123","name":"Yuniel","picture":"data:image/png;base64,iVBOR..."}""",
@@ -1069,12 +1073,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `connection provider rejects non-https picture and sets null avatarUrl`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"access_token":"access-123","expires_in":5184000}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"sub":"user-123","name":"Yuniel","picture":"http://insecure.example.com/photo.jpg"}""",
@@ -1279,17 +1283,17 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real linkedin asset uploader completes three step flow`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"image":"urn:li:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{}""",
                 ),
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"status":"SUCCESS"}""",
@@ -1322,7 +1326,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real linkedin asset uploader throws on registration failure`() = runTest {
         val transport = StubTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     400,
                     emptyHeaders(),
                     """{"message":"Bad request"}""",
@@ -1357,12 +1361,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real linkedin asset uploader skips checkStatus for images`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"image":"urn:li:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
                 ),
-                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
+                ProviderHttpResponse(200, emptyHeaders(), """{}"""),
             ),
         )
         val uploader = RealLinkedInAssetUploader(
@@ -1393,12 +1397,12 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real linkedin asset uploader skips checkStatus for documents`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """{"document":"urn:li:document:doc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
                 ),
-                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
+                ProviderHttpResponse(200, emptyHeaders(), """{}"""),
             ),
         )
         val uploader = RealLinkedInAssetUploader(
@@ -1429,15 +1433,15 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     fun `real linkedin asset uploader calls finalizeUpload for videos`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     200,
                     emptyHeaders(),
                     """
                         |{"video":"urn:li:video:v123","uploadUrl":"https://upload.linkedin.com/upload","uploadToken":"tok"}
                     """.trimMargin(),
                 ),
-                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
-                LinkedInHttpResponse(200, emptyHeaders(), """{"status":"AVAILABLE"}"""),
+                ProviderHttpResponse(200, emptyHeaders(), """{}"""),
+                ProviderHttpResponse(200, emptyHeaders(), """{"status":"AVAILABLE"}"""),
             ),
         )
         val uploader = RealLinkedInAssetUploader(
@@ -1584,7 +1588,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
     )
 
     private fun testPublisher(
-        transport: LinkedInHttpTransport,
+        transport: ProviderHttpTransport,
         credentialGateway: LinkedInCredentialGateway,
         credentialReference: UUID,
         assetUploader: AssetUploader = FakeLinkedInAssetUploader(),
@@ -1614,9 +1618,9 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
             gateway.resolveCredential(credentialId).accessToken
     }
 
-    private class StubTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
+    private class StubTransport(private val responses: List<ProviderHttpResponse>) : ProviderHttpTransport {
         private var index = 0
-        override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse =
+        override suspend fun send(request: java.net.http.HttpRequest): ProviderHttpResponse =
             responses.getOrElse(index++) {
                 throw IllegalStateException("No stub response configured")
             }
@@ -1626,11 +1630,11 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
      * Transport that records every incoming request so tests can assert on URL, method, and
      * call count. Returns the next response from [responses], throwing if the list is exhausted.
      */
-    private class RecordingTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
+    private class RecordingTransport(private val responses: List<ProviderHttpResponse>) : ProviderHttpTransport {
         val capturedRequests: MutableList<java.net.http.HttpRequest> = mutableListOf()
         val capturedBodies: MutableList<com.fasterxml.jackson.databind.JsonNode> = mutableListOf()
         private var index = 0
-        override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse {
+        override suspend fun send(request: java.net.http.HttpRequest): ProviderHttpResponse {
             capturedRequests += request
             request.bodyPublisher().ifPresent { publisher ->
                 val bytes = java.io.ByteArrayOutputStream()
@@ -1681,6 +1685,8 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
 
     private class FakeSocialConnectionRepository(private val connection: SocialConnection) :
         SocialConnectionRepository {
+        override suspend fun existsByCredentialReference(credentialReference: String): Boolean = false
+
         override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =

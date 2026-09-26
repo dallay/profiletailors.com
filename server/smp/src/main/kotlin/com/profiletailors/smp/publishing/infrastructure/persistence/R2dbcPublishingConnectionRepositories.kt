@@ -20,6 +20,14 @@ import java.time.OffsetDateTime
 
 @Repository
 class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient) : SocialConnectionRepository {
+    override suspend fun existsByCredentialReference(credentialReference: String): Boolean = databaseClient.sql(
+        "SELECT EXISTS (SELECT 1 FROM social_connections WHERE credential_reference = :reference) AS present",
+    )
+        .bind("reference", credentialReference)
+        .map { row, _ -> requireNotNull(row.get("present", Boolean::class.javaObjectType)) }
+        .one()
+        .awaitSingle()
+
     override suspend fun upsert(connection: SocialConnection): SocialConnection = upsertPostgres(connection)
 
     private suspend fun upsertPostgres(connection: SocialConnection): SocialConnection = databaseClient.sql(

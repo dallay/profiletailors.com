@@ -27,7 +27,7 @@ class ThreadsProviderFoundationTest {
 
     @Test
     fun `provider capability registry resolves threads without exposing provider implementation`() = runTest {
-        val registry = ProviderCapabilityRegistry.from(ThreadsCapabilitySet.default())
+        val registry = ProviderCapabilityRegistry.from(SocialProvider.THREADS to ThreadsCapabilitySet.default())
 
         registry.capabilities(SocialProvider.THREADS) shouldBe ThreadsCapabilitySet.default()
         registry.capabilities(SocialProvider.LINKEDIN) shouldBe null
@@ -42,6 +42,6 @@ class ThreadsProviderFoundationTest {
         properties.containerPollInterval shouldBe Duration.ofSeconds(2)
         properties.containerPollTimeout shouldBe Duration.ofSeconds(60)
         properties.containerPollMaxAttempts shouldBe 30
-        properties.mediaUrlTtl shouldBe Duration.ofMinutes(10)
+        properties.mediaUrlTtl shouldBe Duration.ofMinutes(25)
     }
 }

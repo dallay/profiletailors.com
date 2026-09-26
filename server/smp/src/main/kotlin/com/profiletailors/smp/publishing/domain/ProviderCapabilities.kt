@@ -23,8 +23,6 @@ data class ProviderCapabilitySet(
     }
 }
 
-typealias ThreadsCapabilitySet = ProviderCapabilitySet
-
 class ProviderCapabilityRegistry private constructor(
     private val capabilitiesByProvider: Map<SocialProvider, ProviderCapabilitySet>,
     private val validatorsByProvider: Map<SocialProvider, ProviderCapabilityValidator> = emptyMap(),
@@ -39,14 +37,6 @@ class ProviderCapabilityRegistry private constructor(
         fun fromValidators(
             vararg entries: Pair<SocialProvider, ProviderCapabilityValidator>,
         ): ProviderCapabilityRegistry = ProviderCapabilityRegistry(emptyMap(), entries.toMap())
-
-        fun from(
-            capabilities: ProviderCapabilitySet,
-            validator: ProviderCapabilityValidator? = null,
-        ): ProviderCapabilityRegistry = ProviderCapabilityRegistry(
-            capabilitiesByProvider = mapOf(SocialProvider.THREADS to capabilities),
-            validatorsByProvider = validator?.let { mapOf(SocialProvider.THREADS to it) } ?: emptyMap(),
-        )
 
         fun from(
             capabilities: Map<SocialProvider, ProviderCapabilitySet>,

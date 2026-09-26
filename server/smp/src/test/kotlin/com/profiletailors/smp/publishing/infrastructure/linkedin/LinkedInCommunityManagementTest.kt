@@ -19,6 +19,8 @@ import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.ThreadState
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -46,7 +48,7 @@ class LinkedInCommunityManagementTest {
 
     @Test
     fun `disabled discovery fails before resolving a token or sending HTTP`() = runTest {
-        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val transport = RecordingTransport(ProviderHttpResponse(200, emptyHeaders(), "{}"))
         var tokenCalls = 0
         val adapter = adapter(
             transport = transport,
@@ -68,7 +70,7 @@ class LinkedInCommunityManagementTest {
 
     @Test
     fun `mismatched gate fails before token and HTTP for posts comments and replies`() = runTest {
-        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val transport = RecordingTransport(ProviderHttpResponse(200, emptyHeaders(), "{}"))
         var tokenCalls = 0
         val adapter = adapter(
             transport = transport,
@@ -115,7 +117,7 @@ class LinkedInCommunityManagementTest {
     @Test
     fun `discovers administered organization pages through versioned rest endpoint`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
@@ -143,7 +145,7 @@ class LinkedInCommunityManagementTest {
     @Test
     fun `discovery excludes ACL entries that are not administrator roles`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """{"elements":[
@@ -161,7 +163,7 @@ class LinkedInCommunityManagementTest {
     @Test
     fun `fetches posts with organization urn and opaque pagination`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
@@ -195,7 +197,7 @@ class LinkedInCommunityManagementTest {
             429 to SocialContentProviderFailure.RATE_LIMITED,
             503 to SocialContentProviderFailure.PROVIDER_UNAVAILABLE,
         ).forEach { (status, expected) ->
-            val adapter = adapter(RecordingTransport(LinkedInHttpResponse(status, emptyHeaders(), "error")))
+            val adapter = adapter(RecordingTransport(ProviderHttpResponse(status, emptyHeaders(), "error")))
 
             val error = assertThrows<SocialContentProviderException> {
                 adapter.fetchPosts(actor, null)
@@ -210,7 +212,7 @@ class LinkedInCommunityManagementTest {
     fun `maps an unclassified provider error and parses retry after seconds`() = runTest {
         val adapter = adapter(
             RecordingTransport(
-                LinkedInHttpResponse(
+                ProviderHttpResponse(
                     404,
                     HttpHeaders.of(mapOf("Retry-After" to listOf("7"))) { _, _ -> true },
                     "error",
@@ -231,7 +233,7 @@ class LinkedInCommunityManagementTest {
     fun `fetches posts modified since the checkpoint and preserves nested commentary text`() = runTest {
         val modifiedSince = java.time.Instant.parse("2026-08-01T12:00:00Z")
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
@@ -249,7 +251,7 @@ class LinkedInCommunityManagementTest {
 
     @Test
     fun `rejects non organization actors before sending HTTP`() = runTest {
-        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val transport = RecordingTransport(ProviderHttpResponse(200, emptyHeaders(), "{}"))
         val adapter = adapter(transport)
         val invalidUrnActor = actor.copy(externalActorId = ProviderActorId("urn:li:person:7"))
 
@@ -260,7 +262,7 @@ class LinkedInCommunityManagementTest {
 
     @Test
     fun `rejects invalid pagination inputs before sending HTTP`() = runTest {
-        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val transport = RecordingTransport(ProviderHttpResponse(200, emptyHeaders(), "{}"))
         val adapter = adapter(transport)
 
         assertThrows<IllegalArgumentException> {
@@ -277,14 +279,14 @@ class LinkedInCommunityManagementTest {
     @Test
     fun `follows organization ACL pagination when the first response is incomplete`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
                     {"elements":[{"organization":"urn:li:organization:123","role":"ADMINISTRATOR"}],"paging":{"total":2}}
                 """.trimIndent(),
             ),
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
@@ -305,7 +307,7 @@ class LinkedInCommunityManagementTest {
 
     @Test
     fun `default access gate denies reads without approval evidence`() = runTest {
-        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val transport = RecordingTransport(ProviderHttpResponse(200, emptyHeaders(), "{}"))
         val adapter = LinkedInCommunityManagement(
             properties = properties,
             objectMapper = ObjectMapper(),
@@ -322,14 +324,14 @@ class LinkedInCommunityManagementTest {
     @Test
     fun `fetches paginated comments from the requested cursor`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
                     {"elements":[{"id":"comment-1","actor":"urn:li:person:7","message":{"text":"First"},"created":{"time":1754049600000},"parentComment":""}],"paging":{"start":0,"count":1,"total":2}}
                 """.trimIndent(),
             ),
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
@@ -365,14 +367,14 @@ class LinkedInCommunityManagementTest {
             now = java.time.Instant.parse("2026-08-01T12:00:00Z"),
         )
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 emptyHeaders(),
                 """
                     {"elements":[{"id":"comment-1","actor":"urn:li:person:7","message":{"text":"Question"},"created":{"time":1754049600000},"parentComment":""}],"paging":{"start":0,"count":100,"total":1}}
                 """.trimIndent(),
             ),
-            LinkedInHttpResponse(201, emptyHeaders(), """{"id":"comment-2"}"""),
+            ProviderHttpResponse(201, emptyHeaders(), """{"id":"comment-2"}"""),
         )
         val adapter = adapter(transport)
 
@@ -418,12 +420,12 @@ class LinkedInCommunityManagementTest {
         accessGate = accessGate,
     )
 
-    private class RecordingTransport(vararg responses: LinkedInHttpResponse) : LinkedInHttpTransport {
+    private class RecordingTransport(vararg responses: ProviderHttpResponse) : ProviderHttpTransport {
         private val responses = responses.toList()
         private var index = 0
         val requests = mutableListOf<HttpRequest>()
 
-        override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
+        override suspend fun send(request: HttpRequest): ProviderHttpResponse {
             requests += request
             return responses[index++]
         }

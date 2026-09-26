@@ -5,6 +5,12 @@ import java.time.Instant
 interface OAuthStateSigner {
     fun sign(payload: OAuthStatePayload): String
     fun verify(state: String): OAuthStatePayload
+    suspend fun consume(payload: OAuthStatePayload)
+}
+
+/** Shared, atomic replay protection for validated OAuth callbacks. */
+fun interface OAuthStateReplayStore {
+    suspend fun consume(nonce: String, expiresAt: Instant): Boolean
 }
 
 data class OAuthStatePayload(

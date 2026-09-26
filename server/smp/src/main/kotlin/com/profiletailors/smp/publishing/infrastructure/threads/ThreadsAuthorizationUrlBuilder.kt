@@ -1,7 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.threads
 
 import com.profiletailors.smp.publishing.domain.OAuthAuthorizationUrlBuilder
-import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
+import com.profiletailors.smp.publishing.infrastructure.http.formUrlEncoded
 
 class ThreadsAuthorizationUrlBuilder(private val properties: ThreadsPublishingProperties) :
     OAuthAuthorizationUrlBuilder {
@@ -15,7 +15,7 @@ class ThreadsAuthorizationUrlBuilder(private val properties: ThreadsPublishingPr
             "scope" to properties.requiredScopes.joinToString(","),
             "state" to state,
         )
-        return "${properties.apiBaseUrl}/${properties.apiVersion}/oauth/authorize?$query"
+        return "${properties.authorizationBaseUrl}?$query"
     }
 
     override fun isConfigured(): Boolean = properties.isConfigured()

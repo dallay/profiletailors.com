@@ -6,7 +6,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateReplayStore
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.kotest.assertions.throwables.shouldThrow
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -15,12 +21,13 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class HmacOAuthStateSignerTest {
+    private val replayStore = mockk<OAuthStateReplayStore>(relaxed = true)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-26T12:00:00Z"), ZoneOffset.UTC)
     private val objectMapper = ObjectMapper()
         .findAndRegisterModules()
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-    private val signer = HmacOAuthStateSigner("unit-secret-with-enough-entropy", objectMapper, clock)
+    private val signer = HmacOAuthStateSigner("unit-secret-with-enough-entropy", objectMapper, clock, replayStore)
 
     @Test
     fun `signs and verifies oauth state payload`() {
@@ -59,20 +66,23 @@ class HmacOAuthStateSignerTest {
     }
 
     @Test
-    fun `rejects replayed oauth state`() {
-        val state = signer.sign(validPayload())
-
+    fun `should reject replay when a validated nonce is consumed twice`() = runTest {
+        val payload = validPayload()
+        coEvery { replayStore.consume(payload.nonce, payload.expiresAt) } returnsMany listOf(true, false)
+        val state = signer.sign(payload)
         signer.verify(state)
+        signer.verify(state)
+        coVerify(exactly = 0) { replayStore.consume(any(), any()) }
 
-        assertThrows(InvalidOAuthStateException::class.java) {
-            signer.verify(state)
-        }
+        signer.consume(payload)
+
+        shouldThrow<InvalidOAuthStateException> { signer.consume(payload) }
     }
 
     @Test
     fun `rejects blank signing secret`() {
         val error = assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("", objectMapper, clock)
+            HmacOAuthStateSigner("", objectMapper, clock, replayStore)
         }
         assertEquals("OAuth state signing secret is required.", error.message)
     }
@@ -81,35 +91,35 @@ class HmacOAuthStateSignerTest {
     @Test
     fun `rejects CHANGE_ME placeholder secret`() {
         assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("CHANGE_ME_LINKEDIN_STATE", objectMapper, clock)
+            HmacOAuthStateSigner("CHANGE_ME_LINKEDIN_STATE", objectMapper, clock, replayStore)
         }
     }
 
     @Test
     fun `rejects CHANGE_ME prefix variant`() {
         assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("CHANGE_ME_anything", objectMapper, clock)
+            HmacOAuthStateSigner("CHANGE_ME_anything", objectMapper, clock, replayStore)
         }
     }
 
     @Test
     fun `rejects changeme lowercase prefix`() {
         assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("changeme-secret", objectMapper, clock)
+            HmacOAuthStateSigner("changeme-secret", objectMapper, clock, replayStore)
         }
     }
 
     @Test
     fun `rejects placeholder prefix`() {
         assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("placeholder-value", objectMapper, clock)
+            HmacOAuthStateSigner("placeholder-value", objectMapper, clock, replayStore)
         }
     }
 
     @Test
     fun `accepts a strong random secret`() {
         val strongSecret = "Xq9mP2rLvJ8dKcY5hNwAeT3bUfGsOiQ7"
-        val strongSigner = HmacOAuthStateSigner(strongSecret, objectMapper, clock)
+        val strongSigner = HmacOAuthStateSigner(strongSecret, objectMapper, clock, replayStore)
         val payload = validPayload()
         assertEquals(payload, strongSigner.verify(strongSigner.sign(payload)))
     }
@@ -117,14 +127,14 @@ class HmacOAuthStateSignerTest {
     @Test
     fun `rejects test- prefixed placeholder secret`() {
         assertThrows(IllegalArgumentException::class.java) {
-            HmacOAuthStateSigner("test-secret-with-enough-entropy", objectMapper, clock)
+            HmacOAuthStateSigner("test-secret-with-enough-entropy", objectMapper, clock, replayStore)
         }
     }
 
     @Test
     fun `accepts bdd- and smp- prefixed test secrets`() {
         listOf("bdd-oauth-state-signing-secret-32b", "smp-integration-test-oauth-state-secret").forEach { secret ->
-            val secretSigner = HmacOAuthStateSigner(secret, objectMapper, clock)
+            val secretSigner = HmacOAuthStateSigner(secret, objectMapper, clock, replayStore)
             val payload = validPayload()
             assertEquals(payload, secretSigner.verify(secretSigner.sign(payload)))
         }

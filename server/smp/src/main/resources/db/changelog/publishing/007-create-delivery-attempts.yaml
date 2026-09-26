@@ -52,9 +52,6 @@ databaseChangeLog:
                   name: external_publication_id
                   type: varchar(255)
               - column:
-                  name: provider_operation_ref
-                  type: varchar(255)
-              - column:
                   name: attempted_at
                   type: timestamp with time zone
                   constraints:

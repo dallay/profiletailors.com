@@ -163,7 +163,6 @@ class PublishingConnectionController(private val mediator: Mediator) {
         @PathVariable provider: SocialProvider,
         @PathVariable connectionId: String,
     ): SocialConnectionResult {
-        provider.hashCode()
         return mediator.send(
             DisconnectProviderConnectionCommand(provider, connectionId),
         )

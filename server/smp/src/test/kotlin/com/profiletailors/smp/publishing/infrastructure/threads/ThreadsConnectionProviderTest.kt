@@ -5,8 +5,8 @@ import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionComman
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentials
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -30,21 +30,21 @@ class ThreadsConnectionProviderTest {
     @Test
     fun `exchanges short token then long token and stores mapped profile`() = runTest {
         val transport = RecordingTransport(
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 HttpHeaders.of(emptyMap()) { _, _ ->
                     true
                 },
                 """{"access_token":"short","user_id":"user-1"}""",
             ),
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 HttpHeaders.of(emptyMap()) { _, _ ->
                     true
                 },
                 """{"access_token":"long","expires_in":86400}""",
             ),
-            LinkedInHttpResponse(
+            ProviderHttpResponse(
                 200,
                 HttpHeaders.of(emptyMap()) { _, _ ->
                     true
@@ -81,7 +81,7 @@ class ThreadsConnectionProviderTest {
     fun `sanitizes provider failure without returning raw response`() = runTest {
         val body = "token=super-secret&error=denied"
         val transport = RecordingTransport(
-            LinkedInHttpResponse(400, HttpHeaders.of(emptyMap()) { _, _ -> true }, body),
+            ProviderHttpResponse(400, HttpHeaders.of(emptyMap()) { _, _ -> true }, body),
         )
 
         val exception = assertThrows(IllegalStateException::class.java) {
@@ -108,10 +108,10 @@ class ThreadsConnectionProviderTest {
         assertEquals(false, exception.message?.contains("super-secret"))
     }
 
-    private class RecordingTransport(private vararg val responses: LinkedInHttpResponse) : LinkedInHttpTransport {
+    private class RecordingTransport(private vararg val responses: ProviderHttpResponse) : ProviderHttpTransport {
         val requests = mutableListOf<HttpRequest>()
         private var index = 0
-        override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
+        override suspend fun send(request: HttpRequest): ProviderHttpResponse {
             requests += request
             return responses[index++]
         }

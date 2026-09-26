@@ -29,12 +29,12 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcDeliveryAttemptRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcNotificationEventRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingJobExecutor
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorker
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException

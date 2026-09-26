@@ -1,4 +1,9 @@
 export default {
+  reconnectRequired: 'Reconnect Required',
+  reconnectNotice: '{providers} accounts need re-authentication to resume publishing.',
+  reconnectAccount: 'Reconnect {provider} account',
+  reconnectProvider: 'Reconnect {provider}',
+
   subtitle: 'Manage your content pipeline in a structured calendar view.',
   mon: 'MON',
   tue: 'TUE',

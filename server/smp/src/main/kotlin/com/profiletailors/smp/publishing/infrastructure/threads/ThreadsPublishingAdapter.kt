@@ -2,6 +2,7 @@ package com.profiletailors.smp.publishing.infrastructure.threads
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.ProviderMediaUrlResolver
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
@@ -9,11 +10,11 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver
 import com.profiletailors.smp.publishing.domain.SocialPublisher
-import com.profiletailors.smp.publishing.infrastructure.linkedin.CONTENT_TYPE
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
-import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureException
+import com.profiletailors.smp.publishing.infrastructure.http.CONTENT_TYPE
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpResponse
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import kotlinx.coroutines.delay
 import java.net.HttpURLConnection
 import java.net.URI
@@ -24,7 +25,7 @@ import java.time.Duration
 class ThreadsPublishingAdapter(
     private val properties: ThreadsPublishingProperties,
     private val objectMapper: ObjectMapper,
-    private val httpTransport: LinkedInHttpTransport,
+    private val httpTransport: ProviderHttpTransport,
     private val credentialResolver: RefreshAwareCredentialResolver,
     private val mediaUrlResolver: ProviderMediaUrlResolver,
     private val clock: Clock = Clock.systemUTC(),
@@ -35,7 +36,9 @@ class ThreadsPublishingAdapter(
         val media = mediaUrlResolver.resolve(
             workspaceId = command.workspaceId,
             assets = command.assets,
-            deadline = clock.instant().plus(properties.containerPollTimeout),
+            deadline = clock.instant().plus(
+                properties.containerPollTimeout.multipliedBy(command.assets.size.toLong() + 1),
+            ),
         )
         val children = if (command.assets.size > 1) {
             command.assets.zip(media).map { (asset, url) ->
@@ -135,7 +138,7 @@ class ThreadsPublishingAdapter(
 
     private fun endpoint(path: String): URI = URI.create("${properties.apiBaseUrl}/${properties.apiVersion}/$path")
 
-    private suspend fun send(request: HttpRequest, accessToken: String): LinkedInHttpResponse = httpTransport.send(
+    private suspend fun send(request: HttpRequest, accessToken: String): ProviderHttpResponse = httpTransport.send(
         HttpRequest.newBuilder(request.uri())
             .method(
                 request.method(),
@@ -145,7 +148,7 @@ class ThreadsPublishingAdapter(
             .build(),
     )
 
-    private fun ensureSuccess(response: LinkedInHttpResponse) {
+    private fun ensureSuccess(response: ProviderHttpResponse) {
         if (response.statusCode in HTTP_SUCCESS_RANGE) return
         throw PublishingFailureException(failureFor(response.statusCode))
     }
@@ -160,9 +163,9 @@ class ThreadsPublishingAdapter(
 
     private fun status(statusCode: Int): String = "status=$statusCode"
 
-    private inline fun <reified T> decode(response: LinkedInHttpResponse, operation: String): T = try {
+    private inline fun <reified T> decode(response: ProviderHttpResponse, operation: String): T = try {
         objectMapper.readValue(response.body, T::class.java)
-    } catch (exception: IllegalArgumentException) {
+    } catch (exception: JsonProcessingException) {
         throw IllegalStateException("$operation returned an invalid response.", exception)
     }
 

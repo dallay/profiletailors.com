@@ -5,6 +5,7 @@ import com.profiletailors.smp.publishing.domain.PublishingCapability
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 
 object ThreadsCapabilitySet {
+    const val MAX_CAROUSEL_ITEMS = 20
     fun default(): ProviderCapabilitySet = ProviderCapabilitySet(
         accountKinds = setOf(SocialAccountKind.PERSONAL_PROFILE),
         supportedCapabilities = setOf(
@@ -13,6 +14,6 @@ object ThreadsCapabilitySet {
             PublishingCapability.SINGLE_VIDEO,
             PublishingCapability.MIXED_MEDIA_CAROUSEL,
         ),
-        carouselItemRange = 2..20,
+        carouselItemRange = 2..MAX_CAROUSEL_ITEMS,
     )
 }

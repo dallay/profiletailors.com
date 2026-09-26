@@ -90,6 +90,27 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
         assertNotNull(loadedAccount)
     }
 
+    @Test
+    fun `should find remaining credential references when another workspace owns the connection`() = runTest {
+        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-2', 'Other', 'ACTIVE')")
+            .fetch().rowsUpdated().awaitSingle()
+        val connection = SocialConnection(
+            id = "shared-1",
+            workspaceId = "workspace-1",
+            provider = SocialProvider.THREADS,
+            providerConnectionRef = "shared-profile",
+            status = SocialConnectionStatus.ACTIVE,
+            credentialReference = "shared-credential",
+        )
+        connections.upsert(connection)
+        connections.upsert(connection.copy(id = "shared-2", workspaceId = "workspace-2"))
+
+        connections.deleteByWorkspaceAndId("workspace-1", "shared-1")
+        assertEquals(true, connections.existsByCredentialReference("shared-credential"))
+        connections.deleteByWorkspaceAndId("workspace-2", "shared-2")
+        assertEquals(false, connections.existsByCredentialReference("shared-credential"))
+    }
+
     companion object {
         @Container
         val postgresContainer = PostgresTestContainerSupport.newContainer("provider_connections")

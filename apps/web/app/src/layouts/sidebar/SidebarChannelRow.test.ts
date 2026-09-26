@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { beforeEach, describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import i18n from '@shared/i18n'
+import { nextTick } from 'vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { getProviderBadge } from '@shared/lib/provider-styles'
 import SidebarChannelRow from './SidebarChannelRow.vue'
@@ -27,8 +29,32 @@ function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
 }
 
 describe('SidebarChannelRow', () => {
+  beforeEach(() => {
+    i18n.global.locale.value = 'en'
+  })
+
+  it('updates the provider and reconnect translation when props and locale change', async () => {
+    const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
+      props: {
+        channel: makeChannel({ status: 'REQUIRES_RECONNECT' }),
+        isActive: false,
+        queuedCount: 0,
+      },
+    })
+    expect(wrapper.attributes('aria-label')).toContain('LinkedIn')
+    await wrapper.setProps({
+      channel: makeChannel({ provider: 'threads', status: 'REQUIRES_RECONNECT' }),
+    })
+    i18n.global.locale.value = 'es'
+    await nextTick()
+    expect(wrapper.attributes('aria-label')).toContain('Threads')
+    expect(wrapper.attributes('aria-label')).toContain(i18n.global.t('channels.needsReconnect'))
+  })
+
   it('renders an <img> with proxyImageUrl(src) and the channel name alt', () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: { channel: makeChannel(), isActive: false, queuedCount: 0 },
     })
 
@@ -40,6 +66,7 @@ describe('SidebarChannelRow', () => {
 
   it('renders a fallback badge span when avatarUrl is missing', () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: {
         channel: makeChannel({ avatarUrl: undefined }),
         isActive: false,
@@ -53,6 +80,7 @@ describe('SidebarChannelRow', () => {
 
   it('uses the central provider presentation for a connected provider without an avatar', () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: {
         channel: makeChannel({
           provider: 'threads' as Channel['provider'],
@@ -68,6 +96,7 @@ describe('SidebarChannelRow', () => {
 
   it('announces when a connected account needs reconnecting', () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: {
         channel: makeChannel({
           provider: 'threads' as Channel['provider'],
@@ -84,6 +113,7 @@ describe('SidebarChannelRow', () => {
 
   it('swaps to the fallback badge and emits avatarError on img @error', async () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: { channel: makeChannel(), isActive: false, queuedCount: 0 },
     })
 
@@ -100,6 +130,7 @@ describe('SidebarChannelRow', () => {
 
   it('emits select on click', async () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: { channel: makeChannel(), isActive: false, queuedCount: 0 },
     })
 
@@ -110,6 +141,7 @@ describe('SidebarChannelRow', () => {
 
   it('does not leak avatar failure between sibling rows', async () => {
     const wrapper = mount(SidebarChannelRow, {
+      global: { plugins: [i18n] },
       props: { channel: makeChannel(), isActive: false, queuedCount: 0 },
     })
 

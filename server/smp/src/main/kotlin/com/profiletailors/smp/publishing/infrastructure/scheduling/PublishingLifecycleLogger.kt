@@ -1,6 +1,8 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureCategory
 import org.slf4j.LoggerFactory
 
 class PublishingLifecycleLogger {

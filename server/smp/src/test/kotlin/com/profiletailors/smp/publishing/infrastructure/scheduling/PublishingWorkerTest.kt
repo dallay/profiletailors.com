@@ -39,6 +39,9 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.domain.StaleJobPage
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureCategory
+import com.profiletailors.smp.publishing.infrastructure.PublishingFailureException
 import io.kotest.assertions.withClue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe

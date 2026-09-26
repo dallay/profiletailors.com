@@ -38,6 +38,7 @@ import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
@@ -2011,6 +2012,8 @@ class PublishingHandlersTest {
             return "state-1"
         }
 
+        override suspend fun consume(payload: OAuthStatePayload) = Unit
+
         override fun verify(state: String): LinkedInOAuthStatePayload = payload ?: validStatePayload()
     }
 
@@ -2067,6 +2070,8 @@ class PublishingHandlersTest {
     private class InMemorySocialConnectionRepository : SocialConnectionRepository {
         var lastSaved: SocialConnection? = null
         private val items = linkedMapOf<String, SocialConnection>()
+
+        override suspend fun existsByCredentialReference(credentialReference: String): Boolean = false
 
         override suspend fun upsert(connection: SocialConnection): SocialConnection {
             items[connection.id] = connection

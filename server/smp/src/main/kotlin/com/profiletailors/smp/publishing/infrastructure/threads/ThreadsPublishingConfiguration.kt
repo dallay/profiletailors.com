@@ -9,7 +9,7 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishingRegistry
 import com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentialGateway
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.http.ProviderHttpTransport
 import com.profiletailors.smp.publishing.infrastructure.linkedin.RealLinkedInConnectionProvider
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import org.springframework.beans.factory.annotation.Qualifier
@@ -24,7 +24,7 @@ class ThreadsPublishingConfiguration {
     @Bean
     @Qualifier("threadsAuthorizationUrlBuilder")
     fun threadsAuthorizationUrlBuilder(properties: ThreadsPublishingProperties): OAuthAuthorizationUrlBuilder =
-        ThreadsAuthorizationUrlBuilder(properties)
+        ThreadsAuthorizationUrlBuilder(properties.apply { validate() })
 
     @Bean
     fun providerAuthorizationRegistry(
@@ -40,7 +40,7 @@ class ThreadsPublishingConfiguration {
     fun threadsConnectionProvider(
         properties: ThreadsPublishingProperties,
         objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
+        linkedInHttpTransport: ProviderHttpTransport,
         credentialGateway: ProviderCredentialGateway,
         clock: Clock,
     ): ThreadsConnectionProvider = ThreadsConnectionProvider(
@@ -71,7 +71,7 @@ class ThreadsPublishingConfiguration {
     fun threadsPublisher(
         properties: ThreadsPublishingProperties,
         objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
+        linkedInHttpTransport: ProviderHttpTransport,
         credentialResolver: RefreshAwareCredentialResolver,
         threadsMediaUrlResolver: ThreadsProviderMediaUrlResolver,
         clock: Clock,
