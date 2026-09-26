@@ -1,0 +1,102 @@
+name: Mutation Testing (advisory)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+  pull_request:
+    paths:
+      - 'server/smp/**/*.kt'
+      - 'shared/**/*.kt'
+      - 'gradle/**'
+      - 'settings.gradle.kts'
+      - '.github/workflows/mutation-testing.yml'
+
+concurrency:
+  group: mutation-testing-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mutation-advisory:
+    name: mutflow advisory baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Run mutation baseline (LENIENT, advisory)
+        run: >
+          MUTFLOW_VERIFICATION_MODE=LENIENT
+          ./gradlew :server:smp:test --no-daemon --no-configuration-cache
+          --tests "com.profiletailors.smp.publishing.domain.PublicationRetryMutationBaselineTest"
+          --tests "com.profiletailors.smp.publishing.domain.BulkValidationMutationBaselineTest"
+          2>&1 | tee mutation-baseline.log
+
+      - name: Verify production artifact is clean
+        run: ./gradlew :server:smp:verifyMutationClean --no-daemon --no-configuration-cache
+
+      - name: Build advisory summary
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PYEOF' > mutation-summary.md
+          import glob
+          import xml.etree.ElementTree as ET
+
+          print('# Mutation testing advisory summary')
+          print()
+          print('No blocking verdict is derived from this report.')
+          print()
+          files = sorted(glob.glob('server/smp/build/test-results/test/*MutationBaseline*.xml'))
+          attempted = 0
+          for path in files:
+              text = open(path, encoding='utf-8', errors='replace').read()
+              for marker in ('Total mutations discovered:', 'Killed:', 'Survived:', 'Timed out:'):
+                  _ = marker
+              print('## ' + path.split('TEST-')[-1])
+              for line in text.splitlines():
+                  if 'mutations discovered' in line or 'Killed:' in line or 'Survived:' in line or 'Timed out:' in line:
+                      cleaned = ''.join(ch for ch in line if ch.isprintable()).strip()
+                      print('- ' + cleaned)
+                      if 'mutations discovered' in line:
+                          digits = ''.join(ch for ch in cleaned if ch.isdigit())
+                          attempted += int(digits) if digits else 0
+          print()
+          print('Omitted scopes and reason: BDD suites, Testcontainers paths, full Spring')
+          print('contexts, controllers, R2DBC adapters, providers, generated code, DTO-only')
+          print('code and trivial configuration are validated by existing unit, integration')
+          print('and BDD suites rather than mutation runs.')
+          PYEOF
+          {
+            echo "SHA: ${GITHUB_SHA}"
+            echo "Trigger: ${GITHUB_EVENT_NAME}"
+            echo -n "mutflow: "
+            grep '^mutflow = ' gradle/libs.versions.toml
+            echo -n "kotlin: "
+            grep '^kotlin = ' gradle/libs.versions.toml
+            ./gradlew --version --no-daemon | grep -E '^Gradle '
+            java -version 2>&1 | head -n 1
+            echo "Artifacts: server/smp/build/test-results/test/*MutationBaseline*.xml, mutation-baseline.log"
+          } >> mutation-summary.md
+          cat mutation-summary.md >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload advisory artifacts
+        if: always()
+        uses: actions/upload-artifact@b7c8c2f1c805101bd13e8d39a4f31fecf2a6d2ea7 # v6.0.0
+        with:
+          name: mutation-advisory-${{ github.sha }}
+          path: |
+            mutation-baseline.log
+            mutation-summary.md
+            server/smp/build/test-results/test/*MutationBaseline*.xml
+          retention-days: 14

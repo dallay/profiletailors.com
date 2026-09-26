@@ -21,6 +21,10 @@ dependencies {
     implementation(libs.gradle.kover)
     implementation(libs.gradle.spotless)
     implementation(libs.gradle.licence.report)
+    implementation(libs.gradle.mutflow) {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-gradle-plugin-api")
+    }
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -56,6 +60,10 @@ gradlePlugin {
         register("licence-report") {
             id = "com.profiletailors.legal.licence-report"
             implementationClass = "com.profiletailors.buildlogic.legal.LicenceReportPlugin"
+        }
+        register("mutation-testing") {
+            id = "com.profiletailors.mutation.testing"
+            implementationClass = "com.profiletailors.buildlogic.testing.MutationTestingPlugin"
         }
     }
 }

@@ -9,6 +9,7 @@ detekt = "2.0.0-alpha.6"
 spotless = "8.10.2"
 owasp = "13.0.0"
 licenceReport = "3.1.4"
+mutflow = "1.5.0"
 jdk = "25"
 
 # Libraries
@@ -125,6 +126,7 @@ gradle-detekt = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "det
 gradle-owasp-depcheck = { module = "org.owasp:dependency-check-gradle", version.ref = "owasp" }
 gradle-spotless = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
 gradle-licence-report = { module = "com.github.jk1:gradle-license-report", version.ref = "licenceReport" }
+gradle-mutflow = { module = "io.github.anschnapp.mutflow:mutflow-gradle-plugin", version.ref = "mutflow" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -135,3 +137,4 @@ detekt = { id = "dev.detekt", version.ref = "detekt" }
 owasp-dependencycheck = { id = "org.owasp.dependencycheck", version.ref = "owasp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+mutflow = { id = "io.github.anschnapp.mutflow", version.ref = "mutflow" }
