@@ -1203,7 +1203,7 @@ async function handleCreateSubmit(
         <button type="button"
           @click="emit('close')"
           aria-label="Close"
-          class="sticky top-4 z-50 mr-4 self-end flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
+          class="sticky top-4 right-4 z-50 float-right -mb-8 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
           <X class="size-4" />
         </button>
