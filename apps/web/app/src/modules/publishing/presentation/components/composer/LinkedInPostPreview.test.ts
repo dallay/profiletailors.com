@@ -111,4 +111,40 @@ describe('LinkedInPostPreview.vue', () => {
       'composer.previewMeta.video',
     )
   })
+
+  it('renders the author avatar image when authorAvatarUrl is provided', (): void => {
+    const wrapper = mountPreview(buildPreview({ authorAvatarUrl: 'https://media.licdn.com/x.jpg' }))
+
+    const avatar = wrapper.get('[data-testid="linkedin-preview-avatar"]')
+    expect(avatar.attributes('src')).toBe('https://media.licdn.com/x.jpg')
+    expect(wrapper.find('[data-testid="linkedin-preview-avatar-fallback"]').exists()).toBe(false)
+  })
+
+  it('falls back to initials when the author avatar image fails to load', async (): Promise<void> => {
+    const wrapper = mountPreview(
+      buildPreview({ authorAvatarUrl: 'https://media.licdn.com/x.jpg', authorInitials: 'YA' }),
+    )
+
+    await wrapper.get('[data-testid="linkedin-preview-avatar"]').trigger('error')
+
+    expect(wrapper.find('[data-testid="linkedin-preview-avatar"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="linkedin-preview-avatar-fallback"]').text()).toBe('YA')
+  })
+
+  it('retries the author avatar when its URL changes after a load failure', async (): Promise<void> => {
+    const wrapper = mountPreview(
+      buildPreview({ authorAvatarUrl: 'https://media.licdn.com/old.jpg' }),
+    )
+
+    await wrapper.get('[data-testid="linkedin-preview-avatar"]').trigger('error')
+    expect(wrapper.find('[data-testid="linkedin-preview-avatar"]').exists()).toBe(false)
+
+    await wrapper.setProps({
+      preview: buildPreview({ authorAvatarUrl: 'https://media.licdn.com/new.jpg' }),
+    })
+
+    expect(wrapper.get('[data-testid="linkedin-preview-avatar"]').attributes('src')).toBe(
+      'https://media.licdn.com/new.jpg',
+    )
+  })
 })

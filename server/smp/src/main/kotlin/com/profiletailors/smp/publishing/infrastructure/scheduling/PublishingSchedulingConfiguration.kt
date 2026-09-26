@@ -6,6 +6,7 @@ import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
@@ -28,6 +29,7 @@ class PublishingSchedulingConfiguration(
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val socialPublisher: SocialPublisher,
     private val clock: Clock,
+    private val publicationEventPublisher: PublicationEventPublisher,
 ) {
     @Bean
     fun publishingTaskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
@@ -48,6 +50,7 @@ class PublishingSchedulingConfiguration(
     @Bean
     fun publishingLifecycleLogger(): PublishingLifecycleLogger = PublishingLifecycleLogger()
 
+    /** Creates the job executor with retry handling and publication-change notifications. */
     @Bean
     fun publishingJobExecutor(
         notificationEventRepository: NotificationEventRepository?,
@@ -67,8 +70,10 @@ class PublishingSchedulingConfiguration(
         transactionRunner = transactionRunner,
         clock = clock,
         lifecycleLogger = publishingLifecycleLogger,
+        publicationEventPublisher = publicationEventPublisher,
     )
 
+    /** Creates a worker with a unique identity, configured claim timing, and change notifications. */
     @Bean
     fun publishingWorker(
         publicationJobRepository: PublicationJobRepository,
@@ -87,6 +92,7 @@ class PublishingSchedulingConfiguration(
         claimLease = properties.claimLease,
         staleGrace = properties.staleGrace,
         lifecycleLogger = publishingLifecycleLogger,
+        publicationEventPublisher = publicationEventPublisher,
     )
 
     @Bean

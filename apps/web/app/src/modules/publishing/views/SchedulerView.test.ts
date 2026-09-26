@@ -4,6 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 import type { CalendarUrlController } from '@modules/publishing/application/useCalendarUrl'
 
@@ -75,6 +77,42 @@ vi.mock('vue-i18n', () => ({
     locale: { value: 'en' },
   }),
 }))
+
+vi.mock('@modules/publishing/application/useReactiveClock', () => ({
+  useReactiveClock: ({
+    onVisible,
+    onHidden,
+  }: {
+    onVisible?: () => void
+    onHidden?: () => void
+  }) => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+    queueMicrotask(() => {
+      onVisible?.()
+      onHidden?.()
+    })
+    return { now: ref(new Date()), stop: vi.fn() }
+  },
+}))
+
+vi.mock('@modules/publishing/application/useCalendarRevalidation', () => {
+  const fetchCalendarFn = vi.fn<(range: { from: string; to: string }) => Promise<void>>()
+  const revalidation = {
+    request: vi.fn(),
+    setVisible: vi.fn(),
+    stop: vi.fn(),
+    runNow: vi.fn(),
+  }
+  return {
+    useCalendarRevalidation: vi.fn(() => revalidation),
+    __fetchCalendarMock: fetchCalendarFn,
+    __revalidationMock: revalidation,
+  }
+})
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
@@ -213,13 +251,75 @@ describe('SchedulerView', () => {
     })
   }
 
-  it('mounts and fetches calendar on init', async () => {
+  it('subscribes to publication events on mount and unsubscribes on unmount', async () => {
     const store = usePublishingStore()
+    const auth = useAuthStore()
+    const workspace = useWorkspaceStore()
+    Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+    workspace.setActiveWorkspaceId('workspace-1')
+    vi.spyOn(store, 'fetchRecurringSchedules').mockResolvedValue([])
+    const subscribe = vi.spyOn(store, 'subscribePublicationEvents').mockResolvedValue(null)
+    const unsubscribe = vi.spyOn(store, 'unsubscribePublicationEvents').mockImplementation(() => {})
+    const { __revalidationMock } = (await import(
+      '@modules/publishing/application/useCalendarRevalidation'
+    )) as unknown as {
+      __revalidationMock: { request: ReturnType<typeof vi.fn> }
+    }
+    __revalidationMock.request.mockClear()
+
     const wrapper = mountView()
     await flushPromises()
 
-    expect(store.fetchCalendar).toHaveBeenCalledTimes(1)
+    expect(subscribe).toHaveBeenCalledTimes(1)
+    const onInvalidation = subscribe.mock.calls[0]?.[0]
+    expect(onInvalidation).toBeTypeOf('function')
+    onInvalidation?.({
+      workspaceId: 'workspace-1',
+      publicationId: 'pub-1',
+      changeType: 'publication.status-changed',
+      occurredAt: '2026-09-25T12:00:00.000Z',
+    })
+    expect(__revalidationMock.request).toHaveBeenCalled()
+
+    wrapper.unmount()
+    expect(unsubscribe).toHaveBeenCalledTimes(2)
+  })
+
+  it('resubscribes to publication events when the active workspace changes', async () => {
+    const store = usePublishingStore()
+    const auth = useAuthStore()
+    const workspace = useWorkspaceStore()
+    Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+    workspace.setActiveWorkspaceId('workspace-1')
+    vi.spyOn(store, 'fetchRecurringSchedules').mockResolvedValue([])
+    const subscribe = vi.spyOn(store, 'subscribePublicationEvents').mockResolvedValue(null)
+
+    const wrapper = mountView()
+    await flushPromises()
+    expect(subscribe).toHaveBeenCalledTimes(1)
+
+    workspace.setActiveWorkspaceId('workspace-2')
+    await flushPromises()
+    expect(subscribe).toHaveBeenCalledTimes(2)
+
+    wrapper.unmount()
+  })
+
+  it('mounts and asks the revalidation coordinator for the current range', async () => {
+    const store = usePublishingStore()
+    const { __revalidationMock } = (await import(
+      '@modules/publishing/application/useCalendarRevalidation'
+    )) as unknown as {
+      __revalidationMock: { request: ReturnType<typeof vi.fn>; runNow: ReturnType<typeof vi.fn> }
+    }
+    __revalidationMock.request.mockClear()
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(__revalidationMock.request).toHaveBeenCalled()
     expect(wrapper.find('[data-testid="calendar-header"]').exists()).toBe(true)
+    void store
   })
 
   it('uses flex sizing on the scheduler root so the shell keeps scroll ownership', async () => {
@@ -784,41 +884,33 @@ describe('SchedulerView', () => {
       expect(mockController.closePostDetail).not.toHaveBeenCalled()
     })
 
-    it('ignores an older fetch settling after a newer navigation so it does not spuriously close the modal', async () => {
+    it('only revalidates against the latest range when navigation arrives mid-flight', async () => {
       const store = usePublishingStore()
       store.publications = []
-
-      const resolvers: Array<() => void> = []
-      vi.spyOn(store, 'fetchCalendar').mockImplementation(
-        () =>
-          new Promise<void>((resolve) => {
-            resolvers.push(resolve)
-          }),
-      )
+      const { __revalidationMock } = (await import(
+        '@modules/publishing/application/useCalendarRevalidation'
+      )) as unknown as {
+        __revalidationMock: { request: ReturnType<typeof vi.fn> }
+      }
+      __revalidationMock.request.mockClear()
 
       mountView({ date: '2026-06-25', postId: 'post-stale' })
       await flushPromises()
+      const initialCalls = __revalidationMock.request.mock.calls.length
+      expect(initialCalls).toBeGreaterThanOrEqual(1)
 
-      // Simulate a newer navigation firing before the first fetch settles.
       mockController.state.value = {
         ...mockController.state.value,
         date: '2026-06-26',
       }
       await flushPromises()
 
-      expect(resolvers).toHaveLength(2)
-
-      // Resolve the OLDER fetch first — its token is now stale, so the
-      // reconciliation check inside the watcher must be skipped for it.
-      resolvers[0]!()
-      await flushPromises()
-      expect(mockController.closePostDetail).not.toHaveBeenCalled()
-
-      // Resolve the NEWER fetch — its token matches, so reconciliation runs
-      // exactly once for the still-missing postId.
-      resolvers[1]!()
-      await flushPromises()
-      expect(mockController.closePostDetail).toHaveBeenCalledTimes(1)
+      expect(__revalidationMock.request.mock.calls.length).toBeGreaterThan(initialCalls)
+      const latestCall = __revalidationMock.request.mock.calls.at(-1)?.[0] as {
+        from: string
+        to: string
+      }
+      expect(latestCall.from).toBe('2026-06-21T00:00:00.000Z')
       expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
     })
   })
@@ -912,21 +1004,25 @@ describe('SchedulerView', () => {
   })
 
   it('refreshes calendar when CreatePostModal emits updated', async () => {
-    const store = usePublishingStore()
+    const { __revalidationMock } = (await import(
+      '@modules/publishing/application/useCalendarRevalidation'
+    )) as unknown as {
+      __revalidationMock: { request: ReturnType<typeof vi.fn> }
+    }
+    __revalidationMock.request.mockClear()
+
     const wrapper = mountView()
     await flushPromises()
 
     await wrapper.find('[data-testid="header-new-post"]').trigger('click')
     await flushPromises()
+    const initialCalls = __revalidationMock.request.mock.calls.length
 
-    const initialCalls = (store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length
     const updatedBtn = wrapper.find('[data-testid="create-post-updated"]')
     await updatedBtn.trigger('click')
     await flushPromises()
 
-    expect((store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
-      initialCalls,
-    )
+    expect(__revalidationMock.request.mock.calls.length).toBeGreaterThan(initialCalls)
   })
 
   describe('month view', () => {

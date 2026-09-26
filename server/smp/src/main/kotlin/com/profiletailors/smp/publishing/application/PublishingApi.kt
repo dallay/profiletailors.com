@@ -36,6 +36,17 @@ data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null
 
 data class ConnectedChannelsResponse(val channels: List<ConnectedSocialChannelSummary>)
 
+class RefreshChannelAvatarsCommand : CommandWithResult<RefreshChannelAvatarsResult>
+
+data class RefreshChannelAvatarsResult(
+    val refreshedAccountIds: List<String> = emptyList(),
+    val skippedAccountIds: List<String> = emptyList(),
+    val failedAccountIds: List<String> = emptyList(),
+) {
+    val refreshed: Int = refreshedAccountIds.size
+    val skipped: Int = skippedAccountIds.size
+    val failed: Int = failedAccountIds.size
+}
 data class ConnectedSocialChannelSummary(
     val socialAccountId: String,
     val connectionId: String,
@@ -131,6 +142,7 @@ data class PublicationResult(
     val externalPublicationId: String? = null,
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
+    val updatedAt: Instant? = null,
 )
 
 data class PublicationAssetSummary(val assetId: String, val sourceType: AssetSourceType, val mediaType: String)
@@ -183,6 +195,7 @@ data class CalendarPublicationResult(
     val externalPublicationId: String? = null,
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
+    val updatedAt: Instant? = null,
     val previewUrl: String? = null,
     val blockedReason: String? = null,
     val errorCode: String? = null,

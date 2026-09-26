@@ -14,6 +14,7 @@ import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInpu
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
@@ -67,6 +68,7 @@ class PublishingSchedulingConfigurationTest {
         providerCapabilityValidator = providerCapabilityValidator,
         socialPublisher = socialPublisher,
         clock = fixedClock,
+        publicationEventPublisher = PublicationEventPublisher { },
     )
 
     @Test
@@ -315,6 +317,7 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount = account()
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account()
+        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> = listOf(account())
     }
 
     private class NoOpMediaAssetResolver : MediaAssetResolver {

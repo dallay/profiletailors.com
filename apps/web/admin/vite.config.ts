@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwind from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
 const buildInfo = process.env.VITEST
@@ -33,7 +35,21 @@ export default defineConfig({
       },
     },
   },
-  plugins: [vue(), tailwind()],
+  plugins: [
+    vue(),
+    tailwind(),
+    {
+      name: 'version-json',
+      closeBundle() {
+        const outDir = fileURLToPath(new URL('./dist', import.meta.url))
+        writeFileSync(
+          resolve(outDir, 'version.json'),
+          `${JSON.stringify(buildInfo, null, 2)}\n`,
+          'utf8',
+        )
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

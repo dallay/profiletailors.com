@@ -124,6 +124,21 @@ class R2dbcSocialAccountRepository(
         .map { row, _ -> row.toSocialAccount() }
         .one()
         .awaitSingleOrNull()
+
+    override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> = databaseClient.sql(
+        """
+        SELECT sa.id, sa.social_connection_id, sa.workspace_id, sa.provider, sa.provider_account_id, sa.account_type, sa.display_name, sa.profile_urn, sa.avatar_url, sa.status, sa.created_at
+        FROM social_accounts sa
+        JOIN social_connections sc ON sc.id = sa.social_connection_id AND sc.status = 'ACTIVE'
+        WHERE sa.workspace_id = :workspaceId AND sa.status = 'ACTIVE'
+        ORDER BY sa.created_at ASC
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .map { row, _ -> row.toSocialAccount() }
+        .all()
+        .collectList()
+        .awaitSingle()
 }
 
 @Suppress("StringLiteralDuplication")

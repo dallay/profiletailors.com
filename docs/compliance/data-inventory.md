@@ -2,8 +2,8 @@
 
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Internal control artifact — not a public policy document
-> **Schema version:** 2.0
-> **Last verified:** 2026-09-18
+> **Schema version:** 2.1
+> **Last verified:** 2026-09-25
 
 ## Overview
 
@@ -31,6 +31,7 @@ provider, and a database field or proposed duration is not an implemented deleti
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2026-07-17 | Initial inventory containing unverified providers and retention promises                                   |
 | 2.0     | 2026-07-17 | Revalidated against code; added evidence states and browser storage; removed unsupported production claims |
+| 2.1     | 2026-09-25 | Reconciled `pt_publications` boundary: authenticated publication data is no longer persisted to local storage; only the anonymous fallback retains the existing scope. |
 
 ## Usage
 
@@ -85,7 +86,7 @@ be described as an operational guarantee.
 | `pt_settings_v1`           | Local storage              | Dashboard locale and theme                       | No automatic expiry | Overwritten by user settings or browser clearing                   |
 | `pt_active_workspace_id`   | Local storage              | Workspace identifier                             | No automatic expiry | Store exposes reset, but logout integration is not evidenced       |
 | `pt_active_workspace_name` | Local storage              | Workspace name                                   | No automatic expiry | Store exposes reset, but logout integration is not evidenced       |
-| `pt_publications`          | Local storage              | Publication content, channel and scheduling data | No automatic expiry | Overwritten by dashboard actions or browser clearing               |
+| `pt_publications`          | Local storage              | Anonymous-fallback publication content; authenticated callers never write to this key | No automatic expiry (anonymous only) | Authenticated writes removed; the key now only reflects the documented anonymous fallback and is cleared by logout or browser clearing |
 | `pt-dashboard-new`         | Local storage              | Feature-layout preference                        | No automatic expiry | Overwritten by user toggle or browser clearing                     |
 
 The Cookie Policy must describe device storage by function, not only traditional cookies. Whether
@@ -107,7 +108,7 @@ or used for a development feature is not automatically necessary.
 | Publishing job/delivery-log purge            | Missing                | Relationship deletion exists; no seven/90/180-day time-based job located.                        |
 | Audit retention and legal hold               | Missing                | No one/five-year archive/delete control or legal-hold implementation located.                    |
 | Analytics, application logs, errors, metrics | Missing                | Destinations and 30-day/90-day/13-month controls are not selected or implemented.                |
-| Local-storage expiry                         | Missing                | Most keys persist until overwrite or browser clearing.                                           |
+| Local-storage expiry                         | Missing                | Most keys persist until overwrite or browser clearing. The authenticated path of `pt_publications` was removed; only the anonymous fallback retains local-storage persistence. |
 
 ## Troubleshooting
 

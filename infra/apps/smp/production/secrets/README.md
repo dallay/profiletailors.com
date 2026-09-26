@@ -1,5 +1,7 @@
 # Production Secrets
 
+[![Docker](https://img.shields.io/badge/Docker-Secrets-2d3748?style=flat-square&logo=docker&logoColor=2496ed)](https://docs.docker.com/compose/use-secrets/)
+
 ## Overview
 
 This directory is mounted into the backend as Docker Compose secrets. Secret values are local to

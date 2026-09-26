@@ -427,6 +427,104 @@ describe('publishing store', () => {
     })
   })
 
+  describe('refreshChannelAvatars', () => {
+    const oldChannel = {
+      socialAccountId: 'soc-1',
+      connectionId: 'conn-1',
+      provider: 'LINKEDIN',
+      accountKind: 'PERSONAL_PROFILE',
+      displayName: 'Ada Lovelace',
+      status: 'ACTIVE',
+      avatarUrl: 'https://media.licdn.com/old.jpg',
+      connectedAt: '2026-06-12T12:00:00Z',
+      lastSyncedAt: null,
+    }
+    const freshChannel = { ...oldChannel, avatarUrl: 'https://media.licdn.com/fresh.jpg' }
+
+    function mockChannelsFlow(getResponses: unknown[], refreshResponse: unknown) {
+      const calls: string[] = []
+      const apiFetch = vi
+        .spyOn(useAuthStore(), 'apiFetch')
+        .mockImplementation(async (path: string) => {
+          calls.push(path)
+          if (path === '/api/publishing/channels/refresh-avatars') return refreshResponse
+          return getResponses.shift() ?? { channels: [] }
+        })
+      return { apiFetch, calls }
+    }
+
+    function authenticate() {
+      Object.defineProperty(useAuthStore(), 'isAuthenticated', {
+        value: true,
+        configurable: true,
+      })
+    }
+
+    it('reloads channels once when avatars were refreshed', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      const { apiFetch } = mockChannelsFlow(
+        [{ channels: [oldChannel] }, { channels: [freshChannel] }],
+        {
+          refreshedAccountIds: ['soc-1'],
+          skippedAccountIds: [],
+          failedAccountIds: [],
+          refreshed: 1,
+          skipped: 0,
+          failed: 0,
+        },
+      )
+
+      await store.fetchChannels()
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels/refresh-avatars', {
+        method: 'POST',
+        workspaceScoped: true,
+      })
+      expect(
+        apiFetch.mock.calls.filter(([path]) => path === '/api/publishing/channels'),
+      ).toHaveLength(2)
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/fresh.jpg')
+    })
+
+    it('does not reload channels when no avatar changed', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      const { apiFetch } = mockChannelsFlow([{ channels: [oldChannel] }], {
+        refreshedAccountIds: [],
+        skippedAccountIds: ['soc-1'],
+        failedAccountIds: [],
+        refreshed: 0,
+        skipped: 1,
+        failed: 0,
+      })
+
+      await store.fetchChannels()
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels/refresh-avatars', {
+        method: 'POST',
+        workspaceScoped: true,
+      })
+      expect(
+        apiFetch.mock.calls.filter(([path]) => path === '/api/publishing/channels'),
+      ).toHaveLength(1)
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/old.jpg')
+    })
+
+    it('keeps loaded channels when the refresh request fails', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      vi.spyOn(useAuthStore(), 'apiFetch').mockImplementation(async (path: string) => {
+        if (path === '/api/publishing/channels/refresh-avatars') throw new Error('refresh down')
+        return { channels: [oldChannel] }
+      })
+
+      await store.fetchChannels()
+
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/old.jpg')
+    })
+  })
+
   describe('connectLinkedInPersonalProfile', () => {
     it('calls initiate endpoint and redirects to authorization URL', async () => {
       const store = usePublishingStore()
@@ -639,6 +737,103 @@ describe('publishing store', () => {
       expect(abort).toHaveBeenCalledOnce()
       expect(store.channelEventsAbortController).toBeNull()
       expect(store.channelEventsConnected).toBe(false)
+    })
+  })
+
+  describe('subscribePublicationEvents', () => {
+    function sseStream(frames: string[]): ReadableStream<Uint8Array> {
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          const encoder = new TextEncoder()
+          for (const frame of frames) controller.enqueue(encoder.encode(frame))
+          controller.close()
+        },
+      })
+    }
+
+    it('opens the publications events stream and forwards matching workspace invalidations', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetchRaw = vi
+        .spyOn(auth, 'apiFetchRaw')
+        .mockResolvedValue(
+          new Response(
+            sseStream([
+              'event: publication.status-changed\ndata: {"workspaceId":"workspace-1","publicationId":"pub-1","socialAccountId":"acc-1","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+            ]),
+          ),
+        )
+      const onInvalidation = vi.fn()
+
+      await store.subscribePublicationEvents(onInvalidation)
+
+      expect(apiFetchRaw).toHaveBeenCalledWith('/api/publishing/publications/events', {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
+        workspaceScoped: true,
+        signal: expect.any(AbortSignal),
+      })
+      expect(onInvalidation).toHaveBeenCalledOnce()
+      expect(onInvalidation).toHaveBeenCalledWith({
+        workspaceId: 'workspace-1',
+        publicationId: 'pub-1',
+        socialAccountId: 'acc-1',
+        changeType: 'publication.status-changed',
+        occurredAt: '2026-09-25T12:00:00.000Z',
+      })
+      expect(store.publicationEventsConnected).toBe(false)
+    })
+
+    it('ignores foreign workspace frames, heartbeats, and malformed payloads', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetchRaw').mockResolvedValue(
+        new Response(
+          sseStream([
+            'event: publication.updated\ndata: {"workspaceId":"workspace-2","publicationId":"pub-9","changeType":"publication.updated","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+            'event: heartbeat\ndata: {}\n\n',
+            'event: publication.updated\ndata: {"workspaceId":"workspace-1","changeType":"bogus"}\n\n',
+          ]),
+        ),
+      )
+      const onInvalidation = vi.fn()
+
+      await store.subscribePublicationEvents(onInvalidation)
+
+      expect(onInvalidation).not.toHaveBeenCalled()
+    })
+
+    it('returns null without connecting when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw')
+
+      const result = await store.subscribePublicationEvents(vi.fn())
+
+      expect(result).toBeNull()
+      expect(apiFetchRaw).not.toHaveBeenCalled()
+      expect(store.publicationEventsConnected).toBe(false)
+    })
+
+    it('aborts the active publication event stream on unsubscribe', () => {
+      const store = usePublishingStore()
+      const abortController = new AbortController()
+      const abort = vi.spyOn(abortController, 'abort')
+      store.publicationEventsAbortController = abortController
+      store.publicationEventsConnected = true
+
+      store.unsubscribePublicationEvents()
+
+      expect(abort).toHaveBeenCalledOnce()
+      expect(store.publicationEventsAbortController).toBeNull()
+      expect(store.publicationEventsConnected).toBe(false)
     })
   })
 

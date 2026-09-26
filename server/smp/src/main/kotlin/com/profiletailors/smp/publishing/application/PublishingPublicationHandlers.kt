@@ -14,6 +14,7 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -21,6 +22,9 @@ import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationEvent
+import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.PublicationEventType
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -52,7 +56,15 @@ internal class EditPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
+    /**
+     * Validates edits in the current workspace, preserving assets when assetIds is null,
+     * then atomically updates the queued publication and replaces its job. Returns the persisted
+     * result and attempts an updated notification after commit.
+     * Context, email verification, missing publication/account, lifecycle, media resolution,
+     * validation, and persistence failures propagate. Publisher failures are ignored except cancellation.
+     */
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -99,6 +111,15 @@ internal class EditPublicationHandler(
                 publicationJobRepository.replaceForPublication(newJobFor(persisted, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.UPDATED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 
@@ -170,7 +191,15 @@ internal class DeletePublicationHandler(
         com.profiletailors.smp.publishing.domain.NoOpNotificationEventRepository,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
+    /**
+     * Atomically deletes an unpublished publication in the current workspace, pauses recurring
+     * schedules using it as a template, and records a recurrence-paused notification.
+     * Returns the publication as read before deletion and attempts a deleted event after commit.
+     * Context, email verification, lookup, and persistence failures propagate; deletion refusal
+     * throws PublicationDeletionNotAllowedException. Publisher failures are ignored except cancellation.
+     */
     override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -182,9 +211,9 @@ internal class DeletePublicationHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
-        val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
-        if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
         transactionRunner.runAtomically {
+            val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
+            if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
             recurringScheduleRepository.pauseByTemplatePost(workspaceId, current.id)
             notificationEventRepository.record(
                 com.profiletailors.smp.publishing.domain.NotificationEvent(
@@ -198,6 +227,15 @@ internal class DeletePublicationHandler(
                 ),
             )
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.DELETED,
+                workspaceId = workspaceId,
+                publicationId = current.id,
+                socialAccountId = current.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return current.toResult()
     }
 }
@@ -214,7 +252,14 @@ internal class CancelPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<CancelPublicationCommand, PublicationResult> {
+    /**
+     * Marks a cancellable publication cancelled and submits job cancellation in one transaction.
+     * Returns the cancelled snapshot and attempts a status-change event after commit.
+     * Context, email verification, missing-publication, lifecycle, and persistence failures
+     * propagate. Publisher failures are ignored except cancellation.
+     */
     override suspend fun handle(command: CancelPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -232,6 +277,15 @@ internal class CancelPublicationHandler(
             publicationRepository.markCancelled(cancelled.id, cancelledAt)
             publicationJobRepository.cancel(cancelled.id, cancelledAt)
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = workspaceId,
+                publicationId = cancelled.id,
+                socialAccountId = cancelled.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return cancelled.toResult()
     }
 }
@@ -249,7 +303,15 @@ internal class RetryPublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<RetryPublicationCommand, PublicationResult> {
+    /**
+     * Requeues a failed publication in the current workspace and atomically replaces its job.
+     * Null command options retain current values; SCHEDULED_AT requires a time at least one second
+     * in the future. Returns the persisted result and attempts a status-change event after commit.
+     * Context, email verification, missing-publication, retry eligibility, schedule validation,
+     * and persistence failures propagate. Publisher failures are ignored except cancellation.
+     */
     override suspend fun handle(command: RetryPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -278,6 +340,15 @@ internal class RetryPublicationHandler(
                 publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.STATUS_CHANGED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 }
@@ -295,7 +366,15 @@ internal class ReschedulePublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
 ) : CommandWithResultHandler<ReschedulePublicationCommand, PublicationResult> {
+    /**
+     * Reschedules an editable publication in the current workspace and atomically replaces its job.
+     * Null priority retains the current value; SCHEDULED_AT requires a time at least one second
+     * in the future. Returns the persisted result and attempts an event after commit.
+     * Context, email verification, missing-publication, lifecycle, schedule validation, and
+     * persistence failures propagate. Publisher failures are ignored except cancellation.
+     */
     override suspend fun handle(command: ReschedulePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -332,6 +411,15 @@ internal class ReschedulePublicationHandler(
                 publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
             }
         }
+        publicationEventPublisher.publishBestEffort(
+            PublicationEvent(
+                type = PublicationEventType.RESCHEDULED,
+                workspaceId = workspaceId,
+                publicationId = persisted.id,
+                socialAccountId = persisted.socialAccountId,
+                occurredAt = clock.instant(),
+            ),
+        )
         return persisted.toResult()
     }
 }

@@ -33,31 +33,25 @@ test.describe('Waitlist Form — Marketing E2E', () => {
   test('submits successfully when the backend responds 202', async ({ page }: { page: Page }): Promise<void> => {
     let interceptedBody: unknown = null;
 
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      if (request.method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      const raw = request.postData() ?? '{}';
+      interceptedBody = JSON.parse(raw);
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'accepted', message: "You're on the waitlist" }),
+      });
+    });
+
     await dismissConsentBanner(page);
-    await Promise.all([
-      page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
-        if (request.method() !== 'POST') {
-          await route.fallback();
-          return;
-        }
-        const raw = request.postData() ?? '{}';
-        interceptedBody = JSON.parse(raw);
-        await route.fulfill({
-          status: 202,
-          contentType: 'application/json',
-          body: JSON.stringify({ status: 'accepted', message: "You're on the waitlist" }),
-        });
-      }),
-      page.goto('/'),
-    ]);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
 
     const form = page.locator('[data-waitlist-form]').first();
     await expect(form).toBeVisible();
-    await page.waitForFunction(
-      () => document.querySelector('[data-waitlist-submit]') !== null &&
-           !(document.querySelector('[data-waitlist-submit]') as HTMLButtonElement).hasAttribute('disabled'),
-    );
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
     await page.locator('[data-waitlist-submit]').first().click();
@@ -107,23 +101,21 @@ test.describe('Waitlist Form — Marketing E2E', () => {
   test('sends earlyAccess true without a separate consent checkbox', async ({ page }: { page: Page }): Promise<void> => {
     let interceptedBody: unknown = null;
 
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      if (request.method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      interceptedBody = JSON.parse(request.postData() ?? '{}');
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+    });
+
     await dismissConsentBanner(page);
-    await Promise.all([
-      page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
-        if (request.method() !== 'POST') {
-          await route.fallback();
-          return;
-        }
-        interceptedBody = JSON.parse(request.postData() ?? '{}');
-        await route.fulfill({
-          status: 202,
-          contentType: 'application/json',
-          body: JSON.stringify({ status: 'accepted' }),
-        });
-      }),
-      page.goto('/'),
-    ]);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
 
     await expect(page.locator('[data-waitlist-consent-early]')).toHaveCount(0);
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
@@ -135,22 +127,20 @@ test.describe('Waitlist Form — Marketing E2E', () => {
   });
 
   test('shows friendly message when the backend returns 429', async ({ page }: { page: Page }): Promise<void> => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      if (request.method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Rate limit exceeded' }),
+      });
+    });
+
     await dismissConsentBanner(page);
-    await Promise.all([
-      page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
-        if (request.method() !== 'POST') {
-          await route.fallback();
-          return;
-        }
-        await route.fulfill({
-          status: 429,
-          contentType: 'application/json',
-          body: JSON.stringify({ error: 'Rate limit exceeded' }),
-        });
-      }),
-      page.goto('/'),
-    ]);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
 
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
     await page.locator('[data-waitlist-submit]').first().click();
@@ -163,7 +153,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
   test('homepage waitlist forms expose unique email ids bound to labels', async ({ page }: { page: Page }): Promise<void> => {
     await dismissConsentBanner(page)
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
 
     for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
       const form = page.getByRole('form', { name: FORM_NAMES[formId] })
@@ -187,23 +176,21 @@ test.describe('Waitlist Form — Marketing E2E', () => {
         })
       })
 
+      await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+        if (request.method() !== 'POST') {
+          await route.fallback()
+          return
+        }
+        interceptedBody = JSON.parse(request.postData() ?? '{}')
+        await route.fulfill({
+          status: 202,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: 'accepted' }),
+        })
+      })
+
       await dismissConsentBanner(page)
-      await Promise.all([
-        page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
-          if (request.method() !== 'POST') {
-            await route.fallback()
-            return
-          }
-          interceptedBody = JSON.parse(request.postData() ?? '{}')
-          await route.fulfill({
-            status: 202,
-            contentType: 'application/json',
-            body: JSON.stringify({ status: 'accepted' }),
-          })
-        }),
-        page.goto('/'),
-      ])
-      await page.waitForLoadState('networkidle')
+      await page.goto('/')
 
       const form = page.getByRole('form', { name: FORM_NAMES[formId] })
       await form.scrollIntoViewIfNeeded()
@@ -236,19 +223,17 @@ test.describe('Waitlist Form — Marketing E2E', () => {
   test('submits against the configured API base and waitlist key', async ({ page }: { page: Page }): Promise<void> => {
     let capturedUrl = '';
 
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
+      capturedUrl = request.url();
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+    });
+
     await dismissConsentBanner(page);
-    await Promise.all([
-      page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
-        capturedUrl = request.url();
-        await route.fulfill({
-          status: 202,
-          contentType: 'application/json',
-          body: JSON.stringify({ status: 'accepted' }),
-        });
-      }),
-      page.goto('/'),
-    ]);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
     await page.locator('[data-waitlist-email]').first().fill('user@example.com');
     await page.locator('[data-waitlist-submit]').first().click();
 

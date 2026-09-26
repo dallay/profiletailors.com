@@ -1,5 +1,9 @@
 # Shared Shield Rate Limit Module (`shared:shield:ratelimit`)
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0-2d3748?style=flat-square&logo=springboot&logoColor=6db33f)](https://spring.io/projects/spring-boot)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Token-bucket rate limiting infrastructure using Bucket4j, Caffeine in-memory caching, Spring WebFlux reactive filters, Micrometer metrics, and rate-limiting domain event publishing.
 
 ## Role in the platform
