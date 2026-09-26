@@ -623,7 +623,6 @@ class LinkedInPublishingConfiguration(
     )
 
     @Bean
-    @org.springframework.context.annotation.Primary
     @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(
         name = ["bddProviderCapabilityValidator"],
     )

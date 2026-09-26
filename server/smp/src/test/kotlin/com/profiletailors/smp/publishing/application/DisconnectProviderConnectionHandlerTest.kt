@@ -88,6 +88,9 @@ class DisconnectProviderConnectionHandlerTest {
         override suspend fun findFirstActiveByWorkspace(
             workspaceId: String,
         ): com.profiletailors.smp.publishing.domain.SocialAccount? = null
+        override suspend fun listActiveByWorkspace(
+            workspaceId: String,
+        ): List<com.profiletailors.smp.publishing.domain.SocialAccount> = emptyList()
         override suspend fun deleteByConnectionId(connectionId: String) {
             order += "deleteAccount"
         }
