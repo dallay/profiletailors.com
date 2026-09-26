@@ -2,6 +2,7 @@ import { defineConfig, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import type { InlineConfig as VitestInlineConfig } from 'vitest/node'
 import { fileURLToPath, URL } from 'node:url'
 import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
@@ -41,7 +42,41 @@ const config = {
       },
     },
   },
-  plugins: [vue(), !isE2eOrCi && vueDevTools(), tailwind()].filter(Boolean),
+  plugins: [
+    vue(),
+    !isE2eOrCi && vueDevTools(),
+    tailwind(),
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: false,
+      manifest: false,
+      workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/api\.profiletailors\.com\/api\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pwa-public-images',
+              expiration: { maxEntries: 60, maxAgeSeconds: 7 * 24 * 3600 },
+            },
+          },
+        ],
+      },
+      devOptions: { enabled: false },
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -15,13 +15,18 @@ NO_DRIFT_DETECTED. Audited all REST controllers across Spring Boot backend modul
   - `com.profiletailors.smp.identity.infrastructure.http.CurrentUserProfileController` (`/api/auth/me`)
   - `com.profiletailors.smp.identity.infrastructure.http.PublicCapabilitiesController` (`/api/capabilities/public`)
   - `com.profiletailors.smp.identity.infrastructure.http.AccountLifecycleController` (`/api/v1/account/close`)
+  - `com.profiletailors.smp.identity.infrastructure.http.AccountSecurityController` (`/api/v1/account/*`)
+  - `com.profiletailors.smp.identity.infrastructure.http.UserPreferencesController` (`/api/v1/users/me/preferences`)
   - `com.profiletailors.smp.tenancy.infrastructure.http.WorkspaceController` (`/api/tenancy/workspaces`)
+  - `com.profiletailors.smp.tenancy.infrastructure.http.WorkspaceMembershipController` (`/api/tenancy/workspaces/*`)
   - `com.profiletailors.smp.publishing.infrastructure.http.PublishingControllers` (`/api/publishing/*`, `/api/v1/workspaces/{workspaceId}/recurring`)
+  - `com.profiletailors.smp.publishing.infrastructure.http.BulkPublishingController` (`/api/publishing/*`)
   - `com.profiletailors.smp.media.infrastructure.http.MediaAssetController` (`/api/media/assets/*`)
   - `com.profiletailors.smp.media.infrastructure.http.UnsplashMediaProviderController` (`/api/media/providers/unsplash/*`)
   - `com.profiletailors.smp.ideas.infrastructure.http.IdeasController` (`/api/ideas/*`)
   - `com.profiletailors.smp.privacy.infrastructure.http.PrivacyController` (`/api/v1/privacy/requests/*`)
   - `com.profiletailors.smp.governance.infrastructure.http.ConsentController` (`/api/governance/consent`)
+  - `com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistController` (`/api/v1/waitlist`)
   - `com.profiletailors.smp.platformadmin.infrastructure.http.*` (`/api/admin/*`, `/api/invitations/*`)
 - **Frontend Stores & API Clients:**
   - `apps/web/app/src/modules/auth/infrastructure/auth-api.ts`
@@ -60,11 +65,11 @@ None.
 
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| backend-fast-tests | server/smp | Passed | Controller tests and REST contracts verified against backend domain modules. |
-| frontend-unit-tests | apps/web/app | Passed | 149 test files / 1750 tests passed in frontend app unit test suite. |
-| frontend-admin-tests | apps/web/admin | Passed | 9 test files / 87 tests passed in frontend admin unit test suite. |
-| frontend-marketing-tests | apps/web/marketing | Passed | 15 test files / 139 tests passed in marketing unit test suite. |
-| frontend-lint-check | apps/web/app | Passed | Biome lint check completed across frontend web application files. |
+| backend-controller-tests | server/smp | Passed | Controller tests and REST contracts verified against backend domain modules. |
+| frontend-app-unit-tests | apps/web/app | Passed | 150 test files / 1756 tests passed in frontend app unit test suite. |
+| frontend-admin-unit-tests | apps/web/admin | Passed | 14 test files / 120 tests passed in frontend admin unit test suite. |
+| frontend-marketing-unit-tests | apps/web/marketing | Passed | Unit tests passed in marketing unit test suite. |
+| frontend-lint-check | apps/web/ | Passed | Biome lint check completed cleanly across all frontend workspaces. |
 
 ## Unresolved Findings
 
@@ -76,7 +81,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-09-18T18:52:28Z`
+- **Last Execution:** `2026-09-25T18:54:57Z`
 - **Schema Version:** `1`
 - **Task Identity:** `api-contract-drift-auditor`
 

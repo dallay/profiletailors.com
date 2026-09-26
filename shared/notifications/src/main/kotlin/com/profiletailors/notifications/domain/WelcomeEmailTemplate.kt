@@ -23,33 +23,11 @@ data class WelcomeEmail(
     val recipient: NormalizedEmail,
     val waitlistName: String,
     val locale: String?,
+    val withdrawalUrl: String,
 ) {
     init {
         require(waitlistName.isNotBlank()) { "Waitlist name cannot be blank" }
     }
-
-    /**
-     * Build the [NotificationPayload] used to render the email template.
-     *
-     * Variables are intentionally a flat string→string map so the persistence layer can
-     * serialise it without bespoke codecs. Templates downstream can be either inline
-     * Kotlin string interpolation or a templating engine.
-     */
-    fun toPayload(): NotificationPayload = NotificationPayload(
-        mapOf(
-            "email" to recipient.value,
-            "waitlistName" to waitlistName,
-            "locale" to (locale ?: "en"),
-        ),
-    )
-
-    /**
-     * Compute the [IdempotencyKey] that identifies this welcome email across retries.
-     *
-     * One welcome email per waitlist entry. Re-dispatching the same entry (e.g. after a
-     * crash mid-send) must NOT produce a second email to the same address.
-     */
-    fun idempotencyKey(): IdempotencyKey = IdempotencyKey("waitlist.welcome:${waitlistEntryId.value}")
 
     /**
      * Render the plain-text and HTML bodies for this welcome email.
@@ -73,6 +51,8 @@ data class WelcomeEmail(
         |
         |In the meantime, keep an eye on your inbox — that's where invitations go.
         |
+        |You can withdraw your waitlist entry here: $withdrawalUrl
+        |
         |— The Profile Tailors team
     """.trimMargin()
 
@@ -94,9 +74,12 @@ data class WelcomeEmail(
     )} <strong>${escapeHtml(
         waitlistName,
     )}</strong> ${escapeHtml("waitlist. We'll let you know as soon as a spot opens up.")}</p>
-        |            <p style="margin:0;color:#a3a3a3;font-size:14px;line-height:1.5;">${escapeHtml(
+        |            <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">${escapeHtml(
         "In the meantime, keep an eye on your inbox — that's where invitations go.",
     )}</p>
+        |            <p style="margin:0;color:#a3a3a3;font-size:14px;line-height:1.5;"><a href="${escapeHtml(
+        withdrawalUrl,
+    )}" style="color:#ffffff;">${escapeHtml("Withdraw from the waitlist")}</a></p>
         |          </td></tr>
         |        </table>
         |      </td></tr>
@@ -117,6 +100,35 @@ data class WelcomeEmail(
                     else -> character
                 },
             )
+        }
+    }
+
+    companion object {
+        /** Identifies the welcome notification for one waitlist entry across retries. */
+        fun idempotencyKeyFor(entryId: WaitlistEntryId): IdempotencyKey =
+            IdempotencyKey("waitlist.welcome:${entryId.value}")
+
+        /** Stores only the fields needed to reconstruct the email during reconciliation. */
+        fun payloadFor(entryId: WaitlistEntryId, waitlistName: String, locale: String?): NotificationPayload =
+            NotificationPayload(
+                mapOf(
+                    "waitlistEntryId" to entryId.value,
+                    "waitlistName" to waitlistName,
+                    "locale" to (locale ?: "en"),
+                ),
+            )
+
+        fun entryIdFrom(payload: NotificationPayload): WaitlistEntryId? =
+            payload["waitlistEntryId"]?.let(::WaitlistEntryId)
+
+        fun fromPayload(
+            payload: NotificationPayload,
+            recipient: NormalizedEmail,
+            withdrawalUrl: String,
+        ): WelcomeEmail? {
+            val entryId = entryIdFrom(payload) ?: return null
+            val waitlistName = payload["waitlistName"] ?: return null
+            return WelcomeEmail(entryId, recipient, waitlistName, payload["locale"], withdrawalUrl)
         }
     }
 }

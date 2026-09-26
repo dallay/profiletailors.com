@@ -28,6 +28,18 @@ interface AuthUser {
   displayIdentity: string
 }
 
+export type SessionBootstrapState =
+  | 'unchecked'
+  | 'authenticated'
+  | 'unauthenticated'
+  | 'unreachable'
+
+function isNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError) return true
+  const code = (e as { code?: string })?.code
+  return code === 'ERR_NETWORK' || code === 'ECONNABORTED'
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -66,6 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isRefreshingProfile = ref(false)
   const error = ref<string | null>(null)
   const sessionChecked = ref(false)
+  const bootstrapState = ref<SessionBootstrapState>('unchecked')
   const resendVerificationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
   const resendVerificationError = ref<string | null>(null)
 
@@ -146,6 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     resendVerificationStatus.value = 'idle'
     resendVerificationError.value = null
+    bootstrapState.value = 'unauthenticated'
     sessionChecked.value = true
   }
 
@@ -161,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
       const tokens = await login(payload)
       _applyTokens(tokens)
       await _loadProfile()
+      bootstrapState.value = 'authenticated'
       return tokens
     } catch (error_) {
       const apiError = error_ as ApiError
@@ -180,6 +195,7 @@ export const useAuthStore = defineStore('auth', () => {
       const tokens = await register(payload)
       _applyTokens(tokens)
       await _loadProfile()
+      bootstrapState.value = 'authenticated'
       return tokens
     } catch (error_) {
       const apiError = error_ as ApiError
@@ -206,16 +222,23 @@ export const useAuthStore = defineStore('auth', () => {
         const tokens = await refreshSession()
 
         if (!tokens) {
-          // No active session — that's fine
-          sessionChecked.value = true
+          // No active session — that's fine (401 swallowed)
+          _clearSession()
           return
         }
 
         _applyTokens(tokens)
         await _loadProfile()
-      } catch {
-        // refreshSession already swallows 401; anything else is a transient error
-        _clearSession()
+        bootstrapState.value = 'authenticated'
+      } catch (e) {
+        // Network failure ≠ no session. Keep explicit unreachable so the
+        // router can send requiresAuth to /offline instead of /login.
+        if (isNetworkError(e)) {
+          bootstrapState.value = 'unreachable'
+        } else {
+          _clearSession()
+          bootstrapState.value = 'unauthenticated'
+        }
       } finally {
         sessionChecked.value = true
         _hydratePromise = null
@@ -335,7 +358,9 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     apiFetch,
     apiFetchRaw,
+    bootstrapState,
     clearError,
+    clearLocalSession: _clearSession,
     displayName,
     error,
     hydrateSession,

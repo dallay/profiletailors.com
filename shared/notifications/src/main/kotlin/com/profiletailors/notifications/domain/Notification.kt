@@ -47,6 +47,22 @@ data class Notification(
         updatedAt = at,
     )
 
+    fun markPending(at: Instant): Notification = copy(
+        status = NotificationStatus.PENDING,
+        sentAt = null,
+        failedAt = null,
+        errorMessage = null,
+        updatedAt = at,
+    )
+
+    fun markDispatching(at: Instant): Notification = copy(
+        status = NotificationStatus.DISPATCHING,
+        sentAt = null,
+        failedAt = null,
+        errorMessage = null,
+        updatedAt = at,
+    )
+
     /**
      * Mark this notification as failed, recording the error message.
      */

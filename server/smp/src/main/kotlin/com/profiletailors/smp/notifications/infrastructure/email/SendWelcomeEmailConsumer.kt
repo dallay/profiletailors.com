@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalUrlProvider
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
@@ -36,20 +37,15 @@ import java.time.Instant
 internal class SendWelcomeEmailConsumer(
     private val emailDispatcher: EmailDispatcher,
     private val notificationRepository: NotificationRepository,
+    private val withdrawalUrlProvider: WaitlistWithdrawalUrlProvider,
     private val clock: Clock,
 ) : EventConsumer<WaitlistEntryJoined> {
 
     private val log = LoggerFactory.getLogger(SendWelcomeEmailConsumer::class.java)
 
     override suspend fun consume(event: WaitlistEntryJoined) {
-        val welcome = WelcomeEmail(
-            waitlistEntryId = event.waitlistEntryId,
-            recipient = NormalizedEmail.from(EmailAddress(event.normalizedEmail)),
-            waitlistName = event.waitlistName,
-            locale = event.locale,
-        )
-        val idempotencyKey = welcome.idempotencyKey()
-
+        val now = Instant.now(clock)
+        val idempotencyKey = WelcomeEmail.idempotencyKeyFor(event.waitlistEntryId)
         if (notificationRepository.findByIdempotencyKey(idempotencyKey) != null) {
             log.info(
                 "Welcome email already dispatched for entry '{}' on waitlist '{}' — skipping",
@@ -58,33 +54,39 @@ internal class SendWelcomeEmailConsumer(
             )
             return
         }
-
-        val now = Instant.now(clock)
-        val pending = Notification(
-            id = NotificationId.generate(),
-            idempotencyKey = idempotencyKey,
-            channel = NotificationChannel.EMAIL,
-            recipient = Recipient(event.normalizedEmail),
-            templateId = WelcomeEmailTemplateId.INSTANCE,
-            payload = welcome.toPayload(),
-            status = NotificationStatus.PENDING,
-            sentAt = null,
-            failedAt = null,
-            errorMessage = null,
-            createdAt = now,
-            updatedAt = now,
+        val persisted = notificationRepository.save(
+            pendingNotification(event, idempotencyKey, now).markDispatching(now),
         )
-        val rendered = welcome.render()
-        val persisted = notificationRepository.save(pending)
+        val withdrawalUrl = withdrawalUrlProvider.urlFor(event.waitlistEntryId, now)
+        if (withdrawalUrl == null) {
+            notificationRepository.update(persisted.markPending(Instant.now(clock)))
+            log.warn(
+                "Withdrawal URL for waitlist entry '{}' is unavailable - welcome email queued for reconciliation",
+                event.waitlistEntryId.value,
+            )
+            return
+        }
+        val welcome = WelcomeEmail(
+            waitlistEntryId = event.waitlistEntryId,
+            recipient = NormalizedEmail.from(EmailAddress(event.normalizedEmail)),
+            waitlistName = event.waitlistName,
+            locale = event.locale,
+            withdrawalUrl = withdrawalUrl,
+        )
+        dispatchWelcomeEmail(event, welcome, persisted)
+    }
 
-        val result = emailDispatcher.dispatch(event.normalizedEmail, rendered)
-        val now2 = Instant.now(clock)
+    private suspend fun dispatchWelcomeEmail(
+        event: WaitlistEntryJoined,
+        welcome: WelcomeEmail,
+        persisted: Notification,
+    ) {
+        val result = emailDispatcher.dispatch(event.normalizedEmail, welcome.render())
         val updated = when (result) {
-            is EmailDispatchResult.Success -> persisted.markSent(now2)
-            is EmailDispatchResult.Failure -> persisted.markFailed(now2, result.error)
+            is EmailDispatchResult.Success -> persisted.markSent(Instant.now(clock))
+            is EmailDispatchResult.Failure -> persisted.markFailed(Instant.now(clock), result.error)
         }
         notificationRepository.update(updated)
-
         if (updated.status == NotificationStatus.FAILED) {
             log.error(
                 "Failed to send welcome email to '{}' for entry '{}' on waitlist '{}': {}",
@@ -102,4 +104,23 @@ internal class SendWelcomeEmailConsumer(
             )
         }
     }
+
+    private fun pendingNotification(
+        event: WaitlistEntryJoined,
+        idempotencyKey: IdempotencyKey,
+        now: Instant,
+    ): Notification = Notification(
+        id = NotificationId.generate(),
+        idempotencyKey = idempotencyKey,
+        channel = NotificationChannel.EMAIL,
+        recipient = Recipient(event.normalizedEmail),
+        templateId = WelcomeEmailTemplateId.INSTANCE,
+        payload = WelcomeEmail.payloadFor(event.waitlistEntryId, event.waitlistName, event.locale),
+        status = NotificationStatus.PENDING,
+        sentAt = null,
+        failedAt = null,
+        errorMessage = null,
+        createdAt = now,
+        updatedAt = now,
+    )
 }

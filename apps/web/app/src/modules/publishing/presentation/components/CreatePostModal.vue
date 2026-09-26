@@ -1198,17 +1198,17 @@ async function handleCreateSubmit(
         tabindex="-1"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row focus:outline-none"
+        class="relative m-0 flex max-h-[92dvh] lg:h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-y-auto lg:overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row focus:outline-none"
       >
         <button type="button"
           @click="emit('close')"
           aria-label="Close"
-          class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
+          class="sticky top-4 right-4 z-50 float-right -mb-8 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
           <X class="size-4" />
         </button>
 
-        <div class="flex min-h-0 flex-1 flex-col space-y-6 border-b border-border-subtle p-6 lg:border-b-0 lg:border-r overflow-hidden">
+        <div class="flex flex-col space-y-6 border-b border-border-subtle p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r lg:overflow-hidden">
           <div class="flex items-center justify-between">
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
@@ -1229,7 +1229,7 @@ async function handleCreateSubmit(
             @select="selectChannel"
           />
 
-          <div class="flex flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70 min-h-105">
+          <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
             <div class="border-b border-border-subtle/70 px-3 py-2">
               <MarkdownToolbar
                 :disabled="isSubmitting"
@@ -1250,7 +1250,7 @@ async function handleCreateSubmit(
               ref="_composerTextareaEl"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
-              class="min-h-55 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
+              class="min-h-[140px] sm:min-h-[180px] lg:min-h-55 w-full flex-1 resize-none bg-transparent p-4 sm:p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
               data-testid="composer-textarea"
               @dragover="handleComposerSurfaceDragOver"
               @dragleave="handleComposerSurfaceDragLeave"
