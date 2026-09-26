@@ -1,6 +1,6 @@
 {
   "apps/web/marketing": "0.2.19",
   "apps/web/app": "0.3.14",
-  "apps/web/admin": "0.0.13",
+  "apps/web/admin": "0.0.14",
   "server/smp": "0.5.7"
 }
