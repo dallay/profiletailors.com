@@ -26,7 +26,7 @@ const activePreviewProps = computed(() => {
 <template>
   <section
     :aria-label="title"
-    class="w-full lg:w-[420px] bg-bg-primary p-6 flex flex-col justify-between overflow-y-auto min-h-0 space-y-6"
+    class="w-full lg:w-[420px] bg-bg-primary p-4 sm:p-6 flex flex-col justify-between space-y-6 lg:min-h-0 lg:overflow-y-auto"
   >
     <div class="flex items-center justify-between gap-2 border-b border-border-subtle pb-4">
       <div class="flex items-center gap-2 min-w-0">

@@ -50,13 +50,13 @@ function onTimeInput(event: Event) {
       <div class="flex-1 space-y-2 text-xs">
         <span class="text-text-secondary">Schedule Mode:</span>
         <div
-          class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1"
+          class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1 text-center"
           role="radiogroup"
           aria-label="Schedule mode"
         >
           <label
             data-testid="schedule-mode-now"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+            class="px-1 sm:px-2 py-1 rounded font-mono text-[8px] sm:text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center truncate"
             :class="
               scheduleMode === 'now'
                 ? 'bg-text-display text-bg-primary'
@@ -74,7 +74,7 @@ function onTimeInput(event: Event) {
           </label>
           <label
             data-testid="schedule-mode-next"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+            class="px-1 sm:px-2 py-1 rounded font-mono text-[8px] sm:text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center truncate"
             :class="
               scheduleMode === 'next'
                 ? 'bg-text-display text-bg-primary'
@@ -92,7 +92,7 @@ function onTimeInput(event: Event) {
           </label>
           <label
             data-testid="schedule-mode-custom"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+            class="px-1 sm:px-2 py-1 rounded font-mono text-[8px] sm:text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center truncate"
             :class="
               scheduleMode === 'custom'
                 ? 'bg-text-display text-bg-primary'
@@ -118,7 +118,7 @@ function onTimeInput(event: Event) {
     <!-- Date picker and time input (only in custom mode) -->
     <div
       v-if="scheduleMode === 'custom'"
-      class="grid grid-cols-[1fr_112px] gap-3"
+      class="grid grid-cols-1 xs:grid-cols-[1fr_112px] gap-2 sm:gap-3"
     >
       <Popover :open="isDatePickerOpen" @update:open="(open) => emit('update:isDatePickerOpen', open)">
         <PopoverTrigger as-child>
