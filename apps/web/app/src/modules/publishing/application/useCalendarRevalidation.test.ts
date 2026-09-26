@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
+import { mount } from '@vue/test-utils'
 import { useCalendarRevalidation } from './useCalendarRevalidation'
 
 describe('useCalendarRevalidation', () => {
@@ -103,5 +105,56 @@ describe('useCalendarRevalidation', () => {
     expect(fetchCalendar).toHaveBeenLastCalledWith({ from: 'new', to: 'new' })
 
     revalidation.stop()
+  })
+
+  it('uses custom setTimeoutFn, clearTimeoutFn, and now options', async () => {
+    const customSetTimeout = vi.fn((cb: () => void, delay: number) => setTimeout(cb, delay))
+    const customClearTimeout = vi.fn((handle: ReturnType<typeof setTimeout>) =>
+      clearTimeout(handle),
+    )
+    const mockTime = 1_000
+    const customNow = vi.fn(() => mockTime)
+    const fetchCalendar = vi.fn().mockResolvedValue(undefined)
+
+    const revalidation = useCalendarRevalidation({
+      fetchCalendar,
+      debounceMs: 100,
+      setTimeoutFn: customSetTimeout,
+      clearTimeoutFn: customClearTimeout,
+      now: customNow,
+    })
+
+    revalidation.request({ from: 'a', to: 'b' })
+    expect(customSetTimeout).toHaveBeenCalledWith(expect.any(Function), 100)
+
+    revalidation.setVisible(false)
+    expect(customClearTimeout).toHaveBeenCalled()
+
+    revalidation.setVisible(true)
+    await vi.advanceTimersByTimeAsync(100)
+    expect(fetchCalendar).toHaveBeenCalledOnce()
+    expect(customNow).toHaveBeenCalled()
+
+    revalidation.stop()
+  })
+
+  it('stops scheduling on component unmount when used inside Vue setup', async () => {
+    const fetchCalendar = vi.fn().mockResolvedValue(undefined)
+
+    const TestComponent = defineComponent({
+      setup() {
+        const revalidation = useCalendarRevalidation({ fetchCalendar, debounceMs: 50 })
+        return { revalidation }
+      },
+      template: '<div>test</div>',
+    })
+
+    const wrapper = mount(TestComponent)
+    wrapper.vm.revalidation.request({ from: 'a', to: 'b' })
+
+    wrapper.unmount()
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(fetchCalendar).not.toHaveBeenCalled()
   })
 })
