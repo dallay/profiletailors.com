@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.domain
 
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 data class CompleteProviderConnectionCommand(
     val workspaceId: String,
@@ -37,7 +38,14 @@ data class ProviderPublishResult(
     val externalPublicationId: String,
     val publicUrl: String? = null,
     val providerMessage: String? = null,
+    val providerOperationRef: String? = null,
 )
+
+data class ProviderMediaUrl(val url: String, val expiresAt: Instant)
+
+fun interface ProviderMediaUrlResolver {
+    suspend fun resolve(workspaceId: String, assets: List<PublicationAsset>, deadline: Instant): List<ProviderMediaUrl>
+}
 
 /**
  * Refresh-aware credential resolver port.
@@ -105,5 +113,5 @@ class ProviderUploadException(message: String, cause: Throwable? = null) : Runti
  * Callers must reconcile the provider before retrying a publication rather than dispatching a
  * second create request blindly.
  */
-class ProviderTransportUncertaintyException(cause: Throwable? = null) :
+class ProviderTransportUncertaintyException(cause: Throwable? = null, val providerOperationRef: String? = null) :
     RuntimeException("Provider transport outcome is uncertain.", cause)

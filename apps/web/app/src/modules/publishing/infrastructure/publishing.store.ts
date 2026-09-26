@@ -14,9 +14,15 @@ export type { Channel } from '@modules/publishing/domain/channel'
 // Types — Channel & Publication (frontend model)
 // ---------------------------------------------------------------------------
 
-export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
+export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook' | 'threads'
 
-const SOCIAL_PROVIDERS = new Set<SocialProvider>(['twitter', 'linkedin', 'instagram', 'facebook'])
+const SOCIAL_PROVIDERS = new Set<SocialProvider>([
+  'twitter',
+  'linkedin',
+  'instagram',
+  'facebook',
+  'threads',
+])
 
 export function isSocialProvider(provider: string): provider is SocialProvider {
   return SOCIAL_PROVIDERS.has(provider as SocialProvider)
@@ -209,10 +215,15 @@ type ProviderCatalogResponse = {
   providers: ProviderCatalogItem[]
 }
 
-type LinkedInConnectionInitiationResult = {
+export type ProviderConnectionInitiationResult = {
   authorizationUrl: string
   state: string
   expiresAt: string
+}
+
+type ProviderConnectionOptions = {
+  provider: SocialProvider
+  redirectUri: string
 }
 
 /** Filter params accepted by fetchCalendar */
@@ -315,6 +326,7 @@ const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
   twitter: 4,
   instagram: 10,
   facebook: 10,
+  threads: 20,
 }
 
 function resolveChannelMaxAttachments(provider: string): number | undefined {
@@ -798,11 +810,12 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   const isLinkedInConfigured = computed(() => configuredProviders.value.includes('linkedin'))
 
-  async function connectLinkedInPersonalProfile(
-    redirectUri = `${globalThis.location.origin}/integrations/linkedin/callback`,
-  ) {
-    const data = await auth.apiFetch<LinkedInConnectionInitiationResult>(
-      '/api/publishing/linkedin/connections/initiate',
+  async function connectProviderPersonalProfile(
+    provider: SocialProvider,
+    redirectUri = `${globalThis.location.origin}/integrations/${provider}/callback`,
+  ): Promise<ProviderConnectionInitiationResult> {
+    const data = await auth.apiFetch<ProviderConnectionInitiationResult>(
+      `/api/publishing/${provider}/connections/initiate`,
       {
         method: 'POST',
         body: JSON.stringify({ redirectUri }),
@@ -813,33 +826,43 @@ export const usePublishingStore = defineStore('publishing', () => {
     return data
   }
 
+  async function connectLinkedInPersonalProfile(
+    redirectUri = `${globalThis.location.origin}/integrations/linkedin/callback`,
+  ): Promise<ProviderConnectionInitiationResult> {
+    return connectProviderPersonalProfile('linkedin', redirectUri)
+  }
+
+  async function connectThreadsPersonalProfile(
+    redirectUri = `${globalThis.location.origin}/integrations/threads/callback`,
+  ): Promise<ProviderConnectionInitiationResult> {
+    return connectProviderPersonalProfile('threads', redirectUri)
+  }
+
+  async function completeProviderConnectionFromCallback(
+    opts: ProviderConnectionOptions & { code: string; state: string },
+  ): Promise<SocialConnectionResult> {
+    const result = await auth.apiFetch<SocialConnectionResult>(
+      `/api/publishing/${opts.provider}/connections/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          authorizationCode: opts.code,
+          redirectUri: opts.redirectUri,
+          state: opts.state,
+        }),
+        workspaceScoped: true,
+      },
+    )
+    await fetchChannels()
+    return result
+  }
+
   async function completeLinkedInConnectionFromCallback(opts: {
     code: string
     state: string
     redirectUri: string
-  }) {
-    let result: SocialConnectionResult
-
-    try {
-      result = await auth.apiFetch<SocialConnectionResult>(
-        '/api/publishing/linkedin/connections/complete',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            authorizationCode: opts.code,
-            redirectUri: opts.redirectUri,
-            state: opts.state,
-          }),
-          workspaceScoped: true,
-        },
-      )
-    } catch (e) {
-      console.error('Failed to complete connection', e)
-      throw e
-    }
-
-    await fetchChannels()
-    return result
+  }): Promise<SocialConnectionResult> {
+    return completeProviderConnectionFromCallback({ ...opts, provider: 'linkedin' })
   }
 
   async function subscribeChannelEvents(): Promise<null> {
@@ -1529,7 +1552,10 @@ export const usePublishingStore = defineStore('publishing', () => {
     createRecurringSchedule,
     updateRecurringSchedule,
     cancelRecurringSchedule,
+    connectProviderPersonalProfile,
     connectLinkedInPersonalProfile,
+    connectThreadsPersonalProfile,
+    completeProviderConnectionFromCallback,
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,
     unsubscribeChannelEvents,

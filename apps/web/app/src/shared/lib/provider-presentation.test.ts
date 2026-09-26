@@ -26,6 +26,22 @@ describe('provider presentation', () => {
     })
   })
 
+  it('maps an available Threads catalog entry to a provider-specific connect action', () => {
+    expect(getProviderPresentation('threads')).toMatchObject({
+      label: 'Threads',
+      icon: 'threads',
+      action: PROVIDER_ACTIONS.CONNECT_THREADS_PERSONAL_PROFILE,
+    })
+  })
+
+  it('renders the Threads provider icon instead of a text-only fallback', () => {
+    const wrapper = mount(SocialProviderIcon, { props: { provider: 'threads' } })
+
+    expect(wrapper.find('[data-testid="provider-icon-threads"]').exists()).toBe(true)
+    expect(wrapper.find('svg').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('@')
+  })
+
   it('uses a neutral fallback without an action for unknown providers', () => {
     const presentation = getProviderPresentation('mastodon')
 

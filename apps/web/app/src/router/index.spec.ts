@@ -286,3 +286,13 @@ describe('media route contract', { timeout: 15000 }, () => {
     ).resolves.toBeDefined()
   })
 })
+
+describe('provider callback route contract', () => {
+  it('resolves Threads and LinkedIn callback paths to provider-aware routes', async () => {
+    const { default: router } = await import('./index')
+
+    expect(router.resolve('/integrations/threads/callback').name).toBe('provider-callback')
+    expect(router.resolve('/integrations/threads/callback').params.provider).toBe('threads')
+    expect(router.resolve('/integrations/linkedin/callback').name).toBe('linkedin-callback')
+  })
+})

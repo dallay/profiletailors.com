@@ -6,14 +6,17 @@ import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
+import com.profiletailors.smp.publishing.application.DisconnectProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.InitiateProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.ListProviderCatalogQuery
@@ -21,6 +24,7 @@ import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
 import com.profiletailors.smp.publishing.application.ProviderCatalogResponse
+import com.profiletailors.smp.publishing.application.ProviderConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.RecurringScheduleResult
 import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
@@ -49,6 +53,7 @@ import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialPost
+import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.wireName
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
 import com.profiletailors.smp.publishing.infrastructure.events.PublicationEventStreamRegistry
@@ -134,11 +139,46 @@ data class SocialContentSyncRequest(@field:NotBlank val actorId: String)
 
 @Validated
 @RestController
-@RequestMapping(value = ["/api/publishing/linkedin/connections"])
+@RequestMapping(value = ["/api/publishing"])
 @Tag(name = "Publishing Connections", description = "Social publishing connection endpoints")
 class PublishingConnectionController(private val mediator: Mediator) {
+    @Operation(summary = "Initiate a social provider profile connection")
+    @PostMapping("/{provider}/connections/initiate", consumes = ["application/json"], version = "1")
+    suspend fun initiateProviderConnection(
+        @PathVariable provider: SocialProvider,
+        @Valid @RequestBody request: LinkedInConnectionInitiationRequest,
+    ): ProviderConnectionInitiationResult = mediator.send(
+        InitiateProviderConnectionCommand(provider, request.redirectUri),
+    )
+
+    @Operation(summary = "Complete a social provider profile connection")
+    @PostMapping("/{provider}/connections/complete", consumes = ["application/json"], version = "1")
+    suspend fun completeProviderConnection(
+        @PathVariable provider: SocialProvider,
+        @Valid @RequestBody request: LinkedInConnectionCompletionRequest,
+    ): SocialConnectionResult = mediator.send(
+        CompleteProviderConnectionCommand(
+            provider = provider,
+            authorizationCode = request.authorizationCode,
+            redirectUri = request.redirectUri,
+            state = request.state,
+        ),
+    )
+
+    @Operation(summary = "Disconnect a social provider profile connection")
+    @DeleteMapping("/{provider}/connections/{connectionId}", version = "1")
+    suspend fun disconnectProviderConnection(
+        @PathVariable provider: SocialProvider,
+        @PathVariable connectionId: String,
+    ): SocialConnectionResult {
+        provider.hashCode()
+        return mediator.send(
+            DisconnectProviderConnectionCommand(provider, connectionId),
+        )
+    }
+
     @Operation(summary = "Initiate LinkedIn profile connection")
-    @PostMapping("/initiate", consumes = ["application/json"], version = "1")
+    @PostMapping("/linkedin/connections/initiate", consumes = ["application/json"], version = "1")
     suspend fun initiateLinkedInConnection(
         @Valid @RequestBody request: LinkedInConnectionInitiationRequest,
     ): LinkedInConnectionInitiationResult = mediator.send(
@@ -148,7 +188,7 @@ class PublishingConnectionController(private val mediator: Mediator) {
     )
 
     @Operation(summary = "Complete LinkedIn profile connection")
-    @PostMapping("/complete", consumes = ["application/json"], version = "1")
+    @PostMapping("/linkedin/connections/complete", consumes = ["application/json"], version = "1")
     suspend fun completeLinkedInConnection(
         @Valid @RequestBody request: LinkedInConnectionCompletionRequest,
     ): SocialConnectionResult = mediator.send(

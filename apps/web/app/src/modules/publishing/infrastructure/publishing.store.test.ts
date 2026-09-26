@@ -33,6 +33,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
 describe('isSocialProvider', () => {
   it('accepts publishable providers and rejects unknown connected providers', () => {
     expect(isSocialProvider('linkedin')).toBe(true)
+    expect(isSocialProvider('threads')).toBe(true)
     expect(isSocialProvider('mastodon')).toBe(false)
   })
 })
@@ -522,6 +523,75 @@ describe('publishing store', () => {
       await store.fetchChannels()
 
       expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/old.jpg')
+    })
+  })
+
+  describe('provider connection lifecycle', () => {
+    it('initiates a Threads connection through the provider-aware endpoint', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const assign = vi.fn()
+      Object.defineProperty(window, 'location', {
+        value: { origin: 'http://app.test', assign },
+        configurable: true,
+      })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        authorizationUrl: 'https://threads.example/auth',
+        state: 'state-threads',
+        expiresAt: '2026-06-12T12:10:00Z',
+      })
+
+      await store.connectProviderPersonalProfile('threads')
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/threads/connections/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ redirectUri: 'http://app.test/integrations/threads/callback' }),
+        workspaceScoped: true,
+      })
+      expect(assign).toHaveBeenCalledWith('https://threads.example/auth')
+    })
+
+    it('completes a Threads connection and refreshes channels without exposing callback values', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi
+        .spyOn(auth, 'apiFetch')
+        .mockResolvedValueOnce({
+          connectionId: 'conn-threads',
+          workspaceId: 'ws-1',
+          provider: 'threads',
+          status: 'connected',
+          account: {
+            accountId: 'account-threads',
+            providerAccountId: 'remote-threads',
+            displayName: 'Threads profile',
+            kind: 'PROFILE',
+            profileUrn: null,
+          },
+        })
+        .mockResolvedValueOnce({ channels: [] })
+
+      await store.completeProviderConnectionFromCallback({
+        provider: 'threads',
+        code: 'opaque-code',
+        state: 'opaque-state',
+        redirectUri: 'http://app.test/integrations/threads/callback',
+      })
+
+      expect(apiFetch).toHaveBeenNthCalledWith(1, '/api/publishing/threads/connections/complete', {
+        method: 'POST',
+        body: JSON.stringify({
+          authorizationCode: 'opaque-code',
+          redirectUri: 'http://app.test/integrations/threads/callback',
+          state: 'opaque-state',
+        }),
+        workspaceScoped: true,
+      })
+      expect(apiFetch).toHaveBeenNthCalledWith(2, '/api/publishing/channels', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
     })
   })
 
