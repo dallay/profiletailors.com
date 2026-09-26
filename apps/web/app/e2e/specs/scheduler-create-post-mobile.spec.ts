@@ -26,52 +26,70 @@ test.describe('Scheduler — Create Post Responsive Mobile & Layout', { tag: '@r
 
       const scheduler = new SchedulerPage(page)
       const composeModal = new ComposeModalPage(page)
+      const dialog = page.getByRole('dialog', { name: 'Create Post', exact: true })
 
-      // Open modal
-      await scheduler.clickNewPost()
-      await composeModal.expectVisible()
+      await test.step('Open the composer', async () => {
+        await scheduler.clickNewPost()
+        await composeModal.expectVisible()
 
-      // Assert channel selector is visible
-      const channelSelector = page.getByTestId('channel-selector')
-      await expect(channelSelector).toBeVisible()
-
-      // Assert textarea is visible, enabled, and accepts input
-      await expect(composeModal.textarea).toBeVisible()
-      await expect(composeModal.textarea).toBeEnabled()
-      const testContent = `Mobile test content on ${vp.name} - ${Date.now()}`
-      await composeModal.fillText(testContent)
-      await expect(composeModal.textarea).toHaveValue(testContent)
-
-      // Scroll into view & assert LinkedIn preview panel is visible
-      const linkedInPreview = page.getByRole('region', { name: /linkedin preview/i })
-      await linkedInPreview.scrollIntoViewIfNeeded()
-      await expect(linkedInPreview).toBeVisible()
-
-      // Switch to Pick Date mode
-      await composeModal.switchToPickDate()
-      await composeModal.expectPickDateActive()
-
-      // Verify date trigger & time input are visible and interactive
-      await expect(composeModal.datePickerButton).toBeVisible()
-      await expect(composeModal.timeInput).toBeVisible()
-
-      // Verify primary submit button is visible and reachable
-      await expect(composeModal.schedulePostButton).toBeVisible()
-      await expect(composeModal.schedulePostButton).toBeEnabled()
-
-      // Check priority queue and cancel buttons
-      await expect(composeModal.priorityQueueCheckbox).toBeVisible()
-      await expect(composeModal.cancelButton).toBeVisible()
-
-      // Verify no horizontal document page overflow
-      const overflow = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth
+        const channelButton = dialog.getByRole('button', { name: /Dev User/ })
+        await expect(channelButton).toBeVisible()
+        await channelButton.click()
       })
-      expect(overflow).toBe(false)
 
-      // Close modal
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
+      await test.step('Edit content', async () => {
+        await expect(composeModal.textarea).toBeVisible()
+        await expect(composeModal.textarea).toBeEnabled()
+        const testContent = `Mobile test content on ${vp.name} - ${Date.now()}`
+        await composeModal.fillText(testContent)
+        await expect(composeModal.textarea).toHaveValue(testContent)
+      })
+
+      await test.step('Check the LinkedIn preview', async () => {
+        const linkedInPreview = page.getByRole('region', { name: /linkedin preview/i })
+        await linkedInPreview.scrollIntoViewIfNeeded()
+        await expect(linkedInPreview).toBeVisible()
+      })
+
+      await test.step('Select a schedule mode and date', async () => {
+        await composeModal.switchToPickDate()
+        await composeModal.expectPickDateActive()
+
+        await expect(composeModal.datePickerButton).toBeVisible()
+        await expect(composeModal.timeInput).toBeVisible()
+        await composeModal.timeInput.fill('23:59')
+        await expect(composeModal.timeInput).toHaveValue('23:59')
+
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        await composeModal.openDatePicker()
+        await composeModal.pickDate(tomorrow)
+
+        await expect(composeModal.schedulePostButton).toBeVisible()
+        await expect(composeModal.schedulePostButton).toBeEnabled()
+        await expect(composeModal.priorityQueueCheckbox).toBeVisible()
+      })
+
+      await test.step('Check horizontal overflow', async () => {
+        const overflow = await page.evaluate(() => {
+          return document.documentElement.scrollWidth > document.documentElement.clientWidth
+        })
+        expect(overflow).toBe(false)
+
+        if (vp.width < 1024) {
+          await expect
+            .poll(() => dialog.evaluate((element) => element.scrollWidth > element.clientWidth))
+            .toBe(false)
+        }
+      })
+
+      await test.step('Close the composer', async () => {
+        await composeModal.cancelButton.scrollIntoViewIfNeeded()
+        await expect(composeModal.cancelButton).toBeVisible()
+        await expect(composeModal.cancelButton).toBeInViewport()
+        await composeModal.cancelButton.click()
+        await composeModal.expectHidden()
+      })
     })
   }
 })
