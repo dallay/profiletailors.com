@@ -196,6 +196,15 @@ export type ConnectedChannelsResponse = {
   channels: ConnectedSocialChannelSummary[]
 }
 
+export type RefreshChannelAvatarsResponse = {
+  refreshedAccountIds: string[]
+  skippedAccountIds: string[]
+  failedAccountIds: string[]
+  refreshed: number
+  skipped: number
+  failed: number
+}
+
 type ProviderCatalogResponse = {
   providers: ProviderCatalogItem[]
 }
@@ -633,6 +642,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       })
       if (fetchId !== latestChannelsFetchId.value) return channels.value
       channels.value = data.channels.map(apiChannelToChannel)
+      await refreshAvatarsAfterFetch(fetchId)
       return channels.value
     } catch (err) {
       if (fetchId !== latestChannelsFetchId.value) return channels.value
@@ -641,6 +651,34 @@ export const usePublishingStore = defineStore('publishing', () => {
       throw err
     } finally {
       if (fetchId === latestChannelsFetchId.value) channelsLoading.value = false
+    }
+  }
+
+  /**
+   * Refreshes stale provider avatar URLs after channels load. A single reload
+   * follows when avatars changed; refresh failures never break the loaded list.
+   */
+  async function refreshAvatarsAfterFetch(fetchId: number): Promise<void> {
+    let result: RefreshChannelAvatarsResponse | null = null
+    try {
+      result = await auth.apiFetch<RefreshChannelAvatarsResponse>(
+        '/api/publishing/channels/refresh-avatars',
+        { method: 'POST', workspaceScoped: true },
+      )
+    } catch {
+      return
+    }
+    if (fetchId !== latestChannelsFetchId.value) return
+    if ((result?.refreshed ?? 0) <= 0) return
+    try {
+      const data = await auth.apiFetch<ConnectedChannelsResponse>('/api/publishing/channels', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+      if (fetchId !== latestChannelsFetchId.value) return
+      channels.value = data.channels.map(apiChannelToChannel)
+    } catch {
+      return
     }
   }
 

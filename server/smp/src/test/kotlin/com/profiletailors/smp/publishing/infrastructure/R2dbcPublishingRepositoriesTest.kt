@@ -561,6 +561,50 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     private fun avatarPersistedCounterValue(): Double = meterRegistry.find("publishing.linkedin.avatar.persisted")
         .counter()?.count() ?: 0.0
 
+    @Test
+    fun `listActiveByWorkspace returns only active accounts`() = runTest {
+        socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-list",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-list",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-ref",
+            ),
+        )
+        socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-active",
+                socialConnectionId = "soconn-list",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-active",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "Active User",
+                avatarUrl = "https://media.licdn.com/active.jpg",
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+        socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-cancelled",
+                socialConnectionId = "soconn-list",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-cancelled",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "Cancelled User",
+                avatarUrl = null,
+                status = SocialConnectionStatus.DISABLED,
+            ),
+        )
+
+        val results = socialAccountRepository.listActiveByWorkspace("workspace-1")
+
+        assertEquals(listOf("soacc-active"), results.map { it.id })
+    }
+
     private suspend fun seedSocialAccount() {
         databaseClient.sql(
             """
