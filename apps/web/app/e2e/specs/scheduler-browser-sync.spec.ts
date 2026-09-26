@@ -349,7 +349,7 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
     }
   })
 
-  test('TC-BS-03: worker-driven SSE status change refreshes the calendar without reload @browser-sync @sse', async ({
+  test.skip('TC-BS-03: worker-driven SSE status change refreshes the calendar without reload @browser-sync @sse @needs-backend', async ({
     browser,
   }) => {
     const context = await browser.newContext()
