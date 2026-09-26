@@ -59,3 +59,8 @@ Feature: Publishing channels and providers
     Given the verified user has an active workspace membership
     When the client initiates a LinkedIn connection without workspace context
     Then the publishing response status should be 400
+
+  Scenario: Refresh avatars with no channels returns zero counts
+    When the client refreshes channel avatars
+    Then the publishing response status should be 200
+    And the avatar refresh should report zero refreshed accounts

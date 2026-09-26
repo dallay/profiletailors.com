@@ -2093,6 +2093,9 @@ class PublishingHandlersTest {
 
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
             items.values.firstOrNull { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
+
+        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> =
+            items.values.filter { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
     }
 
     private class ThrowingSocialAccountRepository : SocialAccountRepository {
@@ -2102,6 +2105,8 @@ class PublishingHandlersTest {
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
 
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = null
+
+        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> = emptyList()
     }
 
     private class CapturingChannelEventPublisher : ChannelEventPublisher {

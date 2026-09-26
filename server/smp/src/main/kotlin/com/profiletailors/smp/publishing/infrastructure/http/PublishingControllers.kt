@@ -24,6 +24,8 @@ import com.profiletailors.smp.publishing.application.ProviderCatalogResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.RecurringScheduleResult
 import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsCommand
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
@@ -173,6 +175,10 @@ class PublishingChannelController(
     suspend fun listChannels(
         @RequestParam(required = false) status: SocialConnectionStatus? = null,
     ): ConnectedChannelsResponse = mediator.send(ListConnectedChannelsQuery(status = status))
+
+    @Operation(summary = "Refresh LinkedIn channel avatars")
+    @PostMapping("/refresh-avatars", version = "1")
+    suspend fun refreshChannelAvatars(): RefreshChannelAvatarsResult = mediator.send(RefreshChannelAvatarsCommand())
 
     @Operation(summary = "List workspace-resolved publishing providers")
     @GetMapping("/providers", version = "1")

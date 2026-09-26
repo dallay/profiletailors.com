@@ -173,6 +173,33 @@ Secrets are grouped by risk level and rotation frequency:
 - **Related issue:
   ** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
 
+### Waitlist Withdrawal
+
+#### `SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY`
+
+- **Type:** Base64-encoded 16, 24, or 32-byte key (AES-128/192/256, 32 bytes recommended)
+- **Description:** Encrypts waitlist withdrawal tokens stored in `waitlist_withdrawal_urls`
+  via `EncryptedWaitlistWithdrawalUrlProvider` (AES/GCM).
+- **Risk:** **CRITICAL** — compromise exposes withdrawal tokens.
+- **Generation:**
+
+  ```bash
+  openssl rand -base64 32
+  ```
+
+- **Rotation:** Replace the secret and restart the backend. Pending withdrawal URLs encrypted
+  with the old key become undecryptable; affected users must request a new withdrawal link.
+- **Access:** Infrastructure admins and deployment automation.
+
+#### `SMP_WAITLIST_WITHDRAWAL_PUBLIC_URL_BASE`
+
+- **Type:** HTTPS URL (not a secret)
+- **Description:** Public base URL for withdrawal links (`app.waitlist.withdrawal.public-url-base`).
+  Must use the `https` scheme.
+- **Risk:** LOW.
+- **Example:** `https://profiletailors.com/waitlist/withdraw`
+- **Access:** Infrastructure admins, deployment automation.
+
 ### Media Preview Signing
 
 #### `SMP_MEDIA_PREVIEW_SIGNING_SECRET`
@@ -286,6 +313,7 @@ Before deploying to production, verify:
 - [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit
   `SMP_LOCAL_JWT_SECRET`).
 - [ ] `PUBLISHING_CREDENTIALS_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
+- [ ] `SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY` is a unique 16, 24, or 32-byte Base64 key.
 - [ ] `SMP_MEDIA_PREVIEW_SIGNING_SECRET` is a unique 32-byte secret.
 - [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
 - [ ] `SMP_DB_PASSWORD` is strong (≥32 chars, randomly generated).
@@ -304,6 +332,7 @@ Before deploying to production, verify:
 | `SMP_LOCAL_JWT_SECRET`              | Infrastructure admins      | Deployment, security incident           |
 | `SMP_MEDIA_PREVIEW_SIGNING_SECRET`  | Infrastructure admins      | Deployment, URL-signing rotation        |
 | `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins      | Deployment, OAuth-state rotation        |
+| `SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY` | Infrastructure admins | Deployment, withdrawal-token rotation |
 | `SMP_STORAGE_R2_SECRET_ACCESS_KEY`  | Infrastructure admins      | Deployment, storage credential rotation |
 | `GRAFANA_ADMIN_PASSWORD`            | Developers (dev/staging)   | Local monitoring setup                  |
 | `AHREFS_ANALYTICS_KEY`              | Frontend developers        | Marketing site deployment               |
