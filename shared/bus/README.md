@@ -1,7 +1,7 @@
 # Shared Bus Module (`shared:bus`)
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
-[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+[![Gradle](https://img.shields.io/badge/Gradle-9.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
 
 Framework-agnostic, in-process CQRS mediator, command/query dispatcher, pipeline behavior middleware chain, and event bus implementation for the Profile Tailors backend.
 

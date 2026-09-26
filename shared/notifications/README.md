@@ -2,7 +2,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0-2d3748?style=flat-square&logo=springboot&logoColor=6db33f)](https://spring.io/projects/spring-boot)
-[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+[![Gradle](https://img.shields.io/badge/Gradle-9.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
 
 Domain abstractions and notification dispatching services for email alerts, transactional messaging, and waitlist confirmation notifications across Profile Tailors backend services.
 

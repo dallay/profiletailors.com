@@ -3,7 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=smp%40v*&display_name=tag&style=flat-square&color=2d3748&label=Release)](https://github.com/dallay/profiletailors.com/releases?q=smp%40v)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0-2d3748?style=flat-square&logo=springboot&logoColor=6db33f)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-2d3748?style=flat-square&logo=postgresql&logoColor=4169e1)](https://www.postgresql.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-2d3748?style=flat-square&logo=postgresql&logoColor=4169e1)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Docker-Swarm-2d3748?style=flat-square&logo=docker&logoColor=2496ed)](https://www.docker.com)
 
 Reactive Spring Boot 4 modular monolith written in Kotlin, powering core Profile Tailors services including authentication, post scheduling, multi-network social publishing, workspace administration, and lead capture.
@@ -14,18 +14,18 @@ Acts as the central backend service (`server/smp`) for Profile Tailors. It expos
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines & Flow
 - **Framework**: Spring Boot 4.0, Spring WebFlux, Spring Modulith
-- **Database & Persistence**: PostgreSQL 16, R2DBC, Spring Data R2DBC, Flyway
+- **Database & Persistence**: PostgreSQL 18, R2DBC, Spring Data R2DBC, Flyway
 - **Security & Cryptography**: Spring Security Reactive, JWT, AES-256-GCM
 - **Testing**: JUnit 5, MockK, Kotest, ArchUnit, Konsist, Cucumber BDD
-- **Build & Quality**: Gradle 8.8, Detekt 1.23, JaCoCo, Spotless
+- **Build & Quality**: Gradle 9.7, Detekt 2.0, JaCoCo, Spotless
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Docker & Docker Compose (for local PostgreSQL infrastructure)
 - `just` command runner (`>= 1.30`)
 

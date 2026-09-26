@@ -29,10 +29,14 @@ const ALL_SUBPROJECT_READMES = [
   'infra/apps/smp/production/secrets/README.md',
 ]
 
-const DEPLOYABLE_READMES = [
+const DEPLOYABLE_WITH_PUBLIC_VERSION = [
   'apps/web/marketing/README.md',
   'apps/web/app/README.md',
   'apps/web/admin/README.md',
+]
+
+const DEPLOYABLE_WITHOUT_PUBLIC_VERSION = [
+  'server/smp/README.md',
 ]
 
 describe('README Badges & Version Metadata', () => {
@@ -63,7 +67,7 @@ describe('README Badges & Version Metadata', () => {
       const content = readFileSync(fullPath, 'utf8')
       const hasDeployedBadge = content.includes('label=Deployed') || content.includes('Deployed:')
 
-      if (DEPLOYABLE_READMES.includes(relativePath)) {
+      if (DEPLOYABLE_WITH_PUBLIC_VERSION.includes(relativePath)) {
         expect(hasDeployedBadge, `${relativePath} should have a Deployed badge`).toBe(true)
       } else {
         expect(hasDeployedBadge, `${relativePath} must NOT have a Deployed badge`).toBe(false)
@@ -71,7 +75,20 @@ describe('README Badges & Version Metadata', () => {
     }
   })
 
-  it('web app dist version.json outputs contain valid version, gitSha, and buildTime keys when built', () => {
+  it('deployable backend applications have a Release badge but no Deployed badge', () => {
+    for (const relativePath of DEPLOYABLE_WITHOUT_PUBLIC_VERSION) {
+      const fullPath = resolve(monorepoRoot, relativePath)
+      const content = readFileSync(fullPath, 'utf8')
+
+      const hasReleaseBadge = content.includes('filter=smp%40v*') || content.includes('label=Release')
+      expect(hasReleaseBadge, `${relativePath} must have a Release badge`).toBe(true)
+
+      const hasDeployedBadge = content.includes('label=Deployed') || content.includes('Deployed:')
+      expect(hasDeployedBadge, `${relativePath} must NOT have a Deployed badge`).toBe(false)
+    }
+  })
+
+  it('web app dist version.json outputs exist and contain valid version, gitSha, and buildTime keys when built', () => {
     const apps = [
       'apps/web/marketing/dist/version.json',
       'apps/web/app/dist/version.json',
@@ -80,15 +97,22 @@ describe('README Badges & Version Metadata', () => {
 
     for (const relativePath of apps) {
       const fullPath = resolve(monorepoRoot, relativePath)
-      if (existsSync(fullPath)) {
-        const json = JSON.parse(readFileSync(fullPath, 'utf8'))
-        expect(json).toHaveProperty('version')
-        expect(json).toHaveProperty('gitSha')
-        expect(json).toHaveProperty('buildTime')
-        expect(typeof json.version).toBe('string')
-        expect(typeof json.gitSha).toBe('string')
-        expect(typeof json.buildTime).toBe('string')
-      }
+      expect(existsSync(fullPath), `${relativePath} must exist after build`).toBe(true)
+
+      const json = JSON.parse(readFileSync(fullPath, 'utf8'))
+      expect(json).toHaveProperty('version')
+      expect(json).toHaveProperty('gitSha')
+      expect(json).toHaveProperty('buildTime')
+
+      expect(typeof json.version).toBe('string')
+      expect(json.version.length).toBeGreaterThan(0)
+
+      expect(typeof json.gitSha).toBe('string')
+      expect(json.gitSha.length).toBeGreaterThan(0)
+
+      expect(typeof json.buildTime).toBe('string')
+      expect(json.buildTime.length).toBeGreaterThan(0)
+      expect(Number.isNaN(Date.parse(json.buildTime))).toBe(false)
     }
   })
 })
