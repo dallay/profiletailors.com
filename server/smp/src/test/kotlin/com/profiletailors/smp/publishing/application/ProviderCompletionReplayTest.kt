@@ -28,8 +28,13 @@ import java.time.ZoneOffset
 class ProviderCompletionReplayTest {
     private val now = Instant.parse("2026-09-26T12:00:00Z")
     private val payload = OAuthStatePayload(
-        SocialProvider.THREADS, "workspace", "principal", "https://app.example/callback", "nonce",
-        now, now.plusSeconds(600),
+        SocialProvider.THREADS,
+        "workspace",
+        "principal",
+        "https://app.example/callback",
+        "nonce",
+        now,
+        now.plusSeconds(600),
     )
     private val signer = mockk<OAuthStateSigner>(relaxed = true)
     private val builder = mockk<OAuthAuthorizationUrlBuilder>()
@@ -51,7 +56,10 @@ class ProviderCompletionReplayTest {
         transactionRunner = mockk(),
     )
     private val command = CompleteProviderConnectionCommand(
-        SocialProvider.THREADS, "code", payload.redirectUri, "state",
+        SocialProvider.THREADS,
+        "code",
+        payload.redirectUri,
+        "state",
     )
 
     @Test

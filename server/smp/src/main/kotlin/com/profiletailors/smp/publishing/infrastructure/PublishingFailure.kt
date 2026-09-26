@@ -59,4 +59,3 @@ data class PublishingFailure(val category: PublishingFailureCategory, val diagno
 }
 
 class PublishingFailureException(val failure: PublishingFailure) : RuntimeException(failure.category.code)
-

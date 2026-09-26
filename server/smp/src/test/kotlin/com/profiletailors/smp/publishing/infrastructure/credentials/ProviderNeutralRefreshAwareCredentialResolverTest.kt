@@ -84,12 +84,22 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
             ),
         )
         val account = SocialAccount(
-            "account", "connection", "workspace", SocialProvider.THREADS, "threads-user",
-            SocialAccountKind.PERSONAL_PROFILE, "User", status = SocialConnectionStatus.ACTIVE,
+            "account",
+            "connection",
+            "workspace",
+            SocialProvider.THREADS,
+            "threads-user",
+            SocialAccountKind.PERSONAL_PROFILE,
+            "User",
+            status = SocialConnectionStatus.ACTIVE,
         )
         val repository = mockk<SocialConnectionRepository>()
         coEvery { repository.findByWorkspaceAndId("workspace", "connection") } returns SocialConnection(
-            "connection", "workspace", SocialProvider.THREADS, "threads-user", SocialConnectionStatus.ACTIVE,
+            "connection",
+            "workspace",
+            SocialProvider.THREADS,
+            "threads-user",
+            SocialConnectionStatus.ACTIVE,
             id.toString(),
         )
         val requests = mutableListOf<HttpRequest>()
@@ -98,8 +108,11 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
             socialConnectionRepository = repository,
             httpTransport = ProviderHttpTransport { request ->
                 requests += request
-                ProviderHttpResponse(200, HttpHeaders.of(emptyMap()) { _, _ -> true },
-                    """{"access_token":"renewed-token","expires_in":5184000}""")
+                ProviderHttpResponse(
+                    200,
+                    HttpHeaders.of(emptyMap()) { _, _ -> true },
+                    """{"access_token":"renewed-token","expires_in":5184000}""",
+                )
             },
             objectMapper = ObjectMapper(),
             clock = Clock.fixed(now, ZoneOffset.UTC),

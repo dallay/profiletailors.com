@@ -20,11 +20,18 @@ data class ThreadsPublishingProperties(
     val containerPollMaxAttempts: Int = MAX_CONTAINER_POLL_ATTEMPTS,
     val mediaUrlTtl: Duration = MEDIA_URL_TTL,
 ) {
-    fun isConfigured(): Boolean = enabled && clientId.isNotBlank() && clientSecret.isNotBlank() &&
-        redirectUri.isAllowedHttpsRedirect() && apiBaseUrl.isAllowedHttpsBaseUrl() && apiVersion.isNotBlank() &&
-        authorizationBaseUrl.isAllowedHttpsBaseUrl() && requiredScopes == APPROVED_SCOPES && refreshAhead.isPositive &&
+    fun isConfigured(): Boolean = enabled &&
+        clientId.isNotBlank() &&
+        clientSecret.isNotBlank() &&
+        redirectUri.isAllowedHttpsRedirect() &&
+        apiBaseUrl.isAllowedHttpsBaseUrl() &&
+        apiVersion.isNotBlank() &&
+        authorizationBaseUrl.isAllowedHttpsBaseUrl() &&
+        requiredScopes == APPROVED_SCOPES &&
+        refreshAhead.isPositive &&
         containerPollInterval.isPositive &&
-        containerPollTimeout.isPositive && containerPollMaxAttempts > 0 &&
+        containerPollTimeout.isPositive &&
+        containerPollMaxAttempts > 0 &&
         mediaUrlTtl >= containerPollTimeout.multipliedBy(ThreadsCapabilitySet.MAX_CAROUSEL_ITEMS + 1L)
             .plus(MEDIA_URL_SAFETY_MARGIN)
 

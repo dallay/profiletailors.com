@@ -173,9 +173,7 @@ internal class CompleteProviderConnectionHandler(
     CompleteProviderConnectionCommand,
     SocialConnectionResult,
     > {
-    override suspend fun handle(
-        command: CompleteProviderConnectionCommand,
-    ): SocialConnectionResult {
+    override suspend fun handle(command: CompleteProviderConnectionCommand): SocialConnectionResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
             principalCtx,

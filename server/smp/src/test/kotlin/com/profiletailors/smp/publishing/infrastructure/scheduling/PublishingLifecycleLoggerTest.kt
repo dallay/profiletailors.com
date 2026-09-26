@@ -5,7 +5,6 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.PublishingFailure
 import com.profiletailors.smp.publishing.infrastructure.PublishingFailureCategory
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain

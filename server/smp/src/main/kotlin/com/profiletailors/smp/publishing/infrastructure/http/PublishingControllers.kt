@@ -168,11 +168,9 @@ class PublishingConnectionController(private val mediator: Mediator) {
     suspend fun disconnectProviderConnection(
         @PathVariable provider: SocialProvider,
         @PathVariable connectionId: String,
-    ): SocialConnectionResult {
-        return mediator.send(
-            DisconnectProviderConnectionCommand(provider, connectionId),
-        )
-    }
+    ): SocialConnectionResult = mediator.send(
+        DisconnectProviderConnectionCommand(provider, connectionId),
+    )
 
     @Operation(summary = "Initiate LinkedIn profile connection")
     @PostMapping("/linkedin/connections/initiate", consumes = ["application/json"], version = "1")

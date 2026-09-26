@@ -105,7 +105,7 @@ class PublishingProviderCatalogHandlersTest {
 
                 override suspend fun consume(payload: OAuthStatePayload) = Unit
 
-        override fun verify(state: String): LinkedInOAuthStatePayload = error("Not used by initiation")
+                override fun verify(state: String): LinkedInOAuthStatePayload = error("Not used by initiation")
             },
             authorizationUrlBuilder = configuredAuthorizationUrlBuilder(),
             clock = Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC),
