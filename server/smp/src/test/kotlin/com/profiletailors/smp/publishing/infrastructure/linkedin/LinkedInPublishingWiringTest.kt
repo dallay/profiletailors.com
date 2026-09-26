@@ -1685,6 +1685,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
             connection.takeIf { it.workspaceId == workspaceId && it.id == connectionId }
+        override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) = Unit
     }
 
     private class FakeStorage : Storage {

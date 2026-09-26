@@ -3,7 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
-import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.nio.charset.StandardCharsets
@@ -11,6 +11,7 @@ import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -23,6 +24,7 @@ class HmacOAuthStateSigner(
     private val objectMapper: ObjectMapper,
     private val clock: Clock,
 ) : OAuthStateSigner {
+    private val consumedStates = ConcurrentHashMap.newKeySet<String>()
     init {
         require(secret.isNotBlank()) { "OAuth state signing secret is required." }
         require(INSECURE_PLACEHOLDER_PREFIXES.none { secret.startsWith(it, ignoreCase = true) }) {
@@ -31,14 +33,14 @@ class HmacOAuthStateSigner(
         }
     }
 
-    override fun sign(payload: LinkedInOAuthStatePayload): String {
+    override fun sign(payload: OAuthStatePayload): String {
         val encodedPayload = base64UrlEncoder.encodeToString(objectMapper.writeValueAsBytes(payload.toStateMap()))
         val encodedSignature = signEncodedPayload(encodedPayload)
         return "$encodedPayload.$encodedSignature"
     }
 
     @Suppress("ThrowsCount", "TooGenericExceptionCaught")
-    override fun verify(state: String): LinkedInOAuthStatePayload {
+    override fun verify(state: String): OAuthStatePayload {
         val parts = state.split('.')
         if (parts.size != 2 || parts.any { it.isBlank() }) {
             throw InvalidOAuthStateException("OAuth state is malformed.")
@@ -56,6 +58,9 @@ class HmacOAuthStateSigner(
         if (!payload.expiresAt.isAfter(clock.instant())) {
             throw ExpiredOAuthStateException()
         }
+        if (!consumedStates.add(state)) {
+            throw InvalidOAuthStateException("OAuth state has already been consumed.")
+        }
         return payload
     }
 
@@ -70,7 +75,7 @@ class HmacOAuthStateSigner(
         right.toByteArray(StandardCharsets.UTF_8),
     )
 
-    private fun LinkedInOAuthStatePayload.toStateMap(): Map<String, String> = linkedMapOf(
+    private fun OAuthStatePayload.toStateMap(): Map<String, String> = linkedMapOf(
         "provider" to provider.name,
         "workspaceId" to workspaceId,
         "principalId" to principalId,
@@ -80,7 +85,7 @@ class HmacOAuthStateSigner(
         "expiresAt" to expiresAt.toString(),
     )
 
-    private fun Map<*, *>.toOAuthStatePayload(): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
+    private fun Map<*, *>.toOAuthStatePayload(): OAuthStatePayload = OAuthStatePayload(
         provider = SocialProvider.valueOf(requiredString("provider")),
         workspaceId = requiredString("workspaceId", "workspace_id"),
         principalId = requiredString("principalId", "principal_id"),

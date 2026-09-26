@@ -24,6 +24,9 @@ const logout = vi.fn().mockResolvedValue(undefined)
 const resendVerificationEmail = vi.fn().mockImplementation(async () => {
   authState.resendVerificationStatus = 'success'
 })
+const publishingActions = vi.hoisted(() => ({
+  connectProviderPersonalProfile: vi.fn().mockResolvedValue(undefined),
+}))
 
 vi.mock('vue-router', () => ({
   RouterView: { template: '<div class="router-view" />' },
@@ -162,6 +165,7 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
     fetchChannels: vi.fn().mockResolvedValue([]),
     refreshWorkspaceData: vi.fn().mockResolvedValue(undefined),
     connectLinkedInPersonalProfile: vi.fn().mockResolvedValue(undefined),
+    connectProviderPersonalProfile: publishingActions.connectProviderPersonalProfile,
   }),
 }))
 
@@ -183,6 +187,11 @@ vi.mock('@modules/publishing/application/useQueuedCounts', () => ({
     total: { value: 0 },
     byProvider: { value: new Map() },
   }),
+}))
+
+const toastError = vi.hoisted(() => vi.fn())
+vi.mock('vue-sonner', () => ({
+  toast: { error: toastError },
 }))
 
 vi.mock('@/components/ui/sonner', () => ({
@@ -229,7 +238,9 @@ vi.mock('@layouts/sidebar/SidebarNavSection.vue', () => ({
 
 vi.mock('@layouts/sidebar/SidebarConnectSection.vue', () => ({
   default: {
+    name: 'SidebarConnectSection',
     props: ['providers'],
+    emits: ['connect'],
     template:
       '<div class="sidebar-connect">{{ providers.map((provider) => provider.provider).join(",") }}</div>',
   },
@@ -281,6 +292,48 @@ describe('AppShell scheduler sidebar navigation', () => {
     })
 
     expect(wrapper.get('.sidebar-connect').text()).toBe('linkedin')
+  })
+
+  it('uses the provider-aware initiation action for a Threads CTA', async () => {
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+    const connectSection = wrapper.findComponent({ name: 'SidebarConnectSection' })
+    connectSection.vm.$emit('connect', {
+      provider: 'threads',
+      accountKinds: ['PERSONAL_PROFILE'],
+      state: 'AVAILABLE',
+      reason: null,
+      channelLimit: null,
+      connectedChannelCount: 0,
+      canConnectMore: true,
+    })
+    await nextTick()
+
+    expect(publishingActions.connectProviderPersonalProfile).toHaveBeenCalledWith('threads')
+  })
+
+  it('surfaces a sanitized error when provider initiation fails', async () => {
+    publishingActions.connectProviderPersonalProfile.mockRejectedValueOnce(
+      new Error('authorization code secret leaked'),
+    )
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+    const connectSection = wrapper.findComponent({ name: 'SidebarConnectSection' })
+    connectSection.vm.$emit('connect', {
+      provider: 'threads',
+      accountKinds: ['PERSONAL_PROFILE'],
+      state: 'AVAILABLE',
+      reason: null,
+      channelLimit: null,
+      connectedChannelCount: 0,
+      canConnectMore: true,
+    })
+    await nextTick()
+
+    expect(toastError).toHaveBeenCalledWith('channels.connectionFailed')
+    expect(toastError).not.toHaveBeenCalledWith('authorization code secret leaked')
   })
 
   it('clears channel filters without leaving scheduler when All channels is selected', async () => {

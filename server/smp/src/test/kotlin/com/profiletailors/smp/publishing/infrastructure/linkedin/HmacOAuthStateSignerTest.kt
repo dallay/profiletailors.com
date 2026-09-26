@@ -59,6 +59,17 @@ class HmacOAuthStateSignerTest {
     }
 
     @Test
+    fun `rejects replayed oauth state`() {
+        val state = signer.sign(validPayload())
+
+        signer.verify(state)
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            signer.verify(state)
+        }
+    }
+
+    @Test
     fun `rejects blank signing secret`() {
         val error = assertThrows(IllegalArgumentException::class.java) {
             HmacOAuthStateSigner("", objectMapper, clock)
