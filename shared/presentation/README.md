@@ -1,5 +1,8 @@
 # Shared Presentation Module (`shared:presentation`)
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Framework-agnostic presentation DTOs, pagination wrappers, opaque cursor encoders, sorting primitives, and API response envelopes for the Profile Tailors backend.
 
 ## Role in the platform

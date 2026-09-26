@@ -5,6 +5,8 @@ import tailwind from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { InlineConfig as VitestInlineConfig } from 'vitest/node'
 import { fileURLToPath, URL } from 'node:url'
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { computeBuildInfo } from '../../../scripts/compute-build-info.mjs'
 
 const isE2eOrCi = Boolean(
@@ -43,6 +45,17 @@ const config = {
     },
   },
   plugins: [
+    {
+      name: 'version-json',
+      closeBundle() {
+        const outDir = fileURLToPath(new URL('./dist', import.meta.url))
+        writeFileSync(
+          resolve(outDir, 'version.json'),
+          `${JSON.stringify(buildInfo, null, 2)}\n`,
+          'utf8',
+        )
+      },
+    },
     vue(),
     !isE2eOrCi && vueDevTools(),
     tailwind(),

@@ -1,5 +1,9 @@
 # Compliance Tools (`@profiletailors/compliance-tools`)
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-2d3748?style=flat-square&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-2d3748?style=flat-square&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
+[![Vitest](https://img.shields.io/badge/Vitest-3.x-2d3748?style=flat-square&logo=vitest&logoColor=6e9f18)](https://vitest.dev)
+
 Node.js CLI and validation workspace for verifying GDPR data inventories, compliance schemas, security configuration drift, and test suite hygiene across Profile Tailors repositories.
 
 ## Role in the platform

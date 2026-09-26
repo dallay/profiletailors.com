@@ -1,5 +1,7 @@
 # Swarm Secret Sources
 
+[![Docker](https://img.shields.io/badge/Docker-Swarm-2d3748?style=flat-square&logo=docker&logoColor=2496ed)](https://docs.docker.com/engine/swarm/secrets/)
+
 ## Overview
 
 These local files are source material for immutable Docker Swarm secrets. They must exist only on a

@@ -1,5 +1,12 @@
 # Profile Tailors Marketing Site
 
+[![Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=landing%40v*&display_name=tag&style=flat-square&color=2d3748&label=Release)](https://github.com/dallay/profiletailors.com/releases?q=landing%40v)
+[![Deployed](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fprofiletailors.com%2Fversion.json&query=%24.version&prefix=v&style=flat-square&color=007ec6&label=Deployed)](https://profiletailors.com)
+[![Astro](https://img.shields.io/badge/Astro-7.x-2d3748?style=flat-square&logo=astro&logoColor=ffffff)](https://astro.build)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-2d3748?style=flat-square&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-2d3748?style=flat-square&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.x-2d3748?style=flat-square&logo=tailwindcss&logoColor=06b6d4)](https://tailwindcss.com)
+
 Public-facing, static-first Astro 7 application serving product marketing content, bilingual landing pages, legal compliance policies, and the client-side waitlist acquisition flow for Profile Tailors.
 
 ## Role in the platform
