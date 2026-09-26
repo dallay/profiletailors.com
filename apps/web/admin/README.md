@@ -1,5 +1,12 @@
 # Profile Tailors Admin Portal
 
+[![Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=admin%40v*&display_name=tag&style=flat-square&color=2d3748&label=Release)](https://github.com/dallay/profiletailors.com/releases?q=admin%40v)
+[![Deployed](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fadmin.profiletailors.com%2Fversion.json&query=%24.version&prefix=v&style=flat-square&color=007ec6&label=Deployed)](https://admin.profiletailors.com)
+[![Vue](https://img.shields.io/badge/Vue-3.x-2d3748?style=flat-square&logo=vuedotjs&logoColor=4fc08d)](https://vuejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-2d3748?style=flat-square&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-7.x-2d3748?style=flat-square&logo=vite&logoColor=646cff)](https://vitejs.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.x-2d3748?style=flat-square&logo=tailwindcss&logoColor=06b6d4)](https://tailwindcss.com)
+
 Internal Vue 3 single-page application for platform operators to manage waitlist signups, user accounts, system permissions, and audit logs for Profile Tailors.
 
 ## Role in the platform

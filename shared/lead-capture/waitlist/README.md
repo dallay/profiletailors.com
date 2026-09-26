@@ -1,5 +1,8 @@
 # Shared Lead Capture Waitlist Module (`shared:lead-capture:waitlist`)
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Waitlist domain logic, signup processing, early-access invitation management, and waitlist entry validation for Profile Tailors.
 
 ## Role in the platform

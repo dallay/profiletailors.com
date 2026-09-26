@@ -1,5 +1,8 @@
 # Profile Tailors Gradle Build Logic
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Centralized Gradle convention plugins providing reusable build configuration, dependency management, code quality rules, security scanning, and licence reporting across Kotlin subprojects.
 
 ## Role in the platform

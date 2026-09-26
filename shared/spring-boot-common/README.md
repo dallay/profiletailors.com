@@ -1,5 +1,9 @@
 # Shared Spring Boot Common Module (`shared:spring-boot-common`)
 
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0-2d3748?style=flat-square&logo=springboot&logoColor=6db33f)](https://spring.io/projects/spring-boot)
+[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+
 Spring Boot 4 integration layer for Profile Tailors shared Kotlin libraries, offering global RFC 9457 ProblemDetail exception handlers, WebFilter workspace context resolvers, Jackson Kotlin serialization, reactive base repositories, and HasherRegistry beans.
 
 ## Role in the platform

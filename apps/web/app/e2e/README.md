@@ -1,5 +1,8 @@
 # App E2E Guide
 
+[![Playwright](https://img.shields.io/badge/Playwright-1.x-2d3748?style=flat-square&logo=playwright&logoColor=2ead33)](https://playwright.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-2d3748?style=flat-square&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
+
 ## Overview
 
 This folder contains the Playwright end-to-end suites for the Profile Tailors SPA. The suites are split by runtime dependency so local runs and CI can choose the cheapest lane that still validates the contract.
