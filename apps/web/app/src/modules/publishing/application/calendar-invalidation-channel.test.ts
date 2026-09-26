@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createCalendarInvalidationChannel } from './calendar-invalidation-channel'
+import {
+  createCalendarInvalidationChannel,
+  type CalendarInvalidationReason,
+} from './calendar-invalidation-channel'
 
 describe('calendar invalidation channel', () => {
   afterEach(() => {
@@ -33,6 +36,57 @@ describe('calendar invalidation channel', () => {
     expect(postMessage.mock.calls[0]?.[0]).not.toHaveProperty('content')
   })
 
+  it('skips publishing if workspaceId does not match or reason is invalid', () => {
+    const postMessage = vi.fn()
+    class BroadcastChannelStub {
+      postMessage = postMessage
+      close = vi.fn()
+      addEventListener = vi.fn()
+      removeEventListener = vi.fn()
+    }
+    vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
+    const channel = createCalendarInvalidationChannel('workspace-a')
+
+    channel.publish({ workspaceId: 'workspace-b', reason: 'updated' })
+    expect(postMessage).not.toHaveBeenCalled()
+
+    channel.publish({ workspaceId: 'workspace-a', reason: 'unknown' as CalendarInvalidationReason })
+    expect(postMessage).not.toHaveBeenCalled()
+  })
+
+  it('receives valid messages and invokes onMessage callback', () => {
+    let listener: ((event: MessageEvent<unknown>) => void) | undefined
+    const addEventListener = vi.fn(
+      (_type: string, callback: (event: MessageEvent<unknown>) => void) => {
+        listener = callback
+      },
+    )
+    class BroadcastChannelStub {
+      addEventListener = addEventListener
+      postMessage = vi.fn()
+      close = vi.fn()
+      removeEventListener = vi.fn()
+    }
+    vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
+    const received = vi.fn()
+    const subscription = createCalendarInvalidationChannel('workspace-a', received)
+
+    const validMessage = {
+      version: 1,
+      type: 'calendar-invalidated',
+      workspaceId: 'workspace-a',
+      publicationId: 'pub-123',
+      reason: 'created',
+      occurredAt: new Date().toISOString(),
+    }
+
+    listener?.({ data: validMessage } as MessageEvent)
+
+    expect(received).toHaveBeenCalledOnce()
+    expect(received).toHaveBeenCalledWith(validMessage)
+    subscription.close()
+  })
+
   it('ignores malformed and foreign messages', () => {
     let listener: ((event: MessageEvent<unknown>) => void) | undefined
     const addEventListener = vi.fn(
@@ -56,6 +110,7 @@ describe('calendar invalidation channel', () => {
     const received = vi.fn()
     const subscription = createCalendarInvalidationChannel('workspace-a', received)
 
+    listener?.({ data: null } as MessageEvent)
     listener?.({
       data: {
         version: 1,

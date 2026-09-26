@@ -33,4 +33,8 @@ describe('getCalendarRange', () => {
   it('rejects malformed URL dates', () => {
     expect(() => getCalendarRange('not-a-date', 'week', 'UTC')).toThrow('Invalid calendar date')
   })
+
+  it('rejects invalid calendar dates with valid regex pattern like 2026-02-31', () => {
+    expect(() => getCalendarRange('2026-02-31', 'week', 'UTC')).toThrow('Invalid calendar date')
+  })
 })
