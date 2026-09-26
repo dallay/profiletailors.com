@@ -279,24 +279,29 @@ describe('SchedulerView', () => {
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
   })
 
-  it('shows reconnect prompt when channels require reconnect', async () => {
+  it('shows reconnect prompt when Threads channels require reconnect', async () => {
     const store = usePublishingStore()
     store.channels = [
       {
         id: 'acc-1',
         accountId: 'acc-1',
-        name: 'LinkedIn',
-        provider: 'linkedin',
+        name: 'Threads profile',
+        provider: 'threads',
         avatar: '',
         handle: '@company',
         status: 'REQUIRES_RECONNECT',
       },
     ]
+    vi.spyOn(store, 'connectProviderPersonalProfile').mockResolvedValue(undefined as never)
 
     const wrapper = mountView()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Reconnect Required')
+    expect(wrapper.text()).toContain('Threads')
+    const reconnectButton = wrapper.get('[data-testid="reconnect-provider-threads"]')
+    await reconnectButton.trigger('click')
+    expect(store.connectProviderPersonalProfile).toHaveBeenCalledWith('threads')
   })
 
   it('renders thumbnail image in week view scheduled post cards', async () => {

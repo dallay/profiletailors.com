@@ -2,11 +2,18 @@ package com.profiletailors.smp.publishing.domain
 
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
+
+interface ProviderCredentialInvalidator {
+    suspend fun invalidateCredential(id: UUID)
+}
 
 interface SocialConnectionRepository {
     suspend fun upsert(connection: SocialConnection): SocialConnection
 
     suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection?
+
+    suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String)
 }
 
 interface SocialAccountRepository {
@@ -15,6 +22,8 @@ interface SocialAccountRepository {
     suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount?
 
     suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount?
+
+    suspend fun deleteByConnectionId(connectionId: String)
 }
 
 interface PublicationRepository {

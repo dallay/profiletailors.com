@@ -93,12 +93,18 @@ function onDragEnd(e: DragEvent) {
   dragData.value = null
 }
 
-async function handleReconnect() {
+async function reconnectProvider(provider: string): Promise<void> {
+  if (provider !== 'linkedin' && provider !== 'threads') return
   try {
-    await publishingStore.connectLinkedInPersonalProfile()
-  } catch (err: unknown) {
-    console.error('LinkedIn reconnect failed', err)
+    await publishingStore.connectProviderPersonalProfile(provider)
+  } catch {
+    toast.error(t('channels.reconnectFailed'))
   }
+}
+
+async function handleReconnect(): Promise<void> {
+  const provider = publishingStore.reconnectRequiredChannels[0]?.provider
+  if (provider) await reconnectProvider(provider)
 }
 
 async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
@@ -585,23 +591,30 @@ watch(
       <Button data-testid="open-bulk-import" variant="outline" class="gap-2" @click="isBulkModalOpen = true">Bulk Import</Button>
     </div>
 
-    <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
     <div
       v-if="publishingStore.hasReconnectRequiredChannels"
       class="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3"
+      role="status"
+      aria-live="polite"
     >
       <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
         Reconnect Required
       </span>
       <span class="text-xs text-text-secondary">
-        Some LinkedIn accounts need re-authentication to resume publishing.
+        {{ publishingStore.reconnectRequiredChannels.map((channel) => channel.provider === 'threads' ? 'Threads' : 'LinkedIn').join(', ') }} accounts need re-authentication to resume publishing.
       </span>
-      <Button
-        @click="publishingStore.connectLinkedInPersonalProfile()"
-        class="ml-auto gap-1.5 text-[10px] uppercase font-mono tracking-wider bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20"
-      >
-        Reconnect
-      </Button>
+      <div class="ml-auto flex gap-2">
+        <Button
+          v-for="channel in publishingStore.reconnectRequiredChannels"
+          :key="channel.id"
+          :data-testid="`reconnect-provider-${channel.provider}`"
+          :aria-label="`Reconnect ${channel.provider === 'threads' ? 'Threads' : 'LinkedIn'} account`"
+          @click="reconnectProvider(channel.provider)"
+          class="gap-1.5 text-[10px] uppercase font-mono tracking-wider bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20"
+        >
+          Reconnect {{ channel.provider === 'threads' ? 'Threads' : 'LinkedIn' }}
+        </Button>
+      </div>
     </div>
 
     <Card v-if="publishingStore.recurringSchedules.length" class="shrink-0 border border-border-subtle bg-bg-surface p-4">

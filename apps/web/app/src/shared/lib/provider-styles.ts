@@ -27,6 +27,10 @@ const PROVIDER_STYLES: Record<string, ProviderStyle> = {
     color: 'bg-blue-600/10 border-blue-600/30 text-blue-600',
     badge: 'fb',
   },
+  threads: {
+    color: 'bg-foreground/5 border-border-visible text-text-display',
+    badge: '@',
+  },
 }
 
 const DEFAULT_STYLE: ProviderStyle = {

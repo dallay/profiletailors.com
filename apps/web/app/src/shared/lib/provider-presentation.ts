@@ -11,6 +11,7 @@ const PROVIDER_LOCK_REASONS = {
 
 export const PROVIDER_ACTIONS = {
   CONNECT_LINKEDIN_PERSONAL_PROFILE: 'CONNECT_LINKEDIN_PERSONAL_PROFILE',
+  CONNECT_THREADS_PERSONAL_PROFILE: 'CONNECT_THREADS_PERSONAL_PROFILE',
 } as const
 
 type ProviderLockReason = (typeof PROVIDER_LOCK_REASONS)[keyof typeof PROVIDER_LOCK_REASONS]
@@ -71,7 +72,12 @@ const PROVIDER_PRESENTATIONS = {
   },
   instagram: { label: 'Instagram', icon: 'instagram', badge: 'ig', action: null },
   facebook: { label: 'Facebook', icon: 'facebook', badge: 'fb', action: null },
-  threads: { label: 'Threads', icon: 'threads', badge: '@', action: null },
+  threads: {
+    label: 'Threads',
+    icon: 'threads',
+    badge: '@',
+    action: PROVIDER_ACTIONS.CONNECT_THREADS_PERSONAL_PROFILE,
+  },
   bluesky: { label: 'Bluesky', icon: 'bluesky', badge: 'b', action: null },
   twitter: { label: 'X', icon: 'twitter', badge: '𝕏', action: null },
   tiktok: { label: 'TikTok', icon: 'tiktok', badge: 'tt', action: null },

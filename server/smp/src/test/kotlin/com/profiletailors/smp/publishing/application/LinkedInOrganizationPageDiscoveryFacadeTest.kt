@@ -216,6 +216,7 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
         override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
             connection.takeIf { it.workspaceId == workspaceId && it.id == connectionId }
+        override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) = Unit
     }
 
     private class InMemoryAccountRepository(private val account: SocialAccount) : SocialAccountRepository {
@@ -224,6 +225,7 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
             account.takeIf { it.workspaceId == workspaceId && it.id == accountId }
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
             account.takeIf { it.workspaceId == workspaceId }
+        override suspend fun deleteByConnectionId(connectionId: String) = Unit
     }
 
     private class InMemoryApprovalEvidenceRepository(

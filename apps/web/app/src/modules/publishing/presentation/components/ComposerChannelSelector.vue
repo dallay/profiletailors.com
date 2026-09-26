@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { Check, X } from '@lucide/vue'
 import type { Channel } from '@modules/publishing/domain/channel'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
 const props = defineProps<{
   channels: Channel[]
@@ -71,7 +72,7 @@ function handleSelect(channelId: string) {
           data-testid="channel-avatar-fallback"
           class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
         >
-          {{ ch.provider === 'linkedin' ? 'in' : ch.provider.charAt(0) }}
+          <SocialProviderIcon :provider="ch.provider" />
         </span>
         <span class="max-w-[120px] truncate">{{ ch.name }}</span>
         <span

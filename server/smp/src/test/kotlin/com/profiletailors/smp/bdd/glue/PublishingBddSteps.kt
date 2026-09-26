@@ -46,6 +46,22 @@ class PublishingBddSteps {
         providerCatalogPolicyControl.reset()
     }
 
+    @Given("a connected Threads social account exists")
+    fun givenConnectedThreadsSocialAccountExists() = runBlocking {
+        bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "VERIFIED")
+        bddDatabaseSupport.seedSocialConnection("threads-conn-1", "THREADS", "ACTIVE")
+        bddDatabaseSupport.seedSocialAccount(
+            accountId = "threads-acc-1",
+            connectionId = "threads-conn-1",
+            provider = "THREADS",
+            providerAccountId = "threads-profile-1",
+            accountKind = "PERSONAL_PROFILE",
+            displayName = "Threads Profile",
+        )
+        currentSocialConnectionId = "threads-conn-1"
+        currentSocialAccountId = "threads-acc-1"
+    }
+
     @Given("a connected LinkedIn social account exists")
     fun givenConnectedLinkedInSocialAccountExists() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
@@ -134,7 +150,7 @@ class PublishingBddSteps {
         val json = objectMapper.writeValueAsString(bodyMap)
         latestPublishingResponse = webTestClient.post()
             .uri(bddDatabaseSupport.publishingPublicationsPath())
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
             .contentType(MediaType.APPLICATION_JSON)
@@ -268,6 +284,21 @@ class PublishingBddSteps {
         }
     }
 
+    @When("the client disconnects the Threads connection")
+    fun whenClientDisconnectsThreadsConnection() {
+        val connectionId = requireNotNull(currentSocialConnectionId) {
+            "No Threads connection seeded"
+        }
+        latestPublishingResponse = webTestClient.delete()
+            .uri("/api/publishing/THREADS/connections/$connectionId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {
         latestPublishingResponse = webTestClient.get()
@@ -336,6 +367,15 @@ class PublishingBddSteps {
             .exchange()
             .expectBody()
             .returnResult()
+    }
+
+    @When("the client initiates a Threads connection")
+    fun whenClientInitiatesThreadsConnection() {
+        latestPublishingResponse = initiateProviderConnection(
+            provider = "threads",
+            authorization = BddDatabaseSupport.VERIFIED_USER_BEARER,
+            workspaceId = BddDatabaseSupport.WORKSPACE_ID,
+        )
     }
 
     @When("the client initiates a LinkedIn connection")
@@ -428,6 +468,64 @@ class PublishingBddSteps {
         }
     }
 
+    @Then("the catalog should omit Threads")
+    fun thenCatalogShouldOmitThreads() {
+        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
+        assertTrue(providers.none { it["provider"] == "threads" }) {
+            "Expected Threads to be omitted but got: $providers (body: ${publishingResponseBodyText()})"
+        }
+    }
+
+    @Then("the catalog response should not contain provider secrets")
+    fun thenCatalogResponseShouldNotContainProviderSecrets() {
+        val body = publishingResponseBodyText()
+        assertTrue(!body.contains("clientSecret"))
+        assertTrue(!body.contains("clientId"))
+    }
+
+    @Then("the OAuth response should not contain authorization material")
+    fun thenOAuthResponseShouldNotContainAuthorizationMaterial() {
+        val body = publishingResponseBodyText()
+        assertTrue(!body.contains("authorizationUrl"))
+        assertTrue(!body.contains("\"state\""))
+    }
+
+    @Then("the OAuth response should contain authorizationUrl and state")
+    fun thenOAuthResponseShouldContainAuthorizationUrlAndState() {
+        val body = publishingResponseBodyText()
+        assertTrue(body.contains("authorizationUrl"), body)
+        assertTrue(body.contains("\"state\""), body)
+    }
+
+    @Then("the channels list should contain the existing Threads channel")
+    fun thenChannelsListShouldContainExistingThreadsChannel() {
+        val channels: List<Map<String, Any?>> = parsePublishingResponseField("channels")
+        assertTrue(channels.any { it["provider"] == "THREADS" }) {
+            "Expected the existing Threads channel but got: $channels (body: ${publishingResponseBodyText()})"
+        }
+    }
+
+    @Then("the channels list should omit Threads")
+    fun thenChannelsListShouldOmitThreads() {
+        val channels: List<Map<String, Any?>> = parsePublishingResponseField("channels")
+        assertTrue(channels.none { it["provider"] == "THREADS" }) {
+            "Expected Threads to be omitted but got: $channels (body: ${publishingResponseBodyText()})"
+        }
+    }
+
+    @Then("the connection response should be deleted for Threads")
+    fun thenConnectionResponseShouldBeDeletedForThreads() {
+        assertEquals("THREADS", parsePublishingResponseField<String>("provider"))
+        assertEquals("DELETED", parsePublishingResponseField<String>("status"))
+    }
+
+    @Then("the publication response should not contain provider secrets")
+    fun thenPublicationResponseShouldNotContainProviderSecrets() {
+        val body = publishingResponseBodyText()
+        assertTrue(!body.contains("accessToken"))
+        assertTrue(!body.contains("clientSecret"))
+    }
+
     @Then("the catalog should contain available LinkedIn personal profile without secrets or plans")
     fun thenCatalogShouldContainAvailableLinkedInPersonalProfileWithoutSecretsOrPlans() {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
@@ -481,6 +579,28 @@ class PublishingBddSteps {
     private fun linkedInCatalogItem(): Map<String, Any?> {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
         return providers.single { it["provider"] == "linkedin" }
+    }
+
+    private fun initiateProviderConnection(
+        provider: String,
+        authorization: String?,
+        workspaceId: String?,
+    ): EntityExchangeResult<ByteArray> {
+        var request = webTestClient.post()
+            .uri("/api/publishing/$provider/connections/initiate")
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .contentType(MediaType.APPLICATION_JSON)
+        if (authorization != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, authorization)
+        }
+        if (workspaceId != null) {
+            request = request.header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
+        }
+        return request
+            .bodyValue("""{"redirectUri":"https://app.example.com/callback"}""")
+            .exchange()
+            .expectBody()
+            .returnResult()
     }
 
     private fun initiateLinkedInConnection(

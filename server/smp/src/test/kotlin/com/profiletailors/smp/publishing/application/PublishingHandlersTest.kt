@@ -2076,6 +2076,9 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
             items[connectionId]?.takeIf { it.workspaceId == workspaceId }
+        override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) {
+            items.remove(connectionId)
+        }
     }
 
     private class InMemorySocialAccountRepository : SocialAccountRepository {
@@ -2093,6 +2096,10 @@ class PublishingHandlersTest {
 
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
             items.values.firstOrNull { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
+
+        override suspend fun deleteByConnectionId(connectionId: String) {
+            items.entries.removeAll { it.value.socialConnectionId == connectionId }
+        }
     }
 
     private class ThrowingSocialAccountRepository : SocialAccountRepository {
@@ -2102,6 +2109,8 @@ class PublishingHandlersTest {
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
 
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = null
+
+        override suspend fun deleteByConnectionId(connectionId: String) = Unit
     }
 
     private class CapturingChannelEventPublisher : ChannelEventPublisher {

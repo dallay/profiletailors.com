@@ -505,6 +505,9 @@ class RefreshAwareCredentialResolverTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
             connections["$workspaceId:$connectionId"]
+        override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) {
+            connections.remove("$workspaceId:$connectionId")
+        }
     }
 
     private class ControllableFakeLinkedInHttpTransport(

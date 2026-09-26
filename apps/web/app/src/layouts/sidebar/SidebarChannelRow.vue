@@ -3,17 +3,23 @@ import { ref } from 'vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
+import { getProviderPresentation } from '@shared/lib/provider-presentation'
 
 interface SidebarChannel extends Channel {
   badge: string
   queuedCount: number
 }
 
-defineProps<{
+const props = defineProps<{
   channel: SidebarChannel
   isActive: boolean
   queuedCount: number
 }>()
+
+const needsReconnect = (status: Channel['status']): boolean =>
+  status === 'REQUIRES_RECONNECT' || status === 'REVOKED' || status === 'EXPIRED'
+const providerLabel = getProviderPresentation(props.channel.provider).label
+const reconnectLabel = 'Needs reconnect'
 
 const emit = defineEmits<{
   (e: 'select'): void
@@ -36,6 +42,7 @@ function onAvatarError() {
     :class="isActive
       ? 'border-border-visible bg-bg-primary text-text-display'
       : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
+    :aria-label="`${channel.name} · ${providerLabel}${needsReconnect(channel.status) ? ` · ${reconnectLabel}` : ''}`"
     @click="emit('select')"
   >
     <span class="relative flex size-5 shrink-0 items-center justify-center">
@@ -60,6 +67,12 @@ function onAvatarError() {
 
     <span class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
       <span class="block truncate text-sm leading-none">{{ channel.name }}</span>
+      <span
+        v-if="needsReconnect(channel.status)"
+        class="block truncate pt-1 font-mono text-[9px] uppercase tracking-wider text-warning"
+      >
+        {{ reconnectLabel }}
+      </span>
     </span>
 
     <span class="ml-auto inline-flex min-w-6 items-center justify-end font-mono text-[10px] text-text-secondary group-data-[collapsible=icon]:hidden">

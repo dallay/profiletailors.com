@@ -114,6 +114,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/022-create-bulk-import-rows.yaml
   - include:
+      file: db/changelog/publishing/023-provider-aware-secure-credentials.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:

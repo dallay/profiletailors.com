@@ -56,6 +56,17 @@ class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient
             .map { row, _ -> row.toSocialConnection() }
             .one()
             .awaitSingleOrNull()
+
+    override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) {
+        databaseClient.sql(
+            "DELETE FROM social_connections WHERE workspace_id = :workspaceId AND id = :id",
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("id", connectionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
 
 @Repository
@@ -124,6 +135,14 @@ class R2dbcSocialAccountRepository(
         .map { row, _ -> row.toSocialAccount() }
         .one()
         .awaitSingleOrNull()
+
+    override suspend fun deleteByConnectionId(connectionId: String) {
+        databaseClient.sql("DELETE FROM social_accounts WHERE social_connection_id = :connectionId")
+            .bind("connectionId", connectionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
 
 @Suppress("StringLiteralDuplication")
