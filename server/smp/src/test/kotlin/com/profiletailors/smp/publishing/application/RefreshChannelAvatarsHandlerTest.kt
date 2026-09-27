@@ -165,5 +165,9 @@ class RefreshChannelAvatarsHandlerTest {
             items.values.firstOrNull { it.workspaceId == workspaceId }
         override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> =
             items.values.filter { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
+
+        override suspend fun deleteByConnectionId(connectionId: String) {
+            items.entries.removeAll { it.value.socialConnectionId == connectionId }
+        }
     }
 }
