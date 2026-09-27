@@ -9,6 +9,7 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.tasks.Jar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.register
@@ -31,6 +32,7 @@ class MutationTestingPlugin : ConventionPlugin {
             verificationMode.set("LENIENT")
             maxMutationRuns.set(Int.MAX_VALUE)
             timeoutMs.set(MUTATION_TIMEOUT_MS)
+            enabled.set(providers.gradleProperty("mutflow.enabled").map { it.toBoolean() }.orElse(false))
         }
         val verificationMode =
             providers
@@ -40,8 +42,17 @@ class MutationTestingPlugin : ConventionPlugin {
             environment("MUTFLOW_VERIFICATION_MODE", verificationMode.get())
         }
         afterEvaluate {
-            extensions.findByType(SourceSetContainer::class.java)?.named("mutatedMain")?.configure {
-                resources.setSrcDirs(emptySet<String>())
+            extensions.findByType(SourceSetContainer::class.java)?.let { sourceSets ->
+                sourceSets.findByName("mutatedMain")?.let { mutated ->
+                    val mutatedOutput = mutated.output
+                    (tasks.findByName("compileKotlin") as? KotlinCompile)?.moduleName?.let { mainModule ->
+                        tasks.named("compileMutatedMainKotlin") {
+                            (this as KotlinCompile).moduleName.set(mainModule)
+                        }
+                    }
+                    tasks.named("compileTestKotlin") { dependsOn(mutatedOutput) }
+                    mutated.resources.setSrcDirs(emptySet<String>())
+                }
             }
         }
         val bootJar = layout.buildDirectory.file("libs/smp.jar")

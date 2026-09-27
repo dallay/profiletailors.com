@@ -38,6 +38,7 @@ jobs:
         run: >
           MUTFLOW_VERIFICATION_MODE=LENIENT
           ./gradlew :server:smp:test --no-daemon --no-configuration-cache
+          -Pmutflow.enabled=true
           --tests "com.profiletailors.smp.publishing.domain.PublicationRetryMutationBaselineTest"
           --tests "com.profiletailors.smp.publishing.domain.BulkValidationMutationBaselineTest"
           2>&1 | tee mutation-baseline.log

@@ -10,6 +10,11 @@ The integration is isolated behind the `com.profiletailors.mutation.testing` con
 can be upgraded, replaced, or disabled without changing production behavior or existing test-task
 contracts.
 
+mutflow is disabled by default: ordinary `test` runs never create the `mutatedMain` source set,
+so unit tests compile and run exactly as without the plugin. Mutation runs execute only with
+`-Pmutflow.enabled=true` (advisory workflow and explicit local baseline runs). This keeps the
+main CI gate free of tooling classpath effects while the advisory lane collects evidence.
+
 Current stack: JDK 25, Kotlin 2.4.10, Spring Boot 4.0.8, JUnit Platform 6.1.3.
 
 ## Changes
@@ -64,10 +69,10 @@ classes with `MutFlow.underTest` blocks execute mutation runs.
 ### Commands
 
 ```bash
-MUTFLOW_VERIFICATION_MODE=LENIENT ./gradlew :server:smp:test --tests "*MutationBaseline*"
+MUTFLOW_VERIFICATION_MODE=LENIENT ./gradlew :server:smp:test -Pmutflow.enabled=true --tests "*MutationBaseline*"
 ./gradlew :server:smp:verifyMutationClean
-./gradlew :server:smp:test -Pmutflow.enabled=false
-MUTFLOW_VERIFICATION_MODE=DISABLED ./gradlew :server:smp:test
+./gradlew :server:smp:test
+MUTFLOW_VERIFICATION_MODE=DISABLED ./gradlew :server:smp:test -Pmutflow.enabled=true
 ```
 
 Baseline behavior: LENIENT reports survivors without failing the build. STRICT is reserved for a
@@ -124,9 +129,9 @@ representative advisory runs, and demonstrated stability, actionability and main
 
 ### Rollback
 
-- Advisory mode: `MUTFLOW_VERIFICATION_MODE=LENIENT`.
-- Disabled mode: `./gradlew :server:smp:test -Pmutflow.enabled=false` or `mutflow.enabled=false`
-  in `gradle.properties`, or `mutflow { enabled = false }`.
+- Advisory mode: `MUTFLOW_VERIFICATION_MODE=LENIENT` with `-Pmutflow.enabled=true`.
+- Default mode is disabled: plain `./gradlew :server:smp:test` never creates `mutatedMain`,
+  and `mutflow.enabled=false` in `gradle.properties` pins that off explicitly.
 - Disabling removes compiler instrumentation and extra compilation. Production artifacts stay clean.
 
 ## Troubleshooting
@@ -179,7 +184,17 @@ Fix: the convention clears `mutatedMain` resources. Never set
 `liquibase.duplicateFileMode=WARN` to accommodate the tooling. If a new duplicate appears,
 inspect which source set contributes it before changing anything.
 
+### Tests fail with NoSuchMethodError on internal members
+
+Cause: Kotlin mangles `internal` members with the module name
+(`getAllowedHosts$com_profiletailors_smp`). `mutatedMain` compiles under a different module
+name, so its copies mangle differently and any test calling an `internal` member breaks.
+
+Fix: the convention aligns `compileMutatedMainKotlin.moduleName` with `compileKotlin.moduleName`.
+If a new `NoSuchMethodError` names a `$`-suffixed method, check module names before anything else.
+
 ### Suspend production code inside `underTest`
+
 **Cause:** `MutFlow.underTest` accepts a plain `() -> T` lambda, so a suspend call does not
 compile directly inside the block, and `runTest` cannot host a nested `runBlocking` bridge.
 

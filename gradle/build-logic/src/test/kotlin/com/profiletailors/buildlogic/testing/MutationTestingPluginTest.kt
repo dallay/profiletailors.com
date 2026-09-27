@@ -61,12 +61,59 @@ class MutationTestingPluginTest {
             .create()
             .withProjectDir(projectDir)
             .withPluginClasspath()
-            .withArguments("help", "--stacktrace")
+            .withArguments("help", "-Pmutflow.enabled=true", "--stacktrace")
             .build()
     }
 
     @Test
-    fun `test task still passes without mutation annotations`() {        writeProject()
+    fun `mutatedMain compilation shares main Kotlin module name for internal mangling`() {
+        writeProject()
+        File(projectDir, "build.gradle.kts").appendText(
+            "\n" +
+                """
+                tasks.named("compileKotlin") {
+                    (this as org.jetbrains.kotlin.gradle.tasks.KotlinCompile).moduleName.set("fixture-main-module")
+                }
+                tasks.register("checkModuleNames") {
+                    doLast {
+                        val mutatedTask =
+                            tasks.findByName("compileMutatedMainKotlin")
+                                as org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+                        val mutatedModule = mutatedTask.moduleName.get()
+                        check(mutatedModule == "fixture-main-module") {
+                            "mutatedMain module name (${'$'}mutatedModule) must match main " +
+                                "or internal members mangle differently and tests fail with NoSuchMethodError"
+                        }
+                    }
+                }
+                """.trimIndent(),
+        )
+        val result =
+            GradleRunner
+                .create()
+                .withProjectDir(projectDir)
+                .withPluginClasspath()
+                .withArguments("checkModuleNames", "-Pmutflow.enabled=true", "--stacktrace")
+                .build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":checkModuleNames")?.outcome)
+    }
+
+    @Test
+    fun `test task runs without errors with mutatedMain source set`() {
+        writeProject()
+        val result = GradleRunner
+            .create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments(":tasks", "-Pmutflow.enabled=true", "--stacktrace")
+            .build()
+        assert(result.task(":tasks") != null)
+        assert(result.output.contains("mutatedMain"))
+    }
+
+    @Test
+    fun `test task passes with mutflow disabled by default`() {
+        writeProject()
         val result =
             GradleRunner
                 .create()

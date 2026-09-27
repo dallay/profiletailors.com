@@ -88,3 +88,14 @@ ejecución en CI. Fase 4 diferida con criterios explícitos.
   convención (vaciar resources de `mutatedMain`), cubierto por TestKit 4/4. Verificación triple:
   falla con mutflow pre-fix, pasa con `-Pmutflow.enabled=false`, pasa con mutflow post-fix
   (`R2dbcConsentRepositoryTest`, BUILD SUCCESSFUL 4m21s).
+- Hallazgo CI (PR #1192, 14 fallos `NoSuchMethodError` en `Backend Unit Tests`, `main` en verde):
+  Kotlin mangla los miembros `internal` con el nombre del módulo
+  (`getAllowedHosts$com_profiletailors_smp`), y `mutatedMain` compilaba con otro module name, así
+  que los tests compilados contra `main` no encontraban los métodos en las clases de
+  `mutatedMain` que el classpath antepone. Afectó a `AuthRateLimitWebFilterTest`,
+  `ImageProxyControllerTest`, `PrivacyRequestResultMappingTest`, `InvitationSecurityBoundaryTest`
+  y `PublicationLifecyclePolicyTest`. Fix en la convención: alinear
+  `compileMutatedMainKotlin.moduleName` con `compileKotlin.moduleName` + dependencia
+  `compileTestKotlin → mutatedMain output`, cubierto por TestKit.
+- Lint CI (`docs/production-secrets.md`, fecha desactualizada) es preexistente de `main`
+  (commit `7fc67a83` agregó contenido sin subir el `Last Updated`); fuera del scope de esta PR.
