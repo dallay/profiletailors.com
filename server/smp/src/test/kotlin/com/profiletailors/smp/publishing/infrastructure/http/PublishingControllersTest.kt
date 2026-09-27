@@ -29,6 +29,8 @@ import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.RecurringScheduleResult
 import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsCommand
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialAccountSummary
@@ -104,6 +106,31 @@ class PublishingControllersTest {
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `dispatches refresh channel avatars command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingChannelController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            channelEventStreamRegistry = FakeChannelEventStreamRegistry(emptyList()),
+            linkedInPublishingProperties = LinkedInPublishingProperties(
+                clientId = "",
+                clientSecret = "",
+                redirectUri = "",
+                scopes = "",
+                apiBaseUrl = "",
+                authorizationBaseUrl = "",
+                tokenBaseUrl = "",
+                apiVersion = "",
+            ),
+        )
+
+        val response = controller.refreshChannelAvatars()
+
+        assertEquals(0, response.refreshed)
+        assertTrue(mediator.lastRequest is RefreshChannelAvatarsCommand)
     }
 
     @Test
@@ -832,6 +859,8 @@ class PublishingControllersTest {
                 ) as TResult
 
                 is DeleteRecurringScheduleCommand -> Unit as TResult
+
+                is RefreshChannelAvatarsCommand -> RefreshChannelAvatarsResult() as TResult
 
                 else -> error("Unsupported request type ${command::class.simpleName}")
             }

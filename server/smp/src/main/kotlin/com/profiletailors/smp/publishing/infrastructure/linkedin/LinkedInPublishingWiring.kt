@@ -8,6 +8,7 @@ import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.LinkedInAvatarFetcher
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
@@ -557,6 +558,13 @@ class LinkedInPublishingConfiguration(
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
+
+    @Bean
+    fun linkedInAvatarFetcher(
+        properties: LinkedInPublishingProperties,
+        objectMapper: ObjectMapper,
+        linkedInHttpTransport: LinkedInHttpTransport,
+    ): LinkedInAvatarFetcher = LinkedInAvatarFetcherImpl(properties, objectMapper, linkedInHttpTransport)
 
     @Bean
     fun attachmentsStorageBinding(
