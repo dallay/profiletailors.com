@@ -129,7 +129,6 @@ const router = createRouter({
       name: 'provider-callback',
       component: () => import('@modules/auth/presentation/LinkedInCallbackView.vue'),
       meta: { requiresAuth: true },
-
     },
     {
       path: '/integrations/linkedin/callback',
