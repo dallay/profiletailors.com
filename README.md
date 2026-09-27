@@ -199,8 +199,8 @@ Docker commands separately. Run `just -l` to list everything.
 - Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias.
   Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build
   configuration.
-- Waitlist signup flow integrates directly with backend API endpoints (`POST /api/waitlists/...`)
-  when `WAITLIST_ENABLED` is active.
+- `WAITLIST_ENABLED` controls whether the marketing site renders the waitlist signup form;
+  when shown, the form submits directly to backend API endpoints (`POST /api/waitlists/...`).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
