@@ -56,6 +56,17 @@ class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient
             .map { row, _ -> row.toSocialConnection() }
             .one()
             .awaitSingleOrNull()
+
+    override suspend fun deleteByWorkspaceAndId(workspaceId: String, connectionId: String) {
+        databaseClient.sql(
+            "DELETE FROM social_connections WHERE workspace_id = :workspaceId AND id = :id",
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("id", connectionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
 
 @Repository
@@ -139,6 +150,51 @@ class R2dbcSocialAccountRepository(
         .all()
         .collectList()
         .awaitSingle()
+
+    override suspend fun deleteByConnectionId(connectionId: String) {
+        // Disconnect removes imported content and sync state owned by these accounts.
+        // Comments must be removed before their posts; the caller supplies the transaction.
+        databaseClient.sql(
+            """
+            DELETE FROM social_content_comments
+            WHERE post_id IN (
+                SELECT p.id FROM social_content_posts p
+                JOIN social_accounts a ON a.id = p.social_account_id
+                WHERE a.social_connection_id = :connectionId
+            )
+            """.trimIndent(),
+        )
+            .bind("connectionId", connectionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        listOf(
+            "social_content_reply_commands",
+            "social_content_webhook_events",
+            "social_content_sync_checkpoints",
+            "social_content_posts",
+            "social_content_actor_capabilities",
+        ).forEach { table ->
+            databaseClient.sql(
+                """
+                DELETE FROM $table
+                WHERE social_account_id IN (
+                    SELECT id FROM social_accounts WHERE social_connection_id = :connectionId
+                )
+                """.trimIndent(),
+            )
+                .bind("connectionId", connectionId)
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+        }
+        // Workspace payload caches retain their existing TTL; they have no account FK.
+        databaseClient.sql("DELETE FROM social_accounts WHERE social_connection_id = :connectionId")
+            .bind("connectionId", connectionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
 
 @Suppress("StringLiteralDuplication")

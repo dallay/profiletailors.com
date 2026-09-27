@@ -162,6 +162,28 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
+    fun `shared OAuth secret supports deployments without LinkedIn configuration`() {
+        val environment = validEnvironment().apply {
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "")
+            setProperty("publishing.oauth.state-signing-secret", "valid-shared-oauth-secret-32-bytes")
+        }
+
+        ProductionCredentialsValidator(environment).validateCredentials()
+    }
+
+    @Test
+    fun `unsafe shared OAuth secret cannot fall back to a valid LinkedIn secret`() {
+        val environment = validEnvironment().apply {
+            setProperty("publishing.oauth.state-signing-secret", "CHANGE_ME_OAUTH_STATE")
+        }
+
+        val exception = shouldThrow<IllegalStateException> {
+            ProductionCredentialsValidator(environment).validateCredentials()
+        }
+        exception.message shouldContain "SMP_OAUTH_STATE_SIGNING_SECRET"
+    }
+
+    @Test
     fun `should fail when SMP_LINKEDIN_STATE_SIGNING_SECRET is blank`() {
         val environment = validEnvironment().apply {
             setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "")

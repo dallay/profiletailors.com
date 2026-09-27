@@ -9,7 +9,6 @@ import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInAvatarFetcher
-import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -30,11 +29,11 @@ import com.profiletailors.storage.domain.StorageException
 import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
@@ -42,7 +41,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
-import java.time.Clock
 import java.util.*
 
 private val IPV4_LITERAL = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$""")
@@ -535,19 +533,9 @@ class LinkedInPublishingConfiguration(
     private val storage: Storage?,
 ) {
     @Bean
-    fun linkedInAuthorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
+    @Primary
+    fun authorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
         ConfigurableLinkedInAuthorizationUrlBuilder(properties)
-
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
-        name = ["publishing.linkedin.client-id"],
-        matchIfMissing = false,
-    )
-    fun oauthStateSigner(
-        @Value("\${publishing.linkedin.state-signing-secret}") stateSigningSecret: String,
-        objectMapper: ObjectMapper,
-        clock: Clock,
-    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
@@ -595,7 +583,7 @@ class LinkedInPublishingConfiguration(
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
-    ): SocialConnectionProvider = RealLinkedInConnectionProvider(
+    ): RealLinkedInConnectionProvider = RealLinkedInConnectionProvider(
         properties,
         objectMapper,
         linkedInHttpTransport,
@@ -603,6 +591,7 @@ class LinkedInPublishingConfiguration(
     )
 
     @Bean
+    @org.springframework.context.annotation.Primary
     fun socialPublisher(
         properties: LinkedInPublishingProperties,
         objectMapper: ObjectMapper,
@@ -620,6 +609,9 @@ class LinkedInPublishingConfiguration(
     )
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(
+        name = ["bddProviderCapabilityValidator"],
+    )
     fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator(
         enabledBundles = setOf(
             com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_TEXT,

@@ -66,6 +66,16 @@ describe('ComposerChannelSelector.vue', () => {
     expect(wrapper.text()).toContain('My LinkedIn Profile')
   })
 
+  it('renders the Threads provider icon for a connected Threads channel', (): void => {
+    const channels = [
+      makeChannel({ id: 'threads-1', name: 'Threads profile', provider: 'threads' }),
+    ]
+    const wrapper = mountSelector({ channels })
+
+    expect(wrapper.find('[data-testid="provider-icon-threads"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('Threads profilet')
+  })
+
   it('shows a checkmark icon on the selected channel', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
@@ -155,15 +165,15 @@ describe('ComposerChannelSelector.vue', () => {
     const wrapper = mountSelector({ channels })
     const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
     expect(fallbacks).toHaveLength(1)
-    expect(fallbacks[0]!.text()).toContain('in')
+    expect(fallbacks[0]!.find('svg').exists()).toBe(true)
   })
 
-  it('renders a Twitter fallback with first letter of provider', (): void => {
+  it('renders the centralized provider badge for Twitter', (): void => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'twitter' })]
     const wrapper = mountSelector({ channels })
     const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
     expect(fallbacks).toHaveLength(1)
-    expect(fallbacks[0]!.text()).toBe('t')
+    expect(fallbacks[0]!.text()).toBe('𝕏')
   })
 
   it('applies bold and selected styling to the selected channel', (): void => {

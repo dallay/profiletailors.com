@@ -48,6 +48,18 @@ describe('SidebarConnectSection', () => {
     expect(wrapper.emitted('connect')?.[0]).toEqual([providers[0]])
   })
 
+  it('renders Threads as an actionable provider CTA', async () => {
+    const wrapper = mount(SidebarConnectSection, {
+      props: { providers: [{ ...providers[2], state: 'AVAILABLE' }] },
+    })
+
+    const connectButton = wrapper.get('[data-testid="connect-provider-threads"]')
+    expect(connectButton.text()).toContain('Threads')
+    await connectButton.trigger('click')
+
+    expect(wrapper.emitted('connect')?.[0]).toEqual([{ ...providers[2], state: 'AVAILABLE' }])
+  })
+
   it('renders a locked provider reason without an actionable CTA', () => {
     const wrapper = mount(SidebarConnectSection, { props: { providers } })
 

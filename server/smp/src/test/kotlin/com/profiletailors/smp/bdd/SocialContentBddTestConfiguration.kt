@@ -160,6 +160,10 @@ class SocialContentBddState {
             socialAccounts.values.filter {
                 it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE
             }
+
+        override suspend fun deleteByConnectionId(connectionId: String) {
+            socialAccounts.entries.removeAll { it.value.socialConnectionId == connectionId }
+        }
     }
     val provider = BddProvider()
     val content = BddContentStore()

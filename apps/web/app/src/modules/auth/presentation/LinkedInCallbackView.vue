@@ -3,9 +3,9 @@ import { onMounted } from 'vue'
 import { CheckCircle2, Loader2, TriangleAlert } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useLinkedInCallback } from '@modules/auth/application/useLinkedInCallback'
+import { useProviderCallback } from '@modules/auth/application/useLinkedInCallback'
 
-const { status, message, retryConnection, processCallback } = useLinkedInCallback()
+const { status, message, providerLabel, retryConnection, processCallback } = useProviderCallback()
 
 onMounted(() => {
   void processCallback()
@@ -23,7 +23,7 @@ onMounted(() => {
         </div>
 
         <CardTitle class="text-2xl font-light tracking-tight text-text-display">
-          {{ status === 'success' ? $t('linkedinCallback.successTitle') : status === 'error' ? $t('linkedinCallback.errorTitle') : $t('linkedinCallback.loadingTitle') }}
+          {{ status === 'success' ? `${providerLabel} connected` : status === 'error' ? `${providerLabel} connection failed` : `Connecting ${providerLabel}` }}
         </CardTitle>
       </CardHeader>
 
@@ -34,10 +34,10 @@ onMounted(() => {
 
         <div v-if="status === 'error'" class="flex flex-col justify-center gap-3 sm:flex-row">
           <Button type="button" @click="retryConnection">
-            {{ $t('linkedinCallback.tryAgain') }}
+            {{ $t('providerCallback.tryAgain') }}
           </Button>
           <Button as="a" href="/settings" variant="outline" type="button">
-            {{ $t('linkedinCallback.backToSettings') }}
+            {{ $t('providerCallback.backToSettings') }}
           </Button>
         </div>
       </CardContent>
