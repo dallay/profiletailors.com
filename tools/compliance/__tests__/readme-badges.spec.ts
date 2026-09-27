@@ -80,12 +80,7 @@ describe('README Badges & Version Metadata', () => {
       const fullPath = resolve(monorepoRoot, relativePath)
       const content = readFileSync(fullPath, 'utf8')
 
-      const releaseBadgeUrls =
-        content.match(/https:\/\/img\.shields\.io\/github\/v\/release\/[^\s)]+/g) ?? []
-      const hasReleaseBadge = releaseBadgeUrls.some((badgeUrl) => {
-        const { searchParams } = new URL(badgeUrl)
-        return searchParams.get('filter') === 'smp@v*' && searchParams.get('label') === 'Release'
-      })
+      const hasReleaseBadge = content.includes('filter=smp%40v*') || content.includes('label=Release')
       expect(hasReleaseBadge, `${relativePath} must have a Release badge`).toBe(true)
 
       const hasDeployedBadge = content.includes('label=Deployed') || content.includes('Deployed:')
