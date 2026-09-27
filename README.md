@@ -41,7 +41,7 @@ useful `README.md` file detailing its role, tech stack, configuration, and devel
 
 | Category                 | Subproject Path                                                | Purpose                                                                                                               | Dedicated README                                 |
 |--------------------------|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| **Web App**              | [`apps/web/marketing`](apps/web/marketing)                     | Public-facing Astro 7 marketing site, bilingual landing pages, and client-side waitlist acquisition flow.             | [README](apps/web/marketing/README.md)           |
+| **Web App**              | [`apps/web/marketing`](apps/web/marketing)                     | Public-facing Astro 7 marketing site, bilingual landing pages, and waitlist acquisition flow.                         | [README](apps/web/marketing/README.md)           |
 | **Web App**              | [`apps/web/app`](apps/web/app)                                 | Core Vue 3 dashboard single-page application for post scheduling, social publishing, media, and analytics.            | [README](apps/web/app/README.md)                 |
 | **Web App**              | [`apps/web/admin`](apps/web/admin)                             | Internal Vue 3 platform administration portal for waitlist management, user accounts, and system auditing.            | [README](apps/web/admin/README.md)               |
 | **Shared Web**           | [`shared/web`](shared/web)                                     | Framework-agnostic TypeScript workspace package defining canonical GDPR consent contracts and validation rules.       | [README](shared/web/README.md)                   |
@@ -199,8 +199,8 @@ Docker commands separately. Run `just -l` to list everything.
 - Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias.
   Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build
   configuration.
-- The current waitlist flow is **client-side only** (Astro component); backend persistence is
-  documented as planned (ADR-0011).
+- `WAITLIST_ENABLED` controls whether the marketing site renders the waitlist signup form;
+  when shown, the form submits directly to backend API endpoints (`POST /api/waitlists/...`).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
