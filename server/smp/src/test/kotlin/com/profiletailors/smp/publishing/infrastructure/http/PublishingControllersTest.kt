@@ -12,23 +12,29 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
+import com.profiletailors.smp.publishing.application.DisconnectProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.InitiateProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
+import com.profiletailors.smp.publishing.application.ProviderConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.RecurringScheduleResult
 import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsCommand
+import com.profiletailors.smp.publishing.application.RefreshChannelAvatarsResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialAccountSummary
@@ -104,6 +110,102 @@ class PublishingControllersTest {
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `dispatches provider-aware connection initiation command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingConnectionController(mediator)
+
+        val response = controller.initiateProviderConnection(
+            provider = SocialProvider.THREADS,
+            request = LinkedInConnectionInitiationRequest(
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertEquals("state-1", response.state)
+        assertEquals(
+            InitiateProviderConnectionCommand(
+                provider = SocialProvider.THREADS,
+                redirectUri = "https://app.example.com/callback",
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `dispatches provider-aware connection completion command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingConnectionController(mediator)
+
+        val response = controller.completeProviderConnection(
+            provider = SocialProvider.THREADS,
+            request = LinkedInConnectionCompletionRequest(
+                authorizationCode = "oauth-code-threads-1",
+                redirectUri = "https://app.example.com/callback",
+                state = "signed-state-threads-1",
+            ),
+        )
+
+        assertEquals(SocialProvider.THREADS, response.provider)
+        assertEquals("conn-threads-1", response.connectionId)
+        assertEquals(
+            CompleteProviderConnectionCommand(
+                provider = SocialProvider.THREADS,
+                authorizationCode = "oauth-code-threads-1",
+                redirectUri = "https://app.example.com/callback",
+                state = "signed-state-threads-1",
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `dispatches provider-aware disconnect command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingConnectionController(mediator)
+
+        val response = controller.disconnectProviderConnection(
+            provider = SocialProvider.THREADS,
+            connectionId = "conn-threads-1",
+        )
+
+        assertEquals(SocialConnectionStatus.DELETED, response.status)
+        assertEquals("conn-threads-1", response.connectionId)
+        assertEquals(
+            DisconnectProviderConnectionCommand(
+                provider = SocialProvider.THREADS,
+                connectionId = "conn-threads-1",
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `dispatches refresh channel avatars command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingChannelController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            channelEventStreamRegistry = FakeChannelEventStreamRegistry(emptyList()),
+            linkedInPublishingProperties = LinkedInPublishingProperties(
+                clientId = "",
+                clientSecret = "",
+                redirectUri = "",
+                scopes = "",
+                apiBaseUrl = "",
+                authorizationBaseUrl = "",
+                tokenBaseUrl = "",
+                apiVersion = "",
+            ),
+        )
+
+        val response = controller.refreshChannelAvatars()
+
+        assertEquals(listOf("account-1"), response.refreshedAccountIds)
+        assertEquals(1, response.refreshed)
+        assertTrue(mediator.lastRequest is RefreshChannelAvatarsCommand)
     }
 
     @Test
@@ -729,6 +831,12 @@ class PublishingControllersTest {
                     expiresAt = Instant.parse("2026-06-12T12:10:00Z"),
                 ) as TResult
 
+                is InitiateProviderConnectionCommand -> ProviderConnectionInitiationResult(
+                    authorizationUrl = "https://provider.example/authorize?state=state-1",
+                    state = "state-1",
+                    expiresAt = Instant.parse("2026-06-12T12:10:00Z"),
+                ) as TResult
+
                 is CompleteLinkedInConnectionCommand -> SocialConnectionResult(
                     connectionId = "conn-1",
                     workspaceId = "workspace-1",
@@ -741,6 +849,40 @@ class PublishingControllersTest {
                         kind = SocialAccountKind.PERSONAL_PROFILE,
                         profileUrn = "urn:li:person:123",
                     ),
+                ) as TResult
+
+                is CompleteProviderConnectionCommand -> SocialConnectionResult(
+                    connectionId = "conn-threads-1",
+                    workspaceId = "workspace-1",
+                    provider = command.provider,
+                    status = SocialConnectionStatus.ACTIVE,
+                    account = SocialAccountSummary(
+                        accountId = "account-threads-1",
+                        providerAccountId = "threads-account-1",
+                        displayName = "Threads Profile",
+                        kind = SocialAccountKind.PERSONAL_PROFILE,
+                        profileUrn = null,
+                    ),
+                ) as TResult
+
+                is DisconnectProviderConnectionCommand -> SocialConnectionResult(
+                    connectionId = command.connectionId,
+                    workspaceId = "workspace-1",
+                    provider = command.provider,
+                    status = SocialConnectionStatus.DELETED,
+                    account = SocialAccountSummary(
+                        accountId = "account-1",
+                        providerAccountId = "provider-account-1",
+                        displayName = "Disconnected",
+                        kind = SocialAccountKind.PERSONAL_PROFILE,
+                        profileUrn = null,
+                    ),
+                ) as TResult
+
+                is RefreshChannelAvatarsCommand -> RefreshChannelAvatarsResult(
+                    refreshedAccountIds = listOf("account-1"),
+                    skippedAccountIds = emptyList(),
+                    failedAccountIds = emptyList(),
                 ) as TResult
 
                 is CreatePublicationCommand,
