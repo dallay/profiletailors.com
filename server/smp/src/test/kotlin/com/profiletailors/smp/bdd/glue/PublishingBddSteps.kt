@@ -280,18 +280,6 @@ class PublishingBddSteps {
             .returnResult()
     }
 
-    @When("the client refreshes channel avatars")
-    fun whenClientRefreshesChannelAvatars() {
-        latestPublishingResponse = webTestClient.post()
-            .uri("${bddDatabaseSupport.publishingChannelsPath()}/refresh-avatars")
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
     @When("the client lists configured providers")
     fun whenClientListsConfiguredProviders() {
         runBlocking { bddDatabaseSupport.seedAuthenticatedUserWithWorkspace() }
@@ -421,14 +409,6 @@ class PublishingBddSteps {
         val channels: List<*> = parsePublishingResponseField("channels")
         assertTrue(channels.isEmpty()) {
             "Expected empty channels list but got: $channels (body: ${publishingResponseBodyText()})"
-        }
-    }
-
-    @Then("the avatar refresh should report zero refreshed accounts")
-    fun thenAvatarRefreshShouldReportZeroRefreshed() {
-        val refreshed: Int = parsePublishingResponseField("refreshed")
-        assertEquals(0, refreshed) {
-            "Expected zero refreshed avatars (body: ${publishingResponseBodyText()})"
         }
     }
 

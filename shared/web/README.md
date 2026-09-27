@@ -14,7 +14,7 @@ Provides a single source of truth for user consent and privacy standards across 
 
 - **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
 - **Validation**: Zod 4.4
-- **Testing**: Vitest 3.2 with JSDOM environment
+- **Testing**: Vitest 4.1 with JSDOM environment
 
 ## Getting started
 
