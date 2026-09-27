@@ -93,6 +93,10 @@ app:
     public-app-url: ${SMP_EMAIL_PUBLIC_APP_URL:https://app.profiletailors.com}
     resend:
       api-key: ${SMP_RESEND_API_KEY:}  # empty = disabled; ResendEmailSender is not loaded
+  waitlist:
+    withdrawal:
+      encryption-key: ${SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY:}
+      public-url-base: ${SMP_WAITLIST_WITHDRAWAL_PUBLIC_URL_BASE:https://profiletailors.com/waitlist/withdraw}
   # MCP server (PR 1 foundation). The transport endpoint is gated by
   # `spring.ai.mcp.server.enabled` above; these keys carry Profile Tailors-specific
   # data consumed by the security chain (PR 2) and tool authorizer (PR 3).
