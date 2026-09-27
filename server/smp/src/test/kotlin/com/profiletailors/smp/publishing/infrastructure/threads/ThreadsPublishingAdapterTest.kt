@@ -18,6 +18,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
@@ -131,6 +132,129 @@ class ThreadsPublishingAdapterTest {
 
         resolved.get() shouldBe 1
         check(transport.bodies.first().contains("https://cdn.example/asset-1"))
+    }
+
+    @Test
+    fun `video asset routes through VIDEO media type`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(200, headers(), """{"id":"container-4"}"""),
+            LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
+            LinkedInHttpResponse(200, headers(), """{"id":"post-4"}"""),
+        )
+        adapter(transport).publish(command(assets = listOf(asset("video/mp4"))))
+
+        val body = transport.bodies.first()
+        check(body.contains(""""video_url":"https://cdn.example/asset-1""""))
+        check(!body.contains("image_url"))
+    }
+
+    @Test
+    fun `unauthorized response maps to account reconnect failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(401, headers(), """{"error":"unauthorized"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("ACCOUNT_RECONNECT_REQUIRED"))
+    }
+
+    @Test
+    fun `forbidden response maps to account reconnect failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(403, headers(), """{"error":"forbidden"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("ACCOUNT_RECONNECT_REQUIRED"))
+    }
+
+    @Test
+    fun `too many requests maps to provider rate limited failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(429, headers(), """{"error":"rate_limit"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("PROVIDER_RATE_LIMITED"))
+    }
+
+    @Test
+    fun `server error maps to provider unavailable failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(503, headers(), """{"error":"unavailable"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("PROVIDER_UNAVAILABLE"))
+    }
+
+    @Test
+    fun `unexpected status code maps to validation failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(418, headers(), """{"error":"teapot"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
+        check(exception.failure.diagnostic!!.contains("status=418"))
+    }
+
+    @Test
+    fun `error status from container poll maps to validation failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(200, headers(), """{"id":"container-err"}"""),
+            LinkedInHttpResponse(200, headers(), """{"status":"ERROR"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
+        check(exception.failure.diagnostic!!.contains("status=ERROR"))
+    }
+
+    @Test
+    fun `expired status from container poll maps to validation failure`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(200, headers(), """{"id":"container-exp"}"""),
+            LinkedInHttpResponse(200, headers(), """{"status":"EXPIRED"}"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        exception.shouldBeInstanceOf<PublishingFailureException>()
+        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
+        check(exception.failure.diagnostic!!.contains("status=EXPIRED"))
+    }
+
+    @Test
+    fun `invalid response body surfaces decode error`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(200, headers(), """not valid json"""),
+        )
+        val exception = runCatching {
+            adapter(transport).publish(command())
+        }.exceptionOrNull()
+
+        check(exception is Exception)
+        check(exception !is PublishingFailureException)
     }
 
     private fun adapter(
