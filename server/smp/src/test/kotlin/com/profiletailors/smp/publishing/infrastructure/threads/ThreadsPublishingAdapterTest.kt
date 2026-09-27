@@ -54,7 +54,7 @@ class ThreadsPublishingAdapterTest {
     )
 
     @Test
-    fun `publishes text through create poll and finalize`() = runTest {
+    fun `should publish text through create poll and finalize`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"container-1"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
@@ -73,7 +73,7 @@ class ThreadsPublishingAdapterTest {
     }
 
     @Test
-    fun `publishes mixed carousel children before parent`() = runTest {
+    fun `should publish mixed carousel children before parent`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"child-1"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
@@ -99,7 +99,7 @@ class ThreadsPublishingAdapterTest {
     }
 
     @Test
-    fun `polling is bounded and retains operation reference`() = runTest {
+    fun `should bound polling and retain operation reference`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"container-2"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"IN_PROGRESS"}"""),
@@ -116,7 +116,7 @@ class ThreadsPublishingAdapterTest {
     }
 
     @Test
-    fun `media publishing resolves temporary URLs before provider create`() = runTest {
+    fun `should resolve temporary URLs before provider create when publishing media`() = runTest {
         val resolved = AtomicInteger()
         val mediaResolver = ProviderMediaUrlResolver { _, assets, _ ->
             resolved.addAndGet(assets.size)
@@ -135,7 +135,7 @@ class ThreadsPublishingAdapterTest {
     }
 
     @Test
-    fun `video asset routes through VIDEO media type`() = runTest {
+    fun `should route video asset through VIDEO media type`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"container-4"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"FINISHED"}"""),
@@ -149,7 +149,7 @@ class ThreadsPublishingAdapterTest {
     }
 
     @Test
-    fun `unauthorized response maps to account reconnect failure`() = runTest {
+    fun `should map unauthorized response to account reconnect failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(401, headers(), """{"error":"unauthorized"}"""),
         )
@@ -158,11 +158,11 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("ACCOUNT_RECONNECT_REQUIRED"))
+        check(exception.message?.contains("ACCOUNT_RECONNECT_REQUIRED") == true)
     }
 
     @Test
-    fun `forbidden response maps to account reconnect failure`() = runTest {
+    fun `should map forbidden response to account reconnect failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(403, headers(), """{"error":"forbidden"}"""),
         )
@@ -171,11 +171,11 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("ACCOUNT_RECONNECT_REQUIRED"))
+        check(exception.message?.contains("ACCOUNT_RECONNECT_REQUIRED") == true)
     }
 
     @Test
-    fun `too many requests maps to provider rate limited failure`() = runTest {
+    fun `should map too many requests to provider rate limited failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(429, headers(), """{"error":"rate_limit"}"""),
         )
@@ -184,11 +184,11 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("PROVIDER_RATE_LIMITED"))
+        check(exception.message?.contains("PROVIDER_RATE_LIMITED") == true)
     }
 
     @Test
-    fun `server error maps to provider unavailable failure`() = runTest {
+    fun `should map server error to provider unavailable failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(503, headers(), """{"error":"unavailable"}"""),
         )
@@ -197,11 +197,11 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("PROVIDER_UNAVAILABLE"))
+        check(exception.message?.contains("PROVIDER_UNAVAILABLE") == true)
     }
 
     @Test
-    fun `unexpected status code maps to validation failure`() = runTest {
+    fun `should map unexpected status code to validation failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(418, headers(), """{"error":"teapot"}"""),
         )
@@ -210,12 +210,12 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
-        check(exception.failure.diagnostic!!.contains("status=418"))
+        check(exception.message?.contains("PROVIDER_VALIDATION_FAILED") == true)
+        check(exception.failure.diagnostic?.contains("status=418") == true)
     }
 
     @Test
-    fun `error status from container poll maps to validation failure`() = runTest {
+    fun `should map error status from container poll to validation failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"container-err"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"ERROR"}"""),
@@ -225,12 +225,12 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
-        check(exception.failure.diagnostic!!.contains("status=ERROR"))
+        check(exception.message?.contains("PROVIDER_VALIDATION_FAILED") == true)
+        check(exception.failure.diagnostic?.contains("status=ERROR") == true)
     }
 
     @Test
-    fun `expired status from container poll maps to validation failure`() = runTest {
+    fun `should map expired status from container poll to validation failure`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """{"id":"container-exp"}"""),
             LinkedInHttpResponse(200, headers(), """{"status":"EXPIRED"}"""),
@@ -240,12 +240,12 @@ class ThreadsPublishingAdapterTest {
         }.exceptionOrNull()
 
         exception.shouldBeInstanceOf<PublishingFailureException>()
-        check(exception.message!!.contains("PROVIDER_VALIDATION_FAILED"))
-        check(exception.failure.diagnostic!!.contains("status=EXPIRED"))
+        check(exception.message?.contains("PROVIDER_VALIDATION_FAILED") == true)
+        check(exception.failure.diagnostic?.contains("status=EXPIRED") == true)
     }
 
     @Test
-    fun `invalid response body surfaces decode error`() = runTest {
+    fun `should surface decode error when response body is invalid`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(200, headers(), """not valid json"""),
         )
