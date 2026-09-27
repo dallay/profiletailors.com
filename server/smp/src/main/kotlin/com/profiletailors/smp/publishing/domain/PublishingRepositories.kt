@@ -15,8 +15,6 @@ interface SocialAccountRepository {
     suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount?
 
     suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount?
-
-    suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount>
 }
 
 interface PublicationRepository {

@@ -1633,7 +1633,6 @@ class PublishingWorkerTest {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account
-        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> = listOf(account)
     }
 
     private class InMemoryMediaAssetResolver(private val assets: List<ResolvedAssetSummary>) : MediaAssetResolver {

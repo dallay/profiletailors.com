@@ -8,7 +8,6 @@ import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
-import com.profiletailors.smp.publishing.domain.LinkedInAvatarFetcher
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
@@ -147,10 +146,6 @@ class RealLinkedInConnectionProvider(
         // LinkedIn providerAccountId is not a UUID, so we derive a stable UUID from it
         val ownerUuid = UUID.nameUUIDFromBytes("linkedin:$providerAccountId".toByteArray())
         val credentialRef = credentialGateway.storeForOwner("linkedin:user", ownerUuid, credentials)
-        val avatarUrl = sanitizeLinkedInAvatarUrl(profile.picture)
-        if (avatarUrl == null && !profile.picture.isNullOrBlank()) {
-            log.debug("LinkedIn avatar rejected — not HTTPS")
-        }
 
         return ProviderConnectionResult(
             provider = SocialProvider.LINKEDIN,
@@ -161,9 +156,20 @@ class RealLinkedInConnectionProvider(
                 displayName = profile.displayName(),
                 kind = SocialAccountKind.PERSONAL_PROFILE,
                 profileUrn = "urn:li:person:$providerAccountId",
-                avatarUrl = avatarUrl,
+                avatarUrl = sanitizeAvatarUrl(profile.picture),
             ),
         )
+    }
+
+    private fun sanitizeAvatarUrl(picture: String?): String? {
+        val trimmed = picture?.trim()
+        if (trimmed.isNullOrBlank() || !trimmed.startsWith("https://", ignoreCase = true)) {
+            if (!trimmed.isNullOrBlank()) {
+                log.debug("LinkedIn avatar rejected — not HTTPS")
+            }
+            return null
+        }
+        return trimmed
     }
 
     private companion object {
@@ -551,13 +557,6 @@ class LinkedInPublishingConfiguration(
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
-
-    @Bean
-    fun linkedInAvatarFetcher(
-        properties: LinkedInPublishingProperties,
-        objectMapper: ObjectMapper,
-        linkedInHttpTransport: LinkedInHttpTransport,
-    ): LinkedInAvatarFetcher = LinkedInAvatarFetcherImpl(properties, objectMapper, linkedInHttpTransport)
 
     @Bean
     fun attachmentsStorageBinding(
