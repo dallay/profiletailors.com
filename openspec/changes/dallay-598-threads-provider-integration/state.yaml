@@ -1,0 +1,24 @@
+change: dallay-598-threads-provider-integration
+linear_issue: DALLAY-598
+linear_url: https://linear.app/dallay/issue/DALLAY-598/threads-integrate-threads-as-the-second-social-publishing-provider
+current_phase: apply
+completed: [explore, propose, spec, design, tasks]
+next: apply
+updated: 2026-09-25T14:55:00Z
+artifact_policy: openspec-only
+scope_status: unit_4_frontend_callback_partial
+external_evidence: not_run
+delivery_strategy: feature-branch-chain
+feature_branch: feature/dallay-598-threads-integrate-threads-as-the-second-social-publishing
+artifact_reconciliation:
+  status: unit_4_frontend_callback_partial
+  items:
+    - Unit 1 tasks 1.1 through 1.4 are complete; provider-aware encrypted credential persistence, PostgreSQL coverage, connection/account persistence coverage, and refactor quality gates passed locally.
+    - Unit 2 tasks 2.1 through 2.4 are implemented with focused OAuth URL, signed-state, typed Threads exchange, profile mapping, provider-neutral refresh resolution, credential invalidation-before-disconnect ordering, sanitized failure, and provider-aware controller coverage; the equivalent backend check remains blocked by unrelated ResourcePreviewEndpointPostgresIntegrationTest connection failures.
+    - Unit 3 tasks 3.1 and 3.2 are implemented: Threads capability/media contract coverage, HTTPS workflow-TTL media resolver, typed container create/poll/finalize adapter, bounded polling, operation references, ambiguity propagation, provider registry routing, worker operation-reference persistence, and duplicate migration correction.
+    - Focused verification passed with Threads contract/configuration/media/adapter tests, PublishingWorkerTest, and LinkedInPublishingWiringTest. The media resolver initially failed its non-HTTPS assertion because the implementation used require; it was corrected to check and then passed.
+    - Unit 3 task 3.3 is complete: focused Threads/worker/LinkedIn tests, `just backend-test-postgres`, `just backend-build`, `just backend-check`, changed-file Gitleaks, migration duplicate-column review, and diff hygiene passed. Full-history Gitleaks and scoped Semgrep report pre-existing findings outside Unit 3 changed behavior: a historical test idempotency key, an ADR word match, and bcrypt fixtures.
+    - Keep Meta App Review, deployed smoke, and production rollout evidence external and not_run until independently supplied.
+    - Reconcile planned implementation paths with actual repository files during verify; design intentionally names architectural boundaries rather than asserting every target file exists.
+    - Update product, API, operational, compliance, and ADR artifacts only when implementation changes their owned claims.
+    - Unit 4.1 remains partial: provider-neutral callback denial, missing-parameter, completion-failure, retry-failure, and unsupported-provider assertions now pass for Threads; English and Spanish providerCallback messages are present and LinkedIn aliases remain covered. Threads catalog/connect, provider icon presentation, provider-aware composer/sidebar presentation, reconnect action visibility, sanitized initiation feedback, and focused Vitest coverage are now addressed. BDD, E2E, operations, docs, and broader Unit 4 checks remain outstanding.

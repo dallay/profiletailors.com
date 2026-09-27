@@ -11,6 +11,7 @@ import com.profiletailors.smp.publishing.domain.ProviderWorkspaceEntitlementPoli
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.ConfigurableLinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,12 +27,15 @@ class PublishingApplicationConfiguration {
     fun providerCatalogPolicy(
         linkedInPublishingProperties: LinkedInPublishingProperties,
         linkedInAuthorizationUrlBuilder: ConfigurableLinkedInAuthorizationUrlBuilder,
+        threadsPublishingProperties: ThreadsPublishingProperties,
         connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
     ): ProviderCatalogPolicy = DefaultProviderCatalogPolicy(
         availability = ProviderCatalogAvailability { provider ->
-            provider == SocialProvider.LINKEDIN &&
-                linkedInPublishingProperties.isConfigured() &&
-                linkedInAuthorizationUrlBuilder.isConfigured()
+            when (provider) {
+                SocialProvider.LINKEDIN -> linkedInPublishingProperties.isConfigured() &&
+                    linkedInAuthorizationUrlBuilder.isConfigured()
+                SocialProvider.THREADS -> threadsPublishingProperties.isConfigured()
+            }
         },
         entitlementPolicy = ProviderWorkspaceEntitlementPolicy { _, _ -> true },
         capacityPolicy = ProviderWorkspaceCapacityPolicy { _, _ -> true },
