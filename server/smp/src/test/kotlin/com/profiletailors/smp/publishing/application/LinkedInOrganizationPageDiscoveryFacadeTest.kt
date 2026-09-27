@@ -224,6 +224,8 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
             account.takeIf { it.workspaceId == workspaceId && it.id == accountId }
         override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
             account.takeIf { it.workspaceId == workspaceId }
+        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> =
+            listOfNotNull(account.takeIf { it.workspaceId == workspaceId })
     }
 
     private class InMemoryApprovalEvidenceRepository(

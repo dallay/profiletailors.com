@@ -155,6 +155,11 @@ class SocialContentBddState {
             socialAccounts.values.firstOrNull {
                 it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE
             }
+
+        override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> =
+            socialAccounts.values.filter {
+                it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE
+            }
     }
     val provider = BddProvider()
     val content = BddContentStore()

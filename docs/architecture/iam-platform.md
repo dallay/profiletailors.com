@@ -322,4 +322,4 @@ These capabilities are part of the durable platform model but explicitly deferre
 
 ---
 
-Last updated: 2026-09-27
+Last updated: 2026-09-23

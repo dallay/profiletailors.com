@@ -246,3 +246,12 @@ val verifySecurityVersions =
         }
     }
 tasks.named("check") { dependsOn(verifySecurityVersions) }
+
+// FreeMarker CVE-2026-84939: force patched version even if not directly on classpath.
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.freemarker" && requested.name == "freemarker") {
+            useVersion("2.3.35")
+        }
+    }
+}
