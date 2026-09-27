@@ -92,6 +92,80 @@ export class SchedulerPage {
     return this.page.locator('.group\\/card')
   }
 
+  get mobileShell(): Locator {
+    return this.page.getByTestId('scheduler-mobile-shell')
+  }
+
+  get viewSwitcher(): Locator {
+    return this.page.getByTestId('scheduler-view-switcher')
+  }
+
+  get dayViewButton(): Locator {
+    return this.page.getByTestId('day-view-button')
+  }
+
+  get threeDaysViewButton(): Locator {
+    return this.page.getByTestId('3-days-view-button')
+  }
+
+  get weekSwitcherButton(): Locator {
+    return this.page.getByTestId('week-view-button')
+  }
+
+  get agendaViewButton(): Locator {
+    return this.page.getByTestId('agenda-view-button')
+  }
+
+  get mobileFiltersTrigger(): Locator {
+    return this.page.getByTestId('mobile-filters-trigger')
+  }
+
+  get mobileFiltersSheet(): Locator {
+    return this.page.getByTestId('mobile-filters-sheet')
+  }
+
+  get mobileOverflowMenu(): Locator {
+    return this.page.getByTestId('mobile-overflow-menu')
+  }
+
+  get bulkImportOverflowItem(): Locator {
+    return this.page.getByTestId('open-bulk-import')
+  }
+
+  get productTourOverflowItem(): Locator {
+    return this.page.getByTestId('start-tour-btn')
+  }
+
+  get newPostPrimaryButton(): Locator {
+    return this.page.getByTestId('mobile-new-post')
+  }
+
+  get prevPeriodButton(): Locator {
+    return this.page.getByTestId('prev-period')
+  }
+
+  get nextPeriodButton(): Locator {
+    return this.page.getByTestId('next-period')
+  }
+
+  get todayPeriodButton(): Locator {
+    return this.page.getByTestId('today-period')
+  }
+
+  get timelineViewport(): Locator {
+    return this.page.getByTestId('scheduler-timeline-viewport')
+  }
+
+  get mobileAgenda(): Locator {
+    return this.page.getByTestId('scheduler-mobile-agenda')
+  }
+
+  async expectMinHitTarget(locator: Locator, size = 44): Promise<void> {
+    const box = await locator.boundingBox()
+    expect(box).not.toBeNull()
+    expect(Math.max(box?.width ?? 0, box?.height ?? 0)).toBeGreaterThanOrEqual(size)
+  }
+
   // Delete actions on post cards
   get deleteButtons(): Locator {
     return this.page.locator('[title="Delete publication"]')
@@ -101,8 +175,13 @@ export class SchedulerPage {
 
   async goto(): Promise<void> {
     await this.page.goto('/scheduler/calendar/week', { waitUntil: 'domcontentloaded' })
-    await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
-    await this.expectWeekView()
+    const isMobile = await this.page.evaluate(() => window.matchMedia('(max-width: 768px)').matches)
+    if (isMobile) {
+      await this.mobileShell.waitFor({ state: 'visible', timeout: 15_000 })
+    } else {
+      await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
+      await this.expectWeekView()
+    }
   }
 
   async switchToMonth(): Promise<void> {

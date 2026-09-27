@@ -70,7 +70,12 @@ export {
   type PublicationEventReconnectOptions,
 } from './usePublicationEventReconnect'
 
-export { useCalendarUrl } from './useCalendarUrl'
+export {
+  useCalendarUrl,
+  type SchedulerView,
+  type SchedulerSurface,
+  type SchedulerStatus,
+} from './useCalendarUrl'
 
 // ============================================================================
 // QUEUED COUNTS

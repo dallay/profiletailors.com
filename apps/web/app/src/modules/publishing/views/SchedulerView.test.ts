@@ -16,6 +16,7 @@ import type { CalendarUrlController } from '@modules/publishing/application/useC
 function makeUrlController(
   overrides: Partial<{
     surface: 'calendar-week' | 'calendar-month' | 'list'
+    view: 'day' | '3-days' | 'week' | 'month' | 'agenda'
     date: string
     status: 'all' | 'queued' | 'published' | 'cancelled'
     timezone: string
@@ -27,6 +28,7 @@ function makeUrlController(
 ): CalendarUrlController {
   const state = ref({
     surface: overrides.surface ?? 'calendar-week',
+    view: overrides.view ?? 'week',
     date: overrides.date ?? '2026-06-15',
     status: overrides.status ?? 'all',
     timezone: overrides.timezone ?? 'UTC',
@@ -40,12 +42,14 @@ function makeUrlController(
     needsCanonicalization: ref(overrides.needsCanonicalization ?? false),
     canonicalize: vi.fn().mockResolvedValue(undefined),
     setSurface: vi.fn().mockResolvedValue(undefined),
+    setView: vi.fn().mockResolvedValue(undefined),
     setDate: vi.fn().mockResolvedValue(undefined),
     stepPeriod: vi.fn().mockResolvedValue(undefined),
     setTimezone: vi.fn().mockResolvedValue(undefined),
     setStatus: vi.fn().mockResolvedValue(undefined),
     setSearch: vi.fn().mockResolvedValue(undefined),
     setChannelIds: vi.fn().mockResolvedValue(undefined),
+    setFilters: vi.fn().mockResolvedValue(undefined),
     openPostDetail: vi.fn().mockResolvedValue(undefined),
     closePostDetail: vi.fn().mockResolvedValue(undefined),
   }
@@ -56,6 +60,14 @@ let mockController = makeUrlController()
 
 vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
   useCalendarUrl: () => mockController,
+}))
+
+vi.mock('@/lib/app-tour', () => ({
+  startAppTour: vi.fn(),
+}))
+
+vi.mock('@vueuse/core', () => ({
+  useMediaQuery: () => ref(false),
 }))
 
 // ---------------------------------------------------------------------------

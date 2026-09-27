@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, toRef } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import {
   Plus,
@@ -19,12 +20,15 @@ import PostDetailModal from '@modules/publishing/presentation/components/PostDet
 import RecurringScheduleModal from '@modules/publishing/presentation/components/RecurringScheduleModal.vue'
 import BulkImportModal from '@modules/publishing/presentation/components/BulkImportModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
+import MobileSchedulerShell from '@modules/publishing/presentation/components/mobile/MobileSchedulerShell.vue'
+import type { SchedulerStatus, SchedulerView } from '@modules/publishing/application/useCalendarUrl'
 import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getProviderColor } from '@shared/lib/provider-styles'
+import { startAppTour } from '@/lib/app-tour'
 import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
@@ -34,11 +38,13 @@ const { locale: i18nLocale, t } = useI18n()
 
 
 const url = useCalendarUrl()
+const isMobile = useMediaQuery('(max-width: 768px)')
 
 /** Calendar sub-view derived from URL surface */
 const calendarView = computed(() => {
   if (url.state.value.surface === 'calendar-month') return 'month' as const
-  return 'week' as const
+  if (url.state.value.surface === 'list') return 'agenda' as const
+  return url.state.value.view === '3-days' ? '3-days' : url.state.value.view === 'day' ? 'day' : 'week'
 })
 
 /** Navigation base date derived from URL date param */
@@ -50,7 +56,7 @@ const currentBaseDate = computed(() => {
 const currentRange = computed(() =>
   getCalendarRange(
     url.state.value.date,
-    calendarView.value,
+    calendarView.value === 'agenda' ? 'week' : calendarView.value,
     url.state.value.timezone,
   ),
 )
@@ -305,6 +311,17 @@ const weekDays = computed(() => {
 })
 
 
+const timelineDays = computed(() => {
+  if (calendarView.value === 'day') return [currentBaseDate.value]
+  if (calendarView.value === '3-days') {
+    return Array.from({ length: 3 }, (_, index) => {
+      const day = new Date(currentBaseDate.value)
+      day.setDate(day.getDate() + index)
+      return day
+    })
+  }
+  return weekDays.value
+})
 const periodLabel = computed(() => {
   const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
   const locale = i18nLocale.value === 'es' ? 'es-ES' : 'en-US'
@@ -312,14 +329,20 @@ const periodLabel = computed(() => {
   if (calendarView.value === 'month') {
     return currentBaseDate.value.toLocaleDateString(locale, options)
   }
-  if (calendarView.value === 'week') {
+  if (calendarView.value === 'week' || calendarView.value === 'agenda') {
     const start = weekDays.value[0]
     const end = weekDays.value[weekDays.value.length - 1]
     if (!start || !end) return ''
     const dayOpts: Intl.DateTimeFormatOptions = { day: 'numeric' }
     return `${start.toLocaleDateString(locale, dayOpts)} – ${end.toLocaleDateString(locale, { ...dayOpts, month: 'short', year: 'numeric' })}`
   }
-  // Day view
+  if (calendarView.value === '3-days') {
+    const start = currentBaseDate.value
+    const end = new Date(currentBaseDate.value)
+    end.setDate(end.getDate() + 2)
+    const dayOpts: Intl.DateTimeFormatOptions = { day: 'numeric' }
+    return `${start.toLocaleDateString(locale, dayOpts)} – ${end.toLocaleDateString(locale, { ...dayOpts, month: 'short', year: 'numeric' })}`
+  }
   return currentBaseDate.value.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'long',
@@ -348,6 +371,16 @@ function handleHeaderViewChange(surface: 'calendar-week' | 'calendar-month' | 'l
   url.setSurface(surface)
 }
 
+function handleMobileViewChange(view: SchedulerView) {
+  url.setView(view)
+}
+function handleMobileFilterChange(filter: {
+  status?: SchedulerStatus
+  timezone?: string
+  channelIds?: string[]
+}) {
+  url.setFilters(filter)
+}
 function handleHeaderDateChange(action: 'forward' | 'backward' | 'today') {
   if (action === 'forward') {
     goForward()
@@ -567,6 +600,9 @@ async function handleUpdated() {
   revalidation.request(currentRange.value)
 }
 
+function handleStartTour() {
+  startAppTour()
+}
 function handleBulkScheduled(jobId: string) {
   toast.success(`Bulk job ${jobId} scheduled`)
   handleUpdated()
@@ -624,8 +660,43 @@ watch(
 
 <template>
   <div data-testid="scheduler-root" class="flex min-h-0 flex-1 flex-col gap-6">
+    <MobileSchedulerShell
+      v-if="isMobile"
+      :title="t('scheduler.allChannels')"
+      :view="url.state.value.view"
+      :period-label="periodLabel"
+      :days="timelineDays"
+      :hour-slots="hourSlots"
+      :status="url.state.value.status"
+      :timezone="url.state.value.timezone"
+      :channel-ids="url.state.value.channelIds"
+      :publications-for-slot="publicationsForSlot"
+      :is-today="isToday"
+      :format-day-name="formatDayName"
+      :is-past-slot="isPastSlot"
+      @new-post="openNewPostGeneral"
+      @prev="goBackward"
+      @next="goForward"
+      @today="goToToday"
+      @change:view="handleMobileViewChange"
+      @change:filter="handleMobileFilterChange"
+      @open-bulk-import="isBulkModalOpen = true"
+      @start-tour="handleStartTour"
+      @open-post-detail="openPostDetail"
+      @open-new-post="openNewPostForSlot"
+    >
+      <template #agendaSlot>
+        <div class="grid gap-3">
+          <button v-for="publication in filteredPublications" :key="publication.id" type="button" class="rounded-xl border border-border-subtle bg-bg-surface p-4 text-left" @click="openPostDetail(publication)">
+            <span class="block truncate text-sm text-text-display">{{ publication.content }}</span>
+            <span class="mt-1 block font-mono text-xs text-text-secondary">{{ new Date(publication.scheduledAt).toLocaleString(i18nLocale) }}</span>
+          </button>
+        </div>
+      </template>
+    </MobileSchedulerShell>
     <CalendarHeader
-      :calendar-view="calendarView"
+      v-else
+      :calendar-view="calendarView === 'agenda' || calendarView === '3-days' ? 'week' : calendarView"
       :period-label="periodLabel"
       :surface="url.state.value.surface"
       :timezone="url.state.value.timezone"
@@ -636,7 +707,7 @@ watch(
       @change:filter="handleHeaderFilterChange"
       @new-post="openNewPostGeneral"
     />
-    <div class="flex justify-end">
+    <div v-if="!isMobile" class="flex justify-end">
       <Button data-testid="open-bulk-import" variant="outline" class="gap-2" @click="isBulkModalOpen = true">Bulk Import</Button>
     </div>
 
