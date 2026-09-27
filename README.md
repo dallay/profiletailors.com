@@ -19,7 +19,7 @@ shared modules, and infrastructure).
 [![SMP Release](https://img.shields.io/github/v/release/dallay/profiletailors.com?filter=smp%40v*&display_name=tag&style=for-the-badge&color=2d3748&label=SMP)](https://github.com/dallay/profiletailors.com/releases?q=smp%40v)
 [![Astro](https://img.shields.io/badge/Astro-7.x-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
+[![pnpm](https://img.shields.io/badge/pnpm-12.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)

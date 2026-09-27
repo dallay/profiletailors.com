@@ -70,10 +70,6 @@ fun interface SocialConnectionProvider {
     suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult
 }
 
-fun interface LinkedInAvatarFetcher {
-    suspend fun fetchAvatarUrl(accessToken: String): String?
-}
-
 fun interface SocialPublisher {
     suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult
 }

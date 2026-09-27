@@ -1,7 +1,7 @@
 # Shared Lead Capture Common Module (`shared:lead-capture:common`)
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-2d3748?style=flat-square&logo=kotlin&logoColor=7f52ff)](https://kotlinlang.org)
-[![Gradle](https://img.shields.io/badge/Gradle-8.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
+[![Gradle](https://img.shields.io/badge/Gradle-9.x-2d3748?style=flat-square&logo=gradle&logoColor=02303a)](https://gradle.org)
 
 Domain primitives and interfaces for lead capture, waitlist entries, and prospect acquisition across Profile Tailors backend modules.
 
