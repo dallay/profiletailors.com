@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.springframework.transaction.reactive.executeAndAwait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
@@ -88,6 +89,104 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
         assertEquals("Threads profile", readModel.displayName)
         assertNotNull(loadedConnection)
         assertNotNull(loadedAccount)
+    }
+
+    @Test
+    fun `disconnect deletes account owned content and preserves other connections and workspaces`() = runTest {
+        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-2', 'Other', 'ACTIVE')")
+            .fetch().rowsUpdated().awaitSingle()
+        seedContent("removed-1", "removed", "workspace-1")
+        seedContent("removed-2", "removed", "workspace-1")
+        seedContent("retained", "retained", "workspace-1")
+        seedContent("other-workspace", "other-workspace", "workspace-2")
+
+        transactionalOperator.executeAndAwait {
+            accounts.deleteByConnectionId("removed")
+            connections.deleteByWorkspaceAndId("workspace-1", "removed")
+        }
+
+        assertNull(connections.findByWorkspaceAndId("workspace-1", "removed"))
+        listOf(
+            "social_accounts",
+            "social_content_posts",
+            "social_content_comments",
+            "social_content_actor_capabilities",
+            "social_content_sync_checkpoints",
+            "social_content_webhook_events",
+            "social_content_reply_commands",
+        ).forEach { table ->
+            val ids = databaseClient.sql("SELECT id FROM $table ORDER BY id")
+                .map { row, _ -> requireNotNull(row.get("id", String::class.java)) }
+                .all().collectList().awaitSingle()
+            assertEquals(listOf("other-workspace", "retained"), ids, table)
+        }
+    }
+
+    private suspend fun seedAccount(id: String, connectionId: String, workspaceId: String) {
+        connections.upsert(
+            SocialConnection(
+                id = connectionId,
+                workspaceId = workspaceId,
+                provider = SocialProvider.THREADS,
+                providerConnectionRef = connectionId,
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+        accounts.upsert(
+            SocialAccount(
+                id = id,
+                socialConnectionId = connectionId,
+                workspaceId = workspaceId,
+                provider = SocialProvider.THREADS,
+                providerAccountId = id,
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = id,
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+    }
+
+    private suspend fun seedContent(id: String, connectionId: String, workspaceId: String) {
+        seedAccount(id, connectionId, workspaceId)
+        listOf(
+            """
+            INSERT INTO social_content_actor_capabilities
+                (id, workspace_id, social_account_id, provider, role_state, granted_scopes,
+                 activity_ttl_seconds, commenter_profile_ttl_seconds)
+            VALUES (:id, :workspaceId, :id, 'THREADS', 'APPROVED', '[]', 3600, 3600)
+            """,
+            """
+            INSERT INTO social_content_posts
+                (id, workspace_id, social_account_id, provider, external_post_id, published_at,
+                 origin, lifecycle, expires_at)
+            VALUES (:id, :workspaceId, :id, 'THREADS', :id, CURRENT_TIMESTAMP,
+                    'IMPORTED', 'PUBLISHED', CURRENT_TIMESTAMP + INTERVAL '1 hour')
+            """,
+            """
+            INSERT INTO social_content_comments
+                (id, workspace_id, post_id, provider, external_comment_id, actor_external_id,
+                 created_at, state, expires_at)
+            VALUES (:id, :workspaceId, :id, 'THREADS', :id, :id,
+                    CURRENT_TIMESTAMP, 'VISIBLE', CURRENT_TIMESTAMP + INTERVAL '1 hour')
+            """,
+            """
+            INSERT INTO social_content_sync_checkpoints (id, workspace_id, social_account_id, resource)
+            VALUES (:id, :workspaceId, :id, 'POSTS')
+            """,
+            """
+            INSERT INTO social_content_webhook_events
+                (id, workspace_id, provider_event_id, social_account_id, received_at, payload_cache_key)
+            VALUES (:id, :workspaceId, :id, :id, CURRENT_TIMESTAMP, :id)
+            """,
+            """
+            INSERT INTO social_content_reply_commands
+                (id, workspace_id, social_account_id, parent_external_comment_id, idempotency_key, body, status)
+            VALUES (:id, :workspaceId, :id, :id, :id, 'Reply', 'PENDING')
+            """,
+        ).forEach { sql ->
+            databaseClient.sql(sql.trimIndent()).bind("id", id).bind("workspaceId", workspaceId)
+                .fetch().rowsUpdated().awaitSingle()
+        }
     }
 
     companion object {

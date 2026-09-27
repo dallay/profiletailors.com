@@ -26,7 +26,7 @@ import kotlin.runCatching
  * - `SMP_LOCAL_JWT_SECRET` must be configured without a placeholder outside exclusive development.
  * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must be configured without a placeholder because signed
  *   public media URLs rely on it as their access-control boundary.
- * - `SMP_LINKEDIN_STATE_SIGNING_SECRET` must be configured without a placeholder because it
+ * - `SMP_OAUTH_STATE_SIGNING_SECRET` (or its legacy LinkedIn alias) must be configured without a placeholder because it
  *   protects the OAuth state.
  *
  * **When it runs:**
@@ -68,7 +68,7 @@ class ProductionCredentialsValidator(private val environment: Environment) {
             checkPublishingKey(),
             checkJwtSecret(activeProfiles),
             checkMediaSigningSecret(),
-            checkLinkedInStateSecret(),
+            checkOAuthStateSecret(),
         )
 
         if (violations.isNotEmpty()) {
@@ -132,14 +132,18 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         }
     }
 
-    private fun checkLinkedInStateSecret(): String? {
-        val signingSecret = normalizedCredential("SMP_LINKEDIN_STATE_SIGNING_SECRET").ifBlank {
+    private fun checkOAuthStateSecret(): String? {
+        val signingSecret = normalizedCredential("publishing.oauth.state-signing-secret").ifBlank {
+            normalizedCredential("SMP_OAUTH_STATE_SIGNING_SECRET")
+        }.ifBlank {
+            normalizedCredential("SMP_LINKEDIN_STATE_SIGNING_SECRET")
+        }.ifBlank {
             normalizedCredential("publishing.linkedin.state-signing-secret")
         }
         return if (isUnsafeCredential(signingSecret)) {
-            "SMP_LINKEDIN_STATE_SIGNING_SECRET is not configured or uses an unsafe placeholder. " +
-                "This key signs LinkedIn " +
-                "OAuth state and must be unique per environment. " +
+            "SMP_OAUTH_STATE_SIGNING_SECRET (legacy SMP_LINKEDIN_STATE_SIGNING_SECRET) is missing or unsafe. " +
+                "This key signs provider OAuth state and must be unique per environment; " +
+                "unsafe placeholders are not allowed. " +
                 SECRET_GENERATION_GUIDANCE
         } else {
             null

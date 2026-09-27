@@ -9,7 +9,6 @@ import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInAvatarFetcher
-import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -30,7 +29,6 @@ import com.profiletailors.storage.domain.StorageException
 import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -43,7 +41,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
-import java.time.Clock
 import java.util.*
 
 private val IPV4_LITERAL = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$""")
@@ -539,17 +536,6 @@ class LinkedInPublishingConfiguration(
     @Primary
     fun authorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
         ConfigurableLinkedInAuthorizationUrlBuilder(properties)
-
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
-        name = ["publishing.linkedin.client-id"],
-        matchIfMissing = false,
-    )
-    fun oauthStateSigner(
-        @Value("\${publishing.linkedin.state-signing-secret}") stateSigningSecret: String,
-        objectMapper: ObjectMapper,
-        clock: Clock,
-    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())

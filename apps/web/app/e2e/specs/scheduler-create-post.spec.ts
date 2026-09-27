@@ -396,6 +396,9 @@ test.describe('Scheduler — Create Post', () => {
       await composeModal.clickCancel()
       await composeModal.expectHidden()
     })
+
+    await scheduler.switchToList()
+    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
   })
 
   /**

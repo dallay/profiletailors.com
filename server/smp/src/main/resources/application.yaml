@@ -143,6 +143,8 @@ platform:
       enabled: ${SMP_PLATFORM_RATE_LIMIT_ENABLED:false}
 
 publishing:
+  oauth:
+    state-signing-secret: ${SMP_OAUTH_STATE_SIGNING_SECRET:${publishing.linkedin.state-signing-secret:${SMP_LINKEDIN_STATE_SIGNING_SECRET:}}}
   worker:
     enabled: ${SMP_PUBLISHING_WORKER_ENABLED:false}
     poll-interval: ${SMP_PUBLISHING_WORKER_POLL_INTERVAL:PT30S}

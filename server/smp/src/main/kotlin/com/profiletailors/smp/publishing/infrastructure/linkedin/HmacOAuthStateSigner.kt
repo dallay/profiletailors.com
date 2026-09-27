@@ -29,7 +29,7 @@ class HmacOAuthStateSigner(
         require(secret.isNotBlank()) { "OAuth state signing secret is required." }
         require(INSECURE_PLACEHOLDER_PREFIXES.none { secret.startsWith(it, ignoreCase = true) }) {
             "OAuth state signing secret appears to be a placeholder (starts with a known insecure prefix). " +
-                "Set SMP_LINKEDIN_STATE_SIGNING_SECRET to a strong random secret before enabling LinkedIn integration."
+                "Set SMP_OAUTH_STATE_SIGNING_SECRET to a strong random secret before enabling provider integration."
         }
     }
 
