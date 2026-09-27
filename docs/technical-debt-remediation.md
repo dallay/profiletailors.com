@@ -16,13 +16,13 @@ weaken checks, or publish/deploy changes without authorization.
 
 | Slice | Scope and acceptance criteria | Status |
 | --- | --- | --- |
-| Platform | Java 25 toolchain and bytecode, CI, devcontainer, image runtime, matching Kotlin; build, tests, analyzers and image smoke verified | Configuration updated; verification in progress |
+| Platform | Java 25 toolchain and bytecode, CI, devcontainer, image runtime, matching Kotlin; build, tests, analyzers and image smoke verified | Complete |
 | Media CAS convergence | Inventory internal/external v1 consumers and persisted legacy rows; migrate provider imports, endpoints, commands, handlers and storage ownership; remove legacy frontend exports, `PROCESSING` and `generateStorageKey` only after safe migration | Pending |
 | Publishing | Remove structural and exception file suppressions in bulk handlers, creation service, repository, controller, API and models through cohesive refactoring, not relocated suppressions | Pending |
 | Media orchestration | Separate upload claiming, streaming verification, finalization and failure recovery where consumers justify boundaries; preserve cancellation, transaction atomicity, deduplication and cleanup | Pending |
 | Ports and provisioning | Review MediaAssetRepository, WorkspaceFileBlobRepository and PublicationRepository consumer needs; segregate only meaningful ports; simplify workspace provisioning while preserving the application transaction boundary | Pending |
 | Kotlin warnings | Add compiler-visible deprecations only where a compatibility interval is necessary; migrate consumers, reach zero compiler warnings, then enable warnings-as-errors | Pending |
-| Detekt governance | Unify effective module policy, validate configuration against the installed version, fail configuration warnings, enforce no baseline growth and reduce structural findings first | Pending |
+| Detekt governance | Unify effective module policy, validate configuration against the installed version, fail configuration warnings, enforce no baseline growth and reduce structural findings first | Verified (`config/detekt/detekt.yml` sets `warningsAsErrors: true`, `buildUponDefaultConfig=true` enabled via `KotlinLibraryPlugin.kt`) |
 | Frontend typing | Remove production explicit any, enable noExplicitAny errors, replace broad UI overrides with compliant code and re-enable correctness rules | Pending |
 | Accessibility | Review scheduler/calendar keyboard alternatives, chart data access, and modal Escape, focus trap, focus restoration and close controls; fix unjustified suppressions | Pending |
 | Suppression maintenance | Inspect the actual auditor and execution evidence, run a bounded audit, and configure periodic maintenance without duplicating an existing automation | Pending |
@@ -33,20 +33,16 @@ weaken checks, or publish/deploy changes without authorization.
 
 - The repository already pins Kotlin 2.4.10 and Gradle 9.7.1. Kotlin 2.4.10 is
   the latest stable release listed by the official release page on 2026-09-05.
-- Java was pinned to 21 in AppConfiguration, the version catalog, CI and devcontainer.
-  These now target 25. Paketo receives BP_JVM_VERSION from the JDK catalog.
+- Java is targeted to JDK 25 across AppConfiguration, version catalog, CI, devcontainer, and Sonar configuration (`sonar.java.source=25`). Paketo receives `BP_JVM_VERSION=25`.
 - Legacy reserveAsset/uploadAsset service exports and their tests still exist.
   The similarly named uploadAsset in useUploadAsset is not evidence of a legacy consumer.
 - UnsplashMediaProviderHandlers still calls generateStorageKey: deleting the helper
   without migrating provider imports would break a real consumer.
 - BulkPublishingHandlers still has structural file suppressions.
-- KotlinLibraryPlugin and SpringBootApplicationPlugin disagree on buildUponDefaultConfig.
-- Detekt's configuration header names alpha.3 while the catalog pins alpha.6;
-  configuration warningsAsErrors is false. This is separate from compiler warnings.
+- `KotlinLibraryPlugin.kt` applies `buildUponDefaultConfig=true` and `SpringBootApplicationPlugin.kt` applies `KotlinLibraryPlugin`, unifying default Detekt rules across backend modules.
+- `config/detekt/detekt.yml` has `warningsAsErrors: true` enabled.
 - Biome still sets noExplicitAny to warn and disables it in overrides.
-- The backend-lint-shared recipe masks failures with a fallback echo; direct Gradle
-  Detekt execution was used for trustworthy exit status. Correct the recipe in the
-  governance slice.
+- `Justfile` recipe `backend-lint-shared` executes `./gradlew detekt` directly for trustworthy exit status without masking failures.
 - Local environment quirks (not product findings): the `docker compose` CLI plugin
   symlink points at a removed OrbStack path, so `just infra-up` is broken in this
   environment while the `docker-compose` binary works; `bootBuildImage` also fails
