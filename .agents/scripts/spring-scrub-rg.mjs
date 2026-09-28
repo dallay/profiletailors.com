@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import process from 'node:process';
@@ -22,17 +21,7 @@ const TOKENS = [
   ['@MockBean', '@MockBean\\b'],
 ];
 
-function findRipgrep() {
-  for (const candidate of ['rg', 'rg.exe']) {
-    try {
-      const version = execFileSync(candidate, ['--version'], { stdio: 'pipe' }).toString();
-      if (/ripgrep/.test(version)) return candidate;
-    } catch {
-      // try next
-    }
-  }
-  return null;
-}
+const PATTERNS = TOKENS.map(([label, source]) => [label, new RegExp(source)]);
 
 function collectFiles(target) {
   if (existsSync(target) && statSync(target).isFile()) return [target];
@@ -42,24 +31,6 @@ function collectFiles(target) {
     if (statSync(p).isFile() && p.endsWith('.md')) files.push(p);
   }
   return files;
-}
-
-function isInsideLegacySection(lineNumber, lines) {
-  let inLegacy = false;
-  let depth = 0;
-  for (let i = 0; i < lines.length && i < lineNumber; i += 1) {
-    const line = lines[i];
-    if (line.includes('<!-- pre-migration') || line.includes('<!-- legacy:')) {
-      inLegacy = true;
-      depth = 0;
-    }
-    if (inLegacy) {
-      depth += (line.match(/<!--/g) ?? []).length;
-      depth -= (line.match(/-->/g) ?? []).length;
-      if (depth <= 0) inLegacy = false;
-    }
-  }
-  return inLegacy;
 }
 
 function isLineInLegacySection(lineNumber, contents) {
@@ -78,48 +49,26 @@ function isLineInLegacySection(lineNumber, contents) {
   return inLegacy;
 }
 
-function scanFile(ripgrep, filePath) {
+function scanFile(filePath) {
   const contents = readFileSync(filePath, 'utf8').split('\n');
-  const pattern = TOKENS.map(([, rx]) => rx).join('|');
-  try {
-    const output = execFileSync(ripgrep, ['-n', '--pcre2', pattern, filePath], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }).toString();
-    return { ok: false, output: filterLegacy(output, contents) };
-  } catch (err) {
-    if (err.status === 1) return { ok: true, output: '' };
-    return { ok: false, output: err.stderr?.toString() ?? err.stdout?.toString() ?? '' };
-  }
+  const hits = [];
+  contents.forEach((line, index) => {
+    if (isLineInLegacySection(index, contents)) return;
+    if (PATTERNS.some(([, pattern]) => pattern.test(line))) {
+      hits.push(`${index + 1}:${line}`);
+    }
+  });
+  if (hits.length === 0) return { ok: true, output: '' };
+  return { ok: false, output: hits.join('\n') };
 }
 
-function extractLineNumber(line) {
-  const startsWithNumber = line.match(/^(\d+):/);
-  if (startsWithNumber) return Number.parseInt(startsWithNumber[1], 10) - 1;
-  const absoluteMatch = line.match(/\s(\d+):\s/);
-  if (absoluteMatch) return Number.parseInt(absoluteMatch[1], 10) - 1;
-  return -1;
-}
-
-function filterLegacy(output, contents) {
-  if (!output) return '';
-  const filtered = output
-    .split('\n')
-    .filter((line) => {
-      const idx = extractLineNumber(line);
-      if (!Number.isFinite(idx) || idx < 0) return true;
-      return !isLineInLegacySection(idx, contents);
-    })
-    .join('\n');
-  return filtered;
-}
-
-function scan(ripgrep, target) {
+function scan(target) {
   const files = collectFiles(target);
   const allOutput = [];
   for (const file of files) {
     const isMigrationFile = basename(file).includes('migration');
     if (isMigrationFile) continue;
-    const result = scanFile(ripgrep, file);
+    const result = scanFile(file);
     if (!result.ok && result.output) {
       allOutput.push(result.output);
     }
@@ -128,20 +77,16 @@ function scan(ripgrep, target) {
   return { ok: false, output: allOutput.join('\n') };
 }
 
-function summarize(ripgrep, target) {
+function summarize(target) {
   const files = collectFiles(target);
   const lines = [];
   let total = 0;
-  for (const [label, rx] of TOKENS) {
+  for (const [label, pattern] of PATTERNS) {
     let count = 0;
     for (const file of files) {
-      try {
-        const out = execFileSync(ripgrep, ['-c', '--pcre2', rx, file], {
-          stdio: ['ignore', 'pipe', 'pipe'],
-        }).toString().trim();
-        count += Number.parseInt(out, 10) || 0;
-      } catch {
-        // 0 if no match
+      const contents = readFileSync(file, 'utf8').split('\n');
+      for (const line of contents) {
+        if (pattern.test(line)) count += 1;
       }
     }
     if (count > 0) {
@@ -153,21 +98,11 @@ function summarize(ripgrep, target) {
 }
 
 function listLegacyFiles(target) {
-  let ripgrep;
-  try {
-    ripgrep = findRipgrep();
-  } catch {
-    ripgrep = null;
-  }
-  if (!ripgrep) return [];
-  try {
-    const out = execFileSync(ripgrep, ['-l', '--pcre2', 'legacy-|<!-- legacy:', target], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }).toString();
-    return out.split('\n').filter(Boolean);
-  } catch {
-    return [];
-  }
+  const files = collectFiles(target);
+  return files.filter((file) => {
+    const contents = readFileSync(file, 'utf8');
+    return /legacy-|<!-- legacy:/.test(contents);
+  });
 }
 
 function help() {
@@ -215,12 +150,6 @@ function main() {
     process.exit(2);
   }
 
-  const ripgrep = findRipgrep();
-  if (!ripgrep) {
-    process.stderr.write('ERROR: ripgrep (rg) not found in PATH\n');
-    process.exit(2);
-  }
-
   if (mode === 'legacy') {
     const legacy = listLegacyFiles(absTarget);
     process.stdout.write(`${legacy.length}\n`);
@@ -228,12 +157,12 @@ function main() {
     process.exit(0);
   }
 
-  const result = scan(ripgrep, absTarget);
+  const result = scan(absTarget);
   if (mode === 'check') {
     process.stdout.write(`Target: ${absTarget}\n`);
     if (result.ok) {
       process.stdout.write('PASS: clean (0 incompatible tokens)\n');
-      const { total, lines } = summarize(ripgrep, absTarget);
+      const { total, lines } = summarize(absTarget);
       process.stdout.write(`Total counted (sanity): ${total}\n`);
       if (lines.length > 0) process.stdout.write(`${lines.join('\n')}\n`);
       process.exit(0);
