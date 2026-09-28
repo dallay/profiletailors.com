@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { readFileSync, realpathSync } from 'node:fs'
+import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { z } from 'zod'
@@ -109,22 +109,19 @@ export function validateDataInventory(yamlContent: string): ValidationResult {
  *
  * @param inputPath - Optional user-supplied path
  * @param cwd - The working directory to enforce boundaries against
- * @returns The resolved absolute path
- * @throws Error if the path resolves outside `cwd`
+ * @returns The canonical absolute path of the existing inventory
+ * @throws Error if the path cannot be resolved or resolves outside `cwd`
  */
-export function resolveDataInventoryPath(
-  inputPath?: string,
-  cwd: string = process.cwd()
-): string {
+export function resolveDataInventoryPath(inputPath?: string, cwd: string = process.cwd()): string {
   const defaultRelative = 'docs/compliance/data-inventory.yaml'
-  const resolvedTarget = inputPath
-    ? resolve(cwd, inputPath)
-    : resolve(cwd, defaultRelative)
+  const canonicalCwd = realpathSync(cwd)
+  const resolvedTarget = realpathSync(resolve(cwd, inputPath || defaultRelative))
+  const rel = relative(canonicalCwd, resolvedTarget)
 
-  const rel = relative(cwd, resolvedTarget)
-
-  if (rel.startsWith('..') || isAbsolute(rel)) {
-    throw new Error(`Invalid path: ${inputPath || defaultRelative} resolves outside the allowed root working directory.`)
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error(
+      `Invalid path: ${inputPath || defaultRelative} resolves outside the allowed root working directory.`,
+    )
   }
 
   return resolvedTarget

@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, it, expect } from 'vitest'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { validateDataInventory, resolveDataInventoryPath } from '../check-data-inventory.js'
@@ -144,27 +153,76 @@ processing_activities:
 })
 
 describe('resolveDataInventoryPath', () => {
-  const fakeCwd = resolve('/app/workspace')
+  let fixtureRoot: string
+  let cwd: string
+  let outsideFile: string
+
+  beforeEach(() => {
+    fixtureRoot = realpathSync(mkdtempSync(resolve(tmpdir(), 'data-inventory-')))
+    cwd = resolve(fixtureRoot, 'workspace')
+    mkdirSync(resolve(cwd, 'docs/compliance'), { recursive: true })
+    writeFileSync(resolve(cwd, 'docs/compliance/data-inventory.yaml'), '')
+    outsideFile = resolve(fixtureRoot, 'outside.yaml')
+    writeFileSync(outsideFile, '')
+  })
+
+  afterEach(() => {
+    rmSync(fixtureRoot, { recursive: true, force: true })
+  })
 
   it('resolves default path when no path argument is provided', () => {
-    const resolved = resolveDataInventoryPath(undefined, fakeCwd)
-    expect(resolved).toBe(resolve(fakeCwd, 'docs/compliance/data-inventory.yaml'))
+    const resolved = resolveDataInventoryPath(undefined, cwd)
+    expect(resolved).toBe(resolve(cwd, 'docs/compliance/data-inventory.yaml'))
   })
 
   it('resolves valid relative path within cwd', () => {
-    const resolved = resolveDataInventoryPath('docs/compliance/data-inventory.yaml', fakeCwd)
-    expect(resolved).toBe(resolve(fakeCwd, 'docs/compliance/data-inventory.yaml'))
+    const resolved = resolveDataInventoryPath('docs/compliance/data-inventory.yaml', cwd)
+    expect(resolved).toBe(resolve(cwd, 'docs/compliance/data-inventory.yaml'))
   })
 
-  it('throws error when path traverses outside cwd via relative path', () => {
-    expect(() => resolveDataInventoryPath('../../etc/passwd', fakeCwd)).toThrow(
-      /resolves outside the allowed root working directory/
+  it.each(['../outside.yaml', '..'])('rejects traversal outside cwd: %s', (inputPath) => {
+    expect(() => resolveDataInventoryPath(inputPath, cwd)).toThrow(
+      /resolves outside the allowed root working directory/,
     )
   })
 
   it('throws error when path traverses outside cwd via absolute path', () => {
-    expect(() => resolveDataInventoryPath('/etc/passwd', fakeCwd)).toThrow(
-      /resolves outside the allowed root working directory/
+    expect(() => resolveDataInventoryPath(outsideFile, cwd)).toThrow(
+      /resolves outside the allowed root working directory/,
     )
+  })
+
+  it('rejects an in-root symlink to an outside file', () => {
+    symlinkSync(outsideFile, resolve(cwd, 'inventory.yaml'), 'file')
+    expect(() => resolveDataInventoryPath('inventory.yaml', cwd)).toThrow(
+      /resolves outside the allowed root working directory/,
+    )
+  })
+
+  it('rejects a path through an in-root symlink to an outside directory', () => {
+    symlinkSync(fixtureRoot, resolve(cwd, 'outside'), 'dir')
+    expect(() => resolveDataInventoryPath('outside/outside.yaml', cwd)).toThrow(
+      /resolves outside the allowed root working directory/,
+    )
+  })
+
+  it('accepts an in-root filename beginning with two dots', () => {
+    const target = resolve(cwd, '..inventory.yaml')
+    writeFileSync(target, '')
+    expect(resolveDataInventoryPath('..inventory.yaml', cwd)).toBe(target)
+  })
+
+  it('resolves paths against a canonical working directory', () => {
+    const linkedCwd = resolve(fixtureRoot, 'linked-workspace')
+    symlinkSync(cwd, linkedCwd, 'dir')
+    expect(resolveDataInventoryPath(undefined, linkedCwd)).toBe(
+      resolve(cwd, 'docs/compliance/data-inventory.yaml'),
+    )
+  })
+
+  it('returns the canonical target for an in-root symlink', () => {
+    const target = resolve(cwd, 'docs/compliance/data-inventory.yaml')
+    symlinkSync(target, resolve(cwd, 'inventory.yaml'), 'file')
+    expect(resolveDataInventoryPath('inventory.yaml', cwd)).toBe(target)
   })
 })
