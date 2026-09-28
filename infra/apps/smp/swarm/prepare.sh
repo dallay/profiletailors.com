@@ -34,6 +34,7 @@ initialize_optional_secret() {
 }
 
 initialize_optional_secret "${secrets_dir}/linkedin-client-secret"
+initialize_optional_secret "${secrets_dir}/threads-client-secret"
 initialize_optional_secret "${secrets_dir}/resend-api-key"
 chmod 600 \
     "${secrets_dir}/db-password" \
@@ -42,6 +43,7 @@ chmod 600 \
     "${secrets_dir}/media-preview-signing-secret" \
     "${secrets_dir}/linkedin-state-signing-secret" \
     "${secrets_dir}/linkedin-client-secret" \
+    "${secrets_dir}/threads-client-secret" \
     "${secrets_dir}/resend-api-key"
 
 echo "Swarm configuration prepared in ${swarm_dir}."

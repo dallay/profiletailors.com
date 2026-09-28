@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: mcp-001-create-idempotency-records
-      author: opencode
+      author: yuniel acosta
       changes:
         - createTable:
             tableName: idempotency_records

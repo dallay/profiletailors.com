@@ -100,6 +100,9 @@ services:
       SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL: ${SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL:-PT5M}
       SMP_LINKEDIN_CLIENT_ID: ${SMP_LINKEDIN_CLIENT_ID:-}
       SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}/integrations/linkedin/callback
+      SMP_THREADS_ENABLED: ${SMP_THREADS_ENABLED:-false}
+      SMP_THREADS_CLIENT_ID: ${SMP_THREADS_CLIENT_ID:-}
+      SMP_THREADS_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}/integrations/threads/callback
       SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
       SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
     secrets:
@@ -130,6 +133,11 @@ services:
         mode: 0400
       - source: linkedin_client_secret
         target: SMP_LINKEDIN_CLIENT_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: threads_client_secret
+        target: SMP_THREADS_CLIENT_SECRET
         uid: "1002"
         gid: "1001"
         mode: 0400
@@ -279,6 +287,9 @@ secrets:
   linkedin_client_secret:
     external: true
     name: ${SWARM_LINKEDIN_CLIENT_SECRET:-profiletailors_linkedin_client_v1}
+  threads_client_secret:
+    external: true
+    name: ${SWARM_THREADS_CLIENT_SECRET:-profiletailors_threads_client_v1}
   resend_api_key:
     external: true
     name: ${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}

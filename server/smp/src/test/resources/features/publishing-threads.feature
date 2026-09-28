@@ -8,10 +8,10 @@ Feature: Threads publishing provider behavior
     And the catalog should omit Threads
     And the catalog response should not contain provider secrets
 
-  Scenario: Disabled Threads initiation fails without OAuth material
+  Scenario: Disabled Threads initiation is rejected as unavailable
     Given the verified user has an active workspace membership
     When the client initiates a Threads connection
-    Then the publishing response status should be 400
+    Then the publishing response status should be 409
     And the OAuth response should not contain authorization material
 
   Scenario: LinkedIn initiation alias remains available

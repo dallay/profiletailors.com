@@ -71,11 +71,17 @@ Add integration credentials when required:
 
 ```text
 infra/apps/smp/production/secrets/linkedin-client-secret
+infra/apps/smp/production/secrets/threads-client-secret
 infra/apps/smp/production/secrets/resend-api-key
 ```
 
 Set `SMP_LINKEDIN_CLIENT_ID` in the production `.env` file when configuring LinkedIn. The expected
 OAuth callback is `${PUBLIC_ORIGIN}/integrations/linkedin/callback`.
+
+Set `SMP_THREADS_CLIENT_ID` in the production `.env` file and `SMP_THREADS_ENABLED=true` only
+when the Meta app is fully configured. The expected OAuth callback is
+`${PUBLIC_ORIGIN}/integrations/threads/callback`. Threads stays hidden from the provider catalog
+while its configuration is incomplete.
 
 ### Validate and start
 
@@ -99,8 +105,8 @@ just production-smoke --restart
 
 The smoke test checks the dashboard, backend readiness, unauthenticated API routing, Liquibase
 migrations, exclusion of development seed data, secret handling, read-only application
-filesystems, and persistence after a complete stack stop and start. It does not call LinkedIn or
-Resend; validate those integrations separately with real production credentials.
+filesystems, and persistence after a complete stack stop and start. It does not call LinkedIn,
+Threads, or Resend; validate those integrations separately with real production credentials.
 
 ### Upgrade
 

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-007-create-user-preferences
-      author: opencode
+      author: yuniel acosta
       changes:
         - createTable:
             tableName: user_preferences

@@ -145,9 +145,8 @@ class ConfigurationBddSteps {
             .map { json.readTree(it) }
 
         assertEquals(2, transitions.size)
-        val first = transitions[0]
-        val second = transitions[1]
-        assertEquals("OPEN", first.get("previousMode").asText())
+        val first = transitions.single { it.get("previousMode").asText() == "OPEN" }
+        val second = transitions.single { it.get("previousMode").asText() != "OPEN" }
         assertEquals(second.get("previousMode").asText(), first.get("newMode").asText())
     }
 

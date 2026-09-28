@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: lead-capture-003-add-waitlist-entry-version
-      author: opencode
+      author: yuniel acosta
       changes:
         - addColumn:
             tableName: waitlist_entries

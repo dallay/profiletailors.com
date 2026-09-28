@@ -1295,6 +1295,86 @@ describe('publishing store', () => {
       expect(result.accountId).toBe('soc-fallback-1')
     })
 
+    it('uses the selected connected Threads account id for authenticated scheduling', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'soc-linkedin-1',
+          accountId: 'soc-linkedin-1',
+          name: 'LinkedIn Profile',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'LinkedIn Profile',
+          status: 'ACTIVE',
+        },
+        {
+          id: 'soc-threads-1',
+          accountId: 'soc-threads-1',
+          name: 'Threads Profile',
+          provider: 'threads',
+          avatar: '',
+          handle: 'Threads Profile',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'backend-threads-1',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-threads-1',
+        status: 'QUEUED',
+        scheduleMode: 'NOW',
+        priority: false,
+        title: 'Title',
+        bodyText: 'Threads post content',
+        assetIds: [],
+        scheduledFor: null,
+        nextSlotAfter: null,
+      })
+
+      const result = await store.schedulePost({
+        content: 'Threads post content',
+        title: 'Title',
+        channels: ['threads'],
+        priority: false,
+        socialAccountId: 'soc-threads-1',
+      })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.socialAccountId).toBe('soc-threads-1')
+      expect(result.accountId).toBe('soc-threads-1')
+    })
+
+    it('throws for authenticated scheduling when the selected provider channel is not connected', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'soc-linkedin-1',
+          accountId: 'soc-linkedin-1',
+          name: 'LinkedIn Profile',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'LinkedIn Profile',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
+
+      await expect(
+        store.schedulePost({
+          content: 'Threads post content',
+          title: 'Title',
+          channels: ['threads'],
+          priority: false,
+          socialAccountId: 'soc-threads-1',
+        }),
+      ).rejects.toThrow('Connect a social profile before scheduling authenticated posts.')
+      expect(apiFetch).not.toHaveBeenCalled()
+    })
+
     it('throws for authenticated LinkedIn scheduling when no connected channel exists', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
@@ -1310,7 +1390,7 @@ describe('publishing store', () => {
           scheduledAt: '2026-06-20T14:00:00Z',
           priority: false,
         }),
-      ).rejects.toThrow('Connect a LinkedIn profile before scheduling authenticated posts.')
+      ).rejects.toThrow('Connect a social profile before scheduling authenticated posts.')
       expect(apiFetch).not.toHaveBeenCalled()
     })
 

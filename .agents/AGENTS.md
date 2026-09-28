@@ -33,10 +33,9 @@ Fixes should make the system simpler, not more complex.
 Prefer removing or consolidating code over adding a new layer, flag, or special case. If a fix
 grows the system's surface area, look for the version that shrinks it.
 
-Never leave comments in the repo. The standard is zero comments: no explanatory comments or
-docblocks, TODO/FIXME notes, lint/type suppression directives, or commented-out code. Express
-intent through names, structure, and tests; put rationale in commit messages or PR descriptions.
-Interpreter shebangs are executable directives, not comments.
+Prefer self-documenting code. The agent MUST NOT generate explanatory comments or docblocks by default; intent should be expressed through names, types, structure, and tests. Comment policy is enforced during final cleanup, not as an architectural invariant.
+
+Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter exclusions, and commented-out code remain prohibited. The full enforcement list is codified in `.agents/scripts/skill-comment-scan.mjs` and its allowlist.
 
 ## Static Analysis and Linter Compliance
 
@@ -381,7 +380,7 @@ server/smp/src/main/kotlin/com/profiletailors/smp/<context>/
 | Layer          | May depend on                                             | Must not depend on                                                                                  |
 | -------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Domain         | Pure Kotlin and approved framework-free shared contracts | Application, infrastructure, Spring, R2DBC, Reactor, persistence annotations, or transport concerns |
-| Application    | Domain and inward-facing ports                            | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
+| Application    | Domain, including domain-defined ports                   | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
 | Infrastructure | Domain, application, and external frameworks              | —                                                                                                   |
 
 Rules:
@@ -391,8 +390,9 @@ Rules:
 - Package backend code as `com.profiletailors.smp.{context}.{layer}`. Follow the established CQRS
   vocabulary (`GetXQuery`, `{Verb}XCommand`, `XHandler`) and existing adapter naming; do not rename
   code solely to impose a new variant of the convention.
-- Put repository/gateway contracts on the inward-facing side and implementations in infrastructure;
-  follow the existing context convention rather than importing an adapter into application code.
+- Place repository/gateway ports/interfaces in domain; implement them in infrastructure; inject them
+  into application services through composition. Follow the existing context convention rather than
+  importing an adapter into application code.
 - Use `com.profiletailors.common.domain.Service` for application services, not Spring `@Service`,
   `@Component`, or `@Repository`. `ModuleMetadata` and the explicitly accepted cross-cutting
   `com.profiletailors.smp.config` wiring exception contain no business logic.

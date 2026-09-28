@@ -29,4 +29,4 @@ Integrate Meta Threads as the second first-class social publishing provider with
 
 ## Status
 
-Working: OpenSpec initialization and exploration.
+Ready: apply Unit 4 tasks 4.2–4.5 complete with evidence 2026-09-28 (BDD 304 green; E2E threads 3/3 + lane 66+1 green with flake note; docs 4.4 with rulings; 4.5 evidence recorded). `state.yaml` still reads `current_phase: apply`, `next: apply` — verify/qa/archive phases not started. External blocker: Meta smoke + App Review (`external_evidence: not_run`) needs real Meta app + deployed env owner.

@@ -58,6 +58,9 @@ services:
       SMP_PUBLISHING_WORKER_ENABLED: "true"
       SMP_LINKEDIN_CLIENT_ID: ${SMP_LINKEDIN_CLIENT_ID:-}
       SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}/integrations/linkedin/callback
+      SMP_THREADS_ENABLED: ${SMP_THREADS_ENABLED:-false}
+      SMP_THREADS_CLIENT_ID: ${SMP_THREADS_CLIENT_ID:-}
+      SMP_THREADS_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}/integrations/threads/callback
       SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
       SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
       SMP_REGISTRATION_MODE: ${SMP_REGISTRATION_MODE:-CLOSED}
@@ -74,6 +77,8 @@ services:
         target: SMP_LINKEDIN_STATE_SIGNING_SECRET
       - source: linkedin_client_secret
         target: SMP_LINKEDIN_CLIENT_SECRET
+      - source: threads_client_secret
+        target: SMP_THREADS_CLIENT_SECRET
       - source: resend_api_key
         target: SMP_RESEND_API_KEY
     volumes:
@@ -146,5 +151,7 @@ secrets:
     file: ./secrets/linkedin-state-signing-secret
   linkedin_client_secret:
     file: ./secrets/linkedin-client-secret
+  threads_client_secret:
+    file: ./secrets/threads-client-secret
   resend_api_key:
     file: ./secrets/resend-api-key
