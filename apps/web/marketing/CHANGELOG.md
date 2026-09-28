@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.20](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.19...landing@v0.2.20) (2026-09-28)
+
+
+### Bug Fixes
+
+* Create Post modal responsive layout and scrolling ([#1184](https://github.com/dallay/profiletailors.com/issues/1184)) ([4c7676f](https://github.com/dallay/profiletailors.com/commit/4c7676f3ff8831fe87d8b92cc920663703af816a))
+* **docs:** correct README badges and deployed-version validation ([#1193](https://github.com/dallay/profiletailors.com/issues/1193)) ([df5de9d](https://github.com/dallay/profiletailors.com/commit/df5de9df4f74789e925ae6d599abec7905f3cb4e))
+* **e2e:** eliminate race conditions in waitlist-form route mocking ([#1181](https://github.com/dallay/profiletailors.com/issues/1181)) ([cbc4c38](https://github.com/dallay/profiletailors.com/commit/cbc4c384271cf15b41d177c943f690387d25e40d))
+* **marketing:** bypass Cloudflare email obfuscation for Ahrefs Site Audit ([#1166](https://github.com/dallay/profiletailors.com/issues/1166)) ([e74270b](https://github.com/dallay/profiletailors.com/commit/e74270bfa893ef5cb95a5a64fc98db6e4577cab1))
+
+
+### Documentation
+
+* standardize technology, release, and deployed-version badges across READMEs ([#1188](https://github.com/dallay/profiletailors.com/issues/1188)) ([cf5120e](https://github.com/dallay/profiletailors.com/commit/cf5120e82c87bdb7f6af5c56e43ae0229a4169de))
+
 ## [0.2.19](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.18...landing@v0.2.19) (2026-09-24)
 
 
