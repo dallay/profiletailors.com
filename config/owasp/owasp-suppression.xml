@@ -1,3 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <suppress>
+    <notes><![CDATA[FP per DependencyCheck issue 8749. CVE-2026-53914 affects kotlin-gradle-plugin build-cache deserialization only, fixed in 2.4.20-Beta1. kotlin-stdlib contains none of that code. NVD generic jetbrains:kotlin CPE causes false inheritance. Revisit when Detekt supports Kotlin 2.4.20.]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib@.*$</packageUrl>
+    <cve>CVE-2026-53914</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[FP per DependencyCheck issue 8749. CVE-2026-53914 affects kotlin-gradle-plugin build-cache deserialization only, fixed in 2.4.20-Beta1. kotlin-reflect contains none of that code. NVD generic jetbrains:kotlin CPE causes false inheritance. Revisit when Detekt supports Kotlin 2.4.20.]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-reflect@.*$</packageUrl>
+    <cve>CVE-2026-53914</cve>
+  </suppress>
 </suppressions>
