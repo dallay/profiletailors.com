@@ -147,25 +147,6 @@ test.describe('Scheduler — Threads provider @threads', () => {
     await page.route('**/api/publishing/publications', (route) => {
       if (route.request().method() === 'POST') {
         postedAccountId = route.request().postDataJSON()?.socialAccountId ?? null
-        route.fulfill(
-          json(
-            {
-              publicationId: `backend-threads-${Date.now()}`,
-              workspaceId: MOCK_WORKSPACE_ID,
-              socialAccountId: postedAccountId,
-              status: 'QUEUED',
-              scheduleMode: 'NOW',
-              priority: false,
-              title: 'Post from App',
-              bodyText: route.request().postDataJSON()?.bodyText ?? null,
-              assetIds: [],
-              scheduledFor: null,
-              nextSlotAfter: null,
-            },
-            201,
-          ),
-        )
-        return
       }
       route.fallback()
     })
