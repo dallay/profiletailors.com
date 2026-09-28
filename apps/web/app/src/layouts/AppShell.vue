@@ -53,13 +53,13 @@ const publishingStore = usePublishingStore()
 const showCookieSettings = ref(false)
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
+const { t, te } = useI18n()
 const calendarUrl = useCalendarUrl()
 
 // Page title for SPA route announcer (screen readers)
 const pageTitle = computed(() => {
   const name = route.name
-  if (typeof name === 'string' && t(`nav.${name}`) !== `nav.${name}`) {
+  if (typeof name === 'string' && te(`nav.${name}`)) {
     return t(`nav.${name}`)
   }
   if (name === 'linkedin-callback') return 'LinkedIn'
