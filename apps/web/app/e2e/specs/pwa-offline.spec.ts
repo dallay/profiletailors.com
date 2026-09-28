@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/base-test'
 
 test.describe('PWA offline shell @frontend', () => {
   test('renders /offline standalone without auth', async ({ page }) => {
@@ -39,5 +39,14 @@ test.describe('PWA offline shell @frontend', () => {
     expect(manifest.display).toBe('standalone')
     expect(manifest.short_name.length).toBeLessThanOrEqual(12)
     expect(manifest.icons.length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('protected route with unreachable refresh lands on /offline, never /login', async ({
+    page,
+  }) => {
+    await page.route('**/api/auth/refresh', (route) => route.abort('failed'))
+    await page.goto('/scheduler/calendar/week')
+    await expect(page).toHaveURL(/\/offline\?redirect=/)
+    await expect(page.getByRole('heading', { name: /offline|sin conexión/i })).toBeVisible()
   })
 })

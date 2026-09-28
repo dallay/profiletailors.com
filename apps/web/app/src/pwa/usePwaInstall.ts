@@ -5,6 +5,10 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+function isInstallPromptEvent(e: Event): e is BeforeInstallPromptEvent {
+  return 'prompt' in e && typeof (e as BeforeInstallPromptEvent).prompt === 'function'
+}
+
 function isIosSafari(): boolean {
   const ua = navigator.userAgent
   const isIos =
@@ -19,8 +23,9 @@ export function usePwaInstall() {
   const showIosGuide = ref(false)
 
   function onPrompt(event: Event): void {
+    if (!isInstallPromptEvent(event)) return
     event.preventDefault()
-    deferred.value = event as BeforeInstallPromptEvent
+    deferred.value = event
   }
 
   onMounted(() => {

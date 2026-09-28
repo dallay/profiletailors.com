@@ -9,6 +9,8 @@ import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
 const mockRefreshSession = vi.fn()
 const mockGetCurrentUserProfile = vi.fn()
 const mockResendVerification = vi.fn()
+const mockLogin = vi.fn()
+const mockRegister = vi.fn()
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
@@ -21,8 +23,8 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
   getCurrentUserProfile: (...args: unknown[]) => mockGetCurrentUserProfile(...args),
   resendVerification: (...args: unknown[]) => mockResendVerification(...args),
-  login: vi.fn(),
-  register: vi.fn(),
+  login: (...args: unknown[]) => mockLogin(...args),
+  register: (...args: unknown[]) => mockRegister(...args),
   logoutSession: vi.fn(),
 }))
 
@@ -50,6 +52,8 @@ describe('Auth store — hydrateSession', () => {
     mockRefreshSession.mockReset()
     mockGetCurrentUserProfile.mockReset()
     mockResendVerification.mockReset()
+    mockLogin.mockReset()
+    mockRegister.mockReset()
   })
 
   it('restores session from refresh token cookie and trusts profile email status', async () => {
@@ -111,6 +115,45 @@ describe('Auth store — hydrateSession', () => {
 
     expect(auth.isAuthenticated).toBe(false)
     expect(auth.sessionChecked).toBe(true)
+  })
+
+  it('marks authenticated after password login', async () => {
+    mockLogin.mockResolvedValue(fakeTokens)
+    mockGetCurrentUserProfile.mockResolvedValue({
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'VERIFIED',
+    })
+
+    const auth = useAuthStore()
+    await auth.loginWithPassword({ email: 'user@example.com', password: 'secret-123' })
+
+    expect(auth.isAuthenticated).toBe(true)
+    expect(auth.bootstrapState).toBe('authenticated')
+  })
+
+  it('marks authenticated after password registration', async () => {
+    mockRegister.mockResolvedValue(fakeTokens)
+    mockGetCurrentUserProfile.mockResolvedValue({
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'VERIFIED',
+    })
+
+    const auth = useAuthStore()
+    await auth.registerWithPassword({
+      email: 'user@example.com',
+      password: 'secret-123',
+      confirmedAgeEligibility: true,
+      acceptedTermsVersion: 'v1',
+    })
+
+    expect(auth.isAuthenticated).toBe(true)
+    expect(auth.bootstrapState).toBe('authenticated')
   })
 
   it('persists workspaceId from tokens when no workspace is selected', async () => {

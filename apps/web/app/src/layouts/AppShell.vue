@@ -419,6 +419,7 @@ onBeforeUnmount(() => {
 
           <UploadProgressToast />
           <UpdatePrompt />
+          <InstallPrompt />
           <Toaster position="bottom-right" />
           <ConsentBanner />
           <CookieSettings v-model:open="showCookieSettings" />

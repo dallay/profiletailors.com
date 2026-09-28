@@ -34,10 +34,14 @@ export type SessionBootstrapState =
   | 'unauthenticated'
   | 'unreachable'
 
+function hasErrorCode(value: unknown): value is { code: unknown } {
+  return typeof value === 'object' && value !== null && 'code' in value
+}
+
 function isNetworkError(e: unknown): boolean {
   if (e instanceof TypeError) return true
-  const code = (e as { code?: string })?.code
-  return code === 'ERR_NETWORK' || code === 'ECONNABORTED'
+  if (!hasErrorCode(e)) return false
+  return e.code === 'ERR_NETWORK' || e.code === 'ECONNABORTED'
 }
 
 // ---------------------------------------------------------------------------
@@ -231,13 +235,10 @@ export const useAuthStore = defineStore('auth', () => {
         await _loadProfile()
         bootstrapState.value = 'authenticated'
       } catch (e) {
-        // Network failure ≠ no session. Keep explicit unreachable so the
-        // router can send requiresAuth to /offline instead of /login.
         if (isNetworkError(e)) {
           bootstrapState.value = 'unreachable'
         } else {
           _clearSession()
-          bootstrapState.value = 'unauthenticated'
         }
       } finally {
         sessionChecked.value = true
