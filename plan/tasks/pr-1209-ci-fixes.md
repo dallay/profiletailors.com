@@ -15,7 +15,7 @@ Delegated direct con `systematic-debugging`. Tres fallos independientes en la PR
 - [x] RPI-001 Reescribir el matching de `spring-scrub-rg.mjs` en Node puro (sin `rg`), mantener CLI y marcadores legacy, correr los 4 tests.
 - [x] RPI-002 Actualizar `Last Updated` en `docs/publishing-failure-modes.md` a 2026-09-28 y correr `just doc-check`.
 - [x] RPI-003 Convertir el mock POST de TH-03 en observador pass-through (`route.fallback()`), correr el spec localmente.
-- [ ] RPI-004 Push + vigilar los tres checks en la PR.
+- [x] RPI-004 Push + vigilar los tres checks en la PR.
 
 ## Criterios de aceptación
 
