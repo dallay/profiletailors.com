@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-008-add-principal-status
-      author: opencode
+      author: yuniel acosta
       changes:
         - addColumn:
             tableName: principals

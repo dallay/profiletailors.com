@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: lead-capture-004-add-waitlist-withdrawal-url-store
-      author: opencode
+      author: yuniel acosta
       changes:
         - createTable:
             tableName: waitlist_withdrawal_urls
@@ -47,7 +47,7 @@ databaseChangeLog:
             tableName: waitlist_withdrawal_urls
   - changeSet:
       id: lead-capture-004-add-waitlist-withdrawal
-      author: opencode
+      author: yuniel acosta
       changes:
         - addColumn:
             tableName: waitlist_entries
