@@ -1,8 +1,12 @@
 ---
 name: animate-text
 description: Use when picking or translating named effects like soft blur in, typewriter, shared axis, line reveal, stagger, crossfade, or kinetic builds.
+metadata:
+  category: design
+  family: css
+  source: local
+  version: 2026-09-28
 ---
-
 # Animate Text
 
 Use this skill as a text animation catalog backed by generated JSON contracts.

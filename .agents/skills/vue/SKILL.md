@@ -3,10 +3,11 @@ name: vue
 description: Use when working with .vue files, composables, Pinia stores, or form validation.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "1.0"
+  category: frontend-platform
+  family: vue
+  source: local
+  version: 2026-09-28
 ---
-
 # Vue 3 Skill
 
 Conventions for Vue 3 development with Composition API, TypeScript, and the profiletailors component
@@ -41,7 +42,8 @@ Key rules enforced by this standard:
 
 ### 1. Component Structure
 
-**ALWAYS use `<script setup lang="ts">`**:
+**Use `<script setup lang="ts">`** in every Vue 3 SFC. Justify deviation in
+the PR description (the Options API is allowed only for legacy compatibility):
 
 ```vue
 
@@ -102,7 +104,9 @@ Key rules enforced by this standard:
 
 ### 2. Pinia Stores
 
-**ALWAYS type state, getters, and actions**:
+Type state, getters, and actions. The monorepo uses strict TypeScript
+(`"strict": true`), so any untyped declaration is a type error rather than
+a stylistic preference:
 
 ```typescript
 // stores/user.ts
@@ -264,7 +268,10 @@ export const useCounter = (initial = 0): UseCounterReturn => {
 | Sibling/Distant | Pinia store               |
 | Provide/Inject  | Rarely, for deeply nested |
 
-**NEVER use global event buses**.
+**Do not introduce global event buses.** The combination of props-down +
+`emit()`-up + Pinia for cross-component state covers every UI composition
+shape the project needs; a global bus adds no value and bypasses the
+type system.
 
 ## UI Components (@profiletailors/ui)
 
@@ -313,7 +320,7 @@ Use Shadcn-Vue components from `@profiletailors/ui`:
 <template>
   <!-- ✅ v-once for truly static content -->
   <footer v-once>
-    <p>© 2024 CVIX</p>
+    <p>{{ staticFooterText }}</p>
   </footer>
 
   <!-- ✅ v-memo for expensive lists -->

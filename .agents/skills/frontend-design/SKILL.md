@@ -3,9 +3,11 @@ name: frontend-design
 description: Use when building web components, pages, or applications with high design quality that avoids generic AI aesthetics.
 license: MIT
 metadata:
-  version: "1.0.0"
+  category: frontend-platform
+  family: css
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Frontend Design Skill
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "

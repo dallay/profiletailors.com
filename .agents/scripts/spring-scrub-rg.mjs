@@ -64,8 +64,8 @@ function isInsideLegacySection(lineNumber, lines) {
 
 function isLineInLegacySection(lineNumber, contents) {
   let inLegacy = false;
-  const openerRegex = /<!--\s*(pre-migration|legacy:)/;
-  const closerRegex = /-->/;
+  const openerRegex = /^[^>]*<!--\s*(pre-migration|legacy:[\w-]+)/;
+  const closerRegex = /<!--\s*\/(?:pre-migration|legacy:[\w-]+)\s*-->$/;
   for (let i = 0; i < lineNumber && i < contents.length; i += 1) {
     const line = contents[i];
     if (openerRegex.test(line)) {

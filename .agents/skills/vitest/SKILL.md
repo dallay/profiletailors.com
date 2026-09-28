@@ -2,11 +2,11 @@
 name: vitest
 description: Vitest fast unit testing framework powered by Vite with Jest-compatible API. Use when writing tests, mocking, configuring coverage, or working with test filtering and fixtures.
 metadata:
-  author: Anthony Fu
-  version: "2026.1.28"
-  source: Generated from https://github.com/vitest-dev/vitest, scripts located at https://github.com/antfu/skills
+  category: testing
+  family: vitest
+  source: local
+  version: 2026-09-28
 ---
-
 # Vitest
 
 Vitest is a next-generation testing framework powered by Vite. It provides a Jest-compatible API
@@ -23,7 +23,9 @@ transformers, resolvers, and plugins with your Vite app.
 - Built-in coverage via V8 or Istanbul
 - Snapshot testing, mocking, and spy utilities
 
-> The skill is based on Vitest 3.x, generated at 2026-01-28.
+> The skill is based on the Vitest version declared in
+> `package.json` (the workspace root and the surface-local
+> `package.json` files stay aligned), generated at 2026-09-28.
 
 ## Core
 

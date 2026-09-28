@@ -6,9 +6,11 @@ description: >-
   code`, `code quality review`, or `check for vulnerabilities`.
 license: MIT
 metadata:
-  version: "1.0.0"
+  category: governance
+  family: none
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Best practices
 
 Modern web development standards based on Lighthouse best practices audits. Covers security, browser

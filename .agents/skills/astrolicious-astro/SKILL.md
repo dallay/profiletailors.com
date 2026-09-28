@@ -1,12 +1,13 @@
 ---
-name: astro
+name: astrolicious-astro
 description: Use when working with Astro, .astro files, static site generation (SSG), islands architecture, content collections, or deploying Astro projects.
 license: MIT
 metadata:
-  authors: "Astro Team"
-  version: "0.0.1"
+  category: frontend-platform
+  family: none
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Astro Usage Guide
 
 **Always consult [docs.astro.build](https://docs.astro.build) for code examples and latest API.**

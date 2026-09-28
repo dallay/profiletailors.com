@@ -3,10 +3,11 @@ name: accessibility
 description: Use when asked to improve accessibility, run a11y audit, ensure WCAG compliance, add screen reader support, fix keyboard navigation, or make content accessible.
 license: MIT
 metadata:
-  author: web-quality-skills
-  version: "1.1"
+  category: frontend-platform
+  family: none
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Accessibility (a11y)
 
 Comprehensive accessibility guidelines based on WCAG 2.2 and Lighthouse accessibility audits. Goal:

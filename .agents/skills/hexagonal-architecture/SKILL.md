@@ -3,10 +3,11 @@ name: hexagonal-architecture
 description: Use when creating features, domain models, use cases, or organizing backend code with Hexagonal Architecture (Ports and Adapters) and CQRS.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "1.0"
+  category: backend-platform
+  family: kotlin
+  source: local
+  version: 2026-09-28
 ---
-
 # Hexagonal Architecture Skill
 
 Patterns for implementing Hexagonal Architecture (Ports and Adapters) with CQRS in Kotlin/Spring
@@ -667,7 +668,7 @@ Run tests to verify rules apply to your feature:
 - [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
 - [spring-boot skill](../spring-boot/SKILL.md) - Framework patterns for Infrastructure
   layer
-- [kotlin skill](../../languages-typing/kotlin/SKILL.md) - Kotlin conventions for all layers
+- [kotlin skill](../kotlin/SKILL.md) - Kotlin conventions for all layers
 - [ddd-architecture skill](../ddd-architecture/SKILL.md) - DDD conformance inside the domain:
   aggregate boundaries, identity-only inter-aggregate references, value-object immutability,
   bounded-context isolation, ADR-backed decision enforcement. Complements this skill — that one

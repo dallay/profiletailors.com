@@ -3,10 +3,11 @@ name: frontend-architecture
 description: Use when designing, reviewing, or validating boundaries across the Vue/Pinia app, the flatter admin SPA, Astro marketing, or shared web contracts.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "1.0"
+  category: frontend-platform
+  family: vue
+  source: local
+  version: 2026-09-28
 ---
-
 # Frontend Architecture Skill
 
 Define language-appropriate boundaries for the repository's frontend surfaces. This skill is

@@ -2,17 +2,21 @@
 name: typescript
 description: Use when writing TypeScript code with types, interfaces, or generics.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
+metadata:
+  category: languages-typing
+  family: typescript
+  source: local
+  version: 2026-09-28
 ---
-
 # TypeScript Best Practices
 
 This document outlines best practices for using TypeScript in Astro and Vue projects, focusing on
 types, interfaces, generics, and utility types.
 
-## Const Types Pattern (REQUIRED)
+## Const Types Pattern (preferred — justify deviation in PR description)
 
 ```typescript
-// ✅ ALWAYS: Create const object first, then extract type
+// ✅ Preferred: Create const object first, then extract type
 const STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -21,16 +25,19 @@ const STATUS = {
 
 type Status = (typeof STATUS)[keyof typeof STATUS];
 
-// ❌ NEVER: Direct union types
+// ❌ Discouraged: Direct union types
 type Status = "active" | "inactive" | "pending";
 ```
 
-**Why?** Single source of truth, runtime values, autocomplete, easier refactoring.
+**Why this is preferred, not required.** Single source of truth, runtime
+values, autocomplete, easier refactoring. Direct unions are still
+acceptable when the values cross an untyped boundary and the source of
+truth cannot live in the same file (document the origin in that case).
 
-## Flat Interfaces (REQUIRED)
+## Flat Interfaces (preferred — justify deviation in PR description)
 
 ```typescript
-// ✅ ALWAYS: One level depth, nested objects → dedicated interface
+// ✅ Preferred: One level depth, nested objects → dedicated interface
 interface UserAddress {
   street: string;
   city: string;
@@ -46,9 +53,9 @@ interface Admin extends User {
   permissions: string[];
 }
 
-// ❌ NEVER: Inline nested objects
+// ❌ Discouraged: Inline nested objects
 interface User {
-  address: { street: string; city: string };  // NO!
+  address: { street: string; city: string };  // Avoid when extraction has no cost
 }
 ```
 

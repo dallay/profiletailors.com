@@ -6,9 +6,8 @@ metadata:
   category: design
   family: none
   source: local
-  version: 2026-09-27
+  version: 2026-09-28
 ---
-
 # OpenPencil
 
 OpenPencil provides a CLI and MCP server for `.fig` design files and the running OpenPencil editor.

@@ -5,8 +5,12 @@ description: >
   Use this skill when the problem matches the pattern's structural forces,
   especially in Kotlin/JVM backend systems. Do not force the pattern when a
   simpler language or framework feature is sufficient.
+metadata:
+  category: design-pattern
+  family: none
+  source: local
+  version: 2026-09-28
 ---
-
 # Command
 
 ## Objective

@@ -3,9 +3,11 @@ name: docker-expert
 description: Use when working with Dockerfile, docker-compose.yml, containerization, multi-stage builds, or optimizing Docker images.
 license: MIT
 metadata:
-  version: "1.0.0"
+  category: devops
+  family: none
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 ## When to Use
 
 - Creating or optimizing a `Dockerfile` for any project.

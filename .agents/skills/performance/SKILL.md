@@ -3,9 +3,11 @@ name: performance
 description: Use when speeding up sites, optimizing performance, reducing load time, fixing slow loading, or improving page speed.
 license: MIT
 metadata:
-  version: "1.0.0"
+  category: frontend-platform
+  family: css
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Performance optimization
 
 Deep performance optimization based on Lighthouse performance audits. Focuses on loading speed,

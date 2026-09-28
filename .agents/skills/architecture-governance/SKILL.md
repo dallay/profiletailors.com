@@ -4,13 +4,11 @@ name: architecture-governance
 description: Use when defining, reviewing, or verifying repository architecture contracts, ADR ownership, bounded-context boundaries, or architecture-check rollout policy.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: 2026-09-27
   category: governance
   family: none
   source: local
+  version: 2026-09-28
 ---
-
 # Architecture Governance Skill
 
 Use this skill as the shared vocabulary for architecture decisions in the Profile Tailors

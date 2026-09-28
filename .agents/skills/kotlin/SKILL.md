@@ -4,10 +4,11 @@ description: Use when working with .kt files, coroutines, or Kotlin-specific pat
 license: Apache-2.0
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "1.0"
+  category: languages-typing
+  family: kotlin
+  source: local
+  version: 2026-09-28
 ---
-
 # Kotlin Skill
 
 Conventions for writing idiomatic, safe, and maintainable Kotlin code.
@@ -21,12 +22,18 @@ Conventions for writing idiomatic, safe, and maintainable Kotlin code.
 
 ## Critical Patterns
 
-### 1. Null Safety - NEVER Use `!!`
+### 1. Null Safety - Avoid the `!!` Operator
 
-**STRICTLY AVOID the `!!` operator**. Use safe alternatives:
+The `!!` operator throws `NullPointerException` at runtime and defeats the
+type system. The compiler treats it as a contract assertion that the value
+is non-null; in domain code, prefer smart-casting, `requireNotNull`, or a
+checked `?:` branch. Reserve `!!` for the rare places where a stricter
+non-null invariant is enforced at composition time (e.g. immediately after
+a check on framework boundaries); document the invariant in a `require(...)`
+call so the dependency on `!!` stays local and reviewable.
 
 ```kotlin
-// ❌ NEVER do this
+// ❌ Avoid unless a non-null invariant is enforced just above
 val name = user!!.name
 
 // ✅ Safe call with elvis
@@ -46,7 +53,12 @@ val activeUser = user.takeIf { it.isActive }
 
 ### 2. Data Classes for Models
 
-**ALWAYS use data classes for immutable models**:
+Use a `data class` with `val` fields for immutable models. The compiler
+then gives you `equals`, `hashCode`, `copy`, and `componentN` for free;
+combining these with Kotlin value-object conventions keeps DTOs and
+aggregates short and intent-revealing. Justify deviation in the PR
+description when a regular class is required (e.g. a controlled
+domain entity with explicit mutation).
 
 ```kotlin
 data class User(
@@ -117,7 +129,7 @@ fun update(@RequestBody req: Request)
 
 ```kotlin
 /**
- * Processes a [com.profiletailors.resume.domain.Resume].
+ * Processes a [com.profiletailors.smp.<bounded-context>.domain.<YourAggregate>].
  */
 ```
 

@@ -33,10 +33,9 @@ Fixes should make the system simpler, not more complex.
 Prefer removing or consolidating code over adding a new layer, flag, or special case. If a fix
 grows the system's surface area, look for the version that shrinks it.
 
-Never leave comments in the repo. The standard is zero comments: no explanatory comments or
-docblocks, TODO/FIXME notes, lint/type suppression directives, or commented-out code. Express
-intent through names, structure, and tests; put rationale in commit messages or PR descriptions.
-Interpreter shebangs are executable directives, not comments.
+Prefer self-documenting code. The agent MUST NOT generate explanatory comments or docblocks by default; intent should be expressed through names, types, structure, and tests. Comment policy is enforced during final cleanup, not as an architectural invariant.
+
+Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter exclusions, and commented-out code remain prohibited. The full enforcement list is codified in `.agents/scripts/skill-comment-scan.mjs` and its allowlist.
 
 ## Static Analysis and Linter Compliance
 

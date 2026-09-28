@@ -11,8 +11,12 @@ description: >
   publishing to the Chrome Web Store: 'publish extension', preparing an extension for
   publishing, responding to a review rejection, writing permission justifications, or
   drafting a privacy policy.
+metadata:
+  category: frontend-platform
+  family: typescript
+  source: local
+  version: 2026-09-28
 ---
-
 # Chrome Extensions
 
 Build production-quality Chrome extensions using Manifest V3 and publish them to the Chrome Web

@@ -6,10 +6,11 @@ description: >
   coroutines + WebFlux hexagonal backend.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "5.0"
+  category: backend-platform
+  family: spring-boot
+  source: local
+  version: 2026-09-28
 ---
-
 # Spring Boot Skill
 
 Implementation patterns for the **Spring Boot 4 infrastructure layer** in a **Kotlin + coroutines +
@@ -74,24 +75,21 @@ Do **not** use this skill to define domain rules, aggregate behavior, or applica
 
 ## Local Architectural Markers
 
-When application classes must be discovered or selected by infrastructure, use **local markers**
-instead of Spring stereotypes.
-
-```kotlin
-package com.profiletailors.common.application
-
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
-@MustBeDocumented
-annotation class ApplicationService
-```
+When application classes must be discovered or selected by infrastructure, use the real marker
+`com.profiletailors.common.domain.Service` defined at
+`shared/common/src/main/kotlin/com/profiletailors/common/domain/Service.kt:18`. The discovery mechanism
+is the `includeFilters` block on `SmpApplication.kt` (`FilterType.ANNOTATION,
+com.profiletailors.common.domain.Service`). Application code must not import Spring stereotypes
+(`@Service`, `@Component`, `@Repository`) to become a bean; those stereotypes are reserved for the
+infrastructure layer. Use explicit `@Configuration` + `@Bean` wiring in infrastructure when a
+service must be overridden, qualified, or made conditional.
 
 Rules:
 
-- `ApplicationService` is a local architectural marker, not a framework annotation.
-- Use it for readability and architecture enforcement, not as an excuse for hidden framework magic.
-- Prefer explicit infrastructure `@Configuration` + `@Bean` wiring even when the marker is present.
-- Application code must not import Spring directly just to become a bean.
+- `com.profiletailors.common.domain.Service` is the only marker allowed on application services.
+- Application code must not import `org.springframework.stereotype.*` annotations.
+- `SmpApplication.kt` discoverers register only types carrying the local marker.
+- Marker changes require a `SharedKernel`-governed ADR update; do not fork a parallel marker.
 
 ## Bean Wiring and Dependency Injection
 
@@ -111,7 +109,9 @@ Rules:
 ### Application Service Example
 
 ```kotlin
-@ApplicationService
+import com.profiletailors.common.domain.Service
+
+@Service
 class CreateWorkspaceCommandHandler(
     private val creator: WorkspaceCreator,
 ) {
@@ -494,7 +494,7 @@ skill.
 ### Rules
 
 - For reactive applications, use `SecurityWebFilterChain`, not servlet filter chains.
-- Do not use `OncePerRequestFilter` as the default JWT pattern in WebFlux applications.
+- Do not use servlet once-per-request filters as the default JWT pattern in WebFlux applications.
 - Keep authentication/authorization concerns in infrastructure.
 - Use method security sparingly and intentionally.
 - Treat token revocation, refresh flows, and OAuth integration as specialized concerns.
@@ -592,7 +592,7 @@ class WorkspaceControllerTest(
 
 - Do not use `@SpringBootTest` for everything.
 - Test application services without Spring.
-- Use `WebTestClient`, not `MockMvc`, as the default web testing tool.
+- Use `WebTestClient` as the default web testing tool for reactive stacks.
 - Use focused integration tests for persistence and external adapters.
 - Use Testcontainers when realism matters.
 - Verify both happy path and failure mapping at the HTTP boundary.
@@ -625,7 +625,7 @@ handoff before blaming the monitoring backend.
 - ❌ Putting Spring annotations in domain/application classes
 - ❌ Annotating application handlers with `@Transactional`
 - ❌ Returning persistence entities from controllers
-- ❌ Using `MockMvc` as the default web test tool in WebFlux apps
+- ❌ Using servlet MVC test stubs as the default web test tool in WebFlux apps
 - ❌ Introducing `RestTemplate` in a reactive stack
 - ❌ Mixing blocking persistence calls into reactive request flows without explicit isolation
 - ❌ Treating blocking adapters and reactive adapters as interchangeable defaults

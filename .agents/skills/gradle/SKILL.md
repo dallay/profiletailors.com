@@ -3,11 +3,11 @@ name: gradle
 description: Use when working with build.gradle.kts, settings.gradle.kts, custom tasks, or Gradle plugins for build configuration and performance.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-    author: profiletailors
-    version: "1.0"
-    source: https://github.com/liutikas/gradle-best-practices
+  category: devops
+  family: kotlin
+  source: local
+  version: 2026-09-28
 ---
-
 # Gradle Best Practices Skill
 
 Conventions for writing efficient, maintainable, and cacheable Gradle builds.

@@ -3,9 +3,11 @@ name: core-web-vitals
 description: Use when improving Core Web Vitals, fixing LCP, reducing CLS, optimizing INP, or addressing page experience optimization.
 license: MIT
 metadata:
-  version: "1.0.0"
+  category: frontend-platform
+  family: css
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Core Web Vitals optimization
 
 Targeted optimization for the three Core Web Vitals metrics that affect Google Search ranking and

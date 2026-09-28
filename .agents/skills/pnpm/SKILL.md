@@ -3,13 +3,11 @@
 name: pnpm
 description: Node.js package manager with strict dependency resolution. Use when running pnpm specific commands, configuring workspaces, or managing dependencies with catalogs, patches, or overrides.
 metadata:
-  author: Anthony Fu
-  version: 2026-09-27
-  source: local
   category: devops
   family: none
+  source: local
+  version: 2026-09-28
 ---
-
 pnpm is a fast, disk space efficient package manager. It uses a content-addressable store to
 deduplicate packages across all projects on a machine, saving significant disk space. pnpm enforces
 strict dependency resolution by default, preventing phantom dependencies. Configuration should
@@ -19,7 +17,8 @@ preferably be placed in `pnpm-workspace.yaml` for pnpm-specific settings.
 `.npmrc` files to understand workspace structure and configuration. Always use `--frozen-lockfile`
 in CI environments.
 
-> The skill is based on pnpm 10.x, generated at 2026-01-28.
+> The skill is based on the pnpm version declared in `package.json`,
+> generated at 2026-09-28.
 
 ## Core
 

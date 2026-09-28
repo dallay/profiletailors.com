@@ -3,9 +3,11 @@ name: nothing-design
 description: Use when the user explicitly asks for Nothing style, Nothing design, or /nothing-design for intentional Nothing-inspired UI.
 license: MIT
 metadata:
-  version: "3.0.0"
+  category: design
+  family: css
+  source: local
+  version: 2026-09-28
 ---
-
 # Nothing-Inspired UI/UX Design System
 
 A senior product designer's toolkit trained in Swiss typography, industrial design (Braun, Teenage

@@ -15,8 +15,12 @@ description: |
   - Backend: Database SQL, ORMs, Express API routes.
   - Pipelines: CI/CD deployment, Docker, Actions.
   - Generic: Local scripts (Python/Go tools), ESLint, Git.
+metadata:
+  category: frontend-platform
+  family: css
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Modern Web Guidance
 
 A skill to search for specific web development use cases and retrieve their corresponding best
@@ -29,6 +33,11 @@ Must use this skill:
 - At the **start** of implementing any web feature.
 - Before creating a new component, to check if a standardized pattern already exists.
 - To avoid implementing ad-hoc solutions or loading large dependencies unnecessarily.
+
+Scope: applies only to HTML, CSS, and client-side JS not covered by local
+skills (`vue`, `astrolicious-astro`, `pinia`, `accessibility`,
+`core-web-vitals`, `performance`, `seo`, `frontend-architecture`).
+If a local skill covers the topic, the local skill wins.
 
 ## Usage Instructions
 

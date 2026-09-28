@@ -3,10 +3,11 @@ name: seo
 description: Use when asked to improve SEO, optimize for search, fix meta tags, add structured data, optimize sitemap, or implement search engine optimization.
 license: MIT
 metadata:
-  author: web-quality-skills
-  version: "1.0"
+  category: frontend-platform
+  family: none
+  source: local
+  version: 2026-09-28
 ---
-
 # SEO optimization
 
 Search engine optimization based on Lighthouse SEO audits and Google Search guidelines. Focus on

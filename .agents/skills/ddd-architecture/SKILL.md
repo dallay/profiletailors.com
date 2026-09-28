@@ -3,10 +3,11 @@ name: ddd-architecture
 description: Use when enforcing DDD conformance in the Kotlin backend — aggregate-root boundaries, identity-only inter-aggregate references, value-object immutability, bounded-context isolation, or ADR-backed architectural decisions. Complements hexagonal-architecture (layer/import direction) and Spring Modulith (backend module boundaries).
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
-  author: profiletailors
-  version: "1.0"
+  category: backend-platform
+  family: kotlin
+  source: local
+  version: 2026-09-28
 ---
-
 # DDD Architecture Skill
 
 Use this skill for Kotlin domain invariants inside `server/smp` and the shared Kotlin domain

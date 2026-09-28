@@ -1,6 +1,7 @@
 # Kotlin Clean Architecture Patterns
 
-Specific patterns for implementing Clean Architecture in Kotlin 2.x applications.
+Specific patterns for implementing Clean Architecture in the Kotlin version
+configured in `gradle/libs.versions.toml`.
 
 ## Value Objects with Value Classes and Data Classes
 

@@ -3,10 +3,11 @@ name: playwright-best-practices
 description: Use when writing Playwright tests, fixing flaky tests, debugging failures, implementing Page Object Model, configuring CI/CD, optimizing performance, mocking APIs, handling authentication or OAuth, testing accessibility (axe-core), file uploads/downloads, date/time mocking, WebSockets, geolocation, permissions, multi-tab/popup flows, mobile/responsive layouts, touch gestures, GraphQL, error handling, offline mode, multi-user collaboration, third-party services (payments, email verification), console error monitoring, global setup/teardown, test annotations (skip, fixme, slow), test tags (@smoke, @fast, @critical, filtering with --grep), project dependencies, security testing (XSS, CSRF, auth), performance budgets (Web Vitals, Lighthouse), iframes, component testing, canvas/WebGL, service workers/PWA, test coverage, i18n/localization, Electron apps, or browser extension testing. Covers E2E, component, API, visual, accessibility, security, Electron, and extension testing.
 license: MIT
 metadata:
-  author: currents.dev
-  version: "1.1"
+  category: testing
+  family: playwright
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Playwright Best Practices
 
 This skill provides comprehensive guidance for all aspects of Playwright test development, from
@@ -122,14 +123,16 @@ Consult these references based on what you're doing:
 
 ### Framework-Specific Testing
 
-**When to use**: Testing React, Angular, Vue, or Next.js applications
+**When to use**: Testing the SPA, admin, or marketing Astro sites in this
+monorepo. Next.js examples in upstream references are kept as generic
+inspiration when the lesson is platform-agnostic; the monorepo does not
+ship Next.js surfaces.
 
-| Activity                  | Reference Files                     |
-|---------------------------|-------------------------------------|
-| **Testing React apps**    | [react.md](frameworks/react.md)     |
-| **Testing Angular apps**  | [angular.md](frameworks/angular.md) |
-| **Testing Vue/Nuxt apps** | [vue.md](frameworks/vue.md)         |
-| **Testing Next.js apps**  | [nextjs.md](frameworks/nextjs.md)   |
+| Activity                    | Reference Files                                       |
+|-----------------------------|-------------------------------------------------------|
+| **Testing Vue SPA (apps/web/app, apps/web/admin)** | [vue.md](frameworks/vue.md)         |
+| **Testing Astro sites (apps/web/marketing)**      | [astrolicious-astro](../astrolicious-astro/SKILL.md)     |
+| **Upstream-only React example** | [react.md](frameworks/react.md) — Next.js example, lesson is platform-agnostic |
 
 ### Refactoring & Maintenance
 
@@ -230,10 +233,9 @@ What are you doing?
 │  └─ Test suite structure → core/test-suite-structure.md
 │
 ├─ Framework-specific testing?
-│  ├─ React app → frameworks/react.md
-│  ├─ Angular app → frameworks/angular.md
-│  ├─ Vue/Nuxt app → frameworks/vue.md
-│  └─ Next.js app → frameworks/nextjs.md
+│  ├─ Vue SPA (apps/web/app, apps/web/admin) → frameworks/vue.md
+│  ├─ Astro site (apps/web/marketing) → frameworks/astro.md
+│  └─ React pattern lesson → frameworks/react.md (Next.js example, platform-agnostic)
 │
 ├─ Authentication testing?
 │  ├─ Basic auth patterns → advanced/authentication.md

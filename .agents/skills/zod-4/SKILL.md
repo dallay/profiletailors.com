@@ -2,8 +2,12 @@
 name: zod-4
 description: Use when using Zod for validation, especially with breaking changes from v3.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
+metadata:
+  category: languages-typing
+  family: typescript
+  source: upstream-adapted
+  version: 2026-09-28
 ---
-
 # Zod 4 Best Practices
 
 This document outlines best practices for using Zod 4 in Astro and Vue projects, focusing on schema
