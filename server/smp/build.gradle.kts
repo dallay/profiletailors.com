@@ -162,8 +162,8 @@ dependencyManagement {
 configurations.all {
     resolutionStrategy {
         eachDependency {
-            if (requested.group == "io.netty" && requested.name.startsWith("netty-codec")) {
-                useVersion("4.2.17.Final")
+            if (requested.group == "io.netty") {
+                useVersion("4.2.18.Final")
             }
             if (requested.group == "org.apache.httpcomponents.client5" && requested.name == "httpclient5") {
                 useVersion("5.6.4")
@@ -211,11 +211,11 @@ val verifySecurityVersions =
                 mapOf(
                     "com.ongres.scram:scram-client" to "3.4",
                     "com.ongres.scram:scram-common" to "3.4",
-                    "io.netty:netty-codec-http" to "4.2.17.Final",
-                    "io.netty:netty-codec-http2" to "4.2.17.Final",
-                    "io.netty:netty-codec-http3" to "4.2.17.Final",
-                    "io.netty:netty-codec-dns" to "4.2.17.Final",
-                    "io.netty:netty-codec-compression" to "4.2.17.Final",
+                    "io.netty:netty-codec-http" to "4.2.18.Final",
+                    "io.netty:netty-codec-http2" to "4.2.18.Final",
+                    "io.netty:netty-codec-http3" to "4.2.18.Final",
+                    "io.netty:netty-codec-dns" to "4.2.18.Final",
+                    "io.netty:netty-codec-compression" to "4.2.18.Final",
                     "org.apache.httpcomponents.client5:httpclient5" to "5.6.4",
                     "org.apache.httpcomponents.core5:httpcore5" to "5.4.3",
                     "org.apache.httpcomponents.core5:httpcore5-h2" to "5.4.3",
