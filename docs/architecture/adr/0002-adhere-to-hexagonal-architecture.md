@@ -1,7 +1,8 @@
 # ADR-0002: Adhere to Hexagonal Architecture
 
-- Status: Accepted
+- Status: Accepted (amended)
 - Date: 2026-06-21
+- Updated: 2026-09-27 (amended by skill-and-knowledge-bundle-remediation)
 - Decision owners: Principal Architect
 - Scope: Backend (`server/smp`)
 - Supersedes: None
@@ -33,6 +34,8 @@ Every bounded context MUST follow the Hexagonal Architecture pattern with three 
 
 Application services MUST use the custom `com.profiletailors.common.domain.Service` marker instead
 of Spring's `@Service`.
+
+**Ports location (added 2026-09-27).** Repository/gateway ports/interfaces are defined in the domain layer as part of the domain's contract. Application services depend on those domain-defined ports and orchestrate use cases through them. Infrastructure adapters depend on application and implement those ports. Composition roots wire ports to adapters; no handler or controller may import a concrete persistence or external-client adapter to bypass the application use case.
 
 ## Scope and boundaries
 

@@ -1,0 +1,82 @@
+name: Skill Doctor
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '.agents/**'
+      - '**/SKILL.md'
+      - 'AGENTS.md'
+      - 'docs/architecture/adr/0025-agent-knowledge-bundle-governance.md'
+      - '.github/workflows/skill-doctor.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.agents/**'
+      - '**/SKILL.md'
+      - 'AGENTS.md'
+      - 'docs/architecture/adr/0025-agent-knowledge-bundle-governance.md'
+      - '.github/workflows/skill-doctor.yml'
+permissions:
+  contents: read
+
+jobs:
+  skill-doctor:
+    name: Deterministic skill doctor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 20
+      - name: Run skill doctor
+        run: node .agents/scripts/skill-doctor.mjs --skills-dir .agents/skills
+
+  comment-scan:
+    name: Skill comment scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 20
+      - name: Run comment scanner
+        run: node .agents/scripts/skill-comment-scan.mjs --paths .agents/skills --allowlist .agents/scripts/skill-comment-allowlist.json
+
+  focused-tests:
+    name: Skill governance regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 20
+      - name: Run focused tests
+        run: node --test .agents/scripts/__tests__/skill-doctor.test.mjs .agents/scripts/__tests__/skill-comment-scan.test.mjs .agents/scripts/__tests__/regen-skill-registry.test.mjs .agents/scripts/__tests__/spring-scrub-rg.test.mjs
+
+  registry-drift:
+    name: Skill registry drift
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 20
+      - name: Check generated registry
+        run: node .agents/scripts/regen-skill-registry.mjs --skills-dir .agents/skills --output .agents/skill-registry.md --check

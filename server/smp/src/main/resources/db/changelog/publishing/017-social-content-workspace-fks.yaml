@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-017-social-content-workspace-fks
-      author: opencode
+      author: yuniel acosta
       changes:
         - addUniqueConstraint:
             tableName: social_accounts

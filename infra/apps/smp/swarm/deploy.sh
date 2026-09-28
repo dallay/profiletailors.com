@@ -57,6 +57,7 @@ required_secret_files=(
     media-preview-signing-secret
     linkedin-state-signing-secret
     linkedin-client-secret
+    threads-client-secret
     resend-api-key
 )
 for secret_file in "${required_secret_files[@]}"; do
@@ -72,6 +73,7 @@ create_secret "${SWARM_PUBLISHING_KEY_SECRET:-profiletailors_publishing_key_v1}"
 create_secret "${SWARM_MEDIA_SIGNING_SECRET:-profiletailors_media_signing_v1}" "${secrets_dir}/media-preview-signing-secret"
 create_secret "${SWARM_LINKEDIN_STATE_SECRET:-profiletailors_linkedin_state_v1}" "${secrets_dir}/linkedin-state-signing-secret"
 create_secret "${SWARM_LINKEDIN_CLIENT_SECRET:-profiletailors_linkedin_client_v1}" "${secrets_dir}/linkedin-client-secret"
+create_secret "${SWARM_THREADS_CLIENT_SECRET:-profiletailors_threads_client_v1}" "${secrets_dir}/threads-client-secret"
 create_secret "${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}" "${secrets_dir}/resend-api-key"
 
 service_version() {

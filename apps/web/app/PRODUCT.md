@@ -12,7 +12,7 @@ Vue 3 SPA (Vue Router 5, Pinia), shadcn-vue + Tailwind CSS 4, vue-i18n, Zod, Vit
 
 ## Users
 
-Authenticated early-access users managing social media presence for personal brand, freelance work, or small business. Primary use case: plan and schedule LinkedIn content from a focused workspace. Most users are non-technical. One operator account exists for platform management.
+Authenticated early-access users managing social media presence for personal brand, freelance work, or small business. Primary use case: plan and schedule LinkedIn and Threads content from a focused workspace. Most users are non-technical. One operator account exists for platform management.
 
 ## Product Purpose
 
@@ -20,12 +20,12 @@ Let users create, schedule, and review social content from a clean workspace. Th
 
 ## Positioning
 
-Not a generic social media dashboard. Profile Tailors is a workspace for deliberate content — not an AI content generator, not a discovery tool, not a full agency suite. LinkedIn is the first integrated platform; other integrations follow after validation. The interface earns trust through scanability and precision, not novelty.
+Not a generic social media dashboard. Profile Tailors is a workspace for deliberate content — not an AI content generator, not a discovery tool, not a full agency suite. LinkedIn was the first integrated platform and Threads is the second; further integrations follow after validation. The interface earns trust through scanability and precision, not novelty.
 
 ## Operating Context
 
 - Authenticated users access via `https://pt-app.localhost` (production: `https://app.profiletailors.com`)
-- Users connect one or more LinkedIn accounts via OAuth
+- Users connect one or more LinkedIn or Threads accounts via OAuth
 - Content creation and scheduling happen in-browser; publishing executes server-side via stored OAuth tokens
 - Dashboard state (workspace, theme, sidebar) persists in localStorage
 - Session is maintained via HttpOnly refresh cookie (`pt_refresh`)
@@ -42,12 +42,12 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 - Media Library: upload, browse, organise uploaded assets
 - Ideas: capture and organise content ideas (planned — surface exists)
 - Governance: content takedown request workflow
-- Settings: profile, workspace, integrations (LinkedIn OAuth), API keys
-- Auth flows: login, register, forgot-password, reset-password, verify-email, LinkedIn callback
+- Settings: profile, workspace, integrations (LinkedIn and Threads OAuth), API keys
+- Auth flows: login, register, forgot-password, reset-password, verify-email, provider callback (LinkedIn, Threads)
 
 **Constraints:**
 
-- LinkedIn is the only connected platform at early-access stage
+- LinkedIn and Threads are the connected platforms at early-access stage
 - Publishing is gated until integrations are validated
 - No multi-workspace UI yet for non-owner members
 - Admin surface is a separate app (`@profiletailors/admin`) — not reachable from this app

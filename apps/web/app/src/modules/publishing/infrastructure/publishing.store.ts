@@ -349,17 +349,21 @@ function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
   }
 }
 
-function findActiveLinkedInChannel(
+function findActiveSelectedChannel(
   channels: Channel[],
+  selectedProviders: SocialProvider[],
   socialAccountId?: string,
 ): Channel | undefined {
   if (socialAccountId) {
-    return channels.find(
-      (c) => c.accountId === socialAccountId && c.provider === 'linkedin' && c.status === 'ACTIVE',
-    )
+    return channels.find((c) => c.accountId === socialAccountId && c.status === 'ACTIVE')
   }
 
-  return channels.find((c) => c.provider === 'linkedin' && c.status === 'ACTIVE')
+  return channels.find(
+    (c) =>
+      c.status === 'ACTIVE' &&
+      isSocialProvider(c.provider) &&
+      selectedProviders.includes(c.provider),
+  )
 }
 
 function matchesPublicationFilters(
@@ -1350,14 +1354,13 @@ export const usePublishingStore = defineStore('publishing', () => {
     post: Parameters<typeof schedulePost>[0],
     effectiveMode: string,
   ): Promise<PublicationMutationResult> {
-    const hasLinkedIn = post.channels.includes('linkedin')
-    if (!hasLinkedIn) {
-      throw new Error('Authenticated publication sync currently requires a LinkedIn channel.')
-    }
-
-    const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
-    if (!linkedInChannel?.accountId) {
-      throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
+    const selectedChannel = findActiveSelectedChannel(
+      channels.value,
+      post.channels,
+      post.socialAccountId,
+    )
+    if (!selectedChannel?.accountId) {
+      throw new Error('Connect a social profile before scheduling authenticated posts.')
     }
 
     const resolvedAssetIds = post.assetIds ?? []
@@ -1365,7 +1368,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     return auth.apiFetch<PublicationMutationResult>('/api/publishing/publications', {
       method: 'POST',
       body: JSON.stringify({
-        socialAccountId: linkedInChannel.accountId,
+        socialAccountId: selectedChannel.accountId,
         title: post.title || 'Post via Web App',
         bodyText: normalizeText(post.content),
         assetIds: resolvedAssetIds,

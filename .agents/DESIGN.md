@@ -138,6 +138,23 @@ components:
     padding: 4px 12px
 ---
 
+## UI precedence chain
+
+The following skills cooperate and have explicit precedence. When
+multiple skills would otherwise contradict, this document wins.
+
+1. `impeccable` (process and quality). Owns UX review, hierarchy,
+   responsive behavior, accessibility, polish, workflow, visual QA.
+2. `nothing-design` (visual language). Owns tokens, typography, motion,
+   monochrome palette, dark/light first-class, spacing philosophy.
+3. `frontend-design` (generic inspiration only). Use only when neither
+   impeccable nor nothing-design applies. Existing product design
+   systems always override its generic recommendations.
+
+When a token or pattern in any of the above skills contradicts
+DESIGN.md, DESIGN.md wins. CI enforces this via the skill doctor
+(P1-D).
+
 # Profile Tailors — Design System
 
 ## Overview

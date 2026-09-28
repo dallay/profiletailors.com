@@ -1,8 +1,13 @@
 ---
+
 name: open-pencil
 description: Work with Figma .fig design files and the running OpenPencil editor — inspect structure, query nodes, analyze design tokens, export PNG/SVG/PDF/JSX, and modify designs programmatically. Use when asked to open, inspect, export, analyze, or edit .fig files, or to control the running OpenPencil app.
+metadata:
+  category: design
+  family: none
+  source: local
+  version: 2026-09-28
 ---
-
 # OpenPencil
 
 OpenPencil provides a CLI and MCP server for `.fig` design files and the running OpenPencil editor.

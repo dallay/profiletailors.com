@@ -63,6 +63,10 @@ App exposes REST API on `http://localhost:7638` (or port configured in `.env`).
 | `SPRING_R2DBC_USERNAME` | Yes | Database user | `smp_user` |
 | `SPRING_R2DBC_PASSWORD` | Yes | Database password | `smp_password` |
 | `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` | Yes | 32-byte secret key for social token encryption | `01234567890123456789012345678901` |
+| `SMP_THREADS_ENABLED` | No | Threads publishing provider toggle | `false` |
+| `SMP_THREADS_CLIENT_ID` | No | Meta Threads App ID (OAuth) | `` |
+| `SMP_THREADS_CLIENT_SECRET` | No | Meta Threads App Secret (OAuth) | `` |
+| `SMP_THREADS_REDIRECT_URI` | No | Threads OAuth callback, HTTPS, must match Meta app | `` |
 | `SMP_PLATFORM_RATE_LIMIT_ENABLED` | No | Rate limiting toggle | `false` |
 
 ## Project structure

@@ -27,6 +27,7 @@ generate_secret "${secrets_dir}/media-preview-signing-secret"
 generate_secret "${secrets_dir}/linkedin-state-signing-secret"
 
 touch "${secrets_dir}/linkedin-client-secret"
+touch "${secrets_dir}/threads-client-secret"
 touch "${secrets_dir}/resend-api-key"
 chmod 600 \
     "${secrets_dir}/db-password" \
@@ -35,8 +36,9 @@ chmod 600 \
     "${secrets_dir}/media-preview-signing-secret" \
     "${secrets_dir}/linkedin-state-signing-secret" \
     "${secrets_dir}/linkedin-client-secret" \
+    "${secrets_dir}/threads-client-secret" \
     "${secrets_dir}/resend-api-key"
 
 echo "Production configuration prepared in ${production_dir}."
 echo "Set PUBLIC_ORIGIN and image names in ${environment_file}."
-echo "Add the LinkedIn and Resend credentials under ${secrets_dir} before enabling those integrations."
+echo "Add the LinkedIn, Threads, and Resend credentials under ${secrets_dir} before enabling those integrations."
