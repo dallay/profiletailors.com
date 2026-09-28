@@ -31,7 +31,7 @@ puro.
   - `.agents/skills/hexagonal-architecture/SKILL.md`
     (verificar que ya dice "domain owns ports"; anotar la
     coincidencia).
-  - `.agents/skills/spring-boot/{security,cache,
+  - `.agents/skills/spring-boot-{security,cache,
     resilience,messaging,saga-pattern,ai-mcp-server-patterns,
     data-neo4j-reactive}/references/**.md` (rewrite línea por línea).
 - Reescritura línea por línea: NO archive, NO delete en
@@ -100,7 +100,7 @@ puro.
 
 **REQ-BS-007, REQ-BS-008, REQ-BS-009, REQ-BS-010, REQ-BS-011, REQ-BS-012**
 
-- GIVEN `references/` en `spring-boot/{security,cache,resilience,
+- GIVEN `references/` en `spring-boot-{security,cache,resilience,
   messaging,saga-pattern,ai-mcp-server-patterns,
   data-neo4j-reactive}/` contiene tokens incompatibles
   (HttpSecurity, SecurityFilterChain, MockMvc, JpaRepository, Lombok,
@@ -127,7 +127,7 @@ puro.
 **REQ-KB-UMBRELLA-006**
 
 - GIVEN un PR reintroduce un `HttpSecurity` en
-  `spring-boot/security/references/` (no legacy)
+  `spring-boot-security/references/` (no legacy)
 - WHEN corre `.github/workflows/skill-doctor.yml`
 - THEN SHALL fallar el job de deterministic scan y SHALL bloquearse
   el merge.
