@@ -37,6 +37,17 @@ vi.mock('vue-router', () => ({
 vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
   useI18n: () => ({
+    te: (key: string) =>
+      [
+        'nav.dashboard',
+        'nav.scheduler',
+        'nav.analytics',
+        'nav.media',
+        'nav.ideas',
+        'nav.governance',
+        'nav.settings',
+        'nav.system',
+      ].includes(key),
     t: (key: string) =>
       ({
         'emailVerification.banner.title': 'Verify your email',

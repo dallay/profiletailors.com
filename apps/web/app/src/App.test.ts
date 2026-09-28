@@ -17,7 +17,7 @@ const sidebarContext = vi.hoisted(() => ({
 }))
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
+  useI18n: () => ({ t: mockT, te: () => true, locale: { value: 'en' } }),
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
 }))
 
