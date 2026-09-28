@@ -17,16 +17,31 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 
+data class InitiateProviderConnectionCommand(val provider: SocialProvider, val redirectUri: String) :
+    CommandWithResult<ProviderConnectionInitiationResult>
+
+data class ProviderConnectionInitiationResult(val authorizationUrl: String, val state: String, val expiresAt: Instant)
+
 data class InitiateLinkedInConnectionCommand(val redirectUri: String) :
     CommandWithResult<LinkedInConnectionInitiationResult>
 
 data class LinkedInConnectionInitiationResult(val authorizationUrl: String, val state: String, val expiresAt: Instant)
+
+data class CompleteProviderConnectionCommand(
+    val provider: SocialProvider,
+    val authorizationCode: String,
+    val redirectUri: String,
+    val state: String,
+) : CommandWithResult<SocialConnectionResult>
 
 data class CompleteLinkedInConnectionCommand(
     val authorizationCode: String,
     val redirectUri: String,
     val state: String,
 ) : CommandWithResult<SocialConnectionResult>
+
+data class DisconnectProviderConnectionCommand(val provider: SocialProvider, val connectionId: String) :
+    CommandWithResult<SocialConnectionResult>
 
 data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null) : Query<ConnectedChannelsResponse> {
     companion object {
@@ -36,6 +51,17 @@ data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null
 
 data class ConnectedChannelsResponse(val channels: List<ConnectedSocialChannelSummary>)
 
+class RefreshChannelAvatarsCommand : CommandWithResult<RefreshChannelAvatarsResult>
+
+data class RefreshChannelAvatarsResult(
+    val refreshedAccountIds: List<String> = emptyList(),
+    val skippedAccountIds: List<String> = emptyList(),
+    val failedAccountIds: List<String> = emptyList(),
+) {
+    val refreshed: Int = refreshedAccountIds.size
+    val skipped: Int = skippedAccountIds.size
+    val failed: Int = failedAccountIds.size
+}
 data class ConnectedSocialChannelSummary(
     val socialAccountId: String,
     val connectionId: String,

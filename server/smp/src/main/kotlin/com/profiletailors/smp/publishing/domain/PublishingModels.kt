@@ -8,6 +8,7 @@ import java.time.LocalDate
 @ValueObject
 enum class SocialProvider {
     LINKEDIN,
+    THREADS,
 }
 
 @ValueObject
@@ -224,6 +225,7 @@ data class DeliveryAttempt(
     val providerMessage: String? = null,
     val providerErrorCode: String? = null,
     val externalPublicationId: String? = null,
+    val providerOperationRef: String? = null,
     val attemptedAt: Instant,
     val createdAt: Instant? = null,
     val operationKey: String = "$publicationJobId:$attemptNumber",

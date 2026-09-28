@@ -11,6 +11,7 @@ import postDetail from './postDetail'
 import scheduler from './scheduler'
 import channels from './channels'
 import linkedinCallback from './linkedinCallback'
+import providerCallback from './providerCallback'
 import workspace from './workspace'
 import analytics from './analytics'
 import media from './media'
@@ -35,6 +36,7 @@ export default {
   scheduler,
   channels,
   linkedinCallback,
+  providerCallback,
   workspace,
   analytics,
   media,

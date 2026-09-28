@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { getCalendarRange } from './calendarRange'
 
 describe('getCalendarRange', () => {
+  it('returns a one-day range in UTC', () => {
+    const range = getCalendarRange('2026-06-17', 'day', 'UTC')
+
+    expect(range).toEqual({
+      from: '2026-06-17T00:00:00.000Z',
+      to: '2026-06-18T00:00:00.000Z',
+    })
+  })
+
+  it('returns a three-day range from Tuesday in Madrid', () => {
+    const range = getCalendarRange('2026-06-16', '3-days', 'Europe/Madrid')
+
+    expect(range).toEqual({
+      from: '2026-06-15T22:00:00.000Z',
+      to: '2026-06-18T22:00:00.000Z',
+    })
+  })
+
   it('returns a Sunday through next Sunday week range', () => {
     const range = getCalendarRange('2026-06-17', 'week', 'UTC')
 

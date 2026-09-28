@@ -1034,12 +1034,12 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             """
             INSERT INTO delivery_attempts (
                 id, publication_id, publication_job_id, attempt_number, outcome, retryable,
-                provider_message, provider_error_code, external_publication_id, attempted_at, created_at,
-                operation_key, claim_version, phase
+                provider_message, provider_error_code, external_publication_id, provider_operation_ref,
+                attempted_at, created_at, operation_key, claim_version, phase
             ) VALUES (
                 :id, :publicationId, :publicationJobId, :attemptNumber, :outcome, :retryable,
-                :providerMessage, :providerErrorCode, :externalPublicationId, :attemptedAt, :createdAt,
-                :operationKey, :claimVersion, :phase
+                :providerMessage, :providerErrorCode, :externalPublicationId, :providerOperationRef,
+                :attemptedAt, :createdAt, :operationKey, :claimVersion, :phase
             )
             """.trimIndent(),
         )
@@ -1052,6 +1052,7 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             .bindNullable("providerMessage", attempt.providerMessage, String::class.java)
             .bindNullable("providerErrorCode", attempt.providerErrorCode, String::class.java)
             .bindNullable("externalPublicationId", attempt.externalPublicationId, String::class.java)
+            .bindNullable("providerOperationRef", attempt.providerOperationRef, String::class.java)
             .bind("attemptedAt", attempt.attemptedAt)
             .bindNullable("createdAt", attempt.createdAt ?: attempt.attemptedAt, Instant::class.java)
             .bind("operationKey", attempt.operationKey)
@@ -1066,7 +1067,7 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
     override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = databaseClient.sql(
         """
         SELECT id, publication_id, publication_job_id, attempt_number, outcome, retryable,
-               provider_message, provider_error_code, external_publication_id,
+               provider_message, provider_error_code, external_publication_id, provider_operation_ref,
                attempted_at, created_at, operation_key, claim_version, phase
         FROM delivery_attempts
         WHERE operation_key = :operationKey
@@ -1085,6 +1086,7 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             provider_message = :providerMessage,
             provider_error_code = :providerErrorCode,
             external_publication_id = :externalPublicationId,
+            provider_operation_ref = :providerOperationRef,
             attempted_at = :attemptedAt,
             phase = :phase,
             claim_version = :claimVersion
@@ -1106,6 +1108,7 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
         .bindNullable("providerMessage", attempt.providerMessage, String::class.java)
         .bindNullable("providerErrorCode", attempt.providerErrorCode, String::class.java)
         .bindNullable("externalPublicationId", attempt.externalPublicationId, String::class.java)
+        .bindNullable("providerOperationRef", attempt.providerOperationRef, String::class.java)
         .bind("attemptedAt", attempt.attemptedAt)
         .bind("phase", attempt.phase.name)
         .bind("operationKey", attempt.operationKey)
@@ -1127,6 +1130,7 @@ private fun Readable.toDeliveryAttempt(): DeliveryAttempt = DeliveryAttempt(
     providerMessage = get("provider_message", String::class.java),
     providerErrorCode = get("provider_error_code", String::class.java),
     externalPublicationId = get("external_publication_id", String::class.java),
+    providerOperationRef = get("provider_operation_ref", String::class.java),
     attemptedAt = requireNotNull(get("attempted_at", OffsetDateTime::class.java)).toInstant(),
     createdAt = get("created_at", OffsetDateTime::class.java)?.toInstant(),
     operationKey = requireNotNull(get("operation_key", String::class.java)),

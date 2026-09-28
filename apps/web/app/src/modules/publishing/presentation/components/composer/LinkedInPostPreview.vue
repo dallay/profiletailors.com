@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Globe, MessageCircle, Repeat2, Send, ThumbsUp } from '@lucide/vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
@@ -10,6 +10,21 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const avatarFailed = ref(false)
+
+const showAvatar = computed(() => !!props.preview.authorAvatarUrl && !avatarFailed.value)
+
+function onAvatarError(): void {
+  avatarFailed.value = true
+}
+
+watch(
+  () => props.preview.authorAvatarUrl,
+  () => {
+    avatarFailed.value = false
+  },
+)
 
 const LINKEDIN_PREVIEW_CLAMP_CLASS = 'preview-text-clamp'
 const LINKEDIN_PREVIEW_MAX_LENGTH = 240
@@ -60,13 +75,16 @@ const truncatedText = computed(() => {
   <div class="w-full max-w-[360px] overflow-hidden rounded-xl border border-border-subtle bg-bg-primary font-sans text-xs text-text-display shadow-md">
     <div class="flex gap-3 p-3.5">
       <img
-        v-if="preview.authorAvatarUrl"
-        :src="proxyImageUrl(preview.authorAvatarUrl)"
+        v-if="showAvatar"
+        :src="proxyImageUrl(preview.authorAvatarUrl ?? '')"
         :alt="`${preview.authorName} avatar`"
+        data-testid="linkedin-preview-avatar"
         class="size-10 rounded-full border border-border-subtle object-cover"
+        @error="onAvatarError"
       >
       <div
         v-else
+        data-testid="linkedin-preview-avatar-fallback"
         class="flex size-10 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-bg-surface font-mono text-[11px] font-bold uppercase text-text-display"
       >
         {{ preview.authorInitials }}

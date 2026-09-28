@@ -5,7 +5,9 @@ import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.ProviderPublishingRegistry
 import com.profiletailors.smp.publishing.domain.PublicationEventPublisher
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
@@ -57,6 +59,8 @@ class PublishingSchedulingConfiguration(
         publishingRetryPolicy: DeliveryRetryPolicy,
         transactionRunner: AtomicTransactionRunner,
         publishingLifecycleLogger: PublishingLifecycleLogger,
+        providerPublishingRegistry: ProviderPublishingRegistry? = null,
+        providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -66,6 +70,8 @@ class PublishingSchedulingConfiguration(
         notificationEventRepository = notificationEventRepository,
         providerCapabilityValidator = providerCapabilityValidator,
         socialPublisher = socialPublisher,
+        providerPublishingRegistry = providerPublishingRegistry,
+        providerCapabilityRegistry = providerCapabilityRegistry,
         retryPolicy = publishingRetryPolicy,
         transactionRunner = transactionRunner,
         clock = clock,

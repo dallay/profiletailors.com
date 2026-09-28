@@ -186,4 +186,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last updated: 2026-09-27
+Last updated: 2026-09-23
