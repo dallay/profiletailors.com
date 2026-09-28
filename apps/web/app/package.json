@@ -30,7 +30,7 @@
     "test:e2e:media:real:headed": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.media-real.config.ts --headed"
   },
   "dependencies": {
-    "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
+    "@atlaskit/pragmatic-drag-and-drop": "^4.0.0",
     "@internationalized/date": "3.12.4",
     "@lucide/vue": "1.46.0",
     "@profiletailors/shared-web": "workspace:*",
