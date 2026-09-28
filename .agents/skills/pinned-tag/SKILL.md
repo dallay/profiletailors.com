@@ -1,11 +1,15 @@
 ---
+
 name: pinned-tag
 description: Use when fixing "Unpinned tag for a non-immutable Action" warnings or when pinning dependencies to specific git versions.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 license: Apache-2.0
 metadata:
   author: yuniel
-  version: "1.1"
+  version: 2026-09-27
+  category: knowledge-format
+  family: none
+  source: local
 ---
 
 # Pinned Tag Management Skill
