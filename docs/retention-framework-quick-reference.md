@@ -1,9 +1,9 @@
 # Data Retention — Quick Reference (Current State)
 
-**Last Updated:** 2026-09-27
+**Last Updated: 2026-09-28
 
 > **For:** On-call operators, compliance officers
-> **Updated:** 2026-08-02
+> **Updated:** 2026-09-28
 >
 > **Note:** The `/api/governance/retention/*` governance API is **planned, not implemented**.
 > Do not script against it. This card covers only what runs today.
@@ -55,6 +55,6 @@
 
 ---
 
-**Last updated:** 2026-09-14
+**Last Updated: 2026-09-28
 **Version:** 2.0 (corrected — v1.0 described a not-yet-implemented framework)
 **For questions:** [retention-and-erasure-control-plan.md](compliance/retention-and-erasure-control-plan.md)
