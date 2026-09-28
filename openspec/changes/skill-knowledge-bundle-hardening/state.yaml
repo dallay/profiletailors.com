@@ -1,0 +1,21 @@
+change: skill-knowledge-bundle-hardening
+current_phase: apply
+completed: [explore, propose, design, tasks]
+next: pr_2_spring_semantic_hardening
+updated: 2026-09-28T00:00:00Z
+artifact_policy: openspec-only
+scope_status: pr_1_implemented_pending_gates
+external_evidence: not_run
+delivery_strategy: five-pr-sequence
+slices:
+  - id: pr_1_knowledge_graph_integrity
+    status: implemented_pending_gates
+  - id: pr_2_spring_semantic_hardening
+    status: pending
+  - id: pr_3_frontend_and_ui_truth
+    status: pending
+  - id: pr_4_skill_doctor_v2
+    status: pending
+  - id: pr_5_semantic_acceptance
+    status: pending
+archive_condition: independent_final_audit_passes_after_all_slices
