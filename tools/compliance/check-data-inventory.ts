@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, realpathSync } from 'node:fs'
+import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { z } from 'zod'
@@ -105,20 +105,42 @@ export function validateDataInventory(yamlContent: string): ValidationResult {
 }
 
 /**
+ * Safely resolves the inventory file path and prevents path traversal outside the working directory.
+ *
+ * @param inputPath - Optional user-supplied path
+ * @param cwd - The working directory to enforce boundaries against
+ * @returns The canonical absolute path of the existing inventory
+ * @throws Error if the path cannot be resolved or resolves outside `cwd`
+ */
+export function resolveDataInventoryPath(inputPath?: string, cwd: string = process.cwd()): string {
+  const defaultRelative = 'docs/compliance/data-inventory.yaml'
+  const canonicalCwd = realpathSync(cwd)
+  const resolvedTarget = realpathSync(resolve(cwd, inputPath || defaultRelative))
+  const rel = relative(canonicalCwd, resolvedTarget)
+
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error(
+      `Invalid path: ${inputPath || defaultRelative} resolves outside the allowed root working directory.`,
+    )
+  }
+
+  return resolvedTarget
+}
+
+/**
  * Validates the configured data inventory file and reports the result.
  *
  * Exits with status code `1` if the file cannot be read or fails validation.
  */
 function main(): void {
-  const yamlPath = process.argv[2]
-    ? resolve(process.cwd(), process.argv[2])
-    : resolve(process.cwd(), 'docs/compliance/data-inventory.yaml')
+  let yamlPath: string
   let yamlContent: string
 
   try {
+    yamlPath = resolveDataInventoryPath(process.argv[2])
     yamlContent = readFileSync(yamlPath, 'utf-8')
   } catch (error) {
-    console.error(`Error reading ${yamlPath}: ${(error as Error).message}`)
+    console.error(`Error reading data inventory file: ${(error as Error).message}`)
     process.exit(1)
   }
 
