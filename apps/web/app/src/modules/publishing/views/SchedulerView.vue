@@ -378,6 +378,7 @@ function handleMobileFilterChange(filter: {
   status?: SchedulerStatus
   timezone?: string
   channelIds?: string[]
+  q?: string
 }) {
   url.setFilters(filter)
 }
@@ -670,6 +671,7 @@ watch(
       :status="url.state.value.status"
       :timezone="url.state.value.timezone"
       :channel-ids="url.state.value.channelIds"
+      :q="url.state.value.q"
       :publications-for-slot="publicationsForSlot"
       :is-today="isToday"
       :format-day-name="formatDayName"
@@ -755,7 +757,7 @@ watch(
       </div>
     </Card>
 
-    <div data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
+    <div v-if="!isMobile" data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <div v-if="url.state.value.surface !== 'list'" data-testid="calendar-mode" class="flex min-h-0 flex-1 flex-col gap-4">
           <div v-if="calendarView === 'month'" class="flex h-full min-h-0 flex-col">
             <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden flex min-h-0 flex-1 flex-col">

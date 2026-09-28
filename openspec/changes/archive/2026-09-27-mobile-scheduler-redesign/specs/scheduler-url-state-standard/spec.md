@@ -22,9 +22,9 @@ denote default state. `view` is orthogonal to `date`, `timezone`, `status`, `q`,
 #### Scenario: Mobile agenda view shares URL state
 
 - GIVEN a user opens `/scheduler/calendar/week?view=agenda&date=2026-07-10&timezone=Europe/Madrid`
-  with `status=draft` and one channel `channels[]=acc-123`
+  with `status=queued` and one channel `channels[]=acc-123`
 - WHEN the user navigates to `/scheduler/list`
-- THEN the URL MUST become `/scheduler/list?date=2026-07-10&timezone=Europe/Madrid&status=draft&channels[]=acc-123`
+- THEN the URL MUST become `/scheduler/list?date=2026-07-10&timezone=Europe/Madrid&status=queued&channels[]=acc-123`
 - AND the agenda surface MUST render the same filter context
 - AND `view` MUST be omitted from the URL because the surface default for `/scheduler/list` is
   `agenda`

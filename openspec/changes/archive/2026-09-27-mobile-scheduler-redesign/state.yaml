@@ -4,7 +4,7 @@ completed: [explore, propose, spec, design, tasks, verify, qa, archive]
 next: null
 archived_at: 2026-09-27T23:40:00Z
 updated: 2026-09-27T23:40:00Z
-proposal_path: openspec/changes/mobile-scheduler-redesign/proposal.md
+proposal_path: openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/proposal.md
 artifact_store: openspec
 strict_tdd: true
 source_implementation_authorized: true
@@ -13,7 +13,7 @@ verification_report: verify-report.md
 qa_report: qa-report.md
 linear_issue: DALLAY-601
 branch: feature/dallay-601-frontendmobilescheduler-redesign-scheduler-for-a-mobile
-exploration_path: openspec/changes/mobile-scheduler-redesign/exploration.md
+exploration_path: openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/exploration.md
 merged_with_concurrent_changes:
   - name: publication-calendar-sse
     current_phase: apply

@@ -41,7 +41,7 @@ function formatSlotTime(value: string): string {
               <span class="shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-text-secondary">{{ formatSlotTime(publication.scheduledAt) }}</span>
               <span class="shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-text-secondary">{{ publication.status }}</span>
             </span>
-            <span class="block truncate text-xs text-text-display">{{ publication.content }}</span>
+            <span class="block truncate text-xs text-text-display">{{ publication.title || publication.content }}</span>
           </button>
         </div>
       </div>

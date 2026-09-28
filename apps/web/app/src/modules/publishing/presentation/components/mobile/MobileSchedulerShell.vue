@@ -18,6 +18,7 @@ const props = defineProps<{
   status: SchedulerStatus
   timezone: string
   channelIds: string[]
+  q: string
   publicationsForSlot: (day: Date, hour: number) => Publication[]
   isToday: (day: Date) => boolean
   formatDayName: (day: Date) => string
@@ -29,7 +30,7 @@ const emit = defineEmits<{
   (event: 'next'): void
   (event: 'today'): void
   (event: 'change:view', view: SchedulerView): void
-  (event: 'change:filter', filter: { status?: SchedulerStatus; timezone?: string; channelIds?: string[] }): void
+  (event: 'change:filter', filter: { status?: SchedulerStatus; timezone?: string; channelIds?: string[]; q?: string }): void
   (event: 'openBulkImport'): void
   (event: 'startTour'): void
   (event: 'openPostDetail', publication: Publication): void
@@ -60,7 +61,7 @@ function handleOpenNewPost(day: Date, hour: number) {
       <SchedulerViewSwitcher :view="view" @change:view="emit('change:view', $event)" />
       <MobileOverflowMenu class="ml-auto" @open-bulk-import="emit('openBulkImport')" @start-tour="emit('startTour')" />
     </div>
-    <SchedulerFiltersSheet :open="filtersOpen" :status="status" :timezone="timezone" :channel-ids="channelIds" :filters-count="filtersCount" @update:open="filtersOpen = $event" @change:filter="emit('change:filter', $event)" />
+    <SchedulerFiltersSheet :open="filtersOpen" :status="status" :timezone="timezone" :channel-ids="channelIds" :q="q" :filters-count="filtersCount" @update:open="filtersOpen = $event" @change:filter="emit('change:filter', $event)" />
     <div v-if="view === 'agenda'" data-testid="scheduler-mobile-agenda" class="min-h-0 flex-1 overflow-y-auto">
       <slot name="agendaSlot" />
     </div>

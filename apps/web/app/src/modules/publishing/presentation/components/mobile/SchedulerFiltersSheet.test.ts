@@ -12,7 +12,11 @@ vi.mock('@/components/ui/button', () => ({ Button: { template: '<button><slot />
 vi.mock('@/components/ui/sheet', () => ({
   Sheet: { template: '<div><slot /></div>' },
   SheetClose: { template: '<div><slot /></div>' },
-  SheetContent: { inheritAttrs: false, template: '<section v-bind="$attrs"><slot /></section>' },
+  SheetContent: {
+    inheritAttrs: false,
+    props: ['side'],
+    template: '<section v-bind="$attrs" :data-side="side"><slot /></section>',
+  },
   SheetFooter: { template: '<footer><slot /></footer>' },
   SheetHeader: { template: '<header><slot /></header>' },
   SheetTitle: { template: '<h2><slot /></h2>' },
@@ -41,14 +45,15 @@ describe('SchedulerFiltersSheet', () => {
         status: 'queued',
         timezone: 'Europe/Madrid',
         channelIds: ['acc-1'],
+        q: '',
         filtersCount: 3,
       },
       global: { mocks: { $t: (key: string) => key } },
     })
 
-    expect(
-      wrapper.get('[data-testid="mobile-filters-sheet"]').attributes('data-side'),
-    ).toBeUndefined()
+    expect(wrapper.get('[data-testid="mobile-filters-sheet"]').attributes('data-side')).toBe(
+      'bottom',
+    )
     expect(wrapper.text()).toContain('scheduler.channelsLabel')
     expect(wrapper.text()).toContain('scheduler.allPosts')
     expect(wrapper.text()).toContain('scheduler.timezoneLabel')
@@ -63,6 +68,7 @@ describe('SchedulerFiltersSheet', () => {
         status: 'queued',
         timezone: 'Europe/Madrid',
         channelIds: ['acc-1'],
+        q: '',
         filtersCount: 3,
       },
       global: { mocks: { $t: (key: string) => key } },
@@ -77,6 +83,7 @@ describe('SchedulerFiltersSheet', () => {
       status: 'queued',
       timezone: 'Europe/Madrid',
       channelIds: ['acc-1'],
+      q: '',
     })
     expect(wrapper.emitted('update:open')).toEqual([[false]])
 
@@ -89,6 +96,7 @@ describe('SchedulerFiltersSheet', () => {
       status: 'all',
       timezone: browserTimezone,
       channelIds: [],
+      q: '',
     })
   })
 })

@@ -11,13 +11,13 @@
 
 ## Sources of Truth
 
-- **Proposal**: `openspec/changes/mobile-scheduler-redesign/proposal.md`
+- **Proposal**: `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/proposal.md`
 - **Specifications**:
-  - `openspec/changes/mobile-scheduler-redesign/specs/scheduler-url-state-standard/spec.md`
-  - `openspec/changes/mobile-scheduler-redesign/specs/visual-calendar/spec.md`
-- **Design**: `openspec/changes/mobile-scheduler-redesign/design.md`
-- **Tasks**: `openspec/changes/mobile-scheduler-redesign/tasks.md`
-- **Technical verification**: `openspec/changes/mobile-scheduler-redesign/verify-report.md` (PASS WITH WARNINGS)
+  - `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/specs/scheduler-url-state-standard/spec.md`
+  - `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/specs/visual-calendar/spec.md`
+- **Design**: `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/design.md`
+- **Tasks**: `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/tasks.md`
+- **Technical verification**: `openspec/changes/archive/2026-09-27-mobile-scheduler-redesign/verify-report.md` (PASS WITH WARNINGS)
 
 ## Target and Environment
 
@@ -50,16 +50,17 @@ The following scenarios come directly from the proposal capabilities and the vis
 |---|---|---|---|---|
 | Q-M1 | Playwright scheduler lane (390×844) | User can reach `/scheduler/calendar/week?view=day` and see the mobile shell dominate the viewport | PASS | TC-M1 at 390×844: `mobileShell` visible, no document overflow (≤ 1 px), New Post visible, Filters trigger visible, view switcher visible |
 | Q-M1b | Playwright scheduler lane (320×568, 360×640, 430×932) | Same as Q-M1 across the small-phone matrix | PASS | TC-M1 parametrized over all four viewports |
-| Q-M2 | Playwright scheduler lane (390×844) | Day / 3-Day / Week views each render their own column count and switch without compressing week below 120 px | PASS | TC-M4: Day view (`view=day` in URL, one column), 3-Day view (`view=3-days`), Week view (`scrollWidth ≥ clientWidth`, `viewportBox ≤ 391`, no document overflow) |
-| Q-M3 | Playwright scheduler lane (390×844) | Filters sheet Apply commits status + view to the URL atomically | PASS | TC-M2 step 1: status=queued selected, Apply clicked, URL `/status=queued/&view=day/` |
+| Q-M1b | Playwright scheduler lane (320×568, 360×640, 430×932) | Same as Q-M1 across the small-phone matrix | PASS | TC-M1 parametrized over all four viewports |
+| Q-M2 | Playwright scheduler lane (390×844) | Day / 3-Day / Week views each render their own column count and switch without compressing week below 120 px | PASS | TC-M4: Day view (`view=day` in URL, 1-column grid via repeat(1, ...)), 3-Day view (`view=3-days`, repeat(3, ...)), Week view (`scrollWidth > clientWidth`, day column ≥ 120 px, `viewportBox ≤ 391`, no document overflow) |
+| Q-M3 | Playwright scheduler lane (390×844) | Filters sheet Apply commits status to the URL while preserving `view` | PASS | TC-M2 step 1: status=queued selected, Apply clicked, sheet hidden, URL contains `/status=queued/` and `/view=day/` |
 | Q-M4 | Playwright scheduler lane (390×844) | Filters sheet Reset clears status while preserving view | PASS | TC-M2 step 2: Reset clicked, URL no longer contains `status=queued`, `view=day` preserved |
-| Q-M5 | Playwright scheduler lane (390×844) | Prev / Next / Today buttons are 44 px hit targets and remain reachable | PASS | TC-M3: `expectMinHitTarget(prevPeriodButton | nextPeriodButton | todayPeriodButton)`; navigation changes the URL `date` and `Today` returns to current |
+| Q-M5 | Playwright scheduler lane (390×844) | Prev / Next / Today buttons are 44 px hit targets and remain reachable; Today returns `date` to today | PASS | TC-M3: `expectMinHitTarget(prevPeriodButton | nextPeriodButton | todayPeriodButton)` (width ≥ 44 AND height ≥ 44); next then prev returns to start date; Today sets `date` to the local YYYY-MM-DD today via `expect.poll` URL retry |
 | Q-M6 | Playwright scheduler lane (390×844) | Bulk Import is reachable from the mobile `⋯` overflow menu and opens the existing Bulk Import modal | PASS | TC-M5: open mobile overflow menu, click `open-bulk-import`, assert `bulk-import-modal` visible |
 | Q-M7 | Playwright scheduler lane (390×844) | Agenda card tap opens the existing post-detail flow | PASS | TC-M6: agenda view rendered, card clicked, URL `postId=` present |
 | Q-D1 | Playwright scheduler lane (1280×800) | Desktop layout is unchanged: mobile shell hidden, Bulk Import row visible, New Post visible | PASS | TC-D1: `mobileShell` hidden, `data-testid="open-bulk-import"` visible, `newPostButton` visible |
 | Q-URL | Playwright scheduler lane | URL state for `view` round-trips with `setView` push semantics and is omitted when matching the surface default | PASS | TC-M2 asserts `view=day` preserved in URL after Apply + Reset; pre-existing URL-state Vitest suite (already in `verify-report.md`) covers `setView`, `normalizeView`, `buildQuery` omission |
-| Q-LOCALE | Playwright scheduler lane | English + Spanish locales expose the new i18n keys (verified via static i18n-keys test) | PASS | `apps/web/app/src/shared/i18n/i18n-keys.test.ts` (whole-tree scan) PASSES; both `en/scheduler.ts` and `es/scheduler.ts` declare `viewDay`, `viewThreeDays`, `viewWeek`, `viewAgenda`, `filters`, `filtersCount`, `apply`, `reset`, `moreActions`, `bulkImport`, `productTour`, `previousPeriod`, `nextPeriod` |
-| Q-DEPLOYED | Deployed product / staging target | Acceptance against a real deployed target | NOT TESTED | Branch is uncommitted and unpushed; there is no deployed artifact for this change yet. Production acceptance must be deferred to after the PR is merged and deployed. |
+| Q-LOCALE | Playwright scheduler lane | English + Spanish locales expose the new i18n keys (verified via static i18n-keys test) | PASS | `apps/web/app/src/shared/i18n/i18n-keys.test.ts` (whole-tree scan) PASSES; both `en/scheduler.ts` and `es/scheduler.ts` declare `viewDay`, `viewThreeDays`, `viewWeek`, `viewAgenda`, `statusQueued`, `statusPublished`, `statusCancelled`, `search`, `filters`, `filtersCount`, `apply`, `reset`, `moreActions`, `bulkImport`, `productTour`, `previousPeriod`, `nextPeriod` |
+| Q-DEPLOYED | Deployed product / staging target | Acceptance against a real deployed target | NOT TESTED | Branch is uncommitted at QA-run time; there is no deployed artifact for this change yet. Production acceptance must be deferred to after the PR is merged and deployed. |
 
 ## Untested Scope
 

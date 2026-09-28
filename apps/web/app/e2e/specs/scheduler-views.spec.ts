@@ -119,9 +119,7 @@ test.describe('Scheduler — Mobile shell', () => {
     const selects = scheduler.mobileFiltersSheet.locator('select')
     await selects.nth(1).selectOption('queued')
     await page.getByRole('button', { name: /apply/i }).click()
-    await expect(scheduler.mobileFiltersSheet)
-      .toBeHidden({ timeout: 5000 })
-      .catch(() => {})
+    await expect(scheduler.mobileFiltersSheet).toBeHidden({ timeout: 5000 })
     await expect(page).toHaveURL(/status=queued/)
     await expect(page).toHaveURL(/view=day/)
     await scheduler.mobileFiltersTrigger.click()
@@ -139,14 +137,32 @@ test.describe('Scheduler — Mobile shell', () => {
     await scheduler.expectMinHitTarget(scheduler.prevPeriodButton)
     await scheduler.expectMinHitTarget(scheduler.nextPeriodButton)
     await scheduler.expectMinHitTarget(scheduler.todayPeriodButton)
-    const before = page.url()
+    const beforeUrl = new URL(page.url())
+    const beforeDate = beforeUrl.searchParams.get('date') ?? ''
     await scheduler.nextPeriodButton.click()
-    await page.waitForTimeout(500)
-    expect(page.url()).not.toBe(before)
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('date') ?? '', {
+        timeout: 5_000,
+      })
+      .not.toBe(beforeDate)
     await scheduler.prevPeriodButton.click()
-    await page.waitForTimeout(500)
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('date') ?? '', {
+        timeout: 5_000,
+      })
+      .toBe(beforeDate)
     await scheduler.todayPeriodButton.click()
-    await page.waitForTimeout(500)
+    const today = new Date()
+    const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    await expect
+      .poll(
+        () => {
+          const value = new URL(page.url()).searchParams.get('date')
+          return value === null ? expectedToday : value
+        },
+        { timeout: 5_000 },
+      )
+      .toBe(expectedToday)
     await expect(scheduler.mobileShell).toBeVisible()
   })
 
@@ -160,15 +176,32 @@ test.describe('Scheduler — Mobile shell', () => {
     await scheduler.dayViewButton.click()
     await expect(page).toHaveURL(/view=day/)
     await expect(scheduler.timelineViewport).toBeVisible()
+    const dayColumns = await scheduler.timelineViewport.evaluate((element) => {
+      const grid = element.querySelector('.grid.border-b')
+      const match = grid?.getAttribute('style')?.match(/repeat\((\d+),/)
+      return match ? Number(match[1]) : 0
+    })
+    expect(dayColumns).toBe(1)
     await scheduler.threeDaysViewButton.click()
     await expect(page).toHaveURL(/view=3-days/)
+    const threeDayColumns = await scheduler.timelineViewport.evaluate((element) => {
+      const grid = element.querySelector('.grid.border-b')
+      const match = grid?.getAttribute('style')?.match(/repeat\((\d+),/)
+      return match ? Number(match[1]) : 0
+    })
+    expect(threeDayColumns).toBe(3)
     await scheduler.weekSwitcherButton.click()
     await expect(scheduler.timelineViewport).toBeVisible()
     const viewportBox = await scheduler.timelineViewport.boundingBox()
     expect(viewportBox?.width ?? 0).toBeLessThanOrEqual(391)
     const scrollWidth = await scheduler.timelineViewport.evaluate((element) => element.scrollWidth)
     const clientWidth = await scheduler.timelineViewport.evaluate((element) => element.clientWidth)
-    expect(scrollWidth).toBeGreaterThanOrEqual(clientWidth)
+    expect(scrollWidth).toBeGreaterThan(clientWidth)
+    const dayColumnWidth = await scheduler.timelineViewport
+      .locator('.border-r.border-border-subtle')
+      .nth(1)
+      .evaluate((el) => el.getBoundingClientRect().width)
+    expect(dayColumnWidth).toBeGreaterThanOrEqual(120)
     const docOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     )

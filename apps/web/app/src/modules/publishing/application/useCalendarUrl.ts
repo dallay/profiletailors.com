@@ -33,6 +33,7 @@ export interface CalendarUrlController {
     status?: SchedulerStatus
     timezone?: string
     channelIds?: string[]
+    q?: string
   }) => Promise<void>
   openPostDetail: (postId: string) => Promise<void>
   closePostDetail: (options?: { replace?: boolean }) => Promise<void>
@@ -350,6 +351,7 @@ export function createCalendarUrlController(
             filter.channelIds === undefined
               ? state.value.channelIds
               : [...new Set(filter.channelIds)],
+          q: filter.q === undefined ? state.value.q : filter.q.trim(),
         },
         'replace',
       )

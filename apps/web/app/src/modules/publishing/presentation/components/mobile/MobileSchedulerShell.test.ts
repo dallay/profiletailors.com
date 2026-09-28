@@ -48,6 +48,7 @@ describe('MobileSchedulerShell', () => {
     status: 'all' as const,
     timezone: 'UTC',
     channelIds: [],
+    q: '',
     publicationsForSlot: () => [],
     isToday: () => false,
     formatDayName: () => 'Monday',

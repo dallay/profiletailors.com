@@ -163,7 +163,8 @@ export class SchedulerPage {
   async expectMinHitTarget(locator: Locator, size = 44): Promise<void> {
     const box = await locator.boundingBox()
     expect(box).not.toBeNull()
-    expect(Math.max(box?.width ?? 0, box?.height ?? 0)).toBeGreaterThanOrEqual(size)
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(size)
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(size)
   }
 
   // Delete actions on post cards

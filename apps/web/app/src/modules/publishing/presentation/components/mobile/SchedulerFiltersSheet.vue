@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import type { SchedulerStatus } from '@modules/publishing/application/useCalendarUrl'
@@ -9,12 +9,14 @@ type FilterState = {
   status: SchedulerStatus
   timezone: string
   channelIds: string[]
+  q: string
 }
 const props = defineProps<{
   open: boolean
   status: SchedulerStatus
   timezone: string
   channelIds: string[]
+  q: string
   filtersCount: number
 }>()
 const emit = defineEmits<{
@@ -29,21 +31,41 @@ function resolveBrowserTimezone(): string {
     return 'UTC'
   }
 }
-const draft = ref<FilterState>({ status: props.status, timezone: props.timezone, channelIds: [...props.channelIds] })
-watch(() => [props.status, props.timezone, props.channelIds, props.open], () => {
-  draft.value = { status: props.status, timezone: props.timezone, channelIds: [...props.channelIds] }
+const BASE_TIMEZONES = ['Europe/Madrid', 'UTC', 'America/New_York']
+const timezoneOptions = computed(() => {
+  const active = resolveBrowserTimezone()
+  return active && !BASE_TIMEZONES.includes(active) ? [active, ...BASE_TIMEZONES] : BASE_TIMEZONES
+})
+const draft = ref<FilterState>({
+  status: props.status,
+  timezone: props.timezone,
+  channelIds: [...props.channelIds],
+  q: props.q,
+})
+watch(() => [props.status, props.timezone, props.channelIds, props.q, props.open], () => {
+  draft.value = {
+    status: props.status,
+    timezone: props.timezone,
+    channelIds: [...props.channelIds],
+    q: props.q,
+  }
 })
 function updateChannel(event: Event) {
   const target = event.target
   if (!(target instanceof HTMLSelectElement)) return
   draft.value.channelIds = target.value ? [target.value] : []
 }
+function updateQuery(event: Event) {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  draft.value.q = target.value
+}
 function apply() {
   emit('change:filter', draft.value)
   emit('update:open', false)
 }
 function reset() {
-  draft.value = { status: 'all', timezone: resolveBrowserTimezone(), channelIds: [] }
+  draft.value = { status: 'all', timezone: resolveBrowserTimezone(), channelIds: [], q: '' }
   emit('change:filter', draft.value)
   emit('update:open', false)
 }
@@ -68,18 +90,25 @@ function reset() {
           {{ $t('scheduler.allPosts') }}
           <select v-model="draft.status" class="min-h-11 rounded-lg border border-border-visible bg-bg-primary px-3 text-sm text-text-display">
             <option value="all">{{ $t('scheduler.allPosts') }}</option>
-            <option value="queued">Queued</option>
-            <option value="published">Published</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="queued">{{ $t('scheduler.statusQueued') }}</option>
+            <option value="published">{{ $t('scheduler.statusPublished') }}</option>
+            <option value="cancelled">{{ $t('scheduler.statusCancelled') }}</option>
           </select>
         </label>
         <label class="grid gap-2 font-mono text-xs text-text-secondary">
           {{ $t('scheduler.timezoneLabel') }}
           <select v-model="draft.timezone" class="min-h-11 rounded-lg border border-border-visible bg-bg-primary px-3 text-sm text-text-display">
-            <option value="Europe/Madrid">Europe/Madrid</option>
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">America/New_York</option>
+            <option v-for="zone in timezoneOptions" :key="zone" :value="zone">{{ zone }}</option>
           </select>
+        </label>
+        <label class="grid gap-2 font-mono text-xs text-text-secondary">
+          {{ $t('scheduler.search') }}
+          <input
+            type="search"
+            class="min-h-11 rounded-lg border border-border-visible bg-bg-primary px-3 text-sm text-text-display"
+            :value="draft.q"
+            @input="updateQuery"
+          />
         </label>
       </div>
       <SheetFooter class="flex-row justify-between px-4">

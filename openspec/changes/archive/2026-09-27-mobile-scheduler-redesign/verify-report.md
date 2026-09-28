@@ -14,11 +14,11 @@
 
 | Metric | Value |
 |---|---|
-| Tasks total (`tasks.md`) | 30 (1.1–1.10, 2.1–2.10, 3.1–3.8, 4.1–4.6, plus 7 cross-cutting items X.1–X.7) |
-| Tasks complete | 30 (all `[x]` in `plan/tasks/dallay-601-mobile-scheduler.md`; matches the OpenSpec `tasks.md` structure) |
+| Tasks total (`tasks.md`) | 41 (Phase 1: 1.1–1.10, Phase 2: 2.1–2.10, Phase 3: 3.1–3.8, Phase 4: 4.1–4.6, Cross-cutting: X.1–X.7) |
+| Tasks complete | 41 (per `plan/tasks/dallay-601-mobile-scheduler.md`; the OpenSpec `tasks.md` file does not carry the `[x]` checkboxes — completion is recorded in the parallel plan tracker because the work landed in one consolidated commit before the per-task RED→GREEN→REFACTOR bookkeeping was persisted) |
 | Tasks incomplete | 0 |
 
-All `tasks.md` items are checked off in `plan/tasks/dallay-601-mobile-scheduler.md`. No incomplete cleanup tasks.
+The OpenSpec `tasks.md` is the deliverable contract; the plan tracker is the execution record. Both are correct against the actual gates (lint, type-check, build, 1825/1825 unit tests, 63/63 E2E). The verify-report previously quoted 30/30 — that number was incorrect.
 
 ---
 
