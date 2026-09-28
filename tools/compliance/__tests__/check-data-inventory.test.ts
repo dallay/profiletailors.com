@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { validateDataInventory } from '../check-data-inventory.js'
+import { validateDataInventory, resolveDataInventoryPath } from '../check-data-inventory.js'
 
 const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const dataInventoryPath = resolve(repositoryRoot, 'docs/compliance/data-inventory.yaml')
@@ -140,5 +140,31 @@ processing_activities:
     const result = validateDataInventory(yamlContent)
     expect(result.errors).toEqual([])
     expect(result.valid).toBe(true)
+  })
+})
+
+describe('resolveDataInventoryPath', () => {
+  const fakeCwd = resolve('/app/workspace')
+
+  it('resolves default path when no path argument is provided', () => {
+    const resolved = resolveDataInventoryPath(undefined, fakeCwd)
+    expect(resolved).toBe(resolve(fakeCwd, 'docs/compliance/data-inventory.yaml'))
+  })
+
+  it('resolves valid relative path within cwd', () => {
+    const resolved = resolveDataInventoryPath('docs/compliance/data-inventory.yaml', fakeCwd)
+    expect(resolved).toBe(resolve(fakeCwd, 'docs/compliance/data-inventory.yaml'))
+  })
+
+  it('throws error when path traverses outside cwd via relative path', () => {
+    expect(() => resolveDataInventoryPath('../../etc/passwd', fakeCwd)).toThrow(
+      /resolves outside the allowed root working directory/
+    )
+  })
+
+  it('throws error when path traverses outside cwd via absolute path', () => {
+    expect(() => resolveDataInventoryPath('/etc/passwd', fakeCwd)).toThrow(
+      /resolves outside the allowed root working directory/
+    )
   })
 })
