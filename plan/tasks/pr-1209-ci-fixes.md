@@ -17,7 +17,8 @@ Delegated direct con `systematic-debugging`. Fallos de CI en la PR #1209, cada u
 - [x] RPI-002 Actualizar `Last Updated` en `docs/publishing-failure-modes.md` a 2026-09-28 y correr `just doc-check`.
 - [x] RPI-003 Convertir el mock POST de TH-03 en observador pass-through (`route.fallback()`), correr el spec localmente.
 - [x] RPI-004 Push + vigilar los tres checks en la PR.
-- [ ] RPI-005 Ordenar la aserción de auditoría concurrente por cadena (`previousMode==OPEN` es first) en vez de por timestamp, correr el escenario BDD.
+- [x] RPI-005 Ordenar la aserción de auditoría concurrente por cadena (`previousMode==OPEN` es first) en vez de por timestamp, correr el escenario BDD.
+- [x] RPI-006 Reescribir autoría de la rama a la identidad verificada (`Yuniel Acosta Pérez <33158051+yacosta738@users.noreply.github.com>`) + force-push; `cla-assistant` verde.
 
 ## Criterios de aceptación
 
@@ -28,4 +29,4 @@ Delegated direct con `systematic-debugging`. Fallos de CI en la PR #1209, cada u
 
 ## Estado
 
-Checking — RPI-001/002/003 verificados y en CI verde; RPI-005 en curso.
+Ready — RPI-001/002/003/005 verificados; `Backend BDD` verde con el fix de cadena; `cla-assistant` verde tras reescritura de autoría. Nota: aparecieron en el árbol cambios ajenos a esta tarea (`PublishingWebFluxConfiguration.kt`, `PublishingProviderPathBindingTest.kt`, `WebFluxConfigurationTest.kt`, `plan/tasks/threads-provider-binding.md`) que se preservaron intactos.
