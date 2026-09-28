@@ -20,15 +20,15 @@ mencionar el monorepo `profiletailors.com` y sus paths verificables.
 ## Scope
 
 - Archivos modificados (DELETE puro):
-  - `.agents/skills/frontend-platform/vue/SKILL.md` (footer `© 2024 CVIX`).
-  - `.agents/skills/backend-platform/spring-boot/references/swagger-standard.md`
+  - `.agents/skills/vue/SKILL.md` (footer `© 2024 CVIX`).
+  - `.agents/skills/spring-boot/references/swagger-standard.md`
     (mención CVIX).
-  - `.agents/skills/backend-platform/spring-boot/references/error-handling.md`
+  - `.agents/skills/spring-boot/references/error-handling.md`
     (paquete `com.profiletailors.resume`, bounded context `Resume`,
     `ResumeExceptionHandler`, `InvalidResumeDataException`, etc.).
-  - `.agents/skills/backend-platform/spring-boot/references/request-response-dtos.md`
+  - `.agents/skills/spring-boot/references/request-response-dtos.md`
     (`CreateResumeRequest`, `ResumeRequestMapper`, etc.).
-  - `.agents/skills/languages-typing/kotlin/SKILL.md` (mención
+  - `.agents/skills/kotlin/SKILL.md` (mención
     `profiletailors.resume`).
 - No se hace rewrite de `testing/playwright/SKILL.md` aquí (eso vive
   en `capability-playwright-rebuild`, bloque P0-D). La regla

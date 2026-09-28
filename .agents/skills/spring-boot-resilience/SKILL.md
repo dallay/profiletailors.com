@@ -3,8 +3,8 @@ name: spring-boot-resilience
 description: Use when implementing reactive fault-tolerance patterns in Spring Boot 4 with native Spring Framework 7 resilience features or Resilience4j, including retries, concurrency limiting, circuit breakers, rate limiting, timeouts, and fallbacks for downstream calls.
 allowed-tools: Read, Write, Edit, Bash
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

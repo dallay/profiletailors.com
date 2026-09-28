@@ -3,8 +3,8 @@ name: spring-boot-cache
 description: Use when adding caching to Spring Boot 4 services, configuring cache providers and TTL policies, invalidating stale data, or diagnosing cache hit and miss behavior.
 allowed-tools: Read, Write, Bash
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

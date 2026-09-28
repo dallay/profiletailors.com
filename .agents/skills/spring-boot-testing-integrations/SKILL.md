@@ -3,8 +3,8 @@ name: spring-boot-testing-integrations
 description: Use when testing Spring Boot 4 integrations that involve external HTTP services, WireMock, caches, events, schedulers, brokers, or containerized dependencies where focused integration tests provide better confidence than unit tests.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

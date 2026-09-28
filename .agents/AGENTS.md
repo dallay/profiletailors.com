@@ -466,7 +466,7 @@ hand-edited.
 
 ## Frontend Architecture and Contracts
 
-Use the profile-specific rules in `.agents/skills/frontend-platform/frontend-architecture/SKILL.md`:
+Use the profile-specific rules in `.agents/skills/frontend-architecture/SKILL.md`:
 
 - `apps/web/app/src/modules/<feature>` is the dashboard feature boundary. Cross-feature consumers
   use the feature's stable `index.ts` barrel; do not import another feature's infrastructure or
@@ -658,6 +658,6 @@ assuming frontend consent tests prove backend behavior. Relevant E2E coverage li
 - `docs/architecture/shared/dependencies.md` — shared-module dependency graph
 - `openspec/README.md` — product contracts and change artifacts
 - `.agents/skills/architecture-governance/SKILL.md` — ARCH-001..005 ownership and routing
-- `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md` — backend layer guidance
-- `.agents/skills/backend-platform/ddd-architecture/SKILL.md` — Kotlin DDD conformance
-- `.agents/skills/frontend-platform/frontend-architecture/SKILL.md` — frontend boundaries
+- `.agents/skills/hexagonal-architecture/SKILL.md` — backend layer guidance
+- `.agents/skills/ddd-architecture/SKILL.md` — Kotlin DDD conformance
+- `.agents/skills/frontend-architecture/SKILL.md` — frontend boundaries

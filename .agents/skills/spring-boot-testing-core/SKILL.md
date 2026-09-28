@@ -3,8 +3,8 @@ name: spring-boot-testing-core
 description: Use when writing fast Spring Boot 4 tests for application services, configuration properties, JSON serialization, validation, mappers, or other logic that should be verified without a full Spring context.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

@@ -3,8 +3,8 @@ name: spring-boot-security
 description: Use when implementing reactive authentication or authorization in Spring Boot 4 with Spring Security, JWT bearer or cookie flows, RBAC or permission checks, token rotation, revocation, or OAuth2/resource server integration.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

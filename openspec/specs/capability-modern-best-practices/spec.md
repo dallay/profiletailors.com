@@ -24,9 +24,9 @@ que tengan razón técnica fuerte.
 ## Scope
 
 - Archivos modificados:
-  - Eliminar `.agents/skills/frontend-platform/shadcn-vue/SKILL.md`
+  - Eliminar `.agents/skills/shadcn-vue/SKILL.md`
     y la carpeta `shadcn-vue/` (con sus `references/`).
-  - Reescribir `.agents/skills/testing/playwright-best-practices/SKILL.md`
+  - Reescribir `.agents/skills/playwright-best-practices/SKILL.md`
     para usar ejemplos de Vue/Astro (no Next.js).
   - Aclarar `.agents/skills/modern-web-guidance/SKILL.md` para que
     su "MANDATORY" aplique solo a HTML/CSS/JS no cubierto por las
@@ -54,7 +54,7 @@ que tengan razón técnica fuerte.
 
 **REQ-MBP-001**
 
-- GIVEN `.agents/skills/frontend-platform/shadcn-vue/SKILL.md` existe
+- GIVEN `.agents/skills/shadcn-vue/SKILL.md` existe
   y el proyecto no consume shadcn-vue
 - WHEN se aplica esta capability
 - THEN SHALL eliminarse la carpeta completa de `shadcn-vue/` y SHALL

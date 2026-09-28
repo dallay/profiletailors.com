@@ -27,7 +27,7 @@ This project follows a **component maintainability standard** that defines layer
 extraction, component decomposition, type contracts, and code quality checks.
 
 **Read the full guide at:**
-`.agents/skills/frontend-platform/vue/references/vue-component-maintainability.md`
+`.agents/skills/vue/references/vue-component-maintainability.md`
 
 Key rules enforced by this standard:
 

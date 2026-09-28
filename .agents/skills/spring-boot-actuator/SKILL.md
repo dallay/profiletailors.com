@@ -3,8 +3,8 @@ name: spring-boot-actuator
 description: Use when configuring Spring Boot Actuator for production-grade monitoring, health probes, secured management endpoints, readiness/liveness checks, and Micrometer metrics in Spring Boot 4 applications.
 allowed-tools: Read, Write, Bash
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---
