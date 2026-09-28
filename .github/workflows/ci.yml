@@ -43,10 +43,17 @@ jobs:
               - 'server/smp/**'
               - 'shared/**'
               - 'server/smp/build.gradle.kts'
+              - 'gradle/**'
+              - 'config/detekt/**'
+              - 'gradle/libs.versions.toml'
+              - 'settings.gradle.kts'
+              - 'build.gradle.kts'
             frontend:
               - 'apps/web/marketing/**'
               - 'apps/web/app/**'
               - 'apps/web/admin/**'
+              - 'shared/web/**'
+              - 'shared/assets/**'
               - 'pnpm-lock.yaml'
             ci:
               - '.github/workflows/**'

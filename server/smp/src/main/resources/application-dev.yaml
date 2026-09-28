@@ -55,6 +55,10 @@ app:
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:https://pt-app.localhost,https://pt-admin.localhost,http://localhost:5173,http://localhost:5174}
+  waitlist:
+    withdrawal:
+      encryption-key: ${SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY:V1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1c=}
+      public-url-base: ${SMP_WAITLIST_WITHDRAWAL_PUBLIC_URL_BASE:https://profiletailors.com/waitlist/withdraw}
 
 profile-tailors:
   features:

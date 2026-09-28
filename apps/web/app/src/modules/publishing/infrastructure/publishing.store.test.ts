@@ -33,6 +33,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
 describe('isSocialProvider', () => {
   it('accepts publishable providers and rejects unknown connected providers', () => {
     expect(isSocialProvider('linkedin')).toBe(true)
+    expect(isSocialProvider('threads')).toBe(true)
     expect(isSocialProvider('mastodon')).toBe(false)
   })
 })
@@ -424,6 +425,173 @@ describe('publishing store', () => {
 
       expect(apiFetch).not.toHaveBeenCalled()
       expect(store.channels).toEqual([])
+    })
+  })
+
+  describe('refreshChannelAvatars', () => {
+    const oldChannel = {
+      socialAccountId: 'soc-1',
+      connectionId: 'conn-1',
+      provider: 'LINKEDIN',
+      accountKind: 'PERSONAL_PROFILE',
+      displayName: 'Ada Lovelace',
+      status: 'ACTIVE',
+      avatarUrl: 'https://media.licdn.com/old.jpg',
+      connectedAt: '2026-06-12T12:00:00Z',
+      lastSyncedAt: null,
+    }
+    const freshChannel = { ...oldChannel, avatarUrl: 'https://media.licdn.com/fresh.jpg' }
+
+    function mockChannelsFlow(getResponses: unknown[], refreshResponse: unknown) {
+      const calls: string[] = []
+      const apiFetch = vi
+        .spyOn(useAuthStore(), 'apiFetch')
+        .mockImplementation(async (path: string) => {
+          calls.push(path)
+          if (path === '/api/publishing/channels/refresh-avatars') return refreshResponse
+          return getResponses.shift() ?? { channels: [] }
+        })
+      return { apiFetch, calls }
+    }
+
+    function authenticate() {
+      Object.defineProperty(useAuthStore(), 'isAuthenticated', {
+        value: true,
+        configurable: true,
+      })
+    }
+
+    it('reloads channels once when avatars were refreshed', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      const { apiFetch } = mockChannelsFlow(
+        [{ channels: [oldChannel] }, { channels: [freshChannel] }],
+        {
+          refreshedAccountIds: ['soc-1'],
+          skippedAccountIds: [],
+          failedAccountIds: [],
+          refreshed: 1,
+          skipped: 0,
+          failed: 0,
+        },
+      )
+
+      await store.fetchChannels()
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels/refresh-avatars', {
+        method: 'POST',
+        workspaceScoped: true,
+      })
+      expect(
+        apiFetch.mock.calls.filter(([path]) => path === '/api/publishing/channels'),
+      ).toHaveLength(2)
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/fresh.jpg')
+    })
+
+    it('does not reload channels when no avatar changed', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      const { apiFetch } = mockChannelsFlow([{ channels: [oldChannel] }], {
+        refreshedAccountIds: [],
+        skippedAccountIds: ['soc-1'],
+        failedAccountIds: [],
+        refreshed: 0,
+        skipped: 1,
+        failed: 0,
+      })
+
+      await store.fetchChannels()
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels/refresh-avatars', {
+        method: 'POST',
+        workspaceScoped: true,
+      })
+      expect(
+        apiFetch.mock.calls.filter(([path]) => path === '/api/publishing/channels'),
+      ).toHaveLength(1)
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/old.jpg')
+    })
+
+    it('keeps loaded channels when the refresh request fails', async () => {
+      const store = usePublishingStore()
+      authenticate()
+      vi.spyOn(useAuthStore(), 'apiFetch').mockImplementation(async (path: string) => {
+        if (path === '/api/publishing/channels/refresh-avatars') throw new Error('refresh down')
+        return { channels: [oldChannel] }
+      })
+
+      await store.fetchChannels()
+
+      expect(store.channels[0]?.avatarUrl).toBe('https://media.licdn.com/old.jpg')
+    })
+  })
+
+  describe('provider connection lifecycle', () => {
+    it('initiates a Threads connection through the provider-aware endpoint', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const assign = vi.fn()
+      Object.defineProperty(window, 'location', {
+        value: { origin: 'http://app.test', assign },
+        configurable: true,
+      })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        authorizationUrl: 'https://threads.example/auth',
+        state: 'state-threads',
+        expiresAt: '2026-06-12T12:10:00Z',
+      })
+
+      await store.connectProviderPersonalProfile('threads')
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/threads/connections/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ redirectUri: 'http://app.test/integrations/threads/callback' }),
+        workspaceScoped: true,
+      })
+      expect(assign).toHaveBeenCalledWith('https://threads.example/auth')
+    })
+
+    it('completes a Threads connection and refreshes channels without exposing callback values', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi
+        .spyOn(auth, 'apiFetch')
+        .mockResolvedValueOnce({
+          connectionId: 'conn-threads',
+          workspaceId: 'ws-1',
+          provider: 'threads',
+          status: 'connected',
+          account: {
+            accountId: 'account-threads',
+            providerAccountId: 'remote-threads',
+            displayName: 'Threads profile',
+            kind: 'PROFILE',
+            profileUrn: null,
+          },
+        })
+        .mockResolvedValueOnce({ channels: [] })
+
+      await store.completeProviderConnectionFromCallback({
+        provider: 'threads',
+        code: 'opaque-code',
+        state: 'opaque-state',
+        redirectUri: 'http://app.test/integrations/threads/callback',
+      })
+
+      expect(apiFetch).toHaveBeenNthCalledWith(1, '/api/publishing/threads/connections/complete', {
+        method: 'POST',
+        body: JSON.stringify({
+          authorizationCode: 'opaque-code',
+          redirectUri: 'http://app.test/integrations/threads/callback',
+          state: 'opaque-state',
+        }),
+        workspaceScoped: true,
+      })
+      expect(apiFetch).toHaveBeenNthCalledWith(2, '/api/publishing/channels', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
     })
   })
 
