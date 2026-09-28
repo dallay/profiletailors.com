@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.14](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.13...admin@v0.0.14) (2026-09-28)
+
+
+### Bug Fixes
+
+* **docs:** correct README badges and deployed-version validation ([#1193](https://github.com/dallay/profiletailors.com/issues/1193)) ([df5de9d](https://github.com/dallay/profiletailors.com/commit/df5de9df4f74789e925ae6d599abec7905f3cb4e))
+* **marketing:** bypass Cloudflare email obfuscation for Ahrefs Site Audit ([#1166](https://github.com/dallay/profiletailors.com/issues/1166)) ([e74270b](https://github.com/dallay/profiletailors.com/commit/e74270bfa893ef5cb95a5a64fc98db6e4577cab1))
+
+
+### Documentation
+
+* standardize technology, release, and deployed-version badges across READMEs ([#1188](https://github.com/dallay/profiletailors.com/issues/1188)) ([cf5120e](https://github.com/dallay/profiletailors.com/commit/cf5120e82c87bdb7f6af5c56e43ae0229a4169de))
+
 ## [0.0.13](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.12...admin@v0.0.13) (2026-09-24)
 
 
