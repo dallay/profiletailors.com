@@ -19,6 +19,7 @@ Delegated direct con `systematic-debugging`. Fallos de CI en la PR #1209, cada u
 - [x] RPI-004 Push + vigilar los tres checks en la PR.
 - [x] RPI-005 Ordenar la aserción de auditoría concurrente por cadena (`previousMode==OPEN` es first) en vez de por timestamp, correr el escenario BDD.
 - [x] RPI-006 Reescribir autoría de la rama a la identidad verificada (`Yuniel Acosta Pérez <33158051+yacosta738@users.noreply.github.com>`) + force-push; `cla-assistant` verde.
+- [ ] RPI-007 (bloqueado en decisión de contrato) Escenario `publishing-threads.feature:14` espera 400 pero el provider deshabilitado responde 409 tras el converter de `e7c938be`.
 
 ## Criterios de aceptación
 
