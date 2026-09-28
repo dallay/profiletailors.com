@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.15](https://github.com/dallay/profiletailors.com/compare/app@v0.3.14...app@v0.3.15) (2026-09-28)
+
+
+### Features
+
+* **app,scheduler:** mobile-first scheduler with Day / 3-Day / Week / Agenda ([#1205](https://github.com/dallay/profiletailors.com/issues/1205)) ([2e12864](https://github.com/dallay/profiletailors.com/commit/2e12864af5d03e7fded141c87b8a5971db5c8d27))
+* **app:** installable PWA with resilient offline shell ([#1178](https://github.com/dallay/profiletailors.com/issues/1178)) ([d19ec00](https://github.com/dallay/profiletailors.com/commit/d19ec002202500cdb69e8f9c76c1b5c7838e9b5d))
+* **scheduling:** reactive calendar browser-sync via SSE ([#1185](https://github.com/dallay/profiletailors.com/issues/1185)) ([f02b0e4](https://github.com/dallay/profiletailors.com/commit/f02b0e4b0e24275d943e7a7ce02e4ad267465f26))
+* **skills,threads:** remediate knowledge bundle and integrate Threads provider ([#1209](https://github.com/dallay/profiletailors.com/issues/1209)) ([15f3469](https://github.com/dallay/profiletailors.com/commit/15f3469484b5e38543c661c7ac679c9b0038666e))
+* **smp:** Threads provider integration ([#1186](https://github.com/dallay/profiletailors.com/issues/1186)) ([b825080](https://github.com/dallay/profiletailors.com/commit/b82508022bc6b0284205830870efe6f715ed66cc))
+
+
+### Bug Fixes
+
+* **app:** use te() to check key existence in AppShell pageTitle ([#1211](https://github.com/dallay/profiletailors.com/issues/1211)) ([2f273f2](https://github.com/dallay/profiletailors.com/commit/2f273f2ac291d11a002dce0c1a0106e11d313d67))
+* Create Post modal responsive layout and scrolling ([#1184](https://github.com/dallay/profiletailors.com/issues/1184)) ([4c7676f](https://github.com/dallay/profiletailors.com/commit/4c7676f3ff8831fe87d8b92cc920663703af816a))
+* **docs:** correct README badges and deployed-version validation ([#1193](https://github.com/dallay/profiletailors.com/issues/1193)) ([df5de9d](https://github.com/dallay/profiletailors.com/commit/df5de9df4f74789e925ae6d599abec7905f3cb4e))
+* **marketing:** bypass Cloudflare email obfuscation for Ahrefs Site Audit ([#1166](https://github.com/dallay/profiletailors.com/issues/1166)) ([e74270b](https://github.com/dallay/profiletailors.com/commit/e74270bfa893ef5cb95a5a64fc98db6e4577cab1))
+* **publishing:** graceful LinkedIn avatar degradation + refresh endpoint ([534f2e7](https://github.com/dallay/profiletailors.com/commit/534f2e750bbb3e96804a7cf9b9a826c89f88eb51))
+
+
+### Documentation
+
+* standardize technology, release, and deployed-version badges across READMEs ([#1188](https://github.com/dallay/profiletailors.com/issues/1188)) ([cf5120e](https://github.com/dallay/profiletailors.com/commit/cf5120e82c87bdb7f6af5c56e43ae0229a4169de))
+
 ## [0.3.14](https://github.com/dallay/profiletailors.com/compare/app@v0.3.13...app@v0.3.14) (2026-09-24)
 
 
