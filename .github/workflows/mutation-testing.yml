@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload advisory artifacts
         if: always()
-        uses: actions/upload-artifact@b7c8c2f1c805101bd13e8d39a4f31fecf2a6d2ea7 # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mutation-advisory-${{ github.sha }}
           path: |
