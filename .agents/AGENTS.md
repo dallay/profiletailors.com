@@ -381,7 +381,7 @@ server/smp/src/main/kotlin/com/profiletailors/smp/<context>/
 | Layer          | May depend on                                             | Must not depend on                                                                                  |
 | -------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Domain         | Pure Kotlin and approved framework-free shared contracts | Application, infrastructure, Spring, R2DBC, Reactor, persistence annotations, or transport concerns |
-| Application    | Domain and inward-facing ports                            | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
+| Application    | Domain, including domain-defined ports                   | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
 | Infrastructure | Domain, application, and external frameworks              | —                                                                                                   |
 
 Rules:
@@ -391,8 +391,9 @@ Rules:
 - Package backend code as `com.profiletailors.smp.{context}.{layer}`. Follow the established CQRS
   vocabulary (`GetXQuery`, `{Verb}XCommand`, `XHandler`) and existing adapter naming; do not rename
   code solely to impose a new variant of the convention.
-- Put repository/gateway contracts on the inward-facing side and implementations in infrastructure;
-  follow the existing context convention rather than importing an adapter into application code.
+- Place repository/gateway ports/interfaces in domain; implement them in infrastructure; inject them
+  into application services through composition. Follow the existing context convention rather than
+  importing an adapter into application code.
 - Use `com.profiletailors.common.domain.Service` for application services, not Spring `@Service`,
   `@Component`, or `@Repository`. `ModuleMetadata` and the explicitly accepted cross-cutting
   `com.profiletailors.smp.config` wiring exception contain no business logic.
