@@ -76,6 +76,12 @@ type assigns the canonical category. Unknown exceptions always map to
 | Disabled/deleted terminal account                  | `ACCOUNT_UNAVAILABLE`        | No             |
 | Unexpected exception                               | `PUBLISHING_FAILED`          | No             |
 
+Threads follows the same table through its container lifecycle: container create/poll/finalize
+HTTP statuses map by status code (401/403 reconnect, 429 rate-limited, 5xx unavailable, other
+non-2xx validation failure). A poll timeout that leaves a container ID behind raises transport
+uncertainty instead of a terminal category, so the worker records the operation reference and
+reconciles rather than blindly retrying into a duplicate post.
+
 ## Frontend Failure Mapping
 
 The frontend uses an **allowlist boundary** — it never passes raw error codes,

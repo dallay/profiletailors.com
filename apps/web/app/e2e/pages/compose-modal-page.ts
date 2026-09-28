@@ -60,7 +60,9 @@ export class ComposeModalPage {
 
   // Channel chips
   get channelChips(): Locator {
-    return this.page.locator('button').filter({ hasText: /linkedin|twitter|instagram|facebook/i })
+    return this.page
+      .locator('button')
+      .filter({ hasText: /linkedin|twitter|instagram|facebook|threads/i })
   }
 
   // Action buttons

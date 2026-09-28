@@ -1,6 +1,6 @@
 # Production Secrets Reference
 
-**Last Updated:** 2026-09-27
+**Last Updated:** 2026-09-28
 **Status:** Active
 
 ## Overview
@@ -134,6 +134,37 @@ Secrets are grouped by risk level and rotation frequency:
   secret, restart app. Existing refresh tokens may become invalid.
 - **Access:** Infrastructure admins, deployment automation.
 
+### Threads Integration (OAuth)
+
+#### `SMP_THREADS_CLIENT_ID`
+
+- **Type:** String (Meta App ID)
+- **Description:** OAuth 2.0 client ID from Meta Developers with the Threads use case enabled.
+- **Risk:** MEDIUM (public in authorization flow)
+- **Generation:** Obtained from [Meta Developers](https://developers.facebook.com/) with the
+  Threads use case enabled.
+- **Rotation:** Regenerate client credentials in Meta app settings, update both ID and secret,
+  restart app. Existing user connections may need re-authorization.
+- **Access:** Infrastructure admins, deployment automation.
+
+#### `SMP_THREADS_CLIENT_SECRET`
+
+- **Type:** String (Meta App Secret)
+- **Description:** OAuth 2.0 client secret from Meta Developers with the Threads use case enabled.
+  Mounted as `threads-client-secret` (Compose) or
+  `${SWARM_THREADS_CLIENT_SECRET:-profiletailors_threads_client_v1}` (Swarm); never exposed in
+  environment.
+- **Risk:** HIGH
+- **Generation:** Obtained from [Meta Developers](https://developers.facebook.com/) with the
+  Threads use case enabled.
+- **Rotation:** Regenerate in Meta app settings (invalidates old secret immediately), update
+  secret, restart app. Existing refresh tokens may become invalid.
+- **Access:** Infrastructure admins, deployment automation.
+- **Enablement:** Set `SMP_THREADS_ENABLED=true` only when this secret plus
+  `SMP_THREADS_CLIENT_ID` and an HTTPS `SMP_THREADS_REDIRECT_URI` are configured. Production
+  also requires Meta App Review for `threads_basic` + `threads_content_publish`; Threads stays
+  hidden from the provider catalog while its configuration is incomplete.
+
 ### Unsplash Integration
 
 #### `UNSPLASH_ACCESS_KEY`
@@ -153,7 +184,8 @@ Secrets are grouped by risk level and rotation frequency:
 
 - **Type:** Base64-encoded 32-byte key (AES-256)
 - **Description:** Master encryption key for OAuth access/refresh tokens stored in database.
-  Used by `EncryptedCredentialsService` to encrypt/decrypt LinkedIn OAuth tokens at rest.
+  Used by `EncryptedCredentialsService` to encrypt/decrypt social OAuth tokens (LinkedIn, Threads)
+  at rest.
 - **Risk:** **CRITICAL** — compromise exposes all user OAuth tokens.
 - **Generation:**
 
@@ -168,7 +200,7 @@ Secrets are grouped by risk level and rotation frequency:
     4. Update secret.
     5. Restart app.
     6. Verify all users can publish (tokens are decryptable).
-    7. **Fallback:** If rotation fails, users must reconnect LinkedIn accounts.
+    7. **Fallback:** If rotation fails, users must reconnect the affected provider accounts.
 - **Access:** Infrastructure admins only. Not readable by developers or support.
 - **Related issue:
   ** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
@@ -318,6 +350,9 @@ Before deploying to production, verify:
 - [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
 - [ ] `SMP_DB_PASSWORD` is strong (≥32 chars, randomly generated).
 - [ ] `SMP_LINKEDIN_CLIENT_SECRET` matches active LinkedIn app configuration.
+- [ ] `SMP_THREADS_CLIENT_SECRET` matches active Meta app configuration; `SMP_THREADS_ENABLED=true`
+  only with complete Threads configuration (client ID, client secret, HTTPS redirect URI) plus
+  Meta App Review evidence for `threads_basic` + `threads_content_publish`.
 - [ ] `SMP_CORS_ALLOWED_ORIGINS` includes only production frontend and admin URLs.
 - [ ] Persistent object storage is configured; local container storage is disabled.
 - [ ] `SMP_LIQUIBASE_CONTEXTS=prod` is set for deployment.
@@ -329,6 +364,7 @@ Before deploying to production, verify:
 | `SMP_DB_PASSWORD`                   | Infrastructure admins      | Deployment, incident response           |
 | `PUBLISHING_CREDENTIALS_KEY`        | Infrastructure admins only | Deployment, key rotation                |
 | `SMP_LINKEDIN_CLIENT_SECRET`        | Infrastructure admins      | Deployment, OAuth app changes           |
+| `SMP_THREADS_CLIENT_SECRET`         | Infrastructure admins      | Deployment, OAuth app changes           |
 | `SMP_LOCAL_JWT_SECRET`              | Infrastructure admins      | Deployment, security incident           |
 | `SMP_MEDIA_PREVIEW_SIGNING_SECRET`  | Infrastructure admins      | Deployment, URL-signing rotation        |
 | `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins      | Deployment, OAuth-state rotation        |
