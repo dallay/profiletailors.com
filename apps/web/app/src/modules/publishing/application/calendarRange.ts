@@ -5,7 +5,7 @@ import {
   type CalendarDate as CalendarDateType,
 } from '@internationalized/date'
 
-export type CalendarSurface = 'week' | 'month'
+export type CalendarSurface = 'day' | '3-days' | 'week' | 'month'
 
 export type CalendarRange = {
   from: string
@@ -52,8 +52,13 @@ export function getCalendarRange(
   const start =
     surface === 'month'
       ? startOfMonth(date)
-      : date.subtract({ days: getDayOfWeek(date, 'en-US', 'sun') })
-  const end = surface === 'month' ? start.add({ months: 1 }) : start.add({ days: 7 })
+      : surface === 'week'
+        ? date.subtract({ days: getDayOfWeek(date, 'en-US', 'sun') })
+        : date
+  const end =
+    surface === 'month'
+      ? start.add({ months: 1 })
+      : start.add({ days: surface === '3-days' ? 3 : surface === 'day' ? 1 : 7 })
 
   return {
     from: atStartOfDay(start, timezone),

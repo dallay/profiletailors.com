@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 
 export type SchedulerSurface = 'calendar-week' | 'calendar-month' | 'list'
 export type SchedulerStatus = 'all' | 'queued' | 'published' | 'cancelled'
+export type SchedulerView = 'day' | '3-days' | 'week' | 'month' | 'agenda'
 
 export interface CalendarUrlState {
   surface: SchedulerSurface
+  view: SchedulerView
   date: string
   timezone: string
   status: SchedulerStatus
@@ -20,23 +22,47 @@ export interface CalendarUrlController {
   needsCanonicalization: Ref<boolean>
   canonicalize: () => Promise<void>
   setSurface: (surface: SchedulerSurface) => Promise<void>
+  setView: (view: SchedulerView) => Promise<void>
   setDate: (date: string) => Promise<void>
   stepPeriod: (direction: 'forward' | 'backward') => Promise<void>
   setTimezone: (timezone: string) => Promise<void>
   setStatus: (status: SchedulerStatus) => Promise<void>
   setSearch: (q: string) => Promise<void>
   setChannelIds: (channelIds: string[]) => Promise<void>
+  setFilters: (filter: {
+    status?: SchedulerStatus
+    timezone?: string
+    channelIds?: string[]
+    q?: string
+  }) => Promise<void>
   openPostDetail: (postId: string) => Promise<void>
   closePostDetail: (options?: { replace?: boolean }) => Promise<void>
 }
 
 const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
 const VALID_STATUSES = new Set<SchedulerStatus>(['all', 'queued', 'published', 'cancelled'])
+export const VALID_VIEWS = new Set<SchedulerView>(['day', '3-days', 'week', 'month', 'agenda'])
 
 const CALENDAR_ROUTE_NAMES: Record<SchedulerSurface, string> = {
   'calendar-week': 'scheduler-calendar-week',
   'calendar-month': 'scheduler-calendar-month',
   list: 'scheduler-list',
+}
+
+export function surfaceDefaultView(surface: SchedulerSurface): SchedulerView {
+  if (surface === 'calendar-month') return 'month'
+  if (surface === 'list') return 'agenda'
+  return 'week'
+}
+
+function normalizeView(value: unknown, surface: SchedulerSurface): SchedulerView {
+  const candidate =
+    typeof value === 'string' && VALID_VIEWS.has(value as SchedulerView)
+      ? (value as SchedulerView)
+      : surfaceDefaultView(surface)
+  if (surface === 'calendar-month') return 'month'
+  if (surface === 'list') return 'agenda'
+  return candidate === 'month' ? 'week' : candidate
 }
 
 function resolveToday(): string {
@@ -142,8 +168,10 @@ function normalizeQuery(route: {
 }): CalendarUrlState {
   const rawChannels = route.query['channels[]'] ?? route.query.channels
 
+  const surface = normalizeSurface(route)
   return {
-    surface: normalizeSurface(route),
+    surface,
+    view: normalizeView(route.query.view, surface),
     date: normalizeDate(trimOrEmpty(route.query.date)),
     timezone: normalizeTimezone(trimOrEmpty(route.query.timezone)),
     status: normalizeStatus(trimOrEmpty(route.query.status)),
@@ -184,6 +212,10 @@ function buildQuery(state: CalendarUrlState): LocationQueryRaw {
 
   if (state.postId) {
     query.postId = state.postId
+  }
+
+  if (state.view !== surfaceDefaultView(state.surface)) {
+    query.view = state.view
   }
 
   return query
@@ -262,7 +294,16 @@ export function createCalendarUrlController(
       await navigate(router, state.value, 'replace')
     },
     setSurface: async (surface) => {
-      await navigate(router, { ...state.value, surface }, 'push')
+      await navigate(
+        router,
+        { ...state.value, surface, view: normalizeView(state.value.view, surface) },
+        'push',
+      )
+    },
+    setView: async (view) => {
+      const surface =
+        view === 'agenda' ? 'list' : view === 'month' ? 'calendar-month' : 'calendar-week'
+      await navigate(router, { ...state.value, surface, view }, 'push')
     },
     setDate: async (date) => {
       await navigate(router, { ...state.value, date: normalizeDate(date) }, 'push')
@@ -276,7 +317,8 @@ export function createCalendarUrlController(
         date.setDate(1)
         date.setMonth(date.getMonth() + sign)
       } else {
-        date.setDate(date.getDate() + sign * 7)
+        const days = state.value.view === 'day' ? 1 : state.value.view === '3-days' ? 3 : 7
+        date.setDate(date.getDate() + sign * days)
       }
       const y = date.getFullYear()
       const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -294,6 +336,25 @@ export function createCalendarUrlController(
     },
     setChannelIds: async (channelIds) => {
       await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'replace')
+    },
+    setFilters: async (filter) => {
+      await navigate(
+        router,
+        {
+          ...state.value,
+          status: filter.status === undefined ? state.value.status : normalizeStatus(filter.status),
+          timezone:
+            filter.timezone === undefined
+              ? state.value.timezone
+              : normalizeTimezone(filter.timezone),
+          channelIds:
+            filter.channelIds === undefined
+              ? state.value.channelIds
+              : [...new Set(filter.channelIds)],
+          q: filter.q === undefined ? state.value.q : filter.q.trim(),
+        },
+        'replace',
+      )
     },
     openPostDetail: async (postId) => {
       await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')

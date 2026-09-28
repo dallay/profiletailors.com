@@ -4,6 +4,7 @@ import {
   createCalendarUrlController,
   extractFirstChannelId,
   isInvalidStatus,
+  surfaceDefaultView,
 } from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,49 @@ function createMockRouter(): Router {
 // We test through the composable factory by injecting the mock route/router.
 // The composable is tested by verifying router.push/replace calls match the
 // current route state after each action.
+
+describe('surfaceDefaultView', () => {
+  it('uses the canonical default for each surface', () => {
+    expect(surfaceDefaultView('calendar-week')).toBe('week')
+    expect(surfaceDefaultView('calendar-month')).toBe('month')
+    expect(surfaceDefaultView('list')).toBe('agenda')
+  })
+})
+
+describe('scheduler view URL state', () => {
+  it('preserves a non-default view and omits the week default', () => {
+    const day = createCalendarUrlController(
+      createMockRoute({ query: { view: 'day' } }),
+      createMockRouter(),
+    )
+    const week = createCalendarUrlController(
+      createMockRoute({ query: { view: 'week' } }),
+      createMockRouter(),
+    )
+
+    expect(day.state.value.view).toBe('day')
+    expect(week.state.value.view).toBe('week')
+    expect(week.needsCanonicalization.value).toBe(true)
+  })
+
+  it('canonicalizes invalid views and the legacy day route', async () => {
+    const router = createMockRouter()
+    const controller = createCalendarUrlController(
+      createMockRoute({ name: 'scheduler-calendar-day', query: { view: 'hourly' } }),
+      router,
+    )
+
+    expect(controller.state.value.surface).toBe('calendar-week')
+    expect(controller.state.value.view).toBe('week')
+    expect(controller.needsCanonicalization.value).toBe(true)
+    await controller.canonicalize()
+
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'scheduler-calendar-week',
+      query: expect.not.objectContaining({ view: expect.anything() }),
+    })
+  })
+})
 
 describe('extractFirstChannelId', () => {
   it('prefers the first channels[] value when query contains an array', () => {
@@ -971,5 +1015,64 @@ describe('useCalendarUrl — stepPeriod', () => {
     expect(router.push).toHaveBeenCalled()
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(call.query).toHaveProperty('date')
+  })
+})
+
+describe('scheduler navigation', () => {
+  it('pushes a day view and maps agenda to the list surface', async () => {
+    const router = createMockRouter()
+    const controller = createCalendarUrlController(createMockRoute(), router)
+
+    await controller.setView('day')
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'scheduler-calendar-week',
+        query: expect.objectContaining({ view: 'day' }),
+      }),
+    )
+
+    const monthRouter = createMockRouter()
+    const month = createCalendarUrlController(
+      createMockRoute({ name: 'scheduler-calendar-month' }),
+      monthRouter,
+    )
+    await month.setView('agenda')
+    expect(monthRouter.push).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'scheduler-list' }),
+    )
+  })
+
+  it.each([
+    ['day', 1],
+    ['3-days', 3],
+    ['week', 7],
+    ['agenda', 7],
+  ] as const)('steps %s by %s days', async (view, days) => {
+    const router = createMockRouter()
+    const controller = createCalendarUrlController(
+      createMockRoute({ query: { date: '2026-07-10', view } }),
+      router,
+    )
+    await controller.stepPeriod('forward')
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ date: `2026-07-${String(10 + days).padStart(2, '0')}` }),
+      }),
+    )
+  })
+})
+
+describe('scheduler filters atomic commit', () => {
+  it('commits status, timezone and channels in a single replace', async () => {
+    const router = createMockRouter()
+    const controller = createCalendarUrlController(createMockRoute(), router)
+    await controller.setFilters({
+      status: 'queued',
+      timezone: 'UTC',
+      channelIds: ['acc-1', 'acc-1'],
+    })
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ status: 'queued', 'channels[]': ['acc-1'] })
   })
 })
