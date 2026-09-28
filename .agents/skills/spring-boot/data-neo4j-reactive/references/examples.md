@@ -976,7 +976,7 @@ class MovieRepositoryIntegrationTest {
 
 ```kotlin
 @ExtendWith(
-    MockitoExtension.class)
+    KotestSpec.class)
     class MovieServiceTest {
 
     @Mock

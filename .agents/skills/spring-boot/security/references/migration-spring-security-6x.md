@@ -1,7 +1,14 @@
-# Migration Guide: Spring Security 5.x to 6.x for JWT
+# Migration Guide: From Spring Security 5.x servlet to reactive WebFlux
 
-This guide helps you migrate JWT authentication from Spring Security 5.x to 6.x, covering the major
-API changes and best practices.
+This guide documents the historical migration steps from a Spring Security 5.x
+servlet stack (`HttpSecurity`, `SecurityFilterChain`, `OncePerRequestFilter`) to
+the reactive WebFlux stack (`ServerHttpSecurity`, `SecurityWebFilterChain`,
+`WebFilter`) used by the SMP backend. The file is intentionally kept as a
+reference for engineers who must understand both shapes.
+
+> **Status**: legacy. The blocks labelled `<!-- pre-migration -->` describe the
+> servlet-stack patterns that are no longer used in production code; the blocks
+> labelled `<!-- post-migration -->` describe the current reactive patterns.
 
 ## Table of Contents
 
@@ -13,34 +20,55 @@ API changes and best practices.
 6. [Method Security Changes](#method-security-changes)
 7. [Common Migration Issues](#common-migration-issues)
 8. [Step-by-Step Migration](#step-by-step-migration)
+9. [New Capabilities in the Reactive Stack](#new-capabilities-in-the-reactive-stack)
 
 ## Overview of Changes
 
-Spring Security 6.x introduced significant changes to the security configuration API, moving from
-the deprecated `WebSecurityConfigurerAdapter` to a more functional approach using
-`SecurityFilterChain`.
+The reactive migration introduces a different programming model. Beyond the
+Spring Security 5.x → 6.x servlet-API changes (which are summarised in the
+`<!-- pre-migration -->` blocks for historical context), the move to WebFlux
+replaces every servlet binding with its reactive equivalent.
 
-### Key Changes:
+### Key Reactive Changes
 
-- `WebSecurityConfigurerAdapter` is deprecated
-- `antMatchers()` replaced with `requestMatchers()`
-- `and()` method chaining removed
-- Lambda DSL is now the default
-- `csrf()` and `cors()` require explicit configuration
-- New `authorizeHttpRequests()` method
+| Servlet API                              | WebFlux reactive equivalent                                |
+|------------------------------------------|------------------------------------------------------------|
+| `WebSecurityConfigurerAdapter`           | (removed) `SecurityWebFilterChain` bean                    |
+| `HttpSecurity`                           | `ServerHttpSecurity`                                       |
+| `SecurityFilterChain`                    | `SecurityWebFilterChain`                                   |
+| `OncePerRequestFilter`                   | `WebFilter` (implements `Mono<Void>`)                      |
+| `HttpServletRequest` / `HttpServletResponse` | `ServerWebExchange` / `ServerHttpRequest`/`Response`     |
+| `FilterChain.doFilter(req, res)`         | `chain.filter(exchange).then()`                            |
+| `SecurityContextHolder.getContext()`     | `exchange.exchange.getPrincipal<Authentication>()`          |
+| `UsernamePasswordAuthenticationFilter`   | `SecurityWebFiltersOrder.HTTP_BASIC` (or a filter slot)     |
+| `AuthenticationManager`                  | `ReactiveAuthenticationManager`                            |
+| `AuthenticationProvider`                 | `ReactiveAuthenticationProvider` (Coroutine variant)        |
+| `UserDetailsService`                     | `ReactiveUserDetailsService`                               |
+| `requestMatchers(...)` (path matcher)    | `pathMatchers(...)`                                        |
+| `antMatchers(...)`                       | `pathMatchers(...)`                                        |
+| `authorizeHttpRequests(...)`             | `authorizeExchange(...)`                                   |
+| `csrf(...)`                              | `csrf { ... }` (same DSL, runs on `ServerHttpSecurity`)     |
+| `oauth2ResourceServer(...)`              | same DSL, runs against `ServerHttpSecurity`                |
+| `@EnableMethodSecurity`                  | `@EnableReactiveMethodSecurity`                            |
+| `MockMvc`                                | `WebTestClient`                                            |
+| `@AutoConfigureMockMvc`                  | `@AutoConfigureWebTestClient`                              |
+| `@MockBean`                              | `@MockkBean` (`com.ninja-squad:springmockk`)               |
+| `@WebMvcTest`                            | `@WebFluxTest`                                             |
+| `JdbcTemplate` / `JpaRepository`         | `DatabaseClient` / `CoroutineCrudRepository`               |
+| `spring.datasource.*` properties         | `spring.r2dbc.*` properties                                |
+| `starter-data-jpa` / `starter-web`       | `starter-data-r2dbc` / `starter-webflux`                   |
 
 ## Configuration Changes
 
-### Before (Spring Security 5.x)
+<!-- pre-migration: Spring Security 5.x servlet configuration -->
 
 ```kotlin
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-class SecurityConfig extends WebSecurityConfigurerAdapter {
+class SecurityConfig : WebSecurityConfigurerAdapter() {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    override fun configure(http: HttpSecurity) {
         http
             .csrf().disable()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -51,482 +79,588 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
             .anyRequest().authenticated()
             .and()
             .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
     }
 }
 ```
 
-### After (Spring Security 6.x)
+<!-- post-migration: reactive WebFlux configuration -->
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity // Changed from EnableGlobalMethodSecurity
-class SecurityConfig {
-
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class SecurityConfig(
+    private val authenticationManager: ReactiveAuthenticationManager,
+    private val jwtAuthenticationFilter: JwtAuthenticationWebFilter,
+) {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
-    {
-        http
-            .csrf(csrf -> csrf.disable()) // Lambda DSL required
-        .sessionManagement(session ->
-        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        )
-        .authorizeHttpRequests(authz -> authz // New method
-        .requestMatchers("/api/auth/**").permitAll() // Changed from antMatchers
-        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-        .anyRequest().authenticated()
-        )
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .csrf { it.disable() }
+        .anonymous { it.disable() }
+        .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+        .authorizeExchange { auth ->
+            auth
+                .pathMatchers("/api/auth/**").permitAll()
+                .pathMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyExchange().authenticated()
+        }
+        .authenticationManager(authenticationManager)
+        .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.HTTP_BASIC)
+        .build()
 }
 ```
 
 ## JWT Filter Changes
 
-### Before (Spring Security 5.x)
+<!-- pre-migration: servlet OncePerRequestFilter -->
 
 ```kotlin
-class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationFilter : OncePerRequestFilter() {
 
-    @Override
-    protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
-    ) throws ServletException, IOException {
+    override fun doFilterInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        filterChain: FilterChain,
+    ) {
+        val authHeader = request.getHeader("Authorization")
 
-    String authHeader = request . getHeader ("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            val token = authHeader.substring(7)
+        }
 
-    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-        String token = authHeader . substring (7);
-        // ... token validation logic
+        filterChain.doFilter(request, response)
     }
-
-    filterChain.doFilter(request, response);
-}
 }
 ```
 
-### After (Spring Security 6.x)
+<!-- post-migration: reactive WebFilter -->
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
-class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationWebFilter(
+    private val jwtService: JwtService,
+    private val userDetailsService: ReactiveUserDetailsService,
+) : WebFilter {
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val authHeader = exchange.request.headers.header("Authorization").firstOrNull()
 
-    private val jwtService: JwtService
-    private val userDetailsService: UserDetailsService
-
-    @Override
-    protected void doFilterInternal(
-        @NonNull HttpServletRequest request,
-        @NonNull HttpServletResponse response,
-        @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
-
-    String authHeader = request . getHeader ("Authorization");
-
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    String token = authHeader . substring (7);
-    String username = jwtService . extractUsername (token);
-
-    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        UserDetails userDetails = userDetailsService . loadUserByUsername (username);
-
-        if (jwtService.isTokenValid(token, userDetails)) {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities()
-            );
-            authToken.setDetails(WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return chain.filter(exchange)
         }
-    }
 
-    filterChain.doFilter(request, response);
-}
+        val token = authHeader.substring(7)
+        return chain.filter(exchange)
+    }
 }
 ```
 
 ## Authentication Provider Changes
 
-### Before (Spring Security 5.x)
+<!-- pre-migration: servlet DaoAuthenticationProvider -->
 
 ```kotlin
 @Bean
 fun authenticationProvider(): AuthenticationProvider {
-    DaoAuthenticationProvider authProvider = DaoAuthenticationProvider ();
-    authProvider.setUserDetailsService(userDetailsService);
-    authProvider.setPasswordEncoder(passwordEncoder());
-    return authProvider;
+    val authProvider = DaoAuthenticationProvider()
+    authProvider.setUserDetailsService(userDetailsService())
+    authProvider.setPasswordEncoder(passwordEncoder())
+    return authProvider
 }
 ```
 
-### After (Spring Security 6.x)
+<!-- post-migration: reactive DaoReactiveAuthenticationProvider -->
 
 ```kotlin
 @Bean
-fun authenticationProvider(): AuthenticationProvider {
-    DaoAuthenticationProvider authProvider = DaoAuthenticationProvider ();
-    authProvider.setUserDetailsService(userDetailsService);
-    authProvider.setPasswordEncoder(passwordEncoder());
-    return authProvider;
+fun authenticationManager(
+    userDetailsService: ReactiveUserDetailsService,
+    passwordEncoder: PasswordEncoder,
+): ReactiveAuthenticationManager {
+    val provider = DaoReactiveAuthenticationProvider(userDetailsService)
+    provider.setPasswordEncoder(passwordEncoder)
+    return ProviderManagerReactiveAuthenticationManager(provider)
 }
-
-// No changes needed - same implementation
 ```
 
 ## CORS Configuration Changes
 
-### Before (Spring Security 5.x)
+<!-- pre-migration: WebMvcConfigurer-based CORS registration -->
 
 ```kotlin
 @Configuration
-class CorsConfig implements WebMvcConfigurer {
-    @Override
-    fun addCorsMappings(CorsRegistry registry): void {
+class CorsConfig : WebMvcConfigurer {
+    override fun addCorsMappings(registry: CorsRegistry) {
         registry.addMapping("/**")
             .allowedOrigins("*")
             .allowedMethods("GET", "POST", "PUT", "DELETE")
             .allowedHeaders("*")
-            .allowCredentials(true);
+            .allowCredentials(true)
     }
 }
 ```
 
-### After (Spring Security 6.x)
+<!-- post-migration: reactive CorsConfigurationSource -->
 
 ```kotlin
 @Configuration
 class CorsConfig {
-
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        CorsConfiguration configuration = CorsConfiguration ();
-        configuration.setAllowedOriginPatterns(listOf("*")); // Changed from setAllowedOrigins
-        configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(listOf("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource ();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+        val configuration = CorsConfiguration().apply {
+            allowedOriginPatterns = listOf("*")
+            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            allowedHeaders = listOf("*")
+            allowCredentials = true
+            maxAge = 3600L
+        }
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", configuration)
+        }
     }
 }
 ```
 
 ## Method Security Changes
 
-### Before (Spring Security 5.x)
+<!-- pre-migration: Spring Security 5.x annotations -->
 
 ```kotlin
 @EnableGlobalMethodSecurity(
     prePostEnabled = true,
     securedEnabled = true,
-    jsr250Enabled = true
+    jsr250Enabled = true,
 )
 ```
 
-### After (Spring Security 6.x)
+<!-- post-migration: reactive annotations -->
 
 ```kotlin
-@EnableMethodSecurity( // Simplified annotation
+@EnableReactiveMethodSecurity(
     prePostEnabled = true,
     securedEnabled = true,
-    jsr250Enabled = true
+    jsr250Enabled = true,
 )
 ```
 
-### Method Security Usage
+### Method Security Usage in Coroutine Services
+
+<!-- pre-migration: sync service annotated with @PreAuthorize -->
 
 ```kotlin
 @Service
 class UserService {
 
-    @PreAuthorize("hasRole('ADMIN')") // No changes
-    public List<User> getAllUsers()
-    {
-        // ...
-    }
+    @PreAuthorize("hasRole('ADMIN')")
+    fun getAllUsers(): List<User> = emptyList()
 
     @PreAuthorize("hasRole('USER') or #username == authentication.name")
-    fun getUser(String username): User {
-        // ...
-    }
+    fun getUser(username: String): User = TODO()
 }
 ```
 
-## Common Migration Issues
-
-### Issue 1: `antMatchers()` Not Found
-
-**Error**: `The method antMatchers(String) is undefined for the type ExpressionInterceptUrlRegistry`
-
-**Solution**: Use `requestMatchers()` instead
+<!-- post-migration: reactive coroutine service with the same annotations -->
 
 ```kotlin
-// Before
-.antMatchers("/api/auth/**").permitAll()
+@com.profiletailors.common.domain.Service
+class UserService {
+    @PreAuthorize("hasRole('ADMIN')")
+    suspend fun listAll(): List<UserAccount> = userRepository.findAll().toList()
 
-// After
-    .requestMatchers("/api/auth/**").permitAll()
+    @PreAuthorize("hasRole('USER') or #username == authentication.name")
+    suspend fun findByUsername(username: String): UserAccount? = userRepository.findByEmail(username)
+}
 ```
 
-### Issue 2: `and()` Method Not Found
+`@PreAuthorize` works the same way; the only change is the surrounding function
+is now `suspend` and the principal comes from the reactive security context.
 
-**Error**: `The method and() is undefined`
+## Common Migration Issues
 
-**Solution**: Use lambda DSL
+### Issue 1: Ant matchers unavailable in WebFlux
+
+<!-- pre-migration: servlet request matchers -->
 
 ```kotlin
-// Before
+.antMatchers("/api/auth/**").permitAll()
+```
+
+<!-- post-migration: reactive path matchers -->
+
+```kotlin
+.pathMatchers("/api/auth/**").permitAll()
+```
+
+### Issue 2: Chaining returning `null`
+
+<!-- pre-migration: servlet chaining ends with .and() -->
+
+```kotlin
 http
     .csrf().disable()
     .and()
     .sessionManagement()...
-
-// After
-http
-    .csrf(csrf -> csrf.disable())
-.sessionManagement(session -> ...)...
 ```
 
-### Issue 3: `WebSecurityConfigurerAdapter` Deprecated
-
-**Warning**: `The type WebSecurityConfigurerAdapter is deprecated`
-
-**Solution**: Use `SecurityFilterChain` bean
+<!-- post-migration: lambda DSL with explicit returns -->
 
 ```kotlin
-// Before
-class SecurityConfig extends WebSecurityConfigurerAdapter {
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        // ...
-    }
-}
+http
+    .csrf { it.disable() }
+    .sessionManagement { ... }
+    .build()
+```
 
-// After
+### Issue 3: `WebSecurityConfigurerAdapter` deprecation
+
+<!-- pre-migration: subclassing the deprecated adapter -->
+
+```kotlin
+class SecurityConfig : WebSecurityConfigurerAdapter() {
+    override fun configure(http: HttpSecurity) { /* ... */ }
+}
+```
+
+<!-- post-migration: declaring a SecurityWebFilterChain bean -->
+
+```kotlin
 class SecurityConfig {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
-    {
-        // ...
-        return http.build();
-    }
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
+        http.authorizeExchange { it.anyExchange().authenticated() }.build()
 }
 ```
 
-### Issue 4: `configure(AuthenticationManagerBuilder)` Not Working
+### Issue 4: `AuthenticationManagerBuilder` not wired
 
-**Error**: Authentication configuration not applied
-
-**Solution**: Use `AuthenticationManager` bean
+<!-- pre-migration: configure(AuthenticationManagerBuilder) -->
 
 ```kotlin
-// Before
-@Override
-protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-    auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+override fun configure(auth: AuthenticationManagerBuilder) {
+    auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder())
 }
+```
 
-// After
+<!-- post-migration: explicit ReactiveAuthenticationManager bean -->
+
+```kotlin
 @Bean
-public AuthenticationManager authenticationManager(
-    UserDetailsService userDetailsService,
-    PasswordEncoder passwordEncoder
-) throws Exception {
-    DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
-    provider.setUserDetailsService(userDetailsService);
-    provider.setPasswordEncoder(passwordEncoder);
-    return ProviderManager(provider);
-}
+fun authenticationManager(
+    userDetailsService: ReactiveUserDetailsService,
+    passwordEncoder: PasswordEncoder,
+): ReactiveAuthenticationManager = ProviderManagerReactiveAuthenticationManager(
+    DaoReactiveAuthenticationProvider(userDetailsService).apply {
+        setPasswordEncoder(passwordEncoder)
+    },
+)
 ```
 
 ## Step-by-Step Migration
 
 ### Step 1: Update Dependencies
 
+<!-- pre-migration: starter-web + starter-data-jpa -->
+
 ```xml
-<!-- pom.xml -->
 <properties>
   <spring-boot.version>3.5.0</spring-boot.version>
   <spring-security.version>6.3.0</spring-security.version>
 </properties>
+
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
 ```
 
-### Step 2: Update Configuration Class
+<!-- post-migration: starter-webflux + starter-data-r2dbc -->
 
 ```kotlin
-// Remove extends WebSecurityConfigurerAdapter
+implementation("org.springframework.boot:spring-boot-starter-webflux")
+implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+```
+
+Exact versions live in `gradle/libs.versions.toml`.
+
+### Step 2: Convert the configuration class
+
+<!-- pre-migration: SecurityFilterChain bean on HttpSecurity -->
+
+```kotlin
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Update annotation
+@EnableMethodSecurity
 class SecurityConfig {
 
-    // Add SecurityFilterChain bean
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
-    {
-        // Configuration using lambda DSL
-        return http.build();
-    }
+    fun securityFilterChain(http: HttpSecurity): SecurityWebFilterChain =
+        http
+            .authorizeHttpRequests { it.anyRequest().authenticated() }
+            .build()
 }
 ```
 
-### Step 3: Update Request Matchers
+<!-- post-migration: SecurityWebFilterChain bean on ServerHttpSecurity -->
 
 ```kotlin
-// Replace all antMatchers() with requestMatchers()
+@Configuration
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class SecurityConfig(
+    private val authenticationManager: ReactiveAuthenticationManager,
+) {
+    @Bean
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
+        http
+            .authorizeExchange { it.anyExchange().authenticated() }
+            .authenticationManager(authenticationManager)
+            .build()
+}
+```
+
+### Step 3: Convert path matchers
+
+<!-- pre-migration: servlet requestMatchers() -->
+
+```kotlin
 http
-    .authorizeHttpRequests(authz -> authz
-.requestMatchers("/api/auth/**").permitAll()
-    .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-    .anyRequest().authenticated()
-)
+    .authorizeHttpRequests { authz ->
+        authz
+            .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+            .anyRequest().authenticated()
+    }
 ```
 
-### Step 4: Update CORS Configuration
+<!-- post-migration: reactive pathMatchers() / authorizeExchange() -->
 
 ```kotlin
-// If using WebMvcConfigurer, switch to CorsConfigurationSource
+http
+    .authorizeExchange { authz ->
+        authz
+            .pathMatchers("/api/auth/**").permitAll()
+            .pathMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+            .anyExchange().authenticated()
+    }
+```
+
+### Step 4: Convert CORS
+
+<!-- pre-migration: WebMvcConfigurer -->
+
+```kotlin
+@Configuration
+class CorsConfig : WebMvcConfigurer {
+    override fun addCorsMappings(registry: CorsRegistry) { /* ... */ }
+}
+```
+
+<!-- post-migration: reactive CorsConfigurationSource bean -->
+
+```kotlin
+@Configuration
+class CorsConfig {
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource { /* ... */ }
+}
+```
+
+### Step 5: Convert JWT filter
+
+<!-- pre-migration: OncePerRequestFilter -->
+
+```kotlin
+class JwtAuthenticationFilter : OncePerRequestFilter() {
+    override fun doFilterInternal(
+        @NonNull request: HttpServletRequest,
+        @NonNull response: HttpServletResponse,
+        @NonNull filterChain: FilterChain,
+    ) { /* ... */ }
+}
+```
+
+<!-- post-migration: WebFilter returning Mono<Void> -->
+
+```kotlin
+@Component
+class JwtAuthenticationWebFilter : WebFilter {
+    override fun filter(
+        exchange: ServerWebExchange,
+        chain: WebFilterChain,
+    ): Mono<Void> = chain.filter(exchange)
+}
+```
+
+### Step 6: Convert authentication manager
+
+<!-- pre-migration: AuthenticationManager bean from ProviderManager -->
+
+```kotlin
 @Bean
-fun corsConfigurationSource(): CorsConfigurationSource {
-    CorsConfiguration configuration = CorsConfiguration ();
-    configuration.setAllowedOriginPatterns(listOf("*"));
-    // ... rest of configuration
+fun authenticationManager(
+    userDetailsService: UserDetailsService,
+    passwordEncoder: PasswordEncoder,
+): AuthenticationManager {
+    val provider = DaoAuthenticationProvider()
+    provider.setUserDetailsService(userDetailsService)
+    provider.setPasswordEncoder(passwordEncoder)
+    return ProviderManager(provider)
 }
 ```
 
-### Step 5: Update JWT Filter
+<!-- post-migration: ReactiveAuthenticationManager bean -->
 
 ```kotlin
-// Add @NonNull annotations to parameters
-@Override
-protected void doFilterInternal(
-    @NonNull HttpServletRequest request,
-    @NonNull HttpServletResponse response,
-    @NonNull FilterChain filterChain
-) throws ServletException, IOException {
-    // ... implementation
-}
-```
-
-### Step 6: Update Authentication Manager
-
-```kotlin
-// Create AuthenticationManager bean instead of overriding
 @Bean
-public AuthenticationManager authenticationManager(
-    UserDetailsService userDetailsService,
-    PasswordEncoder passwordEncoder
-) throws Exception {
-    DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
-    provider.setUserDetailsService(userDetailsService);
-    provider.setPasswordEncoder(passwordEncoder);
-    return ProviderManager(provider);
-}
+fun authenticationManager(
+    userDetailsService: ReactiveUserDetailsService,
+    passwordEncoder: PasswordEncoder,
+): ReactiveAuthenticationManager =
+    ProviderManagerReactiveAuthenticationManager(
+        DaoReactiveAuthenticationProvider(userDetailsService).apply {
+            setPasswordEncoder(passwordEncoder)
+        },
+    )
 ```
 
-### Step 7: Update Tests
+### Step 7: Convert tests
+
+<!-- pre-migration: MockMvc + @MockBean + JUnit Jupiter + Mockito -->
 
 ```kotlin
-// Update test configurations
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityTest {
 
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
     @Test
-    void testSecurityConfiguration() throws Exception
-    {
+    fun protectedEndpoint_returnsForbiddenWhenUnauthenticated() {
         mockMvc.perform(get("/api/protected"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden)
     }
 }
 ```
 
-## New Features in Spring Security 6.x
-
-### 1. Request Authorization Improvements
+<!-- post-migration: WebTestClient + @MockkBean + Kotest + MockK -->
 
 ```kotlin
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-        .authorizeHttpRequests(authz -> authz
-    .requestMatchers("/api/users/{userId}/**")
-    .access(
-        new WebExpressionAuthorizationManager (
-                "@authz.checkUserId(authentication, #userId)")
-    )
-    .anyRequest().authenticated()
-    );
-    return http.build();
-}
+@SpringBootTest
+@AutoConfigureWebTestClient
+class SecurityTest : StringSpec({
+    "protected endpoint returns 401 when unauthenticated" {
+        webTestClient.get().uri("/api/protected")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+})
 ```
 
-### 2. Custom Authorization Manager
+## New Capabilities in the Reactive Stack
+
+### Reactive Path Authorization with `AuthorizationManager`
+
+<!-- post-migration: ReactiveAuthorizationManager binding -->
 
 ```kotlin
 @Component
-class CustomAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
+class PathAuthorizationManager(userRepository: UserRepository) : ReactiveAuthorizationManager<AuthorizationContext> {
+    override fun check(
+        authentication: Mono<Authentication>,
+        context: AuthorizationContext,
+    ): Mono<AuthorizationDecision> = authentication.zipWith(
+        Mono.justOrEmpty(context.variables["userId"]?.toString()),
+    ).flatMap { (auth, userId) ->
+        userRepository.findById(userId.toLong())
+            .map { auth.principal == it || it.roles.contains("ADMIN") }
+            .defaultIfEmpty(false)
+            .map(::AuthorizationDecision)
+    }
+}
 
-    @Override
-    public AuthorizationDecision check(
-        Supplier<Authentication> authentication,
-        RequestAuthorizationContext context
-    ) {
-        // Custom authorization logic
-        return AuthorizationDecision(true);
+http.authorizeExchange { auth ->
+    auth.pathMatchers("/api/users/{userId}/**")
+        .access(PathAuthorizationManager(userRepository))
+        .anyExchange().authenticated()
+}
+```
+
+### Coroutine Application Services
+
+<!-- pre-migration: synchronous service with @PreAuthorize -->
+
+```kotlin
+@Service
+class ResourceService {
+    @PreAuthorize("@securityService.hasPermission(#id, authentication)")
+    fun deleteResource(id: Long) {
+        resourceRepository.deleteById(id)
     }
 }
 ```
 
-### 3. Simplified Security Expressions
+<!-- post-migration: coroutine service with the same authorization -->
+
+```kotlin
+@com.profiletailors.common.domain.Service
+class ResourceService {
+    @PreAuthorize("@securityService.hasPermission(#id, authentication)")
+    suspend fun deleteResource(id: ResourceId) {
+        resourceRepository.delete(id)
+    }
+}
+```
+
+### Reactive Security Expressions
+
+<!-- pre-migration: same expression syntax -->
 
 ```kotlin
 @PreAuthorize("@securityService.hasPermission(#id, authentication)")
-fun deleteResource(Long id): void {
-    // Method implementation
-}
+fun deleteResource(id: Long) { /* ... */ }
+```
+
+<!-- post-migration: same expression, but with suspend coroutine -->
+
+```kotlin
+@PreAuthorize("@securityService.hasPermission(#id, authentication)")
+suspend fun deleteResource(id: ResourceId) { /* ... */ }
 ```
 
 ## Verification Checklist
 
-After migration, verify:
+After the migration, verify:
 
-- [ ] All endpoints are properly secured
-- [ ] JWT authentication works correctly
-- [ ] CORS configuration is applied
-- [ ] Method security annotations work
-- [ ] All tests pass
-- [ ] No deprecated API warnings
-- [ ] Application starts without errors
-- [ ] Token generation and validation work
-- [ ] Logout functionality works
-- [ ] Refresh token mechanism works
+- [ ] All endpoints are properly secured through `pathMatchers(...)`
+- [ ] JWT authentication works end-to-end through the WebFlux resource server
+- [ ] CORS configuration is applied through `CorsConfigurationSource`
+- [ ] `@PreAuthorize`/`@PostAuthorize` work on `suspend fun` methods
+- [ ] All tests pass using `WebTestClient` and Kotest
+- [ ] No deprecated API references remain in production code
+- [ ] Application starts without WebFlux/Servlet mixing warnings
+- [ ] Token generation, refresh, and revocation work in the reactive flow
+- [ ] Logout clears the reactive `SecurityContext`
+- [ ] Refresh token rotation issues new access tokens correctly
 
 ## Rollback Plan
 
-If issues arise:
+If issues arise after the migration:
 
-1. Keep the old configuration in a separate branch
-2. Gradually migrate components
-3. Test thoroughly in staging environment
-4. Monitor application logs after deployment
-5. Have a quick rollback mechanism ready
+1. Keep a branch with the previous servlet configuration for emergency reference
+2. Roll back bounded contexts one at a time, starting from the leaf contexts
+3. Run integration tests through `WebTestClient` and BDD lanes per context
+4. Monitor application logs and metrics after each rollout
+5. Have the previous version ready as a fallback container image
 
 ## References
 
+- [Spring Security WebFlux Reference](https://docs.spring.io/spring-security/reference/reactive/index.html)
 - [Spring Security 6.x Migration Guide](https://docs.spring.io/spring-security/reference/5.8/migration/index.html)
-- [Spring Boot 3.x Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Release-Notes)
-- [Spring Security Configuration Changes](https://spring.io/blog/2022/02/21/spring-security-without-the-websecurityconfigureradapter)
-- [OAuth2 Resource Server Configuration](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/index.html)
+- [Spring Boot WebFlux Reference](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html)
+- [Reactive OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/reactive/oauth2/resource-server/index.html)
+- [Spring Modulith Reactive](https://docs.spring.io/spring-modulith/reference/)

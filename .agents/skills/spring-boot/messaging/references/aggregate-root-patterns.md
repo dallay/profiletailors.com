@@ -6,7 +6,6 @@
 
 ```kotlin
 import jakarta.persistence.*;
-import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +34,6 @@ public abstract class AggregateRoot<ID> {
 
 ```kotlin
 import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
@@ -260,14 +258,12 @@ class Order extends AggregateRoot<OrderId> {
 ## Repository Pattern
 
 ```kotlin
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.stereotype.Repository
 
 @Repository
-interface ProductRepository extends JpaRepository<Product, Product.ProductId> {
-    Optional<Product> findByProductName (String name);
+interface ProductRepository : CoroutineCrudRepository<Product, Product.ProductId> {
+    suspend fun findByProductName(name: String): Product?
 }
 ```
 
@@ -276,10 +272,9 @@ interface ProductRepository extends JpaRepository<Product, Product.ProductId> {
 ```kotlin
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
+
 class ProductApplicationService {
     private val productRepository: ProductRepository
     private val eventPublisher: ApplicationEventPublisher

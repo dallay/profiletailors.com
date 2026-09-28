@@ -114,7 +114,6 @@ class ProductEventTest {
     @Autowired
     private lateinit var productService: ProductApplicationService
 
-    @MockBean
     private lateinit var notificationService: NotificationService
 
     @Autowired
@@ -388,13 +387,10 @@ class OrderFulfillmentSagaTest {
     @Autowired
     private lateinit var eventPublisher: ApplicationEventPublisher
 
-    @MockBean
     private lateinit var inventoryService: InventoryService
 
-    @MockBean
     private lateinit var paymentService: PaymentService
 
-    @MockBean
     private lateinit var orderService: OrderService
 
     @Test
@@ -422,8 +418,8 @@ Storing state changes as events.
 ```kotlin
 // Event store
 @Repository
-interface EventStoreRepository : JpaRepository<StoredEvent, UUID> {
-    fun findByAggregateIdOrderBySequenceAsc(aggregateId: String): List<StoredEvent>
+interface EventStoreRepository : CoroutineCrudRepository<StoredEvent, UUID> {
+    suspend fun findByAggregateIdOrderBySequenceAsc(aggregateId: String): List<StoredEvent>
 }
 
 // Stored event

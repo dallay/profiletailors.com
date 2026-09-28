@@ -1,6 +1,10 @@
 # JWT Quick Reference Card
 
-Quick reference for common JWT patterns in Spring Boot 3.5.x applications.
+Quick reference for common JWT patterns in the reactive SMP backend. All examples
+use the WebFlux security stack (`ServerHttpSecurity`, `SecurityWebFilterChain`,
+`WebFilter`, `suspend fun`). Versions for the JJWT artifact live in
+`gradle/libs.versions.toml`; the snippet below uses the placeholder `X.Y.Z` for
+illustration.
 
 ## Dependencies
 
@@ -9,69 +13,67 @@ Quick reference for common JWT patterns in Spring Boot 3.5.x applications.
 <dependency>
   <groupId>io.jsonwebtoken</groupId>
   <artifactId>jjwt-api</artifactId>
-  <version>0.12.6</version>
+  <version>${jjwt.version}</version>
 </dependency>
 <dependency>
-<groupId>io.jsonwebtoken</groupId>
-<artifactId>jjwt-impl</artifactId>
-<version>0.12.6</version>
-<scope>runtime</scope>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-impl</artifactId>
+  <version>${jjwt.version}</version>
+  <scope>runtime</scope>
+</dependency>
+<dependency>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-jackson</artifactId>
+  <version>${jjwt.version}</version>
+  <scope>runtime</scope>
 </dependency>
 ```
 
 ```kotlin
 // Gradle
-implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-implementation("io.jsonwebtoken:jjwt-impl:0.12.6")
-implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
+implementation("io.jsonwebtoken:jjwt-api")
+implementation("io.jsonwebtoken:jjwt-impl")
+implementation("io.jsonwebtoken:jjwt-jackson")
 ```
+
+The exact version is declared in `gradle/libs.versions.toml` under `jjwt`; this
+reference intentionally pins no literal version.
 
 ## Basic JWT Service
 
 ```kotlin
-@Service
-class JwtService {
+@com.profiletailors.common.domain.Service
+class JwtService(
+    @Value("\${jwt.secret}") private val secret: String,
+    @Value("\${jwt.access-token-expiration}") private val expiration: Long,
+) {
+    suspend fun generateToken(user: UserAccount): String = Jwts.builder()
+        .subject(user.email)
+        .issuedAt(Date())
+        .expiration(Date(System.currentTimeMillis() + expiration))
+        .signWith(Keys.hmacShaKeyFor(secret.toByteArray()), Jwts.SIG.HS256)
+        .compact()
 
-    @Value("${jwt.secret}")
-    private var secret: String
+    fun extractUsername(token: String): String = extractClaim(token) { it.subject }
 
-    @Value("${jwt.expiration}")
-    private var expiration: long
-
-    fun generateToken(UserDetails userDetails): String {
-        return Jwts.builder()
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(Date())
-            .setExpiration(Date(System.currentTimeMillis() + expiration))
-            .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
-            .compact();
+    suspend fun isTokenValid(token: String, user: UserAccount): Boolean {
+        val username = extractUsername(token)
+        return username == user.email && !isTokenExpired(token)
     }
 
-    fun extractUsername(String token): String {
-        return extractClaim(token, Claims::getSubject);
-    }
+    private fun isTokenExpired(token: String): Boolean =
+        extractExpiration(token).before(Date())
 
-    fun isTokenValid(String token, UserDetails userDetails): boolean {
-        String username = extractUsername (token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
-    }
+    private fun extractExpiration(token: String): Date =
+        extractClaim(token) { it.expiration }
 
-    private fun isTokenExpired(String token): boolean {
-        return extractExpiration(token).before(Date());
-    }
-
-    private fun extractExpiration(String token): Date {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver)
-    {
-        Claims claims = Jwts . parserBuilder ()
-            .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
+    private fun <T> extractClaim(token: String, resolver: (Claims) -> T): T {
+        val claims = Jwts.parser()
+            .verifyWith(Keys.hmacShaKeyFor(secret.toByteArray()))
             .build()
-            .parseClaimsJws(token)
-            .getBody();
-        return claimsResolver.apply(claims);
+            .parseSignedClaims(token)
+            .payload
+        return resolver(claims)
     }
 }
 ```
@@ -80,118 +82,100 @@ class JwtService {
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
 class SecurityConfig {
+    @Bean
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .csrf { it.disable() }
+        .anonymous { it.disable() }
+        .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+        .authorizeExchange { authz ->
+            authz
+                .pathMatchers("/api/auth/**").permitAll()
+                .pathMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyExchange().authenticated()
+        }
+        .authenticationManager(authenticationManager())
+        .addFilterAt(jwtAuthFilter(), SecurityWebFiltersOrder.HTTP_BASIC)
+        .build()
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
-    {
-        http
-            .csrf(csrf -> csrf.disable())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(authz -> authz
-        .requestMatchers("/api/auth/**").permitAll()
-        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-        .anyRequest().authenticated()
-        )
-        .authenticationProvider(authenticationProvider())
-        .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
+    fun authenticationManager(): ReactiveAuthenticationManager {
+        val provider = DaoReactiveAuthenticationProvider(userDetailsService)
+        provider.setPasswordEncoder(passwordEncoder())
+        return provider
     }
 
     @Bean
-    fun authenticationProvider(): AuthenticationProvider {
-        DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
-        provider.setUserDetailsService(userDetailsService());
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
-
-    @Bean
-    fun passwordEncoder(): PasswordEncoder {
-        return BCryptPasswordEncoder();
-    }
+    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 }
 ```
 
-## JWT Filter
+## JWT Reactive Filter
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
-class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationWebFilter(
+    private val jwtService: JwtService,
+    private val userDetailsService: ReactiveUserDetailsService,
+) : WebFilter {
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val authHeader = exchange.request.headers.header("Authorization").firstOrNull()
 
-    private val jwtService: JwtService
-    private val userDetailsService: UserDetailsService
-
-    @Override
-    protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
-    ) throws ServletException, IOException {
-    String authHeader = request . getHeader ("Authorization");
-
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    String token = authHeader . substring (7);
-    String username = jwtService . extractUsername (token);
-
-    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        UserDetails userDetails = userDetailsService . loadUserByUsername (username);
-
-        if (jwtService.isTokenValid(token, userDetails)) {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities()
-            );
-            authToken.setDetails(WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return chain.filter(exchange)
         }
-    }
 
-    filterChain.doFilter(request, response);
+        val token = authHeader.substring(7)
+        val username = jwtService.extractUsername(token)
+
+        return exchange.exchange.getPrincipal<Authentication>()
+            .filter { null == it || it.name == username }
+            .switchIfEmpty(
+                userDetailsService.findByUsername(username)
+                    .filter { jwtService.isTokenValid(token, it) }
+                    .flatMap { user ->
+                        val authorities = user.authorities().map { SimpleGrantedAuthority(it.authority) }
+                        val auth = UsernamePasswordAuthenticationToken(user, token, authorities)
+                        exchange.exchange.withPrincipal(auth)
+                    },
+            )
+            .flatMap { chain.filter(exchange) }
+    }
 }
-}
+
+private suspend fun ServerWebExchange.exchange.getPrincipal(): Mono<Authentication> =
+    principal().awaitSingleOrNull()?.let { Mono.just(it) } ?: Mono.empty()
 ```
+
+The `principal()` accessor on `ServerWebExchange` is implemented per bounded context
+through the `ServerSecurityContextRepository` adapter wired in
+`configuration.md#security-web-filter-chain-options`.
 
 ## Authentication Controller
 
 ```kotlin
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
-class AuthenticationController {
-
-    private val service: AuthenticationService
-
+class AuthenticationController(
+    private val service: AuthenticationService,
+) {
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request)
-    {
-        return ResponseEntity.ok(service.register(request));
-    }
+    suspend fun register(@Valid @RequestBody request: RegisterRequest): AuthenticationResponse =
+        service.register(request)
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request)
-    {
-        return ResponseEntity.ok(service.authenticate(request));
-    }
+    suspend fun authenticate(@Valid @RequestBody request: AuthenticationRequest): AuthenticationResponse =
+        service.authenticate(request)
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthenticationResponse> refresh(@RequestBody RefreshRequest request)
-    {
-        return ResponseEntity.ok(service.refresh(request));
-    }
+    suspend fun refresh(@Valid @RequestBody request: RefreshRequest): AuthenticationResponse =
+        service.refresh(request)
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request)
-    {
-        service.logout(request);
-        return ResponseEntity.ok().build();
+    suspend fun logout(@Valid @RequestBody request: LogoutRequest) {
+        service.logout(request)
     }
 }
 ```
@@ -199,24 +183,27 @@ class AuthenticationController {
 ## Application Properties
 
 ```yaml
-# application.yml
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-here-at-least-32-characters}
-  access-token-expiration: 900000    # 15 minutes
-  refresh-token-expiration: 604800000 # 7 days
-  issuer: ${JWT_ISSUER:your-app-name}
+  secret: ${JWT_SECRET:change-me-please-use-a-strong-secret-with-at-least-32-chars}
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+  issuer: ${JWT_ISSUER:profiletailors-smp}
   cookie:
     name: jwt-token
-    secure: ${JWT_COOKIE_SECURE:true}  # true in production
+    secure: ${JWT_COOKIE_SECURE:true}
     http-only: true
     same-site: strict
 
 spring:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors}
+    username: ${SPRING_R2DBC_USERNAME:profiletailors}
+    password: ${SPRING_R2DBC_PASSWORD:profiletailors}
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER_URI:https://your-auth-server.com}
+          issuer-uri: ${JWT_ISSUER_URI:https://auth.profiletailors.com}
 ```
 
 ## Common JWT Operations
@@ -224,47 +211,42 @@ spring:
 ### Generate Token with Claims
 
 ```kotlin
-fun generateTokenWithClaims(UserDetails userDetails, Map<String, Object> claims): String {
+suspend fun generateTokenWithClaims(user: UserAccount, extraClaims: Map<String, Any>): String {
+    val authorities = user.authorities().map { it.authority }
     return Jwts.builder()
-        .setClaims(claims)
-        .setSubject(userDetails.getUsername())
-        .setIssuedAt(Date())
-        .setExpiration(Date(System.currentTimeMillis() + expiration))
-        .claim(
-            "roles", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
-        )
-        .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
-        .compact();
+        .claims(extraClaims)
+        .subject(user.email)
+        .issuedAt(Date())
+        .expiration(Date(System.currentTimeMillis() + expiration))
+        .claim("roles", authorities)
+        .signWith(Keys.hmacShaKeyFor(secret.toByteArray()), Jwts.SIG.HS256)
+        .compact()
 }
 ```
 
 ### Validate Token with Clock Skew
 
 ```kotlin
-fun isTokenValidWithSkew(String token, UserDetails userDetails): boolean {
-    try {
-        Jwts.parserBuilder()
-            .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
-            .setAllowedClockSkewSeconds(60) // 1 minute tolerance
-            .build()
-            .parseClaimsJws(token);
-        return true;
-    } catch (JwtException e) {
-        return false;
-    }
+suspend fun isTokenValidWithSkew(token: String, user: UserAccount): Boolean = try {
+    Jwts.parser()
+        .verifyWith(Keys.hmacShaKeyFor(secret.toByteArray()))
+        .clockSkewSeconds(60)
+        .build()
+        .parseSignedClaims(token)
+    true
+} catch (_: JwtException) {
+    false
 }
 ```
 
 ### Extract All Claims
 
 ```kotlin
-fun extractAllClaims(String token): Claims {
-    return Jwts.parserBuilder()
-        .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
-        .build()
-        .parseClaimsJws(token)
-        .getBody();
-}
+fun extractAllClaims(token: String): Claims = Jwts.parser()
+    .verifyWith(Keys.hmacShaKeyFor(secret.toByteArray()))
+    .build()
+    .parseSignedClaims(token)
+    .payload
 ```
 
 ## Security Best Practices
@@ -272,133 +254,124 @@ fun extractAllClaims(String token): Claims {
 ### 1. Use Strong Keys
 
 ```kotlin
-// Generate secure key
-SecretKey key = Keys . secretKeyFor (SignatureAlgorithm.HS256);
-String base64Key = Encoders . BASE64 . encode (key.getEncoded());
+val key: SecretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256)
+val base64Key: String = Encoders.BASE64.encode(key.encoded)
 ```
 
 ### 2. Set Appropriate Expiration
 
 ```kotlin
-// Short-lived access tokens (15 minutes)
-long accessTokenExpiration = 15 * 60 * 1000; // 15 minutes
-
-// Longer refresh tokens (7 days)
-long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
+val accessTokenExpiration: Long = Duration.ofMinutes(15).toMillis()
+val refreshTokenExpiration: Long = Duration.ofDays(7).toMillis()
 ```
 
 ### 3. Validate All Claims
 
 ```kotlin
-fun validateAllClaims(String token): boolean {
-    try {
-        Jwts.parserBuilder()
-            .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
-            .requireIssuer("your-app-name")
-            .requireAudience("your-app-users")
-            .build()
-            .parseClaimsJws(token);
-        return true;
-    } catch (JwtException e) {
-        return false;
-    }
+suspend fun validateAllClaims(token: String): Boolean = try {
+    Jwts.parser()
+        .verifyWith(Keys.hmacShaKeyFor(secret.toByteArray()))
+        .requireIssuer("profiletailors-smp")
+        .requireAudience("profiletailors-client")
+        .build()
+        .parseSignedClaims(token)
+    true
+} catch (_: JwtException) {
+    false
 }
 ```
 
 ### 4. Implement Token Blacklisting
 
 ```kotlin
-@Service
+@com.profiletailors.common.domain.Service
 class TokenBlacklistService {
-    private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
+    private val blacklistedTokens: Set<String> = ConcurrentHashMap.newKeySet()
 
-    fun blacklistToken(String token): void {
-        blacklistedTokens.add(token);
+    fun blacklistToken(token: String) {
+        blacklistedTokens.add(token)
     }
 
-    fun isBlacklisted(String token): boolean {
-        return blacklistedTokens.contains(token);
-    }
+    fun isBlacklisted(token: String): Boolean = blacklistedTokens.contains(token)
 }
 ```
+
+For production deployments the blacklist is persisted through
+`BlacklistedTokenRepository` (R2DBC) instead of the in-memory set shown above.
 
 ## Testing JWT
 
-### Unit Test JWT Service
+### Unit Test JWT Service (Kotest)
 
 ```kotlin
-@Test
-void shouldGenerateValidToken () {
-    UserDetails userDetails = User . builder ()
-        .username("test@example.com")
-        .password("password")
-        .authorities("ROLE_USER")
-        .build();
+class JwtServiceTest : StringSpec({
+    val jwtService = JwtService(secret = TestJwts.TestSecret, expiration = 15 * 60 * 1000)
 
-    String token = jwtService . generateToken (userDetails);
+    "should generate and parse a valid token" {
+        val user = TestUsers.default()
+        val token = jwtService.runBlocking { generateToken(user) }
 
-    assertThat(token).isNotNull();
-    assertThat(jwtService.extractUsername(token)).isEqualTo("test@example.com");
-    assertThat(jwtService.isTokenValid(token, userDetails)).isTrue();
-}
+        token.shouldNotBeNull()
+        jwtService.extractUsername(token) shouldBe user.email
+        jwtService.runBlocking { isTokenValid(token, user) } shouldBe true
+    }
+})
 ```
 
-### Integration Test Authentication
+### Integration Test Authentication (WebTestClient)
 
 ```kotlin
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureWebTestClient
 class AuthenticationIntegrationTest {
-
     @Autowired
-    private var mockMvc: MockMvc
+    lateinit var webTestClient: WebTestClient
 
     @Test
-    void shouldAuthenticateUser() throws Exception
-    {
-        LoginRequest request = LoginRequest ("user@example.com", "password123");
+    fun shouldAuthenticateUser() {
+        val request = LoginRequest(email = "user@profiletailors.com", password = "password")
 
-        mockMvc.perform(
-            post("/api/auth/authenticate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request))
-        )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists());
+        webTestClient.post()
+            .uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.accessToken").exists()
+            .jsonPath("$.refreshToken").exists()
     }
 }
 ```
 
 ## Error Handling
 
-### JWT Exception Handler
+### JWT Reactive Exception Handler
 
 ```kotlin
 @RestControllerAdvice
-class JwtExceptionHandler {
+class JwtExceptionHandler : ResponseEntityExceptionHandler() {
+    @ExceptionHandler(JwtException::class)
+    fun handleJwtException(e: JwtException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(
+                ErrorResponse(
+                    code = "invalid_token",
+                    message = "Invalid token",
+                    details = mapOf("cause" to (e.message ?: "")),
+                ),
+            )
 
-    @ExceptionHandler(
-        JwtException.class)
-            public ResponseEntity<ErrorResponse> handleJwtException (JwtException e) {
-        ErrorResponse error = new ErrorResponse(
-            "Invalid token",
-            e.getMessage(),
-            HttpStatus.UNAUTHORIZED.value()
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-    }
-
-        @ExceptionHandler(
-            ExpiredJwtException.class)
-                    public ResponseEntity<ErrorResponse> handleExpiredJwtException (ExpiredJwtException e) {
-                ErrorResponse error = new ErrorResponse(
-                    "Token expired",
-                    "The authentication token has expired",
-                    HttpStatus.UNAUTHORIZED.value()
-                );
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-            }
+    @ExceptionHandler(ExpiredJwtException::class)
+    fun handleExpiredJwtException(e: ExpiredJwtException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(
+                ErrorResponse(
+                    code = "token_expired",
+                    message = "The authentication token has expired",
+                    details = emptyMap(),
+                ),
+            )
 }
 ```
 
@@ -415,34 +388,35 @@ class JwtExceptionHandler {
 **Solution**: Add clock skew tolerance.
 
 ```kotlin
-Jwts.parserBuilder()
-    .setAllowedClockSkewSeconds(60)
+Jwts.parser()
+    .clockSkewSeconds(60)
     .build()
-    .parseClaimsJws(token);
+    .parseSignedClaims(token)
 ```
 
 ### Issue: CORS Issues
 
-**Solution**: Configure CORS properly.
+**Solution**: Configure CORS through the reactive `CorsConfigurationSource` bean.
 
 ```kotlin
 @Bean
 fun corsConfigurationSource(): CorsConfigurationSource {
-    CorsConfiguration configuration = CorsConfiguration ();
-    configuration.setAllowedOriginPatterns(listOf("http://localhost:*"));
-    configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(listOf("*"));
-    configuration.setAllowCredentials(true);
+    val configuration = CorsConfiguration().apply {
+        allowedOriginPatterns = listOf("http://localhost:*")
+        allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        allowedHeaders = listOf("*")
+        allowCredentials = true
+    }
 
-    UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource ();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
+    return UrlBasedCorsConfigurationSource().apply {
+        registerCorsConfiguration("/**", configuration)
+    }
 }
 ```
 
 ## References
 
 - [JJWT Documentation](https://github.com/jwtk/jjwt)
-- [Spring Security OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/index.html)
+- [Spring Security WebFlux OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/reactive/oauth2/resource-server/index.html)
 - [RFC 7519 - JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519)
 - [RFC 8725 - JWT Best Practices](https://tools.ietf.org/html/rfc8725)

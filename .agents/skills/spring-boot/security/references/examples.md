@@ -1,521 +1,430 @@
 # Spring Security JWT Implementation Examples
 
+This document shows end-to-end reactive JWT wiring for the SMP backend. All examples
+use the WebFlux security stack (`ServerHttpSecurity`, `SecurityWebFilterChain`,
+`WebFilter`, `R2dbcRepository`, `suspend fun`, `Mono` / `Flux`) and the
+`com.profiletailors.common.domain.Service` marker for application services. The
+servlet-stack version of these examples lives in
+`migration-spring-security-6x.md` for historical reference only and is not used in
+production code.
+
 ## Complete Application Setup
 
 ### Application Main Class
 
 ```kotlin
 @SpringBootApplication
-@EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
-@EnableJpaRepositories(basePackages = "com.example.security.repository")
-@EntityScan(basePackages = "com.example.security.model")
-class SecurityApplication {
-    public static void main(String[] args)
-    {
-        SpringApplication.run(SecurityApplication.class, args);
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+@EnableR2dbcRepositories(basePackages = ["com.profiletailors.smp.identity.adapter.out.persistence"])
+class SmpSecurityApplication {
+    fun main(args: Array<String>) {
+        runApplication<SmpSecurityApplication>(*args)
     }
 
     @Bean
-    public CommandLineRunner initData(UserRepository userRepository,
-    RoleRepository roleRepository,
-    PermissionRepository permissionRepository,
-    PasswordEncoder passwordEncoder)
-    {
-        return args -> {
-        // Create permissions
-        Permission readPermission = permissionRepository . save (
-                Permission("USER_READ", "Read user information"));
-        Permission writePermission = permissionRepository . save (
-                Permission("USER_WRITE", "Write user information"));
-        Permission deletePermission = permissionRepository . save (
-                Permission("USER_DELETE", "Delete user information"));
-        Permission adminPermission = permissionRepository . save (
-                Permission("ADMIN", "Full administrative access"));
+    fun seedData(
+        permissionRepository: PermissionR2dbcRepository,
+        roleRepository: RoleR2dbcRepository,
+        userRepository: UserR2dbcRepository,
+        passwordEncoder: PasswordEncoder,
+    ): ApplicationRunner = ApplicationRunner {
+        runBlocking {
+            val readPermission = permissionRepository.save(
+                Permission(name = "USER_READ", description = "Read user information"),
+            )
+            val writePermission = permissionRepository.save(
+                Permission(name = "USER_WRITE", description = "Write user information"),
+            )
+            val deletePermission = permissionRepository.save(
+                Permission(name = "USER_DELETE", description = "Delete user information"),
+            )
+            val adminPermission = permissionRepository.save(
+                Permission(name = "ADMIN", description = "Full administrative access"),
+            )
 
-        // Create roles
-        Role userRole = roleRepository . save (Role("USER"));
-        Role adminRole = roleRepository . save (Role("ADMIN"));
-        Role managerRole = roleRepository . save (Role("MANAGER"));
+            val userRole = roleRepository.save(Role(name = "USER"))
+            val adminRole = roleRepository.save(Role(name = "ADMIN"))
+            val managerRole = roleRepository.save(Role(name = "MANAGER"))
 
-        // Assign permissions to roles
-        userRole.getPermissions().addAll(setOf(readPermission));
-        managerRole.getPermissions().addAll(setOf(readPermission, writePermission));
-        adminRole.getPermissions()
-            .addAll(setOf(readPermission, writePermission, deletePermission, adminPermission));
+            userRole.addPermissions(setOf(readPermission))
+            managerRole.addPermissions(setOf(readPermission, writePermission))
+            adminRole.addPermissions(
+                setOf(readPermission, writePermission, deletePermission, adminPermission),
+            )
 
-        roleRepository.saveAll(listOf(userRole, adminRole, managerRole));
+            roleRepository.saveAll(listOf(userRole, adminRole, managerRole)).collectList().awaitSingle()
 
-        // Create users
-        User user = User ("user@example.com", passwordEncoder.encode("password"));
-        user.setRoles(setOf(userRole));
-        user.setEnabled(true);
+            val user = UserAccount(
+                email = "user@profiletailors.com",
+                password = passwordEncoder.encode("password"),
+                firstName = "Seed",
+                lastName = "User",
+                enabled = true,
+            )
+            user.assignRoles(setOf(userRole))
+            userRepository.save(user).awaitSingle()
 
-        User admin = User ("admin@example.com", passwordEncoder.encode("admin"));
-        admin.setRoles(setOf(adminRole));
-        admin.setEnabled(true);
+            val admin = UserAccount(
+                email = "admin@profiletailors.com",
+                password = passwordEncoder.encode("admin"),
+                firstName = "Seed",
+                lastName = "Admin",
+                enabled = true,
+            )
+            admin.assignRoles(setOf(adminRole))
+            userRepository.save(admin).awaitSingle()
 
-        User manager = User ("manager@example.com", passwordEncoder.encode("manager"));
-        manager.setRoles(setOf(managerRole));
-        manager.setEnabled(true);
-
-        userRepository.saveAll(listOf(user, admin, manager));
-    };
+            val manager = UserAccount(
+                email = "manager@profiletailors.com",
+                password = passwordEncoder.encode("manager"),
+                firstName = "Seed",
+                lastName = "Manager",
+                enabled = true,
+            )
+            manager.assignRoles(setOf(managerRole))
+            userRepository.save(manager).awaitSingle()
+        }
     }
 }
 ```
 
-### Domain Models
+### Domain Models (Identity Bounded Context)
 
 ```kotlin
-@Entity
-@Table(name = "users")
-class User implements UserDetails {
+package com.profiletailors.smp.identity.domain
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private var id: Long
+data class UserAccount(
+    val id: UserId,
+    val email: String,
+    val passwordHash: String,
+    val firstName: String,
+    val lastName: String,
+    val phoneNumber: String? = null,
+    val enabled: Boolean = true,
+    val emailVerified: Boolean = false,
+    val roles: MutableSet<Role> = mutableSetOf(),
+    val refreshTokens: MutableList<RefreshToken> = mutableListOf(),
+    val logins: MutableList<UserLogin> = mutableListOf(),
+) {
+    fun assignRoles(newRoles: Set<Role>) {
+        roles.clear()
+        roles.addAll(newRoles)
+    }
 
-    @Column(unique = true, nullable = false)
-    private var email: String
+    fun authorities(): List<SimpleGrantedAuthority> = roles.flatMap { role ->
+        listOf(SimpleGrantedAuthority("ROLE_${role.name}")) +
+            role.permissions.map { SimpleGrantedAuthority(it.name) }
+    }
 
-    @Column(nullable = false)
-    private var password: String
+    fun hasAuthority(authority: String): Boolean =
+        authorities().any { it.authority == authority }
 
-    private var firstName: String
-    private var lastName: String
-
-    @Column(name = "phone_number")
-    private var phoneNumber: String
-
-    @Column(nullable = false)
-    private boolean enabled = true;
-
-    @Column(nullable = false)
-    private boolean accountNonExpired = true;
-
-    @Column(nullable = false)
-    private boolean accountNonLocked = true;
-
-    @Column(nullable = false)
-    private boolean credentialsNonExpired = true;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set < Role > roles = mutableSetOf ();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List < RefreshToken > refreshTokens = mutableListOf ();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List < UserSession > sessions = mutableListOf ();
-
-    @Override
-    public Collection <? extends GrantedAuthority> getAuthorities() {
-    return roles..flatMap(role -> {
-    Collection<GrantedAuthority> authorities = mutableListOf ();
-    authorities.add(SimpleGrantedAuthority("ROLE_" + role.getName()));
-    authorities.addAll(
-        role.getPermissions().map(permission -> SimpleGrantedAuthority(permission.getName()))
-    );
-    return authorities.stream();
-})
-    ;
+    fun hasRole(roleName: String): Boolean = roles.any { it.name == roleName }
 }
 
-    @Override
-    fun getUsername(): String {
-        return email;
-    }
-
-    fun getFullName(): String {
-        return String.format("%s %s", firstName, lastName).trim();
-    }
-
-    fun hasPermission(permission: String): Boolean {
-        return getAuthorities().any { auth -> auth.authority == permission }
-    }
-
-    fun hasRole(role: String): Boolean {
-        return roles.any { r -> r.name == role }
+data class Role(
+    val id: RoleId,
+    val name: String,
+    val description: String,
+    val permissions: MutableSet<Permission> = mutableSetOf(),
+) {
+    fun addPermissions(perms: Set<Permission>) {
+        permissions.addAll(perms)
     }
 }
 
-@Entity
-@Table(name = "roles")
-class Role {
+data class Permission(
+    val id: PermissionId,
+    val name: String,
+    val description: String,
+    val resourceType: String,
+)
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private var id: Long
-
-    @Column(unique = true, nullable = false)
-    private var name: String
-
-    private var description: String
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
-    private Set<Permission> permissions = mutableSetOf();
+data class RefreshToken(
+    val id: RefreshTokenId,
+    val userId: UserId,
+    val tokenHash: String,
+    val expiresAt: Instant,
+    val revoked: Boolean = false,
+    val revokedAt: Instant? = null,
+) {
+    fun isExpired(): Boolean = expiresAt.isBefore(Instant.now())
+    fun isActive(): Boolean = !revoked && !isExpired()
 }
 
-@Entity
-@Table(name = "permissions")
-class Permission {
+data class UserLogin(
+    val id: UserLoginId,
+    val userId: UserId,
+    val loginAt: Instant,
+    val logoutAt: Instant? = null,
+    val ipAddress: String,
+    val userAgent: String,
+)
+```
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private var id: Long
+The repository ports live in `domain`; the R2DBC adapters live in `infrastructure`:
 
-    @Column(unique = true, nullable = false)
-    private var name: String
+```kotlin
+package com.profiletailors.smp.identity.domain
 
-    private var description: String
+interface UserRepository {
+    suspend fun findById(id: UserId): UserAccount?
+    suspend fun findByEmail(email: String): UserAccount?
+    suspend fun save(user: UserAccount): UserAccount
+    suspend fun existsByEmail(email: String): Boolean
+}
 
-    @Column(name = "resource_type")
-    private var resourceType: String
+interface RoleRepository {
+    suspend fun findByName(name: String): Role?
+    suspend fun save(role: Role): Role
+}
+
+interface RefreshTokenRepository {
+    suspend fun findByTokenHash(tokenHash: String): RefreshToken?
+    suspend fun findByTokenId(tokenId: String): RefreshToken?
+    suspend fun save(token: RefreshToken): RefreshToken
+    suspend fun delete(token: RefreshToken)
+    suspend fun countActiveByUser(userId: UserId): Long
+    suspend fun deleteOldestByUser(userId: UserId)
+    suspend fun findAllActiveByUser(userId: UserId): List<RefreshToken>
+    suspend fun findExpiredBefore(cutoff: Instant): List<RefreshToken>
+    suspend fun deleteAll(tokens: Collection<RefreshToken>)
 }
 ```
 
 ## Authentication Controller
 
-### Complete Auth Controller
+### Complete Reactive Auth Controller
 
 ```kotlin
+package com.profiletailors.smp.identity.adapter.in.web
+
 @RestController
 @RequestMapping("/api/auth")
 @Validated
-@Slf4j
-class AuthController {
-
-    private val authenticationManager: AuthenticationManager
-    private val tokenService: JwtTokenService
-    private val refreshTokenService: RefreshTokenService
-    private val userService: UserService
-    private val eventListener: AuthenticationEventListener
-
+class AuthController(
+    private val authenticationManager: ReactiveAuthenticationManager,
+    private val tokenService: JwtTokenService,
+    private val refreshTokenService: RefreshTokenService,
+    private val userService: UserService,
+    private val eventPublisher: AuthenticationEventPublisher,
+) {
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-    @Valid @RequestBody LoginRequest request,
-    HttpServletRequest httpRequest)
-    {
+    suspend fun login(
+        @Valid @RequestBody request: LoginRequest,
+        exchange: ServerWebExchange,
+    ): ResponseEntity<LoginResponse> {
+        val authentication = UsernamePasswordAuthenticationToken(request.email, request.password)
+        val authenticated = authenticationManager.authenticate(authentication).awaitSingle()
 
-        log.info("Login attempt for user: {}", request.email());
+        val user = authenticated.principal as UserAccount
 
-        try {
-            Authentication authentication = authenticationManager . authenticate (
-                    new UsernamePasswordAuthenticationToken (
-                            request.email(),
-            request.password()
-            )
-            );
+        val accessToken = tokenService.generateAccessToken(user)
+        val refreshToken = refreshTokenService.createRefreshToken(user)
 
-            SecurityContextHolder.getContext()
-                .setAuthentication(authentication);
+        val deviceInfo = extractDeviceInfo(exchange)
+        val ipAddress = extractIpAddress(exchange)
+        userService.recordLogin(user, deviceInfo, ipAddress)
+        eventPublisher.publishAuthenticationSuccess(user, exchange)
 
-            User user =(User) authentication . getPrincipal ();
+        val response = LoginResponse(
+            accessToken = accessToken.token,
+            expiresAt = accessToken.expiresAt,
+            refreshToken = refreshToken.token,
+            refreshExpiresAt = refreshToken.expiresAt,
+            userId = user.id.value,
+            email = user.email,
+            fullName = user.fullName(),
+            authorities = user.authorities().map { it.authority },
+        )
 
-            // Generate tokens
-            AccessTokenResponse accessToken = tokenService . generateAccessToken (user);
-            RefreshTokenResponse refreshToken = refreshTokenService . createRefreshToken (user);
-
-            // Track device and location
-            String deviceInfo = extractDeviceInfo (httpRequest);
-            String ipAddress = extractIpAddress (httpRequest);
-
-            userService.recordLogin(user, deviceInfo, ipAddress);
-
-            // Publish authentication success event
-            eventListener.publishAuthenticationSuccess(user, httpRequest);
-
-            LoginResponse response = new LoginResponse(
-                accessToken.token(),
-                accessToken.expiresAt(),
-                refreshToken.token(),
-                refreshToken.expiresAt(),
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getAuthorities().map(GrantedAuthority::getAuthority)
-
-            );
-
-            return ResponseEntity.ok()
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken.token())
-                .body(response);
-
-        } catch (BadCredentialsException e) {
-            log.warn("Failed login attempt for user: {}", request.email());
-            throw AuthenticationFailedException("Invalid credentials");
-        }
+        return ResponseEntity.ok()
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${accessToken.token}")
+            .body(response)
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(
-    @Valid @RequestBody RefreshTokenRequest request)
-    {
-
-        RefreshTokenResponse response = refreshTokenService . refreshToken (request);
-        return ResponseEntity.ok(response);
-    }
+    suspend fun refreshToken(@Valid @RequestBody request: RefreshTokenRequest): RefreshTokenResponse =
+        refreshTokenService.refreshToken(request)
 
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MessageResponse> logout(
-    @RequestHeader(value = "Authorization", required = false) String authorization,
-    HttpServletRequest request)
-    {
+    suspend fun logout(
+        @RequestHeader(value = "Authorization", required = false) authorization: String?,
+        exchange: ServerWebExchange,
+    ): MessageResponse {
+        val token = extractTokenFromHeader(authorization)
+        val jti = tokenService.extractTokenClaim(token, "jti")
+        refreshTokenService.revokeRefreshTokenByJti(jti)
 
-        String token = extractTokenFromHeader (authorization);
-        String jti = tokenService . extractTokenClaim (token, "jti");
+        val auth = exchange.exchange.getPrincipal<Authentication>().awaitSingle()
+        val user = auth.principal as UserAccount
+        userService.recordLogout(user, extractIpAddress(exchange))
 
-        // Invalidate refresh token
-        refreshTokenService.revokeRefreshTokenByJti(jti);
-
-        // Record logout
-        User user =(User) SecurityContextHolder . getContext ()
-            .getAuthentication().getPrincipal();
-        userService.recordLogout(user, extractIpAddress(request));
-
-        // Clear security context
-        SecurityContextHolder.clearContext();
-
-        return ResponseEntity.ok(MessageResponse("Logged out successfully"));
+        return MessageResponse("Logged out successfully")
     }
 
     @PostMapping("/logout-all")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MessageResponse> logoutAllSessions(
-    Authentication authentication)
-    {
-
-        User user =(User) authentication . getPrincipal ();
-        refreshTokenService.revokeAllRefreshTokens(user);
-
-        SecurityContextHolder.clearContext();
-
-        return ResponseEntity.ok(MessageResponse("Logged out from all devices"));
+    suspend fun logoutAll(authentication: Authentication): MessageResponse {
+        val user = authentication.principal as UserAccount
+        refreshTokenService.revokeAllRefreshTokens(user)
+        return MessageResponse("Logged out from all devices")
     }
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserProfileResponse> getCurrentUser(
-    Authentication authentication)
-    {
-
-        User user =(User) authentication . getPrincipal ();
-
-        UserProfileResponse response = new UserProfileResponse(
-            user.getId(),
-            user.getEmail(),
-            user.getFullName(),
-            user.getPhoneNumber(),
-            user.getRoles().map(Role::getName)
-                .toSet(),
-            user.getAuthorities().map(GrantedAuthority::getAuthority)
-                .toSet()
-        );
-
-        return ResponseEntity.ok(response);
+    suspend fun getCurrentUser(authentication: Authentication): UserProfileResponse {
+        val user = authentication.principal as UserAccount
+        return UserProfileResponse(
+            id = user.id.value,
+            email = user.email,
+            fullName = user.fullName(),
+            phoneNumber = user.phoneNumber,
+            roles = user.roles.map { it.name }.toSet(),
+            authorities = user.authorities().map { it.authority }.toSet(),
+        )
     }
 
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MessageResponse> changePassword(
-    @Valid @RequestBody ChangePasswordRequest request,
-    Authentication authentication)
-    {
-
-        User user =(User) authentication . getPrincipal ();
-        userService.changePassword(user, request);
-
-        // Invalidate all sessions except current
-        refreshTokenService.revokeAllRefreshTokensExceptCurrent(user, request.currentPassword());
-
-        return ResponseEntity.ok(MessageResponse("Password changed successfully"));
+    suspend fun changePassword(
+        @Valid @RequestBody request: ChangePasswordRequest,
+        authentication: Authentication,
+    ): MessageResponse {
+        val user = authentication.principal as UserAccount
+        userService.changePassword(user, request)
+        refreshTokenService.revokeAllRefreshTokensExceptCurrent(user, request.currentPassword)
+        return MessageResponse("Password changed successfully")
     }
 
-    private fun extractTokenFromHeader(String authorization): String {
-        if (authorization != null && authorization.startsWith("Bearer ")) {
-            return authorization.substring(7);
+    private fun extractTokenFromHeader(authorization: String?): String {
+        require(authorization != null && authorization.startsWith("Bearer ")) {
+            "Invalid authorization header"
         }
-        throw IllegalArgumentException("Invalid authorization header");
+        return authorization.substring(7)
     }
 
-    private fun extractDeviceInfo(HttpServletRequest request): String {
-        String userAgent = request . getHeader ("User-Agent");
-        // Parse user agent to extract browser and OS information
-        // Implementation depends on your requirements
-        return userAgent;
-    }
+    private fun extractDeviceInfo(exchange: ServerWebExchange): String =
+        exchange.request.headers.header("User-Agent").firstOrNull().orEmpty()
 
-    private fun extractIpAddress(HttpServletRequest request): String {
-        String xForwardedFor = request . getHeader ("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+    private fun extractIpAddress(exchange: ServerWebExchange): String {
+        val forwarded = exchange.request.headers.header("X-Forwarded-For").firstOrNull()
+        if (!forwarded.isNullOrBlank()) return forwarded.split(",")[0].trim()
+        return exchange.request.remoteAddress?.address?.hostAddress.orEmpty()
     }
 }
 ```
 
-### Registration Controller
+### Reactive Registration Controller
 
 ```kotlin
 @RestController
 @RequestMapping("/api/register")
 @Validated
-class RegistrationController {
-
-    private val userService: UserService
-    private val emailService: EmailService
-
+class RegistrationController(
+    private val userService: UserService,
+    private val emailService: EmailService,
+) {
     @PostMapping
-    public ResponseEntity<MessageResponse> register(
-    @Valid @RequestBody RegistrationRequest request,
-    UriComponentsBuilder uriBuilder)
-    {
-
-        // Check if user already exists
-        if (userService.existsByEmail(request.email())) {
-            throw UserAlreadyExistsException("Email already registered");
+    suspend fun register(
+        @Valid @RequestBody request: RegistrationRequest,
+        uriBuilder: UriComponentsBuilder,
+    ): ResponseEntity<MessageResponse> {
+        if (userService.existsByEmail(request.email)) {
+            throw UserAlreadyExistsException("Email already registered")
         }
 
-        // Create new user
-        User user = userService . createUser (request);
+        val user = userService.createUser(request)
 
-        // Send verification email
-        String verificationToken = userService . generateEmailVerificationToken (user);
-        emailService.sendVerificationEmail(user, verificationToken);
+        val verificationToken = userService.generateEmailVerificationToken(user)
+        emailService.sendVerificationEmail(user, verificationToken)
 
-        URI location = uriBuilder . path ("/api/users/{id}")
-            .buildAndExpand(user.getId())
-            .toUri();
+        val location: URI = uriBuilder.path("/api/users/{id}")
+            .buildAndExpand(user.id.value)
+            .toUri()
 
         return ResponseEntity.created(location)
-            .body(MessageResponse("User registered successfully. Please check your email for verification."));
+            .body(MessageResponse("User registered successfully. Please check your email for verification."))
     }
 
     @PostMapping("/verify-email")
-    public ResponseEntity<MessageResponse> verifyEmail(
-    @Valid @RequestBody EmailVerificationRequest request)
-    {
-
-        User user = userService . verifyEmail (request.token());
-
-        return ResponseEntity.ok(MessageResponse("Email verified successfully"));
+    suspend fun verifyEmail(@Valid @RequestBody request: EmailVerificationRequest): MessageResponse {
+        userService.verifyEmail(request.token)
+        return MessageResponse("Email verified successfully")
     }
 
     @PostMapping("/resend-verification")
-    public ResponseEntity<MessageResponse> resendVerification(
-    @Valid @RequestBody ResendVerificationRequest request)
-    {
+    suspend fun resendVerification(@Valid @RequestBody request: ResendVerificationRequest): MessageResponse {
+        val user = userService.findByEmail(request.email)
+            ?: throw UserNotFoundException("User not found")
 
-        User user = userService . findByEmail (request.email());
-
-        if (user.isEmailVerified()) {
-            throw EmailAlreadyVerifiedException("Email already verified");
+        if (user.emailVerified) {
+            throw EmailAlreadyVerifiedException("Email already verified")
         }
 
-        String verificationToken = userService . generateEmailVerificationToken (user);
-        emailService.sendVerificationEmail(user, verificationToken);
+        val verificationToken = userService.generateEmailVerificationToken(user)
+        emailService.sendVerificationEmail(user, verificationToken)
 
-        return ResponseEntity.ok(MessageResponse("Verification email sent"));
+        return MessageResponse("Verification email sent")
     }
 }
 ```
 
-## Service Layer Implementation
+## Application Service Implementation
 
-### JWT Token Service
+### JWT Token Application Service
 
 ```kotlin
-@Service
-@Transactional
-@Slf4j
-class JwtTokenService {
+@com.profiletailors.common.domain.Service
+class JwtTokenService(
+    private val jwtEncoder: JwtEncoder,
+    private val jwtDecoder: ReactiveJwtDecoder,
+    private val claimsService: JwtClaimsService,
+    private val blacklistedTokenRepository: BlacklistedTokenRepository,
+) {
+    suspend fun generateAccessToken(user: UserAccount): AccessTokenResponse {
+        val claims = claimsService.createAccessTokenClaims(user)
+        val tokenValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).tokenValue
 
-    private val jwtEncoder: JwtEncoder
-    private val jwtDecoder: JwtDecoder
-    private val claimsService: JwtClaimsService
-    private val blacklistedTokenRepository: BlacklistedTokenRepository
-
-    public JwtTokenService(JwtEncoder jwtEncoder,
-    JwtDecoder jwtDecoder,
-    JwtClaimsService claimsService,
-    BlacklistedTokenRepository blacklistedTokenRepository)
-    {
-        this.jwtEncoder = jwtEncoder;
-        this.jwtDecoder = jwtDecoder;
-        this.claimsService = claimsService;
-        this.blacklistedTokenRepository = blacklistedTokenRepository;
+        return AccessTokenResponse(
+            token = tokenValue,
+            expiresAt = claims.expiresAt.toEpochMilli(),
+            issuedAt = claims.issuedAt.toEpochMilli(),
+            type = claims.getClaimAsString("type"),
+        )
     }
 
-    fun generateAccessToken(User user): AccessTokenResponse {
-        JwtClaimsSet claims = claimsService . createAccessTokenClaims (user);
-        String tokenValue = jwtEncoder . encode (
-                JwtEncoderParameters.from(claims)).getTokenValue();
-
-        return new AccessTokenResponse (
-                tokenValue,
-        claims.getExpiresAt().toEpochMilli(),
-        claims.getIssuedAt().toEpochMilli(),
-        claims.getClaimAsString("type")
-        );
+    suspend fun extractTokenClaim(token: String, claimName: String): String {
+        val jwt = jwtDecoder.decode(token).awaitSingle()
+        return jwt.getClaimAsString(claimName)
+            ?: throw InvalidTokenException("Missing claim $claimName")
     }
 
-    fun extractTokenClaim(String token, String claimName): String {
-        try {
-            Jwt jwt = jwtDecoder . decode (token);
-            return jwt.getClaimAsString(claimName);
-        } catch (JwtException e) {
-            throw InvalidTokenException("Invalid token", e);
-        }
+    suspend fun isTokenValid(token: String): Boolean {
+        val jti = extractTokenClaim(token, "jti")
+        if (blacklistedTokenRepository.existsByTokenId(jti)) return false
+
+        val jwt = jwtDecoder.decode(token).awaitSingle()
+        val expiresAt = jwt.expiresAt ?: return false
+        return expiresAt.isAfter(Instant.now())
     }
 
-    fun isTokenValid(String token): boolean {
-        try {
-            // Check if token is blacklisted
-            String jti = extractTokenClaim (token, "jti");
-            if (blacklistedTokenRepository.existsByTokenId(jti)) {
-                return false;
-            }
+    suspend fun blacklistToken(token: String) {
+        val jti = extractTokenClaim(token, "jti")
+        val expiresAtMs = extractTokenClaim(token, "exp").toLong()
+        val expiresAt = Instant.ofEpochMilli(expiresAtMs)
 
-            // Decode and validate token
-            Jwt jwt = jwtDecoder . decode (token);
-            return jwt.getExpiresAt() != null &&
-                    Instant.now().isBefore(jwt.getExpiresAt());
-        } catch (JwtException e) {
-            return false;
-        }
+        blacklistedTokenRepository.save(
+            BlacklistedToken(jti = jti, token = token, expiresAt = expiresAt),
+        )
     }
 
-    fun blacklistToken(String token): void {
-        String jti = extractTokenClaim (token, "jti");
-        Instant expiresAt = Instant . ofEpochMilli (
-                Long.parseLong(extractTokenClaim(token, "exp")));
-
-        BlacklistedToken blacklistedToken = new BlacklistedToken(
-            jti, token, expiresAt
-        );
-        blacklistedTokenRepository.save(blacklistedToken);
-    }
-
-    @Scheduled(fixedRate = 3600000) // Every hour
-    fun cleanupExpiredBlacklistedTokens(): void {
-        List<BlacklistedToken> expiredTokens = blacklistedTokenRepository
-                .findByExpiresAtBefore(Instant.now());
-
-        blacklistedTokenRepository.deleteAll(expiredTokens);
-        log.info("Cleaned up {} expired blacklisted tokens", expiredTokens.size());
+    @Scheduled(fixedRate = 3600000)
+    suspend fun cleanupExpiredBlacklistedTokens() {
+        val expired = blacklistedTokenRepository.findByExpiresAtBefore(Instant.now())
+        blacklistedTokenRepository.deleteAll(expired)
     }
 }
 ```
@@ -523,311 +432,282 @@ class JwtTokenService {
 ### Refresh Token Service
 
 ```kotlin
-@Service
-@Transactional
-@Slf4j
-class RefreshTokenService {
+@com.profiletailors.common.domain.Service
+class RefreshTokenService(
+    private val jwtTokenService: JwtTokenService,
+    private val claimsService: JwtClaimsService,
+    private val refreshTokenRepository: RefreshTokenRepository,
+    private val userRepository: UserRepository,
+) {
+    @Value("\${jwt.refresh-token-expiration:P7D}")
+    private val refreshTokenExpiration: Duration = Duration.ofDays(7)
 
-    private val jwtTokenService: JwtTokenService
-    private val claimsService: JwtClaimsService
-    private val refreshTokenRepository: RefreshTokenRepository
-    private val userRepository: UserRepository
-
-    @Value("${jwt.refresh - token - expiration:P7D}")
-    private var refreshTokenExpiration: Duration
-
-    fun createRefreshToken(User user): RefreshTokenResponse {
-        // Revoke existing refresh tokens if too many
-        long activeTokens = refreshTokenRepository . countByUserAndExpiresAtAfter (user, Instant.now());
-        if (activeTokens >= 5) {
-            refreshTokenRepository.deleteOldestByUser(user);
+    suspend fun createRefreshToken(user: UserAccount): RefreshTokenResponse {
+        val active = refreshTokenRepository.countActiveByUser(user.id)
+        if (active >= MAX_ACTIVE_REFRESH_TOKENS) {
+            refreshTokenRepository.deleteOldestByUser(user.id)
         }
 
-        JwtClaimsSet claims = claimsService . createRefreshTokenClaims (user);
-        String tokenValue = jwtTokenService . encodeToken (claims);
+        val claims = claimsService.createRefreshTokenClaims(user)
+        val tokenValue = jwtTokenService.encodeClaims(claims)
 
-        RefreshToken refreshToken = new RefreshToken(
-            tokenValue,
-            user,
-            claims.getExpiresAt(),
-            claims.getClaimAsString("sessionId"),
-            claims.getClaimAsString("jti")
-        );
+        val saved = refreshTokenRepository.save(
+            RefreshToken(
+                id = RefreshTokenId(0L),
+                userId = user.id,
+                tokenHash = hashToken(tokenValue),
+                expiresAt = claims.expiresAt,
+                sessionId = claims.getClaimAsString("sessionId"),
+                tokenId = claims.getClaimAsString("jti"),
+            ),
+        )
 
-        refreshToken = refreshTokenRepository.save(refreshToken);
-
-        return new RefreshTokenResponse (
-                refreshToken.getToken(),
-        refreshToken.getExpiresAt().toEpochMilli()
-        );
+        return RefreshTokenResponse(
+            token = tokenValue,
+            expiresAt = saved.expiresAt.toEpochMilli(),
+        )
     }
 
-    fun refreshToken(RefreshTokenRequest request): RefreshTokenResponse {
-        String refreshTokenValue = request . refreshToken ();
-
-        // Validate refresh token
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByToken(refreshTokenValue)
-            .orElseThrow(() -> InvalidTokenException("Refresh token not found"));
+    suspend fun refreshToken(request: RefreshTokenRequest): RefreshTokenResponse {
+        val refreshToken = refreshTokenRepository.findByTokenHash(hashToken(request.refreshToken))
+            ?: throw InvalidTokenException("Refresh token not found")
 
         if (refreshToken.isExpired()) {
-            refreshTokenRepository.delete(refreshToken);
-            throw ExpiredTokenException("Refresh token expired");
+            refreshTokenRepository.delete(refreshToken)
+            throw ExpiredTokenException("Refresh token expired")
         }
-
         if (!refreshToken.isActive()) {
-            throw InvalidTokenException("Refresh token has been revoked");
+            throw InvalidTokenException("Refresh token has been revoked")
         }
 
-        User user = refreshToken . getUser ();
-        if (!user.isEnabled() || !user.isAccountNonLocked()) {
-            throw AccountDisabledException("Account is disabled or locked");
+        val user = userRepository.findById(refreshToken.userId)
+            ?: throw AccountNotFoundException("User not found")
+
+        if (!user.enabled) {
+            throw AccountDisabledException("Account is disabled")
         }
 
-        // Generate new access token
-        AccessTokenResponse accessToken = jwtTokenService . generateAccessToken (user);
+        val accessToken = jwtTokenService.generateAccessToken(user)
 
-        // Optional: Rotate refresh token
-        if (shouldRotateRefreshToken(refreshToken)) {
-            refreshTokenRepository.delete(refreshToken);
-            return createRefreshToken(user);
+        return if (shouldRotate(refreshToken)) {
+            refreshTokenRepository.delete(refreshToken)
+            createRefreshToken(user)
+        } else {
+            RefreshTokenResponse(
+                token = request.refreshToken,
+                expiresAt = refreshToken.expiresAt.toEpochMilli(),
+                accessToken = accessToken.token,
+                accessExpiresAt = accessToken.expiresAt,
+            )
         }
-
-        return new RefreshTokenResponse (
-                accessToken.token(),
-        accessToken.expiresAt(),
-        refreshToken.getToken(),
-        refreshToken.getExpiresAt().toEpochMilli()
-        );
     }
 
-    fun revokeRefreshToken(String token): void {
-        refreshTokenRepository.findByToken(token)
-            .ifPresent(refreshToken -> {
-            refreshToken.setRevoked(true);
-            refreshToken.setRevokedAt(Instant.now());
-            refreshTokenRepository.save(refreshToken);
-        });
+    suspend fun revokeRefreshToken(token: String) {
+        val refreshToken = refreshTokenRepository.findByTokenHash(hashToken(token)) ?: return
+        refreshTokenRepository.save(refreshToken.revoke(now()))
     }
 
-    fun revokeRefreshTokenByJti(String jti): void {
-        refreshTokenRepository.findByTokenId(jti)
-            .ifPresent(refreshToken -> {
-            refreshToken.setRevoked(true);
-            refreshToken.setRevokedAt(Instant.now());
-            refreshTokenRepository.save(refreshToken);
-        });
+    suspend fun revokeRefreshTokenByJti(jti: String) {
+        val refreshToken = refreshTokenRepository.findByTokenId(jti) ?: return
+        refreshTokenRepository.save(refreshToken.revoke(now()))
     }
 
-    fun revokeAllRefreshTokens(User user): void {
-        List<RefreshToken> tokens = refreshTokenRepository
-                .findByUserAndRevokedFalse(user);
-
-        tokens.forEach(token -> {
-            token.setRevoked(true);
-            token.setRevokedAt(Instant.now());
-        });
-
-        refreshTokenRepository.saveAll(tokens);
+    suspend fun revokeAllRefreshTokens(user: UserAccount) {
+        val tokens = refreshTokenRepository.findAllActiveByUser(user.id)
+        tokens.forEach { refreshTokenRepository.save(it.revoke(now())) }
     }
 
-    private fun shouldRotateRefreshToken(RefreshToken refreshToken): boolean {
-        // Rotate refresh token if older than 3 days
-        return refreshToken.getCreatedAt()
-            .isBefore(Instant.now().minus(3, ChronoUnit.DAYS));
+    private fun shouldRotate(token: RefreshToken): Boolean =
+        token.createdAt.isBefore(Instant.now().minus(3, ChronoUnit.DAYS))
+
+    @Scheduled(fixedRate = 86400000)
+    suspend fun cleanupExpiredTokens() {
+        val cutoff = Instant.now().minus(7, ChronoUnit.DAYS)
+        val expired = refreshTokenRepository.findExpiredBefore(cutoff)
+        refreshTokenRepository.deleteAll(expired)
     }
 
-    @Scheduled(fixedRate = 86400000) // Daily
-    fun cleanupExpiredTokens(): void {
-        Instant cutoff = Instant . now ().minus(7, ChronoUnit.DAYS);
-        List<RefreshToken> expiredTokens = refreshTokenRepository
-                .findByExpiresAtBefore(cutoff);
-
-        refreshTokenRepository.deleteAll(expiredTokens);
-        log.info("Cleaned up {} expired refresh tokens", expiredTokens.size());
+    companion object {
+        private const val MAX_ACTIVE_REFRESH_TOKENS = 5L
     }
 }
 ```
 
-### User Service
+### User Application Service
 
 ```kotlin
-@Service
-@Transactional
-@Slf4j
-class UserService {
+@com.profiletailors.common.domain.Service
+class UserService(
+    private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
+    private val roleRepository: RoleRepository,
+) {
+    suspend fun createUser(request: RegistrationRequest): UserAccount {
+        val userRole = roleRepository.findByName("USER")
+            ?: throw IllegalStateException("Default USER role not found")
 
-    private val userRepository: UserRepository
-    private val passwordEncoder: PasswordEncoder
-    private val roleRepository: RoleRepository
+        val user = UserAccount(
+            id = UserId(0L),
+            email = request.email,
+            passwordHash = passwordEncoder.encode(request.password),
+            firstName = request.firstName,
+            lastName = request.lastName,
+            phoneNumber = request.phoneNumber,
+            enabled = true,
+        )
+        user.assignRoles(setOf(userRole))
 
-    fun createUser(RegistrationRequest request): User {
-        User user = User . builder ()
-            .email(request.email())
-            .password(passwordEncoder.encode(request.password()))
-            .firstName(request.firstName())
-            .lastName(request.lastName())
-            .phoneNumber(request.phoneNumber())
-            .enabled(true)
-            .emailVerified(false)
-            .build();
-
-        // Assign default role
-        Role userRole = roleRepository . findByName ("USER")
-            .orElseThrow(() -> IllegalStateException("Default USER role not found"));
-        user.setRoles(setOf(userRole));
-
-        return userRepository.save(user);
+        return userRepository.save(user)
     }
 
-    fun changePassword(User user, ChangePasswordRequest request): void {
-        // Validate current password
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw InvalidPasswordException("Current password is incorrect");
+    suspend fun changePassword(user: UserAccount, request: ChangePasswordRequest) {
+        if (!passwordEncoder.matches(request.currentPassword, user.passwordHash)) {
+            throw InvalidPasswordException("Current password is incorrect")
+        }
+        if (request.newPassword != request.confirmPassword) {
+            throw PasswordMismatchException("New passwords do not match")
+        }
+        val updated = user.copy(passwordHash = passwordEncoder.encode(request.newPassword))
+        userRepository.save(updated)
+    }
+
+    suspend fun recordLogin(user: UserAccount, deviceInfo: String, ipAddress: String) {
+        val login = UserLogin(
+            id = UserLoginId(0L),
+            userId = user.id,
+            loginAt = Instant.now(),
+            ipAddress = ipAddress,
+            userAgent = deviceInfo,
+        )
+        user.logins.add(login)
+        userRepository.save(user)
+    }
+
+    suspend fun recordLogout(user: UserAccount, ipAddress: String) {
+        val updated = user.copy(logins = user.logins.toMutableList())
+        val lastOpenLogin = updated.logins.lastOrNull { it.logoutAt == null }
+        if (lastOpenLogin != null) {
+            val closed = lastOpenLogin.copy(
+                logoutAt = Instant.now(),
+                logoutIpAddress = ipAddress,
+            )
+            updated.logins.remove(lastOpenLogin)
+            updated.logins.add(closed)
+            userRepository.save(updated)
+        }
+    }
+
+    suspend fun generateEmailVerificationToken(user: UserAccount): String {
+        val token = UUID.randomUUID().toString()
+        val expiry = Instant.now().plus(24, ChronoUnit.HOURS)
+        userRepository.save(user.copy(emailVerificationToken = token, emailVerificationTokenExpiry = expiry))
+        return token
+    }
+
+    suspend fun verifyEmail(token: String): UserAccount {
+        val user = userRepository.findByEmailVerificationToken(token)
+            ?: throw InvalidTokenException("Invalid verification token")
+
+        val expiry = user.emailVerificationTokenExpiry
+            ?: throw ExpiredTokenException("Verification token expired")
+
+        if (expiry.isBefore(Instant.now())) {
+            throw ExpiredTokenException("Verification token expired")
         }
 
-        // Validate new password
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw PasswordMismatchException("New passwords do not match");
-        }
-
-        // Update password
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
-
-        // Force login from other devices
-        // This would trigger refresh token invalidation
-    }
-
-    fun recordLogin(User user, String deviceInfo, String ipAddress): void {
-        UserLogin login = UserLogin . builder ()
-            .user(user)
-            .loginAt(Instant.now())
-            .ipAddress(ipAddress)
-            .userAgent(deviceInfo)
-            .build();
-
-        user.addLogin(login);
-        userRepository.save(user);
-    }
-
-    fun recordLogout(User user, String ipAddress): void {
-        Optional<UserLogin> lastLogin = user . getLogins ()..filter(login -> login.getLogoutAt() == null)
-        .findFirst();
-
-        lastLogin.ifPresent(login -> {
-            login.setLogoutAt(Instant.now());
-            login.setLogoutIpAddress(ipAddress);
-            userRepository.save(user);
-        });
-    }
-
-    fun generateEmailVerificationToken(User user): String {
-        String token = UUID . randomUUID ().toString();
-        user.setEmailVerificationToken(token);
-        user.setEmailVerificationTokenExpiry(Instant.now().plus(24, ChronoUnit.HOURS));
-        userRepository.save(user);
-        return token;
-    }
-
-    @Transactional
-    fun verifyEmail(String token): User {
-        User user = userRepository . findByEmailVerificationToken (token)
-            .orElseThrow(() -> InvalidTokenException("Invalid verification token"));
-
-        if (user.getEmailVerificationTokenExpiry().isBefore(Instant.now())) {
-            throw ExpiredTokenException("Verification token expired");
-        }
-
-        user.setEmailVerified(true);
-        user.setEmailVerificationToken(null);
-        user.setEmailVerificationTokenExpiry(null);
-
-        return userRepository.save(user);
+        return userRepository.save(
+            user.copy(
+                emailVerified = true,
+                emailVerificationToken = null,
+                emailVerificationTokenExpiry = null,
+            ),
+        )
     }
 }
 ```
 
-## Advanced Security Configuration
+## Reactive Security Configuration
 
-### Complete Security Configuration
+### Complete Security Web Filter Chain
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
-@RequiredArgsConstructor
-class SecurityConfig {
-
-    private val authenticationEntryPoint: JwtAuthenticationEntryPoint
-    private val accessDeniedHandler: JwtAccessDeniedHandler
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter
-    private val authenticationProvider: CustomAuthenticationProvider
-    private val logoutHandler: LogoutHandler
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class SecurityConfig(
+    private val authenticationEntryPoint: JwtAuthenticationEntryPoint,
+    private val accessDeniedHandler: JwtAccessDeniedHandler,
+    private val jwtAuthenticationFilter: JwtAuthenticationWebFilter,
+    private val authenticationManager: ReactiveAuthenticationManager,
+    private val logoutHandler: ServerLogoutHandler,
+) {
+    @Bean
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .csrf { csrf ->
+            csrf
+                .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers("/api/auth/**", "/api/public/**")
+        }
+        .anonymous { it.disable() }
+        .exceptionHandling { exceptions ->
+            exceptions
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
+        }
+        .headers { headers ->
+            headers
+                .frameOptions { it.deny() }
+                .contentTypeOptions { it.and() }
+                .hsts { hsts ->
+                    hsts
+                        .maxAge(Duration.ofDays(365))
+                        .includeSubdomains(true)
+                }
+                .cache { it.disable() }
+        }
+        .authorizeExchange { auth ->
+            auth
+                .pathMatchers("/api/auth/**", "/api/public/**", "/actuator/health").permitAll()
+                .pathMatchers("/api/admin/**").hasRole("ADMIN")
+                .pathMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                .pathMatchers("/api/users/me").authenticated()
+                .anyExchange().authenticated()
+        }
+        .oauth2ResourceServer { oauth2 ->
+            oauth2.jwt { jwt ->
+                jwt
+                    .decoder(jwtDecoder())
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
+            }
+        }
+        .authenticationManager(authenticationManager)
+        .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.HTTP_BASIC)
+        .logout { logout ->
+            logout
+                .logoutUrl("/api/auth/logout")
+                .logoutHandler(logoutHandler)
+                .logoutSuccessHandler { _, response ->
+                    response.setStatusCode(HttpStatus.NO_CONTENT)
+                }
+        }
+        .build()
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
-    {
-        return http
-            .csrf(csrf -> csrf
-        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-        .ignoringRequestMatchers("/api/auth/**", "/api/public/**"))
-        .sessionManagement(session -> session
-        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .exceptionHandling(exception -> exception
-        .authenticationEntryPoint(authenticationEntryPoint)
-        .accessDeniedHandler(accessDeniedHandler))
-        .headers(headers -> headers
-        .frameOptions().deny()
-        .contentTypeOptions().and()
-        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-        .maxAgeInSeconds(31536000)
-        .includeSubdomains(true))
-        .cacheControl())
-        .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/api/auth/**", "/api/public/**", "/actuator/health").permitAll()
-        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
-        .requestMatchers("/api/users/me").authenticated()
-        .anyRequest().authenticated())
-        .oauth2ResourceServer(oauth2 -> oauth2
-        .jwt(jwt -> jwt
-        .decoder(jwtDecoder())
-        .jwtAuthenticationConverter(jwtAuthenticationConverter())))
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(
-            jwtAuthenticationFilter,
-            UsernamePasswordAuthenticationFilter.class)
-                .logout(logout -> logout
-        .logoutUrl("/api/auth/logout")
-        .addLogoutHandler(logoutHandler)
-        .logoutSuccessHandler((request, response, authentication) ->
-        response.setStatus(HttpStatus.NO_CONTENT.value())))
-        .build();
-    }
+    fun jwtDecoder(): ReactiveJwtDecoder = CustomReactiveJwtDecoder(
+        NimbusReactiveJwtDecoder.withPublicKey(rsaPublicKey()).build(),
+        jwtClaimsValidator(),
+    )
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
-        // Custom decoder with validation
-        return CustomJwtDecoder(nimbusJwtDecoder(), jwtClaimsValidator());
-    }
-
-    @Bean
-    fun nimbusJwtDecoder(): NimbusJwtDecoder {
-        return NimbusJwtDecoder.withPublicKey(rsaPublicKey()).build();
-    }
-
-    @Bean
-    fun jwtAuthenticationConverter(): JwtAuthenticationConverter {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = JwtGrantedAuthoritiesConverter ();
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-        authoritiesConverter.setAuthoritiesClaimName("roles");
-
-        JwtAuthenticationConverter converter = JwtAuthenticationConverter ();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-        converter.setPrincipalClaimName("sub");
-
-        return converter;
+    fun jwtAuthenticationConverter(): Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+        val authoritiesConverter = JwtGrantedAuthoritiesConverter().apply {
+            setAuthorityPrefix("ROLE_")
+            setAuthoritiesClaimName("roles")
+        }
+        return JwtAuthenticationConverter().apply {
+            setJwtGrantedAuthoritiesConverter(authoritiesConverter)
+            setPrincipalClaimName("sub")
+        }
     }
 }
 ```

@@ -1,925 +1,534 @@
 # Testing JWT Security
 
+This document covers testing patterns for the reactive JWT security stack used in
+the SMP backend. All examples use Kotest + MockK (`@MockkBean`),
+`@SpringBootTest` with `@AutoConfigureWebTestClient`, R2DBC via Testcontainers,
+and `WebTestClient` for end-to-end tests. The Servlet JUnit Jupiter + Mockito +
+`WebTestClient` + `@MockkBean` patterns are intentionally not shown — see
+`migration-spring-security-6x.md` if a servlet reference is needed.
+
 ## Unit Testing Authentication
 
-### Testing JWT Token Service
+### Testing JWT Token Service with Kotest + MockK
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class JwtTokenServiceTest {
+class JwtTokenServiceTest : StringSpec({
+    val jwtEncoder = mockk<JwtEncoder>()
+    val jwtDecoder = mockk<ReactiveJwtDecoder>()
+    val claimsService = mockk<JwtClaimsService>()
+    val refreshTokenService = mockk<RefreshTokenService>()
+    val tokenService = JwtTokenService(jwtEncoder, jwtDecoder, claimsService, mockk())
 
-    @Mock
-    private var jwtEncoder: JwtEncoder
+    "should generate access token successfully" {
+        val user = TestUsers.default()
+        val claims = TestTokens.testClaims()
+        val encoded = TestTokens.encodedToken()
 
-    @Mock
-    private var jwtDecoder: JwtDecoder
+        every { claimsService.createAccessTokenClaims(user) } returns claims
+        every { jwtEncoder.encode(any<JwtEncoderParameters>()) } returns encoded
 
-    @Mock
-    private var claimsService: JwtClaimsService
-
-    @InjectMocks
-    private var tokenService: JwtTokenService
-
-    @Test
-    @DisplayName("Should generate access token successfully")
-    void generateAccessToken_Success () {
-        // Given
-        User user = createTestUser ();
-        JwtClaimsSet claims = createTestClaims ();
-        Jwt encodedToken = createEncodedToken ();
-
-        when (claimsService.createAccessTokenClaims(user)).thenReturn(claims);
-        when (jwtEncoder.encode(any(JwtEncoderParameters.class)))
-            .thenReturn(Jwt(encodedToken.getTokenValue()));
-
-        // When
-        AccessTokenResponse response = tokenService . generateAccessToken (user);
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.token()).isEqualTo(encodedToken.getTokenValue());
-        assertThat(response.expiresAt()).isEqualTo(claims.getExpiresAt().toEpochMilli());
-        assertThat(response.type()).isEqualTo("access");
-
-        verify(claimsService).createAccessTokenClaims(user);
-        verify(jwtEncoder).encode(any(JwtEncoderParameters.class));
+        runBlocking {
+            val response = tokenService.generateAccessToken(user)
+            response.token shouldBe encoded.tokenValue
+            response.expiresAt shouldBe claims.expiresAt.toEpochMilli()
+            response.type shouldBe "access"
+        }
+        verify { claimsService.createAccessTokenClaims(user) }
+        verify { jwtEncoder.encode(any<JwtEncoderParameters>()) }
     }
 
-    @Test
-    @DisplayName("Should validate token successfully")
-    void isTokenValid_Success () {
-        // Given
-        String validToken = "valid.jwt.token";
-        Jwt jwt = createTestJwt ();
-        when (jwtDecoder.decode(validToken)).thenReturn(jwt);
+    "should validate token successfully" {
+        val validToken = "valid.jwt.token"
+        val jwt = TestTokens.testJwt()
 
-        // When
-        boolean isValid = tokenService . isTokenValid (validToken);
+        every { jwtDecoder.decode(validToken) } returns Mono.just(jwt)
 
-        // Then
-        assertThat(isValid).isTrue();
-        verify(jwtDecoder).decode(validToken);
+        runBlocking { tokenService.isTokenValid(validToken) shouldBe true }
+        verify { jwtDecoder.decode(validToken) }
     }
 
-    @Test
-    @DisplayName("Should reject expired token")
-    void isTokenValid_ExpiredToken_ReturnsFalse () {
-        // Given
-        String expiredToken = "expired.jwt.token";
-        Jwt jwt = createExpiredJwt ();
-        when (jwtDecoder.decode(expiredToken)).thenReturn(jwt);
+    "should reject expired token" {
+        val expiredToken = "expired.jwt.token"
+        val jwt = TestTokens.expiredJwt()
 
-        // When
-        boolean isValid = tokenService . isTokenValid (expiredToken);
+        every { jwtDecoder.decode(expiredToken) } returns Mono.just(jwt)
 
-        // Then
-        assertThat(isValid).isFalse();
+        runBlocking { tokenService.isTokenValid(expiredToken) shouldBe false }
     }
 
-    @Test
-    @DisplayName("Should reject invalid token")
-    void isTokenValid_InvalidToken_ReturnsFalse () {
-        // Given
-        String invalidToken = "invalid.token";
-        when (jwtDecoder.decode(invalidToken))
-            .thenThrow(JwtException("Invalid token"));
+    "should reject invalid token" {
+        val invalidToken = "invalid.token"
+        every { jwtDecoder.decode(invalidToken) } throws JwtException("Invalid token")
 
-        // When
-        boolean isValid = tokenService . isTokenValid (invalidToken);
-
-        // Then
-        assertThat(isValid).isFalse();
+        runBlocking { tokenService.isTokenValid(invalidToken) shouldBe false }
     }
 
-    @Test
-    @DisplayName("Should extract claim from token")
-    void extractTokenClaim_Success () {
-        // Given
-        String token = "test.jwt.token";
-        String claimName = "sub";
-        String expectedClaim = "12345";
-        Jwt jwt = createTestJwt ();
-        when (jwtDecoder.decode(token)).thenReturn(jwt);
-        when (jwt.getClaimAsString(claimName)).thenReturn(expectedClaim);
+    "should extract claim from token" {
+        val token = "test.jwt.token"
+        val claimName = "sub"
+        val expectedClaim = "12345"
+        val jwt = TestTokens.testJwt()
 
-        // When
-        String claim = tokenService . extractTokenClaim (token, claimName);
+        every { jwtDecoder.decode(token) } returns Mono.just(jwt)
 
-        // Then
-        assertThat(claim).isEqualTo(expectedClaim);
+        runBlocking {
+            tokenService.extractTokenClaim(token, claimName) shouldBe expectedClaim
+        }
     }
-
-    private fun createTestUser(): User {
-        return User.builder()
-            .id(1L)
-            .email("test@example.com")
-            .password("encodedPassword")
-            .roles(setOf(Role("USER")))
-            .enabled(true)
-            .build();
-    }
-
-    private fun createTestClaims(): JwtClaimsSet {
-        return JwtClaimsSet.builder()
-            .issuer("test-issuer")
-            .subject("12345")
-            .audience(listOf("test-audience"))
-            .issuedAt(Instant.now())
-            .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-            .claim("type", "access")
-            .build();
-    }
-
-    private fun createEncodedToken(): Jwt {
-        return new Jwt ("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.signature",
-        Map.of(),
-        Map.of("exp", Instant.now().plus(1, ChronoUnit.HOURS).getEpochSecond()));
-    }
-
-    private fun createTestJwt(): Jwt {
-        return Jwt.withTokenValue("test.token")
-            .header("alg", "RS256")
-            .claim("sub", "12345")
-            .claim("type", "access")
-            .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-            .build();
-    }
-
-    private fun createExpiredJwt(): Jwt {
-        return Jwt.withTokenValue("expired.token")
-            .header("alg", "RS256")
-            .claim("sub", "12345")
-            .claim("type", "access")
-            .expiresAt(Instant.now().minus(1, ChronoUnit.HOURS))
-            .build();
-    }
-}
+})
 ```
 
 ### Testing Security Configuration
 
 ```kotlin
 @SpringBootTest
-@AutoConfigureTestDatabase
-@TestPropertySource(properties = {
-    "jwt.secret=test-secret-key-for-testing-only",
-    "jwt.access-token-expiration=PT5M"
+@AutoConfigureWebTestClient
+@TestPropertySource(
+    properties = [
+        "jwt.secret=test-secret-key-for-testing-only-must-be-long-enough-for-hs256",
+        "jwt.access-token-expiration=PT5M",
+    ],
+)
+class SecurityConfigTest(
+    private val webTestClient: WebTestClient,
+    private val userRepository: UserRepositoryR2dbc,
+    private val passwordEncoder: PasswordEncoder,
+    private val tokenIssuer: TestJwtIssuer,
+) : StringSpec({
+    beforeSpec {
+        runBlocking {
+            userRepository.save(TestUsers.default().copy(passwordHash = passwordEncoder.encode("password")))
+                .awaitSingle()
+        }
+    }
+
+    "public health endpoint is reachable without authentication" {
+        webTestClient.get().uri("/api/public/health").exchange()
+            .expectStatus().isOk
+    }
+
+    "protected endpoint returns 401 without authentication" {
+        webTestClient.get().uri("/api/users/me").exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "protected endpoint returns 200 with valid JWT" {
+        val token = tokenIssuer.issueValidToken(TestUsers.default())
+
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<UserProfileResponse>()
+            .isNotEmpty
+    }
+
+    "protected endpoint returns 401 with invalid JWT" {
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.jwt.token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "admin endpoints return 403 for USER role" {
+        val token = tokenIssuer.issueUserToken(TestUsers.default())
+
+        webTestClient.get().uri("/api/admin/users")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isForbidden
+    }
 })
-class SecurityConfigTest {
-
-    @Autowired
-    private var restTemplate: TestRestTemplate
-
-    @Autowired
-    private var userRepository: UserRepository
-
-    @Autowired
-    private var passwordEncoder: PasswordEncoder
-
-    @MockBean
-    private var authenticationManager: AuthenticationManager
-
-    @Test
-    @DisplayName("Should allow access to public endpoints")
-    void publicEndpoints_AccessAllowed()
-    {
-        // When
-        ResponseEntity<String> response = restTemplate . getForEntity (
-                "/api/public/health", String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    @DisplayName("Should deny access to protected endpoints without authentication")
-    void protectedEndpoints_NoAuthentication_Returns401()
-    {
-        // When
-        ResponseEntity<String> response = restTemplate . getForEntity (
-                "/api/users/me", String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should allow access with valid JWT")
-    void protectedEndpoints_ValidJwt_Returns200()
-    {
-        // Given
-        String validToken = generateValidToken ();
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(validToken);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<UserProfileResponse> response = restTemplate . exchange (
-                "/api/users/me", HttpMethod.GET, entity, UserProfileResponse.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Should reject invalid JWT")
-    void protectedEndpoints_InvalidJwt_Returns401()
-    {
-        // Given
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth("invalid.jwt.token");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/users/me", HttpMethod.GET, entity, String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should enforce role-based access control")
-    void adminEndpoints_UserRole_Returns403()
-    {
-        // Given
-        String userToken = generateUserToken ();
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(userToken);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/admin/users", HttpMethod.GET, entity, String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-    }
-
-    private fun generateValidToken(): String {
-        // Generate a valid JWT for testing
-        // This should use the same JWT encoder as the application
-        User testUser = createTestUser ();
-        JwtTokenService tokenService = JwtTokenService (/* dependencies */);
-        AccessTokenResponse response = tokenService . generateAccessToken (testUser);
-        return response.token();
-    }
-
-    private fun generateUserToken(): String {
-        // Generate a token with USER role only
-        User testUser = createTestUserWithRole ("USER");
-        JwtTokenService tokenService = JwtTokenService (/* dependencies */);
-        AccessTokenResponse response = tokenService . generateAccessToken (testUser);
-        return response.token();
-    }
-}
 ```
 
-## Integration Testing with Testcontainers
+## Integration Testing with Testcontainers (PostgreSQL/R2DBC)
 
-### Security Integration Tests
+### Security Integration Tests via WebTestClient
 
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-@Transactional
-class SecurityIntegrationTest {
+class SecurityIntegrationTest(
+    private val webTestClient: WebTestClient,
+) : StringSpec({
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-    .withDatabaseName("testdb")
-    .withUsername("test")
-    .withPassword("test");
-
-    @DynamicPropertySource
-    static void postgresProperties(DynamicPropertyRegistry registry)
-    {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        @DynamicPropertySource
+        @JvmStatic
+        fun postgresProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.r2dbc.url") { "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}" }
+            registry.add("spring.r2dbc.username") { postgres.username }
+            registry.add("spring.r2dbc.password") { postgres.password }
+        }
     }
 
-    @Autowired
-    private var restTemplate: TestRestTemplate
+    "complete authentication flow" {
+        val loginRequest = LoginRequest(email = "user@profiletailors.com", password = "password")
 
-    @MockBean
-    private var emailService: EmailService
+        val accessToken = webTestClient.post().uri("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(loginRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<LoginResponse>()
+            .returnResult()
+            .responseBody!!.accessToken
 
-    @Test
-    @DisplayName("Complete authentication flow")
-    void completeAuthenticationFlow_Success()
-    {
-        // Given
-        LoginRequest loginRequest = LoginRequest ("user@example.com", "password");
-
-        // When
-        ResponseEntity<LoginResponse> loginResponse = restTemplate . postForEntity (
-                "/api/auth/login", loginRequest, LoginResponse.class);
-
-        // Then
-        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(loginResponse.getBody()).isNotNull();
-        assertThat(loginResponse.getBody().accessToken()).isNotEmpty();
-
-        // Use token for authenticated request
-        String token = loginResponse . getBody ().accessToken();
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(token);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<UserProfileResponse> profileResponse = restTemplate . exchange (
-                "/api/users/me", HttpMethod.GET, entity, UserProfileResponse.class);
-
-        assertThat(profileResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(profileResponse.getBody().email()).isEqualTo("user@example.com");
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<UserProfileResponse>()
+            .value { it.email shouldBe "user@profiletailors.com" }
     }
 
-    @Test
-    @DisplayName("Refresh token flow")
-    void refreshTokenFlow_Success()
-    {
-        // Given
-        LoginRequest loginRequest = LoginRequest ("user@example.com", "password");
-        ResponseEntity<LoginResponse> loginResponse = restTemplate . postForEntity (
-                "/api/auth/login", loginRequest, LoginResponse.class);
-        String refreshToken = loginResponse . getBody ().refreshToken();
+    "refresh token flow" {
+        val login = LoginRequest("user@profiletailors.com", "password")
 
-        RefreshTokenRequest refreshRequest = RefreshTokenRequest (refreshToken);
+        val refreshToken = webTestClient.post().uri("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(login)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<LoginResponse>()
+            .returnResult()
+            .responseBody!!.refreshToken
 
-        // When
-        ResponseEntity<RefreshTokenResponse> refreshResponse = restTemplate . postForEntity (
-                "/api/auth/refresh", refreshRequest, RefreshTokenResponse.class);
-
-        // Then
-        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(refreshResponse.getBody().accessToken()).isNotEmpty();
-        assertThat(refreshResponse.getBody().refreshToken()).isNotEmpty();
+        webTestClient.post().uri("/api/auth/refresh")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(RefreshTokenRequest(refreshToken))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<RefreshTokenResponse>()
+            .value { it.accessToken.isNotBlank() shouldBe true }
     }
 
-    @Test
-    @DisplayName("Logout invalidates tokens")
-    void logout_InvalidatesTokens()
-    {
-        // Given
-        LoginRequest loginRequest = LoginRequest ("user@example.com", "password");
-        ResponseEntity<LoginResponse> loginResponse = restTemplate . postForEntity (
-                "/api/auth/login", loginRequest, LoginResponse.class);
-        String token = loginResponse . getBody ().accessToken();
+    "logout invalidates subsequent requests" {
+        val login = LoginRequest("user@profiletailors.com", "password")
 
-        // When
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(token);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+        val token = webTestClient.post().uri("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(login)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<LoginResponse>()
+            .returnResult()
+            .responseBody!!.accessToken
 
-        restTemplate.postForEntity("/api/auth/logout", null, String.class);
+        webTestClient.post().uri("/api/auth/logout")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
 
-        // Then
-        ResponseEntity<String> protectedResponse = restTemplate . exchange (
-                "/api/users/me", HttpMethod.GET, entity, String.class);
-
-        assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isUnauthorized
     }
-
-    @BeforeEach
-    void setUp()
-    {
-        // Create test user
-        User testUser = User . builder ()
-            .email("user@example.com")
-            .password(passwordEncoder.encode("password"))
-            .firstName("Test")
-            .lastName("User")
-            .enabled(true)
-            .build();
-
-        userRepository.save(testUser);
-    }
-}
+})
 ```
 
-### Testing Custom Filters
+### Testing Reactive Custom Filters
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class JwtAuthenticationFilterTest {
+class JwtAuthenticationWebFilterTest : StringSpec({
+    val tokenService = mockk<JwtTokenService>()
+    val userDetailsService = mockk<ReactiveUserDetailsService>()
+    val filter = JwtAuthenticationWebFilter(tokenService, userDetailsService)
+    val exchange = mockk<ServerWebExchange>(relaxed = true)
+    val chain = mockk<WebFilterChain>(relaxed = true)
+    val request = mockk<ServerHttpRequest>(relaxed = true)
 
-    @Mock
-    private var tokenService: JwtTokenService
-
-    @Mock
-    private var userDetailsService: UserDetailsService
-
-    @InjectMocks
-    private var jwtAuthenticationFilter: JwtAuthenticationFilter
-
-    @Mock
-    private var filterChain: FilterChain
-
-    @Mock
-    private var request: HttpServletRequest
-
-    @Mock
-    private var response: HttpServletResponse
-
-    @Test
-    @DisplayName("Should authenticate with valid token")
-    void doFilterInternal_ValidToken_SetsAuthentication () throws Exception {
-        // Given
-        String token = "valid.jwt.token";
-        String authHeader = "Bearer "+token;
-        String username = "user@example.com";
-
-        when (request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
-        when (tokenService.isTokenValid(token)).thenReturn(true);
-        when (tokenService.extractTokenClaim(token, "sub")).thenReturn(username);
-
-        UserDetails userDetails = User . builder ()
-            .username(username)
-            .password("password")
-            .authorities(listOf(SimpleGrantedAuthority("ROLE_USER")))
-            .build();
-
-        when (userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
-
-        // When
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        // Then
-        Authentication authentication = SecurityContextHolder . getContext ().getAuthentication();
-        assertThat(authentication).isNotNull();
-        assertThat(authentication.getName()).isEqualTo(username);
-        assertThat(authentication.getAuthorities())
-            .containsExactly(SimpleGrantedAuthority("ROLE_USER"));
-
-        verify(filterChain).doFilter(request, response);
+    beforeEach {
+        clearMocks(tokenService, userDetailsService, exchange, chain, request)
+        exchange.request returns request
     }
 
-    @Test
-    @DisplayName("Should skip authentication for no token")
-    void doFilterInternal_NoToken_SkipsAuthentication () throws Exception {
-        // Given
-        when (request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
+    "should authenticate with valid token" {
+        val token = "valid.jwt.token"
+        val username = "user@profiletailors.com"
+        val userDetails = UserAccount(
+            id = UserId(1L),
+            email = username,
+            passwordHash = "password",
+            firstName = "Test",
+            lastName = "User",
+            enabled = true,
+        )
 
-        // When
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        every { request.headers.header(HttpHeaders.AUTHORIZATION) } returns listOf("Bearer $token")
+        every { tokenService.isTokenValid(token) } returns true
+        every { tokenService.extractUsername(token) } returns username
+        every { userDetailsService.findByUsername(username) } returns Mono.just(userDetails)
+        every { chain.filter(any()) } returns Mono.empty()
 
-        // Then
-        Authentication authentication = SecurityContextHolder . getContext ().getAuthentication();
-        assertThat(authentication).isNull();
-
-        verify(filterChain).doFilter(request, response);
+        filter.filter(exchange, chain).awaitSingleOrNull()
+        verify { chain.filter(exchange) }
     }
 
-    @Test
-    @DisplayName("Should reject invalid token")
-    void doFilterInternal_InvalidToken_Returns401 () throws Exception {
-        // Given
-        String token = "invalid.jwt.token";
-        String authHeader = "Bearer "+token;
+    "should skip authentication when no token" {
+        every { request.headers.header(HttpHeaders.AUTHORIZATION) } returns emptyList()
+        every { chain.filter(any()) } returns Mono.empty()
 
-        when (request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
-        when (tokenService.isTokenValid(token)).thenReturn(false);
-
-        // When
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        // Then
-        verify(response).sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid JWT token");
-        verify(filterChain, never()).doFilter(request, response);
+        filter.filter(exchange, chain).awaitSingleOrNull()
+        verify { chain.filter(exchange) }
     }
-}
+
+    "should chain through when token is invalid" {
+        val token = "invalid.jwt.token"
+        every { request.headers.header(HttpHeaders.AUTHORIZATION) } returns listOf("Bearer $token")
+        every { tokenService.isTokenValid(token) } returns false
+        every { tokenService.extractUsername(token) } returns "user@profiletailors.com"
+        every { chain.filter(any()) } returns Mono.empty()
+
+        filter.filter(exchange, chain).awaitSingleOrNull()
+        verify { chain.filter(exchange) }
+    }
+})
 ```
 
 ## Testing Authorization
 
-### Method-Level Security Tests
+### Method-Level Security Tests with Reactive @WithMockUser
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class DocumentServiceSecurityTest {
+class DocumentServiceSecurityTest(
+    val documentRepository: DocumentRepository = mockk(),
+) : StringSpec({
+    val documentService = DocumentService(documentRepository)
 
-    @InjectMocks
-    private var documentService: DocumentService
+    "user should access own documents" {
+        val documentId = DocumentId(1L)
+        val document = TestDocuments.draft()
 
-    @Mock
-    private var documentRepository: DocumentRepository
+        every { documentRepository.findById(documentId) } returns Mono.just(document)
 
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("User should access own documents")
-    void getMyDocument_UserRole_Success () {
-        // Given
-        Long documentId = 1L;
-        Document document = createDocument ();
-        when (documentRepository.findById(documentId)).thenReturn(document);
-
-        // When
-        Document result = documentService . getMyDocument (documentId);
-
-        // Then
-        assertThat(result).isNotNull();
-        verify(documentRepository).findById(documentId);
+        withMockUser(roles = arrayOf("USER")).run {
+            runBlocking {
+                val result = documentService.getMyDocument(documentId, currentAuthentication())
+                result shouldBe document
+            }
+        }
+        verify { documentRepository.findById(documentId) }
     }
 
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("User should not access admin endpoints")
-    void deleteAllDocuments_UserRole_AccessDenied () {
-        // When & Then
-        assertThrows(
-            AccessDeniedException.class,
-                () -> documentService.deleteAllDocuments());
+    "user cannot delete all documents" {
+        withMockUser(roles = arrayOf("USER")).run {
+            shouldThrow<AccessDeniedException> {
+                runBlocking { documentService.deleteAllDocuments() }
+            }
+        }
     }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    @DisplayName("Admin should access admin endpoints")
-    void deleteAllDocuments_AdminRole_Success () {
-        // When
-        documentService.deleteAllDocuments();
-
-        // Then
-        verify(documentRepository).deleteAll();
+    "admin can delete all documents" {
+        withMockUser(roles = arrayOf("ADMIN")).run {
+            runBlocking { documentService.deleteAllDocuments() }
+        }
+        verify { documentRepository.deleteAll() }
     }
 
-    @Test
-    @DisplayName("Permission-based authorization should work")
-    void approveDocument_WithPermission_Success () {
-        // Given
-        Long documentId = 1L;
-        User user = createUserWithPermission ("DOCUMENT_APPROVE");
-        Document document = createDocument ();
-        document.setOwner(createDifferentUser());
+    "permission-based authorization works" {
+        val documentId = DocumentId(1L)
+        val document = TestDocuments.draft().copy(ownerId = UserId(2L))
+        val permission = SimpleGrantedAuthority("DOCUMENT_APPROVE")
+        val authentication = UsernamePasswordAuthenticationToken(
+            "user@profiletailors.com",
+            "n/a",
+            listOf(permission),
+        )
 
-        when (documentRepository.findById(documentId)).thenReturn(document);
+        every { documentRepository.findById(documentId) } returns Mono.just(document)
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            user, null, user.getAuthorities()
-        );
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        // When
-        Document result = documentService . approveDocument (documentId);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo(DocumentStatus.APPROVED);
+        runBlocking {
+            val result = documentService.approveDocument(documentId, authentication)
+            result shouldBe document.copy(status = DocumentStatus.APPROVED)
+        }
     }
-
-    private fun createDocument(): Document {
-        return Document.builder()
-            .id(1L)
-            .title("Test Document")
-            .status(DocumentStatus.DRAFT)
-            .owner(createTestUser())
-            .build();
-    }
-
-    private fun createUserWithPermission(String permission): User {
-        User user = User ();
-        user.setAuthorities(listOf(SimpleGrantedAuthority(permission)));
-        return user;
-    }
-}
+})
 ```
 
-### Testing Custom Security Rules
+### Testing Custom Permission Evaluator
 
 ```kotlin
 @SpringBootTest
-class CustomPermissionEvaluatorTest {
+@AutoConfigureWebTestClient
+class CustomPermissionEvaluatorTest(
+    val webTestClient: WebTestClient,
+) : StringSpec({
+    "owner can access own document" {
+        val document = TestDocuments.ownedBy(TestUsers.default())
+        val token = TestJwtIssuer().issueUserToken(TestUsers.default())
 
-    @Autowired
-    private var permissionEvaluator: CustomPermissionEvaluator
-
-    @MockBean
-    private var permissionService: PermissionService
-
-    @Test
-    @DisplayName("Should allow owner to access resource")
-    void hasPermission_OwnerAccess_ReturnsTrue()
-    {
-        // Given
-        User user = createTestUser ();
-        Document document = createDocumentOwnedBy (user);
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            user, null, user.getAuthorities()
-        );
-
-        // When
-        boolean hasPermission = permissionEvaluator . hasPermission (
-                auth, document, "READ");
-
-        // Then
-        assertThat(hasPermission).isTrue();
+        webTestClient.get().uri("/api/documents/${document.id.value}")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
     }
 
-    @Test
-    @DisplayName("Should check department-based permissions")
-    void hasPermission_DepartmentAccess_ReturnsTrue()
-    {
-        // Given
-        User user = createUserInDepartment ("FINANCE");
-        Document document = createDocumentInDepartment ("FINANCE");
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            user, null, user.getAuthorities()
-        );
+    "department member can read department document" {
+        val document = TestDocuments.inDepartment("FINANCE")
+        val token = TestJwtIssuer().issueDepartmentToken(TestUsers.default(), "FINANCE")
 
-        when (permissionService.hasDepartmentPermission(user, "FINANCE", "READ"))
-            .thenReturn(true);
-
-        // When
-        boolean hasPermission = permissionEvaluator . hasPermission (
-                auth, document, "READ");
-
-        // Then
-        assertThat(hasPermission).isTrue();
-        verify(permissionService).hasDepartmentPermission(user, "FINANCE", "READ");
+        webTestClient.get().uri("/api/documents/${document.id.value}")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
     }
 
-    @Test
-    @DisplayName("Should validate time-based restrictions")
-    void hasTimeBasedPermission_WithinBusinessHours_ReturnsTrue()
-    {
-        // Given
-        User user = createTestUser ();
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            user, null, user.getAuthorities()
-        );
+    "time-based permission respects business hours" {
+        val accessTime = LocalDate.now().atTime(14, 0)
+            .atZone(ZoneId.systemDefault()).toInstant()
+        val token = TestJwtIssuer().issueTimeScopedToken(TestUsers.default(), accessTime)
 
-        // Mock business hours (9 AM - 5 PM)
-        Instant accessTime = LocalDate . now ()
-            .atTime(14, 0)
-            .atZone(ZoneId.systemDefault())
-            .toInstant();
-
-        // When
-        boolean hasPermission = permissionEvaluator . hasTimeBasedPermission (
-                auth, "READ", accessTime);
-
-        // Then
-        assertThat(hasPermission).isTrue();
+        webTestClient.get().uri("/api/documents/1")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
     }
 
-    @Test
-    @DisplayName("Should restrict access outside business hours")
-    void hasTimeBasedPermission_OutsideBusinessHours_ReturnsFalse()
-    {
-        // Given
-        User user = createTestUser ();
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            user, null, user.getAuthorities()
-        );
+    "time-based permission denies access outside business hours" {
+        val accessTime = LocalDate.now().atTime(2, 0)
+            .atZone(ZoneId.systemDefault()).toInstant()
+        val token = TestJwtIssuer().issueTimeScopedToken(TestUsers.default(), accessTime)
 
-        // Mock outside business hours (2 AM)
-        Instant accessTime = LocalDate . now ()
-            .atTime(2, 0)
-            .atZone(ZoneId.systemDefault())
-            .toInstant();
-
-        // When
-        boolean hasPermission = permissionEvaluator . hasTimeBasedPermission (
-                auth, "READ", accessTime);
-
-        // Then
-        assertThat(hasPermission).isFalse();
+        webTestClient.get().uri("/api/documents/1")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isForbidden
     }
-}
+})
 ```
 
 ## Performance Testing
 
-### JWT Token Generation Performance Test
+### JWT Token Generation Performance Test (Kotest)
 
 ```kotlin
-@SpringBootTest
-class JwtPerformanceTest {
+class JwtPerformanceTest(
+    val tokenService: JwtTokenService,
+    val userRepository: UserRepositoryR2dbc,
+) : StringSpec({
+    "token generation stays under 10ms per token at 1000 iterations" {
+        val users = (1..1000).map { TestUsers.indexed(it) }
+        val iterations = 1000
 
-    @Autowired
-    private var tokenService: JwtTokenService
-
-    @Autowired
-    private var userRepository: UserRepository
-
-    @Test
-    @DisplayName("Token generation should be fast under load")
-    void generateToken_UnderLoad_PerformsWell()
-    {
-        // Given
-        List<User> testUsers = createTestUsers (1000);
-        int iterations = 10000;
-
-        // When
-        long startTime = System . nanoTime ();
-        List<CompletableFuture<AccessTokenResponse>> futures = mutableListOf ();
-
-        for (int i = 0; i < iterations; i++) {
-        User user = testUsers . get (i % testUsers.size());
-        CompletableFuture<AccessTokenResponse> future = CompletableFuture . supplyAsync (
-                () -> tokenService.generateAccessToken(user));
-        futures.add(future);
-    }
-
-        // Wait for all to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture [0]))
-            .join();
-
-        long endTime = System . nanoTime ();
-        long duration = endTime -startTime;
-
-        // Then
-        double avgTimePerToken =(double) duration / iterations / 1_000_000; // ms
-
-        assertThat(avgTimePerToken).isLessThan(10.0); // Should be under 10ms per token
-        System.out.printf("Average token generation time: %.2f ms%n", avgTimePerToken);
-    }
-
-    @Test
-    @DisplayName("Token validation should be fast")
-    void validateToken_MultipleTokens_PerformsWell()
-    {
-        // Given
-        List<String> tokens = generateTestTokens (1000);
-
-        // When
-        long startTime = System . nanoTime ();
-        int validTokens = 0;
-
-        for (String token : tokens) {
-        if (tokenService.isTokenValid(token)) {
-            validTokens++;
+        val duration = measureTimeMillis {
+            runBlocking {
+                users.take(iterations).forEach { user ->
+                    tokenService.generateAccessToken(user)
+                }
+            }
         }
+
+        val avgPerToken = duration.toDouble() / iterations
+        println("Average token generation time: %.2f ms".format(avgPerToken))
+        avgPerToken shouldBeLessThan 10.0
     }
 
-        long endTime = System . nanoTime ();
-        long duration = endTime -startTime;
+    "token validation stays under 5ms per token at 1000 iterations" {
+        val tokens = (1..1000).map { TestUsers.indexed(it) }
+            .map { runBlocking { tokenService.generateAccessToken(it).token } }
 
-        // Then
-        double avgTimePerValidation =(double) duration / tokens . size () / 1_000_000; // ms
+        val (duration, validCount) = measureTimedValue {
+            runBlocking {
+                tokens.count { runBlocking { tokenService.isTokenValid(it) } }
+            }
+        }
 
-        assertThat(avgTimePerValidation).isLessThan(5.0); // Should be under 5ms per validation
-        assertThat(validTokens).isEqualTo(tokens.size());
-
-        System.out.printf("Average token validation time: %.2f ms%n", avgTimePerValidation);
+        val avgPerValidation = duration.toDouble() / tokens.size
+        println("Average token validation time: %.2f ms".format(avgPerValidation))
+        avgPerValidation shouldBeLessThan 5.0
+        validCount shouldBe tokens.size
     }
-
-    private List<User> createTestUsers(int count)
-    {
-        List<User> users = mutableListOf ();
-        for (int i = 0; i < count; i++) {
-        users.add(
-            User.builder()
-                .id((long) i)
-                .email("user" + i + "@example.com")
-                .password("password")
-                .roles(setOf(Role("USER")))
-                .build()
-        );
-    }
-        return users;
-    }
-
-    private List<String> generateTestTokens(int count)
-    {
-        List<String> tokens = mutableListOf ();
-        for (User user : createTestUsers(count)) {
-        AccessTokenResponse response = tokenService . generateAccessToken (user);
-        tokens.add(response.token());
-    }
-        return tokens;
-    }
-}
+})
 ```
 
-## Security Testing with OWASP ZAP
+## Security Scanning Tests via WebTestClient
 
-### Security Test Configuration
+### Basic Smoke Suite
 
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-class SecurityScanTest {
-
-    @LocalServerPort
-    private var port: int
-
-    @Autowired
-    private var restTemplate: TestRestTemplate
-
-    @Test
-    @DisplayName("Should be secure against common vulnerabilities")
-    void application_CommonVulnerabilities_IsSecure()
-    {
-        // Test SQL Injection
-        testSqlInjectionProtection();
-
-        // Test XSS
-        testXssProtection();
-
-        // Test CSRF
-        testCsrfProtection();
-
-        // Test Authentication Bypass
-        testAuthenticationBypassProtection();
-
-        // Test Authorization Bypass
-        testAuthorizationBypassProtection();
+class SecurityScanTest(
+    val webTestClient: WebTestClient,
+) : StringSpec({
+    "application resists common vulnerability classes" {
+        testSqlInjectionProtection()
+        testXssProtection()
+        testCsrfProtection()
+        testAuthenticationBypassProtection()
+        testAuthorizationBypassProtection()
     }
 
-    private fun testSqlInjectionProtection(): void {
-        String[] maliciousInputs = {
+    "SQL injection attempts return 401 or 400, never 500" {
+        val attempts = listOf(
             "'; DROP TABLE users; --",
             "' OR '1'='1",
-            "' UNION SELECT * FROM users --"
-        };
-
-        for (String input : maliciousInputs) {
-            LoginRequest request = LoginRequest (input, "password");
-            ResponseEntity<String> response = restTemplate . postForEntity (
-                    "/api/auth/login", request, String.class);
-
-            // Should return 401, not 500 or 200
-            assertThat(response.getStatusCode())
-                .isIn(HttpStatus.UNAUTHORIZED, HttpStatus.BAD_REQUEST);
+            "' UNION SELECT * FROM users --",
+        )
+        attempts.forEach { maliciousEmail ->
+            webTestClient.post().uri("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(LoginRequest(email = maliciousEmail, password = "password"))
+                .exchange()
+                .expectStatus().is4xxClientError
         }
     }
 
-    private fun testXssProtection(): void {
-        String xssPayload = "<script>alert('xss')</script>";
+    "XSS payload is escaped in registration responses" {
+        val xssPayload = "<script>alert('xss')</script>"
 
-        // Test in registration
-        RegistrationRequest request = RegistrationRequest . builder ()
-            .email("test@example.com")
-            .password("password")
-            .firstName(xssPayload)
-            .lastName("Test")
-            .build();
+        val response = webTestClient.post().uri("/api/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                RegistrationRequest(
+                    email = "test@profiletailors.com",
+                    password = "password",
+                    firstName = xssPayload,
+                    lastName = "Test",
+                ),
+            )
+            .exchange()
+            .returnResult<String>()
 
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/register", request, String.class);
-
-        if (response.getStatusCode() == HttpStatus.CREATED) {
-            // Verify payload is escaped in response
-            assertThat(response.getBody())
-                .doesNotContain("<script>")
-                .contains("&lt;script&gt;");
+        if (response.status == HttpStatus.CREATED) {
+            response.responseBody?.first()?.data?.let { body ->
+                body.contains("<script>") shouldBe false
+                body.contains("&lt;script&gt;") shouldBe true
+            }
         }
     }
 
-    private fun testCsrfProtection(): void {
-        // CSRF should be enforced for state-changing operations
-        HttpHeaders headers = HttpHeaders ();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        // Don't include CSRF token
-
-        HttpEntity<String> entity = new HttpEntity<>("{}", headers);
-
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/users/profile", entity, String.class);
-
-        // Should reject without CSRF token
-        assertThat(response.getStatusCode()).isIn(HttpStatus.FORBIDDEN, HttpStatus.UNAUTHORIZED);
+    "state-changing operations require CSRF token" {
+        webTestClient.post().uri("/api/users/profile")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("{}")
+            .exchange()
+            .expectStatus().is4xxClientError
     }
 
-    private fun testAuthenticationBypassProtection(): void {
-        // Test accessing protected endpoints without authentication
-        String[] protectedEndpoints = {
-            "/api/users/me",
-            "/api/documents",
-            "/api/orders"
-        };
-
-        for (String endpoint : protectedEndpoints) {
-            ResponseEntity<String> response = restTemplate . getForEntity (
-                    endpoint, String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    "protected endpoints reject unauthenticated calls" {
+        listOf("/api/users/me", "/api/documents", "/api/orders").forEach { endpoint ->
+            webTestClient.get().uri(endpoint).exchange()
+                .expectStatus().isUnauthorized
         }
     }
 
-    private fun testAuthorizationBypassProtection(): void {
-        // Test accessing admin endpoints with user token
-        String userToken = generateUserToken ();
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(userToken);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        String[] adminEndpoints = {
-            "/api/admin/users",
-            "/api/admin/roles",
-            "/api/admin/permissions"
-        };
-
-        for (String endpoint : adminEndpoints) {
-            ResponseEntity<String> response = restTemplate . exchange (
-                    endpoint, HttpMethod.GET, entity, String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    "admin endpoints reject USER tokens" {
+        val token = TestJwtIssuer().issueUserToken(TestUsers.default())
+        listOf("/api/admin/users", "/api/admin/roles", "/api/admin/permissions").forEach { endpoint ->
+            webTestClient.get().uri(endpoint)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                .exchange()
+                .expectStatus().isForbidden
         }
     }
-}
+})
 ```

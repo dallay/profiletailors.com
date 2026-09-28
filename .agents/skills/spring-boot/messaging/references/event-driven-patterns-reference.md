@@ -103,7 +103,7 @@ interface ApplicationEventPublisher {
 
 ```kotlin
 @Service
-@RequiredArgsConstructor
+
 class ProductService {
     private val eventPublisher: ApplicationEventPublisher
 
@@ -404,7 +404,6 @@ class EventDrivenTest {
     @Autowired
     private var eventPublisher: ApplicationEventPublisher
 
-    @MockBean
     private var handler: EventHandler
 
     @Test
@@ -468,7 +467,7 @@ kafka.log.leader_election.latency.avg
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class EventMetrics {
     private val meterRegistry: MeterRegistry
 

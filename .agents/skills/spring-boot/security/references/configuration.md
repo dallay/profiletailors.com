@@ -1,13 +1,17 @@
 # JWT Security Configuration Reference
 
-This document provides comprehensive configuration options for JWT security in Spring Boot
-applications using JJWT library and Spring Security 6.x.
+This document describes the JWT security configuration used in the reactive Spring Boot 4
+backend (`server/smp/`). All examples below show WebFlux (`ServerHttpSecurity`,
+`SecurityWebFilterChain`, `WebFilter`, `R2dbcRepository`, `suspend fun`) — the
+servlet-stack configuration is described only in
+`migration-spring-security-6x.md` for historic reference and is not used in production
+code.
 
 ## Table of Contents
 
 1. [Application Properties](#application-properties)
 2. [JWT Configuration Beans](#jwt-configuration-beans)
-3. [Security Filter Chain Options](#security-filter-chain-options)
+3. [Security Web Filter Chain Options](#security-web-filter-chain-options)
 4. [Token Validation Configuration](#token-validation-configuration)
 5. [Key Management](#key-management)
 6. [CORS and CSRF Configuration](#cors-and-csrf-configuration)
@@ -17,43 +21,39 @@ applications using JJWT library and Spring Security 6.x.
 ### Complete JWT Configuration (application.yml)
 
 ```yaml
-# JWT Configuration
 jwt:
-  # Token settings
-  secret: ${JWT_SECRET:my-very-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256}
-  access-token-expiration: 900000          # 15 minutes in milliseconds
-  refresh-token-expiration: 604800000     # 7 days in milliseconds
-  issuer: ${JWT_ISSUER:spring-boot-jwt-app}
-  audience: ${JWT_AUDIENCE:spring-boot-client}
-
-  # Cookie settings
+  secret: ${JWT_SECRET:change-me-please-use-a-strong-secret-with-at-least-32-chars}
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+  issuer: ${JWT_ISSUER:profiletailors-smp}
+  audience: ${JWT_AUDIENCE:profiletailors-client}
   cookie-name: jwt-token
-  cookie-secure: ${JWT_COOKIE_SECURE:false} # Set to true in production with HTTPS
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
   cookie-http-only: true
-  cookie-same-site: lax                   # strict, lax, or none
-  cookie-domain: ${JWT_COOKIE_DOMAIN:}    # Optional domain
+  cookie-same-site: lax
+  cookie-domain: ${JWT_COOKIE_DOMAIN:}
   cookie-path: /
-  cookie-max-age: 86400                   # 24 hours
-
-  # Token validation
+  cookie-max-age: 86400
   validate-issuer: true
   validate-audience: false
   validate-expiration: true
-  clock-skew-seconds: 60                  # Allow 60 seconds clock skew
-
-  # Refresh token settings
-  refresh-token-limit: 5                  # Max active refresh tokens per user
+  clock-skew-seconds: 60
+  refresh-token-limit: 5
   refresh-token-rotation-enabled: true
   refresh-token-cleanup-enabled: true
-  refresh-token-cleanup-cron: "0 0 2 * * ?" # Daily at 2 AM
-
-  # Security settings
+  refresh-token-cleanup-cron: "0 0 2 * * ?"
   blacklist-enabled: true
   blacklist-cleanup-enabled: true
-  blacklist-cleanup-cron: "0 0 3 * * ?"    # Daily at 3 AM
+  blacklist-cleanup-cron: "0 0 3 * * ?"
 
-# Spring Security Configuration
 spring:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors}
+    username: ${SPRING_R2DBC_USERNAME:profiletailors}
+    password: ${SPRING_R2DBC_PASSWORD:profiletailors}
+    pool:
+      max-size: 20
+      initial-size: 5
   security:
     oauth2:
       client:
@@ -80,15 +80,7 @@ spring:
             token-uri: https://github.com/login/oauth/access_token
             user-info-uri: https://api.github.com/user
 
-  # Session configuration (if needed)
-  session:
-    store-type: none                      # Use stateless sessions
-    timeout: 30m                          # Session timeout
-    jdbc:
-      initialize-schema: always
-
-  # CORS configuration
-  web:
+  webflux:
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS
@@ -96,17 +88,15 @@ spring:
       allow-credentials: true
       max-age: 3600
 
-# Logging configuration
 logging:
   level:
     org.springframework.security: DEBUG
     io.jsonwebtoken: DEBUG
-    com.example.security: DEBUG
+    com.profiletailors: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# Management endpoints for monitoring
 management:
   endpoints:
     web:
@@ -126,71 +116,49 @@ management:
 ```kotlin
 @Configuration
 class JwtConfig(
-    @Value("\${jwt.secret}")
-    private val secret: String,
-
-    @Value("\${jwt.access-token-expiration}")
-    private val accessTokenExpiration: Long,
-
-    @Value("\${jwt.refresh-token-expiration}")
-    private val refreshTokenExpiration: Long,
-
-    @Value("\${jwt.issuer}")
-    private val issuer: String,
-
-    @Value("\${jwt.audience:}")
-    private val audience: String,
-
-    @Value("\${jwt.validate-issuer:true}")
-    private val validateIssuer: Boolean,
-
-    @Value("\${jwt.validate-audience:false}")
-    private val validateAudience: Boolean,
-
-    @Value("\${jwt.clock-skew-seconds:60}")
-    private val clockSkewSeconds: Int
+    @Value("\${jwt.secret}") private val secret: String,
+    @Value("\${jwt.access-token-expiration}") private val accessTokenExpiration: Long,
+    @Value("\${jwt.refresh-token-expiration}") private val refreshTokenExpiration: Long,
+    @Value("\${jwt.issuer}") private val issuer: String,
+    @Value("\${jwt.audience:}") private val audience: String,
+    @Value("\${jwt.validate-issuer:true}") private val validateIssuer: Boolean,
+    @Value("\${jwt.validate-audience:false}") private val validateAudience: Boolean,
+    @Value("\${jwt.clock-skew-seconds:60}") private val clockSkewSeconds: Int,
 ) {
+    @Bean
+    fun jwtService(refreshTokenService: RefreshTokenService): JwtService = JwtService(
+        secret,
+        accessTokenExpiration,
+        refreshTokenExpiration,
+        issuer,
+        audience,
+        validateIssuer,
+        validateAudience,
+        clockSkewSeconds,
+        refreshTokenService,
+    )
 
     @Bean
-    fun jwtService(refreshTokenService: RefreshTokenService): JwtService {
-        return JwtService(
-            secret,
-            accessTokenExpiration,
-            refreshTokenExpiration,
-            issuer,
-            audience,
-            validateIssuer,
-            validateAudience,
-            clockSkewSeconds,
-            refreshTokenService
-        )
-    }
-
-    @Bean
-    fun jwtParser(): JwtParser {
-        return Jwts.parser()
-            .verifyWith(getSigningKey())
-            .requireIssuer(issuer)
-            .setAllowedClockSkewSeconds(clockSkewSeconds)
-            .build()
-    }
+    fun jwtParser(): JwtParser = Jwts.parser()
+        .verifyWith(getSigningKey())
+        .requireIssuer(issuer)
+        .clockSkewSeconds(clockSkewSeconds.toLong())
+        .build()
 
     @Bean
     fun getSigningKey(): SecretKey {
         val keyBytes = Decoders.BASE64.decode(
-            Base64.getEncoder().encodeToString(secret.toByteArray())
+            Base64.getEncoder().encodeToString(secret.toByteArray()),
         )
         return Keys.hmacShaKeyFor(keyBytes)
     }
 
     @Bean
-    fun claimsSetExtractor(): ClaimsSetExtractor {
-        return DefaultClaimsSetExtractor(
-            issuer,
-            audience,
-            Duration.ofMillis(accessTokenExpiration)
-        )
-    }
+    fun claimsSetExtractor(): ClaimsSetExtractor = DefaultClaimsSetExtractor(
+        issuer,
+        audience,
+        Duration.ofMillis(accessTokenExpiration),
+    )
 }
 ```
 
@@ -199,12 +167,11 @@ class JwtConfig(
 ```kotlin
 @Configuration
 class JwtParserConfig {
-
     @Bean
     fun jwtParser(signingKey: SecretKey, jwtProperties: JwtProperties): JwtParser {
         val parser = Jwts.parser()
             .verifyWith(signingKey)
-            .setAllowedClockSkewSeconds(jwtProperties.clockSkewSeconds)
+            .clockSkewSeconds(jwtProperties.clockSkewSeconds.toLong())
 
         if (jwtProperties.validateIssuer) {
             parser.requireIssuer(jwtProperties.issuer)
@@ -218,9 +185,7 @@ class JwtParserConfig {
     }
 
     @Bean
-    fun jwtValidator(jwtParser: JwtParser): JwtValidator {
-        return DefaultJwtValidator(jwtParser)
-    }
+    fun jwtValidator(jwtParser: JwtParser): JwtValidator = DefaultJwtValidator(jwtParser)
 }
 ```
 
@@ -230,68 +195,32 @@ class JwtParserConfig {
 @ConfigurationProperties(prefix = "jwt")
 @Validated
 data class JwtProperties(
-    /**
-     * JWT secret key for HMAC signing
-     */
     @field:NotBlank
     @field:Size(min = 32, message = "JWT secret must be at least 32 characters")
     var secret: String = "",
 
-    /**
-     * Access token expiration in milliseconds
-     */
-    @field:Min(60000) // Minimum 1 minute
-    var accessTokenExpiration: Long = 900000, // 15 minutes
+    @field:Min(60000)
+    var accessTokenExpiration: Long = 900000,
 
-    /**
-     * Refresh token expiration in milliseconds
-     */
-    @field:Min(3600000) // Minimum 1 hour
-    var refreshTokenExpiration: Long = 604800000, // 7 days
+    @field:Min(3600000)
+    var refreshTokenExpiration: Long = 604800000,
 
-    /**
-     * JWT issuer
-     */
     @field:NotBlank
     var issuer: String = "",
 
-    /**
-     * JWT audience
-     */
     var audience: String = "",
 
-    /**
-     * Validate issuer claim
-     */
     var validateIssuer: Boolean = true,
 
-    /**
-     * Validate audience claim
-     */
     var validateAudience: Boolean = false,
 
-    /**
-     * Clock skew in seconds for token validation
-     */
     @field:Min(0)
     var clockSkewSeconds: Int = 60,
 
-    /**
-     * Cookie configuration
-     */
     var cookie: CookieProperties = CookieProperties(),
-
-    /**
-     * Refresh token configuration
-     */
     var refreshToken: RefreshTokenProperties = RefreshTokenProperties(),
-
-    /**
-     * Blacklist configuration
-     */
-    var blacklist: BlacklistProperties = BlacklistProperties()
+    var blacklist: BlacklistProperties = BlacklistProperties(),
 ) {
-
     data class CookieProperties(
         var name: String = "jwt-token",
         var secure: Boolean = false,
@@ -299,255 +228,200 @@ data class JwtProperties(
         var sameSite: String = "lax",
         var domain: String? = null,
         var path: String = "/",
-        var maxAge: Int = 86400
+        var maxAge: Int = 86400,
     )
 
     data class RefreshTokenProperties(
         var limit: Int = 5,
         var rotationEnabled: Boolean = true,
         var cleanupEnabled: Boolean = true,
-        var cleanupCron: String = "0 0 2 * * ?"
+        var cleanupCron: String = "0 0 2 * * ?",
     )
 
     data class BlacklistProperties(
         var enabled: Boolean = true,
         var cleanupEnabled: Boolean = true,
-        var cleanupCron: String = "0 0 3 * * ?"
+        var cleanupCron: String = "0 0 3 * * ?",
     )
 }
 ```
 
-## Security Filter Chain Options
+## Security Web Filter Chain Options
 
-### Advanced Security Configuration
+### Advanced Reactive Security Configuration
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
 class AdvancedSecurityConfig(
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
-    private val authenticationProvider: AuthenticationProvider,
+    private val jwtAuthenticationFilter: JwtAuthenticationWebFilter,
+    private val authenticationManager: ReactiveAuthenticationManager,
     private val authenticationEntryPoint: JwtAuthenticationEntryPoint,
     private val accessDeniedHandler: CustomAccessDeniedHandler,
     private val corsConfigurationSource: SecurityCorsConfigurationSource,
-    private val logoutHandler: LogoutHandler,
-    private val securityContextRepository: SecurityContextRepository
+    private val logoutHandler: ServerLogoutHandler,
+    private val securityContextRepository: ServerSecurityContextRepository,
 ) {
-
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http
-            .cors { it.configurationSource(corsConfigurationSource) }
-            .csrf { csrf ->
-                csrf
-                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                    .ignoringRequestMatchers("/api/auth/**", "/api/public/**")
-                    .sessionAuthenticationStrategy(NullSessionAuthenticationStrategy())
-            }
-            .headers { headers ->
-                headers
-                    .contentSecurityPolicy { csp ->
-                        csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
-                    }
-                    .frameOptions { it.deny() }
-                    .httpStrictTransportSecurity { hsts ->
-                        hsts
-                            .maxAgeInSeconds(31536000)
-                            .includeSubdomains(true)
-                            .preload(true)
-                    }
-                    .permissionsPolicy { permissions ->
-                        permissions.policy("camera=(), microphone=(), geolocation=()")
-                    }
-                    .referrerPolicy { it.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN) }
-            }
-            .sessionManagement { session ->
-                session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .sessionAuthenticationStrategy(sessionAuthenticationStrategy())
-                    .maximumSessions(10)
-                    .maxSessionsPreventsLogin(false)
-                    .sessionRegistry(sessionRegistry())
-            }
-            .exceptionHandling { exceptions ->
-                exceptions
-                    .authenticationEntryPoint(authenticationEntryPoint)
-                    .accessDeniedHandler(accessDeniedHandler)
-            }
-            .authorizeHttpRequests { auth ->
-                auth
-                    .requestMatchers(
-                        "/api/auth/**",
-                        "/api/public/**",
-                        "/health",
-                        "/actuator/health"
-                    ).permitAll()
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("USER_READ")
-                    .requestMatchers(HttpMethod.POST, "/api/users/**").hasAuthority("USER_WRITE")
-                    .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("USER_WRITE")
-                    .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("USER_DELETE")
-                    .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                    .requestMatchers("/actuator/**").hasRole("ADMIN")
-                    .anyRequest().authenticated()
-            }
-            .oauth2ResourceServer { oauth2 ->
-                oauth2.jwt { jwt ->
-                    jwt
-                        .decoder(jwtDecoder())
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .cors { it.configurationSource(corsConfigurationSource) }
+        .csrf { csrf ->
+            csrf
+                .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers("/api/auth/**", "/api/public/**")
+                .sessionAuthenticationStrategy(NullServerSessionAuthenticationStrategy())
+        }
+        .headers { headers ->
+            headers
+                .contentSecurityPolicy { csp ->
+                    csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
                 }
-                    .accessDeniedHandler(accessDeniedHandler)
-                    .authenticationEntryPoint(authenticationEntryPoint)
+                .frameOptions { it.deny() }
+                .hsts { hsts ->
+                    hsts
+                        .maxAge(Duration.ofDays(365))
+                        .includeSubdomains(true)
+                        .preload(true)
+                }
+                .permissionsPolicy { permissions ->
+                    permissions.policy("camera=(), microphone=(), geolocation=()")
+                }
+                .referrerPolicy { it.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN) }
+        }
+        .anonymous { it.disable() }
+        .exceptionHandling { exceptions ->
+            exceptions
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
+        }
+        .authorizeExchange { auth ->
+            auth
+                .pathMatchers(
+                    "/api/auth/**",
+                    "/api/public/**",
+                    "/health",
+                    "/actuator/health",
+                ).permitAll()
+                .pathMatchers("/api/admin/**").hasRole("ADMIN")
+                .pathMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("USER_READ")
+                .pathMatchers(HttpMethod.POST, "/api/users/**").hasAuthority("USER_WRITE")
+                .pathMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("USER_WRITE")
+                .pathMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("USER_DELETE")
+                .pathMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                .pathMatchers("/actuator/**").hasRole("ADMIN")
+                .anyExchange().authenticated()
+        }
+        .oauth2ResourceServer { oauth2 ->
+            oauth2.jwt { jwt ->
+                jwt
+                    .decoder(jwtDecoder())
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
             }
-            .oauth2Login { oauth2 ->
-                oauth2
-                    .authorizationEndpoint { it.baseUri("/oauth2/authorization") }
-                    .redirectionEndpoint { it.baseUri("/login/oauth2/code/*") }
-                    .userInfoEndpoint { it.userService(oAuth2UserService()) }
-                    .successHandler(oAuth2AuthenticationSuccessHandler())
-                    .failureHandler(oAuth2AuthenticationFailureHandler())
-            }
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(
-                jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter::class.java
-            )
-            .addFilterBefore(
-                securityContextFilter(),
-                UsernamePasswordAuthenticationFilter::class.java
-            )
-            .addFilterAfter(auditLoggingFilter(), UsernamePasswordAuthenticationFilter::class.java)
-            .logout { logout ->
-                logout
-                    .logoutUrl("/api/auth/logout")
-                    .addLogoutHandler(securityContextLogoutHandler())
-                    .addLogoutHandler(logoutHandler)
-                    .addLogoutHandler(cookieClearingLogoutHandler())
-                    .logoutSuccessHandler { _, response, _ ->
-                        response.status = HttpStatus.NO_CONTENT.value()
-                    }
-                    .deleteCookies("JSESSIONID", "jwt-token")
-                    .clearAuthentication(true)
-                    .invalidateHttpSession(true)
-            }
-            .securityContext { it.securityContextRepository(securityContextRepository) }
-            .build()
-    }
+                .accessDeniedHandler(accessDeniedHandler)
+                .authenticationEntryPoint(authenticationEntryPoint)
+        }
+        .oauth2Login { oauth2 ->
+            oauth2
+                .authorizationEndpoint { it.baseUri("/oauth2/authorization") }
+                .redirectionEndpoint { it.baseUri("/login/oauth2/code/*") }
+                .userInfoEndpoint { it.userService(oAuth2UserService()) }
+                .successHandler(oAuth2AuthenticationSuccessHandler())
+                .failureHandler(oAuth2AuthenticationFailureHandler())
+        }
+        .authenticationManager(authenticationManager)
+        .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.HTTP_BASIC)
+        .addFilterAt(auditLoggingFilter(), SecurityWebFiltersOrder.LOGOUT)
+        .logout { logout ->
+            logout
+                .logoutUrl("/api/auth/logout")
+                .logoutHandler(logoutHandler)
+                .logoutHandler(cookieClearingLogoutHandler())
+                .logoutSuccessHandler { _, response ->
+                    response.setStatusCode(HttpStatus.NO_CONTENT)
+                }
+        }
+        .securityContextRepository(securityContextRepository)
+        .build()
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
-        return NimbusJwtDecoder.withSecretKey(getSigningKey())
-            .signatureAlgorithm(SignatureAlgorithm.HS256)
-            .build()
-    }
+    fun jwtDecoder(): JwtDecoder = NimbusReactiveJwtDecoder.withSecretKey(getSigningKey())
+        .macAlgorithm(MacAlgorithm.HS256)
+        .build()
 
     @Bean
-    fun jwtAuthenticationConverter(): JwtAuthenticationConverter {
+    fun jwtAuthenticationConverter(): Converter<Jwt, Mono<AbstractAuthenticationToken>> {
         val authoritiesConverter = JwtGrantedAuthoritiesConverter().apply {
             setAuthorityPrefix("ROLE_")
             setAuthoritiesClaimName("authorities")
         }
-
         return JwtAuthenticationConverter().apply {
             setJwtGrantedAuthoritiesConverter(authoritiesConverter)
             setPrincipalClaimName("sub")
-            setPrincipalAttributeName("sub")
         }
     }
 
     @Bean
-    fun oAuth2UserService(): OAuth2UserService<OAuth2UserRequest, OAuth2User> {
-        val delegate = DefaultOAuth2UserService()
-        return CustomOAuth2UserService(delegate)
+    fun oAuth2UserService(): ReactiveOAuth2UserService<OAuth2UserRequest, OAuth2User> {
+        val delegate = DefaultReactiveOAuth2UserService()
+        return CustomReactiveOAuth2UserService(delegate)
     }
 
     @Bean
-    fun oAuth2AuthenticationSuccessHandler(): AuthenticationSuccessHandler {
-        return OAuth2AuthenticationSuccessHandler(jwtService)
-    }
+    fun oAuth2AuthenticationSuccessHandler(): ServerAuthenticationSuccessHandler =
+        OAuth2AuthenticationSuccessHandler(jwtService)
 
     @Bean
-    fun oAuth2AuthenticationFailureHandler(): AuthenticationFailureHandler {
-        return OAuth2AuthenticationFailureHandler()
-    }
+    fun oAuth2AuthenticationFailureHandler(): ServerAuthenticationFailureHandler =
+        OAuth2AuthenticationFailureHandler()
 
     @Bean
-    fun sessionAuthenticationStrategy(): SessionAuthenticationStrategy {
-        return CompositeSessionAuthenticationStrategy(
-            listOf(
-                RegisterSessionAuthenticationStrategy(sessionRegistry()),
-                CsrfAuthenticationStrategy()
-            )
-        )
-    }
+    fun securityContextRepository(): ServerSecurityContextRepository =
+        JwtSecurityContextRepository(jwtService, userDetailsService)
 
     @Bean
-    fun sessionRegistry(): SessionRegistry = SessionRegistryImpl()
+    fun auditLoggingFilter(): WebFilter = AuditLoggingFilter()
 
     @Bean
-    fun securityContextRepository(): SecurityContextRepository {
-        return JwtSecurityContextRepository(jwtService, userDetailsService)
-    }
-
-    @Bean
-    fun securityContextFilter(): Filter {
-        return SecurityContextPersistenceFilter(securityContextRepository())
-    }
-
-    @Bean
-    fun auditLoggingFilter(): Filter = AuditLoggingFilter()
-
-    @Bean
-    fun securityContextLogoutHandler(): LogoutHandler = SecurityContextLogoutHandler()
-
-    @Bean
-    fun cookieClearingLogoutHandler(): LogoutHandler {
-        return CookieClearingLogoutHandler("JSESSIONID", "jwt-token")
-    }
+    fun cookieClearingLogoutHandler(): ServerLogoutHandler =
+        CookieClearingLogoutHandler("JSESSIONID", "jwt-token")
 }
 ```
 
 ## Token Validation Configuration
 
-### Custom JWT Validator
+### Custom Reactive JWT Validator
 
 ```kotlin
-@Component
+@com.profiletailors.common.domain.Service
 class CustomJwtValidator(
     private val jwtParser: JwtParser,
     private val blacklistedTokenService: BlacklistedTokenService,
     private val jwtProperties: JwtProperties,
-    @Value("\${jwt.secret}")
-    private val secret: String
+    @Value("\${jwt.secret}") private val secret: String,
 ) : JwtValidator {
-
-    override fun validate(token: String): ValidationResult {
-        return try {
-            if (jwtProperties.blacklist.enabled) {
-                val jti = extractClaim(token, "jti")
-                if (jti != null && blacklistedTokenService.isBlacklisted(jti)) {
-                    return ValidationResult.error("Token is blacklisted")
-                }
+    override fun validate(token: String): ValidationResult = try {
+        if (jwtProperties.blacklist.enabled) {
+            val jti = extractClaim(token, "jti")
+            if (jti != null && blacklistedTokenService.isBlacklisted(jti)) {
+                return ValidationResult.error("Token is blacklisted")
             }
-
-            val claims = jwtParser.parseSignedClaims(token).payload
-            validateCustomClaims(claims)
-
-        } catch (e: ExpiredJwtException) {
-            ValidationResult.error("Token has expired")
-        } catch (e: UnsupportedJwtException) {
-            ValidationResult.error("Token is unsupported")
-        } catch (e: MalformedJwtException) {
-            ValidationResult.error("Token is malformed")
-        } catch (e: SecurityException) {
-            ValidationResult.error("Token signature validation failed")
-        } catch (e: IllegalArgumentException) {
-            ValidationResult.error("Token is invalid")
-        } catch (e: JwtException) {
-            ValidationResult.error("JWT processing failed: ${e.message}")
         }
+
+        val claims = jwtParser.parseSignedClaims(token).payload
+        validateCustomClaims(claims)
+    } catch (e: ExpiredJwtException) {
+        ValidationResult.error("Token has expired")
+    } catch (e: UnsupportedJwtException) {
+        ValidationResult.error("Token is unsupported")
+    } catch (e: MalformedJwtException) {
+        ValidationResult.error("Token is malformed")
+    } catch (e: SecurityException) {
+        ValidationResult.error("Token signature validation failed")
+    } catch (e: IllegalArgumentException) {
+        ValidationResult.error("Token is invalid")
+    } catch (e: JwtException) {
+        ValidationResult.error("JWT processing failed: ${e.message}")
     }
 
     private fun validateCustomClaims(claims: Claims): ValidationResult {
@@ -570,22 +444,20 @@ class CustomJwtValidator(
         return ValidationResult.success()
     }
 
-    private fun extractClaim(token: String, claimName: String): String? {
-        return try {
-            val claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .payload
-            claims.get(claimName, String::class.java)
-        } catch (e: JwtException) {
-            null
-        }
+    private fun extractClaim(token: String, claimName: String): String? = try {
+        val claims = Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(token)
+            .payload
+        claims.get(claimName, String::class.java)
+    } catch (_: JwtException) {
+        null
     }
 
     private fun getSigningKey(): SecretKey {
         val keyBytes = Decoders.BASE64.decode(
-            Base64.getEncoder().encodeToString(secret.toByteArray())
+            Base64.getEncoder().encodeToString(secret.toByteArray()),
         )
         return Keys.hmacShaKeyFor(keyBytes)
     }
@@ -593,7 +465,7 @@ class CustomJwtValidator(
 
 data class ValidationResult(
     val valid: Boolean,
-    val errorMessage: String?
+    val errorMessage: String?,
 ) {
     companion object {
         fun success() = ValidationResult(true, null)
@@ -610,70 +482,51 @@ data class ValidationResult(
 @Configuration
 @ConditionalOnProperty(name = "jwt.algorithm", havingValue = "RSA")
 class AsymmetricJwtConfig(
-    @Value("\${jwt.public-key}")
-    private val publicKeyString: String,
-
-    @Value("\${jwt.private-key}")
-    private val privateKeyString: String
+    @Value("\${jwt.public-key}") private val publicKeyString: String,
+    @Value("\${jwt.private-key}") private val privateKeyString: String,
 ) {
+    @Bean
+    fun publicKey(): RSAPublicKey = KeyFactory.getInstance("RSA")
+        .generatePublic(X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyString))) as RSAPublicKey
 
     @Bean
-    fun publicKey(): RSAPublicKey {
-        return KeyFactory.getInstance("RSA")
-            .generatePublic(
-                X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyString))
-            ) as RSAPublicKey
-    }
+    fun privateKey(): RSAPrivateKey = KeyFactory.getInstance("RSA")
+        .generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyString))) as RSAPrivateKey
 
     @Bean
-    fun privateKey(): RSAPrivateKey {
-        return KeyFactory.getInstance("RSA")
-            .generatePrivate(
-                PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyString))
-            ) as RSAPrivateKey
-    }
-
-    @Bean
-    fun jwtDecoder(publicKey: RSAPublicKey): JwtDecoder {
-        return NimbusJwtDecoder.withPublicKey(publicKey)
-            .signatureAlgorithm(SignatureAlgorithm.RS256)
-            .build()
-    }
+    fun jwtDecoder(publicKey: RSAPublicKey): JwtDecoder = NimbusReactiveJwtDecoder
+        .withPublicKey(publicKey)
+        .signatureAlgorithm(SignatureAlgorithm.RS256)
+        .build()
 
     @Bean
     fun jwtEncoder(privateKey: RSAPrivateKey): JwtEncoder {
         val rsaSigner = RSASSASigner(privateKey)
-        return NimbusJwtEncoder(
-            ImmutableJWEHeader(JWSAlgorithm.RS256),
-            rsaSigner
-        )
+        return NimbusJwtEncoder(ImmutableJWEHeader(JWSAlgorithm.RS256), rsaSigner)
     }
 }
 ```
 
-### Key Rotation Support
+### Coroutine-Based Key Rotation
 
 ```kotlin
-@Service
-@Slf4j
+@com.profiletailors.common.domain.Service
 class KeyRotationService(
-    private val keyRepository: KeyRepository
+    private val keyRepository: KeyRepository,
 ) {
-
     private val activeKeys: MutableMap<String, KeyPair> = ConcurrentHashMap()
-    private val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
 
     @PostConstruct
     fun initialize() {
-        loadActiveKeys()
-        scheduleKeyRotation()
+        runBlocking {
+            loadActiveKeys()
+            scheduleKeyRotation()
+        }
     }
 
     @Scheduled(cron = "\${jwt.key-rotation.cron:0 0 0 1 * ?}")
-    fun rotateKeys() {
+    suspend fun rotateKeys() {
         try {
-            log.info("Starting JWT key rotation")
-
             val newKeyPair = generateKeyPair()
 
             val newKey = JwtKey(
@@ -682,30 +535,23 @@ class KeyRotationService(
                 privateKey = Base64.getEncoder().encodeToString(newKeyPair.private.encoded),
                 algorithm = "RS256",
                 createdAt = Instant.now(),
-                isActive = true
+                isActive = true,
             )
 
             keyRepository.deactivateAllKeys()
             keyRepository.save(newKey)
             loadActiveKeys()
-
-            log.info("JWT key rotation completed successfully")
-
         } catch (e: Exception) {
-            log.error("JWT key rotation failed", e)
+            logger.error("JWT key rotation failed", e)
         }
     }
 
-    fun getCurrentKeyPair(): KeyPair {
-        return activeKeys.values.first()
-    }
+    fun getCurrentKeyPair(): KeyPair = activeKeys.values.first()
 
-    fun getKeyPair(keyId: String): KeyPair? {
-        return activeKeys[keyId]
-    }
+    fun getKeyPair(keyId: String): KeyPair? = activeKeys[keyId]
 
-    private fun loadActiveKeys() {
-        val activeJwtKeys = keyRepository.findByIsActiveTrue()
+    private suspend fun loadActiveKeys() {
+        val activeJwtKeys = keyRepository.findByIsActiveTrue().toList()
 
         activeKeys.clear()
 
@@ -714,12 +560,12 @@ class KeyRotationService(
                 val keyPair = restoreKeyPair(key)
                 activeKeys[key.keyId] = keyPair
             } catch (e: Exception) {
-                log.error("Failed to restore key pair for keyId: ${key.keyId}", e)
+                logger.error("Failed to restore key pair for keyId: ${key.keyId}", e)
             }
         }
 
         if (activeKeys.isEmpty()) {
-            log.warn("No active keys found, generating new key pair")
+            logger.warn("No active keys found, generating new key pair")
             rotateKeys()
         }
     }
@@ -745,34 +591,33 @@ class KeyRotationService(
     }
 
     private fun scheduleKeyRotation() {
-        scheduler.scheduleAtFixedRate(
-            ::rotateKeys,
-            1,
-            30,
-            TimeUnit.DAYS
-        )
+        scheduler.scheduleAtFixedRate(::rotateKeys, 1, 30, TimeUnit.DAYS)
+    }
+
+    companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(KeyRotationService::class.java)
+        private val scheduler = Executors.newScheduledThreadPool(1)
     }
 }
 ```
 
 ## CORS and CSRF Configuration
 
-### Advanced CORS Configuration
+### Reactive CORS Configuration
 
 ```kotlin
 @Configuration
 class CorsConfig {
-
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
             allowedOriginPatterns = listOf(
                 "http://localhost:*",
-                "https://*.yourdomain.com"
+                "https://*.profiletailors.com",
             )
 
             allowedMethods = listOf(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD",
             )
 
             allowedHeaders = listOf(
@@ -782,13 +627,13 @@ class CorsConfig {
                 "Accept",
                 "Origin",
                 "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
+                "Access-Control-Request-Headers",
             )
 
             exposedHeaders = listOf(
                 "X-Total-Count",
                 "X-Page-Count",
-                "X-Current-Page"
+                "X-Current-Page",
             )
 
             allowCredentials = true
@@ -803,17 +648,16 @@ class CorsConfig {
 }
 ```
 
-### Custom CSRF Configuration
+### Reactive CSRF Configuration
 
 ```kotlin
 @Configuration
 class CsrfConfig(
-    private val environment: Environment
+    private val environment: Environment,
 ) {
-
     @Bean
-    fun csrfTokenRepository(): CsrfTokenRepository {
-        return CookieCsrfTokenRepository.withHttpOnlyFalse().apply {
+    fun csrfTokenRepository(): ServerCsrfTokenRepository =
+        CookieServerCsrfTokenRepository.withHttpOnlyFalse().apply {
             setCookieName("XSRF-TOKEN")
             setHeaderName("X-XSRF-TOKEN")
             setCookieHttpOnly(false)
@@ -823,37 +667,31 @@ class CsrfConfig(
                 setCookieSecure(true)
             }
         }
-    }
 
     @Bean
-    fun csrfTokenRequestHandler(): CsrfTokenRequestHandler {
-        return CsrfTokenRequestAttributeHandler()
-    }
+    fun csrfTokenRequestHandler(): ServerCsrfTokenRequestAttributeHandler =
+        ServerCsrfTokenRequestAttributeHandler()
 
     @Bean
-    fun spaCsrfTokenRequestHandler(): CsrfTokenRequestHandler {
-        return SpaCsrfTokenRequestHandler()
-    }
+    fun spaCsrfTokenRequestHandler(): SpaCsrfTokenRequestHandler = SpaCsrfTokenRequestHandler()
 
-    private fun isProductionEnvironment(): Boolean {
-        return environment.activeProfiles.contains("prod")
-    }
+    private fun isProductionEnvironment(): Boolean =
+        environment.activeProfiles.contains("prod")
 }
 
-class SpaCsrfTokenRequestHandler : CsrfTokenRequestAttributeHandler() {
-
+class SpaCsrfTokenRequestHandler : ServerCsrfTokenRequestAttributeHandler() {
     override fun handle(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-        csrfToken: Supplier<CsrfToken>
-    ) {
-        val csrfTokenValue = csrfToken.get().token
-        response.setHeader("X-CSRF-TOKEN", csrfTokenValue)
-        response.setHeader("Access-Control-Expose-Headers", "X-CSRF-TOKEN")
+        exchange: ServerWebExchange,
+        csrfToken: DeferredCsrfToken,
+    ): Mono<CsrfToken> = csrfToken.get().doOnNext { token ->
+        val response = exchange.response
+        response.headers.add("X-CSRF-TOKEN", token.token)
+        response.headers.add("Access-Control-Expose-Headers", "X-CSRF-TOKEN")
     }
 }
 ```
 
-This configuration reference provides comprehensive options for setting up JWT security in Spring
-Boot applications with various security features, key management strategies, and advanced
-configurations for production environments.
+This configuration reference covers the reactive JWT security wiring used by the SMP
+backend. The servlet-stack variants shown in the wider Spring Security 6.x documentation
+are no longer applicable; the historic migration notes in `migration-spring-security-6x.md`
+list the servlet patterns only as anti-patterns for reference.

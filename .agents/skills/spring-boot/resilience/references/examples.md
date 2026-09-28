@@ -113,7 +113,6 @@ management:
 ```kotlin
 @Slf4j
 @Service
-@RequiredArgsConstructor
 class OrderService {
 
     private val paymentService: PaymentService
@@ -166,7 +165,6 @@ class OrderService {
 ```kotlin
 @Slf4j
 @Service
-@RequiredArgsConstructor
 class PaymentService {
 
     private val paymentClient: PaymentClient
@@ -276,7 +274,6 @@ class PaymentServiceCircuitBreakerTest {
     @Autowired
     private var circuitBreakerRegistry: CircuitBreakerRegistry
 
-    @MockBean
     private var paymentClient: PaymentClient
 
     private var circuitBreaker: CircuitBreaker
@@ -364,7 +361,6 @@ class OrderServiceIntegrationTest {
 
 ```kotlin
 @Service
-@RequiredArgsConstructor
 class ReactiveProductService {
 
     private val webClient: WebClient
@@ -469,7 +465,6 @@ class ResilienceConfig {
 ```kotlin
 @RestController
 @RequestMapping("/api/monitoring")
-@RequiredArgsConstructor
 class ResilienceMonitoringController {
 
     private val circuitBreakerRegistry: CircuitBreakerRegistry

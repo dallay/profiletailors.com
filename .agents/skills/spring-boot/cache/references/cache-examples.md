@@ -28,7 +28,6 @@ class Product {
 ```kotlin
 @Service
 @CacheConfig(cacheNames = "products")
-@RequiredArgsConstructor
 @Slf4j
 class ProductService {
     private val productRepository: ProductRepository
@@ -146,7 +145,6 @@ Cache products only under specific conditions (e.g., only expensive items).
 
 ```kotlin
 @Service
-@RequiredArgsConstructor
 @Slf4j
 class PremiumProductService {
     private val productRepository: ProductRepository
@@ -206,7 +204,6 @@ Handle complex scenarios with multiple cache operations.
 
 ```kotlin
 @Service
-@RequiredArgsConstructor
 @Slf4j
 class InventoryService {
     private val productRepository: ProductRepository
@@ -246,7 +243,6 @@ Manually managing caches for advanced scenarios.
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class CacheManagementService {
     private val cacheManager: CacheManager
@@ -302,7 +298,6 @@ Populate cache with frequently accessed data at startup.
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class CacheWarmupService implements InitializingBean {
     private val productService: ProductService
@@ -339,7 +334,6 @@ Track cache performance metrics.
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class CacheStatsService {
     private val cacheManager: CacheManager
@@ -410,7 +404,6 @@ class CacheConfig {
 }
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class CacheExpirationService {
     private val cacheManager: CacheManager
@@ -465,7 +458,6 @@ class ProductUpdatedEvent extends ApplicationEvent {
 }
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class ProductService {
     private val productRepository: ProductRepository
@@ -487,7 +479,6 @@ class ProductService {
 }
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class CacheInvalidationListener {
     private val cacheManager: CacheManager
@@ -534,7 +525,6 @@ class CaffeineCacheConfig {
 }
 
 @Component
-@RequiredArgsConstructor
 class CacheMetricsService {
     private val cacheManager: CacheManager
 
@@ -580,7 +570,6 @@ class CacheIntegrationTest {
     @Autowired
     private var cacheManager: CacheManager
 
-    @MockBean
     private var productRepository: ProductRepository
 
     @Test

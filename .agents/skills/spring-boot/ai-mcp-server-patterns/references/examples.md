@@ -1755,22 +1755,19 @@ class EnterpriseMcpApplication {
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
+@EnableWebFluxSecurity
 class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
-    {
-        http
-            .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/mcp/tools/secure*").hasRole("ADMIN")
-        .requestMatchers("/mcp/**").hasAnyRole("USER", "ADMIN")
-        .anyRequest().authenticated()
-        )
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt());
-
-        return http.build();
-    }
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .authorizeExchange { auth ->
+            auth
+                .pathMatchers("/mcp/tools/secure*").hasRole("ADMIN")
+                .pathMatchers("/mcp/**").hasAnyRole("USER", "ADMIN")
+                .anyExchange().authenticated()
+        }
+        .oauth2ResourceServer { oauth2 -> oauth2.jwt { } }
+        .build()
 }
 ```
 

@@ -1,283 +1,233 @@
 # Spring AI MCP Server — Testing Guide
 
-Testing strategies for MCP servers: unit tests, integration tests, Testcontainers, security tests,
-and slice tests.
+Testing strategies for the Spring AI MCP server in the reactive SMP backend: unit
+tests with Kotest + MockK, integration tests with `@AutoConfigureWebTestClient`,
+Testcontainers + R2DBC, security tests with reactive `WebTestClient`, and slice
+tests with `@WebFluxTest`.
 
 ## Unit Testing Tools
 
 ```kotlin
-@SpringBootTest
-class DatabaseToolsTest {
+class DatabaseToolsTest(
+    val databaseTools: DatabaseTools = mockk(),
+    val databaseClient: DatabaseClient = mockk(),
+) : StringSpec({
+    "executes SELECT queries and returns the rows" {
+        val query = "SELECT * FROM users WHERE id = :id"
+        val params: Map<String, Any> = mapOf("id" to 1)
+        val rows = listOf(mapOf("id" to 1, "name" to "John"))
 
-    @Autowired
-    private var databaseTools: DatabaseTools
+        coEvery { databaseClient.sql(query).bind("id", 1).fetch().all().toList() } returns rows.toFlux()
 
-    @MockBean
-    private var jdbcTemplate: JdbcTemplate
-
-    @Test
-    void testExecuteQuery_Success()
-    {
-        String query = "SELECT * FROM users WHERE id = ?";
-        Map<String, Object> params = Map . of ("id", 1);
-        List<Map<String, Object>> expected = listOf (Map.of("id", 1, "name", "John"));
-
-        when (jdbcTemplate.queryForList(anyString(), anyMap())).thenReturn(expected);
-
-        List<Map<String, Object>> results = databaseTools . executeQuery (query, params);
-
-        assertThat(results).isEqualTo(expected);
-        verify(jdbcTemplate).queryForList(query, params);
+        val result = runBlocking { databaseTools.executeQuery(query, params) }
+        result shouldBe rows
     }
 
-    @Test
-    void testExecuteQuery_InvalidQuery_ThrowsException()
-    {
-        String query = "DROP TABLE users";
+    "rejects non-SELECT queries before reaching the database" {
+        val query = "DROP TABLE users"
 
-        assertThatThrownBy(() -> databaseTools.executeQuery(query, null))
-        .isInstanceOf(
-        IllegalArgumentException.class)
-            .hasMessage("Only SELECT queries are allowed");
-
-        verifyNoInteractions(jdbcTemplate);
+        shouldThrow<IllegalArgumentException> {
+            runBlocking { databaseTools.executeQuery(query, emptyMap()) }
+        }.message shouldBe "Only SELECT queries are allowed"
     }
 
-    @Test
-    void testGetTableSchema_Success()
-    {
-        String tableName = "users";
-        List<Map<String, Object>> columns = List . of (
-                Map.of("column_name", "id", "data_type", "integer"),
-        Map.of("column_name", "name", "data_type", "varchar")
-        );
+    "returns the table schema for the given name" {
+        val tableName = "users"
+        val columns = listOf(
+            mapOf("column_name" to "id", "data_type" to "integer"),
+            mapOf("column_name" to "name", "data_type" to "varchar"),
+        )
 
-        when (jdbcTemplate.queryForList(anyString(), eq(tableName))).thenReturn(columns);
+        coEvery { databaseClient.sql(any<String>()).bind("table", tableName).fetch().all().toList() } returns columns.toFlux()
 
-        TableSchema schema = databaseTools . getTableSchema (tableName);
-
-        assertThat(schema.tableName()).isEqualTo(tableName);
-        assertThat(schema.columns()).isEqualTo(columns);
+        val schema = runBlocking { databaseTools.getTableSchema(tableName) }
+        schema.tableName shouldBe tableName
+        schema.columns shouldBe columns
     }
-}
+})
 ```
 
 ## Integration Testing
 
 ```kotlin
 @SpringBootTest
-@AutoConfigureMockMvc
-class McpServerIntegrationTest {
+@AutoConfigureWebTestClient
+class McpServerIntegrationTest(
+    private val webTestClient: WebTestClient,
+) : StringSpec({
+    "POST /mcp/tools/executeQuery returns the tool payload" {
+        val response = webTestClient.post().uri("/mcp/tools/executeQuery")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("query" to "SELECT * FROM users", "params" to emptyMap<String, Any>()))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<List<Map<String, Any>>>()
+            .returnResult()
+            .responseBody!!
 
-    @Autowired
-    private var mockMvc: MockMvc
-
-    @MockBean
-    private var databaseTools: DatabaseTools
-
-    @Test
-    void testExecuteTool_Success() throws Exception
-    {
-        Map<String, Object> args = Map . of ("query", "SELECT * FROM users", "params", Map.of());
-        List<Map<String, Object>> expectedResult = listOf (Map.of("id", 1, "name", "Test User"));
-
-        when (databaseTools.executeQuery(anyString(), anyMap())).thenReturn(expectedResult);
-
-        mockMvc.perform(
-            post("/mcp/tools/executeQuery")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(ObjectMapper().writeValueAsString(args))
-        )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result").isArray())
-            .andExpect(jsonPath("$.result[0].id").value(1));
+        response.first()["id"] shouldBe 1
     }
 
-    @Test
-    void testListTools_Success() throws Exception
-    {
-        mockMvc.perform(get("/mcp/tools"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.tools").isArray());
+    "GET /mcp/tools lists the registered tools" {
+        webTestClient.get().uri("/mcp/tools").exchange()
+            .expectStatus().isOk
+            .expectBody<Map<String, Any>>()
+            .value { it["tools"] shouldBe listOf<Any>() }
     }
 
-    @Test
-    void testHealthEndpoint() throws Exception
-    {
-        mockMvc.perform(get("/actuator/health/mcp"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("UP"));
+    "GET /actuator/health/mcp returns UP" {
+        webTestClient.get().uri("/actuator/health/mcp").exchange()
+            .expectStatus().isOk
+            .expectBody<Map<String, Any>>()
+            .value { it["status"] shouldBe "UP" }
     }
-}
+})
 ```
 
 ## Integration Testing with Testcontainers
 
 ```kotlin
 @SpringBootTest
+@AutoConfigureWebTestClient
 @Testcontainers
-@AutoConfigureMockMvc
-class McpServerDatabaseIntegrationTest {
+class McpServerDatabaseIntegrationTest(
+    private val webTestClient: WebTestClient,
+) : StringSpec({
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-    .withDatabaseName("testdb")
-    .withUsername("test")
-    .withPassword("test");
-
-    @DynamicPropertySource
-    static void properties(DynamicPropertyRegistry registry)
-    {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        @DynamicPropertySource
+        @JvmStatic
+        fun properties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.r2dbc.url") { "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}" }
+            registry.add("spring.r2dbc.username") { postgres.username }
+            registry.add("spring.r2dbc.password") { postgres.password }
+        }
     }
 
-    @Autowired
-    private var mockMvc: MockMvc
-
-    @Test
-    void testDatabaseToolWithRealDatabase() throws Exception
-    {
-        Map<String, Object> request = Map . of (
-                "tool", "executeQuery",
-        "arguments", Map.of("query", "SELECT current_database(), current_user")
-        );
-
-        mockMvc.perform(
-            post("/mcp/tools/executeQuery")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(ObjectMapper().writeValueAsString(request))
-        )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data[0].current_database").value("testdb"));
+    "executes the SELECT against the real PostgreSQL" {
+        webTestClient.post().uri("/mcp/tools/executeQuery")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("query" to "SELECT current_database(), current_user"))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<Map<String, Any>>()
+            .value {
+                it["success"] shouldBe true
+                (it["data"] as List<*>).first()["current_database"] shouldBe "testdb"
+            }
     }
-}
+})
 ```
 
-## Slice Test with `@WebMvcTest`
+## Slice Test with `@WebFluxTest`
 
 ```kotlin
-@WebMvcTest(
-    controllers = McpController.class)
-    class McpControllerSliceTest {
+@WebFluxTest(McpController::class)
+class McpControllerSliceTest(
+    private val webTestClient: WebTestClient,
+) : StringSpec({
+    val toolRegistry = mockk<ToolRegistry>()
 
-    @Autowired
-    private var mockMvc: MockMvc
-
-    @MockBean
-    private var mcpServer: McpServer
-
-    @MockBean
-    private var toolRegistry: ToolRegistry
-
-    @Test
-    void testListToolsEndpoint () throws Exception {
-        Tool tool1 = Tool . builder ().name("tool1").description("Tool 1").build();
-        Tool tool2 = Tool . builder ().name("tool2").description("Tool 2").build();
-
-        when (toolRegistry.listTools()).thenReturn(listOf(tool1, tool2));
-
-        mockMvc.perform(get("/mcp/tools"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.tools").isArray())
-            .andExpect(jsonPath("$.tools.length()").value(2))
-            .andExpect(jsonPath("$.tools[0].name").value("tool1"));
+    beforeTest {
+        clearMocks(toolRegistry, answers = true)
+        every { toolRegistry.listTools() } returns listOf(
+            Tool.builder().name("tool1").description("Tool 1").build(),
+            Tool.builder().name("tool2").description("Tool 2").build(),
+        )
     }
-}
+
+    "lists the registered tools" {
+        webTestClient.get().uri("/mcp/tools").exchange()
+            .expectStatus().isOk
+            .expectBody<Map<String, Any>>()
+            .value {
+                val tools = it["tools"] as List<Map<String, Any>>
+                tools.shouldHaveSize(2)
+                tools[0]["name"] shouldBe "tool1"
+            }
+    }
+})
 ```
 
 ## Testing Tool Validation
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class ToolValidationTest {
+class ToolValidationTest : StringSpec({
+    val validator = DefaultToolValidator(
+        McpServerProperties().apply {
+            tools.validation.maxArgumentsSize = 1_000
+        },
+    )
 
-    private var validator: ToolValidator
+    "accepts arguments within the size limit" {
+        val tool = Tool.builder().name("testTool").build()
+        val args: Map<String, Any> = mapOf("param1" to "value1", "param2" to 123)
 
-    @BeforeEach
-    void setUp () {
-        McpServerProperties properties = McpServerProperties ();
-        properties.getTools().getValidation().setMaxArgumentsSize(1000);
-        validator = DefaultToolValidator(properties);
+        shouldNotThrowAny { validator.validateArguments(tool, args) }
     }
 
-    @Test
-    void testValidArguments () {
-        Tool tool = Tool . builder ().name("testTool").method(getTestMethod()).build();
-        Map<String, Object> args = Map . of ("param1", "value1", "param2", 123);
+    "rejects oversized arguments" {
+        val tool = Tool.builder().name("testTool").build()
+        val args: Map<String, Any> = mapOf("largeParam" to "x".repeat(2_000))
 
-        assertDoesNotThrow(() -> validator.validateArguments(tool, args));
+        shouldThrow<ValidationException> { validator.validateArguments(tool, args) }
+            .message shouldContain "Arguments too large"
     }
-
-    @Test
-    void testArgumentsTooLarge () {
-        Tool tool = Tool . builder ().name("testTool").build();
-        Map<String, Object> args = Map . of ("largeParam", "x".repeat(2000));
-
-        ValidationException exception = assertThrows (
-                ValidationException.class,
-                    () -> validator.validateArguments(tool, args));
-
-        assertThat(exception.getMessage()).contains("Arguments too large");
-    }
-}
+})
 ```
 
 ## Security Testing
 
 ```kotlin
 @SpringBootTest
-@AutoConfigureMockMvc
-@WithMockUser(roles = { "USER" })
-class McpSecurityTest {
+@AutoConfigureWebTestClient
+class McpSecurityTest(
+    private val webTestClient: WebTestClient,
+) : StringSpec({
+    val userToken = TestJwtIssuer().issueUserToken(TestUsers.default())
+    val adminToken = TestJwtIssuer().issueAdminToken(TestUsers.default())
 
-    @Autowired
-    private var mockMvc: MockMvc
-
-    @Test
-    void testUserCanAccessRegularTools() throws Exception
-    {
-        mockMvc.perform(get("/mcp/tools/getWeather"))
-            .andExpect(status().isOk());
+    "regular tools accept USER tokens" {
+        webTestClient.get().uri("/mcp/tools/getWeather")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $userToken")
+            .exchange()
+            .expectStatus().isOk
     }
 
-    @Test
-    @WithMockUser(roles = { "USER" })
-    void testUserCannotAccessAdminTools() throws Exception
-    {
-        mockMvc.perform(get("/mcp/tools/admin/deleteData"))
-            .andExpect(status().isForbidden());
+    "admin tools reject USER tokens" {
+        webTestClient.get().uri("/mcp/tools/admin/deleteData")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $userToken")
+            .exchange()
+            .expectStatus().isForbidden
     }
 
-    @Test
-    @WithMockUser(roles = { "ADMIN" })
-    void testAdminCanAccessAllTools() throws Exception
-    {
-        mockMvc.perform(get("/mcp/tools/admin/deleteData"))
-            .andExpect(status().isOk());
+    "admin tools accept ADMIN tokens" {
+        webTestClient.get().uri("/mcp/tools/admin/deleteData")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $adminToken")
+            .exchange()
+            .expectStatus().isOk
     }
-}
+})
 ```
 
 ## Configuration Properties Testing
 
 ```kotlin
 @SpringBootTest
-@EnableConfigurationProperties(
-    McpServerProperties.class)
-    class McpPropertiesTest {
-
-    @Autowired
-    private var properties: McpServerProperties
-
-    @Test
-    void testDefaultValues () {
-        assertThat(properties.getServer().getName()).isEqualTo("spring-ai-mcp-server");
-        assertThat(properties.getTransport().getType()).isEqualTo(TransportType.STDIO);
-        assertThat(properties.getSecurity().isEnabled()).isFalse();
+@EnableConfigurationProperties(McpServerProperties::class)
+class McpPropertiesTest(
+    private val properties: McpServerProperties,
+) : StringSpec({
+    "default values match the documented contract" {
+        properties.server.name shouldBe "spring-ai-mcp-server"
+        properties.transport.type shouldBe TransportType.STDIO
+        properties.security.isEnabled shouldBe false
     }
-}
+})
 ```

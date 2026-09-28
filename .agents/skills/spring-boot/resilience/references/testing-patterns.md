@@ -11,7 +11,6 @@ class CircuitBreakerStateTest {
     @Autowired
     private var paymentService: PaymentService
 
-    @MockBean
     private var restTemplate: RestTemplate
 
     @Test
@@ -468,7 +467,6 @@ class ServiceTest {
     @Autowired
     private var service: ServiceWithCircuitBreaker
 
-    // Missing @MockBean for external service
 
     @Test
     void test()
@@ -483,7 +481,6 @@ class ServiceTest {
     @Autowired
     private var service: ServiceWithCircuitBreaker
 
-    @MockBean
     private var externalService: ExternalService
 
     @Test

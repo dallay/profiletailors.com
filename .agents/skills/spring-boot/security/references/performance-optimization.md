@@ -199,26 +199,22 @@ class RefreshToken {
 }
 
 @Repository
-interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+interface RefreshTokenR2dbcRepository : CoroutineCrudRepository<RefreshToken, Long> {
 
-    @Query("SELECT rt FROM RefreshToken rt WHERE rt.tokenHash = :hash")
-    Optional<RefreshToken> findByTokenHash (@Param("hash") String hash);
+    @Query("SELECT * FROM refresh_tokens WHERE token_hash = :hash LIMIT 1")
+    suspend fun findByTokenHash(@Param("hash") hash: String): RefreshToken?
 
-    @Query("SELECT COUNT(rt) FROM RefreshToken rt WHERE rt.user = :user AND rt.revoked = false AND rt.expiresAt > :now")
-    long countActiveTokensByUser (@Param("user") User user, @Param("now") Long now);
+    @Query("SELECT COUNT(*) FROM refresh_tokens WHERE user_id = :userId AND revoked = false AND expires_at > :nowInstant")
+    suspend fun countActiveTokensByUser(@Param("userId") userId: Long, @Param("nowInstant") now: Instant): Long
 
     @Modifying
-    @Query(
-        value = "DELETE FROM refresh_tokens WHERE expires_at < :cutoff LIMIT 1000",
-        nativeQuery = true
-    )
-    int deleteBatchExpired (@Param("cutoff") Long cutoff);
+    @Query("DELETE FROM refresh_tokens WHERE expires_at < :cutoff")
+    suspend fun deleteExpiredBefore(@Param("cutoff") cutoff: Instant): Long
 
     @Query(
-        value = "SELECT * FROM refresh_tokens WHERE user_id = :userId AND revoked = false ORDER BY created_at ASC LIMIT :limit",
-        nativeQuery = true
+        "SELECT * FROM refresh_tokens WHERE user_id = :userId AND revoked = false ORDER BY created_at ASC LIMIT :limit",
     )
-    List<RefreshToken> findOldestActiveTokens (@Param("userId") Long userId, @Param("limit") int limit);
+    fun findOldestActiveTokens(@Param("userId") userId: Long, @Param("limit") limit: Int): Flow<RefreshToken>
 }
 ```
 
@@ -501,26 +497,18 @@ class JwtPerformanceHealthIndicator implements HealthIndicator {
 
 ```kotlin
 @Configuration
-class StatelessSecurityConfig {
-
+class StatelessSecurityConfig(
+    private val jwtAuthenticationFilter: JwtAuthenticationWebFilter,
+) {
     @Bean
-    public SecurityFilterChain statelessSecurityFilterChain(HttpSecurity http) throws Exception
-    {
-        return http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session ->
-        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-        .addFilterBefore(
-        jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-            .build();
-    }
-
-    @Bean
-    fun jwtAuthenticationFilter(): JwtAuthenticationFilter {
-        return JwtAuthenticationFilter();
-    }
+    fun statelessSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .csrf { it.disable() }
+        .anonymous { it.disable() }
+        .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+        .authorizeExchange { auth -> auth.anyExchange().authenticated() }
+        .oauth2ResourceServer { oauth2 -> oauth2.jwt(Customizer.withDefaults()) }
+        .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.HTTP_BASIC)
+        .build()
 }
 ```
 

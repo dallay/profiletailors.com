@@ -10,10 +10,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
+
 class ProductEventHandler {
     private val notificationService: NotificationService
     private val auditService: AuditService
@@ -49,7 +48,7 @@ class ProductEventHandler {
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class AsyncEventHandler {
     private val emailService: EmailService
 
@@ -72,11 +71,9 @@ class AsyncEventHandler {
 ```kotlin
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
-@RequiredArgsConstructor
+
 @Slf4j
 class ProductEventConsumer {
 
@@ -207,7 +204,7 @@ import org.springframework.stereotype.Component;
 import java.util.function.Consumer;
 
 @Component
-@RequiredArgsConstructor
+
 class ProductEventStreamConsumer {
     private val orderService: OrderService
 
@@ -266,7 +263,7 @@ class ErrorHandlingConsumer {
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class IdempotentEventHandler {
     private val processedEventRepository: ProcessedEventRepository
 
@@ -316,7 +313,7 @@ class ValidatingEventHandler {
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 @Component
-@RequiredArgsConstructor
+
 class ResilientEventHandler {
     private val externalServiceClient: ExternalServiceClient
 

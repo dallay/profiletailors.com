@@ -763,21 +763,18 @@ class OrderController {
 #### Application Properties
 
 ```properties
-# Application
 spring.application.name=order-service
 server.port=8080
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/orderdb
-spring.datasource.username=orderuser
-spring.datasource.password=orderpass
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-# Axon Configuration
+
+spring.r2dbc.url=r2dbc:postgresql://localhost:5432/orderdb
+spring.r2dbc.username=orderuser
+spring.r2dbc.password=orderpass
+
 axon.axonserver.servers=localhost:8124
 axon.serializer.general=jackson
 axon.serializer.events=jackson
 axon.serializer.messages=jackson
-# Actuator
+
 management.endpoints.web.exposure.include=health,metrics,info,prometheus
 management.endpoint.health.show-details=always
 management.metrics.export.prometheus.enabled=true
@@ -791,12 +788,12 @@ management.metrics.export.prometheus.enabled=true
   <!-- Spring Boot -->
   <dependency>
     <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
   </dependency>
 
   <dependency>
     <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
+    <artifactId>spring-boot-starter-data-r2dbc</artifactId>
   </dependency>
 
   <dependency>

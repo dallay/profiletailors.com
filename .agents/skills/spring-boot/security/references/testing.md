@@ -1,331 +1,156 @@
 # JWT Security Testing Strategies
 
-This document provides comprehensive testing strategies for JWT security implementations in Spring
-Boot applications, covering unit tests, integration tests, security tests, and performance testing.
+This document covers testing strategies for the reactive JWT security stack used
+in the SMP backend. All examples use Kotest + MockK (`@MockkBean`),
+`@SpringBootTest` with `@AutoConfigureWebTestClient`, R2DBC via Testcontainers,
+and `WebTestClient` for end-to-end tests. Servlet `WebTestClient`, `@MockkBean`,
+and `@WebFluxTest` patterns are intentionally not shown — see
+`migration-spring-security-6x.md` if a servlet reference is needed.
 
 ## Table of Contents
 
 1. [Unit Testing JWT Components](#unit-testing-jwt-components)
 2. [Integration Testing Security Configuration](#integration-testing-security-configuration)
-3. [MockMvc Security Testing](#mockmvc-security-testing)
+3. [WebTestClient Security Testing](#webtestclient-security-testing)
 4. [Security Test Scenarios](#security-test-scenarios)
 5. [Performance Testing JWT Operations](#performance-testing-jwt-operations)
 
 ## Unit Testing JWT Components
 
-### JWT Service Unit Tests
+### JWT Service Unit Tests (Kotest)
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class JwtServiceTest {
+class JwtServiceTest : StringSpec({
+    val refreshTokenService = mockk<RefreshTokenService>(relaxed = true)
 
-    @Mock
-    private var refreshTokenService: RefreshTokenService
+    fun service(expirationMs: Long = 900_000): JwtService = JwtService(
+        secret = "test-secret-key-for-unit-testing-only-256-bits-long",
+        accessTokenExpiration = expirationMs,
+        refreshTokenExpiration = 604_800_000,
+        issuer = "test-issuer",
+        audience = null,
+        validateIssuer = true,
+        validateAudience = false,
+        clockSkewSeconds = 60,
+        refreshTokenService = refreshTokenService,
+    )
 
-    @Value("${jwt.test.secret:test - secret - key - for -unit - testing - only - 256 - bits}")
-    private var testSecret: String
-
-    private var jwtService: JwtService
-
-    private var testUser: User
-
-    @BeforeEach
-    void setUp () {
-        jwtService = new JwtService (
-                testSecret,
-        900000,  // 15 minutes
-        604800000, // 7 days
-        "test-issuer",
-        null,
-        true,
-        false,
-        60,
-        refreshTokenService
-        );
-
-        testUser = User.builder()
-            .id(1L)
-            .email("test@example.com")
-            .password("encodedPassword")
-            .roles(setOf(Role("USER")))
-            .enabled(true)
-            .build();
+    val testUser = run {
+        val userRole = Role(id = RoleId(1L), name = "USER", description = "Default role")
+        UserAccount(
+            id = UserId(1L),
+            email = "test@profiletailors.com",
+            passwordHash = "encodedPassword",
+            firstName = "Test",
+            lastName = "User",
+            enabled = true,
+            roles = mutableSetOf(userRole),
+        )
     }
 
-    @Test
-    @DisplayName("Should generate valid access token")
-    void shouldGenerateValidAccessToken () {
-        // When
-        String token = jwtService . generateAccessToken (testUser);
+    "should generate valid access token" {
+        val token = runBlocking { service().generateAccessToken(testUser).token }
 
-        // Then
-        assertThat(token).isNotNull();
-        assertThat(token).isNotEmpty();
-        assertThat(token.split("\\.")).hasSize(3); // Header, Payload, Signature
+        token.shouldNotBeEmpty()
+        token.split(".").shouldHaveSize(3)
 
-        // Verify claims
-        Claims claims = parseToken (token);
-        assertThat(claims.getSubject()).isEqualTo("test@example.com");
-        assertThat(claims.getIssuer()).isEqualTo("test-issuer");
-        assertThat(claims.getExpiration()).isAfter(Date());
-        assertThat(claims.getIssuedAt()).isNotNull();
-        assertThat(claims.get("type")).isEqualTo("access");
+        val claims = runBlocking { service().extractClaims(token) }
+        claims.subject shouldBe "test@profiletailors.com"
+        claims.issuer shouldBe "test-issuer"
+        claims.expiration.after(Date()) shouldBe true
+        claims.issuedAt.shouldNotBeNull()
+        claims.get("type") shouldBe "access"
     }
 
-    @Test
-    @DisplayName("Should extract username from valid token")
-    void shouldExtractUsernameFromValidToken () {
-        // Given
-        String token = jwtService . generateAccessToken (testUser);
-
-        // When
-        String username = jwtService . extractUsername (token);
-
-        // Then
-        assertThat(username).isEqualTo("test@example.com");
+    "should extract username from valid token" {
+        val token = runBlocking { service().generateAccessToken(testUser).token }
+        runBlocking { service().extractUsername(token) } shouldBe "test@profiletailors.com"
     }
 
-    @Test
-    @DisplayName("Should validate token correctly")
-    void shouldValidateTokenCorrectly () {
-        // Given
-        String token = jwtService . generateAccessToken (testUser);
-        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-            testUser.getEmail(),
-            testUser.getPassword(),
-            testUser.getAuthorities()
-        );
-
-        // When
-        boolean isValid = jwtService . isTokenValid (token, userDetails);
-
-        // Then
-        assertThat(isValid).isTrue();
+    "should validate token for matching user" {
+        val token = runBlocking { service().generateAccessToken(testUser).token }
+        runBlocking { service().isTokenValid(token, testUser) } shouldBe true
     }
 
-    @Test
-    @DisplayName("Should reject expired token")
-    void shouldRejectExpiredToken () {
-        // Given
-        JwtService expiredJwtService = new JwtService(
-            testSecret,
-            1, // 1 millisecond
-            604800000,
-            "test-issuer",
-            null,
-            true,
-            false,
-            60,
-            refreshTokenService
-        );
-
-        String token = expiredJwtService . generateAccessToken (testUser);
-
-        // Wait for token to expire
-        await().atMost(2, SECONDS)
-            .until(() ->!expiredJwtService.isTokenValid(token, createUserDetails()));
-
-        // Then
-        assertThat(expiredJwtService.isTokenValid(token, createUserDetails())).isFalse();
+    "should reject expired token" {
+        val expiredService = service(expirationMs = 1)
+        val token = runBlocking { expiredService.generateAccessToken(testUser).token }
+        delay(2_000)
+        runBlocking { expiredService.isTokenValid(token, testUser) } shouldBe false
     }
 
-    @Test
-    @DisplayName("Should reject token with invalid signature")
-    void shouldRejectTokenWithInvalidSignature () {
-        // Given
-        String validToken = jwtService . generateAccessToken (testUser);
-        String tamperedToken = validToken . substring (0, validToken.length()-10)+"tampered";
-
-        // When
-        boolean isValid = jwtService . isTokenValid (tamperedToken, createUserDetails());
-
-        // Then
-        assertThat(isValid).isFalse();
+    "should reject token with invalid signature" {
+        val token = runBlocking { service().generateAccessToken(testUser).token }
+        val tampered = token.dropLast(10) + "tampered!!"
+        runBlocking { service().isTokenValid(tampered, testUser) } shouldBe false
     }
 
-    @Test
-    @DisplayName("Should reject token with invalid issuer")
-    void shouldRejectTokenWithInvalidIssuer () {
-        // Given
-        JwtService differentIssuerService = new JwtService(
-            testSecret,
-            900000,
-            604800000,
-            "different-issuer",
-            null,
-            true,
-            false,
-            60,
-            refreshTokenService
-        );
-
-        String token = differentIssuerService . generateAccessToken (testUser);
-
-        // When
-        boolean isValid = jwtService . isTokenValid (token, createUserDetails());
-
-        // Then
-        assertThat(isValid).isFalse();
+    "should reject token issued by a different issuer" {
+        val differentIssuer = service().copy(issuer = "different-issuer")
+        val token = runBlocking { differentIssuer.generateAccessToken(testUser).token }
+        runBlocking { service().isTokenValid(token, testUser) } shouldBe false
     }
-
-    @Test
-    @DisplayName("Should include authorities in token")
-    void shouldIncludeAuthoritiesInToken () {
-        // Given
-        Set<GrantedAuthority> authorities = Set . of (
-                SimpleGrantedAuthority("ROLE_USER"),
-        SimpleGrantedAuthority("USER_READ"),
-        SimpleGrantedAuthority("USER_WRITE")
-        );
-
-        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-            testUser.getEmail(),
-            testUser.getPassword(),
-            authorities
-        );
-
-        // When
-        String token = jwtService . generateAccessToken (userDetails);
-
-        // Then
-        Claims claims = parseToken (token);
-        @SuppressWarnings("unchecked")
-        List<String> tokenAuthorities = claims . get ("authorities", List.class);
-
-        assertThat(tokenAuthorities).containsExactlyInAnyOrder(
-            "ROLE_USER", "USER_READ", "USER_WRITE"
-        );
-    }
-
-    private fun createUserDetails(): UserDetails {
-        return new org . springframework . security . core . userdetails . User (
-                testUser.getEmail(),
-        testUser.getPassword(),
-        testUser.getAuthorities()
-        );
-    }
-
-    private fun parseToken(String token): Claims {
-        return Jwts.parser()
-            .verifyWith(getSigningKey())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
-    }
-
-    private fun getSigningKey(): SecretKey {
-        byte[] keyBytes = Base64 . getEncoder ().encodeToString(testSecret.getBytes()).getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
-}
+})
 ```
 
 ### Refresh Token Service Unit Tests
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class RefreshTokenServiceTest {
+class RefreshTokenServiceTest : StringSpec({
+    val refreshTokenRepository = mockk<RefreshTokenRepository>()
+    val userRepository = mockk<UserRepository>()
+    val tokenService = mockk<JwtTokenService>()
+    val claimsService = mockk<JwtClaimsService>()
 
-    @Mock
-    private var refreshTokenRepository: RefreshTokenRepository
+    val service = RefreshTokenService(
+        refreshTokenRepository = refreshTokenRepository,
+        userRepository = userRepository,
+        jwtTokenService = tokenService,
+        claimsService = claimsService,
+    )
 
-    @Mock
-    private var userRepository: UserRepository
+    val user = TestUsers.default()
 
-    @InjectMocks
-    private var refreshTokenService: RefreshTokenService
+    "creates refresh token and enforces the limit" {
+        coEvery { refreshTokenRepository.countActiveByUser(user.id, any()) } returns 0L
+        coEvery { refreshTokenRepository.save(any()) } answers { firstArg() }
 
-    @Test
-    @DisplayName("Should create refresh token successfully")
-    void shouldCreateRefreshTokenSuccessfully () {
-        // Given
-        User user = createTestUser ();
-        when (refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
-            .thenReturn(0L);
-        when (refreshTokenRepository.save(any(RefreshToken.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        val tokenResponse = runBlocking { service.createRefreshToken(user) }
 
-        // When
-        String token = refreshTokenService . createRefreshToken (user.getEmail());
-
-        // Then
-        assertThat(token).isNotNull();
-        assertThat(token).isNotEmpty();
-        verify(refreshTokenRepository).countByUserAndExpiresAtAfter(any(), any());
-        verify(refreshTokenRepository).save(any(RefreshToken.class));
+        tokenResponse.token.shouldNotBeEmpty()
+        coVerify { refreshTokenRepository.save(any()) }
     }
 
-    @Test
-    @DisplayName("Should revoke old tokens when limit exceeded")
-    void shouldRevokeOldTokensWhenLimitExceeded () {
-        // Given
-        User user = createTestUser ();
-        when (refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
-            .thenReturn(5); // At limit
+    "evicts the oldest token when the active limit is reached" {
+        coEvery { refreshTokenRepository.countActiveByUser(user.id, any()) } returns 5L
+        coEvery { refreshTokenRepository.deleteOldestByUser(user.id) } returns Unit
 
-        // When
-        refreshTokenService.createRefreshToken(user.getEmail());
+        runBlocking { service.createRefreshToken(user) }
 
-        // Then
-        verify(refreshTokenRepository).deleteOldestByUser(user);
+        coVerify { refreshTokenRepository.deleteOldestByUser(user.id) }
     }
 
-    @Test
-    @DisplayName("Should refresh token successfully")
-    void shouldRefreshTokenSuccessfully () {
-        // Given
-        RefreshTokenRequest request = RefreshTokenRequest ("valid-refresh-token");
-        RefreshToken existingToken = RefreshToken . builder ()
-            .token("valid-refresh-token")
-            .user(createTestUser())
-            .expiresAt(Instant.now().plus(Duration.ofDays(1)))
-            .revoked(false)
-            .build();
+    "rotates refresh token successfully" {
+        val existing = TestRefreshTokens.active(userId = user.id)
+        coEvery { refreshTokenRepository.findByTokenHash(any()) } returns existing
+        coEvery { refreshTokenRepository.save(any()) } answers { firstArg() }
+        coEvery { userRepository.findById(user.id) } returns user
 
-        when (refreshTokenRepository.findByToken("valid-refresh-token"))
-            .thenReturn(existingToken);
-        when (refreshTokenRepository.save(any(RefreshToken.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        val response = runBlocking { service.refresh(RefreshTokenRequest(token = "valid")) }
 
-        // When
-        RefreshTokenResponse response = refreshTokenService . refreshToken (request);
-
-        // Then
-        assertThat(response.getAccessToken()).isNotNull();
-        assertThat(response.getExpiresIn()).isGreaterThan(0);
+        response.accessToken.shouldNotBeNull()
+        response.expiresIn.shouldBePositive()
     }
 
-    @Test
-    @DisplayName("Should reject refresh token rotation for revoked tokens")
-    void shouldRejectRefreshTokenRotationForRevokedTokens () {
-        // Given
-        String revokedToken = "revoked-token";
-        RefreshToken token = RefreshToken . builder ()
-            .token(revokedToken)
-            .revoked(true)
-            .build();
+    "rejects refresh attempts on revoked tokens" {
+        val revoked = TestRefreshTokens.revoked(userId = user.id)
+        coEvery { refreshTokenRepository.findByTokenHash(any()) } returns revoked
 
-        when (refreshTokenRepository.findByToken(revokedToken))
-            .thenReturn(token);
-
-        RefreshTokenRequest request = RefreshTokenRequest (revokedToken);
-
-        // When & Then
-        assertThrows(
-            InvalidTokenException.class,
-                () -> refreshTokenService.refreshToken(request));
+        shouldThrow<InvalidTokenException> {
+            runBlocking { service.refresh(RefreshTokenRequest(token = "revoked-token")) }
+        }
     }
-
-    private fun createTestUser(): User {
-        return User.builder()
-            .id(1L)
-            .email("test@example.com")
-            .enabled(true)
-            .build();
-    }
-}
+})
 ```
 
 ## Integration Testing Security Configuration
@@ -334,775 +159,400 @@ Boot applications, covering unit tests, integration tests, security tests, and p
 
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = {
-    "jwt.secret=test-secret-key-for-integration-testing-256-bits-minimum",
-    "jwt.access-token-expiration=900000",
-    "jwt.refresh-token-expiration=604800000",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
-@Transactional
-class SecurityIntegrationTest {
+@AutoConfigureWebTestClient
+@TestPropertySource(
+    properties = [
+        "jwt.secret=test-secret-key-for-integration-testing-256-bits-minimum",
+        "jwt.access-token-expiration=PT15M",
+        "jwt.refresh-token-expiration=P7D",
+    ],
+)
+class SecurityIntegrationTest(
+    private val webTestClient: WebTestClient,
+    private val userRepository: UserRepositoryR2dbc,
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: JwtService,
+) : StringSpec({
+    val testUser = TestUsers.default()
 
-    @Autowired
-    private var restTemplate: TestRestTemplate
-
-    @Autowired
-    private var userRepository: UserRepository
-
-    @Autowired
-    private var passwordEncoder: PasswordEncoder
-
-    @Autowired
-    private var jwtService: JwtService
-
-    private var testUser: User
-
-    @BeforeEach
-    void setUp()
-    {
-        // Create test user
-        testUser = User.builder()
-            .email("test@example.com")
-            .password(passwordEncoder.encode("password"))
-            .roles(setOf(Role("USER")))
-            .enabled(true)
-            .build();
-        testUser = userRepository.save(testUser);
-    }
-
-    @Test
-    @DisplayName("Should allow access to public endpoints")
-    void shouldAllowAccessToPublicEndpoints()
-    {
-        // When
-        ResponseEntity<String> response = restTemplate . getForEntity ("/api/public/health", String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    @DisplayName("Should deny access to protected endpoints without token")
-    void shouldDenyAccessToProtectedEndpointsWithoutToken()
-    {
-        // When
-        ResponseEntity<String> response = restTemplate . getForEntity ("/api/users/me", String.class);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should allow access to protected endpoints with valid token")
-    void shouldAllowAccessToProtectedEndpointsWithValidToken()
-    {
-        // Given
-        String token = jwtService . generateAccessToken (testUser);
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(token);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/users/me",
-        HttpMethod.GET,
-        entity,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    @DisplayName("Should deny access with invalid token")
-    void shouldDenyAccessWithInvalidToken()
-    {
-        // Given
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth("invalid-token");
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/users/me",
-        HttpMethod.GET,
-        entity,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should deny access with expired token")
-    void shouldDenyAccessWithExpiredToken()
-    {
-        // Given
-        // Create an expired token by using a very short expiration time
-        JwtService expiredJwtService = new JwtService(
-            "test-secret-key-for-integration-testing-256-bits-minimum",
-            1, // 1 millisecond
-            604800000,
-            "test-issuer",
-            null,
-            true,
-            false,
-            60,
-            null
-        );
-
-        String token = expiredJwtService . generateAccessToken (testUser);
-
-        // Wait for token to expire
-        await().atMost(2, SECONDS).until(() -> {
-        try {
-            return !expiredJwtService.isTokenValid(
-                token,
-                org.springframework.security.core.userdetails.User.builder()
-                    .username(testUser.getEmail())
-                    .password("password")
-                    .roles("USER")
-                    .build()
-            );
-        } catch (Exception e) {
-            return true;
+    beforeTest {
+        runBlocking {
+            userRepository.save(testUser.copy(passwordHash = passwordEncoder.encode("password"))).awaitSingle()
         }
-    });
-
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(token);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/users/me",
-        HttpMethod.GET,
-        entity,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
-}
+
+    "public endpoints are reachable without authentication" {
+        webTestClient.get().uri("/api/public/health").exchange()
+            .expectStatus().isOk
+    }
+
+    "protected endpoints return 401 without authentication" {
+        webTestClient.get().uri("/api/users/me").exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "protected endpoints return 200 with a valid token" {
+        val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    "protected endpoints return 401 with an invalid token" {
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "protected endpoints return 401 when the token is expired" {
+        val expiredService = jwtService.copyForExpiration(minutes = 0)
+        val expiredToken = runBlocking { expiredService.generateAccessToken(testUser).token }
+        delay(2_000)
+
+        webTestClient.get().uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $expiredToken")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+})
 ```
 
 ### Authentication Controller Integration Tests
 
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@AutoConfigureWebTestClient
 @Testcontainers
-@Transactional
-class AuthenticationControllerIntegrationTest {
+class AuthenticationControllerIntegrationTest(
+    private val webTestClient: WebTestClient,
+    private val objectMapper: ObjectMapper,
+) : StringSpec({
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18-alpine")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-    .withDatabaseName("testdb")
-    .withUsername("test")
-    .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry)
-    {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        registry.add("jwt.secret", () -> "test-secret-key-for-integration-testing-256-bits");
+        @DynamicPropertySource
+        @JvmStatic
+        fun registerProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.r2dbc.url") { "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}" }
+            registry.add("spring.r2dbc.username") { postgres.username }
+            registry.add("spring.r2dbc.password") { postgres.password }
+            registry.add("jwt.secret") { "test-secret-key-for-integration-testing-256-bits-long" }
+        }
     }
 
-    @Autowired
-    private var restTemplate: TestRestTemplate
+    val registerRequest = RegisterRequest(
+        email = "test@profiletailors.com",
+        username = "testuser",
+        password = "Password123!",
+        firstName = "Test",
+        lastName = "User",
+    )
 
-    @Autowired
-    private var objectMapper: ObjectMapper
+    val authRequest = AuthenticationRequest(
+        email = "test@profiletailors.com",
+        password = "Password123!",
+    )
 
-    private var registerRequest: RegisterRequest
-    private var authRequest: AuthenticationRequest
-
-    @BeforeEach
-    void setUp()
-    {
-        registerRequest = new RegisterRequest (
-                "test@example.com",
-        "testuser",
-        "Password123!",
-        "Test",
-        "User"
-        );
-
-        authRequest = new AuthenticationRequest (
-                "test@example.com",
-        "Password123!"
-        );
+    "registers a new user" {
+        webTestClient.post().uri("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(registerRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<AuthenticationResponse>()
+            .value { it.accessToken.shouldNotBeEmpty() }
     }
 
-    @Test
-    @DisplayName("Should register new user successfully")
-    void shouldRegisterNewUserSuccessfully() throws Exception
-    {
-        // When
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/register",
-        registerRequest,
-        String.class
-        );
+    "authenticates a registered user" {
+        webTestClient.post().uri("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(registerRequest)
+            .exchange()
+            .expectStatus().isOk
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        AuthenticationResponse authResponse = objectMapper . readValue (
-                response.getBody(),
-        AuthenticationResponse.class
-        );
-
-        assertThat(authResponse.getAccessToken()).isNotNull();
-        assertThat(authResponse.getRefreshToken()).isNotNull();
-        assertThat(authResponse.getUser().getEmail()).isEqualTo("test@example.com");
+        webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(authRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<AuthenticationResponse>()
+            .value { it.accessToken.shouldNotBeEmpty() }
     }
 
-    @Test
-    @DisplayName("Should authenticate user successfully")
-    void shouldAuthenticateUserSuccessfully() throws Exception
-    {
-        // Given - Register user first
-        restTemplate.postForEntity("/api/auth/register", registerRequest, String.class);
+    "fails authentication with the wrong password" {
+        val wrongPassword = AuthenticationRequest(
+            email = "test@profiletailors.com",
+            password = "WrongPassword123!",
+        )
 
-        // When
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        authRequest,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        AuthenticationResponse authResponse = objectMapper . readValue (
-                response.getBody(),
-        AuthenticationResponse.class
-        );
-
-        assertThat(authResponse.getAccessToken()).isNotNull();
-        assertThat(authResponse.getRefreshToken()).isNotNull();
-        assertThat(authResponse.getUser().getEmail()).isEqualTo("test@example.com");
+        webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(wrongPassword)
+            .exchange()
+            .expectStatus().isUnauthorized
     }
 
-    @Test
-    @DisplayName("Should fail authentication with wrong password")
-    void shouldFailAuthenticationWithWrongPassword()
-    {
-        // Given
-        AuthenticationRequest wrongPasswordRequest = new AuthenticationRequest(
-            "test@example.com",
-            "WrongPassword123!"
-        );
+    "rotates refresh tokens and issues a fresh access token" {
+        webTestClient.post().uri("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(registerRequest)
+            .exchange()
+            .expectStatus().isOk
 
-        // When
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        wrongPasswordRequest,
-        String.class
-        );
+        val loginResponse = webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(authRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<AuthenticationResponse>()
+            .returnResult()
+            .responseBody!!
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        val refresh = webTestClient.post().uri("/api/auth/refresh")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(RefreshTokenRequest(loginResponse.refreshToken))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<AuthenticationResponse>()
+            .returnResult()
+            .responseBody!!
+
+        refresh.accessToken shouldNotBe loginResponse.accessToken
     }
-
-    @Test
-    @DisplayName("Should refresh token successfully")
-    void shouldRefreshTokenSuccessfully() throws Exception
-    {
-        // Given - Register and authenticate user
-        restTemplate.postForEntity("/api/auth/register", registerRequest, String.class);
-        ResponseEntity<String> authResponse = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        authRequest,
-        String.class
-        );
-
-        AuthenticationResponse loginResponse = objectMapper . readValue (
-                authResponse.getBody(),
-        AuthenticationResponse.class
-        );
-
-        RefreshTokenRequest refreshRequest = new RefreshTokenRequest(
-            loginResponse.getRefreshToken()
-        );
-
-        // When
-        ResponseEntity<String> refreshResponse = restTemplate . postForEntity (
-                "/api/auth/refresh",
-        refreshRequest,
-        String.class
-        );
-
-        // Then
-        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        AuthenticationResponse newAuthResponse = objectMapper . readValue (
-                refreshResponse.getBody(),
-        AuthenticationResponse.class
-        );
-
-        assertThat(newAuthResponse.getAccessToken()).isNotNull();
-        assertThat(newAuthResponse.getAccessToken())
-            .isNotEqualTo(loginResponse.getAccessToken());
-    }
-}
+})
 ```
 
-## MockMvc Security Testing
+## WebTestClient Security Testing
 
-### MockMvc Security Tests
+### Reactive Authentication Controller Tests
 
 ```kotlin
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
-@TestPropertySource(properties = {
-    "jwt.secret=test-secret-key-for-mockmvc-testing-256-bits",
-    "jwt.access-token-expiration=900000",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
-@Transactional
-class AuthenticationControllerMockMvcTest {
+@AutoConfigureWebTestClient
+@TestPropertySource(
+    properties = [
+        "jwt.secret=test-secret-key-for-webtestclient-tests-256-bits-long",
+        "jwt.access-token-expiration=PT15M",
+    ],
+)
+class AuthenticationControllerWebTestClientTest(
+    private val webTestClient: WebTestClient,
+    private val userRepository: UserRepositoryR2dbc,
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: JwtService,
+) : StringSpec({
+    val testUser = TestUsers.default()
 
-    @Autowired
-    private var mockMvc: MockMvc
-
-    @Autowired
-    private var objectMapper: ObjectMapper
-
-    @Autowired
-    private var userRepository: UserRepository
-
-    @Autowired
-    private var passwordEncoder: PasswordEncoder
-
-    @Autowired
-    private var jwtService: JwtService
-
-    private var testUser: User
-
-    @BeforeEach
-    void setUp()
-    {
-        testUser = User.builder()
-            .email("test@example.com")
-            .password(passwordEncoder.encode("Password123!"))
-            .roles(setOf(Role("USER")))
-            .enabled(true)
-            .build();
-        testUser = userRepository.save(testUser);
-    }
-
-    @Test
-    @DisplayName("Should authenticate user and return tokens")
-    void shouldAuthenticateUserAndReturnTokens() throws Exception
-    {
-        AuthenticationRequest request = new AuthenticationRequest(
-            "test@example.com",
-            "Password123!"
-        );
-
-        mockMvc.perform(
-            post("/api/auth/authenticate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request))
-        )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
-            .andExpect(jsonPath("$.user.email").value("test@example.com"))
-            .andExpect(jsonPath("$.tokenType").value("Bearer"));
-    }
-
-    @Test
-    @DisplayName("Should validate authentication request")
-    void shouldValidateAuthenticationRequest() throws Exception
-    {
-        AuthenticationRequest invalidRequest = AuthenticationRequest ("", "");
-
-        mockMvc.perform(
-            post("/api/auth/authenticate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest))
-        )
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should protect admin endpoints")
-    void shouldProtectAdminEndpoints() throws Exception
-    {
-        mockMvc.perform(get("/api/admin/users"))
-            .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    @DisplayName("Should allow admin access with proper role")
-    void shouldAllowAdminAccessWithProperRole() throws Exception
-    {
-        mockMvc.perform(get("/api/admin/users"))
-            .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("Should deny admin access to user role")
-    void shouldDenyAdminAccessToUserRole() throws Exception
-    {
-        mockMvc.perform(get("/api/admin/users"))
-            .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("Should authenticate with JWT token")
-    void shouldAuthenticateWithJwtToken() throws Exception
-    {
-        // Given
-        String token = jwtService . generateAccessToken (testUser);
-
-        // When & Then
-        mockMvc.perform(
-            get("/api/auth/me")
-                .header("Authorization", "Bearer " + token)
-        )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.email").value("test@example.com"));
-    }
-
-    @Test
-    @DisplayName("Should reject malformed JWT token")
-    void shouldRejectMalformedJwtToken() throws Exception
-    {
-        mockMvc.perform(
-            get("/api/auth/me")
-                .header("Authorization", "Bearer malformed.token.here")
-        )
-            .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Should reject JWT token without Bearer prefix")
-    void shouldRejectJwtTokenWithoutBearerPrefix() throws Exception
-    {
-        String token = jwtService . generateAccessToken (testUser);
-
-        mockMvc.perform(
-            get("/api/auth/me")
-                .header("Authorization", token)
-        )
-            .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Should handle logout correctly")
-    void shouldHandleLogoutCorrectly() throws Exception
-    {
-        // Given
-        String token = jwtService . generateAccessToken (testUser);
-
-        // When & Then
-        mockMvc.perform(
-            post("/api/auth/logout")
-                .header("Authorization", "Bearer " + token)
-        )
-            .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @DisplayName("Should validate refresh token request")
-    void shouldValidateRefreshTokenRequest() throws Exception
-    {
-        RefreshTokenRequest invalidRequest = RefreshTokenRequest ("");
-
-        mockMvc.perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest))
-        )
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should handle concurrent requests correctly")
-    void shouldHandleConcurrentRequestsCorrectly() throws Exception
-    {
-        String token = jwtService . generateAccessToken (testUser);
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(token);
-
-        MockHttpServletRequestBuilder request = get ("/api/auth/me")
-            .headers(headers);
-
-        // Execute multiple concurrent requests
-        int numRequests = 10;
-        CountDownLatch latch = CountDownLatch (numRequests);
-        AtomicInteger successCount = AtomicInteger (0);
-
-        for (int i = 0; i < numRequests; i++) {
-        CompletableFuture.runAsync(() -> {
-        try {
-            MvcResult result = mockMvc . perform (request)
-                .andReturn();
-
-            if (result.getResponse().getStatus() == HttpStatus.OK.value()) {
-                successCount.incrementAndGet();
-            }
-        } catch (Exception e) {
-            // Log error for debugging
-            System.err.println("Request failed: " + e.getMessage());
-        } finally {
-            latch.countDown();
+    beforeTest {
+        runBlocking {
+            userRepository.save(testUser.copy(passwordHash = passwordEncoder.encode("Password123!")))
+                .awaitSingle()
         }
-    });
     }
 
-        // Wait for all requests to complete
-        boolean completed = latch . await (10, TimeUnit.SECONDS);
-
-        assertThat(completed).isTrue();
-        assertThat(successCount.get()).isEqualTo(numRequests);
+    "authenticates user and returns tokens" {
+        webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(AuthenticationRequest(testUser.email, "Password123!"))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.accessToken").exists()
+            .jsonPath("$.refreshToken").exists()
+            .jsonPath("$.user.email").isEqualTo("test@profiletailors.com")
     }
-}
+
+    "rejects a request with an invalid payload" {
+        webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(AuthenticationRequest(email = "", password = ""))
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    "rejects unauthenticated access to admin endpoints" {
+        webTestClient.get().uri("/api/admin/users").exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "allows admin role to access the admin endpoint" {
+        val token = TestJwtIssuer(adminRole = true).issue(TestUsers.default())
+        webTestClient.get().uri("/api/admin/users")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    "denies USER role access to the admin endpoint" {
+        val token = TestJwtIssuer(adminRole = false).issue(TestUsers.default())
+        webTestClient.get().uri("/api/admin/users")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
+    "authenticates with a valid Bearer token" {
+        val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.email").isEqualTo(testUser.email)
+    }
+
+    "rejects a malformed token" {
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer malformed.token.here")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "rejects a token without the Bearer prefix" {
+        val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, token)
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "completes logout without errors" {
+        val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+        webTestClient.post().uri("/api/auth/logout")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NO_CONTENT)
+    }
+
+    "rejects refresh requests with empty payloads" {
+        webTestClient.post().uri("/api/auth/refresh")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(RefreshTokenRequest(refreshToken = ""))
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    "handles concurrent calls correctly" {
+        val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+        val calls = (1..10).map {
+            async(Dispatchers.IO) {
+                webTestClient.get().uri("/api/auth/me")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                    .exchange()
+                    .expectStatus().isOk
+            }
+        }
+        runBlocking { calls.awaitAll() }
+    }
+})
 ```
 
 ## Security Test Scenarios
 
-### Security Vulnerability Tests
+### Security Vulnerability Tests (WebTestClient)
 
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = {
-    "jwt.secret=test-secret-key-for-security-testing-256-bits",
-    "jwt.access-token-expiration=900000"
+@AutoConfigureWebTestClient
+@TestPropertySource(
+    properties = [
+        "jwt.secret=test-secret-key-for-security-testing-256-bits-long",
+        "jwt.access-token-expiration=PT15M",
+    ],
+)
+class SecurityVulnerabilityTest(
+    private val webTestClient: WebTestClient,
+    private val jwtService: JwtService,
+) : StringSpec({
+    val testUser = TestUsers.default()
+
+    "rejects tampered tokens" {
+        val validToken = runBlocking { jwtService.generateAccessToken(testUser).token }
+        val tampered = validToken.dropLast(5) + "xxxxx"
+
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $tampered")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "rejects expired tokens" {
+        val expiredService = jwtService.copyForExpiration(minutes = 0)
+        val expiredToken = runBlocking { expiredService.generateAccessToken(testUser).token }
+        delay(2_000)
+
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $expiredToken")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "rejects SQL injection attempts" {
+        val malicious = AuthenticationRequest(
+            email = "test@profiletailors.com'; DROP TABLE users; --",
+            password = "password",
+        )
+
+        webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(malicious)
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        webTestClient.get().uri("/health").exchange()
+            .expectStatus().isOk
+    }
+
+    "rejects XSS in authentication responses" {
+        val malicious = AuthenticationRequest(
+            email = "<script>alert('xss')</script>",
+            password = "password",
+        )
+
+        val body = webTestClient.post().uri("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(malicious)
+            .exchange()
+            .expectStatus().isUnauthorized
+            .expectBody<String>()
+            .returnResult()
+            .responseBody!!
+
+        body.contains("<script>") shouldBe false
+    }
+
+    "handles large payloads without crashing" {
+        webTestClient.get().uri("/api/auth/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${"x".repeat(10_000)}")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    "enforces rate limiting on failed login attempts" {
+        val request = AuthenticationRequest(
+            email = "test@profiletailors.com",
+            password = "wrong-password",
+        )
+
+        repeat(10) {
+            webTestClient.post().uri("/api/auth/authenticate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().is4xxClientError
+            delay(100)
+        }
+    }
 })
-class SecurityVulnerabilityTest {
-
-    @Autowired
-    private var restTemplate: TestRestTemplate
-
-    @Autowired
-    private var jwtService: JwtService
-
-    private var testUser: User
-
-    @BeforeEach
-    void setUp()
-    {
-        testUser = User.builder()
-            .email("test@example.com")
-            .roles(setOf(Role("USER")))
-            .enabled(true)
-            .build();
-    }
-
-    @Test
-    @DisplayName("Should prevent JWT token tampering")
-    void shouldPreventJwtTokenTampering()
-    {
-        // Given
-        String validToken = jwtService . generateAccessToken (testUser);
-
-        // Tamper with token by changing characters
-        String tamperedToken = validToken . substring (0, validToken.length()-5)+"xxxxx";
-
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(tamperedToken);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/auth/me",
-        HttpMethod.GET,
-        entity,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should prevent replay attacks with expired tokens")
-    void shouldPreventReplayAttacksWithExpiredTokens()
-    {
-        // Given - Create an expired token
-        JwtService expiredService = new JwtService(
-            "test-secret-key-for-security-testing-256-bits",
-            1, // 1 millisecond expiration
-            604800000,
-            "test-issuer",
-            null,
-            true,
-            false,
-            60,
-            null
-        );
-
-        String expiredToken = expiredService . generateAccessToken (testUser);
-
-        // Wait for token to expire
-        await().atMost(2, SECONDS).until(() -> {
-        try {
-            return !expiredService.isTokenValid(
-                expiredToken,
-                org.springframework.security.core.userdetails.User.builder()
-                    .username(testUser.getEmail())
-                    .password("password")
-                    .roles("USER")
-                    .build()
-            );
-        } catch (Exception e) {
-            return true;
-        }
-    });
-
-        HttpHeaders headers = HttpHeaders ();
-        headers.setBearerAuth(expiredToken);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/auth/me",
-        HttpMethod.GET,
-        entity,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should prevent SQL injection in authentication")
-    void shouldPreventSqlInjectionInAuthentication()
-    {
-        // Given
-        AuthenticationRequest maliciousRequest = new AuthenticationRequest(
-            "test@example.com'; DROP TABLE users; --",
-            "password"
-        );
-
-        // When
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        maliciousRequest,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-
-        // Verify database still works
-        ResponseEntity<String> healthResponse = restTemplate . getForEntity ("/health", String.class);
-        assertThat(healthResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    @DisplayName("Should prevent XSS in authentication responses")
-    void shouldPreventXssInAuthenticationResponses()
-    {
-        // Given
-        User maliciousUser = User . builder ()
-            .email("test@example.com")
-            .firstName("<script>alert('xss')</script>")
-            .lastName("User")
-            .build();
-
-        // When
-        // This would be a registration or similar endpoint that includes user data in response
-        // For now, we'll test that our error handling doesn't expose script tags
-
-        AuthenticationRequest request = new AuthenticationRequest(
-            "<script>alert('xss')</script>",
-            "password"
-        );
-
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        request,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        // Response should not contain the script tag
-        assertThat(response.getBody()).doesNotContain("<script>");
-    }
-
-    @Test
-    @DisplayName("Should handle large token payload gracefully")
-    void shouldHandleLargeTokenPayloadGracefully()
-    {
-        // Given - Create a token with large payload
-        String largeData = "x".repeat(10000); // 10KB of data
-
-        // This would normally fail as tokens have size limits
-        // We test that the system handles it gracefully
-
-        // When
-        ResponseEntity<String> response = restTemplate . exchange (
-                "/api/auth/me",
-        HttpMethod.GET,
-        null,
-        String.class
-        );
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    @DisplayName("Should enforce rate limiting")
-    void shouldEnforceRateLimiting()
-    {
-        // Given
-        AuthenticationRequest request = new AuthenticationRequest(
-            "test@example.com",
-            "wrongpassword"
-        );
-
-        // When - Make multiple failed attempts
-        int attemptCount = 10;
-        List<ResponseEntity<String>> responses = mutableListOf ();
-
-        for (int i = 0; i < attemptCount; i++) {
-        ResponseEntity<String> response = restTemplate . postForEntity (
-                "/api/auth/authenticate",
-        request,
-        String.class
-        );
-        responses.add(response);
-
-        // Small delay between attempts
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            break;
-        }
-    }
-
-        // Then
-        // Initial attempts should return 401
-        assertThat(responses.subList(0, 5))
-            .allMatch(response -> response.getStatusCode() == HttpStatus.UNAUTHORIZED);
-
-        // Later attempts might return 429 (Too Many Requests) if rate limiting is implemented
-        // This depends on your rate limiting configuration
-    }
-}
 ```
 
 ## Performance Testing JWT Operations
@@ -1110,227 +560,102 @@ class SecurityVulnerabilityTest {
 ### JWT Performance Tests
 
 ```kotlin
-@ExtendWith(
-    MockitoExtension.class)
-    class JwtPerformanceTest {
+class JwtPerformanceTest(
+    private val jwtService: JwtService,
+) : StringSpec({
+    val testUser = TestUsers.default()
 
-    private var jwtService: JwtService
-
-    private var testUser: User
-
-    @BeforeEach
-    void setUp () {
-        jwtService = new JwtService (
-                "test-secret-key-for-performance-testing-256-bits-long",
-        900000,
-        604800000,
-        "performance-test-issuer",
-        null,
-        true,
-        false,
-        60,
-        null
-        );
-
-        testUser = User.builder()
-            .id(1L)
-            .email("performance-test@example.com")
-            .roles(setOf(Role("USER"), Role("ADMIN")))
-            .build();
-    }
-
-    @Test
-    @DisplayName("Should generate tokens efficiently")
-    void shouldGenerateTokensEfficiently () {
-        int numTokens = 1000;
-        List<String> tokens = new ArrayList<>(numTokens);
-
-        // Measure token generation time
-        long startTime = System . nanoTime ();
-
-        for (int i = 0; i < numTokens; i++) {
-        String token = jwtService . generateAccessToken (testUser);
-        tokens.add(token);
-    }
-
-        long endTime = System . nanoTime ();
-        long durationMs =(endTime - startTime) / 1_000_000;
-
-        // Then
-        assertThat(tokens).hasSize(numTokens);
-        assertThat(durationMs).isLessThan(5000); // Should complete within 5 seconds
-
-        double avgTimePerToken =(double) durationMs / numTokens;
-        System.out.println("Average time per token generation: " + avgTimePerToken + " ms");
-
-        // Performance assertion - should be very fast per token
-        assertThat(avgTimePerToken).isLessThan(5.0); // Less than 5ms per token
-    }
-
-    @Test
-    @DisplayName("Should validate tokens efficiently")
-    void shouldValidateTokensEfficiently () {
-        // Generate tokens first
-        int numTokens = 1000;
-        List<String> tokens = mutableListOf ();
-
-        for (int i = 0; i < numTokens; i++) {
-        tokens.add(jwtService.generateAccessToken(testUser));
-    }
-
-        UserDetails userDetails = createUserDetails ();
-
-        // Measure validation time
-        long startTime = System . nanoTime ();
-
-        int validCount = 0;
-        for (String token : tokens) {
-        if (jwtService.isTokenValid(token, userDetails)) {
-            validCount++;
+    "generates tokens in under 5ms on average" {
+        val numTokens = 1_000
+        val start = System.nanoTime()
+        val tokens = (1..numTokens).map {
+            runBlocking { jwtService.generateAccessToken(testUser).token }
         }
+        val durationMs = (System.nanoTime() - start) / 1_000_000
+
+        tokens.shouldHaveSize(numTokens)
+        durationMs.shouldBeLessThan(5_000)
+        val avgTimePerToken = durationMs.toDouble() / numTokens
+        println("Average time per token generation: $avgTimePerToken ms")
+        avgTimePerToken shouldBeLessThan 5.0
     }
 
-        long endTime = System . nanoTime ();
-        long durationMs =(endTime - startTime) / 1_000_000;
+    "validates tokens in under 3ms on average" {
+        val numTokens = 1_000
+        val tokens = (1..numTokens).map {
+            runBlocking { jwtService.generateAccessToken(testUser).token }
+        }
 
-        // Then
-        assertThat(validCount).isEqualTo(numTokens);
-        assertThat(durationMs).isLessThan(3000); // Should complete within 3 seconds
+        val start = System.nanoTime()
+        var validCount = 0
+        for (token in tokens) {
+            if (runBlocking { jwtService.isTokenValid(token, testUser) }) validCount++
+        }
+        val durationMs = (System.nanoTime() - start) / 1_000_000
 
-        double avgTimePerValidation =(double) durationMs / numTokens;
-        System.out.println("Average time per token validation: " + avgTimePerValidation + " ms");
-
-        // Performance assertion - validation should be very fast
-        assertThat(avgTimePerValidation).isLessThan(3.0); // Less than 3ms per validation
+        validCount shouldBe numTokens
+        durationMs.shouldBeLessThan(3_000)
+        val avgPerValidation = durationMs.toDouble() / numTokens
+        println("Average time per token validation: $avgPerValidation ms")
+        avgPerValidation shouldBeLessThan 3.0
     }
 
-    @Test
-    @DisplayName("Should handle concurrent token operations")
-    void shouldHandleConcurrentTokenOperations () throws InterruptedException {
-        int numThreads = 10;
-        int operationsPerThread = 100;
-        ExecutorService executor = Executors . newFixedThreadPool (numThreads);
-        CountDownLatch latch = CountDownLatch (numThreads);
+    "maintains performance under concurrent generation and validation" {
+        val numThreads = 10
+        val operationsPerThread = 100
 
-        AtomicInteger successCount = AtomicInteger (0);
-        List<Exception> exceptions = Collections . synchronizedList (mutableListOf());
-
-        // Concurrent token generation and validation
-        for (int i = 0; i < numThreads; i++) {
-        executor.submit(() -> {
-        try {
-            for (int j = 0; j < operationsPerThread; j++) {
-                // Generate token
-                String token = jwtService . generateAccessToken (testUser);
-
-                // Validate token
-                UserDetails userDetails = createUserDetails ();
-                boolean isValid = jwtService . isTokenValid (token, userDetails);
-
-                if (isValid) {
-                    successCount.incrementAndGet();
+        val start = System.nanoTime()
+        val results = (1..numThreads).map {
+            async(Dispatchers.IO) {
+                (1..operationsPerThread).count { _ ->
+                    val token = runBlocking { jwtService.generateAccessToken(testUser).token }
+                    runBlocking { jwtService.isTokenValid(token, testUser) }
                 }
             }
-        } catch (Exception e) {
-            exceptions.add(e);
-        } finally {
-            latch.countDown();
+        }.awaitAll()
+        val durationMs = (System.nanoTime() - start) / 1_000_000
+
+        results.sum() shouldBe numThreads * operationsPerThread
+        println("Successfully processed ${results.sum()} token operations in $durationMs ms")
+    }
+
+    "handles large user payloads without regression" {
+        val roles = (0 until 50).map { Role(id = RoleId(it.toLong()), name = "ROLE_$it", description = "$it") }
+        val largeUser = testUser.copy(roles = roles.toMutableSet())
+
+        val numTokens = 100
+        val start = System.nanoTime()
+        val tokens = (1..numTokens).map {
+            runBlocking { jwtService.generateAccessToken(largeUser).token }
         }
-    });
+        val durationMs = (System.nanoTime() - start) / 1_000_000
+
+        tokens.shouldHaveSize(numTokens)
+        val avgPerToken = durationMs.toDouble() / numTokens
+        println("Average time per large token generation: $avgPerToken ms")
+        avgPerToken shouldBeLessThan 10.0
     }
 
-        // Wait for completion
-        boolean completed = latch . await (30, TimeUnit.SECONDS);
-        executor.shutdown();
+    "extracts claims in under 1ms on average" {
+        val numTokens = 1_000
+        val tokens = (1..numTokens).map {
+            runBlocking { jwtService.generateAccessToken(testUser).token }
+        }
 
-        // Then
-        assertThat(completed).isTrue();
-        assertThat(exceptions).isEmpty();
-        assertThat(successCount.get()).isEqualTo(numThreads * operationsPerThread);
+        val start = System.nanoTime()
+        for (token in tokens) {
+            runBlocking { jwtService.extractUsername(token) }
+        }
+        val durationMs = (System.nanoTime() - start) / 1_000_000
 
-        System.out.println("Successfully processed " + successCount.get() + " token operations");
+        val avgPerExtraction = durationMs.toDouble() / numTokens
+        println("Average time per claim extraction: $avgPerExtraction ms")
+        avgPerExtraction shouldBeLessThan 1.0
     }
-
-    @Test
-    @DisplayName("Should maintain performance with large user data")
-    void shouldMaintainPerformanceWithLargeUserData () {
-        // Create user with many roles and permissions
-        User largeUser = User . builder ()
-            .id(1L)
-            .email("large-user@example.com")
-            .build();
-
-        // Add many roles
-        Set<Role> roles = mutableSetOf ();
-        for (int i = 0; i < 50; i++) {
-        roles.add(Role("ROLE_" + i));
-    }
-        largeUser.setRoles(roles);
-
-        int numTokens = 100;
-        List<String> tokens = mutableListOf ();
-
-        // Measure performance with large user data
-        long startTime = System . nanoTime ();
-
-        for (int i = 0; i < numTokens; i++) {
-        String token = jwtService . generateAccessToken (largeUser);
-        tokens.add(token);
-    }
-
-        long endTime = System . nanoTime ();
-        long durationMs =(endTime - startTime) / 1_000_000;
-
-        // Then
-        assertThat(tokens).hasSize(numTokens);
-
-        double avgTimePerToken =(double) durationMs / numTokens;
-        System.out.println("Average time per large token generation: " + avgTimePerToken + " ms");
-
-        // Should still be reasonable even with large payloads
-        assertThat(avgTimePerToken).isLessThan(10.0); // Less than 10ms per token
-    }
-
-    @Test
-    @DisplayName("Should efficiently extract claims from tokens")
-    void shouldEfficientlyExtractClaimsFromTokens () {
-        // Generate tokens
-        int numTokens = 1000;
-        List<String> tokens = mutableListOf ();
-
-        for (int i = 0; i < numTokens; i++) {
-        tokens.add(jwtService.generateAccessToken(testUser));
-    }
-
-        // Measure claim extraction time
-        long startTime = System . nanoTime ();
-
-        for (String token : tokens) {
-        String username = jwtService . extractUsername (token);
-        assertThat(username).isEqualTo("performance-test@example.com");
-    }
-
-        long endTime = System . nanoTime ();
-        long durationMs =(endTime - startTime) / 1_000_000;
-
-        // Then
-        double avgTimePerExtraction =(double) durationMs / numTokens;
-        System.out.println("Average time per claim extraction: " + avgTimePerExtraction + " ms");
-
-        // Claim extraction should be very fast
-        assertThat(avgTimePerExtraction).isLessThan(1.0); // Less than 1ms per extraction
-    }
-
-    private fun createUserDetails(): UserDetails {
-        return org.springframework.security.core.userdetails.User.builder()
-            .username(testUser.getEmail())
-            .password("password")
-            .roles("USER", "ADMIN")
-            .build();
-    }
-}
+})
 ```
 
-This comprehensive testing guide provides strategies for thoroughly testing JWT security
-implementations, covering unit tests, integration tests, security vulnerability tests, and
-performance tests to ensure robust and secure JWT authentication in Spring Boot applications.
+These patterns provide comprehensive coverage for reactive JWT authentication in
+the SMP backend: unit tests for service logic, `WebTestClient` integration tests
+for the reactive HTTP layer, vulnerability tests for security regressions, and
+performance tests for meeting the latency budget.

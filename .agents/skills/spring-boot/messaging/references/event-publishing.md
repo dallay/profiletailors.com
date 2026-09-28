@@ -8,10 +8,9 @@
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
+
 class ProductApplicationService {
     private val productRepository: ProductRepository
     private val eventPublisher: ApplicationEventPublisher
@@ -42,11 +41,9 @@ class ProductApplicationService {
 ```kotlin
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
-@RequiredArgsConstructor
+
 @Slf4j
 class ProductEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -89,7 +86,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
 @Component
-@RequiredArgsConstructor
+
 class ResilientEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private val retryTemplate: RetryTemplate
@@ -131,10 +128,9 @@ class ResilientEventPublisher {
 ```kotlin
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
+
 class ProductEventStreamPublisher {
     private val streamBridge: StreamBridge
 
@@ -185,7 +181,7 @@ spring:
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class OrderEventHandler {
     private val orderRepository: OrderRepository
     private val eventPublisher: ApplicationEventPublisher
@@ -219,10 +215,9 @@ class OrderEventHandler {
 ```kotlin
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
+
 class BatchEventPublisher {
     private final List<DomainEvent> eventBuffer = mutableListOf();
     private final KafkaTemplate<String, Object> kafkaTemplate;

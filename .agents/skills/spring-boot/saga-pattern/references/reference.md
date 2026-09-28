@@ -448,11 +448,9 @@ spring.kafka.consumer.properties.spring.json.trusted.packages=*
 spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
 spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer
 # Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/sagadb
-spring.datasource.username=saga
-spring.datasource.password=saga
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.r2dbc.url=r2dbc:postgresql://localhost:5432/sagadb
+spring.r2dbc.username=saga
+spring.r2dbc.password=saga
 # Actuator
 management.endpoints.web.exposure.include=health,metrics,prometheus
 management.endpoint.health.show-details=always
@@ -987,9 +985,9 @@ class SagaIntegrationTest {
     static void overrideProperties(DynamicPropertyRegistry registry)
     {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + postgres.getHost() + ":" + postgres.getFirstMappedPort() + "/" + postgres.getDatabaseName());
+        registry.add("spring.r2dbc.username", postgres::getUsername);
+        registry.add("spring.r2dbc.password", postgres::getPassword);
     }
 
     @Test

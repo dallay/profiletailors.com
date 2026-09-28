@@ -1,8 +1,10 @@
 # JWT Complete Configuration Guide
 
-This guide consolidates all JWT configuration patterns for Spring Boot 3.5.x with Spring Security
-6.x, covering JJWT library integration, Spring Security OAuth2 resource server configuration, and
-production-ready security settings.
+This guide consolidates JWT configuration patterns for the reactive SMP backend. It
+covers JJWT integration, the WebFlux OAuth2 resource server configuration, and
+production-ready security settings. All examples use the reactive stack
+(`ServerHttpSecurity`, `SecurityWebFilterChain`, `WebFilter`, `R2dbcRepository`,
+`suspend fun`). Versions for the JJWT artifact live in `gradle/libs.versions.toml`.
 
 ## Table of Contents
 
@@ -19,36 +21,34 @@ production-ready security settings.
 ### Basic JWT Configuration
 
 ```yaml
-# application.yml
 jwt:
-  # Signing key (minimum 256 bits for HS256)
-  secret: ${JWT_SECRET:your-256-bit-secret-key-here-at-least-32-characters}
+  secret: ${JWT_SECRET:change-me-please-use-a-strong-secret-with-at-least-32-chars}
 
-  # Token expiration times
-  access-token-expiration: 900000    # 15 minutes in milliseconds
-  refresh-token-expiration: 604800000 # 7 days in milliseconds
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
 
-  # JWT issuer
-  issuer: ${JWT_ISSUER:your-application-name}
+  issuer: ${JWT_ISSUER:profiletailors-smp}
 
-  # Cookie settings for token storage
   cookie:
     name: ${JWT_COOKIE_NAME:jwt-token}
-    secure: ${JWT_COOKIE_SECURE:true}  # true in production with HTTPS
+    secure: ${JWT_COOKIE_SECURE:true}
     http-only: true
     same-site: ${JWT_COOKIE_SAME_SITE:strict}
     max-age: ${JWT_COOKIE_MAX_AGE:86400}
-    domain: ${JWT_COOKIE_DOMAIN:your-domain.com}
+    domain: ${JWT_COOKIE_DOMAIN:profiletailors.com}
     path: /
 
-# Spring Security OAuth2 Resource Server
 spring:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors}
+    username: ${SPRING_R2DBC_USERNAME:profiletailors}
+    password: ${SPRING_R2DBC_PASSWORD:profiletailors}
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER_URI:https://your-auth-server.com}
-          jwk-set-uri: ${JWT_JWK_SET_URI:https://your-auth-server.com/.well-known/jwks.json}
+          issuer-uri: ${JWT_ISSUER_URI:https://auth.profiletailors.com}
+          jwk-set-uri: ${JWT_JWK_SET_URI:https://auth.profiletailors.com/.well-known/jwks.json}
           public-key-location: ${JWT_PUBLIC_KEY_LOCATION:classpath:public.pem}
 ```
 
@@ -56,7 +56,6 @@ spring:
 
 ```yaml
 ---
-# Development profile
 spring:
   config:
     activate:
@@ -66,13 +65,13 @@ jwt:
   cookie:
     secure: false
     same-site: lax
+
 logging:
   level:
     io.jsonwebtoken: DEBUG
     org.springframework.security: DEBUG
 
 ---
-# Production profile
 spring:
   config:
     activate:
@@ -82,479 +81,369 @@ jwt:
   cookie:
     secure: true
     same-site: strict
-    domain: api.yourdomain.com
-  secret: ${JWT_SECRET}  # Must be provided via environment variable
+    domain: api.profiletailors.com
+  secret: ${JWT_SECRET}
 ```
 
 ## Security Configuration
 
-### Modern Spring Security 6.x Configuration
+### Reactive WebFlux Security 6.x Configuration
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-@RequiredArgsConstructor
-class SecurityConfig {
-
-    private val jwtAuthFilter: JwtAuthenticationFilter
-    private val authenticationProvider: AuthenticationProvider
-    private val logoutHandler: LogoutHandler
-    private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint
-
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class SecurityConfig(
+    private val jwtAuthFilter: JwtAuthenticationWebFilter,
+    private val authenticationManager: ReactiveAuthenticationManager,
+    private val logoutHandler: ServerLogoutHandler,
+    private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint,
+) {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
-    {
-        http
-            .csrf(csrf -> csrf.disable())
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .sessionManagement(session ->
-        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        )
-        .exceptionHandling(ex ->
-        ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
-        )
-        .authorizeHttpRequests(authz -> authz
-        // Public endpoints
-        .requestMatchers("/api/auth/**").permitAll()
-        .requestMatchers("/api/public/**").permitAll()
-        .requestMatchers("/actuator/health").permitAll()
-
-        // Swagger/OpenAPI
-        .requestMatchers(HttpMethod.GET, "/api-docs/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/swagger-ui/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/swagger-ui.html").permitAll()
-
-        // Admin endpoints
-        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-        // All other endpoints require authentication
-        .anyRequest().authenticated()
-        )
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(
-            jwtAuthFilter,
-            UsernamePasswordAuthenticationFilter.class)
-                .logout(logout -> logout
-        .logoutUrl("/api/auth/logout")
-        .addLogoutHandler(logoutHandler)
-        .logoutSuccessHandler((request, response, authentication) ->
-        SecurityContextHolder.clearContext()
-        )
-        );
-
-        return http.build();
-    }
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .csrf { it.disable() }
+        .cors { it.configurationSource(corsConfigurationSource()) }
+        .anonymous { it.disable() }
+        .sessionManagement { session ->
+            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        }
+        .exceptionHandling { ex ->
+            ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+        }
+        .authorizeExchange { authz ->
+            authz
+                .pathMatchers("/api/auth/**").permitAll()
+                .pathMatchers("/api/public/**").permitAll()
+                .pathMatchers("/actuator/health").permitAll()
+                .pathMatchers(HttpMethod.GET, "/api-docs/**").permitAll()
+                .pathMatchers(HttpMethod.GET, "/swagger-ui/**").permitAll()
+                .pathMatchers(HttpMethod.GET, "/swagger-ui.html").permitAll()
+                .pathMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyExchange().authenticated()
+        }
+        .authenticationManager(authenticationManager)
+        .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.HTTP_BASIC)
+        .logout { logout ->
+            logout
+                .logoutUrl("/api/auth/logout")
+                .logoutHandler(logoutHandler)
+                .logoutSuccessHandler { _, _, _ -> }
+        }
+        .build()
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        CorsConfiguration configuration = CorsConfiguration ();
-        configuration.setAllowedOriginPatterns(getAllowedOrigins());
-        configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(listOf("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        val configuration = CorsConfiguration().apply {
+            allowedOriginPatterns = getAllowedOrigins()
+            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            allowedHeaders = listOf("*")
+            allowCredentials = true
+            maxAge = 3600L
+        }
 
-        UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource ();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
-
-    private List<String> getAllowedOrigins()
-    {
-        return List.of(
-            "http://localhost:3000",
-            "http://localhost:4200",
-            "https://yourdomain.com"
-        );
-    }
-}
-```
-
-### JWT Authentication Filter
-
-```kotlin
-@Component
-@RequiredArgsConstructor
-@Slf4j
-class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-    private val jwtService: JwtService
-    private val userDetailsService: UserDetailsService
-    private val blacklistService: TokenBlacklistService
-
-    @Override
-    protected void doFilterInternal(
-        @NonNull HttpServletRequest request,
-        @NonNull HttpServletResponse response,
-        @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
-
-    final String authHeader = request.getHeader("Authorization");
-    final String jwt;
-    final String userEmail;
-
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    jwt = authHeader.substring(7);
-
-    // Check if token is blacklisted
-    if (blacklistService.isBlacklisted(jwt)) {
-        log.warn("Blacklisted JWT token detected");
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    try {
-        userEmail = jwtService.extractUsername(jwt);
-    } catch (JwtException e) {
-        log.error("Invalid JWT token: {}", e.getMessage());
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-
-        if (jwtService.isTokenValid(jwt, userDetails)) {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
-            );
-            authToken.setDetails(
-                WebAuthenticationDetailsSource().buildDetails(request)
-            );
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", configuration)
         }
     }
 
-    filterChain.doFilter(request, response);
+    private fun getAllowedOrigins(): List<String> = listOf(
+        "http://localhost:3000",
+        "http://localhost:4200",
+        "https://profiletailors.com",
+    )
 }
+```
+
+### Reactive JWT Authentication Filter
+
+```kotlin
+@Component
+class JwtAuthenticationWebFilter(
+    private val jwtService: JwtService,
+    private val userDetailsService: ReactiveUserDetailsService,
+    private val blacklistService: TokenBlacklistService,
+) : WebFilter {
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val authHeader = exchange.request.headers.header("Authorization").firstOrNull()
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return chain.filter(exchange)
+        }
+
+        val token = authHeader.substring(7)
+
+        if (blacklistService.isBlacklisted(token)) {
+            logger.warn("Blacklisted JWT token detected")
+            return chain.filter(exchange)
+        }
+
+        val username = try {
+            jwtService.extractUsername(token)
+        } catch (_: JwtException) {
+            logger.error("Invalid JWT token")
+            return chain.filter(exchange)
+        }
+
+        return Mono.justOrEmpty(username)
+            .flatMap { email ->
+                userDetailsService.findByUsername(email)
+                    .filter { jwtService.isTokenValid(token, it) }
+                    .map { user ->
+                        UsernamePasswordAuthenticationToken(
+                            user,
+                            token,
+                            user.authorities().map { SimpleGrantedAuthority(it.authority) },
+                        )
+                    }
+                    .switchIfEmpty(Mono.empty())
+            }
+            .flatMap { auth -> chain.filter(exchange.mutate().principal(auth).build()) }
+            .switchIfEmpty(chain.filter(exchange))
+    }
+
+    companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationWebFilter::class.java)
+    }
 }
 ```
 
 ## JWT Service Configuration
 
-### JWT Service Implementation
+### JWT Application Service
 
 ```kotlin
-@Service
-@RequiredArgsConstructor
-@Slf4j
-class JwtService {
+@com.profiletailors.common.domain.Service
+class JwtService(
+    @Value("\${jwt.secret}") private val secret: String,
+    @Value("\${jwt.access-token-expiration}") private val accessTokenExpiration: Long,
+    @Value("\${jwt.refresh-token-expiration}") private val refreshTokenExpiration: Long,
+    @Value("\${jwt.issuer}") private val issuer: String,
+    private val secretKeyRepository: SecretKeyRepository,
+    private val cacheManager: CacheManager,
+) {
+    suspend fun generateToken(user: UserAccount): String =
+        generateToken(emptyMap(), user)
 
-    @Value("${jwt.secret}")
-    private var secret: String
+    suspend fun generateToken(extraClaims: Map<String, Any>, user: UserAccount): String =
+        buildToken(extraClaims, user, accessTokenExpiration)
 
-    @Value("${jwt.access - token - expiration}")
-    private var accessTokenExpiration: long
+    suspend fun generateRefreshToken(user: UserAccount): String =
+        buildToken(emptyMap(), user, refreshTokenExpiration)
 
-    @Value("${jwt.refresh - token - expiration}")
-    private var refreshTokenExpiration: long
-
-    @Value("${jwt.issuer}")
-    private var issuer: String
-
-    private val secretKeyRepository: SecretKeyRepository
-    private val cacheManager: CacheManager
-
-    fun generateToken(UserDetails userDetails): String {
-        return generateToken(mutableMapOf(), userDetails);
-    }
-
-    fun generateToken(Map<String, Object> extraClaims, UserDetails userDetails): String {
-        return buildToken(extraClaims, userDetails, accessTokenExpiration);
-    }
-
-    fun generateRefreshToken(UserDetails userDetails): String {
-        return buildToken(mutableMapOf(), userDetails, refreshTokenExpiration);
-    }
-
-    private String buildToken(
-    Map<String, Object> extraClaims,
-    UserDetails userDetails,
-    long expiration
-    )
-    {
-        SecretKey signingKey = getCurrentSigningKey ();
-
+    private fun buildToken(extraClaims: Map<String, Any>, user: UserAccount, expiration: Long): String {
+        val signingKey = getCurrentSigningKey()
         return Jwts.builder()
-            .setClaims(extraClaims)
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(Date(System.currentTimeMillis()))
-            .setExpiration(Date(System.currentTimeMillis() + expiration))
-            .setIssuer(issuer)
-            .setId(UUID.randomUUID().toString())
-            .claim(
-                "authorities", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
-            )
-            .signWith(signingKey, SignatureAlgorithm.HS256)
-            .compact();
+            .claims(extraClaims)
+            .subject(user.email)
+            .issuedAt(Date(System.currentTimeMillis()))
+            .expiration(Date(System.currentTimeMillis() + expiration))
+            .issuer(issuer)
+            .id(UUID.randomUUID().toString())
+            .claim("authorities", user.authorities().map { it.authority })
+            .signWith(signingKey, Jwts.SIG.HS256)
+            .compact()
     }
 
-    fun extractUsername(String token): String {
-        return extractClaim(token, Claims::getSubject);
+    fun extractUsername(token: String): String = extractClaim(token) { it.subject }
+
+    fun <T> extractClaim(token: String, claimsResolver: (Claims) -> T): T {
+        val claims = extractAllClaims(token)
+        return claimsResolver(claims)
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver)
-    {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    suspend fun isTokenValid(token: String, user: UserAccount): Boolean {
+        val username = extractUsername(token)
+        return username == user.email && !isTokenExpired(token)
     }
 
-    fun isTokenValid(String token, UserDetails userDetails): boolean {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
-    }
+    private fun isTokenExpired(token: String): Boolean =
+        extractExpiration(token).before(Date())
 
-    private fun isTokenExpired(String token): boolean {
-        return extractExpiration(token).before(Date());
-    }
+    private fun extractExpiration(token: String): Date =
+        extractClaim(token) { it.expiration }
 
-    private fun extractExpiration(String token): Date {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    private fun extractAllClaims(String token): Claims {
-        SecretKey signingKey = getCurrentSigningKey ();
-
-        return Jwts.parserBuilder()
-            .setSigningKey(signingKey)
+    private fun extractAllClaims(token: String): Claims {
+        val signingKey = getCurrentSigningKey()
+        return Jwts.parser()
+            .verifyWith(signingKey)
             .requireIssuer(issuer)
             .build()
-            .parseClaimsJws(token)
-            .getBody();
+            .parseSignedClaims(token)
+            .payload
     }
 
-    private fun getCurrentSigningKey(): SecretKey {
-        return secretKeyRepository.findCurrentKey()
-            .map(SecretKeyEntity::getKey)
-            .orElseGet(() -> {
-            SecretKey newKey = Keys . secretKeyFor (SignatureAlgorithm.HS256);
-            secretKeyRepository.save(SecretKeyEntity(newKey, LocalDateTime.now()));
-            return newKey;
-        });
-    }
+    private fun getCurrentSigningKey(): SecretKey =
+        secretKeyRepository.findCurrentKey()?.key ?: run {
+            val newKey = Keys.secretKeyFor(SignatureAlgorithm.HS256)
+            secretKeyRepository.save(SecretKeyEntity(newKey, LocalDateTime.now()))
+            newKey
+        }
 }
 ```
 
-### Key Rotation Configuration
+### Key Rotation Service
 
 ```kotlin
-@Service
-@RequiredArgsConstructor
-@Slf4j
-class JwtKeyRotationService {
+@com.profiletailors.common.domain.Service
+class JwtKeyRotationService(
+    private val keyRepository: SecretKeyRepository,
+    private val cacheManager: CacheManager,
+    private val eventPublisher: ApplicationEventPublisher,
+) {
+    @Value("\${jwt.key-rotation.enabled:true}")
+    private val keyRotationEnabled: Boolean = true
 
-    private val keyRepository: SecretKeyRepository
-    private val cacheManager: CacheManager
-    private val eventPublisher: ApplicationEventPublisher
+    @Value("\${jwt.key-rotation.cron:0 0 0 * * ?}")
+    private val rotationCron: String = "0 0 0 * * ?"
 
-    @Value("${jwt.key - rotation.enabled:true}")
-    private var keyRotationEnabled: boolean
-
-    @Value("${jwt.key - rotation.cron:0 0 0 * * ?}")
-    private var rotationCron: String
-
-    @Scheduled(cron = "${jwt.key - rotation.cron}")
-    fun rotateKeys(): void {
+    @Scheduled(cron = "\${jwt.key-rotation.cron}")
+    suspend fun rotateKeys() {
         if (!keyRotationEnabled) {
-            log.info("JWT key rotation is disabled");
-            return;
+            logger.info("JWT key rotation is disabled")
+            return
         }
 
         try {
-            SecretKey newKey = Keys . secretKeyFor (SignatureAlgorithm.HS256);
-            SecretKeyEntity keyEntity = SecretKeyEntity (newKey, LocalDateTime.now());
+            val newKey = Keys.secretKeyFor(SignatureAlgorithm.HS256)
+            val keyEntity = SecretKeyEntity(newKey, LocalDateTime.now())
 
-            keyRepository.save(keyEntity);
-
-            // Clear cache
-            cacheManager.getCache("jwt-keys").clear();
-
-            // Publish key rotation event
-            eventPublisher.publishEvent(KeyRotatedEvent(this, keyEntity.getId()));
-
-            log.info("JWT signing key rotated successfully");
-        } catch (Exception e) {
-            log.error("Failed to rotate JWT signing key", e);
+            keyRepository.save(keyEntity)
+            cacheManager.getCache("jwt-keys")?.clear()
+            eventPublisher.publishEvent(KeyRotatedEvent(this, keyEntity.id))
+            logger.info("JWT signing key rotated successfully")
+        } catch (e: Exception) {
+            logger.error("Failed to rotate JWT signing key", e)
         }
     }
 
-    fun getCurrentSigningKey(): SecretKey {
-        return keyRepository.findCurrentKey()
-            .map(SecretKeyEntity::getKey)
-            .orElseThrow(() -> IllegalStateException("No signing key available"));
+    fun getCurrentSigningKey(): SecretKey = keyRepository.findCurrentKey()?.key
+        ?: throw IllegalStateException("No signing key available")
+
+    companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(JwtKeyRotationService::class.java)
     }
 }
 ```
 
 ## OAuth2 Resource Server
 
-### Pure Resource Server Configuration
+### Reactive Resource Server Configuration
 
 ```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-class ResourceServerConfig {
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer - uri}")
-    private var issuerUri: String
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class ResourceServerConfig(
+    @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    private val issuerUri: String,
+) {
+    @Bean
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+        .authorizeExchange { authz ->
+            authz
+                .pathMatchers("/api/public/**").permitAll()
+                .pathMatchers("/actuator/health").permitAll()
+                .anyExchange().authenticated()
+        }
+        .oauth2ResourceServer { oauth2 ->
+            oauth2.jwt { jwt ->
+                jwt.jwtDecoder(jwtDecoder())
+            }
+        }
+        .build()
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
-    {
-        http
-            .authorizeHttpRequests(authz -> authz
-        .requestMatchers("/api/public/**").permitAll()
-        .requestMatchers("/actuator/health").permitAll()
-        .anyRequest().authenticated()
-        )
-        .oauth2ResourceServer(oauth2 -> oauth2
-        .jwt(jwt -> jwt
-        .jwtDecoder(jwtDecoder())
-        )
-        );
-
-        return http.build();
-    }
+    fun jwtDecoder(): ReactiveJwtDecoder = JwtDecoders.fromIssuerLocation(issuerUri)
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
-        return JwtDecoders.fromIssuerLocation(issuerUri);
-    }
-
-    @Bean
-    fun jwtAuthenticationConverter(): JwtAuthenticationConverter {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = JwtGrantedAuthoritiesConverter ();
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-        authoritiesConverter.setAuthoritiesClaimName("roles");
-
-        JwtAuthenticationConverter converter = JwtAuthenticationConverter ();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-        return converter;
+    fun jwtAuthenticationConverter(): Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+        val authoritiesConverter = JwtGrantedAuthoritiesConverter().apply {
+            setAuthorityPrefix("ROLE_")
+            setAuthoritiesClaimName("roles")
+        }
+        return JwtAuthenticationConverter().apply {
+            setJwtGrantedAuthoritiesConverter(authoritiesConverter)
+            setPrincipalClaimName("sub")
+        }
     }
 }
 ```
 
-### Custom JWT Decoder
+### Custom Reactive JWT Decoder
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
-class CustomJwtDecoder implements JwtDecoder {
-
-    private val nimbusJwtDecoder: NimbusJwtDecoder
-    private val blacklistService: TokenBlacklistService
-
-    @Override
-    public Jwt decode(String token) throws JwtException {
-        // Check blacklist
+class CustomReactiveJwtDecoder(
+    private val nimbusJwtDecoder: NimbusReactiveJwtDecoder,
+    private val blacklistService: TokenBlacklistService,
+) : ReactiveJwtDecoder {
+    override fun decode(token: String): Mono<Jwt> {
         if (blacklistService.isBlacklisted(token)) {
-            throw BadJwtException("Token has been blacklisted");
+            return Mono.error(BadJwtException("Token has been blacklisted"))
         }
-
-        // Decode token
-        Jwt jwt = nimbusJwtDecoder . decode (token);
-
-        // Custom validation
-        validateCustomClaims(jwt);
-
-        return jwt;
+        return nimbusJwtDecoder.decode(token).doOnNext { validateCustomClaims(it) }
     }
 
-    private fun validateCustomClaims(Jwt jwt): void {
-        // Add custom claim validation logic
-        Map<String, Object> claims = jwt . getClaims ();
-
-        // Example: Validate tenant claim
-        if (!claims.containsKey("tenant_id")) {
-            throw BadJwtException("Missing tenant_id claim");
+    private fun validateCustomClaims(jwt: Jwt) {
+        if (!jwt.claims.containsKey("tenant_id")) {
+            throw BadJwtException("Missing tenant_id claim")
         }
-
-        // Example: Validate IP address
-        String tokenIp =(String) claims . get ("ip_address");
-        if (tokenIp != null && !tokenIp.equals(getCurrentIpAddress())) {
-            throw BadJwtException("Token IP mismatch");
+        val tokenIp = jwt.getClaimAsString("ip_address")
+        if (tokenIp != null && tokenIp != currentIpAddress()) {
+            throw BadJwtException("Token IP mismatch")
         }
     }
+
+    private fun currentIpAddress(): String = ""
 }
 ```
 
 ## Advanced Configuration
 
-### Token Blacklisting
+### Token Blacklisting (R2DBC)
 
 ```kotlin
-@Service
-@RequiredArgsConstructor
-class TokenBlacklistService {
+@com.profiletailors.common.domain.Service
+class TokenBlacklistService(
+    private val blacklistedTokenRepository: BlacklistedTokenRepository,
+) {
+    @Value("\${jwt.blacklist.enabled:true}")
+    private val blacklistEnabled: Boolean = true
 
-    private final RedisTemplate<String, String> redisTemplate;
-    private static final String BLACKLIST_PREFIX = "blacklist:jwt:";
+    suspend fun blacklistToken(token: String) {
+        if (!blacklistEnabled) return
 
-    @Value("${jwt.blacklist.enabled:true}")
-    private var blacklistEnabled: boolean
+        val tokenId = extractTokenId(token)
+        val remainingMillis = calculateRemainingTime(token)
 
-    fun blacklistToken(String token): void {
-        if (!blacklistEnabled) {
-            return;
-        }
-
-        try {
-            String tokenId = extractTokenId (token);
-            long expirationTime = calculateRemainingTime (token);
-
-            redisTemplate.opsForValue().set(
-                BLACKLIST_PREFIX + tokenId,
-                "1",
-                expirationTime,
-                TimeUnit.MILLISECONDS
-            );
-
-            log.info("Token blacklisted: {}", tokenId);
-        } catch (Exception e) {
-            log.error("Failed to blacklist token", e);
-        }
+        blacklistedTokenRepository.save(
+            BlacklistedToken(
+                tokenId = tokenId,
+                token = token,
+                expiresAt = Instant.now().plusMillis(remainingMillis),
+            ),
+        )
     }
 
-    fun isBlacklisted(String token): boolean {
-        if (!blacklistEnabled) {
-            return false;
-        }
-
-        try {
-            String tokenId = extractTokenId (token);
-            return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + tokenId));
-        } catch (Exception e) {
-            log.error("Failed to check token blacklist", e);
-            return false;
-        }
+    suspend fun isBlacklisted(token: String): Boolean {
+        if (!blacklistEnabled) return false
+        val tokenId = extractTokenId(token)
+        return blacklistedTokenRepository.existsByTokenId(tokenId)
     }
 
-    private fun extractTokenId(String token): String {
-        // Extract JTI claim or generate from token hash
-        return DigestUtils.md5DigestAsHex(token.getBytes());
-    }
+    private fun extractTokenId(token: String): String =
+        MessageDigest.getInstance("MD5").digest(token.toByteArray())
+            .joinToString("") { "%02x".format(it) }
 
-    private fun calculateRemainingTime(String token): long {
-        // Parse token and calculate remaining time
-        try {
-            Jwt jwt = JwtHelper . decode (token);
-            Map<String, Object> claims = jwt . getClaims ();
-            Long exp =(Long) claims . get ("exp");
-            if (exp != null) {
-                return exp * 1000 - System.currentTimeMillis();
-            }
-        } catch (Exception e) {
-            log.error("Failed to calculate token expiration", e);
-        }
-        return 0;
+    private fun calculateRemainingTime(token: String): Long = try {
+        val claims = Jwts.parser()
+            .build()
+            .parseSignedClaims(token)
+            .payload
+        val exp = claims.get("exp", Long::class.java)
+        (exp?.times(1000) ?: 0L) - System.currentTimeMillis()
+    } catch (_: Exception) {
+        0L
     }
 }
 ```
@@ -565,50 +454,44 @@ class TokenBlacklistService {
 @Configuration
 @EnableCaching
 class RateLimitConfig {
-
     @Bean
-    fun cacheManager(): CacheManager {
-        return ConcurrentMapCacheManager("login-attempts", "jwt-requests");
-    }
+    fun cacheManager(): CacheManager =
+        ConcurrentMapCacheManager("login-attempts", "jwt-requests")
 }
 
-@Component
-@RequiredArgsConstructor
-class JwtRateLimitService {
+@com.profiletailors.common.domain.Service
+class JwtRateLimitService(
+    private val cacheManager: CacheManager,
+) {
+    @Value("\${jwt.rate-limit.enabled:true}")
+    private val rateLimitEnabled: Boolean = true
 
-    private val cacheManager: CacheManager
+    @Value("\${jwt.rate-limit.max-attempts:5}")
+    private val maxAttempts: Int = 5
 
-    @Value("${jwt.rate - limit.enabled:true}")
-    private var rateLimitEnabled: boolean
+    @Value("\${jwt.rate-limit.time-window:300000}")
+    private val timeWindow: Long = 5 * 60 * 1000
 
-    @Value("${jwt.rate - limit.max - attempts:5}")
-    private var maxAttempts: int
+    fun isRateLimited(identifier: String): Boolean {
+        if (!rateLimitEnabled) return false
 
-    @Value("${jwt.rate - limit.time - window:300000}") // 5 minutes
-    private var timeWindow: long
+        val cache = cacheManager.getCache("jwt-requests") ?: return false
+        val key = "rate-limit:$identifier"
 
-    fun isRateLimited(String identifier): boolean {
-        if (!rateLimitEnabled) {
-            return false;
-        }
-
-        Cache cache = cacheManager . getCache ("jwt-requests");
-        String key = "rate-limit:"+identifier;
-
-        AtomicInteger attempts = cache . get (key, AtomicInteger.class);
-        if (attempts == null) {
-            attempts = AtomicInteger(0);
-            cache.put(key, attempts);
-        }
-
-        int currentAttempts = attempts . incrementAndGet ();
+        val attempts = cache.get(key, AtomicInteger::class.java) ?: AtomicInteger(0)
+        val currentAttempts = attempts.incrementAndGet()
+        cache.put(key, attempts)
 
         if (currentAttempts >= maxAttempts) {
-            log.warn("Rate limit exceeded for identifier: {}", identifier);
-            return true;
+            logger.warn("Rate limit exceeded for identifier: {}", identifier)
+            return true
         }
 
-        return false;
+        return false
+    }
+
+    companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(JwtRateLimitService::class.java)
     }
 }
 ```
@@ -618,68 +501,61 @@ class JwtRateLimitService {
 ### JWT Parsing Optimization
 
 ```kotlin
-@Service
-@RequiredArgsConstructor
-@Slf4j
-class OptimizedJwtService {
-
-    private val cacheManager: CacheManager
-    private val keyRepository: SecretKeyRepository
-
-    @Cacheable(value = "jwt-parsing", key = "#token")
-    fun parseToken(String token): Claims {
-        SecretKey key = getCurrentSigningKey ();
-
-        return Jwts.parserBuilder()
-            .setSigningKey(key)
+@com.profiletailors.common.domain.Service
+class OptimizedJwtService(
+    private val cacheManager: CacheManager,
+    private val keyRepository: SecretKeyRepository,
+) {
+    @Cacheable(value = ["jwt-parsing"], key = "#token")
+    fun parseToken(token: String): Claims {
+        val key = getCurrentSigningKey()
+        return Jwts.parser()
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .getBody();
+            .parseSignedClaims(token)
+            .payload
     }
 
-    @Cacheable(value = "signing-keys", key = "'current'")
-    fun getCurrentSigningKey(): SecretKey {
-        return keyRepository.findCurrentKey()
-            .map(SecretKeyEntity::getKey)
-            .orElseThrow(() -> IllegalStateException("No signing key available"));
-    }
+    @Cacheable(value = ["signing-keys"], key = "'current'")
+    fun getCurrentSigningKey(): SecretKey = keyRepository.findCurrentKey()?.key
+        ?: throw IllegalStateException("No signing key available")
 
-    fun generateTokenOptimized(UserDetails userDetails): String {
-        // Pre-calculate common claims
-        Map<String, Object> claims = mutableMapOf ();
-        claims.put(
-            "authorities", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
-        );
-        claims.put("user_id", ((User) userDetails).getId());
-        claims.put("email", ((User) userDetails).getEmail());
+    suspend fun generateTokenOptimized(user: UserAccount): String {
+        val extraClaims = mutableMapOf<String, Any>()
+        extraClaims["authorities"] = user.authorities().map { it.authority }
+        extraClaims["user_id"] = user.id.value
+        extraClaims["email"] = user.email
 
-        return buildToken(claims, userDetails, accessTokenExpiration);
+        return buildToken(extraClaims, user, accessTokenExpiration)
     }
 }
 ```
 
-### Connection Pool Configuration
+### R2DBC Connection Pool Configuration
 
 ```yaml
-# application.yml
 spring:
-  datasource:
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
-      max-lifetime: 1200000
-      connection-timeout: 20000
-      validation-timeout: 5000
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors}
+    username: ${SPRING_R2DBC_USERNAME:profiletailors}
+    password: ${SPRING_R2DBC_PASSWORD:profiletailors}
+    pool:
+      max-size: 20
+      initial-size: 5
+      max-idle-time: 300000
+      max-acquire-time: 1200000
+      max-create-connection-time: 20000
+      max-validation-time: 5000
       leak-detection-threshold: 60000
 
-  redis:
-    lettuce:
-      pool:
-        max-active: 20
-        max-idle: 10
-        min-idle: 5
-        max-wait: 5000ms
+  data:
+    redis:
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 5000ms
 ```
 
 ## Troubleshooting
@@ -696,68 +572,49 @@ spring:
 2. **Clock Skew Issues**
 
    ```kotlin
-   // Add clock skew tolerance
-   Jwts.parserBuilder()
-       .setAllowedClockSkewSeconds(60) // 60 seconds tolerance
+   Jwts.parser()
+       .clockSkewSeconds(60)
        .build()
-       .parseClaimsJws(token);
+       .parseSignedClaims(token)
    ```
 
 3. **Issuer Mismatch**
 
    ```kotlin
-   // Always set and validate issuer
-   Jwts.parserBuilder()
-       .requireIssuer("your-app-name")
+   Jwts.parser()
+       .requireIssuer("profiletailors-smp")
        .build()
-       .parseClaimsJws(token);
+       .parseSignedClaims(token)
    ```
 
 ### Debug Configuration
 
 ```yaml
-# application.yml
 logging:
   level:
     io.jsonwebtoken: DEBUG
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: DEBUG
-
-# Enable request/response logging
-spring:
-  mvc:
-    log-request-details: true
+    com.profiletailors: DEBUG
 ```
 
 ### Health Check Endpoint
 
 ```kotlin
 @Component
-class JwtHealthIndicator implements HealthIndicator {
-
-    private val jwtService: JwtService
-
-    @Override
-    fun health(): Health {
-        try {
-            // Test JWT signing and parsing
-            String testToken = jwtService . generateTestToken ();
-            boolean isValid = jwtService . validateToken (testToken);
-
-            if (isValid) {
-                return Health.up()
-                    .withDetail("jwt", "Service is working")
-                    .build();
-            } else {
-                return Health.down()
-                    .withDetail("jwt", "Token validation failed")
-                    .build();
-            }
-        } catch (Exception e) {
-            return Health.down()
-                .withDetail("jwt", "Service error: " + e.getMessage())
-                .build();
+class JwtHealthIndicator(
+    private val jwtService: JwtService,
+) : ReactiveHealthIndicator {
+    override fun health(): Mono<Health> = Mono.fromCallable {
+        val testToken = jwtService.generateTestToken()
+        val isValid = jwtService.validateToken(testToken)
+        if (isValid) {
+            Health.up().withDetail("jwt", "Service is working").build()
+        } else {
+            Health.down().withDetail("jwt", "Token validation failed").build()
         }
+    }.onErrorResume { error ->
+        Mono.just(Health.down().withDetail("jwt", "Service error: ${error.message}").build())
     }
 }
 ```
@@ -765,6 +622,6 @@ class JwtHealthIndicator implements HealthIndicator {
 ## References
 
 - [JJWT Documentation](https://github.com/jwtk/jjwt)
-- [Spring Security OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/index.html)
+- [Spring Security WebFlux OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/reactive/oauth2/resource-server/index.html)
 - [RFC 7519 - JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519)
 - [RFC 8725 - JWT Best Practices](https://tools.ietf.org/html/rfc8725)

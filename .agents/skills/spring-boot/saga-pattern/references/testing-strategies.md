@@ -42,31 +42,19 @@ Verify events are published correctly:
 
 ```kotlin
 @SpringBootTest
-@WebMvcTest
-class OrderServiceTest {
+@AutoConfigureWebTestClient
+class OrderServiceTest : StringSpec({
+    val eventPublisher = mockk<EventPublisher>(relaxed = true)
+    val orderService = OrderService(eventPublisher)
 
-    @MockBean
-    private var eventPublisher: EventPublisher
+    "should publish OrderCreatedEvent" {
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
-    @InjectMocks
-    private var orderService: OrderService
+        runBlocking { orderService.createOrder(CreateOrderRequest("cust-1", BigDecimal.TEN)) }
 
-    @Test
-    void shouldPublishOrderCreatedEvent()
-    {
-        // Arrange
-        CreateOrderRequest request = CreateOrderRequest ("cust-1", BigDecimal.TEN);
-
-        // Act
-        String orderId = orderService . createOrder (request);
-
-        // Assert
-        verify(eventPublisher).publish(
-            argThat(event -> event instanceof OrderCreatedEvent &&
-        ((OrderCreatedEvent) event).orderId().equals(orderId))
-        );
+        coVerify { eventPublisher.publish(any()) }
     }
-}
+})
 ```
 
 ## Integration Testing with Testcontainers
@@ -76,46 +64,40 @@ Test complete saga flow with real services:
 ```kotlin
 @SpringBootTest
 @Testcontainers
-class SagaIntegrationTest {
+class SagaIntegrationTest : StringSpec({
+    companion object {
+        @Container
+        @JvmStatic
+        val kafka: KafkaContainer = KafkaContainer(
+            DockerImageName.parse("confluentinc/cp-kafka:${kafkaVersion}"),
+        )
 
-    @Container
-    static KafkaContainer kafka = new KafkaContainer(
-    DockerImageName.parse("confluentinc/cp-kafka:7.4.0")
-    );
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18-alpine")
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-    "postgres:15-alpine"
-    );
-
-    @DynamicPropertySource
-    static void overrideProperties(DynamicPropertyRegistry registry)
-    {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        @DynamicPropertySource
+        @JvmStatic
+        fun overrideProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.kafka.bootstrap-servers") { kafka.bootstrapServers }
+            registry.add("spring.r2dbc.url") { "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}" }
+            registry.add("spring.r2dbc.username") { postgres.username }
+            registry.add("spring.r2dbc.password") { postgres.password }
+        }
     }
 
-    @Test
-    void shouldCompleteOrderSagaSuccessfully(@Autowired OrderService orderService,
-    @Autowired OrderRepository orderRepository,
-    @Autowired EventPublisher eventPublisher)
-    {
-        // Arrange
-        CreateOrderRequest request = CreateOrderRequest ("cust-1", BigDecimal.TEN);
+    "should complete order saga successfully" {
+        val orderService = container.getBean<OrderService>()
+        val orderRepository = container.getBean<OrderRepositoryR2dbc>()
 
-        // Act
-        String orderId = orderService . createOrder (request);
-
-        // Wait for async processing
-        Thread.sleep(2000);
-
-        // Assert
-        Order order = orderRepository . findById (orderId).orElseThrow();
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
+        runBlocking {
+            val orderId = orderService.createOrder(CreateOrderRequest("cust-1", BigDecimal.TEN))
+            delay(2_000)
+            val order = orderRepository.findById(orderId).awaitSingle()
+            order.status shouldBe OrderStatus.COMPLETED
+        }
     }
-}
+})
 ```
 
 ## Testing Idempotency

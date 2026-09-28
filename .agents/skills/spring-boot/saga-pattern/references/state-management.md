@@ -236,18 +236,18 @@ Query sagas for monitoring:
 
 ```kotlin
 @Repository
-interface SagaStateRepository extends JpaRepository<SagaState, String> {
+interface SagaStateRepository : CoroutineCrudRepository<SagaState, String> {
 
-    List<SagaState> findByStatus (SagaStatus status);
+    suspend fun findByStatus(status: SagaStatus): List<SagaState>
 
-    List<SagaState> findByStatusAndStartedAtBefore (
-            SagaStatus status, Instant before);
+    suspend fun findByStatusAndStartedAtBefore(
+        status: SagaStatus,
+        before: Instant,
+    ): List<SagaState>
 
-    Page<SagaState> findByStatus (SagaStatus status, Pageable pageable);
+    suspend fun countByStatus(status: SagaStatus): Long
 
-    long countByStatus (SagaStatus status);
-
-    long countByStatusAndStartedAtBefore (SagaStatus status, Instant before);
+    suspend fun countByStatusAndStartedAtBefore(status: SagaStatus, before: Instant): Long
 }
 
 @RestController

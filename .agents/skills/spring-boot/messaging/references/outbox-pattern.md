@@ -6,7 +6,6 @@
 
 ```kotlin
 import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -51,16 +50,15 @@ class OutboxEvent {
 ### Outbox Repository
 
 ```kotlin
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import java.util.List;
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.stereotype.Repository
 
 @Repository
-interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
+interface OutboxEventRepository : CoroutineCrudRepository<OutboxEvent, UUID> {
 
-    List<OutboxEvent> findByPublishedAtNullOrderByCreatedAtAsc ();
+    suspend fun findByPublishedAtNullOrderByCreatedAtAsc(): List<OutboxEvent>
 
-    List<OutboxEvent> findByPublishedAtNullAndRetryCountLessThanOrderByCreatedAtAsc (Integer maxRetries);
+    suspend fun findByPublishedAtNullAndRetryCountLessThanOrderByCreatedAtAsc(maxRetries: Int): List<OutboxEvent>
 
     @Query(
         """
@@ -85,10 +83,9 @@ interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 ```kotlin
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
+
 class OrderApplicationService {
     private val orderRepository: OrderRepository
     private val outboxRepository: OutboxEventRepository
@@ -136,11 +133,9 @@ class OrderApplicationService {
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
-@RequiredArgsConstructor
+
 @Slf4j
 class OutboxEventProcessor {
     private val outboxRepository: OutboxEventRepository
@@ -205,7 +200,7 @@ class OutboxEventProcessor {
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class IdempotentOutboxProcessor {
     private val outboxRepository: OutboxEventRepository
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -264,7 +259,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@RequiredArgsConstructor
+
 class OutboxCleanupService {
     private val outboxRepository: OutboxEventRepository
 
@@ -386,7 +381,7 @@ class BatchOutboxProcessor {
 
 ```kotlin
 @Component
-@RequiredArgsConstructor
+
 class OutboxMetricsReporter {
     private val outboxRepository: OutboxEventRepository
     private val meterRegistry: MeterRegistry
