@@ -47,6 +47,12 @@ const calendarView = computed(() => {
   return url.state.value.view === '3-days' ? '3-days' : url.state.value.view === 'day' ? 'day' : 'week'
 })
 
+const calendarColCount = computed(() => {
+  if (calendarView.value === 'day') return 1
+  if (calendarView.value === '3-days') return 3
+  return 7
+})
+
 /** Navigation base date derived from URL date param */
 const currentBaseDate = computed(() => {
   const parsed = new Date(`${url.state.value.date}T00:00:00`)
@@ -800,12 +806,12 @@ watch(
             </Card>
           </div>
 
-          <div v-if="calendarView === 'week'" class="flex min-h-0 flex-1 flex-col">
+          <div v-if="calendarView === 'week' || calendarView === 'day' || calendarView === '3-days'" class="flex min-h-0 flex-1 flex-col">
             <Card class="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-bg-surface p-0">
-              <div class="shrink-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle bg-bg-primary">
+              <div class="shrink-0 grid border-b border-border-subtle bg-bg-primary" :style="{ gridTemplateColumns: `48px repeat(${calendarColCount},minmax(0,1fr))` }">
                 <div class="py-3.5 border-r border-border-subtle" />
                 <div
-                  v-for="day in weekDays"
+                  v-for="day in timelineDays"
                   :key="day.toISOString()"
                   class="py-3.5 text-center border-r border-border-subtle last:border-r-0 flex flex-col gap-0.5"
                   :class="{
@@ -827,14 +833,14 @@ watch(
               </div>
 
               <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle last:border-b-0">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] border-b border-border-subtle last:border-b-0" :style="{ gridTemplateColumns: `48px repeat(${calendarColCount},minmax(0,1fr))` }">
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
                       {{ slot.label }}
                     </span>
                   </div>
                   <button
-                    v-for="day in weekDays"
+                    v-for="day in timelineDays"
                     :key="day.toISOString()"
                     type="button"
                     :disabled="isPastSlot(day, slot.hour)"
