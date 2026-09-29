@@ -1,6 +1,6 @@
 # Data Retention — Quick Reference (Current State)
 
-**Last Updated: 2026-09-28
+**Last Updated: 2026-09-29
 
 > **For:** On-call operators, compliance officers
 > **Updated:** 2026-09-28
@@ -55,6 +55,6 @@
 
 ---
 
-**Last Updated: 2026-09-28
+**Last Updated: 2026-09-29
 **Version:** 2.0 (corrected — v1.0 described a not-yet-implemented framework)
 **For questions:** [retention-and-erasure-control-plan.md](compliance/retention-and-erasure-control-plan.md)

@@ -1,10 +1,10 @@
 # AGPL-3.0 Source-Offer Runbook
 
-**Last Updated: 2026-09-28
+**Last Updated: 2026-09-29
 
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Active
-> **Last Updated: 2026-09-28
+> **Last Updated: 2026-09-29
 
 ## Overview
 
