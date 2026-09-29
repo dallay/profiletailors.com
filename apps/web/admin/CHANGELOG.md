@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.14...admin@v0.0.15) (2026-09-29)
+
+
+### Bug Fixes
+
+* **deps:** update vue core ([#1219](https://github.com/dallay/profiletailors.com/issues/1219)) ([9be2443](https://github.com/dallay/profiletailors.com/commit/9be24438f9c94dc1443ff8956a56e871d236474a))
+
 ## [0.0.14](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.13...admin@v0.0.14) (2026-09-28)
 
 
