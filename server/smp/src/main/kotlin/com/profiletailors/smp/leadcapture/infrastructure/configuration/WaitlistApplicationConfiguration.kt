@@ -1,6 +1,5 @@
 package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
 import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTokenIssuer
@@ -9,6 +8,7 @@ import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistCon
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.smp.leadcapture.infrastructure.notification.WaitlistWithdrawalProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -47,7 +47,7 @@ class WaitlistApplicationConfiguration {
         waitlistRepository: WaitlistRepository,
         entryRepository: WaitlistEntryRepository,
         idGenerator: WaitlistEntryIdGenerator,
-        transactionRunner: AtomicTransactionRunner,
+        transactionRunner: WaitlistTransactionRunner,
         withdrawalTokenIssuer: WaitlistWithdrawalTokenIssuer,
         withdrawalUrlProvider: WaitlistWithdrawalUrlProvider,
         consentRecorder: WaitlistConsentRecorder,

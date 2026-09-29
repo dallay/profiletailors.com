@@ -1,12 +1,12 @@
 package com.profiletailors.leadcapture.waitlist.application
 
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecordRequest
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistClosedException
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistNotFoundException
@@ -16,7 +16,7 @@ class JoinWaitlistHandler(
     private val waitlistRepository: WaitlistRepository,
     private val entryRepository: WaitlistEntryRepository,
     private val idGenerator: WaitlistEntryIdGenerator,
-    private val transactionRunner: AtomicTransactionRunner,
+    private val transactionRunner: WaitlistTransactionRunner,
     private val withdrawalTokenIssuer: WaitlistWithdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer.secure,
     private val withdrawalUrlProvider: WaitlistWithdrawalUrlProvider,
     private val consentRecorder: WaitlistConsentRecorder = WaitlistConsentRecorder.noop,

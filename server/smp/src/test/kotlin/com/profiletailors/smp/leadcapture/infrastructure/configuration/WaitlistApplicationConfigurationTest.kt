@@ -1,6 +1,5 @@
 package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
@@ -11,6 +10,7 @@ import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEnt
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
@@ -70,7 +70,7 @@ class WaitlistApplicationConfigurationTest {
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
-            transactionRunner = AtomicTransactionRunner.noop,
+            transactionRunner = WaitlistTransactionRunner.noop,
             withdrawalTokenIssuer = { now ->
                 WaitlistWithdrawalTokenIssuer.IssuedToken(
                     raw = "raw-token",
@@ -110,7 +110,7 @@ class WaitlistApplicationConfigurationTest {
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(alreadyExists = true),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
-            transactionRunner = AtomicTransactionRunner.noop,
+            transactionRunner = WaitlistTransactionRunner.noop,
             withdrawalTokenIssuer = { now ->
                 WaitlistWithdrawalTokenIssuer.IssuedToken(
                     raw = "raw-token",
