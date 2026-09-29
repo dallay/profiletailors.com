@@ -77,7 +77,7 @@ jobs:
         working-directory: apps/web/marketing
         run: |
           pnpm test:coverage
-          node ../../../scripts/normalize-lcov.mjs apps/web/marketing apps/web/marketing/coverage/lcov.info
+          node ../../../scripts/normalize-lcov.mjs apps/web/marketing coverage/lcov.info
 
       - name: Verify marketing coverage report
         run: node scripts/verify-coverage-artifact.mjs lcov apps/web/marketing/coverage/lcov.info
@@ -86,7 +86,7 @@ jobs:
         working-directory: apps/web/app
         run: |
           pnpm test:coverage
-          node ../../../scripts/normalize-lcov.mjs apps/web/app apps/web/app/coverage/lcov.info
+          node ../../../scripts/normalize-lcov.mjs apps/web/app coverage/lcov.info
 
       - name: Verify web/app coverage report
         run: node scripts/verify-coverage-artifact.mjs lcov apps/web/app/coverage/lcov.info
@@ -95,7 +95,7 @@ jobs:
         working-directory: apps/web/admin
         run: |
           pnpm test:coverage
-          node ../../../scripts/normalize-lcov.mjs apps/web/admin apps/web/admin/coverage/lcov.info
+          node ../../../scripts/normalize-lcov.mjs apps/web/admin coverage/lcov.info
 
       - name: Verify web/admin coverage report
         run: node scripts/verify-coverage-artifact.mjs lcov apps/web/admin/coverage/lcov.info
@@ -104,7 +104,7 @@ jobs:
         working-directory: shared/web
         run: |
           pnpm test:coverage
-          node ../../scripts/normalize-lcov.mjs shared/web shared/web/coverage/lcov.info
+          node ../../scripts/normalize-lcov.mjs shared/web coverage/lcov.info
 
       - name: Verify shared/web coverage report
         run: node scripts/verify-coverage-artifact.mjs lcov shared/web/coverage/lcov.info
@@ -113,7 +113,7 @@ jobs:
         working-directory: shared/vue-ui
         run: |
           pnpm test:coverage
-          node ../../scripts/normalize-lcov.mjs shared/vue-ui shared/vue-ui/coverage/lcov.info
+          node ../../scripts/normalize-lcov.mjs shared/vue-ui coverage/lcov.info
 
       - name: Verify shared/vue-ui coverage report
         run: node scripts/verify-coverage-artifact.mjs lcov shared/vue-ui/coverage/lcov.info

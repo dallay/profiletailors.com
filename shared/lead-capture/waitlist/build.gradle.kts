@@ -10,7 +10,6 @@ base {
 }
 
 dependencies {
-    api(project(":shared:common"))
     api(project(":shared:lead-capture:common"))
 
     testImplementation(libs.archunit.junit5)
