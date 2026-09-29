@@ -7,7 +7,7 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-  - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
+  - Skills: `.agents/skills/ddd-architecture/SKILL.md`
   - Companion ADRs:
     - ADR-0015: Aggregate Root Is the Sole Entry Point to an Aggregate
     - ADR-0017: Value Objects Are Immutable and Validate at Construction

@@ -25,17 +25,18 @@ swapping email providers or database drivers) without affecting core business lo
 
 Every bounded context MUST follow the Hexagonal Architecture pattern with three distinct layers:
 
-1. **Domain**: Pure Kotlin logic, models, and policies. MUST NOT depend on any framework or other
-   layers.
-2. **Application**: Use-case handlers and ports (interfaces). MUST NOT depend on the infrastructure
-   layer or Spring stereotypes.
-3. **Infrastructure**: Adapters (Controllers, Repositories, Client clients). MUST depend on
-   Application and Domain to implement ports.
+1. **Domain**: Pure Kotlin logic, models, policies, and repository/gateway port interfaces. MUST NOT
+   depend on any framework or other layer.
+2. **Application**: Commands, queries, handlers, and use-case orchestration. It consumes
+   domain-defined ports and MUST NOT depend on the infrastructure layer or Spring stereotypes.
+3. **Infrastructure**: HTTP, persistence, and provider adapters. It depends on Application and
+   Domain as needed and implements the ports owned by Domain.
 
 Application services MUST use the custom `com.profiletailors.common.domain.Service` marker instead
 of Spring's `@Service`.
 
-**Ports location (added 2026-09-27).** Repository/gateway ports/interfaces are defined in the domain layer as part of the domain's contract. Application services depend on those domain-defined ports and orchestrate use cases through them. Infrastructure adapters depend on application and implement those ports. Composition roots wire ports to adapters; no handler or controller may import a concrete persistence or external-client adapter to bypass the application use case.
+Composition roots wire domain ports to infrastructure adapters. No application handler or HTTP
+adapter may import a concrete persistence or provider adapter to bypass that boundary.
 
 ## Scope and boundaries
 

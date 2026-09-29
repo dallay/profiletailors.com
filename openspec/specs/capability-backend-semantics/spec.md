@@ -26,12 +26,12 @@ puro.
   - `.agents/AGENTS.md` líneas 384 y 394 (sustitución léxica).
   - `docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md`
     (adición del párrafo canónico).
-  - `.agents/skills/backend-platform/spring-boot/SKILL.md` sección
+  - `.agents/skills/spring-boot/SKILL.md` sección
     "Local Architectural Markers" (borrado de `@ApplicationService`).
-  - `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md`
+  - `.agents/skills/hexagonal-architecture/SKILL.md`
     (verificar que ya dice "domain owns ports"; anotar la
     coincidencia).
-  - `.agents/skills/backend-platform/spring-boot/{security,cache,
+  - `.agents/skills/spring-boot-{security,cache,
     resilience,messaging,saga-pattern,ai-mcp-server-patterns,
     data-neo4j-reactive}/references/**.md` (rewrite línea por línea).
 - Reescritura línea por línea: NO archive, NO delete en
@@ -47,8 +47,8 @@ puro.
 | REQ-BS-002           | El status de ADR-0002 SHALL pasar de "Accepted" a "Accepted (amended)" y SHALL incluir `Updated: <fecha>` en la sección de metadatos.            |
 | REQ-BS-003           | `.agents/AGENTS.md` línea 384 SHALL sustituir "inward-facing ports" por "domain-defined ports" (o equivalente acordado en design).                |
 | REQ-BS-004           | `.agents/AGENTS.md` línea 394 SHALL sustituir "inward-facing side" por "domain side" (o equivalente acordado en design).                         |
-| REQ-BS-005           | `.agents/skills/backend-platform/spring-boot/SKILL.md` SHALL borrar toda mención a `@ApplicationService` en `com.profiletailors.common.application`. |
-| REQ-BS-006           | `.agents/skills/backend-platform/spring-boot/SKILL.md` SHALL referenciar el marker real `com.profiletailors.common.domain.Service` definido en `shared/common/src/main/kotlin/com/profiletailors/common/domain/Service.kt:18`. |
+| REQ-BS-005           | `.agents/skills/spring-boot/SKILL.md` SHALL borrar toda mención a `@ApplicationService` en `com.profiletailors.common.application`. |
+| REQ-BS-006           | `.agents/skills/spring-boot/SKILL.md` SHALL referenciar el marker real `com.profiletailors.common.domain.Service` definido en `shared/common/src/main/kotlin/com/profiletailors/common/domain/Service.kt:18`. |
 | REQ-BS-007           | Cada `references/` reescrito SHALL sustituir `HttpSecurity` por `ServerHttpSecurity` salvo en guías marcadas explícitamente como `legacy-*`.  |
 | REQ-BS-008           | Cada `references/` reescrito SHALL sustituir `SecurityFilterChain` por `SecurityWebFilterChain` salvo en guías `legacy-*`.                      |
 | REQ-BS-009           | Cada `references/` reescrito SHALL sustituir `MockMvc` por `WebTestClient`, `@MockBean` por `@MockkBean`, y `MockitoExtension` por Kotest o JUnit5 + MockK. |
@@ -100,7 +100,7 @@ puro.
 
 **REQ-BS-007, REQ-BS-008, REQ-BS-009, REQ-BS-010, REQ-BS-011, REQ-BS-012**
 
-- GIVEN `references/` en `spring-boot/{security,cache,resilience,
+- GIVEN `references/` en `spring-boot-{security,cache,resilience,
   messaging,saga-pattern,ai-mcp-server-patterns,
   data-neo4j-reactive}/` contiene tokens incompatibles
   (HttpSecurity, SecurityFilterChain, MockMvc, JpaRepository, Lombok,
@@ -115,7 +115,7 @@ puro.
 
 ### Scenario: skill hexagonal coherente
 
-- GIVEN `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md`
+- GIVEN `.agents/skills/hexagonal-architecture/SKILL.md`
   ya declara "Ports | Interfaces defined by domain, implemented by
   infrastructure" según `explore-notes.md` §3
 - WHEN finaliza el apply de esta capability
@@ -127,7 +127,7 @@ puro.
 **REQ-KB-UMBRELLA-006**
 
 - GIVEN un PR reintroduce un `HttpSecurity` en
-  `spring-boot/security/references/` (no legacy)
+  `spring-boot-security/references/` (no legacy)
 - WHEN corre `.github/workflows/skill-doctor.yml`
 - THEN SHALL fallar el job de deterministic scan y SHALL bloquearse
   el merge.

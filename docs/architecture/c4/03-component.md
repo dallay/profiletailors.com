@@ -745,11 +745,13 @@ val result = mediator.send(query)
 
 ### Repository Pattern
 
-Each aggregate root has a repository interface in the application layer and an R2DBC implementation
-in the infrastructure layer:
+Per [ADR-0002](../adr/0002-adhere-to-hexagonal-architecture.md), repository interfaces belong to
+the domain layer. Application consumes these ports, and infrastructure provides R2DBC implementations.
+The example below shows the required placement; the current `WorkspaceMembershipRepository` in
+`tenancy/application/TenancyInternalSupport.kt` still needs to move to Domain:
 
 ```kotlin
-// Application layer (port)
+// Domain layer (port)
 interface WorkspaceMembershipRepository {
     suspend fun findById(id: UUID): WorkspaceMembership?
     suspend fun save(membership: WorkspaceMembership)
@@ -824,13 +826,13 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 ### Domain Layer
 
 - **Language**: Kotlin
-- **Patterns**: DDD entities, value objects, domain services
+- **Patterns**: DDD entities, value objects, domain services, repository interfaces
 - **Dependencies**: None (pure domain logic)
 
 ### Application Layer
 
 - **Language**: Kotlin with coroutines
-- **Patterns**: CQRS, mediator, repository interfaces
+- **Patterns**: CQRS, mediator, use-case orchestration
 - **Dependencies**: Domain layer only
 
 ### Infrastructure Layer

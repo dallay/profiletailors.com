@@ -3,8 +3,8 @@ name: spring-boot-data-neo4j-reactive
 description: Use when integrating Neo4j into a Spring Boot 4 backend with graph models, Cypher queries, reactive repositories, relationship mapping, or graph-focused testing patterns.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

@@ -3,8 +3,8 @@ name: spring-boot-saga-pattern
 description: Use when implementing saga-based distributed consistency in Spring Boot 4, coordinating compensating transactions, or designing choreography and orchestration flows across services.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

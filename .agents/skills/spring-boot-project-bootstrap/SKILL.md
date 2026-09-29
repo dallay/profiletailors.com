@@ -3,8 +3,8 @@ name: spring-boot-project-bootstrap
 description: Use when bootstrapping a new Spring Boot 4 backend from Spring Initializr, choosing Kotlin + WebFlux + Gradle defaults, defining a hexagonal package-by-feature structure, and wiring local development services for a reactive stack.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

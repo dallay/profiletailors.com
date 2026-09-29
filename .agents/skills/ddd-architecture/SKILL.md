@@ -20,7 +20,7 @@ architecture enforcement:
 - This skill and Konsist govern marked Kotlin DDD/source-shape invariants.
 
 Do not apply this Kotlin guidance to Vue, TypeScript, Astro, or `shared/web`; use
-`frontend-platform/frontend-architecture` for those surfaces.
+`frontend-architecture` for those surfaces.
 
 ## When to Use
 
@@ -225,5 +225,5 @@ execution, preserved unrelated failures, and a rollback plan before CI adoption.
 - `docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md`
 - `docs/architecture/adr/0017-value-objects-are-immutable.md`
 - `.agents/skills/architecture-governance/SKILL.md`
-- `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md`
+- `.agents/skills/hexagonal-architecture/SKILL.md`
 - `server/smp/src/test/kotlin/com/profiletailors/smp/`

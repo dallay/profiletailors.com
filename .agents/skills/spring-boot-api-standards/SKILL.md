@@ -3,8 +3,8 @@ name: spring-boot-api-standards
 description: Use when designing or reviewing reactive HTTP APIs in Spring Boot 4, including resource URLs, status codes, DTO contracts, validation, pagination, filtering, security headers, and consistent error responses.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

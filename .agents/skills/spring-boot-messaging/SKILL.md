@@ -3,8 +3,8 @@ name: spring-boot-messaging
 description: Use when implementing event-driven or message-based integration in Spring Boot 4, publishing domain events, coordinating Kafka or broker messaging, or applying outbox and idempotency patterns for reliable delivery.
 allowed-tools: Read, Write, Edit, Bash
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

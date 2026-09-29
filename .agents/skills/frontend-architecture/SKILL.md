@@ -191,8 +191,8 @@ must not scan Astro or `shared/web` with dashboard rules.
 ## References
 
 - `.agents/skills/architecture-governance/SKILL.md`
-- `.agents/skills/frontend-platform/vue/SKILL.md`
-- `.agents/skills/frontend-platform/astrolicious-astro/SKILL.md`
+- `.agents/skills/vue/SKILL.md`
+- `.agents/skills/astrolicious-astro/SKILL.md`
 - `apps/web/app/src/modules/`
 - `apps/web/admin/src/`
 - `apps/web/marketing/src/`
