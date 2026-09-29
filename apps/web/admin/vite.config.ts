@@ -64,5 +64,12 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
     setupFiles: ['./src/vitest-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts', 'src/**/*.vue'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
+    },
   },
 })
