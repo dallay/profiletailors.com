@@ -2,15 +2,12 @@
 # ============================================================================
 # Profile Tailors — CodeRabbit configuration (optimized)
 # ----------------------------------------------------------------------------
-# Optimized against docs.coderabbit.ai (Aug 2026). Goals:
+# Optimized against docs.coderabbit.ai. Goals:
 #   1. Architectural enforcement with AST-grep precision (not just LLM hints)
-#   2. Reduce noise: skip bot PRs, WIP titles, decoration
-#   3. Tighten pre-merge gates so bad descriptions / missing docs / bad titles
-#      actually block the merge
-#   4. Add security tools we were missing: semgrep, trufflehog, actionlint,
-#      zizmor
-#   5. Move docstrings/unit_tests from the deprecated `code_generation.*`
-#      schema to the current `finishing_touches.*` schema
+#   2. Reduce noise: skip draft PRs, WIP titles, decoration, and verbose logs
+#   3. Align merge gates so deterministic tools enforce facts while CodeRabbit
+#      focuses on semantic correctness and architectural invariants
+#   4. Short-circuit checks on non-applicable PR types (docs, CI, config)
 # ============================================================================
 early_access: true
 inheritance: true
@@ -27,7 +24,7 @@ reviews:
   fail_commit_status: true
   collapse_walkthrough: true
   auto_apply_labels: true
-  auto_assign_reviewers: true
+  auto_assign_reviewers: false
   in_progress_fortune: false           # skip the "while you wait" fortune
   poem: false                          # never write a poem in a PR comment
   sequence_diagrams: true              # keep: useful for cross-context flows
@@ -37,33 +34,10 @@ reviews:
   related_prs: true
   changed_files_summary: true
   suggested_labels: true
-  suggested_reviewers: true
+  suggested_reviewers: false
   review_status: true
-  review_details: true                 # show suppressed comments for traceability
+  review_details: false                # concise PR output for normal operation
   enable_prompt_for_ai_agents: true    # keep: useful for IDE handoff
-
-  # ─── Suggested reviewers (org-specific assignment rules) ────────────────
-  suggested_reviewers_instructions:
-    - reviewers:
-        - handle: backend-platform
-          type: group
-      instructions: >-
-        Assign when the PR modifies Kotlin code under server/smp,
-        build.gradle.kts, or shared Kotlin modules.
-
-    - reviewers:
-        - handle: frontend-platform
-          type: group
-      instructions: >-
-        Assign when the PR modifies Vue/Astro/TypeScript code under
-        apps/web/marketing, apps/web/app, apps/web/admin, or shared/web.
-
-    - reviewers:
-        - handle: security-pdl
-          type: group
-      instructions: >-
-        Assign when the PR touches authentication, authorization, RLS,
-        consent, secrets, crypto, or input validation.
 
   # ─── Mutually exclusive labels (keep PRs honest) ────────────────────────
   mutually_exclusive_groups:
@@ -143,7 +117,7 @@ reviews:
         Kotlin conventions from .agents/skills/kotlin/SKILL.md and AGENTS.md.
         - Prefer `val` over `var`. Use sealed classes or Result<T> for errors.
         - Use `?.`, `?:`, `requireNotNull()` instead of `!!` (also enforced
-          by ast-grep `no-null-assertion-in-kotlin`).
+          by ast-grep `no-null-assertion-operator`).
         - No `.block()` in coroutine flows. `suspend` for I/O.
         - Repository methods are `suspend`.
         - Do not log secrets, tokens, passwords, or PII.
@@ -302,9 +276,9 @@ reviews:
   # =========================================================================
   auto_review:
     enabled: true
-    drafts: true                       # review drafts to catch issues early
+    drafts: false                      # do not review draft PRs automatically
     auto_incremental_review: true      # re-run on each push
-    auto_pause_after_reviewed_commits: 10  # pause after 10 reviewed pushes
+    auto_pause_after_reviewed_commits: 3   # pause review after 3 reviewed pushes to conserve capacity
     base_branches:
       - '.*'                           # review against any base branch
     labels:
@@ -330,23 +304,22 @@ reviews:
     label: 'slop'
 
   # =========================================================================
-  # PRE-MERGE CHECKS — gates that actually block the merge
+  # PRE-MERGE CHECKS — gates focused on semantic feedback
   # =========================================================================
   pre_merge_checks:
     override_requested_reviewers_only: true  # only reviewers can ignore failures
 
     docstrings:
-      mode: warning
-      threshold: 80                       # 80% coverage on changed functions
+      mode: off                            # disabled to align with repo zero-comment policy
 
     title:
-      mode: error
+      mode: warning                        # warning-only; CI deterministically enforces Conventional Commits
       requirements: >-
         Must follow Conventional Commits format with optional scope, e.g.
         `feat(auth): add password reset`. Imperative mood, lowercase, ≤72 chars.
 
     description:
-      mode: error                          # was: warning. PRs need a real description.
+      mode: warning                        # warning-only semantic check; do not block low-risk PRs for template details
 
     issue_assessment:
       mode: warning                        # linked issues assessment is non-blocking
@@ -357,10 +330,11 @@ reviews:
       - name: 'Hexagonal Architecture Compliance'
         mode: warning
         instructions: |
+          APPLICABILITY: Short-circuit immediately with PASS if the PR does not modify backend Kotlin application, domain, or infrastructure code under server/smp/ or backend architecture files.
           Verify Hexagonal Architecture is followed:
           1. Domain layer has ZERO framework imports (Spring, R2DBC, Jakarta,
              Hibernate, Reactor, Jackson). ast-grep rules enforce this in
-             .coderabbit/rules/no-framework-in-domain-*.yml.
+             .coderabbit/rules/.
           2. Application layer depends only on domain interfaces, never on
              infrastructure adapters.
           3. Infrastructure implements domain interfaces (never the reverse).
@@ -374,6 +348,7 @@ reviews:
       - name: 'Security Review'
         mode: warning
         instructions: |
+          APPLICABILITY: Short-circuit immediately with PASS if the PR contains only documentation (*.md, docs/), automation state, non-security CI configuration, or formatting changes with no runtime security implications.
           Check for security issues. FAIL if any apply:
           1. SQL injection: raw string concatenation into R2DBC queries
              (use parameterized queries).
@@ -391,8 +366,9 @@ reviews:
       - name: 'Test Coverage (TDD)'
         mode: warning
         instructions: |
-          Every new business behavior must have a failing test FIRST
-          (TDD is mandatory per AGENTS.md). FAIL if any apply:
+          APPLICABILITY: Short-circuit immediately with PASS if the PR modifies only documentation, CI/workflow files, build scripts, configuration, or non-functional assets.
+          Every new business behavior must have test coverage. Keep as a warning-only semantic check (do not block merges solely on TDD red/green commit history).
+          FAIL if any apply:
           1. New domain logic without unit tests.
           2. New endpoint without WebTestClient integration test.
           3. New user-visible flow without E2E coverage.
@@ -403,6 +379,7 @@ reviews:
       - name: 'Resilience Review'
         mode: warning
         instructions: |
+          APPLICABILITY: Short-circuit immediately with PASS if the PR does not modify reactive backend Kotlin code under server/.
           Check for resilience patterns:
           1. Proper error handling with sealed classes or Result<T>.
           2. Timeout configuration for external HTTP/DB calls.
@@ -416,6 +393,7 @@ reviews:
       - name: 'Readability & Zero-Comment Policy'
         mode: warning
         instructions: |
+          APPLICABILITY: Short-circuit immediately with PASS if the PR contains only markdown/documentation (*.md, docs/) or non-source config files where code comments do not apply.
           AGENTS.md enforces ZERO comments. FAIL if any apply:
           1. Inline comments, KDoc/TSDoc/docblocks (except shebangs and
              generated code markers).
@@ -432,21 +410,17 @@ reviews:
       - name: 'Breaking Change Documentation'
         mode: warning
         instructions: |
-          All breaking changes to public APIs, CLI flags, environment
-          variables, configuration keys, database schemas, or HTTP/GraphQL
-          endpoints MUST be documented in:
+          APPLICABILITY: Short-circuit immediately with PASS if the PR does not alter public/external contracts (HTTP/OpenAPI endpoints, database schemas, CLI flags, exported library interfaces, or externally consumed environment/configuration variables). Purely internal monorepo implementation changes (including public Kotlin classes or constructors inside internal modules) are NOT breaking API changes.
+          All breaking changes to public/external contracts MUST be documented in:
           (a) a "Breaking Change" section of the PR description, AND
           (b) CHANGELOG.md.
-          Exclude purely internal/private changes (code not exported from
-          package entry points or explicitly marked internal).
 
       # ─── Architecture decision traceability
       - name: 'ADR Traceability for Architectural Changes'
         mode: warning
         instructions: |
-          Changes to module boundaries, dependency directions, persistence
-          adapters, or external integrations must reference an existing ADR
-          in docs/architecture/adr/ or include a new ADR in the same PR.
+          APPLICABILITY: Short-circuit immediately with PASS if the PR is documentation-only, a routine feature/bugfix, or an implementation that aligns with an existing ADR without introducing a new architectural pattern or changing module boundaries.
+          WARN ONLY IF: The PR introduces a NEW architectural decision, alters existing module/layer boundaries, or changes core architectural patterns, AND fails to reference an existing applicable ADR or include a new ADR in docs/architecture/adr/.
 
   # =========================================================================
   # TOOLS — third-party linters and security scanners
@@ -494,15 +468,14 @@ reviews:
 
     github-checks:
       enabled: true
-      timeout_ms: 90000
+      timeout_ms: 600000
 
   # =========================================================================
   # FINISHING TOUCHES — agentic post-review actions
-  # (migrated from the deprecated `code_generation.*` schema)
   # =========================================================================
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false
     unit_tests:
       enabled: true
     simplify:
