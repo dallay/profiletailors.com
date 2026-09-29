@@ -1,15 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-/**
- * Validates coverage artifacts before SonarQube scan.
- * Ensures reports exist, are non-empty, contain source entries, and references existing source files.
- *
- * Usage: node scripts/verify-coverage-artifact.mjs <type> <report-path>
- * Example: node scripts/verify-coverage-artifact.mjs lcov apps/web/app/coverage/lcov.info
- * Example: node scripts/verify-coverage-artifact.mjs jacoco server/smp/build/reports/kover/report.xml
- */
-
 const [type, reportPath] = process.argv.slice(2)
 
 if (!type || !reportPath) {
