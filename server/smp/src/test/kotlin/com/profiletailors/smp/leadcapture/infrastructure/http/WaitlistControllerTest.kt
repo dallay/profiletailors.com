@@ -1,6 +1,5 @@
 package com.profiletailors.smp.leadcapture.infrastructure.http
 
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.controllers.GlobalExceptionHandler
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
@@ -9,6 +8,7 @@ import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalTok
 import com.profiletailors.leadcapture.waitlist.application.WaitlistWithdrawalUrlProvider
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
@@ -252,7 +252,7 @@ class WaitlistControllerTest {
             idGenerator = WaitlistEntryIdGenerator { _, normalizedEmail ->
                 WaitlistEntryId("entry-${normalizedEmail.value.hashCode().toUInt()}")
             },
-            transactionRunner = AtomicTransactionRunner.noop,
+            transactionRunner = WaitlistTransactionRunner.noop,
             withdrawalUrlProvider = WaitlistWithdrawalUrlProvider.noop,
             withdrawalTokenIssuer = WaitlistWithdrawalTokenIssuer { now ->
                 WaitlistWithdrawalTokenIssuer.IssuedToken(

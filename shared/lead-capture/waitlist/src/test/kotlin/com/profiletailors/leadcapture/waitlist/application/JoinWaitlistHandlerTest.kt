@@ -1,6 +1,5 @@
 package com.profiletailors.leadcapture.waitlist.application
 
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
@@ -9,6 +8,7 @@ import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistClosedException
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
@@ -44,7 +44,7 @@ internal class JoinWaitlistHandlerTest {
         waitlistRepository = waitlistRepo,
         entryRepository = entryRepo,
         idGenerator = idGenerator,
-        transactionRunner = AtomicTransactionRunner.noop,
+        transactionRunner = WaitlistTransactionRunner.noop,
         withdrawalUrlProvider = withdrawalUrlProvider,
         consentRecorder = consentRecorder,
         clock = clock,
