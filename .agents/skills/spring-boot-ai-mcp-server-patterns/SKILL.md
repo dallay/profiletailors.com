@@ -3,8 +3,8 @@ name: spring-boot-ai-mcp-server-patterns
 description: Use when building Model Context Protocol servers in Spring Boot with Spring AI, exposing tools or resources, configuring transports, or integrating AI tool-calling workflows.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

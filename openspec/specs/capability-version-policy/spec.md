@@ -19,22 +19,22 @@ de fabricación.
 ## Scope
 
 - Archivos modificados:
-  - `.agents/skills/backend-platform/spring-boot/cache/SKILL.md`
+  - `.agents/skills/spring-boot-cache/SKILL.md`
     ("3.5+" → ref a `gradle/libs.versions.toml`).
-  - `.agents/skills/backend-platform/spring-boot/security/references/{jwt-quick-reference,jwt-complete-configuration}.md`
+  - `.agents/skills/spring-boot-security/references/{jwt-quick-reference,jwt-complete-configuration}.md`
     ("3.5.x" → ref a `gradle/libs.versions.toml`).
-  - `.agents/skills/backend-platform/hexagonal-architecture/references/kotlin-clean-architecture.md`
+  - `.agents/skills/hexagonal-architecture/references/kotlin-clean-architecture.md`
     ("Kotlin 2.x" → ref a `gradle/libs.versions.toml`).
-  - `.agents/skills/testing/playwright/SKILL.md` ("Playwright
+  - `.agents/skills/playwright/SKILL.md` ("Playwright
     1.58.2", "@axe-core/playwright 4.11.1" → refs al `package.json`
     correspondiente, p. ej. `apps/web/app/package.json`).
-  - `.agents/skills/testing/vitest/SKILL.md` (frontmatter `version:
+  - `.agents/skills/vitest/SKILL.md` (frontmatter `version:
     3.x` → ref a `package.json`).
   - `.agents/skills/pnpm/SKILL.md` (frontmatter `version: 10.x` → ref
     a `package.json` raíz o de pnpm).
-  - `.agents/skills/frontend-platform/pinia/SKILL.md` ("v3.0.4" → ref
+  - `.agents/skills/pinia/SKILL.md` ("v3.0.4" → ref
     a `apps/web/app/package.json` o equivalente).
-  - Frontmatter de `.agents/skills/languages-typing/{kotlin,typescript,zod-4}/SKILL.md`
+  - Frontmatter de `.agents/skills/{kotlin,typescript,zod-4}/SKILL.md`
     (`updated: 2026-01-28` → ref a la fecha de la última
     actualización real verificable).
 - Excluidos: menciones descriptivas tipo "Vue 3" que describen

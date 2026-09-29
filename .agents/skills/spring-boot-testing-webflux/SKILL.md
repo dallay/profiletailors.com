@@ -3,8 +3,8 @@ name: spring-boot-testing-webflux
 description: Use when testing reactive Spring Boot 4 HTTP adapters, `@RestController` endpoints, `@RestControllerAdvice`, validation errors, security constraints, or response contracts with WebFlux.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

@@ -3,8 +3,8 @@ name: spring-boot-openapi
 description: Use when documenting reactive Spring Boot 4 HTTP APIs with SpringDoc OpenAPI, configuring Swagger UI, annotating endpoints, documenting security schemes, or defining request and response schemas.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
-  category: none
-  family: none
+  category: backend-platform
+  family: spring-boot
   source: local
   version: 2026-09-28
 ---

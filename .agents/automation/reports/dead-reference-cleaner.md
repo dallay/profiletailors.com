@@ -22,7 +22,7 @@ Detect and clean dead repository references, stale paths, and obsolete links acr
 - `openspec/README.md`: Updated password-recovery references to point to `specs/password-recovery-ui/spec.md`.
 - `docs/architecture/README.md`: Corrected directory reference from `shared/lead-capture:common` to `shared/lead-capture/common`.
 - `docs/architecture/adr/0012-agpl-commercial-strategy.md`: Removed dead markdown link to deleted proposal file.
-- `.agents/skills/backend-platform/spring-boot/references/swagger-standard.md`: Escaped bracketed method name to prevent link parsing ambiguity.
+- `.agents/skills/spring-boot/references/swagger-standard.md`: Escaped bracketed method name to prevent link parsing ambiguity.
 
 ## Evidence Table
 

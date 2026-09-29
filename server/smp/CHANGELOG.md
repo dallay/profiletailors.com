@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.9](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.8...smp@v0.5.9) (2026-09-28)
+
+
+### Bug Fixes
+
+* **server:** upgrade Netty to 4.2.18.Final and suppress CVE-2026-53914 FP ([#1213](https://github.com/dallay/profiletailors.com/issues/1213)) ([1226d29](https://github.com/dallay/profiletailors.com/commit/1226d29defa9b1b808c4b11eddeb44e55fe7e5e9))
+
 ## [0.5.8](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.7...smp@v0.5.8) (2026-09-28)
 
 

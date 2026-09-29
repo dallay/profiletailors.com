@@ -17,8 +17,8 @@ This level focuses on class structure, key methods, and design patterns.
 
 ### 1. Hexagonal Architecture (Ports & Adapters)
 
-- **Domain**: Pure business logic, no framework dependencies
-- **Application**: Use cases, ports (interfaces)
+- **Domain**: Pure business logic, repository/gateway ports, no framework dependencies
+- **Application**: Use cases consuming domain-defined ports
 - **Infrastructure**: Adapters (R2DBC, HTTP, external APIs)
 
 All bounded contexts — including cross-cutting ones (`platform`, `audit`, `observability`,
@@ -33,7 +33,7 @@ Enforced by `HexagonalArchTest` in `server/smp/src/test/`.
 
 ### 3. Repository Pattern
 
-- Interface in application layer (port)
+- Interface in domain layer (port), consumed by application
 - R2DBC implementation in infrastructure layer (adapter)
 - Hides persistence details from domain
 
@@ -89,8 +89,8 @@ com.profiletailors.common
 ```
 com.profiletailors.smp
 ├── {context}                    # Bounded context (e.g., identity, authorization)
-│   ├── domain                   # Domain models, policies
-│   ├── application              # Use cases, ports
+│   ├── domain                   # Domain models, policies, ports
+│   ├── application              # Use cases consuming domain ports
 │   └── infrastructure           # Adapters (R2DBC, HTTP, external)
 │       ├── http                 # REST controllers
 │       ├── security             # Security filters, converters

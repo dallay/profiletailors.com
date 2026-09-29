@@ -60,17 +60,17 @@ converted into architecture warnings.
 
 | Question | Use |
 |---|---|
-| Is the problem Kotlin layer/import direction or Spring component placement? | `backend-platform/hexagonal-architecture` and `ARCH-001`. |
-| Is the problem a Kotlin aggregate boundary, identity-only reference, value-object shape, or ADR-backed DDD invariant? | `backend-platform/ddd-architecture` and `ARCH-003..005`. |
+| Is the problem Kotlin layer/import direction or Spring component placement? | `hexagonal-architecture` and `ARCH-001`. |
+| Is the problem a Kotlin aggregate boundary, identity-only reference, value-object shape, or ADR-backed DDD invariant? | `ddd-architecture` and `ARCH-003..005`. |
 | Is the problem a backend bounded-context/module dependency? | Spring Modulith guidance and `ARCH-002`. |
-| Is the problem a Vue feature boundary, Pinia store, admin SPA, Astro surface, or `shared/web` import? | `frontend-platform/frontend-architecture`; do not apply Kotlin DDD markers. |
+| Is the problem a Vue feature boundary, Pinia store, admin SPA, Astro surface, or `shared/web` import? | `frontend-architecture`; do not apply Kotlin DDD markers. |
 
 ## Scope Profiles
 
 - Backend governance is limited to `server/smp` and the shared Kotlin contracts named by the
   mapped ADRs.
 - Vue app governance is limited to `apps/web/app`; its public feature boundaries are described in
-  `frontend-platform/frontend-architecture`.
+  `frontend-architecture`.
 - Admin governance is a separate, flatter Vue profile under `apps/web/admin`.
 - Marketing governance is static-first Astro under `apps/web/marketing`.
 - `shared/web` is a dependency-light contract package consumed by frontend surfaces and must not
@@ -125,5 +125,5 @@ files only and inspect synchronization status without editing generated agent co
 - `docs/architecture/adr/0015-aggregate-root-as-sole-entry-point.md`
 - `docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md`
 - `docs/architecture/adr/0017-value-objects-are-immutable.md`
-- `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
-- `.agents/skills/frontend-platform/frontend-architecture/SKILL.md`
+- `.agents/skills/ddd-architecture/SKILL.md`
+- `.agents/skills/frontend-architecture/SKILL.md`

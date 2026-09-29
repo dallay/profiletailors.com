@@ -10,9 +10,9 @@ useDefault = true
 [allowlist]
 description = "False positives: explicit test-only tokens, docs examples, and reviewed example env defaults"
 paths = [
-  ".agents/skills/backend-platform/spring-boot/security/references/troubleshooting.md",
-  ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
-  ".agents/skills/backend-platform/spring-boot/security/references/jwt-testing-guide.md",
+  ".agents/skills/spring-boot-security/references/troubleshooting.md",
+  ".agents/skills/spring-boot-security/scripts/test-jwt-setup.sh",
+  ".agents/skills/spring-boot-security/references/jwt-testing-guide.md",
   "shared/common/src/test/kotlin/com/profiletailors/common/testfixture/CredentialFixtures.kt",
   "server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/CredentialEncryptionService.kt",
   "server/smp/src/main/resources/application.yaml",
@@ -21,7 +21,7 @@ paths = [
   "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/LinkedInCredentialGatewayTest.kt",
   "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSignerTest.kt", # Test-only random secret fixture proving the signer accepts a strong secret (SEC-002)
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
-  ".agents/skills/testing/playwright-best-practices/advanced/authentication-flows.md",
+  ".agents/skills/playwright-best-practices/advanced/authentication-flows.md",
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
 ]
 regexes = [

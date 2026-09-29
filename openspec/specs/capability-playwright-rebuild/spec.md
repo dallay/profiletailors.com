@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reescribir desde cero `.agents/skills/testing/playwright/SKILL.md`
+Reescribir desde cero `.agents/skills/playwright/SKILL.md`
 anclada a la realidad del monorepo `profiletailors.com`: las tres
 superficies reales (`apps/web/app/`, `apps/web/admin/`,
 `apps/web/marketing/`), sus configs Playwright cuando existan, el
@@ -22,8 +22,8 @@ debe ser ejecutable en el worktree actual.
 ## Scope
 
 - Archivos modificados:
-  - `.agents/skills/testing/playwright/SKILL.md` (rewrite desde cero).
-  - Adyacente: `.agents/skills/testing/playwright-best-practices/SKILL.md`
+  - `.agents/skills/playwright/SKILL.md` (rewrite desde cero).
+  - Adyacente: `.agents/skills/playwright-best-practices/SKILL.md`
     se reescribe para usar ejemplos Vue/Astro (no Next.js); este
     cambio queda registrado en `capability-modern-best-practices`
     (P1-B) como parte de la coherencia de skills testing, pero la
