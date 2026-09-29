@@ -69,7 +69,7 @@ useful `README.md` file detailing its role, tech stack, configuration, and devel
 |-------------|--------------|--------------------------------------------------------------------------|
 | Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                         |
 | pnpm        | `>= 11.8.0`  | `npm install -g pnpm`                                                    |
-| just        | `>= 1.30`    | `brew install just` / `winget install Casey.Just` / `cargo install just` |
+| just / make | `>= 1.30` / GNU Make `>= 3.81` | `just` runner or `make` (pre-installed on Linux/macOS) |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
 > (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
@@ -126,9 +126,9 @@ just dev-frontend  # starts both Astro and Vue dev servers
 
 ### Command Hub
 
-This repo uses [`just`](https://github.com/casey/just) as a centralized command runner.
-All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
-Docker commands separately. Run `just -l` to list everything.
+This repo uses [`just`](https://github.com/casey/just) (or GNU `make`) as a centralized command runner.
+All common operations are available via `just <recipe>` or `make <target>` — no need to remember pnpm, Gradle, or
+Docker commands separately. Run `just -l` or `make help` to list everything.
 
 #### Frontend (Astro + Vue / pnpm)
 

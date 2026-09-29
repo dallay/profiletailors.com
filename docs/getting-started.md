@@ -8,9 +8,9 @@
 This guide walks new contributors through setting up the Profile Tailors monorepo locally.
 It covers prerequisites, bootstrapping, and verifying that everything works before opening a PR.
 
-The repo uses [`just`](https://github.com/casey/just) as a centralized command runner.
-All operations — frontend, backend, infrastructure, CI — live in the `Justfile`.
-Run `just -l` to see every available recipe.
+The repo uses [`just`](https://github.com/casey/just) (or GNU `make`) as a centralized command runner.
+All operations — frontend, backend, infrastructure, CI — live in the `Justfile` (and GNU `Makefile`).
+Run `just -l` or `make help` to see all available commands.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Run `just -l` to see every available recipe.
 | Java        | `>= 25`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                       |
 | pnpm        | `>= 11.20.0` | `npm install -g pnpm@11.20.0`                                          |
-| just        | `>= 1.30`    | See below                                                              |
+| just / make | `>= 1.30` / GNU Make | `just` runner or GNU `make` (pre-installed on Linux/macOS)             |
 | Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
