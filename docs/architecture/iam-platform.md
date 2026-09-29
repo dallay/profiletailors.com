@@ -1,6 +1,6 @@
 # IAM Platform Architecture
 
-**Last Updated: 2026-09-28
+**Last Updated: 2026-09-29
 
 ## Overview
 
@@ -322,4 +322,4 @@ These capabilities are part of the durable platform model but explicitly deferre
 
 ---
 
-Last Updated: 2026-09-28
+Last Updated: 2026-09-29
