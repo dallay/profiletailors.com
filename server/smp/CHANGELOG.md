@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.10](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.9...smp@v0.5.10) (2026-09-29)
+
+
+### Bug Fixes
+
+* **lead-capture:** isolate waitlist transaction port ([#1226](https://github.com/dallay/profiletailors.com/issues/1226)) ([18d7114](https://github.com/dallay/profiletailors.com/commit/18d7114a852f686fc423cc3a1605d0facfb06c5b))
+
 ## [0.5.9](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.8...smp@v0.5.9) (2026-09-28)
 
 
