@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.21](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.20...landing@v0.2.21) (2026-09-29)
+
+
+### Bug Fixes
+
+* **deps:** update vue core ([#1219](https://github.com/dallay/profiletailors.com/issues/1219)) ([9be2443](https://github.com/dallay/profiletailors.com/commit/9be24438f9c94dc1443ff8956a56e871d236474a))
+
 ## [0.2.20](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.19...landing@v0.2.20) (2026-09-28)
 
 
