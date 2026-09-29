@@ -1,6 +1,7 @@
 package com.profiletailors.smp.media.infrastructure.persistence
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistTransactionRunner
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Component
@@ -17,7 +18,8 @@ import org.springframework.transaction.reactive.TransactionalOperator
  */
 @Component
 class R2dbcAtomicTransactionRunner(private val transactionalOperator: TransactionalOperator) :
-    AtomicTransactionRunner {
+    AtomicTransactionRunner,
+    WaitlistTransactionRunner {
 
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T =
         transactionalOperator.transactional(mono { block() }).awaitSingle()
