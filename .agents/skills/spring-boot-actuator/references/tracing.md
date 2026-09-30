@@ -304,9 +304,11 @@ class UserService {
 
 ## HTTP Client Tracing
 
-### WebClient Tracing
+### Legacy blocking WebClient tracing (imperative services only)
 
-Spring Boot automatically configures tracing for WebClient:
+Spring Boot automatically configures tracing for WebClient. This broad reference uses `block()` and
+applies only to existing imperative services; never call it from a WebFlux request path. Keep
+reactive request handling non-blocking.
 
 ```kotlin
 @Service

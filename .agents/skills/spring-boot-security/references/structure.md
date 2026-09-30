@@ -1,10 +1,20 @@
 # Spring Security References
 
+## Overview
+
 This reference bundle belongs to the `spring-boot-security` skill. Use `SKILL.md` as its entry
 point and follow `.agents/AGENTS.md`, ADR-0002, and the current Spring Boot infrastructure patterns
 for implementation decisions.
 
-## Reference topics
+## Changes
+
+The active Profile Tailors baseline is Spring Security WebFlux, coroutines, and R2DBC-backed
+adapters. Servlet, JPA, JDBC, and Mockito examples are historical or cross-platform material, not
+implementation defaults. Prefer reactive Kotlin examples when a reference includes both.
+
+## Usage
+
+### Reference topics
 
 - `token-management.md`: access and refresh token lifecycle.
 - `oauth2-integration.md`: external identity providers.
@@ -14,7 +24,13 @@ for implementation decisions.
 - `troubleshooting.md`: configuration and runtime diagnosis.
 - `migration-spring-security-6x.md`: explicit servlet-to-WebFlux migration context.
 
-For Profile Tailors, the active baseline is Spring Security WebFlux, coroutines, and R2DBC-backed
-adapters. Servlet, JPA, JDBC, and Mockito examples are historical or cross-platform reference
-material only; they are not implementation defaults. Prefer the reactive and Kotlin examples when
-a reference includes both.
+## Troubleshooting
+
+Use `troubleshooting.md` for configuration and runtime diagnosis; migration material applies only
+when translating an existing servlet integration.
+
+## References
+
+- [Spring Boot Security skill](../SKILL.md)
+- `.agents/AGENTS.md`
+- `docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md`

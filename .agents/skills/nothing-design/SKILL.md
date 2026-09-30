@@ -10,6 +10,8 @@ metadata:
 ---
 # Nothing-Inspired UI/UX Design System
 
+## Overview
+
 A senior product designer's toolkit trained in Swiss typography, industrial design (Braun, Teenage
 Engineering), and modern interface craft. Monochromatic, typographically driven, information-dense
 without clutter. Dark and light mode with equal rigor.
@@ -24,7 +26,7 @@ from this skill.
 
 ---
 
-## 1. DESIGN PHILOSOPHY
+### 1. DESIGN PHILOSOPHY
 
 - **Subtract, don't add.** Every element must earn its pixel. Default to removal.
 - **Structure is ornament.** Expose the grid, the data, the hierarchy itself.
@@ -39,9 +41,11 @@ from this skill.
 
 ---
 
-## 2. CRAFT RULES — HOW TO COMPOSE
+## Changes
 
-### 2.1 Visual Hierarchy: The Three-Layer Rule
+### 2. CRAFT RULES — HOW TO COMPOSE
+
+#### 2.1 Visual Hierarchy: The Three-Layer Rule
 
 Every screen has exactly **three layers of importance.** Not two, not five. Three.
 
@@ -58,7 +62,7 @@ one needs to shrink, fade, or move.
 flatness. Be brave — make the primary absurdly large and the tertiary absurdly small. The contrast
 IS the hierarchy.
 
-### 2.2 Font Discipline
+#### 2.2 Font Discipline
 
 Per screen, use maximum:
 
@@ -80,7 +84,7 @@ size, ask: can I create this distinction with spacing or color instead?
 **Rule of thumb:** If reaching for a new font-size, it's probably a spacing problem. Add distance
 instead.
 
-### 2.3 Spacing as Meaning
+#### 2.3 Spacing as Meaning
 
 Spacing is the primary tool for communicating relationships.
 
@@ -95,7 +99,7 @@ Vast (64–96px)   = "This is a new context" (hero to content, major divisions)
 insufficient spacing contrast. Use them only in data-dense lists where items are structurally
 identical.
 
-### 2.4 Container Strategy (prefer top)
+#### 2.4 Container Strategy (prefer top)
 
 1. **Spacing alone** (proximity groups items)
 2. A single divider line
@@ -105,7 +109,7 @@ identical.
 Each step down adds visual weight. Use the lightest tool that works. Never box the most important
 element — let it float on the background.
 
-### 2.5 Color as Hierarchy
+#### 2.5 Color as Hierarchy
 
 In a monochrome system, the gray scale IS the hierarchy. Max 4 levels per screen:
 
@@ -123,7 +127,7 @@ urgent, no red on the screen.
 rule when encoding data values. Apply color to the **value itself**, not labels or row backgrounds.
 See `references/tokens.md` for the full color system.
 
-### 2.6 Consistency vs. Variance
+#### 2.6 Consistency vs. Variance
 
 **Be consistent in:** Font families, label treatment (always Space Mono ALL CAPS), spacing rhythm,
 color roles, component shapes, alignment.
@@ -133,7 +137,7 @@ rectangles, a red accent among grays, a Doto headline, a vast gap where everythi
 
 This single break IS the design. Without it: sterile grid. With more than one: visual chaos.
 
-### 2.7 Compositional Balance
+#### 2.7 Compositional Balance
 
 **Asymmetry > symmetry.** Centered layouts feel generic. Favor deliberately unbalanced composition:
 
@@ -143,7 +147,7 @@ This single break IS the design. Without it: sterile grid. With more than one: v
 
 Balance heavy elements with more empty space, not with more heavy elements.
 
-### 2.8 The Nothing Vibe
+#### 2.8 The Nothing Vibe
 
 1. **Confidence through emptiness.** Large uninterrupted background areas. Resist filling space.
 2. **Precision in the small things.** Letter-spacing, exact gray values, 4px gaps. Micro-decisions
@@ -156,7 +160,7 @@ Balance heavy elements with more empty space, not with more heavy elements.
 6. **Percussive, not fluid.** Imagine UI sounds: click not swoosh, tick not chime. Design
    transitions that feel mechanical and precise.
 
-### 2.9 Visual Variety in Data-Dense Screens
+#### 2.9 Visual Variety in Data-Dense Screens
 
 When 3+ data sections appear on one screen, vary the visual form:
 
@@ -175,7 +179,7 @@ the VOICE stays the same.
 
 ---
 
-## 3. ANTI-PATTERNS — WHAT TO NEVER DO
+### 3. ANTI-PATTERNS — WHAT TO NEVER DO
 
 - No gradients in UI chrome
 - No shadows. No blur. Flat surfaces, border separation.
@@ -192,11 +196,14 @@ the VOICE stays the same.
 
 ---
 
-## 4. WORKFLOW
+## Usage
+
+### 4. WORKFLOW
 
 1. **Declare fonts** — tell the user which Google Fonts to load (see `references/tokens.md`)
-2. **Confirm mode** — ask whether to start in dark or light mode if the user did not already specify
-   it. Neither is default.
+2. **Choose mode** — use the mode defined by the surface contract. Profile Tailors defaults to
+   dark-first while giving light mode equal design rigor. Do not ask when the contract determines
+   the mode; ask only when neither the user nor the applicable surface contract specifies one.
 3. **Sketch hierarchy** — identify the 3 layers before writing any code
 4. **Choose platform output** — HTML/CSS, React/Tailwind, SwiftUI, or design-tool language
 5. **Compose** — apply craft rules (Sections 2.1–2.9)
@@ -206,7 +213,7 @@ the VOICE stays the same.
 
 ---
 
-## 5. REQUIRED RESPONSE CONTRACT
+### 5. REQUIRED RESPONSE CONTRACT
 
 When this skill is used for any design or implementation request, structure the response in this
 order:
@@ -216,7 +223,8 @@ order:
     - Show how to load them (`<link>` / `@import` / package import)
 2. **Mode**
     - State whether the solution starts with dark or light mode
-    - If unspecified, stop and ask before producing final UI code
+    - If unspecified, state and use the mode selected by the surface contract; ask only when no
+      applicable contract determines it
 3. **Three-layer hierarchy**
     - Primary
     - Secondary
@@ -237,7 +245,7 @@ Do not jump straight into code without covering items 1 to 4 first.
 
 ---
 
-## 6. ACCESSIBILITY BASELINE
+### 6. ACCESSIBILITY BASELINE
 
 Nothing-inspired does **not** mean inaccessible. Preserve the visual language while meeting these
 minimums:
@@ -255,9 +263,24 @@ minimums:
 If a strict visual rule conflicts with accessibility, accessibility wins while staying as close as
 possible to the Nothing aesthetic.
 
+### Good execution
+
+A strong Nothing-style response should feel:
+
+- **Confident** — clear hierarchy, no decorative clutter
+- **Precise** — exact spacing, exact casing, exact tone
+- **Technical** — labels, values, and controls feel instrument-like
+- **Restrained** — one expressive moment, not many
+- **Actionable** — not just mood, but concrete structure and tokens
+
+If the result looks like generic black minimalism, it failed. If it looks noisy, it also failed. The
+target is disciplined tension: sparse, sharp, human.
+
 ---
 
-## 7. PERMITTED ADAPTATIONS
+## Troubleshooting
+
+### 7. PERMITTED ADAPTATIONS
 
 These rules keep the style strong without making the skill brittle:
 
@@ -274,7 +297,7 @@ These rules keep the style strong without making the skill brittle:
 
 ---
 
-## 8. REFERENCE FILES
+## References
 
 For detailed token values, component specs, and platform-specific guidance:
 
@@ -285,18 +308,3 @@ For detailed token values, component specs, and platform-specific guidance:
 - **`references/platform-mapping.md`** — HTML/CSS, SwiftUI, React/Tailwind, Paper output conventions
 - **`references/examples.md`** — Complete response-shape examples, use cases, non-use cases, and
   implementation reminders
-
----
-
-## 9. WHAT GOOD EXECUTION LOOKS LIKE
-
-A strong Nothing-style response should feel:
-
-- **Confident** — clear hierarchy, no decorative clutter
-- **Precise** — exact spacing, exact casing, exact tone
-- **Technical** — labels, values, and controls feel instrument-like
-- **Restrained** — one expressive moment, not many
-- **Actionable** — not just mood, but concrete structure and tokens
-
-If the result looks like generic black minimalism, it failed. If it looks noisy, it also failed. The
-target is disciplined tension: sparse, sharp, human.

@@ -10,11 +10,13 @@ metadata:
 ---
 # Vue 3 Skill
 
+## Overview
+
 Use Vue 3 Composition API, TypeScript, and the current app or admin surface contracts. Read the
 surface `PRODUCT.md` and `.agents/skills/frontend-architecture/SKILL.md` when the task crosses
 feature boundaries or changes shared UI.
 
-## Project boundaries
+### Project boundaries
 
 - The dashboard package is `app` at `apps/web/app`; its feature modules live under
   `src/modules/<feature>` and expose cross-feature APIs through their `index.ts` barrel.
@@ -25,7 +27,9 @@ feature boundaries or changes shared UI.
 - Read dependencies and package scripts from the relevant `package.json`. Do not copy project
   versions into this skill.
 
-## Components and state
+## Changes
+
+### Components and state
 
 - Prefer `<script setup lang="ts">`, typed props and emits, and small components with one clear
   responsibility.
@@ -42,7 +46,9 @@ feature boundaries or changes shared UI.
 - Prefer Vue and project abstractions over manual DOM access. Clean up subscriptions, timers, and
   other effects when their owner is disposed.
 
-## Shared UI
+## Usage
+
+### Shared UI
 
 Import shared Vue components from `@profiletailors/vue-ui` and use shadcn-vue primitives through
 the existing local component paths. Do not invent package names or assume every shadcn-vue
@@ -66,7 +72,7 @@ const props = defineProps<{ title: string }>()
 Confirm the exported components in `shared/vue-ui/src/index.ts` before using an import. Follow the
 surface's existing keyboard, focus, localization, and accessibility patterns.
 
-## Verification commands
+### Verification commands
 
 The dashboard package is named `app`:
 
@@ -78,6 +84,11 @@ pnpm --filter app test:run
 
 Use `pnpm --filter @profiletailors/admin ...` for admin package scripts. Check `package.json` for
 the available script names before running a command.
+
+## Troubleshooting
+
+If a shared component import is missing, confirm its export in `shared/vue-ui/src/index.ts` and
+follow the surface's existing component path and localization pattern.
 
 ## References
 

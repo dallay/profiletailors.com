@@ -23,10 +23,21 @@ metadata:
 ---
 # Modern Web Guidance
 
+## Overview
+
 A skill to search for specific web development use cases and retrieve their corresponding best
 practice guides.
 
-## When to use
+## Changes
+
+### Guidelines
+
+- Always search **first** to find the most relevant guides.
+- These guides are usually framework-agnostic; adapt them correctly to your setup.
+- Do not hallucinate guides or ignore them; they represent the preferred local standard for the
+  user's project.
+
+### When to use
 
 Use this skill as a fallback when no specialized local skill covers the browser API or web platform
 behavior in the task. For Profile Tailors, first check the relevant skill when working in Vue,
@@ -34,7 +45,9 @@ Astro, Pinia, accessibility, Core Web Vitals, performance, SEO, or frontend arch
 the local skill and repository contract for those areas; consult this guide only for uncovered
 platform details.
 
-## Usage Instructions
+## Usage
+
+### Usage Instructions
 
 ### Step 1. Search Use Cases
 
@@ -95,22 +108,16 @@ pnpm dlx modern-web-guidance@latest retrieve "<id>"
 **Example Output**:
 `The markdown content of the guide describing implementation steps...`
 
-## Using pnpm
+### Using pnpm
 
 - Use `pnpm dlx` so commands follow the repository's package-manager policy.
 - Network access is required for fetching npm packages needed by the task.
-- If the `npx -y modern-web-guidance…` command hangs, you may be offline. Try running again in
-  offline
-  mode: `npx --offline …`.
+- If the `pnpm dlx modern-web-guidance…` command hangs because the network is unavailable, retry
+  using the locally cached package: `pnpm --offline dlx modern-web-guidance…`.
 
-## Guidelines
+## Troubleshooting
 
-- Always search **first** to find the most relevant guides.
-- These guides are usually framework-agnostic; adapt them correctly to your setup.
-- Do not hallucinate guides or ignore them; they represent the preferred local standard for the
-  user's project.
-
-## Interpreting Browser Support & Fallbacks
+### Interpreting Browser Support & Fallbacks
 
 - **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use
   without fallbacks. For features that are not Baseline widely available, you **MUST** follow the
@@ -139,3 +146,7 @@ pnpm dlx modern-web-guidance@latest retrieve "<id>"
 
   No defined policy format. This is an example:
   `**Browser Support:** Allow Newly Available features, but only adopt custom fallback code that adds <= 20 lines and does not require external dependencies.`
+
+## References
+
+Use the authoritative browser and platform documentation linked by each retrieved guide.

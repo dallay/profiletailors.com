@@ -95,10 +95,17 @@ Use Spring Initializr with Kotlin + Gradle + WebFlux.
 
 ### Example
 
+Set these values to releases supported by the target deployment before requesting the starter.
+
 ```bash
+: "${SPRING_BOOT_VERSION:?Set the deployment-compatible Spring Boot 4.x version}"
+: "${JAVA_VERSION:?Set the Java version supported by the deployment}"
+
 curl -s "https://start.spring.io/starter.zip" \
   -d type=gradle-project-kotlin \
   -d language=kotlin \
+  -d "bootVersion=${SPRING_BOOT_VERSION}" \
+  -d "javaVersion=${JAVA_VERSION}" \
   -d groupId=com.example \
   -d artifactId=demo-service \
   -d packageName=com.example.demoservice \

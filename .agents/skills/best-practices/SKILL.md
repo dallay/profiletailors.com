@@ -10,12 +10,18 @@ metadata:
 ---
 # Web Best Practices
 
+## Overview
+
 Use this skill as a short review checklist. Repository instructions, product constraints, and
 specialized local skills take precedence. Verify current browser, framework, dependency, and
 security guidance from the project's manifests and authoritative documentation when the task
 depends on changing facts.
 
-## Security
+## Changes
+
+Apply the security and dependency requirements below when changing a web surface.
+
+### Security
 
 - Serve application pages and assets over HTTPS. Avoid mixed content and protocol-relative URLs;
   use explicit HTTPS URLs for external resources.
@@ -32,7 +38,7 @@ depends on changing facts.
   server-side secret management and deployment configuration.
 - Request browser permissions only in a clear user flow and only when the feature needs them.
 
-## Dependencies and commands
+### Dependencies and commands
 
 - Use the package manager and audit commands declared by the repository. Profile Tailors uses pnpm;
   read the root and package manifests before selecting a package filter or script.
@@ -41,7 +47,9 @@ depends on changing facts.
 - Prefer maintained browser features and explicit feature support policy. Do not add a polyfill CDN
   or use `polyfill.io`; choose a supported native feature or a reviewed, locally managed fallback.
 
-## Browser and application quality
+## Usage
+
+### Browser and application quality
 
 - Use semantic HTML and native controls when they fit the interaction. Preserve keyboard access,
   visible focus, accessible names, and useful error announcements.
@@ -52,7 +60,12 @@ depends on changing facts.
   them. Keep errors specific and actionable.
 - Check reduced-motion preferences and avoid animation that blocks task completion.
 
-## Review references
+## Troubleshooting
+
+When a proposed fix conflicts with a product contract, a specialized local skill, or the declared
+package manager, stop and follow that more specific source before changing the implementation.
+
+## References
 
 For Profile Tailors, read `.agents/AGENTS.md`, the surface `PRODUCT.md`, and `.agents/DESIGN.md`.
 Use the local accessibility, security, frontend architecture, framework, and performance skills

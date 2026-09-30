@@ -11,12 +11,16 @@ metadata:
 ---
 # Kotlin Skill
 
+## Overview
+
 Write idiomatic, type-safe Kotlin that follows the repository's architecture and current nearby
 patterns. For backend changes, read `.agents/AGENTS.md`, the relevant ADRs, and
 `.agents/skills/hexagonal-architecture/SKILL.md`. For dependency versions, use
 `gradle/libs.versions.toml` and the module build configuration.
 
-## Types and models
+## Changes
+
+### Types and models
 
 - Prefer immutable `val` properties and data classes for value-shaped data. Use a regular class
   when identity, controlled mutation, or invariant protection requires it.
@@ -34,6 +38,7 @@ import com.profiletailors.common.domain.ValueObject
 import java.util.UUID
 
 @JvmInline
+@ValueObject
 value class WorkspaceId(val value: UUID)
 
 @ValueObject
@@ -46,7 +51,7 @@ data class WorkspaceName(val value: String) {
 fun displayName(name: String?): String = name ?: "Unknown"
 ```
 
-## Backend boundaries
+### Backend boundaries
 
 - Keep domain code framework-free. Keep application use cases framework-agnostic and dependent on
   domain-defined ports. Infrastructure implements those ports and owns Spring, WebFlux, R2DBC, and
@@ -58,7 +63,9 @@ fun displayName(name: String?): String = name ?: "Unknown"
 - Keep persistence entities, transport DTOs, and provider schemas separate from domain models.
 - Put invariants in domain types and policies, not controllers, mappers, or persistence adapters.
 
-## Coroutines and Flow
+## Usage
+
+### Coroutines and Flow
 
 - Use `suspend` functions for asynchronous request/response work and `Flow` when streaming is part
   of the contract.
@@ -72,7 +79,7 @@ fun displayName(name: String?): String = name ?: "Unknown"
   expected failure part of the function contract; do not wrap domain exceptions merely to avoid
   throwing them.
 
-## Tests
+### Tests
 
 - Follow the module's existing JUnit 5 and Kotest conventions. Use MockK for test doubles and
   coroutine-aware APIs for suspend functions.
@@ -83,8 +90,14 @@ fun displayName(name: String?): String = name ?: "Unknown"
 - Read the module's `build.gradle.kts` and `gradle/libs.versions.toml` before adding test
   dependencies or relying on a framework version.
 
-## Formatting and static analysis
+## Troubleshooting
 
 Use the configured Kotlin formatter, compiler, Detekt, and architecture rules. Fix the underlying
 finding rather than adding a suppression or weakening configuration. Run checks through the
 repository recipes listed by `just -l`.
+
+## References
+
+- `.agents/AGENTS.md`
+- `.agents/skills/hexagonal-architecture/SKILL.md`
+- `gradle/libs.versions.toml`

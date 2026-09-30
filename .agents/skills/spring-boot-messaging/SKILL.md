@@ -10,6 +10,8 @@ metadata:
 ---
 # Spring Boot Reactive Messaging
 
+## Overview
+
 Messaging and event-driven integration patterns for **Spring Boot 4 + Spring Framework 7 + WebFlux +
 Kotlin coroutines**.
 
@@ -25,7 +27,9 @@ Keep broker listeners and publication adapters in Infrastructure. Application se
 framework-agnostic and use the repository's `com.profiletailors.common.domain.Service` marker where
 discovery is required.
 
-## Official Baseline
+## Changes
+
+### Official Baseline
 
 From the official Spring Framework documentation:
 
@@ -37,7 +41,7 @@ From the official Spring Framework documentation:
   return-value event publication, and context propagation
 - `TransactionalOperator` is the official reactive transaction tool
 
-## What This Skill Owns
+### What This Skill Owns
 
 - application events inside a Spring Boot service
 - transaction-bound event publication patterns
@@ -46,7 +50,7 @@ From the official Spring Framework documentation:
 - when to use in-process events vs external brokers
 - async listener caveats in reactive applications
 
-## What This Skill Does Not Own
+### What This Skill Does Not Own
 
 Use companion skills instead when the main concern is:
 
@@ -55,7 +59,9 @@ Use companion skills instead when the main concern is:
 - API/webhook contract design → `spring-boot-api-standards`
 - event and integration verification → `spring-boot-testing-integrations`
 
-## Event Model Selection
+## Usage
+
+### Event Model Selection
 
 ### Use in-process application events when:
 
@@ -70,7 +76,7 @@ Use companion skills instead when the main concern is:
 - you need cross-service decoupling
 - delivery cannot depend on the lifecycle of one process only
 
-## Core Rules
+### Core Rules
 
 - Distinguish **domain events**, **application events**, and **integration events**.
 - Do not use in-process Spring events as if they were durable distributed messaging.
@@ -79,7 +85,7 @@ Use companion skills instead when the main concern is:
 - For cross-service delivery, outbox + broker is safer than direct hope-driven publishing.
 - In reactive applications, do not blindly copy imperative transaction-event patterns.
 
-## `@EventListener` Basics
+### `@EventListener` Basics
 
 Use `@EventListener` for in-process event reactions inside a service boundary.
 
@@ -100,7 +106,7 @@ class WorkspaceNotificationListener {
 - Avoid hidden business orchestration in listeners.
 - Prefer explicit event classes over generic maps or string payloads.
 
-## Event Publication by Return Value
+### Event Publication by Return Value
 
 Spring supports publishing a new event by returning it from an `@EventListener`.
 
@@ -116,7 +122,7 @@ fun handleWorkspaceCreated(event: WorkspaceCreatedEvent): WorkspaceAuditEvent {
 This is convenient for simple in-process event chaining, but do **not** use it as a substitute for a
 real durable integration flow.
 
-## Transaction-Bound Events
+### Transaction-Bound Events
 
 Use `@TransactionalEventListener` when event handling semantics must depend on transaction outcome.
 
@@ -148,7 +154,7 @@ According to the official docs:
 - If correctness depends on durable publication after commit, strongly consider an explicit outbox
   pattern.
 
-## Reactive Transaction Pattern
+### Reactive Transaction Pattern
 
 For write flows in reactive systems, prefer explicit transaction boundaries with
 `TransactionalOperator`.
@@ -177,7 +183,7 @@ class WorkspaceLifecycleService(
 - Keep event publication close to the state change when semantics require it.
 - Be very careful assuming post-commit semantics behave the same in imperative and reactive flows.
 
-## Async Event Listeners
+### Async Event Listeners
 
 Spring supports asynchronous listeners via `@EventListener` + `@Async`.
 
@@ -207,7 +213,7 @@ The Spring docs explicitly call out that async listeners:
 - If tracing/logging context matters, configure context propagation intentionally.
 - Do not rely on async listeners for critical state transitions without stronger guarantees.
 
-## Outbox Pattern
+### Outbox Pattern
 
 When another service must consume the event reliably, prefer an explicit outbox.
 
@@ -224,7 +230,7 @@ When another service must consume the event reliably, prefer an explicit outbox.
 - works better across service boundaries
 - is easier to reason about than pretending in-process events are durable
 
-## Idempotency Rules
+### Idempotency Rules
 
 Every serious message-driven system needs idempotency.
 
@@ -233,7 +239,7 @@ Every serious message-driven system needs idempotency.
 - message keys or event ids should be stable and explicit
 - retries without idempotency are just duplicate side effects with better marketing
 
-## Broker Guidance
+### Broker Guidance
 
 If using Kafka, RabbitMQ, or another broker:
 
@@ -243,7 +249,7 @@ If using Kafka, RabbitMQ, or another broker:
 - keep consumer side effects observable and bounded
 - document ordering expectations explicitly; do not assume global ordering
 
-## Observability
+### Observability
 
 ### Rules
 
@@ -253,7 +259,7 @@ If using Kafka, RabbitMQ, or another broker:
 - if async listeners or multicaster executors cross thread boundaries, configure context propagation
   intentionally
 
-## Decision Guide
+### Decision Guide
 
 | Need                                         | Preferred approach                      |
 |----------------------------------------------|-----------------------------------------|
@@ -263,7 +269,9 @@ If using Kafka, RabbitMQ, or another broker:
 | Cross-service reliable delivery              | Outbox + broker                         |
 | Fire-and-forget non-critical side effect     | `@EventListener` + `@Async`             |
 
-## Common Mistakes
+## Troubleshooting
+
+### Common Mistakes
 
 - ❌ Treating Spring application events as durable distributed messaging
 - ❌ Assuming `@TransactionalEventListener` works identically in imperative and reactive flows
@@ -273,7 +281,7 @@ If using Kafka, RabbitMQ, or another broker:
 - ❌ Publishing cross-service integration events directly from volatile in-process logic without an
   outbox or equivalent reliability strategy
 
-## Related Skills
+## References
 
 - [`spring-boot`](../spring-boot/SKILL.md) — Core reactive persistence and transaction boundary rules
 - `spring-boot-testing-integrations` — Event-driven and outbox verification patterns

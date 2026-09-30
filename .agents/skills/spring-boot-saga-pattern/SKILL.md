@@ -10,12 +10,16 @@ metadata:
 ---
 # Saga Pattern
 
+## Overview
+
 Use a saga only when a business operation crosses transaction boundaries that cannot share one
 atomic database transaction. A saga coordinates separately committed steps and defines how the
 workflow reaches a valid outcome after a partial failure. It does not provide rollback equivalent
 to a database transaction.
 
-## Before choosing a saga
+## Changes
+
+### Before choosing a saga
 
 - Map the business steps, ownership boundaries, durable state, and failure outcomes.
 - Identify which effects can be compensated, which are irreversible, and what an operator must do
@@ -24,7 +28,7 @@ to a database transaction.
 - Compare choreography and orchestration using the workflow's visibility, coupling, and recovery
   needs. Do not add a broker or saga framework solely to avoid designing transaction boundaries.
 
-## Implementation boundaries
+### Implementation boundaries
 
 - Keep business transitions and recovery decisions in the domain/application layers. Define ports
   in Domain and implement provider, broker, and persistence adapters in Infrastructure.
@@ -39,13 +43,15 @@ to a database transaction.
 - Keep Spring, broker, and persistence types in Infrastructure. Application services use the
   framework-free `com.profiletailors.common.domain.Service` marker where discovery is needed.
 
-## Coroutines and persistence
+## Usage
+
+### Coroutines and persistence
 
 Use the repository's coroutine and R2DBC patterns for reactive services. Keep the database update
 and outbox write inside the adapter's supported transaction boundary. Do not wrap broker sends,
 provider calls, or R2DBC operations in blocking transactions and assume that this makes them atomic.
 
-## Testing
+### Testing
 
 - Test domain transition and compensation decisions without Spring or broker infrastructure.
 - Test application orchestration through domain ports, including duplicate commands and retryable
@@ -54,6 +60,13 @@ provider calls, or R2DBC operations in blocking transactions and assume that thi
   recovery after a process restart.
 - Follow the module's JUnit 5, Kotest, and MockK conventions. Read the version catalog before
   adding a broker or saga dependency.
+
+## Troubleshooting
+
+When automatic recovery cannot finish, persist the current workflow state and route the unresolved
+step to operator intervention rather than replaying an irreversible effect.
+
+## References
 
 The `references/` directory contains broader saga material. For any concrete technology example,
 the repository's Kotlin, WebFlux, coroutine, R2DBC, and hexagonal architecture contracts take
