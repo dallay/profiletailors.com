@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, useId, watch } from 'vue'
 import Button from '@/components/ui/AdminButton.vue'
 
 const props = withDefaults(defineProps<{
@@ -22,6 +22,12 @@ const emit = defineEmits<{
 }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
+const titleId = `admin-confirm-title-${useId()}`
+const descriptionId = `admin-confirm-description-${useId()}`
+
+function preventDismissWhileBusy(event: Event) {
+  if (props.busy) event.preventDefault()
+}
 
 async function syncDialog(open: boolean) {
   await nextTick()
@@ -46,13 +52,14 @@ onMounted(() => syncDialog(props.open))
     role="alertdialog"
     aria-modal="true"
     class="admin-confirm-dialog w-[min(30rem,calc(100vw-2rem))] rounded-xl border border-border-visible bg-bg-surface p-0 text-text-body backdrop:bg-black/70"
-    :aria-labelledby="'admin-confirm-title'"
-    :aria-describedby="'admin-confirm-description'"
+    :aria-labelledby="titleId"
+    :aria-describedby="descriptionId"
+    @cancel="preventDismissWhileBusy"
     @close="emit('update:open', false)"
   >
     <div v-if="open" class="p-5 sm:p-6">
-      <h2 id="admin-confirm-title" class="text-lg font-medium text-text-display">{{ title }}</h2>
-      <p id="admin-confirm-description" class="mt-3 text-sm leading-6 text-text-secondary">{{ description }}</p>
+      <h2 :id="titleId" class="text-lg font-medium text-text-display">{{ title }}</h2>
+      <p :id="descriptionId" class="mt-3 text-sm leading-6 text-text-secondary">{{ description }}</p>
       <div v-if="$slots.default" class="mt-4">
         <slot />
       </div>

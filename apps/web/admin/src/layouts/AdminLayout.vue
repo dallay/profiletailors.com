@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, nextTick, ref, watch } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -26,9 +27,14 @@ import Button from '@/components/ui/AdminButton.vue'
 import BackendVersionBadge from '@/shared/ui/BackendVersionBadge.vue'
 
 const { t } = useI18n()
+const gitSha = __GIT_SHA__
 const router = useRouter()
 const authStore = useAdminAuthStore()
 const mobileNavOpen = ref(false)
+const isMobileViewport = useMediaQuery('(max-width: 767px)')
+const mobileNavButton = ref<HTMLButtonElement | null>(null)
+const mobileCloseButton = ref<HTMLButtonElement | null>(null)
+const mobileSidebar = ref<HTMLElement | null>(null)
 
 const iconByName: Record<string, Component> = {
   LayoutDashboard,
@@ -70,6 +76,55 @@ watch(() => router.currentRoute.value.fullPath, () => {
   mobileNavOpen.value = false
 })
 
+function trapMobileNavigationFocus(event: KeyboardEvent) {
+  if (!isMobileViewport.value || !mobileNavOpen.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    mobileNavOpen.value = false
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const sidebar = mobileSidebar.value
+  if (!sidebar) return
+  const focusable = Array.from(sidebar.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  ))
+  const first = focusable[0]
+  const last = focusable.at(-1)
+  if (!first || !last) {
+    event.preventDefault()
+    sidebar.focus()
+    return
+  }
+
+  const activeIsOutside = !sidebar.contains(document.activeElement)
+  if (event.shiftKey && (document.activeElement === first || activeIsOutside)) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && (document.activeElement === last || activeIsOutside)) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+watch(mobileNavOpen, async (open) => {
+  if (!isMobileViewport.value) return
+  if (open) {
+    document.addEventListener('keydown', trapMobileNavigationFocus)
+    await nextTick()
+    mobileCloseButton.value?.focus()
+  } else {
+    document.removeEventListener('keydown', trapMobileNavigationFocus)
+    await nextTick()
+    mobileNavButton.value?.focus()
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', trapMobileNavigationFocus)
+})
+
 async function signOut() {
   await authStore.signOut()
   router.push({ name: 'login' })
@@ -90,6 +145,10 @@ async function signOut() {
       class="admin-sidebar fixed inset-y-0 left-0 z-40 flex w-[min(19rem,86vw)] -translate-x-full flex-col border-r border-border-subtle bg-bg-surface transition-transform duration-200 md:sticky md:top-0 md:w-64 md:translate-x-0"
       :class="{ 'admin-sidebar-open': mobileNavOpen }"
       :aria-label="t('nav.platformAdministration')"
+      :role="isMobileViewport && mobileNavOpen ? 'dialog' : undefined"
+      :aria-modal="isMobileViewport && mobileNavOpen ? 'true' : undefined"
+      :inert="isMobileViewport && !mobileNavOpen"
+      ref="mobileSidebar"
     >
       <div class="flex min-h-[84px] items-center justify-between border-b border-border-subtle px-5">
         <img :src="lightOnDarkLogoUrl" alt="Profile Tailors" class="h-9 w-auto max-w-[140px] object-contain object-left">
@@ -98,6 +157,7 @@ async function signOut() {
           class="admin-icon-button md:hidden"
           :aria-label="t('common.close')"
           @click="mobileNavOpen = false"
+          ref="mobileCloseButton"
         >
           <X :size="18" aria-hidden="true" />
         </button>
@@ -147,16 +207,23 @@ async function signOut() {
           <VersionBadge />
           <BackendVersionBadge v-if="authStore.hasPermission('platform.system.build-info.read')" />
         </div>
+        <a
+          :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
+          class="mt-2 inline-flex min-h-11 items-center text-xs text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {{ t('common.sourceCode') }}
+        </a>
       </div>
     </aside>
 
-    <main class="admin-main min-w-0 flex-1" id="main-content" tabindex="-1">
+    <main class="admin-main min-w-0 flex-1" id="main-content" tabindex="-1" :inert="isMobileViewport && mobileNavOpen">
       <header class="admin-mobile-header sticky top-0 z-20 flex min-h-14 items-center gap-3 border-b border-border-subtle bg-bg-primary px-4 md:hidden">
         <button
           type="button"
           class="admin-icon-button"
           :aria-label="t('nav.openNavigation')"
           :aria-expanded="mobileNavOpen"
+          ref="mobileNavButton"
           @click="mobileNavOpen = true"
         >
           <Menu :size="19" aria-hidden="true" />

@@ -123,11 +123,12 @@ describe('ConfigurationView', () => {
       .find((button) => button.text() === 'Change mode')
       ?.trigger('click')
     await flushPromises()
-    await wrapper
+    const cancelButton = wrapper
       .find('[role="alertdialog"]')
       .findAll('button')
       .find((button) => button.text() === 'common.cancel')
-      ?.trigger('click')
+    expect(cancelButton).toBeDefined()
+    await cancelButton?.trigger('click')
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledTimes(1)

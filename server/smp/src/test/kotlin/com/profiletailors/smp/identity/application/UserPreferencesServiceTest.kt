@@ -14,6 +14,13 @@ class UserPreferencesServiceTest {
     private val service = UserPreferencesService(userPreferencesGateway)
 
     @Test
+    fun `user preferences reject a blank principal identifier`() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+            UserPreferences(principalId = " ")
+        }
+    }
+
+    @Test
     fun `getPreferences returns stored preferences when present`() = runTest {
         val stored = UserPreferences(
             principalId = "user-1",

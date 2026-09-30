@@ -37,6 +37,7 @@ export type MessageSchema = {
     no: string
     back: string
     retry: string
+    sourceCode: string
   }
   auth: {
     signIn: string
@@ -64,7 +65,6 @@ export type MessageSchema = {
     waitlistOverview: string
     invitationHealth: string
     systemHealth: string
-    periodLabel: string
     pendingEntries: string
     invitedEntries: string
     convertedEntries: string

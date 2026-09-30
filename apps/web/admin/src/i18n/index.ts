@@ -54,6 +54,7 @@ const locales = {
     no: ['No', 'No'],
     back: ['Back', 'Volver'],
     retry: ['Retry', 'Reintentar'],
+    sourceCode: ['Source code', 'Código fuente'],
   },
   auth: {
     signIn: ['Sign In', 'Iniciar sesión'],
@@ -96,7 +97,6 @@ const locales = {
     waitlistOverview: ['Waitlist overview', 'Resumen de lista de espera'],
     invitationHealth: ['Invitation health', 'Estado de invitaciones'],
     systemHealth: ['Delivery & activity', 'Entregas y actividad'],
-    periodLabel: ['LAST {n} DAYS', 'ÚLTIMOS {n} DÍAS'],
     pendingEntries: ['Pending Entries', 'Pendientes'],
     invitedEntries: ['Invited', 'Invitados'],
     convertedEntries: ['Converted', 'Convertidos'],

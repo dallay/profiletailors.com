@@ -5,6 +5,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvita
 import com.profiletailors.smp.platformadmin.application.model.AdminDirectInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.ListAdminDirectInvitationsQuery
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import io.r2dbc.spi.Readable

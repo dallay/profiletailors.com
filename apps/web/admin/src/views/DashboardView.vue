@@ -88,7 +88,6 @@ onMounted(fetchDashboard)
       <section class="mb-9" :aria-label="t('dashboard.waitlistOverview')">
         <div class="mb-3 flex items-baseline justify-between gap-4">
           <h2 class="text-base font-medium text-text-display">{{ t('dashboard.waitlistOverview') }}</h2>
-          <span class="label-mono text-[10px] text-text-secondary">{{ t('dashboard.periodLabel', { n: summary.periodDays }) }}</span>
         </div>
         <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-4">
           <div v-for="item in operations" :key="item.label" class="bg-bg-primary p-4 sm:p-5">

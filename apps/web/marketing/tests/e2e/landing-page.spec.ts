@@ -89,6 +89,37 @@ test.describe('Landing Page - Hero Section', () => {
   });
 });
 
+test.describe('AGPL source offer', () => {
+  test('shows the source for the deployed revision in English and Spanish', async ({ page }) => {
+    await dismissConsentBanner(page);
+    await page.goto('/');
+
+    const englishFooter = page.getByRole('contentinfo');
+    const englishSourceLink = englishFooter.getByRole('link', { name: 'Source code' });
+    await expect(englishSourceLink).toHaveAttribute(
+      'href',
+      /https:\/\/github\.com\/dallay\/profiletailors\.com\/commit\/[0-9a-f]{7}/,
+    );
+    await expect(englishFooter.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+      'href',
+      '/terms/',
+    );
+
+    await page.goto('/es/');
+
+    const spanishFooter = page.getByRole('contentinfo');
+    const spanishSourceLink = spanishFooter.getByRole('link', { name: 'Código fuente' });
+    await expect(spanishSourceLink).toHaveAttribute(
+      'href',
+      /https:\/\/github\.com\/dallay\/profiletailors\.com\/commit\/[0-9a-f]{7}/,
+    );
+    await expect(spanishFooter.getByRole('link', { name: 'Términos del Servicio' })).toHaveAttribute(
+      'href',
+      '/es/terms/',
+    );
+  });
+});
+
 test.describe('Bilingual Support', () => {
   test('should switch between English and Spanish', async ({ page }) => {
     await dismissConsentBanner(page);

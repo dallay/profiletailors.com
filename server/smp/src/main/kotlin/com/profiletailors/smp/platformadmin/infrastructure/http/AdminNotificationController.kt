@@ -7,13 +7,13 @@ import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.command.RetryNotificationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.NotificationAdminQuery
 import com.profiletailors.smp.platformadmin.application.handler.RetryNotificationHandler
+import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import com.profiletailors.smp.platformadmin.application.model.NotificationSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.query.NotificationFilters
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
-import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content

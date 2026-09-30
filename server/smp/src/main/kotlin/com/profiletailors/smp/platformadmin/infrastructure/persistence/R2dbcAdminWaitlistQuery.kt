@@ -5,6 +5,7 @@ import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSum
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle

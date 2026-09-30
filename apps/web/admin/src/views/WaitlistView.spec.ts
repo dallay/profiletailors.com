@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import WaitlistView from './WaitlistView.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createI18n } from 'vue-i18n'
 
@@ -261,6 +262,8 @@ describe('WaitlistView', () => {
       await cancelButton?.trigger('click')
       await flushPromises()
 
+      const cancelDialog = wrapper.findAllComponents(ConfirmDialog)[0]
+      expect(cancelDialog?.props('open')).toBe(true)
       expect(wrapper.find('[role="alertdialog"]').exists()).toBe(true)
       vi.stubGlobal('confirm', () => {})
     })

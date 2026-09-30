@@ -1,87 +1,91 @@
 # Contributor and Copyright Map
 
-**Last Updated: 2026-09-29
-
 > **Classification:** Internal — Legal and Compliance
-> **Status:** Active
-> **Last Updated: 2026-09-29
+> **Status:** Evidence inventory; legal ownership not independently verified
+> **Last Updated:** 2026-09-30
 
 ## Overview
 
-This document maps every entity that holds copyright in the `profiletailors.com` repository and
-records the corresponding CLA status. It is the authoritative reference for evaluating whether
-dual-licensing, re-licensing, or sublicensing is legally feasible at any point in time.
+This document inventories non-bot Git author identities visible in the inspected repository history and
+CLA Assistant records. Git metadata and CLA records do not by themselves establish each person's
+legal identity, employer rights, copyright ownership, or complete grant coverage. Qualified counsel
+must validate ownership and grant coverage before any dual-licensing, re-licensing, or sublicensing
+decision.
 
-**Rule:** Any contributor whose code remains in the repository and who has NOT signed the CLA
-blocks dual-licensing. Before any commercial licence is issued, all such contributors must either
-sign the CLA or have their contributions removed or rewritten.
+The current project decision is one AGPL-3.0 distribution. It does not rely on exclusive copyright
+ownership or promise a proprietary relicensing path.
 
----
+## Repository Contributor Evidence
 
-## Copyright Holders
+The following human-looking author identities appear in the inspected `git log --all`. Similar names
+or email addresses are not treated as confirmed aliases without verification. Counts are observations
+from local refs, not a complete contribution ledger. The listed identities do not establish the full
+set of copyright contributors: merged pull requests may use squash-merge or rebase metadata that
+omits patch authors from local commit author fields. Inspect merged pull-request authors and changed
+files alongside Git history before relying on this table for any legal conclusion.
 
-| GitHub handle | Legal name / entity   | Role               | First commit        | CLA signed | CLA signature date | Notes                             |
-| ------------- | --------------------- | ------------------ | ------------------- | ---------- | ------------------ | --------------------------------- |
-| `yacosta738`  | Dallay (sole founder) | Author, maintainer | Repository creation | Yes        | 2026-05-18         | Signed via CLA Assistant on PR #2 |
+| Git author identity | Observed commits | CLA Assistant record | Status |
+| --- | ---: | --- | --- |
+| `Yuniel Acosta Pérez <33158051+yacosta738@users.noreply.github.com>` | 1,472 | `yacosta738`, GitHub ID `33158051`, signed 2026-05-18 on PR #2 | Identity/grant coverage not legally verified |
+| `yacosta738 <33158051+yacosta738@users.noreply.github.com>` | 36 | Same exact email/GitHub ID as above; display-name variation, not a legal identity determination | Identity/grant coverage not legally verified |
+| `Yuniel Acosta <acosta@local>` | 9 | No direct identity match established | Verify author identity and applicable grant |
+| `Yuniel Acosta <yacosta738@users.noreply.github.com>` | 4 | Possible relation to `yacosta738`; not established from Git metadata | Verify author identity and applicable grant |
+| `Yuniel Acosta <acosta@profiletailors.com>` | 1 | No direct identity match established | Verify author identity and applicable grant |
+| `Yuniel Acosta Pérez <33158051+yacosta738@users.noreply.github.com>` | 1,643 | `yacosta738`, GitHub ID `33158051`, signed 2026-05-18 on PR #2 | Identity/grant coverage not legally verified |
+| `Yuniel Acosta Pérez <yacosta738@users.noreply.github.com>` | 4 | Possible relation to `yacosta738`; not established from Git metadata | Verify author identity and applicable grant |
+| `Ryuk Null <286979232+ryuknull@users.noreply.github.com>` | 41 | `ryuknull`, GitHub ID `286979232`, signed 2026-09-15 on PR #1057 | Identity/grant coverage not legally verified |
+| `Ryuk Null <nullomv@gmail.com>` | 6 | Possible relation to `ryuknull`; not established from Git metadata | Verify author identity and applicable grant |
+| `ryuknull <286979232+ryuknull@users.noreply.github.com>` | 2 | `ryuknull`, GitHub ID `286979232`, signed 2026-09-15 on PR #1057 | Identity/grant coverage not legally verified |
 
-### Notes
+The 1,472-commit author identity is an observation from the inspected history, not a legal title
+assertion. The source history also contains automated authors such as Dependabot, Renovate, and
+repository bots. Their presence does not independently identify the human author of underlying
+changes. Review merged pull requests, patch authorship, generated materials, employer or contractor
+agreements, and contributions absent from local Git refs before reaching a legal conclusion.
 
-- `yacosta738` is the sole contributor at the time of writing.
-- Dallay is the legal entity referenced in `CLA.md` as the Project maintainer.
-- No employer work-for-hire assignments have been identified; all work appears to be
-  independent authorship.
+## CLA Assistant Records
 
----
+`signatures/cla.json` records three GitHub handles and IDs. The file alone does not prove whether each signature covers every relevant contribution:
 
-## CLA Coverage
+| GitHub handle | GitHub ID | Signature date | Pull request |
+| --- | ---: | --- | ---: |
+| `yacosta738` | `33158051` | 2026-05-18 | #2 |
+| `ryuknull` | `286979232` | 2026-09-15 | #1057 |
+| `yuniel-acosta` | `163105757` | 2026-09-27 | #1196 |
 
-| Metric                              | Value |
-| ----------------------------------- | ----- |
-| Total contributors with merged code | 1     |
-| Contributors with signed CLA        | 1     |
-| Coverage                            | 100 % |
-| Dual-licensing blocker              | None  |
+These records indicate signatures were captured by the configured CLA process. Verify the signed
+text, signer identity and authority, grant scope, and contribution coverage before relying on them for
+a legal conclusion. Do not assume similarly named Git or GitHub identities are the same person.
 
-The CLA grants Dallay a perpetual, worldwide, non-exclusive, royalty-free, irrevocable licence to
-reproduce, prepare derivative works, publicly display, publicly perform, sublicense, and distribute
-contributions under any licence, including proprietary licences. This is sufficient to support a
-future dual-licensing programme without further contributor action for current contributions.
+## Current Status
 
----
+| Measure | Observed status |
+| --- | --- |
+| Non-bot Git author identities | Multiple names and email variants; human identity aliases need reconciliation |
+| CLA Assistant records | 3 GitHub identities |
+| Legal copyright holders conclusively established | No — legal review required |
+| Complete historical contribution coverage established | No — review incomplete |
+| Dual-licensing feasibility established | No — not needed for the current AGPL-only decision |
 
-## How to Keep This Document Current
-
-1. **On every merged PR:** Check `signatures/cla.json` for new entries.
-2. **On any new signatory:** Add a row to the table above with the data from `cla.json`.
-3. **Before any commercial licence issuance:** Run the gap check described below.
-
-### Gap Check
-
-Before issuing a commercial (non-AGPL) licence:
-
-1. Compare every Git author in `git log --format='%ae %an' | sort | uniq` against this table.
-2. For any author not present: determine whether their contribution remains in the codebase
-   (`git log --all --follow -- <file>`).
-3. If unreachable contributions exist: the contributor must sign the CLA or the contribution
-   must be removed.
-
----
+The CLA states that contributors retain ownership and grant Dallay specified permissions, including
+sublicensing and distribution under other licences. This inventory does not determine whether the
+CLA is enforceable, whether each signatory had authority, or whether all relevant contributions are
+covered. No future dual-licensing conclusion is made.
 
 ## Copyright Notices
 
-All source files are licensed under AGPL-3.0. The canonical copyright notice is:
+`LICENSE` identifies the repository's AGPL-3.0 licensing terms. Copyright notices in source files
+and repository metadata should not be treated as a verified, exhaustive ownership register. Confirm
+the correct rights holder and notice treatment with counsel before changing or relying on such notices.
 
-```
-Copyright (C) 2024-present Dallay
-SPDX-License-Identifier: AGPL-3.0-only
-```
+SPDX identifiers may state an applicable licence; they do not establish copyright title.
 
-SPDX headers are **recommended** in new files per ADR-0012.
+## How to Keep This Document Current
 
----
-
-## References
-
-- [CLA.md](../../CLA.md)
-- [signatures/cla.json](../../signatures/cla.json)
-- [ADR-0012: AGPL-3.0 Commercial Strategy](../architecture/adr/0012-agpl-commercial-strategy.md)
+1. On each merged pull request, review the CLA check and inspect `signatures/cla.json` for new records.
+2. Reconcile new human author identities with existing aliases; do not infer that an identity is a
+   separate person or legal rights holder from Git metadata alone.
+3. Periodically compare repository authors, merged patch authors, CLA records, and relevant employer
+   or contractor arrangements.
+4. Escalate unresolved coverage or ownership questions to qualified counsel before any change from
+   the current AGPL-only distribution.
