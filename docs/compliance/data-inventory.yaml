@@ -279,12 +279,14 @@ processing_activities:
         agreement_status: unverified
     retention:
       trigger: Connection revocation, token expiry, account deletion, or service termination
-      duration: Not established
+      duration: Disconnect deletes the credential immediately with a deletion tombstone; expired orphan metadata retention is configurable (P30D default, per-provider override, purge job disabled by default)
       action: delete
-      control_status: not_implemented
+      control_status: partial
       evidence:
         - Credential encryption and refresh/revocation state handling exist
-        - No automatic credential erasure or P30D metadata purge was located
+        - Disconnect deletes accounts, credential, and connection transactionally and records credential_deletion_tombstones; replays are idempotent
+        - Expired orphan-credential purge with dry-run report exists but runs only when publishing.credentials.retention.enabled=true
+        - No provider-side propagation, key-rotation history, or terminal-connection purge was located
     security_measures:
       - OAuth credential payloads use AES-GCM encryption
       - Encryption key is required for production
@@ -296,6 +298,14 @@ processing_activities:
         reason: Signed OAuth state
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/LinkedInCredentialGateway.kt
         reason: Encrypted credential persistence
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublishingConnectionHandlers.kt
+        reason: Idempotent disconnect with deletion tombstone
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/CredentialRetentionJob.kt
+        reason: Expired orphan-credential purge with dry-run report
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/CredentialRetentionProperties.kt
+        reason: Configuration-controlled retention rule with per-provider overrides
+      - path: server/smp/src/main/resources/db/changelog/publishing/024-create-credential-deletion-tombstones.yaml
+        reason: Deletion tombstone persistence
     evidence_status: partial
     legal_review_status: pending
     notes: Authentication and social-account connection are separate processing purposes. No external authentication provider is currently selected.

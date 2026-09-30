@@ -16,10 +16,15 @@ import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
+import com.profiletailors.smp.publishing.domain.CredentialDeletionReason
+import com.profiletailors.smp.publishing.domain.CredentialDeletionTombstone
+import com.profiletailors.smp.publishing.domain.CredentialDeletionTombstoneRepository
+import com.profiletailors.smp.publishing.domain.CredentialRetentionRule
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.NoOpCredentialDeletionTombstoneRepository
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderCatalogPolicy
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
@@ -421,17 +426,46 @@ internal class DisconnectProviderConnectionHandler(
     private val channelEventPublisher: ChannelEventPublisher,
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
+    private val tombstoneRepository: CredentialDeletionTombstoneRepository = NoOpCredentialDeletionTombstoneRepository,
+    private val retentionRule: CredentialRetentionRule = CredentialRetentionRule(
+        activityId = CredentialRetentionRule.DEFAULT_ACTIVITY_ID,
+        policyVersion = "",
+        expiredMetadataRetention = java.time.Duration.ofDays(
+            CredentialRetentionRule.DEFAULT_EXPIRED_METADATA_RETENTION_DAYS,
+        ),
+        disconnectGrace = java.time.Duration.ZERO,
+        enabled = false,
+    ),
 ) : CommandWithResultHandler<DisconnectProviderConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: DisconnectProviderConnectionCommand): SocialConnectionResult {
         principalContextProvider.require()
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val connection = socialConnectionRepository.findByWorkspaceAndId(workspaceId, command.connectionId)
-            ?: throw IllegalArgumentException("Publishing connection was not found.")
+        if (connection == null) {
+            tombstoneRepository.findByWorkspaceAndConnection(workspaceId, command.connectionId)?.let { tombstone ->
+                require(tombstone.provider == command.provider) { "Publishing provider does not match the connection." }
+                return tombstone.toResult()
+            }
+            throw IllegalArgumentException("Publishing connection was not found.")
+        }
         require(connection.provider == command.provider) { "Publishing provider does not match the connection." }
         transactionRunner.runAtomically {
             socialAccountRepository.deleteByConnectionId(connection.id)
             connection.credentialReference?.let { credentialGateway.invalidateCredential(UUID.fromString(it)) }
             socialConnectionRepository.deleteByWorkspaceAndId(workspaceId, connection.id)
+            tombstoneRepository.record(
+                CredentialDeletionTombstone(
+                    workspaceId = workspaceId,
+                    connectionId = connection.id,
+                    provider = connection.provider,
+                    providerConnectionRef = connection.providerConnectionRef,
+                    credentialReference = connection.credentialReference,
+                    activityId = retentionRule.activityId,
+                    policyVersion = retentionRule.policyVersion,
+                    reason = CredentialDeletionReason.DISCONNECT,
+                    deletedAt = clock.instant(),
+                ),
+            )
         }
         channelEventPublisher.publish(
             ChannelEvent(
@@ -455,6 +489,20 @@ internal class DisconnectProviderConnectionHandler(
             ),
         )
     }
+
+    private fun CredentialDeletionTombstone.toResult(): SocialConnectionResult = SocialConnectionResult(
+        connectionId = connectionId,
+        workspaceId = workspaceId,
+        provider = provider,
+        status = SocialConnectionStatus.DELETED,
+        account = SocialAccountSummary(
+            accountId = "",
+            providerAccountId = providerConnectionRef,
+            displayName = "",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            profileUrn = null,
+        ),
+    )
 }
 
 @Service
