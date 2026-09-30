@@ -24,11 +24,11 @@ const props = withDefaults(
     isToday: (day: Date) => boolean
     formatDayName: (day: Date) => string
     isPastSlot: (day: Date, hour: number) => boolean
-    hasNoChannels?: boolean
+    hasNoChannels: boolean
+    now: Date
+    formatCurrentTime: (date: Date) => string
   }>(),
-  {
-    hasNoChannels: false,
-  },
+  {},
 )
 const emit = defineEmits<{
   (event: 'newPost'): void
@@ -82,6 +82,6 @@ function handleOpenNewPost(day: Date, hour: number) {
     <div v-if="view === 'agenda'" data-testid="scheduler-mobile-agenda" class="min-h-0 flex-1 overflow-y-auto">
       <slot name="agendaSlot" />
     </div>
-    <SchedulerTimelineBody v-else :days="days" :hour-slots="hourSlots" :publications-for-slot="publicationsForSlot" :is-today="isToday" :format-day-name="formatDayName" :is-past-slot="isPastSlot" @open-post-detail="emit('openPostDetail', $event)" @open-new-post="handleOpenNewPost" />
+    <SchedulerTimelineBody v-else :days="days" :hour-slots="hourSlots" :publications-for-slot="publicationsForSlot" :is-today="isToday" :format-day-name="formatDayName" :is-past-slot="isPastSlot" :has-no-channels="hasNoChannels" :now="now" :format-current-time="formatCurrentTime" @open-post-detail="emit('openPostDetail', $event)" @open-new-post="handleOpenNewPost" />
   </div>
 </template>

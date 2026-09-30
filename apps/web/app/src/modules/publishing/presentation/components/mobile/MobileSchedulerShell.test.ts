@@ -53,6 +53,10 @@ describe('MobileSchedulerShell', () => {
     isToday: () => false,
     formatDayName: () => 'Monday',
     isPastSlot: () => false,
+    hasNoChannels: false,
+    now: new Date('2026-06-15T09:30:00'),
+    formatCurrentTime: (date: Date) =>
+      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }
 
   it('composes the mobile shell and delegates agenda content to its slot', () => {

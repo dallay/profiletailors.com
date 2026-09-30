@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SchedulerTimelineBody from './SchedulerTimelineBody.vue'
+import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 
@@ -16,7 +17,7 @@ describe('SchedulerTimelineBody', () => {
       dayCount?: number
       isTodayFn?: (d: Date) => boolean
       isPastSlotFn?: (d: Date, hour: number) => boolean
-      publicationsForSlotFn?: () => any[]
+      publicationsForSlotFn?: () => Publication[]
     } = {},
   ) {
     const dayCount = options.dayCount ?? 3
@@ -28,6 +29,10 @@ describe('SchedulerTimelineBody', () => {
         isToday: options.isTodayFn ?? (() => false),
         formatDayName: () => 'Monday',
         isPastSlot: options.isPastSlotFn ?? (() => false),
+        hasNoChannels: false,
+        now: new Date('2026-06-15T09:30:00'),
+        formatCurrentTime: (date: Date) =>
+          date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
       global: { mocks: { $t: (key: string) => key } },
     })
