@@ -6,6 +6,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuer
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import io.r2dbc.spi.Readable

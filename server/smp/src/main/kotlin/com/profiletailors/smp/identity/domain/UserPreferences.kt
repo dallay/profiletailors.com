@@ -1,7 +1,9 @@
 package com.profiletailors.smp.identity.domain
 
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
+@ValueObject
 data class UserPreferences(
     val principalId: String,
     val locale: String = "en",

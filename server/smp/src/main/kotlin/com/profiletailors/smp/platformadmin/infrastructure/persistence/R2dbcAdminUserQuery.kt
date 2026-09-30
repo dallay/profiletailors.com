@@ -9,6 +9,7 @@ import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuery
 import com.profiletailors.smp.tenancy.application.WorkspaceReadRepository
 import io.r2dbc.spi.Readable

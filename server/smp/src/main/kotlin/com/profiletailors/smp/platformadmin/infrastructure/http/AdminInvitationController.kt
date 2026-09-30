@@ -23,7 +23,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
-import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
+import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
