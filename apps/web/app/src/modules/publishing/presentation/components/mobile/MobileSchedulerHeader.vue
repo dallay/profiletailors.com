@@ -17,6 +17,7 @@ withDefaults(
 )
 const emit = defineEmits<{
   (event: 'newPost'): void
+  (event: 'connectChannels'): void
   (event: 'prev'): void
   (event: 'next'): void
   (event: 'today'): void
@@ -33,12 +34,11 @@ const emit = defineEmits<{
       <Button
         data-testid="mobile-new-post"
         class="min-h-11 shrink-0 gap-1.5 px-4 text-xs"
-        :disabled="Boolean(hasNoChannels)"
-        :title="hasNoChannels ? $t('scheduler.noChannelTitle') : undefined"
-        @click="emit('newPost')"
+        :aria-label="hasNoChannels ? $t('scheduler.connectChannels') : $t('scheduler.newPost')"
+        @click="hasNoChannels ? emit('connectChannels') : emit('newPost')"
       >
         <Plus class="size-4" />
-        <span>{{ $t('scheduler.newPost') }}</span>
+        <span>{{ hasNoChannels ? $t('scheduler.connectChannels') : $t('scheduler.newPost') }}</span>
       </Button>
     </div>
     <div class="flex items-center justify-between gap-2">

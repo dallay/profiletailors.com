@@ -6,7 +6,7 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Reactive Security
 
@@ -16,6 +16,15 @@ coroutines**.
 This skill is the canonical security companion for the backend stack. It covers reactive security
 configuration, JWT/resource-server flows, role/permission checks, token lifecycle concerns, and test
 strategies that align with `WebFlux` instead of the servlet stack.
+
+For Profile Tailors, use Kotlin, WebFlux security, coroutines, and reactive persistence. Examples in
+the reference bundle that use servlet APIs, JPA/JDBC, blocking clients, Java-only test conventions,
+or Mockito describe legacy or general Spring contexts; do not use them as the active backend
+pattern. `migration-spring-security-6x.md` is the explicit servlet migration reference.
+
+Application use cases remain framework-agnostic and use the repository's
+`com.profiletailors.common.domain.Service` marker where discovery is needed. Spring stereotypes
+belong to infrastructure adapters and configuration.
 
 ## Stack Baseline
 

@@ -220,6 +220,13 @@ export type MessageSchema = {
     changeConfirm: string
     changeSuccess: string
   }
+  system: {
+    backendBuild: string
+    backendVersion: string
+    backendRevision: string
+    backendBuiltAt: string
+    backendUnavailable: string
+  }
   notifications: {
     title: string
     channel: string

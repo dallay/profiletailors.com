@@ -21,6 +21,8 @@
 | Media orphan garbage collection | `BlobGarbageCollector` (hourly via `MediaReconcilerScheduler`): physically deletes orphaned storage objects past the 7-day retention period; `MediaAssetExpirationJob` (6-hourly) transitions stale `PENDING_UPLOAD`/`UPLOADING` assets to `FAILED` and schedules orphaned blobs for GC | Implemented (media only) |
 | Data subject request expiry | `FindExpiredRequestsJob` (daily via `PrivacyScheduler`) discovers DSRs past their 30-day retention expiry and deletes them | Implemented (privacy only) |
 | Password-reset token cleanup | `PasswordResetTokenCleanupScheduler` deletes expired password-reset tokens beyond the configured retention (default: 24 h interval, 5 m initial delay) | Implemented (identity only) |
+| OAuth disconnect deletion with tombstone (slice 1, 2026-09-29) | `DisconnectProviderConnectionHandler` deletes accounts, credential, and connection transactionally and records `credential_deletion_tombstones`; replays are idempotent and restored rows are re-deleted | Implemented (OAuth disconnect scope) |
+| Expired orphan-credential purge + dry-run (slice 1, 2026-09-29) | `CredentialRetentionJob` (per-provider thresholds from `publishing.credentials.retention`, batched `SKIP LOCKED`, skips live connections) with `dryRun` report mode; scheduler disabled by default | Implemented (orphan scope, opt-in) |
 | Configurable retention-rule engine (rule registration, approvals, holds, purges, tombstones, evidence) | Backend and Liquibase validation on 2026-08-02 found no `RetentionPeriod`/`RetentionPurge`/`DefaultRetentionOrchestrator` code, no `POST /api/governance/retention/rules`, no `retention_periods`/`retention_purge_jobs`/`retention_holds`/`deletion_tombstones`/`retention_purge_evidence` tables, no `V100__retention_governance.xml`, and no `retention-governance.feature` | **Not implemented — planned** |
 
 ## Acceptance Criteria Checklist (target state vs. current state)
@@ -39,45 +41,56 @@ The 2026-08-02 validation found no shipped retention-rule API or retention-perio
 
 **Target:** Retention rules managed through configuration, linked to `data-inventory.yaml`.
 
-**Current state:** NOT IMPLEMENTED. No rule-registration endpoint or `retention_periods` table
-exists. The only configuration-controlled artifact is the seeded compliance control
-`ctrl-privacy-data-retention`, which declares the *requirement* ("retained only as long as
-necessary and deleted or anonymised per the data inventory retention schedule") but has no
-rule engine behind it. The data inventory records retention targets as evidence, not enforced
-configuration.
+**Current state:** PARTIAL since slice 1 (2026-09-29). `publishing.credentials.retention`
+(`CredentialRetentionProperties` → `CredentialRetentionRule`) is configuration-controlled with
+`activityId: pa-006`, defaults, and per-provider overrides, and is traceable to
+`docs/compliance/data-inventory.yaml` pa-006. No central rule engine: other categories remain
+unevaluated configuration, and there is still no rule-registration endpoint or
+`retention_periods` table.
 
 ### Purges are tenant-safe, resumable and observable
 
-**Current state:** NOT IMPLEMENTED as a framework. The only purge-like jobs are the media GC
-(hourly, media scope only) and the DSR expiry job (daily, privacy scope only). Neither exposes
-a tenant-filterable job API, resume checkpoints, or purge job status endpoints.
+**Current state:** PARTIAL since slice 1 (2026-09-29). The credential purge runs batched
+with `FOR UPDATE SKIP LOCKED`, skips credentials referenced by live connections, resolves
+thresholds per provider, and emits `credentials.purge.*` metrics; the disconnect flow is
+transactional and idempotent via tombstone. The media GC and DSR expiry jobs are unchanged.
+There is still no tenant-filterable job API, resume checkpoints beyond batching, or purge job
+status endpoints.
 
 ### Backups do not silently reintroduce deleted active data
 
-**Current state:** NOT IMPLEMENTED. No deletion ledger, tombstone records, or backup
-re-deletion job exists. Documented as a required control in
-`retention-and-erasure-control-plan.md` ("Maintain a deletion ledger that can be replayed after
-restoration"), not yet built.
+**Current state:** PARTIAL since slice 1 (2026-09-29) for the OAuth disconnect scope:
+`credential_deletion_tombstones` records each disconnect deletion, replays are side-effect
+free, and a restored-then-present row is re-deleted with a refreshed tombstone. There is
+still no general deletion ledger, no backup-expiry job, and no restore-time replay for other
+categories — full backup handling remains slice 2.
 
 ### Provider-specific cache/retention limits can override defaults
 
-**Current state:** NOT IMPLEMENTED. No provider-override model exists. The Resend/LinkedIn
-retention interactions are handled by the providers' own policies, not by platform enforcement.
+**Current state:** PARTIAL since slice 1 (2026-09-29). `CredentialRetentionRule.resolveFor`
+applies `publishing.credentials.retention.providers.<name>` overrides over the defaults, and
+the purge job computes one expiry threshold per provider. The pre-existing LinkedIn
+social-content cache TTLs remain separately configured. No generic provider-override model
+exists for other categories.
 
 ### Dry-run/report mode exists
 
-**Current state:** NOT IMPLEMENTED. No dry-run flag, purge report endpoint, or evidence
-generation exists. The media GC runs unconditionally against eligible orphaned blobs.
+**Current state:** PARTIAL since slice 1 (2026-09-29). `CredentialRetentionJob.run(dryRun=true)`
+and `publishing.credentials.retention.dry-run=true` report counts plus non-sensitive sample
+IDs without writing. The media GC still runs unconditionally against eligible orphaned blobs.
 
 ### Tests cover partial failure, retries and restore scenarios
 
-**Current state:** NOT IMPLEMENTED. There is no `retention-governance.feature` BDD suite. The
-media GC and DSR expiry jobs have unit coverage (e.g. `StaleAssetReconciler`-related tests),
-but no retention-specific BDD scenarios exist.
+**Current state:** PARTIAL since slice 1 (2026-09-29). Unit coverage exists for the rule,
+properties binding, tombstone validation, idempotent disconnect (including provider mismatch,
+unknown connection, and restored-row replay), and the purge job (dry-run, partial failure,
+disabled providers, batch validation). `publishing-credential-retention.feature` adds the
+HTTP idempotency scenario; the BDD suite result is recorded in the change plan once the run
+completes. Restore coverage beyond the disconnect replay remains slice 2.
 
 ## Compliance Sign-Off
 
-**Implementation Status:** NOT COMPLETE — framework is planned.
+**Implementation Status:** PARTIAL — slice 1 (OAuth disconnect + orphan-credential purge/dry-run) implemented 2026-09-29; framework-wide rule engine, holds, backup handling, and remaining categories are still planned.
 
 All acceptance criteria for the retention governance framework are **open** until the rule
 engine, purge orchestration, holds, tombstones, and evidence paths are implemented and tested.

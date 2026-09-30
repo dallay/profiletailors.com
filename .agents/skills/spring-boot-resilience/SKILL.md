@@ -6,9 +6,14 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Reactive Resilience
+
+Keep resilience policies at the layer that owns the call: application orchestration stays
+framework-agnostic and provider clients are infrastructure adapters. Use the repository's local
+`com.profiletailors.common.domain.Service` marker for application services; Spring stereotypes
+belong to infrastructure.
 
 Resilience patterns for **Spring Boot 4 + Spring Framework 7 + WebFlux + Kotlin coroutines**.
 
@@ -79,7 +84,7 @@ Use native `@Retryable` for straightforward retry behavior.
 ### Reactive Example
 
 ```kotlin
-@Service
+@Component
 class InventoryClient(
     private val webClientBuilder: WebClient.Builder,
 ) {

@@ -33,12 +33,17 @@ const operations = computed(() => summary.value ? [
   { label: t('dashboard.cancelledEntries'), value: summary.value.cancelledCount, tone: 'muted' },
 ] : [])
 
+function changePeriod(value: string) {
+  periodDays.value = Number(value)
+  return fetchDashboard()
+}
+
 async function fetchDashboard() {
   loading.value = true
   error.value = null
   try {
     const response = await authStore.request(`/api/admin/dashboard?periodDays=${periodDays.value}`)
-    if (!response.ok) throw new Error()
+    if (!response.ok) throw new Error('Failed to load admin dashboard')
     summary.value = await response.json()
   } catch {
     error.value = t('common.error')
@@ -61,10 +66,10 @@ onMounted(fetchDashboard)
         <span>{{ t('dashboard.period') }}</span>
         <Select
           id="dashboard-period"
-          v-model="periodDays"
+          :model-value="periodDays"
           class="w-auto"
           :aria-label="t('dashboard.period')"
-          @change="fetchDashboard"
+          @update:model-value="changePeriod"
         >
           <option :value="7">{{ t('dashboard.days', { n: 7 }) }}</option>
           <option :value="30">{{ t('dashboard.days', { n: 30 }) }}</option>
@@ -73,7 +78,7 @@ onMounted(fetchDashboard)
       </label>
     </header>
 
-    <p v-if="loading" role="status" class="py-8 text-sm text-text-secondary">{{ t('common.loading') }}</p>
+    <output v-if="loading" aria-live="polite" class="block py-8 text-sm text-text-secondary">{{ t('common.loading') }}</output>
     <div v-else-if="error" role="alert" class="flex flex-wrap items-center justify-between gap-4 border-y border-error/40 py-5">
       <p class="text-sm text-error">{{ error }}</p>
       <Button variant="secondary" @click="fetchDashboard">{{ t('common.retry') }}</Button>

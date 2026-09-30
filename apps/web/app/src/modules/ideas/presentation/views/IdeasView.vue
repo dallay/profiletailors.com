@@ -21,6 +21,7 @@ import CreatePostModal from '@modules/publishing/presentation/components/CreateP
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useIdeaDragAndDrop } from '@modules/ideas/application/useIdeaDragAndDrop'
 import { Button } from '@/components/ui/button'
+import { useSidebar } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
 import {
   Dialog,
@@ -37,6 +38,7 @@ const { t } = useI18n()
 const ideasStore = useIdeasStore()
 const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
+const sidebar = useSidebar()
 
 const isComposerOpen = ref(false)
 const selectedIdeaId = ref<string | null>(null)
@@ -138,6 +140,15 @@ function handlePublishingClose(): void {
   isPublishingOpen.value = false
   publishingPrefill.value = ''
   handoffIdeaId.value = null
+}
+
+function openChannelConnections(): void {
+  handlePublishingClose()
+  if (sidebar.isMobile.value) {
+    sidebar.setOpenMobile(true)
+    return
+  }
+  sidebar.setOpen(true)
 }
 
 async function handlePublishingCreated(payload: unknown): Promise<void> {
@@ -351,6 +362,7 @@ function selectTag(tag: string | null): void {
       :is-open="isPublishingOpen"
       :initial-content="publishingPrefill"
       @close="handlePublishingClose"
+      @connect-channels="openChannelConnections"
       @created="handlePublishingCreated"
     />
 

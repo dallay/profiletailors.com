@@ -13,58 +13,59 @@ export interface NavEntry {
   labelKey: string
 }
 
+type NavEntryDefinition = Omit<NavEntry, 'status'> & { status?: NavStatus }
+
+function defineNavEntry(entry: NavEntryDefinition): NavEntry {
+  return { status: 'live', ...entry }
+}
+
 export const NAV_REGISTRY: readonly NavEntry[] = [
-  {
+  defineNavEntry({
     key: 'dashboard',
     routeName: 'dashboard',
     path: '',
     permission: 'platform.dashboard.read',
-    status: 'live',
     icon: 'LayoutDashboard',
     group: 'operations',
     labelKey: 'nav.dashboard',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'waitlist',
     routeName: 'waitlist',
     path: 'waitlist',
     permission: 'platform.waitlist.read',
-    status: 'live',
     icon: 'ListChecks',
     group: 'operations',
     labelKey: 'nav.waitlist',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'direct-invitations',
     routeName: 'direct-invitations',
     path: 'direct-invitations',
     permission: 'platform.invitations.read',
-    status: 'live',
     icon: 'MailPlus',
     group: 'operations',
     labelKey: 'nav.directInvitations',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'users',
     routeName: 'users',
     path: 'users',
     permission: 'platform.users.read',
-    status: 'live',
     icon: 'Users',
     group: 'operations',
     labelKey: 'nav.users',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'audit',
     routeName: 'audit',
     path: 'audit',
     permission: 'platform.audit.read',
-    status: 'live',
     icon: 'ScrollText',
     group: 'observability',
     labelKey: 'nav.audit',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'overview',
     routeName: 'overview',
     path: 'overview',
@@ -73,37 +74,34 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     icon: 'PanelsTopLeft',
     group: 'operations',
     labelKey: 'nav.overview',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'notifications',
     routeName: 'notifications',
     path: 'notifications',
     permission: 'platform.notifications.read',
-    status: 'live',
     icon: 'Bell',
     group: 'observability',
     labelKey: 'nav.notifications',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'governance',
     routeName: 'governance',
     path: 'governance',
     permission: 'platform.governance.read',
-    status: 'live',
     icon: 'ShieldAlert',
     group: 'trust',
     labelKey: 'nav.governance',
-  },
-  {
+  }),
+  defineNavEntry({
     key: 'configuration',
     routeName: 'configuration',
     path: 'configuration',
     permission: 'platform.configuration.read',
-    status: 'live',
     icon: 'Settings2',
     group: 'system',
     labelKey: 'nav.configuration',
-  },
+  }),
 ]
 
 export function plannedNavEntries(): NavEntry[] {

@@ -6,9 +6,14 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring AI MCP Server Implementation Patterns
+
+Use Profile Tailors' Kotlin, reactive, and hexagonal architecture as the implementation baseline.
+For existing modules, check `gradle/libs.versions.toml` and the module build file for supported
+Spring AI coordinates and versions. The bundled examples are reference material; never treat Java,
+JDBC, blocking HTTP, or framework types in an example as a project default.
 
 Implements MCP servers with Spring AI for AI function calling, tool handlers, and MCP transport
 configuration.
@@ -45,25 +50,14 @@ MCP, resource endpoints, or MCP transport configuration.
 
 ### Key Dependencies
 
-```xml
-<!-- Maven -->
-<dependency>
-  <groupId>org.springframework.ai</groupId>
-  <artifactId>spring-ai-mcp-server</artifactId>
-  <version>1.0.0</version>
-</dependency>
-<dependency>
-<groupId>org.springframework.ai</groupId>
-<artifactId>spring-ai-starter-model-openai</artifactId>
-<version>1.0.0</version>
-</dependency>
+```kotlin
+dependencies {
+    implementation(libs.spring.ai.starter.mcp.server.webflux)
+}
 ```
 
-```gradle
-// Gradle
-implementation 'org.springframework.ai:spring-ai-mcp-server:1.0.0'
-implementation 'org.springframework.ai:spring-ai-starter-model-openai:1.0.0'
-```
+Add model-provider dependencies only when the service needs them. For an existing service, use the
+coordinates and BOM already declared in `gradle/libs.versions.toml`.
 
 ## Instructions
 
@@ -266,38 +260,13 @@ class WeatherTools {
 data class WeatherData(val city: String, val condition: String, val temperatureCelsius: Double)
 ```
 
-### Example 2: Secure Database Tool
+### Database tools
 
-```kotlin
-@Component
-@PreAuthorize("hasRole('USER')")
-class DatabaseTools(
-    private val jdbcTemplate: JdbcTemplate
-) {
-
-    @Tool(description = "Execute a read-only SQL query and return results")
-    fun executeQuery(
-        @ToolParam("SQL SELECT query") sql: String,
-        @ToolParam(value = "Parameters as JSON array", required = false) paramsJson: String?
-    ): QueryResult {
-        val cleanSql = sql.replace(Regex("/\\*.*?\\*/", RegexOption.DOT_MATCHES_ALL), "")
-            .replace(Regex("--.*"), "")
-            .trim()
-
-        if (!cleanSql.uppercase().startsWith("SELECT")) {
-            throw IllegalArgumentException("Only SELECT queries are allowed")
-        }
-        if (cleanSql.contains(";") && cleanSql.indexOf(";") < cleanSql.length - 1) {
-            throw IllegalArgumentException("Multiple statements not allowed")
-        }
-
-        val params =
-            paramsJson?.let { objectMapper.readValue(it, Array<Any>::class.java) } ?: emptyArray()
-        val rows = jdbcTemplate.queryForList(cleanSql, *params)
-        return QueryResult(rows, rows.size)
-    }
-}
-```
+Do not expose arbitrary SQL as an MCP tool or use `JdbcTemplate` in the Profile Tailors reactive
+backend. Expose a narrow application use case through a port, authorize it for the caller and
+workspace, and implement the persistence adapter with the repository's R2DBC patterns. Bind
+values through the driver API; string filtering is not a substitute for parameter binding or an
+allowlisted query contract.
 
 See [references/examples.md](references/examples.md) for complete examples including file system
 tools, REST API integration, and prompt template servers.

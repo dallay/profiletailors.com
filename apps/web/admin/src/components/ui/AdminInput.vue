@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { InputHTMLAttributes } from 'vue'
+import { useId } from 'vue'
 import { cn } from '@/lib/utils'
 
 defineOptions({ name: 'AdminInput', inheritAttrs: false })
 
 const props = withDefaults(defineProps<{
   class?: InputHTMLAttributes['class']
+  id?: string
   modelValue?: string | number
   type?: InputHTMLAttributes['type']
   disabled?: boolean
@@ -16,6 +18,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const inputId = props.id ?? useId()
 
 function updateValue(event: Event) {
   if (event.target instanceof HTMLInputElement) emit('update:modelValue', event.target.value)
@@ -25,6 +28,7 @@ function updateValue(event: Event) {
 <template>
   <input
     v-bind="$attrs"
+    :id="inputId"
     :value="props.modelValue"
     :type="props.type"
     :disabled="props.disabled"

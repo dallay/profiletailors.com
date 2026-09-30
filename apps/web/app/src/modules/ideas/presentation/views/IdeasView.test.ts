@@ -12,6 +12,14 @@ vi.mock('vue-i18n', async (importOriginal) => {
   }
 })
 
+vi.mock('@/components/ui/sidebar', () => ({
+  useSidebar: () => ({
+    isMobile: { value: true },
+    setOpenMobile: vi.fn(),
+    setOpen: vi.fn(),
+  }),
+}))
+
 vi.mock('@lucide/vue', () => {
   const icon = { template: '<span />' }
   return {

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.26@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+# syntax=docker/dockerfile:1.27@sha256:bde3983e9c939224420ddaf6b784cc30e09b035a4dea01f581230c50809f372e
 #
 # Multi-arch Dockerfile for the Profile Tailors backend (server/smp).
 #
@@ -23,13 +23,20 @@ FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble@sha256:735baf2edc6cd
 
 WORKDIR /workspace
 
+ARG SMP_VERSION="dev"
+ARG IMAGE_CREATED="unknown"
+ARG IMAGE_REVISION="unknown"
+
 # Bring the full monorepo into the builder. Gradle needs shared modules,
 # the gradle wrapper, settings, and every included project to compile.
 COPY . .
 
 RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
     --mount=type=cache,id=gradle-2,target=/root/.gradle/wrapper \
-    ./gradlew :server:smp:bootJar --no-daemon -x test
+    ./gradlew :server:smp:bootJar --no-daemon -x test \
+    -PreleaseVersion="$SMP_VERSION" \
+    -PbuildRevision="$IMAGE_REVISION" \
+    -PbuildTime="$IMAGE_CREATED"
 
 # ── Stage 2: multi-arch runtime ───────────────────────────────────────────
 # On each target platform the base image is automatically the matching
@@ -44,8 +51,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ARG SMP_VERSION="dev"
-ARG IMAGE_CREATED=""
-ARG IMAGE_REVISION=""
+ARG IMAGE_CREATED="unknown"
+ARG IMAGE_REVISION="unknown"
 LABEL org.opencontainers.image.title="Profile Tailors SMP" \
       org.opencontainers.image.description="Backend service for the Profile Tailors social media management platform." \
       org.opencontainers.image.url="https://profiletailors.com" \

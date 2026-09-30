@@ -13,6 +13,32 @@ test.describe('Scheduler — Create Post Responsive Mobile & Layout', { tag: '@r
     await ensureChannelsLoaded(page)
   })
 
+  test('mobile scheduler guides users to channel connection when none are active', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.evaluate(() => {
+      const appRoot = document.querySelector('#app') as
+        | (HTMLElement & {
+            __vue_app__?: { config: { globalProperties: Record<string, unknown> } }
+          })
+        | null
+      const pinia = appRoot?.__vue_app__?.config.globalProperties.$pinia as
+        | { state: { value: { publishing?: { channels?: unknown[] } } } }
+        | undefined
+      if (pinia?.state.value.publishing) pinia.state.value.publishing.channels = []
+    })
+
+    const connectChannelsButton = page.getByTestId('mobile-new-post')
+    await expect(connectChannelsButton).toHaveText(/connect channels/i)
+    await expect(connectChannelsButton).toBeEnabled()
+    await connectChannelsButton.click()
+
+    const mobileSidebar = page.locator('[data-slot="sidebar"][data-mobile="true"]')
+    await expect(mobileSidebar).toBeVisible()
+    await expect(mobileSidebar.getByTestId('connect-provider-linkedin')).toBeVisible()
+  })
+
   const viewports = [
     { width: 320, height: 568, name: '320x568 small phone' },
     { width: 390, height: 844, name: '390x844 modern iPhone' },
