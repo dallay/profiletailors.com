@@ -1,0 +1,22 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads_publish",
+    "headers": {
+      "Authorization": { "matches": "Bearer mock-threads-.+" },
+      "Content-Type": { "contains": "application/json" }
+    },
+    "bodyPatterns": [
+      { "matchesJsonPath": "$.creation_id" }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "local-wiremock-post-{{randomValue length=12 type='NUMERIC'}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

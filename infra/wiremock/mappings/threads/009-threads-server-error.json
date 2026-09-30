@@ -1,0 +1,23 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads",
+    "headers": {
+      "Authorization": { "matches": "Bearer mock-threads-.+" }
+    },
+    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.text =~ /.*THREADS_SERVER_ERROR_TEST.*/)]" }]
+  },
+  "response": {
+    "status": 500,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "error": {
+        "message": "Mocked Threads internal server error",
+        "type": "OAuthException",
+        "code": 1,
+        "error_subcode": null
+      }
+    }
+  }
+}

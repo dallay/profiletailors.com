@@ -428,10 +428,6 @@ reviews:
   tools:
     ast-grep:
       essential_rules: true              # security baseline
-      rule_dirs:
-        - '.coderabbit/rules'
-      util_dirs:
-        - '.coderabbit/utils'
 
     biome:
       enabled: true

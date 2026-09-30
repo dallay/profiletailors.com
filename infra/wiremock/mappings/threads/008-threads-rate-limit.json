@@ -1,0 +1,26 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads",
+    "headers": {
+      "Authorization": { "matches": "Bearer mock-threads-.+" }
+    },
+    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.text =~ /.*THREADS_RATE_LIMIT_TEST.*/)]" }]
+  },
+  "response": {
+    "status": 429,
+    "headers": {
+      "Content-Type": "application/json",
+      "X-FB-Throttling": "0; dummy=1"
+    },
+    "jsonBody": {
+      "error": {
+        "message": "Mocked Threads rate limit exceeded",
+        "type": "OAuthException",
+        "code": 4,
+        "error_subcode": null
+      }
+    }
+  }
+}

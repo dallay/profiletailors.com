@@ -1,0 +1,21 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1.0/[0-9]+",
+    "queryParameters": {
+      "fields": { "equalTo": "status" }
+    },
+    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.id =~ /.*ERROR.*/)]" }]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "{{jsonPath request.path '$.*[0]'}}",
+      "status": "ERROR",
+      "error_message": "Mocked container error"
+    },
+    "transformers": ["response-template"]
+  }
+}

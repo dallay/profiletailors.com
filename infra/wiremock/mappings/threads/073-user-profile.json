@@ -1,0 +1,20 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/v1.0/me",
+    "queryParameters": {
+      "fields": { "equalTo": "id,username,name,threads_profile_picture_url" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "local-wiremock-threads-user-001",
+      "username": "wiremock_threads_user",
+      "name": "WireMock Threads User",
+      "threads_profile_picture_url": "https://localhost:8080/__files/threads-profile-pic.jpg"
+    }
+  }
+}

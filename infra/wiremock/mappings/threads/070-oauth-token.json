@@ -1,0 +1,28 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1.0/oauth/access_token",
+    "headers": {
+      "Content-Type": { "contains": "application/x-www-form-urlencoded" }
+    },
+    "bodyPatterns": [
+      { "matchesJsonPath": "$.client_id" },
+      { "matchesJsonPath": "$.client_secret" },
+      { "matchesJsonPath": "$.code" },
+      { "matchesJsonPath": "$.grant_type" },
+      { "matchesJsonPath": "$.redirect_uri" }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "access_token": "mock-threads-short-lived-{{randomValue length=8 type='ALPHANUMERIC'}}",
+      "token_type": "bearer",
+      "expires_in": 3600,
+      "user_id": "local-wiremock-threads-user-001"
+    },
+    "transformers": ["response-template"]
+  }
+}
