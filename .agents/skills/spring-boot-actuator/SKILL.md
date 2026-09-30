@@ -6,9 +6,14 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Actuator Skill
+
+For Profile Tailors, prefer Kotlin and reactive Actuator APIs. Some broad reference examples use
+servlet, JDBC, JPA, or blocking clients; treat those as framework reference material and do not
+copy them into the WebFlux/R2DBC backend. Use `ReactiveHealthIndicator` and non-blocking clients
+for reactive health checks.
 
 ## Overview
 
@@ -30,18 +35,9 @@ metadata:
 
 ## Quick Start
 
-```xml
-<!-- Maven -->
-<dependency>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-```
-
-```gradle
-// Gradle
+```kotlin
 dependencies {
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation(libs.spring.boot.starter.actuator)
 }
 ```
 
@@ -88,8 +84,8 @@ Include `spring-boot-starter-actuator` in your build configuration.
 - Enable `management.endpoint.health.probes.enabled=true` for `/health/liveness` and
   `/health/readiness`.
 - Group indicators via `management.endpoint.health.group.*` to match platform expectations.
-- Implement custom indicators by extending `HealthIndicator` or `ReactiveHealthContributor`; sample
-  implementations in `references/examples.md#custom-health-indicator`.
+- Implement reactive custom indicators with `ReactiveHealthIndicator` or
+  `ReactiveHealthContributor`; adapt examples to the reactive backend.
 
 > **Validate**: `/actuator/health/readiness` returns `UP` with all mandatory components before
 > promoting to production.

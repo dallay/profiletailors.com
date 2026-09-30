@@ -1,0 +1,22 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads",
+    "headers": {
+      "Authorization": { "equalTo": "Bearer expired-token" }
+    }
+  },
+  "response": {
+    "status": 401,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "error": {
+        "message": "Mocked Threads expired token",
+        "type": "OAuthException",
+        "code": 190,
+        "error_subcode": 467
+      }
+    }
+  }
+}

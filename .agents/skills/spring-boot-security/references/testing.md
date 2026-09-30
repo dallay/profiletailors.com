@@ -1,11 +1,11 @@
 # JWT Security Testing Strategies
 
 This document covers testing strategies for the reactive JWT security stack used
-in the SMP backend. All examples use Kotest + MockK (`@MockkBean`),
+in the SMP backend. Reactive examples use Kotest + MockK (`@MockkBean`),
 `@SpringBootTest` with `@AutoConfigureWebTestClient`, R2DBC via Testcontainers,
-and `WebTestClient` for end-to-end tests. Servlet `WebTestClient`, `@MockkBean`,
-and `@WebFluxTest` patterns are intentionally not shown — see
-`migration-spring-security-6x.md` if a servlet reference is needed.
+and `WebTestClient` for end-to-end tests. Servlet JUnit/Mockito patterns are
+not the active backend default; see `migration-spring-security-6x.md` for
+migration context.
 
 ## Table of Contents
 
@@ -444,7 +444,7 @@ class AuthenticationControllerWebTestClientTest(
     "handles concurrent calls correctly" {
         val token = runBlocking { jwtService.generateAccessToken(testUser).token }
         val calls = (1..10).map {
-            async(Dispatchers.IO) {
+            async(Dispatchers.Default) {
                 webTestClient.get().uri("/api/auth/me")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                     .exchange()
@@ -606,7 +606,7 @@ class JwtPerformanceTest(
 
         val start = System.nanoTime()
         val results = (1..numThreads).map {
-            async(Dispatchers.IO) {
+            async(Dispatchers.Default) {
                 (1..operationsPerThread).count { _ ->
                     val token = runBlocking { jwtService.generateAccessToken(testUser).token }
                     runBlocking { jwtService.isTokenValid(token, testUser) }
