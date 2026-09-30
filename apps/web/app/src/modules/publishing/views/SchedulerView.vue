@@ -535,10 +535,17 @@ function isPastDate(date: Date): boolean {
 }
 
 function isPastSlot(date: Date, hour: number): boolean {
-  const now = new Date()
+  const now = clock.now.value
   const slotDate = new Date(date)
   slotDate.setHours(hour, 0, 0, 0)
   return slotDate.getTime() < now.getTime() + 5 * 60_000
+}
+
+function formatCurrentTime(date: Date): string {
+  return date.toLocaleTimeString(i18nLocale.value === 'es' ? 'es-ES' : 'en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function dateKey(date: Date): string {
@@ -698,9 +705,11 @@ watch(
       :publications-for-slot="publicationsForSlot"
       :is-today="isToday"
       :format-day-name="formatDayName"
-      :is-past-slot="isPastSlot"
-      :has-no-channels="publishingStore.hasNoChannels"
-      @new-post="openNewPostGeneral"
+       :is-past-slot="isPastSlot"
+       :has-no-channels="publishingStore.hasNoChannels"
+       :now="clock.now.value"
+       :format-current-time="formatCurrentTime"
+       @new-post="openNewPostGeneral"
       @prev="goBackward"
       @next="goForward"
       @today="goToToday"
