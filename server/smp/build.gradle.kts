@@ -25,10 +25,11 @@ tasks.named<BootBuildImage>("bootBuildImage") {
 springBoot {
     buildInfo {
         properties {
-            additional = mapOf(
-                "revision" to providers.gradleProperty("buildRevision").getOrElse("unknown"),
-                "builtAt" to providers.gradleProperty("buildTime").getOrElse("unknown"),
-            )
+            additional =
+                mapOf(
+                    "revision" to providers.gradleProperty("buildRevision").getOrElse("unknown"),
+                    "builtAt" to providers.gradleProperty("buildTime").getOrElse("unknown"),
+                )
         }
     }
 }

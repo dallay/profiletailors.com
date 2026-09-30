@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class BackendBuildInfo(properties: BuildProperties) {
-    val version: String = properties.version
+    val version: String = properties.version ?: "unknown"
     val revision: String = properties.get("revision") ?: "unknown"
     val builtAt: String = properties.get("builtAt") ?: "unknown"
 }
