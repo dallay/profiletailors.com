@@ -6,9 +6,13 @@ metadata:
   category: frontend-platform
   family: css
   source: upstream-adapted
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Frontend Design Skill
+
+When working in Profile Tailors, follow `.agents/DESIGN.md` and the current surface `PRODUCT.md`
+before applying these generic design suggestions. Use this skill only for decisions those sources
+and the more specific `impeccable` and `nothing-design` skills leave open.
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "
 AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and

@@ -10,7 +10,7 @@ ProfileTailors is built using **Agent Harness** — a personal framework for AI-
 
 - **AgentSync**: Multi-agent instruction synchronization
 - **OpenSpec**: Spec-driven development with phase DAG
-- **Skills System**: 67 domain-specific skills
+- **Skills System**: 66 domain-specific skills
 - **MCP Integration**: Linear, Playwright, and more
 
 This is not a demonstration or exercise. This is how ProfileTailors is actually built.
@@ -34,7 +34,7 @@ This is not a demonstration or exercise. This is how ProfileTailors is actually 
 │                    Agent Harness (OpenCode)                  │
 ├─────────────────────────────────────────────────────────────┤
 │  .agents/AGENTS.md              ← Canonical instructions    │
-│  .agents/skills/                ← 67 domain skills          │
+│  .agents/skills/                ← 66 top-level skills       │
 │  .agents/agents/                 ← 23 maintenance agents     │
 │  .agents/agentsync.toml         ← Sync configuration        │
 └─────────────────────────────────────────────────────────────┘
@@ -76,17 +76,15 @@ Canonical instructions for all AI agents. Synchronized to:
 - `.gemini/`
 - `.opencode/`
 
-### Skills (67 total)
+### Skills (66 total)
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| Architecture | 1 | `architecture-governance` |
-| Backend | 12 | `hexagonal-architecture`, `ddd-architecture`, `spring-boot` |
-| Design | 10 | All GoF patterns |
-| Frontend | 8 | `vue`, `astro`, `pinia`, `shadcn-vue` |
-| Languages | 3 | `typescript`, `kotlin`, `zod-4` |
-| Testing | 2 | `playwright`, `vitest` |
-| Tools | 30+ | `gradle`, `pnpm`, `docker`, `vercel` |
+| Area | Examples |
+|------|----------|
+| Architecture and backend | `architecture-governance`, `hexagonal-architecture`, `ddd-architecture`, `spring-boot` |
+| Design | `impeccable`, `nothing-design`, and GoF patterns |
+| Frontend | `vue`, `astrolicious-astro`, `pinia`, `frontend-architecture` |
+| Languages and testing | `typescript`, `kotlin`, `zod-4`, `playwright`, `vitest` |
+| Tools | `gradle`, `pnpm`, `docker-expert` |
 
 ### OpenSpec
 

@@ -27,7 +27,7 @@
 |-----------|----------|----------|
 | Root `AGENTS.md` | Canonical file, synchronized to root and agent dirs | `.agents/AGENTS.md` |
 | OpenSpec configuration | Complete config with schema, persistence, testing | `openspec/config.yaml` |
-| Reusable skills | 67 skills across 10 domains | `.agents/skills/` |
+| Reusable skills | 66 top-level skills in a flat inventory | `.agents/skills/` |
 | Copilot-compatible instructions | Synced from AGENTS.md | `.github/copilot-instructions.md` |
 | MCP configuration | 7 servers configured | `.mcp.json`, `.vscode/mcp.json` |
 | Installation prerequisites | Documented in Justfile | `Justfile:23-65` |
@@ -120,7 +120,7 @@ GitHub Copilot does not expose token counts or tool call statistics through its 
 |-----------|----------|----------|
 | OpenSpec vs alternatives | Full justification | `TOOLING.md` |
 | Linear vs Jira | Trade-off table | `TOOLING.md` |
-| Skills architecture | Why 67 skills | `TOOLING.md` |
+| Skills architecture | Flat skill inventory | `TOOLING.md` |
 | AgentSync | Why multi-agent sync | `TOOLING.md` |
 | Trade-offs documented | Per-component tables | `TOOLING.md` |
 | Setup cost | Documented | `TOOLING.md` |
@@ -139,7 +139,7 @@ GitHub Copilot does not expose token counts or tool call statistics through its 
 - [ ] Repository cloned
 - [ ] `just -l` works
 - [ ] `AGENTS.md` accessible
-- [ ] Skills directory populated (67 skills)
+- [ ] Skills directory populated (66 skills)
 - [ ] MCP configured
 - [ ] Three changes visible
 - [ ] Review evidence documented

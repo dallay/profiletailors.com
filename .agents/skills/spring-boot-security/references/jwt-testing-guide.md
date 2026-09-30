@@ -1,11 +1,11 @@
 # JWT Testing Guide
 
 Comprehensive testing strategies for JWT authentication and authorization in the
-reactive SMP backend. All examples use Kotest + MockK (`@MockkBean`),
+reactive SMP backend. Reactive examples use Kotest + MockK (`@MockkBean`),
 `@SpringBootTest` with `@AutoConfigureWebTestClient`, R2DBC via Testcontainers,
-and `WebTestClient` for end-to-end tests. The Servlet JUnit Jupiter + Mockito +
-servlet-stack patterns are intentionally not shown — see
-`migration-spring-security-6x.md` for the servlet history.
+and `WebTestClient` for end-to-end tests. Servlet JUnit/Mockito examples are
+not the active backend default; see `migration-spring-security-6x.md` for
+migration context.
 
 ## Table of Contents
 
@@ -416,7 +416,7 @@ class JwtPerformanceBenchmarks(
         val opsPerThread = 100
         coroutineScope {
             (1..numThreads).map {
-                async(Dispatchers.IO) {
+                async(Dispatchers.Default) {
                     repeat(opsPerThread) {
                         runBlocking { jwtService.generateToken(user) }
                         runBlocking { jwtService.isTokenValid("a-bogus-token") }

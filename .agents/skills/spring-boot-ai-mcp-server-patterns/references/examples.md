@@ -2,6 +2,11 @@
 
 Comprehensive examples for implementing MCP servers with Spring AI.
 
+These examples are broad framework references, not Profile Tailors implementation templates. Some
+use Java, blocking JDBC, or blocking HTTP clients. For this repository, follow the Kotlin, WebFlux,
+coroutines, R2DBC, and hexagonal architecture guidance in the parent skill; database tools must
+delegate to a narrow application use case rather than exposing arbitrary SQL.
+
 ## Table of Contents
 
 1. [Basic MCP Server Setup](#basic-mcp-server-setup)

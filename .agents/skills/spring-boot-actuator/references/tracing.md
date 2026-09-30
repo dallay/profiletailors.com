@@ -3,6 +3,10 @@
 Spring Boot Actuator provides dependency management and auto-configuration
 for [Micrometer Tracing](https://micrometer.io/docs/tracing), a facade for popular tracer libraries.
 
+Use tracing with the repository's WebFlux, coroutine, and R2DBC stack. The blocking client and JPA
+examples later in this broad framework reference apply only to existing imperative services; they
+are not Profile Tailors implementation defaults.
+
 > **TIP**
 >
 > To learn more about Micrometer Tracing capabilities, see
@@ -300,9 +304,11 @@ class UserService {
 
 ## HTTP Client Tracing
 
-### WebClient Tracing
+### Legacy blocking WebClient tracing (imperative services only)
 
-Spring Boot automatically configures tracing for WebClient:
+Spring Boot automatically configures tracing for WebClient. This broad reference uses `block()` and
+applies only to existing imperative services; never call it from a WebFlux request path. Keep
+reactive request handling non-blocking.
 
 ```kotlin
 @Service
@@ -330,9 +336,10 @@ class ExternalApiService {
 }
 ```
 
-### RestTemplate Tracing
+### Legacy RestTemplate tracing reference
 
-For RestTemplate, add the interceptor manually:
+This interceptor applies only to existing blocking integrations. Do not add `RestTemplate` to the
+reactive backend.
 
 ```kotlin
 @Configuration
@@ -349,9 +356,10 @@ class RestTemplateConfig {
 
 ## Database Tracing
 
-### JPA/Hibernate Tracing
+### Legacy JPA/Hibernate tracing reference
 
-Enable SQL tracing with additional configuration:
+This section applies to JPA/Hibernate services. Profile Tailors uses R2DBC; use its reactive
+database observation and tracing integration instead.
 
 ```yaml
 spring:

@@ -11,7 +11,7 @@
 |-------------|--------|-------------------|--------|
 | Root `AGENTS.md` | Required | ✅ `.agents/AGENTS.md` (canonical), synchronized to root, `.claude/`, `.codex/`, `.gemini/`, `.opencode/` | ✅ |
 | OpenSpec configuration | Required | ✅ `openspec/config.yaml` with schema, persistence, testing, quality configuration | ✅ |
-| Reusable skills | Required | ✅ 67 skills across `.agents/skills/` + `.opencode/skills/` (symlinked) | ✅ |
+| Reusable skills | Required | ✅ 66 top-level skills under `.agents/skills/`; `.opencode/skills/` is symlinked | ✅ |
 | Copilot-compatible instructions | Required | ✅ `.github/copilot-instructions.md` synced from AGENTS.md, MCP servers configured | ✅ |
 | MCP configuration | Required | ✅ `.mcp.json` with Linear, Playwright, Chrome DevTools, CodeGraph, Socket, GitHub grep, shadcn-vue | ✅ |
 | Installation prerequisites | Required | ✅ `Justfile` documents Node.js, pnpm, Docker, just | ✅ |
@@ -111,7 +111,7 @@
 | Evidence | Path |
 |----------|------|
 | AGENTS.md canonical | `.agents/AGENTS.md` |
-| Skills (67) | `.agents/skills/` |
+| Skills (66) | `.agents/skills/` |
 | AgentSync config | `.agents/agentsync.toml` |
 | MCP servers | `.mcp.json` |
 | OpenSpec config | `openspec/config.yaml` |
