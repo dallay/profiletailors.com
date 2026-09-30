@@ -13,4 +13,8 @@ data class UserPreferences(
     val weekStartsOn: String = "Monday",
     val theme: String = "dark",
     val updatedAt: Instant = Instant.now(),
-)
+) {
+    init {
+        require(principalId.isNotBlank()) { "Principal ID must not be blank" }
+    }
+}
