@@ -22,6 +22,12 @@ export function useSchedulerTimeline(props: Readonly<SchedulerTimelineProps>) {
       viewport.value.scrollLeft = Math.max(0, todayStart - gutterWidth)
     } else if (todayEnd > visibleEnd)
       viewport.value.scrollLeft = todayEnd - viewport.value.clientWidth
+
+    // Keep the current time in view on mobile instead of opening at midnight.
+    // Leave a little room above it so the preceding slot is still visible.
+    const currentHourTop = props.now.getHours() * 96
+    const contextOffset = Math.round(viewport.value.clientHeight * 0.2)
+    viewport.value.scrollTop = Math.max(0, currentHourTop - contextOffset)
   }
   watch(
     () => props.days,

@@ -5,6 +5,7 @@ import { apiFetch, ensureApiSuccess, readApiJson } from '@/lib/api'
 const ROLE_PERMISSIONS = {
   PLATFORM_OWNER: [
     'platform.dashboard.read',
+    'platform.system.build-info.read',
     'platform.waitlist.read',
     'platform.waitlist.invite',
     'platform.waitlist.cancel',

@@ -47,12 +47,14 @@ describe('MobileSchedulerHeader', () => {
     expect(wrapper.get('[data-testid="mobile-filters-trigger"]').text()).toContain('2')
   })
 
-  it('disables New Post when no active channel exists', () => {
+  it('offers channel connection when no active channel exists', async () => {
     const wrapper = mountHeader(0, true)
     const newPostButton = wrapper.get('[data-testid="mobile-new-post"]')
 
-    expect(newPostButton.attributes('disabled')).toBeDefined()
-    expect(newPostButton.attributes('title')).toBe('scheduler.noChannelTitle')
+    expect(newPostButton.text()).toContain('scheduler.connectChannels')
+    expect(newPostButton.attributes('disabled')).toBeUndefined()
+    await newPostButton.trigger('click')
+    expect(wrapper.emitted('connectChannels')).toHaveLength(1)
   })
 
   it('emits header actions', async () => {
@@ -69,13 +71,5 @@ describe('MobileSchedulerHeader', () => {
     expect(wrapper.emitted('next')).toHaveLength(1)
     expect(wrapper.emitted('today')).toHaveLength(1)
     expect(wrapper.emitted('openFilters')).toHaveLength(1)
-  })
-
-  it('disables New Post button when hasNoChannels is true', () => {
-    const wrapper = mountHeader(0, true)
-    const newPostBtn = wrapper.get('[data-testid="mobile-new-post"]')
-
-    expect(newPostBtn.attributes('disabled')).toBeDefined()
-    expect(newPostBtn.attributes('title')).toBe('scheduler.noChannelTitle')
   })
 })

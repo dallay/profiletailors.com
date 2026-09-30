@@ -57,6 +57,9 @@ function makeUrlController(
 
 // Singleton mock controller — reset in beforeEach
 let mockController = makeUrlController()
+const mockSidebarIsMobile = ref(false)
+const mockSetOpenMobile = vi.fn()
+const mockSetOpen = vi.fn()
 
 vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
   useCalendarUrl: () => mockController,
@@ -66,8 +69,20 @@ vi.mock('@/lib/app-tour', () => ({
   startAppTour: vi.fn(),
 }))
 
-vi.mock('@vueuse/core', () => ({
-  useMediaQuery: () => ref(false),
+vi.mock('@vueuse/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@vueuse/core')>()
+  return {
+    ...actual,
+    useMediaQuery: () => ref(false),
+  }
+})
+
+vi.mock('@/components/ui/sidebar', () => ({
+  useSidebar: () => ({
+    isMobile: mockSidebarIsMobile,
+    setOpenMobile: mockSetOpenMobile,
+    setOpen: mockSetOpen,
+  }),
 }))
 
 // ---------------------------------------------------------------------------
@@ -249,6 +264,9 @@ describe('SchedulerView', () => {
     vi.spyOn(store, 'fetchCalendar').mockResolvedValue()
     vi.spyOn(store, 'connectLinkedInPersonalProfile').mockResolvedValue(undefined as never)
     vi.spyOn(store, 'deletePost').mockResolvedValue(undefined as never)
+    mockSidebarIsMobile.value = false
+    mockSetOpenMobile.mockReset()
+    mockSetOpen.mockReset()
 
     // Reset mock controller to default state per test
     mockController = makeUrlController()

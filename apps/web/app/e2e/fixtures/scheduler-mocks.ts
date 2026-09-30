@@ -118,9 +118,24 @@ const mockChannels = {
 
 const mockProviders = {
   providers: [
-    { name: 'linkedin', configured: true },
-    { name: 'twitter', configured: false },
-    { name: 'facebook', configured: false },
+    {
+      provider: 'linkedin',
+      accountKinds: ['PERSONAL'],
+      channelLimit: null,
+      connectedChannelCount: 0,
+      canConnectMore: true,
+      state: 'AVAILABLE',
+      reason: null,
+    },
+    {
+      provider: 'threads',
+      accountKinds: ['PERSONAL'],
+      channelLimit: null,
+      connectedChannelCount: 0,
+      canConnectMore: true,
+      state: 'AVAILABLE',
+      reason: null,
+    },
   ],
 }
 

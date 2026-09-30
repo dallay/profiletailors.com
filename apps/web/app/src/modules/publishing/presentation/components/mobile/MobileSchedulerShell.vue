@@ -32,6 +32,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{
   (event: 'newPost'): void
+  (event: 'connectChannels'): void
   (event: 'prev'): void
   (event: 'next'): void
   (event: 'today'): void
@@ -69,6 +70,7 @@ function handleOpenNewPost(day: Date, hour: number) {
       :filters-count="filtersCount"
       :has-no-channels="hasNoChannels"
       @new-post="emit('newPost')"
+      @connect-channels="emit('connectChannels')"
       @prev="emit('prev')"
       @next="emit('next')"
       @today="emit('today')"

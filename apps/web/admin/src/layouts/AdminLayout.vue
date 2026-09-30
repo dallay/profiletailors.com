@@ -6,6 +6,7 @@ import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { visibleNavEntries } from '@/router/nav-registry'
 import { VersionBadge } from '@profiletailors/vue-ui'
+import BackendVersionBadge from '@/shared/ui/BackendVersionBadge.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -80,7 +81,10 @@ async function signOut() {
       </div>
 
       <div class="border-t border-border-subtle px-4 py-3">
-        <VersionBadge />
+        <div class="flex flex-col gap-1">
+          <VersionBadge />
+          <BackendVersionBadge v-if="authStore.hasPermission('platform.system.build-info.read')" />
+        </div>
       </div>
     </aside>
 

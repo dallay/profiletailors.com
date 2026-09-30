@@ -22,6 +22,18 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     )
 }
 
+springBoot {
+    buildInfo {
+        properties {
+            additional =
+                mapOf(
+                    "revision" to providers.gradleProperty("buildRevision").getOrElse("unknown"),
+                    "builtAt" to providers.gradleProperty("buildTime").getOrElse("unknown"),
+                )
+        }
+    }
+}
+
 // ── .env loader for local development ────────────────────────────────────────
 // Reads the root .env (linked via bin/setup-env.sh) and exports each variable
 // to the forked bootRun JVM so Spring Boot picks them up as environment vars.
