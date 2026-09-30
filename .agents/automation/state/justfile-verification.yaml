@@ -1,14 +1,14 @@
 schemaVersion: 1
 task: justfile-verification
 lastExecution:
-  timestamp: "2026-03-30T00:00:00Z"
+  timestamp: "2026-03-31T00:00:00Z"
   outcome: NO_DRIFT_DETECTED
 findings: []
 checks:
   - name: just-summary-check
     target: Justfile
     status: Passed
-    notes: All 71 Justfile recipes parsed without syntax or parameter errors.
+    notes: All 74 Justfile recipes parsed without syntax or parameter errors.
   - name: postgres-boundaries-check
     target: scripts/check-just-postgres-boundaries.sh
     status: Passed
