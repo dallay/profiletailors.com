@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import SchedulerTimelineBody from './SchedulerTimelineBody.vue'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
@@ -79,13 +80,48 @@ describe('SchedulerTimelineBody', () => {
     expect(slotBtn.attributes('disabled')).toBeDefined()
   })
 
-  it('renders the Now time indicator when current day is in days', () => {
+  it('updates the Now marker position when the current time changes', async () => {
     const targetDay = days(3)[1]!
     const wrapper = mountTimeline({
       isTodayFn: (d) => d.toISOString() === targetDay.toISOString(),
     })
 
     const nowIndicator = wrapper.find('[data-testid="scheduler-now-indicator"]')
-    expect(nowIndicator.exists()).toBe(true)
+    expect(nowIndicator.attributes('style')).toContain('top: 50%')
+
+    await wrapper.setProps({ now: new Date('2026-06-15T09:45:00') })
+    expect(nowIndicator.attributes('style')).toContain('top: 75%')
+
+    await wrapper.setProps({ now: new Date('2026-06-15T10:00:00') })
+    expect(wrapper.find('[data-testid="scheduler-now-indicator"]').exists()).toBe(false)
   })
+
+  it.each([
+    { name: 'partly behind the gutter', todayIndex: 1, scrollLeft: 140, expected: 120 },
+    { name: 'offscreen to the left', todayIndex: 1, scrollLeft: 400, expected: 120 },
+    { name: 'the first column', todayIndex: 0, scrollLeft: 20, expected: 0 },
+    { name: 'offscreen to the right', todayIndex: 6, scrollLeft: 0, expected: 568 },
+    { name: 'already visible', todayIndex: 1, scrollLeft: 100, expected: 100 },
+    { name: 'exactly beside the gutter', todayIndex: 1, scrollLeft: 120, expected: 120 },
+    { name: 'outside the date range', todayIndex: -1, scrollLeft: 100, expected: 100 },
+  ])(
+    'reveals Today after changing days when $name',
+    async ({ todayIndex, scrollLeft, expected }) => {
+      const targetDay = days(7)[todayIndex]
+      const wrapper = mountTimeline({
+        dayCount: 7,
+        isTodayFn: (day) => day.getTime() === targetDay?.getTime(),
+      })
+      await nextTick()
+      const viewport = wrapper.get('[data-testid="scheduler-timeline-viewport"]').element
+      Object.defineProperty(viewport, 'clientWidth', { value: 320 })
+      viewport.scrollLeft = scrollLeft
+
+      await wrapper.setProps({ days: days(7) })
+      await nextTick()
+
+      expect(viewport.scrollLeft).toBe(expected)
+      wrapper.unmount()
+    },
+  )
 })
