@@ -96,6 +96,21 @@ describe('SchedulerTimelineBody', () => {
     expect(wrapper.find('[data-testid="scheduler-now-indicator"]').exists()).toBe(false)
   })
 
+  it('opens near the current hour when Today is in the visible range', async () => {
+    const targetDay = days(3)[1]!
+    const wrapper = mountTimeline({
+      isTodayFn: (d) => d.toISOString() === targetDay.toISOString(),
+    })
+    const viewport = wrapper.get('[data-testid="scheduler-timeline-viewport"]').element
+    Object.defineProperty(viewport, 'clientHeight', { value: 320 })
+
+    await wrapper.setProps({ days: days(3) })
+    await nextTick()
+
+    expect(viewport.scrollTop).toBe(9 * 96 - 64)
+    wrapper.unmount()
+  })
+
   it.each([
     { name: 'partly behind the gutter', todayIndex: 1, scrollLeft: 140, expected: 120 },
     { name: 'offscreen to the left', todayIndex: 1, scrollLeft: 400, expected: 120 },
