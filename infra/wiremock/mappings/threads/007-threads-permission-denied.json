@@ -1,0 +1,23 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads",
+    "headers": {
+      "Authorization": { "matches": "Bearer mock-threads-.+" }
+    },
+    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.text =~ /.*THREADS_FORBIDDEN_TEST.*/)]" }]
+  },
+  "response": {
+    "status": 403,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "error": {
+        "message": "Mocked Threads permission denied",
+        "type": "OAuthException",
+        "code": 10,
+        "error_subcode": null
+      }
+    }
+  }
+}

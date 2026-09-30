@@ -1,0 +1,22 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/v1.0/access_token",
+    "queryParameters": {
+      "grant_type": { "equalTo": "th_exchange_token" },
+      "client_secret": { "matches": ".+" },
+      "access_token": { "matches": "mock-threads-.+" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "access_token": "mock-threads-long-lived-{{randomValue length=8 type='ALPHANUMERIC'}}",
+      "token_type": "bearer",
+      "expires_in": 5184000
+    },
+    "transformers": ["response-template"]
+  }
+}
