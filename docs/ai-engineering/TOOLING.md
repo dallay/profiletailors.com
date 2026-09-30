@@ -66,23 +66,24 @@ Generic "spec-driven workflow" or Jira-based specs.
 
 ### Problem Being Solved
 
-ProfileTailors needs 3-4 reusable skills for common tasks.
+The repository keeps reusable, task-specific guidance in a shared skills inventory.
 
 ### Solution Used by ProfileTailors
 
-**Hierarchical Skills System**:
+**Flat Skills Inventory**:
 
 ```
-.agents/skills/              # Canonical source (67 skills)
-├── architecture-governance/  # ARCH-001..005 ownership
-├── backend-platform/        # Kotlin, Spring Boot, hexagonal, DDD
-├── design-pattern/          # GoF patterns (adapter, builder, etc.)
-├── frontend-platform/      # Vue, Astro, Pinia, accessibility
-├── impeccable/              # Design/impeccable design reviews
-├── languages-typing/        # TypeScript, Kotlin, Zod
-├── testing/                # Playwright, Vitest
-└── tools/                  # Gradle, pnpm, Docker, etc.
+.agents/skills/              # Canonical source (66 skills)
+├── spring-boot*/            # Spring, WebFlux, Kotlin backend guidance
+├── vue/                     # Vue app and admin guidance
+├── frontend-architecture/   # Boundaries across web surfaces
+├── design*/                 # Design process and visual-language skills
+└── ...                      # Other skills; each skill is a top-level folder
 ```
+
+The hand-maintained `.agents/skill-registry.md` describes discovery metadata. Authors update it
+during ordinary review when skills are added, renamed, or removed. Skill content is reviewed as
+living documentation; there is no dedicated skill-format or drift CI gate.
 
 **AgentSync**: `.agents/agentsync.toml` synchronizes skills to:
 
@@ -101,7 +102,7 @@ Single-level prompt files or basic instruction files.
 2. **Discovery**: Hand-maintained `skill-registry.md` lets agents find relevant skills
 3. **Consistency**: Skills ensure pattern adherence (hexagonal, DDD, testing)
 4. **Amortization**: One skill definition serves all agents
-5. **Quality gates**: Architecture rules are enforceable via Konsist/Spring Modulith tests
+5. **Architecture checks**: Backend boundaries are verified by the existing architecture tests
 
 ### Trade-offs
 
@@ -109,7 +110,7 @@ Single-level prompt files or basic instruction files.
 |---------------|----------------|
 | ✅ Context-aware auto-loading | ❌ Requires manual skill selection |
 | ✅ Version-controlled patterns | ❌ Patterns can drift |
-| ✅ Executable quality checks | ❌ Manual enforcement |
+| ✅ Focused architecture checks | ❌ Manual enforcement |
 | ❌ Learning curve | ✅ Simpler to understand |
 | ❌ More files to maintain | ✅ Single file per concern |
 
@@ -386,7 +387,7 @@ Documentation only — no technical setup required.
 | Concept | ProfileTailors Implementation | Justification |
 |-----------------|------------------------------|---------------|
 | OpenSpec | Real OpenSpec SDD workflow | More structured than generic "spec-driven" |
-| 3-4 Skills | 67 skills + hierarchical system | More comprehensive, not less |
+| 3-4 Skills | 66 skills in a flat inventory | More comprehensive, not less |
 | Prompts | Three-layer instruction system | More maintainable, agent-aware |
 | Jira MCP | Linear MCP | Explicitly acceptable per exercise |
 | Toy project | Three bounded production changes | More realistic evidence |

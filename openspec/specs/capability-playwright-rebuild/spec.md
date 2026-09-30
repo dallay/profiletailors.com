@@ -13,9 +13,8 @@ debe ser ejecutable en el worktree actual.
 ## Authority
 
 - Trazabilidad: bloque **P0-D** del `proposal.md`.
-- Sin governance decision específica; aplica transversalmente el gate
-  de `capability-automated-skill-doctor` (G-2) y la regla de
-  contaminación de `capability-external-contamination`.
+- Sin governance gate específico. The skill is maintained through
+  ordinary review against the current Playwright configs and commands.
 - Decisión cerrada: rewrite (no update parcial), anclado a la
   superficie `apps/web/{app,admin,marketing}` + `shared/web`.
 

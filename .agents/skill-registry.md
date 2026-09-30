@@ -13,7 +13,7 @@
 | `animate-text` | design | css | local | 2026-09-28 | Use when picking or translating named effects like soft blur in, typewriter, shared axis, line reveal, stagger, crossfade, or kinetic builds |
 | `architecture-governance` | governance | none | local | 2026-09-28 | Use when defining, reviewing, or verifying repository architecture contracts, ADR ownership, bounded-context boundaries, or architecture-check rollout policy |
 | `astrolicious-astro` | frontend-platform | none | upstream-adapted | 2026-09-28 | Use when working with Astro, .astro files, static site generation (SSG), islands architecture, content collections, or deploying Astro projects |
-| `best-practices` | governance | none | upstream-adapted | 2026-09-28 | Apply modern web development best practices for security, compatibility, and code   quality |
+| `best-practices` | governance | none | local | 2026-09-30 | Use for a focused web security, compatibility, or code-quality review when no more specific local skill owns the topic |
 | `bridge` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Bridge design pattern |
 | `builder` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Builder design pattern |
 | `chain-of-responsibility` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Chain of Responsibility design pattern |
@@ -28,16 +28,16 @@
 | `factory-method` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Factory Method design pattern |
 | `flyweight` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Flyweight design pattern |
 | `frontend-architecture` | frontend-platform | vue | local | 2026-09-28 | Use when designing, reviewing, or validating boundaries across the Vue/Pinia app, the flatter admin SPA, Astro marketing, or shared web contracts |
-| `frontend-design` | frontend-platform | css | upstream-adapted | 2026-09-28 | Use when building web components, pages, or applications with high design quality that avoids generic AI aesthetics |
+| `frontend-design` | frontend-platform | css | upstream-adapted | 2026-09-30 | Use for generic design inspiration only where the Profile Tailors design system and specialized design skills leave decisions open |
 | `gradle` | devops | kotlin | local | 2026-09-28 | Use when working with build.gradle.kts, settings.gradle.kts, custom tasks, or Gradle plugins for build configuration and performance |
 | `hexagonal-architecture` | backend-platform | kotlin | local | 2026-09-28 | Use when creating features, domain models, use cases, or organizing backend code with Hexagonal Architecture (Ports and Adapters) and CQRS |
 | `impeccable` | design | css | local | 2026-09-28 | Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface |
 | `iterator` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Iterator design pattern |
-| `kotlin` | languages-typing | kotlin | local | 2026-09-28 | Use when working with .kt files, coroutines, or Kotlin-specific patterns |
+| `kotlin` | languages-typing | kotlin | local | 2026-09-30 | Use when working with .kt files, coroutines, or Kotlin-specific patterns |
 | `mediator` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Mediator design pattern |
 | `memento` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Memento design pattern |
-| `modern-web-guidance` | frontend-platform | css | upstream-adapted | 2026-09-28 | Search tool for modern web development best practices |
-| `nothing-design` | design | css | local | 2026-09-28 | Use when the user explicitly asks for Nothing style, Nothing design, or /nothing-design for intentional Nothing-inspired UI |
+| `modern-web-guidance` | frontend-platform | css | upstream-adapted | 2026-09-30 | Use for current browser-platform guidance when no specialized local skill covers the topic |
+| `nothing-design` | design | css | local | 2026-09-30 | Use automatically for Profile Tailors design work and when another user requests Nothing-inspired design |
 | `observer` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Observer design pattern |
 | `open-pencil` | design | none | local | 2026-09-28 | Work with Figma .fig design files and the running OpenPencil editor — inspect structure, query nodes, analyze design tokens, export PNG/SVG/PDF/JSX, and modify designs programmatically |
 | `performance` | frontend-platform | css | upstream-adapted | 2026-09-28 | Use when speeding up sites, optimizing performance, reducing load time, fixing slow loading, or improving page speed |
@@ -51,17 +51,17 @@
 | `seo` | frontend-platform | none | local | 2026-09-28 | Use when asked to improve SEO, optimize for search, fix meta tags, add structured data, optimize sitemap, or implement search engine optimization |
 | `singleton` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Singleton design pattern |
 | `spring-boot` | backend-platform | spring-boot | local | 2026-09-28 | Use when implementing Spring Boot 4 adapters, reactive HTTP endpoints, persistence integrations,   configuration, transaction boundaries, security baselines, or infrastructure tests in a Kotlin +   coroutines + WebFlux hexagonal backend |
-| `spring-boot-actuator` | backend-platform | spring-boot | local | 2026-09-28 | Use when configuring Spring Boot Actuator for production-grade monitoring, health probes, secured management endpoints, readiness/liveness checks, and Micrometer metrics in Spring Boot 4 applications |
-| `spring-boot-ai-mcp-server-patterns` | backend-platform | spring-boot | local | 2026-09-28 | Use when building Model Context Protocol servers in Spring Boot with Spring AI, exposing tools or resources, configuring transports, or integrating AI tool-calling workflows |
+| `spring-boot-actuator` | backend-platform | spring-boot | local | 2026-09-30 | Use when configuring reactive Spring Boot Actuator monitoring, health probes, management endpoints, and Micrometer metrics |
+| `spring-boot-ai-mcp-server-patterns` | backend-platform | spring-boot | local | 2026-09-30 | Use when building MCP servers and tools with Spring AI within the Kotlin reactive backend |
 | `spring-boot-api-standards` | backend-platform | spring-boot | local | 2026-09-28 | Use when designing or reviewing reactive HTTP APIs in Spring Boot 4, including resource URLs, status codes, DTO contracts, validation, pagination, filtering, security headers, and consistent error responses |
-| `spring-boot-cache` | backend-platform | spring-boot | local | 2026-09-28 | Use when adding caching to Spring Boot 4 services, configuring cache providers and TTL policies, invalidating stale data, or diagnosing cache hit and miss behavior |
+| `spring-boot-cache` | backend-platform | spring-boot | local | 2026-09-30 | Use when adding caching to Spring services, configuring cache providers and TTL policies, invalidating stale data, or diagnosing cache hit and miss behavior |
 | `spring-boot-data-neo4j-reactive` | backend-platform | spring-boot | local | 2026-09-28 | Use when integrating Neo4j into a Spring Boot 4 backend with graph models, Cypher queries, reactive repositories, relationship mapping, or graph-focused testing patterns |
-| `spring-boot-messaging` | backend-platform | spring-boot | local | 2026-09-28 | Use when implementing event-driven or message-based integration in Spring Boot 4, publishing domain events, coordinating Kafka or broker messaging, or applying outbox and idempotency patterns for reliable delivery |
+| `spring-boot-messaging` | backend-platform | spring-boot | local | 2026-09-30 | Use when implementing Spring events, reactive messaging, outbox, or idempotent broker delivery |
 | `spring-boot-openapi` | backend-platform | spring-boot | local | 2026-09-28 | Use when documenting reactive Spring Boot 4 HTTP APIs with SpringDoc OpenAPI, configuring Swagger UI, annotating endpoints, documenting security schemes, or defining request and response schemas |
-| `spring-boot-project-bootstrap` | backend-platform | spring-boot | local | 2026-09-28 | Use when bootstrapping a new Spring Boot 4 backend from Spring Initializr, choosing Kotlin + WebFlux + Gradle defaults, defining a hexagonal package-by-feature structure, and wiring local development services for a reactive stack |
-| `spring-boot-resilience` | backend-platform | spring-boot | local | 2026-09-28 | Use when implementing reactive fault-tolerance patterns in Spring Boot 4 with native Spring Framework 7 resilience features or Resilience4j, including retries, concurrency limiting, circuit breakers, rate limiting, timeouts, and fallbacks for downstream calls |
-| `spring-boot-saga-pattern` | backend-platform | spring-boot | local | 2026-09-28 | Use when implementing saga-based distributed consistency in Spring Boot 4, coordinating compensating transactions, or designing choreography and orchestration flows across services |
-| `spring-boot-security` | backend-platform | spring-boot | local | 2026-09-28 | Use when implementing reactive authentication or authorization in Spring Boot 4 with Spring Security, JWT bearer or cookie flows, RBAC or permission checks, token rotation, revocation, or OAuth2/resource server integration |
+| `spring-boot-project-bootstrap` | backend-platform | spring-boot | local | 2026-09-30 | Use when bootstrapping a Kotlin, WebFlux, Gradle service with reactive persistence and hexagonal boundaries |
+| `spring-boot-resilience` | backend-platform | spring-boot | local | 2026-09-30 | Use when implementing reactive fault tolerance, retries, circuit breakers, timeouts, or fallbacks for downstream calls |
+| `spring-boot-saga-pattern` | backend-platform | spring-boot | local | 2026-09-30 | Use when coordinating a multi-step business process across independently committed services or providers and designing recovery behavior |
+| `spring-boot-security` | backend-platform | spring-boot | local | 2026-09-30 | Use when implementing WebFlux authentication or authorization, JWT, OAuth2, roles, permissions, or token lifecycle behavior |
 | `spring-boot-testing-core` | backend-platform | spring-boot | local | 2026-09-28 | Use when writing fast Spring Boot 4 tests for application services, configuration properties, JSON serialization, validation, mappers, or other logic that should be verified without a full Spring context |
 | `spring-boot-testing-integrations` | backend-platform | spring-boot | local | 2026-09-28 | Use when testing Spring Boot 4 integrations that involve external HTTP services, WireMock, caches, events, schedulers, brokers, or containerized dependencies where focused integration tests provide better confidence than unit tests |
 | `spring-boot-testing-webflux` | backend-platform | spring-boot | local | 2026-09-28 | Use when testing reactive Spring Boot 4 HTTP adapters, `@RestController` endpoints, `@RestControllerAdvice`, validation errors, security constraints, or response contracts with WebFlux |
@@ -71,5 +71,5 @@
 | `typescript` | languages-typing | typescript | local | 2026-09-28 | Use when writing TypeScript code with types, interfaces, or generics |
 | `visitor` | design-pattern | none | local | 2026-09-28 | Apply, review, or refactor code using the Visitor design pattern |
 | `vitest` | testing | vitest | local | 2026-09-28 | Vitest fast unit testing framework powered by Vite with Jest-compatible API |
-| `vue` | frontend-platform | vue | local | 2026-09-28 | Use when working with .vue files, composables, Pinia stores, or form validation |
+| `vue` | frontend-platform | vue | local | 2026-09-30 | Use when working with Vue components, composables, Pinia state, or Vue forms in Profile Tailors |
 | `zod-4` | languages-typing | typescript | upstream-adapted | 2026-09-28 | Use when using Zod for validation, especially with breaking changes from v3 |

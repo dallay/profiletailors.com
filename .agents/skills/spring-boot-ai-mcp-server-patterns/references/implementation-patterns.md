@@ -2,9 +2,13 @@
 
 Detailed patterns for creating tools, prompt templates, and configuring Spring Boot MCP servers.
 
+For Profile Tailors, use the Kotlin reactive baseline from `SKILL.md`. The database section below
+uses blocking JDBC and is not a repository implementation pattern; do not expose arbitrary SQL or
+copy it into the WebFlux backend.
+
 ## Tool Creation Patterns
 
-### Database Tool
+### Generic blocking database reference
 
 ```kotlin
 @Component

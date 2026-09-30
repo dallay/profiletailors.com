@@ -6,7 +6,7 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Reactive Messaging
 
@@ -15,6 +15,15 @@ Kotlin coroutines**.
 
 This skill covers application events, transaction-bound events, asynchronous listeners, reliable
 publication patterns, and broker-oriented integration guidance with a reactive-first mindset.
+
+Use Kotlin and the repository's reactive transaction and adapter patterns. Treat Java, JDBC,
+Mockito, and servlet snippets in broad reference material as general examples, not Profile Tailors
+implementation guidance; `references/testing-strategies.md` is the current repository-aligned test
+guide.
+
+Keep broker listeners and publication adapters in Infrastructure. Application services remain
+framework-agnostic and use the repository's `com.profiletailors.common.domain.Service` marker where
+discovery is required.
 
 ## Official Baseline
 

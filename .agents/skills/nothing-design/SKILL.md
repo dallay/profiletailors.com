@@ -1,6 +1,6 @@
 ---
 name: nothing-design
-description: Use when the user explicitly asks for Nothing style, Nothing design, or /nothing-design for intentional Nothing-inspired UI.
+description: Use for Profile Tailors UI design work and whenever the user asks for Nothing-inspired design.
 license: MIT
 metadata:
   category: design
@@ -17,8 +17,10 @@ without clutter. Dark and light mode with equal rigor.
 **Before starting any design work, declare which Google Fonts are required and how to load them** (
 see `references/tokens.md` Section 1). Never assume fonts are already available.
 
-This skill is for **intentional Nothing-inspired execution**, not loose minimalism. Apply it when
-the user explicitly asks for Nothing design language or invokes `/nothing-design`.
+For Profile Tailors, apply this visual language automatically alongside `.agents/DESIGN.md`, which
+owns the product's actual tokens and design decisions. For other projects, use it only when the
+user asks for Nothing-inspired design. Do not replace project-specific rules with generic examples
+from this skill.
 
 ---
 
@@ -30,8 +32,9 @@ the user explicitly asks for Nothing design language or invokes `/nothing-design
   status (see Section 3).
 - **Type does the heavy lifting.** Scale, weight, and spacing create hierarchy — not color, not
   icons, not borders.
-- **Both modes are first-class.** Dark mode: OLED black. Light mode: warm off-white. Neither is "
-  derived" — both get full design attention. Ask the user which mode to start with.
+- **Both modes are first-class.** Follow the requested surface and its product design contract.
+  Profile Tailors is dark-first and gives light mode equal design rigor; do not ask the user to
+  select a mode when the surface contract already decides it.
 - **Industrial warmth.** Technical and precise, but never cold. A human hand should be felt.
 
 ---

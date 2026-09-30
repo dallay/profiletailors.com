@@ -6,9 +6,12 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Cache Abstraction
+
+Keep cache provider configuration and adapters in Infrastructure. Application services remain
+framework-agnostic and use `com.profiletailors.common.domain.Service` where discovery is required.
 
 ## Overview
 

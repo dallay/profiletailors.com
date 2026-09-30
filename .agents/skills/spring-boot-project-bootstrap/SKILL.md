@@ -6,7 +6,7 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Project Bootstrap
 
@@ -67,8 +67,8 @@ Ask for only the parameters that materially affect the scaffold.
 | Group ID            | `com.example`                 | valid package root                           |
 | Artifact ID         | `demo-service`                | kebab-case                                   |
 | Package name        | derived from group + artifact | Kotlin package                               |
-| Spring Boot version | latest stable `4.x`           | prefer latest stable available in Initializr |
-| Java version        | `21`                          | current LTS baseline                         |
+| Spring Boot version | latest compatible `4.x`       | choose the current compatible release       |
+| Java version        | deployment requirement        | check the supported runtime and build config |
 | Primary datastore   | user choice                   | PostgreSQL / Redis / MongoDB / none          |
 | Build tool          | `gradle`                      | use Maven only by explicit request           |
 
@@ -99,11 +99,9 @@ Use Spring Initializr with Kotlin + Gradle + WebFlux.
 curl -s "https://start.spring.io/starter.zip" \
   -d type=gradle-project-kotlin \
   -d language=kotlin \
-  -d bootVersion=4.0.0 \
   -d groupId=com.example \
   -d artifactId=demo-service \
   -d packageName=com.example.demoservice \
-  -d javaVersion=21 \
   -d packaging=jar \
   -d dependencies=webflux,validation,actuator,docker-compose,data-r2dbc,postgresql,r2dbc,testcontainers \
   -o starter.zip
@@ -112,7 +110,10 @@ unzip -o starter.zip -d ./demo-service
 rm starter.zip
 ```
 
-If Initializr offers a newer stable Spring Boot 4 version, use that instead of the example value.
+Select the current Spring Boot release and Java runtime supported by the target deployment. For
+an existing Profile Tailors module, use `gradle/libs.versions.toml` and the build configuration as
+the version source of truth. For a new service, verify current Spring Initializr compatibility
+instead of copying version literals from an old example.
 
 ## 3. Add Platform Dependencies
 
@@ -125,18 +126,9 @@ Add only what the reactive Kotlin baseline actually needs.
 - Kotest + MockK for pure Kotlin tests if not already present
 - Testcontainers modules that match the selected infrastructure
 
-### Example additions
-
-```kotlin
-dependencies {
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.15")
-
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
-    testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
-    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
-    testImplementation("io.mockk:mockk:1.13.12")
-}
-```
+Use the project's version catalog for dependency coordinates and versions. For a new project,
+choose versions compatible with its Spring Boot release and test framework rather than copying
+version literals from an old example.
 
 ## 4. Create the Standard Package Structure
 

@@ -1,296 +1,60 @@
 ---
 name: spring-boot-saga-pattern
-description: Use when implementing saga-based distributed consistency in Spring Boot 4, coordinating compensating transactions, or designing choreography and orchestration flows across services.
+description: Use when coordinating a multi-step business process across independently committed services or providers and designing recovery behavior.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
-# Spring Boot Saga Pattern
+# Saga Pattern
 
-## Overview
+Use a saga only when a business operation crosses transaction boundaries that cannot share one
+atomic database transaction. A saga coordinates separately committed steps and defines how the
+workflow reaches a valid outcome after a partial failure. It does not provide rollback equivalent
+to a database transaction.
 
-Implements distributed transactions across microservices using the Saga Pattern. Replaces two-phase
-commit with a sequence of local transactions and compensating actions. Supports choreography (
-event-driven) and orchestration (centralized coordinator) approaches with Kafka, RabbitMQ, or Axon
-Framework.
+## Before choosing a saga
 
-## When to Use
+- Map the business steps, ownership boundaries, durable state, and failure outcomes.
+- Identify which effects can be compensated, which are irreversible, and what an operator must do
+  when automatic recovery cannot finish.
+- Prefer one local transaction when all work belongs to one service and one database boundary.
+- Compare choreography and orchestration using the workflow's visibility, coupling, and recovery
+  needs. Do not add a broker or saga framework solely to avoid designing transaction boundaries.
 
-- Building distributed transactions across multiple microservices
-- Replacing two-phase commit (2PC) with a more scalable solution
-- Handling transaction rollback when a service fails
-- Ensuring eventual consistency in microservices architecture
-- Implementing compensating transactions for failed operations
-- Coordinating complex business processes spanning multiple services
+## Implementation boundaries
 
-**Trigger phrases**: distributed transactions, saga pattern, compensating transactions,
-microservices transaction, eventual consistency, rollback across services, orchestration pattern,
-choreography pattern
+- Keep business transitions and recovery decisions in the domain/application layers. Define ports
+  in Domain and implement provider, broker, and persistence adapters in Infrastructure.
+- Persist workflow state so process restarts do not lose progress. Use idempotency keys for commands
+  and messages that may be delivered more than once.
+- Use an outbox or the repository's existing reliable publication boundary when a committed state
+  transition must produce a message.
+- Make each compensation explicit and safe to retry. A compensation is a new business action, not
+  a time reversal; retain evidence of both the original action and its recovery.
+- Model pending, completed, retryable failure, compensating, and manual-intervention states only
+  where the business needs them.
+- Keep Spring, broker, and persistence types in Infrastructure. Application services use the
+  framework-free `com.profiletailors.common.domain.Service` marker where discovery is needed.
 
-## Instructions
+## Coroutines and persistence
 
-### 1. Design Transaction Flow
+Use the repository's coroutine and R2DBC patterns for reactive services. Keep the database update
+and outbox write inside the adapter's supported transaction boundary. Do not wrap broker sends,
+provider calls, or R2DBC operations in blocking transactions and assume that this makes them atomic.
 
-Map the sequence of operations and their compensating transactions:
+## Testing
 
-```
-Order → Payment → Inventory → Shipment
-  ↓        ↓        ↓          ↓
-Cancel  Refund   Release    Cancel
-```
+- Test domain transition and compensation decisions without Spring or broker infrastructure.
+- Test application orchestration through domain ports, including duplicate commands and retryable
+  failures.
+- Use the existing integration fixtures to verify database/outbox atomicity, message delivery, and
+  recovery after a process restart.
+- Follow the module's JUnit 5, Kotest, and MockK conventions. Read the version catalog before
+  adding a broker or saga dependency.
 
-**Validation**: Verify every forward step has a corresponding compensation.
-
-### 2. Choose Implementation Approach
-
-| Approach      | Use Case                      | Stack                                   |
-|---------------|-------------------------------|-----------------------------------------|
-| Choreography  | Greenfield, few participants  | Spring Cloud Stream + Kafka/RabbitMQ    |
-| Orchestration | Complex workflows, brownfield | Axon Framework, Eventuate Tram, Camunda |
-
-**Validation**: Review team expertise and system complexity before choosing.
-
-### 3. Implement Services with Local Transactions
-
-Each service completes its local ACID transaction atomically:
-
-```kotlin
-@Service
-class OrderService(
-    private val orderRepository: OrderRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    @Transactional
-    fun createOrder(cmd: CreateOrderCommand): Order {
-        val order = orderRepository.save(Order(cmd.orderId, cmd.items))
-        kafka.send("order.created", OrderCreatedEvent(order.id, order.items))
-        return order
-    }
-}
-```
-
-**Validation**: Test that local transaction commits before event is published.
-
-### 4. Implement Compensating Transactions
-
-Every forward operation requires an idempotent compensation:
-
-```kotlin
-@Service
-class PaymentService(
-    private val paymentRepository: PaymentRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    fun processPayment(request: PaymentRequest) {
-        val payment = paymentRepository.save(Payment(request.orderId, request.amount))
-        kafka.send("payment.processed", PaymentProcessedEvent(payment.id, request.orderId))
-    }
-
-    @Transactional
-    fun refundPayment(paymentId: String) {
-        paymentRepository.findById(paymentId).ifPresent { payment ->
-            payment.status = PaymentStatus.REFUNDED
-            paymentRepository.save(payment)
-            kafka.send("payment.refunded", PaymentRefundedEvent(paymentId))
-        }
-    }
-}
-```
-
-**Validation**: Confirm compensation can execute safely multiple times (idempotency).
-
-### 5. Set Up Message Broker
-
-Configure Kafka with idempotent consumers:
-
-```kotlin
-@Configuration
-@EnableKafka
-class KafkaConfig {
-    @Bean
-    fun kafkaListenerContainerFactory(
-        consumerFactory: ConsumerFactory<String, Any>
-    ): ConcurrentKafkaListenerContainerFactory<String, Any> =
-        ConcurrentKafkaListenerContainerFactory<String, Any>().apply {
-            setConsumerFactory(consumerFactory)
-            setCommonErrorHandler(DefaultErrorHandler())
-        }
-}
-```
-
-**Validation**: Enable transactional ID and verify exactly-once semantics.
-
-### 6. Implement Saga Orchestrator (Orchestration Only)
-
-```kotlin
-@Service
-class OrderSagaOrchestrator(
-    private val kafka: KafkaTemplate<String, Any>,
-    private val sagaStateRepo: SagaStateRepository,
-) {
-    fun startSaga(request: OrderRequest) {
-        val sagaId = UUID.randomUUID().toString()
-        sagaStateRepo.save(SagaState(sagaId, SagaStatus.STARTED, LocalDateTime.now()))
-        kafka.send("saga.order.start", StartOrderSagaCommand(sagaId, request))
-    }
-
-    @KafkaListener(topics = ["payment.failed"])
-    fun handlePaymentFailed(event: PaymentFailedEvent) {
-        kafka.send("order.compensate", CompensateOrderCommand(event.sagaId))
-        kafka.send("inventory.compensate", ReleaseInventoryCommand(event.sagaId))
-        sagaStateRepo.updateStatus(event.sagaId, SagaStatus.FAILED)
-    }
-}
-```
-
-**Validation**: Verify saga state persists before sending commands. Check compensation triggers on
-each failure path.
-
-### 7. Implement Event Handlers (Choreography Only)
-
-```kotlin
-@Service
-class OrderEventHandler(
-    private val orderService: OrderService,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    @KafkaListener(topics = ["payment.processed"], groupId = "order-service")
-    fun onPaymentProcessed(event: PaymentProcessedEvent) {
-        try {
-            val result = orderService.reserveInventory(event.toInventoryRequest())
-            kafka.send("inventory.reserved", result)
-        } catch (e: InsufficientInventoryException) {
-            kafka.send(
-                "inventory.insufficient",
-                InsufficientInventoryEvent(event.orderId, event.paymentId)
-            )
-        }
-    }
-}
-```
-
-**Validation**: Test that each event handler correctly triggers the next step or compensation.
-
-### 8. Add Monitoring and Observability
-
-```kotlin
-@Configuration
-class SagaMetricsConfig {
-    @Bean
-    fun meterRegistry(): MeterRegistry =
-        PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-}
-```
-
-Track: saga execution duration, compensation count, failure rate, stuck sagas.
-
-**Validation**: Set up alerts for sagas exceeding expected duration.
-
-## Best Practices
-
-**Design**:
-
-- Make compensating transactions **idempotent** using database constraints or deduplication tables
-- Use **immutable events** (Java records) to prevent accidental mutation
-- Store saga state in persistent storage for recovery
-
-**Error Handling**:
-
-- Implement **circuit breakers** for inter-service calls
-- Use **dead-letter queues** for messages exceeding retry limits
-- Set appropriate **timeouts** per saga step (30s default, configurable)
-
-**Monitoring**:
-
-- Track saga status: PENDING, COMPLETED, COMPENSATING, FAILED
-- Monitor compensation execution time
-- Alert when sagas exceed SLA duration
-
-## Constraints and Warnings
-
-- Every forward transaction MUST have a corresponding compensating transaction
-- Compensating transactions MUST be idempotent to handle retry scenarios
-- Saga state MUST be persisted to handle failures and recovery
-- Never use synchronous communication between saga participants
-- Sagas provide eventual consistency, not strong consistency
-- Test all failure scenarios including partial failures
-- Consider Axon Framework or Eventuate for complex orchestrations
-- Ensure message brokers are highly available
-
-## Examples
-
-### Choreography-Based Saga
-
-```kotlin
-// Application.kt
-@SpringBootApplication
-@EnableKafka
-class OrderApplication
-
-fun main(args: Array<String>) {
-    runApplication<OrderApplication>(*args)
-}
-
-// Event Classes (immutable)
-data class OrderCreatedEvent(val orderId: String, val items: List<OrderItem>)
-data class PaymentProcessedEvent(val paymentId: String, val orderId: String)
-data class InventoryReservedEvent(val reservationId: String, val orderId: String)
-data class PaymentFailedEvent(val orderId: String, val reason: String)
-data class InsufficientInventoryEvent(val orderId: String, val paymentId: String)
-
-// OrderService with compensation
-@Service
-class OrderService(
-    private val orderRepository: OrderRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    @KafkaListener(topics = ["payment.failed"], groupId = "order-service")
-    fun handleCompensation(event: PaymentFailedEvent) {
-        orderRepository.findByOrderId(event.orderId)?.let { order ->
-            order.status = OrderStatus.CANCELLED
-            orderRepository.save(order)
-        }
-    }
-}
-```
-
-### Orchestration-Based Saga with Axon Framework
-
-```kotlin
-// Command
-@Aggregate
-class OrderAggregate() {
-    @AggregateIdentifier
-    private lateinit var orderId: String
-
-    @CommandHandler
-    constructor(cmd: CreateOrderCommand) : this() {
-        apply(OrderCreatedEvent(cmd.orderId, cmd.items))
-    }
-
-    @EventSourcingHandler
-    fun on(event: OrderCreatedEvent) {
-        this.orderId = event.orderId
-    }
-
-    @CommandHandler
-    fun handle(cmd: CancelOrderCommand) {
-        apply(OrderCancelledEvent(cmd.orderId, cmd.reason))
-    }
-}
-```
-
-## References
-
-- [Saga Pattern Definition](references/saga-pattern-definition.md)
-- [Choreography Implementation](references/choreography-implementation.md)
-- [Orchestration Implementation](references/orchestration-implementation.md)
-- [Compensating Transactions](references/compensating-transactions.md)
-- [State Management](references/state-management.md)
-- [Error Handling and Retry](references/error-handling-retry.md)
-- [Testing Strategies](references/testing-strategies.md)
-- [Pitfalls and Solutions](references/pitfalls-solutions.md)
-- [Examples](references/examples.md)
+The `references/` directory contains broader saga material. For any concrete technology example,
+the repository's Kotlin, WebFlux, coroutine, R2DBC, and hexagonal architecture contracts take
+precedence.
