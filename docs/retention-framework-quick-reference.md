@@ -16,6 +16,9 @@
 | Media asset expiration (`MediaAssetExpirationJob`) | Every 6 h | Stale `PENDING_UPLOAD`/`UPLOADING` assets → `FAILED` | — |
 | DSR expiry (`FindExpiredRequestsJob`) | Daily | Data subject requests past expiry | 30 days |
 | Password-reset token cleanup | 24 h | Expired password-reset tokens | Configurable |
+| OAuth disconnect (`DisconnectProviderConnectionHandler`) | On request | Credential + connection + content, tombstoned | Immediate |
+| Expired credential purge (`CredentialRetentionJob`) | 6 h, disabled by default | Orphaned expired OAuth credentials | P30D default, per-provider override |
+| Credential dry-run | On demand (`dry-run=true`) | Report only, writes nothing | — |
 
 ## Quick Checks
 
@@ -42,9 +45,9 @@
 
 | Belief | Reality |
 | ------ | ------- |
-| "Retention rules are config-controlled" | Only the compliance control is registered; no rule engine exists |
-| "Purge jobs are resumable/tenant-safe" | Only the four fixed jobs above run; no job API |
-| "There is a dry-run purge mode" | No dry-run exists |
+| "Retention rules are config-controlled" | Only `publishing.credentials.retention` (pa-006) plus the pre-existing media/password-reset settings; no central rule engine |
+| "Purge jobs are resumable/tenant-safe" | True for the credential purge (batched, `SKIP LOCKED`, skips live connections) and media GC; no generic job API |
+| "There is a dry-run purge mode" | Yes for the credential purge (`dry-run=true`); media GC has none |
 | "`retention-governance.feature` covers this" | That BDD suite does not exist |
 
 ## Key Metrics to Watch
@@ -56,5 +59,5 @@
 ---
 
 **Last Updated: 2026-09-29
-**Version:** 2.0 (corrected — v1.0 described a not-yet-implemented framework)
+**Version:** 2.1 (slice 1: OAuth disconnect tombstone + credential purge/dry-run; framework API still planned)
 **For questions:** [retention-and-erasure-control-plan.md](compliance/retention-and-erasure-control-plan.md)

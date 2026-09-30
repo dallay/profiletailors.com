@@ -116,6 +116,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/023-provider-aware-secure-credentials.yaml
   - include:
+      file: db/changelog/publishing/024-create-credential-deletion-tombstones.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:

@@ -182,6 +182,16 @@ publishing:
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:}  # Sin default — debe configurarse via env var
+    retention:
+      activity-id: ${SMP_CREDENTIALS_RETENTION_ACTIVITY_ID:pa-006}
+      policy-version: ${SMP_CREDENTIALS_RETENTION_POLICY_VERSION:}
+      enabled: ${SMP_CREDENTIALS_RETENTION_ENABLED:false}
+      expired-metadata-retention: ${SMP_CREDENTIALS_RETENTION_EXPIRED_METADATA:P30D}
+      disconnect-grace: ${SMP_CREDENTIALS_RETENTION_DISCONNECT_GRACE:PT0S}
+      interval: ${SMP_CREDENTIALS_RETENTION_INTERVAL:PT6H}
+      initial-delay: ${SMP_CREDENTIALS_RETENTION_INITIAL_DELAY:PT5M}
+      batch-size: ${SMP_CREDENTIALS_RETENTION_BATCH_SIZE:100}
+      dry-run: ${SMP_CREDENTIALS_RETENTION_DRY_RUN:false}
   social-content:
     discovery-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_DISCOVERY_ENABLED:false}
     import-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_IMPORT_ENABLED:false}
