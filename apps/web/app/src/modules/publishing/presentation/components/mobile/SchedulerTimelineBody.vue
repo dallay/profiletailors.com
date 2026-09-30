@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { toRef } from 'vue'
 import { Plus } from '@lucide/vue'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
+import { useSchedulerTimeline } from '@modules/publishing/presentation/composables/useSchedulerTimeline'
 
 type HourSlot = { hour: number; label: string }
 const props = defineProps<{
@@ -18,63 +19,20 @@ const emit = defineEmits<{
   (event: 'openNewPost', day: Date, hour: number): void
 }>()
 
-const viewportRef = ref<HTMLElement | null>(null)
-const todayHeaderRef = ref<HTMLElement | null>(null)
-
-const now = ref(new Date())
-let timer: ReturnType<typeof setInterval> | null = null
-
-onMounted(() => {
-  timer = setInterval(() => {
-    now.value = new Date()
-  }, 30_000)
-  scrollToCurrentTimeAndToday()
-})
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
-
-watch(
-  () => [props.days, props.hourSlots],
-  () => {
-    nextTick(() => {
-      scrollToCurrentTimeAndToday()
-    })
-  },
-  { deep: true },
-)
-
-const hasToday = computed(() => props.days.some((d) => props.isToday(d)))
-
-const nowTopPx = computed(() => {
-  const current = now.value
-  const minutes = current.getHours() * 60 + current.getMinutes()
-  return (minutes / 60) * 96
-})
-
-const nowFormattedTime = computed(() => {
-  return now.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+const {
+  viewportRef,
+  todayHeaderRef,
+  hasToday,
+  nowTopPx,
+  nowFormattedTime,
+} = useSchedulerTimeline({
+  days: toRef(props, 'days'),
+  hourSlots: toRef(props, 'hourSlots'),
+  isToday: props.isToday,
 })
 
 function formatSlotTime(value: string): string {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
-function scrollToCurrentTimeAndToday() {
-  if (!viewportRef.value) return
-
-  const currentHour = now.value.getHours()
-  const targetTop = Math.max(0, (currentHour - 1) * 96)
-  viewportRef.value.scrollTop = targetTop
-
-  if (todayHeaderRef.value) {
-    todayHeaderRef.value.scrollIntoView?.({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-  }
 }
 </script>
 
@@ -115,10 +73,10 @@ function scrollToCurrentTimeAndToday() {
           class="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
           :style="{ top: `${nowTopPx}px` }"
         >
-          <div class="sticky left-0 z-30 flex h-5 items-center justify-center bg-error px-1.5 text-[9px] font-mono font-bold text-white shadow-sm rounded-r-md">
+          <div class="sticky left-0 z-30 flex h-5 items-center justify-center bg-error px-1.5 text-[9px] font-mono font-bold text-text-display shadow-sm rounded-r-md">
             {{ nowFormattedTime }}
           </div>
-          <div class="h-[2px] flex-1 bg-error/80 shadow-[0_0_4px_rgba(239,68,68,0.5)]" />
+          <div class="h-[2px] flex-1 bg-error/80 shadow-[0_0_4px_var(--color-error)]" />
         </div>
 
         <div
@@ -134,7 +92,7 @@ function scrollToCurrentTimeAndToday() {
             v-for="day in days"
             :key="`${day.toISOString()}-${slot.hour}`"
             class="relative border-r border-border-subtle p-2 last:border-r-0 overflow-hidden"
-            :class="isPastSlot(day, slot.hour) ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0 pointer-events-none' : 'hover:bg-bg-primary/20'"
+            :class="isPastSlot(day, slot.hour) ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0' : 'hover:bg-bg-primary/20'"
             :data-past-slot="isPastSlot(day, slot.hour) ? 'true' : 'false'"
           >
             <button
