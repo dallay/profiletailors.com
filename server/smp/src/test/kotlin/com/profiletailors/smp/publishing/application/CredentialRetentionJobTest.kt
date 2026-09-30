@@ -136,6 +136,42 @@ class CredentialRetentionJobTest {
     }
 
     @Test
+    fun `counts already removed rows as skipped`() = runTest {
+        val removedId = UUID.randomUUID()
+        val repository = FakePurgeRepository(
+            candidates = mapOf(
+                SocialProvider.THREADS to listOf(
+                    CredentialPurgeCandidate(removedId, SocialProvider.THREADS, Instant.now()),
+                ),
+            ),
+            missingIds = setOf(removedId),
+        )
+        val job = CredentialRetentionJob(
+            purgeRepository = repository,
+            retentionRule = enabledRule(),
+        )
+
+        val result = job.run(dryRun = false, batchSize = 100)
+
+        assertEquals(0, result.deleted)
+        assertEquals(1, result.skipped)
+        assertEquals(0, result.errors)
+    }
+
+    @Test
+    fun `counts scan failures without losing the run`() = runTest {
+        val job = CredentialRetentionJob(
+            purgeRepository = ExplodingPurgeRepository(),
+            retentionRule = enabledRule(),
+        )
+
+        val result = job.run(dryRun = false, batchSize = 100)
+
+        assertEquals(1, result.errors)
+        assertEquals(0, result.deleted)
+    }
+
+    @Test
     fun `rejects batch size outside the inclusive range`() = runTest {
         val job = CredentialRetentionJob(
             purgeRepository = FakePurgeRepository(emptyMap()),
@@ -156,9 +192,18 @@ class CredentialRetentionJobTest {
         }
     }
 
+    private fun enabledRule() = CredentialRetentionRule(
+        activityId = "pa-006",
+        policyVersion = "",
+        expiredMetadataRetention = Duration.ofDays(30),
+        disconnectGrace = Duration.ZERO,
+        enabled = true,
+    )
+
     private class FakePurgeRepository(
         private val candidates: Map<SocialProvider, List<CredentialPurgeCandidate>>,
         private val failingIds: Set<UUID> = emptySet(),
+        private val missingIds: Set<UUID> = emptySet(),
     ) : CredentialPurgeRepository {
         val deleted = mutableListOf<UUID>()
 
@@ -177,8 +222,21 @@ class CredentialRetentionJobTest {
             if (failingIds.contains(id)) {
                 throw IllegalStateException("Storage delete failed for $id")
             }
+            if (missingIds.contains(id)) {
+                return false
+            }
             deleted += id
             return true
         }
+    }
+
+    private class ExplodingPurgeRepository : CredentialPurgeRepository {
+        override fun findOrphanExpiredCandidates(
+            provider: SocialProvider,
+            expiredBefore: Instant,
+            batchSize: Int,
+        ): Flow<CredentialPurgeCandidate> = flow { throw IllegalStateException("Scan failed") }
+
+        override suspend fun deleteById(id: UUID): Boolean = error("Not used")
     }
 }

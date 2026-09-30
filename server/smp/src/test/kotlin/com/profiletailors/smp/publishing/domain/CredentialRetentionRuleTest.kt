@@ -82,6 +82,56 @@ class CredentialRetentionRuleTest {
     }
 
     @Test
+    fun `should resolve uppercase provider override keys`() {
+        val rule = CredentialRetentionRule(
+            activityId = "pa-006",
+            policyVersion = "",
+            expiredMetadataRetention = Duration.ofDays(30),
+            disconnectGrace = Duration.ZERO,
+            enabled = false,
+            providerOverrides = mapOf(
+                "LINKEDIN" to CredentialProviderRetentionOverride(enabled = true),
+            ),
+        )
+
+        rule.resolveFor(SocialProvider.LINKEDIN).enabled shouldBe true
+    }
+
+    @Test
+    fun `should reject invalid resolved retentions`() {
+        shouldThrow<IllegalArgumentException> {
+            ResolvedCredentialRetention(
+                activityId = "",
+                policyVersion = "",
+                provider = SocialProvider.THREADS,
+                expiredMetadataRetention = Duration.ofDays(30),
+                disconnectGrace = Duration.ZERO,
+                enabled = false,
+            )
+        }
+        shouldThrow<IllegalArgumentException> {
+            ResolvedCredentialRetention(
+                activityId = "pa-006",
+                policyVersion = "",
+                provider = SocialProvider.THREADS,
+                expiredMetadataRetention = Duration.ofDays(-1),
+                disconnectGrace = Duration.ZERO,
+                enabled = false,
+            )
+        }
+        shouldThrow<IllegalArgumentException> {
+            ResolvedCredentialRetention(
+                activityId = "pa-006",
+                policyVersion = "",
+                provider = SocialProvider.THREADS,
+                expiredMetadataRetention = Duration.ofDays(30),
+                disconnectGrace = Duration.ofMinutes(-1),
+                enabled = false,
+            )
+        }
+    }
+
+    @Test
     fun `should reject negative retentions`() {
         shouldThrow<IllegalArgumentException> {
             CredentialRetentionRule(

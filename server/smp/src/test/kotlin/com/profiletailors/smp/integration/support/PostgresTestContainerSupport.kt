@@ -95,6 +95,7 @@ object PostgresDatabaseCleanup {
         "DELETE FROM social_accounts",
         "DELETE FROM social_connections",
         "DELETE FROM secure_credentials",
+        "DELETE FROM credential_deletion_tombstones",
         "DELETE FROM audit_events",
         "DELETE FROM workspace_target_scopes",
         "DELETE FROM workspace_direct_grants",

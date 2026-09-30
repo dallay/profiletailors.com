@@ -103,6 +103,13 @@ class CredentialRetentionPropertiesTest {
         }
     }
 
+    @Test
+    fun `should reject negative initial delay`() {
+        shouldThrow<IllegalArgumentException> {
+            CredentialRetentionProperties(initialDelay = Duration.ofMinutes(-1))
+        }
+    }
+
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(CredentialRetentionProperties::class)
     private class TestConfiguration
