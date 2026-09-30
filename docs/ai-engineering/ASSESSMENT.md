@@ -18,7 +18,7 @@
 | Setup reproduction | Required | ✅ `just setup` documented, AgentSync configured | ✅ |
 | Secrets handling | Required | ✅ `docs/production-secrets.md` exists, no secrets committed | ✅ |
 | Linear integration | Required | ✅ Linear MCP in `.mcp.json`, 23 maintenance agents | ✅ |
-| Skill discovery | Required | ✅ Auto-generated `skill-registry.md`, `.opencode/skills` symlinked to `.agents/skills/` | ✅ |
+| Skill discovery | Required | ✅ Hand-maintained `skill-registry.md`, `.opencode/skills` symlinked to `.agents/skills/` | ✅ |
 | Optional integration behavior | Required | ✅ AgentSync shows graceful degradation for disabled features | ✅ |
 
 **A. Status: ✅ COMPLETE**

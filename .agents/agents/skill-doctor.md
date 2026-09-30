@@ -22,7 +22,7 @@ permission:
 
 Review the current diff when it touches `.agents/skills/**`, `.agents/AGENTS.md`, `.agents/DESIGN.md`, or `docs/architecture/adr/**`.
 
-Use these authorities in order: `.agents/AGENTS.md`, `.agents/DESIGN.md`, the current ADRs, applicable PRODUCT.md files, and the active OpenSpec change. Treat executable checks from `.agents/scripts/skill-doctor.mjs` and `.agents/scripts/spring-scrub-rg.mjs` as evidence, not as a substitute for semantic review.
+Use these authorities in order: `.agents/AGENTS.md`, `.agents/DESIGN.md`, the current ADRs, applicable PRODUCT.md files, and the active OpenSpec change.
 
 Return exactly one finding per material issue with severity `pass`, `warn`, or `block`, the file and line, the conflicting authority, and a minimal remediation. Use `block` for residual contamination, missing required metadata, broken internal references, servlet guidance presented as the active backend pattern, or a contradiction with DESIGN.md or ADR-0002. Use `warn` for upstream examples explicitly identified as platform-agnostic and for external branch-protection operations not observable in the repository. Use `pass` only when the checked scope has no material contradiction.
 

@@ -1,11 +1,11 @@
 # ADR-0025: Agent Knowledge Bundle Governance
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-28
 - Decision owners: Principal Architect
 - Scope: `.agents/skills/`, `.agents/AGENTS.md`, `.agents/scripts/`, `.agents/skill-registry.md`, and related CI checks
 - Supersedes: None
-- Superseded by: None
+- Superseded by: ADR-0026
 - Related:
   - OpenSpec: `openspec/changes/skill-and-knowledge-bundle-remediation/`
   - Registry: `.agents/skill-registry.md`

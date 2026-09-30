@@ -47,6 +47,14 @@ describe('MobileSchedulerHeader', () => {
     expect(wrapper.get('[data-testid="mobile-filters-trigger"]').text()).toContain('2')
   })
 
+  it('disables New Post when no active channel exists', () => {
+    const wrapper = mountHeader(0, true)
+    const newPostButton = wrapper.get('[data-testid="mobile-new-post"]')
+
+    expect(newPostButton.attributes('disabled')).toBeDefined()
+    expect(newPostButton.attributes('title')).toBe('scheduler.noChannelTitle')
+  })
+
   it('emits header actions', async () => {
     const wrapper = mountHeader(0)
 
