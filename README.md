@@ -310,12 +310,16 @@ Contact: **<security@profiletailors.com>**
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-See [`LICENSE`](LICENSE) for the full text.
+See [`LICENSE`](LICENSE) for the full text. The project intends anyone, including commercial users
+and competitors, to use, modify, and redistribute the code under the rights and conditions of that
+licence; this project does not prohibit competitive use. The AGPL's source-sharing conditions apply
+where required by the licence, including its network-use provisions for modified versions.
 
-**Source offer (AGPL-3.0 § 13):** users who interact with Profile Tailors over a network are
-entitled to the corresponding source code. The canonical source is available at
-[github.com/dallay/profiletailors.com](https://github.com/dallay/profiletailors.com).
-Deployed releases are tagged; the running version is exposed via `/actuator/info`.
+The public repository is at
+[github.com/dallay/profiletailors.com](https://github.com/dallay/profiletailors.com). Deployment-specific
+source-offer readiness and exact source mapping are tracked in
+[docs/compliance/agpl-source-offer.md](docs/compliance/agpl-source-offer.md); do not assume a
+public repository URL alone establishes that each deployed version's source offer is complete.
 
 For licensing questions, commercial use, or CLA enquiries see
 [`docs/architecture/adr/0012-agpl-commercial-strategy.md`](docs/architecture/adr/0012-agpl-commercial-strategy.md)

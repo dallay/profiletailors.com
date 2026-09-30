@@ -167,6 +167,18 @@ describe('AdminLayout nav filtering', () => {
     return wrapper
   }
 
+  it('shows the build source link for a principal with admin access', async () => {
+    const wrapper = await mountLayout(['PLATFORM_OWNER'])
+    const sourceLink = wrapper.get(
+      'a[href^="https://github.com/dallay/profiletailors.com/commit/"]',
+    )
+    expect(sourceLink.text()).toBe('Source code')
+    expect(sourceLink.attributes('href')).toMatch(
+      /^https:\/\/github\.com\/dallay\/profiletailors\.com\/commit\/[0-9a-f]{7}$/,
+    )
+    wrapper.unmount()
+  })
+
   it('shows direct-invitations for a principal holding platform.invitations.read', async () => {
     const wrapper = await mountLayout(['PLATFORM_OWNER'])
     expect(wrapper.text()).toContain('Direct Invitations')

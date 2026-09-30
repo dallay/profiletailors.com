@@ -34,6 +34,7 @@ export type MessageSchema = {
     yes: string
     no: string
     back: string
+    sourceCode: string
   }
   auth: {
     signIn: string

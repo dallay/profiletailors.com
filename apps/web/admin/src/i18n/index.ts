@@ -36,6 +36,7 @@ export const en: MessageSchema = {
     yes: 'Yes',
     no: 'No',
     back: 'Back',
+    sourceCode: 'Source code',
   },
   auth: {
     signIn: 'Sign In',
@@ -344,6 +345,7 @@ export const es: MessageSchema = {
     yes: 'Sí',
     no: 'No',
     back: 'Volver',
+    sourceCode: 'Código fuente',
   },
   auth: {
     signIn: 'Iniciar sesión',

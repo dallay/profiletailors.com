@@ -20,16 +20,23 @@ const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
     </div>
     <p class="font-mono text-xs text-text-secondary">{copy}</p>
   </div>
-  {(legalLinks && legalLinks.length > 0) && (
-    <nav aria-label="Legal" class="border-t border-border mt-8 pt-6 flex flex-wrap gap-x-6 gap-y-2">
-      {legalLinks.map((link) => (
-        <a href={link.href} class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]">
-          {link.label}
-        </a>
-      ))}
-      <CookieSettingsLink locale={locale} />
-    </nav>
-  )}
+  <nav
+    aria-label={locale === 'es' ? 'Información legal y código fuente' : 'Legal information and source code'}
+    class="border-t border-border mt-8 pt-6 flex flex-wrap gap-x-6 gap-y-2"
+  >
+    {legalLinks?.map((link) => (
+      <a href={link.href} class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]">
+        {link.label}
+      </a>
+    ))}
+    <a
+      href={`https://github.com/dallay/profiletailors.com/commit/${__GIT_SHA__}`}
+      class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]"
+    >
+      {locale === 'es' ? 'Código fuente' : 'Source code'}
+    </a>
+    <CookieSettingsLink locale={locale} />
+  </nav>
   {Astro.slots.has('default') && (
     <div class="mt-6 flex justify-end">
       <slot />
