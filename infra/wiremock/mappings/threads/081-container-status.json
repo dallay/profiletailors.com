@@ -1,0 +1,19 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1.0/[0-9]+",
+    "queryParameters": {
+      "fields": { "equalTo": "status" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "{{jsonPath request.path '$.*[0]'}}",
+      "status": "FINISHED"
+    },
+    "transformers": ["response-template"]
+  }
+}
