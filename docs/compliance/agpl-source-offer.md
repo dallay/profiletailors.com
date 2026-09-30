@@ -1,17 +1,15 @@
 # AGPL-3.0 Source-Offer Runbook
 
-**Last Updated: 2026-09-29
-
 > **Classification:** Internal — Legal and Compliance
-> **Status:** Active
-> **Last Updated: 2026-09-29
+> **Status:** Operational readiness: incomplete; legal review required
+> **Last Updated:** 2026-09-30
 
 ## Overview
 
-The GNU Affero General Public License v3.0 (AGPL-3.0) Section 13 requires that when the software
-is run as a network service, users who interact with it over a network MUST be offered access to
-the corresponding source code. This runbook documents how Profile Tailors fulfils that obligation
-for every deployment environment.
+The GNU Affero General Public License v3.0 (AGPL-3.0) Section 13 includes a source-offer condition
+for users interacting remotely with a modified version of the program. This runbook records the
+engineering controls intended to support compliance; it does not establish that every deployment
+currently satisfies the licence or resolve legal interpretation.
 
 > **[LEGAL-REVIEW REQUIRED]** The processes described here represent the engineering implementation
 > of AGPL-3.0 Section 13. They must be reviewed by qualified legal counsel before commercial
@@ -19,36 +17,36 @@ for every deployment environment.
 
 ---
 
-## Section 13 — Obligation Summary
+## Section 13 — Engineering Interpretation
 
-> "If you modify the Program, your modified version must prominently offer all users interacting
-> with it remotely through a computer network... an opportunity to receive the Corresponding Source
-> of your version."
+The runbook uses the full text of `LICENSE` as its governing reference. Section 13 describes a
+prominent offer of Corresponding Source to users interacting remotely with a modified version of the
+Program. This is an operational summary only; counsel must confirm how the provision applies to each
+service, modification, and offer mechanism.
 
-**What this means for Profile Tailors:**
-
-1. Any user who can reach the deployed application over a network is entitled to the source code.
-2. The offer must be **prominent** (not buried in a help page).
-3. The source offered must correspond to the **exact version running** — not just `main`.
-4. The obligation extends to modifications; a deployment of an unmodified tagged release where the
-   public repository remains accessible largely satisfies this, but see the gap analysis below.
+Engineering controls should identify the exact version and modifications in deployment and ensure
+that the source offer points to the corresponding source. Do not infer that every network user is
+covered in every scenario or that publishing the repository's default branch alone satisfies the
+licence.
 
 ---
 
 ## Current Compliance Posture
 
-| Requirement                           | Current state                                                                    | Gap                                   |
-| ------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------- |
-| Source is publicly available          | Yes — `github.com/dallay/profiletailors.com`                                     | None                                  |
-| Offer is prominent in UI              | **No** — no footer link yet                                                      | Add "Source" link to footer           |
-| Deployed version is identifiable      | **Partial** — release tags exist but no automated SHA injection                  | Automate `DEPLOYED_SHA` env var in CI |
-| Source corresponds to running version | **Partial** — public repo + tags are reachable; no per-deployment source archive | Automate source archive on deploy     |
+| Requirement | Evidence currently recorded | Status |
+| --- | --- | --- |
+| Public corresponding source | Public repository: `github.com/dallay/profiletailors.com` | Repository available; actual correspondence is version-specific |
+| Prominent offer to affected remote users | Marketing footer, dashboard sidebar, and admin sidebar now link to build-specific Git commits; automated tests cover all three surfaces | Implemented in source; marketing offer remains visible independently of Terms publication; production deployment evidence and legal sufficiency remain unverified |
+| Deployed version identification | Release workflows build from the release tag and inject release metadata as `GIT_SHA` | Build metadata is tied to each frontend release; exact relationship to backend deployment and current live production remains unverified |
+| Corresponding source for running version | Commit link is generated from frontend build metadata | Valid only if deployed artifact uses the corresponding public revision and all required source/modifications are present; release evidence and legal review pending |
 
 ---
 
 ## Deployment Tagging Requirements
 
-Every deployment to any environment MUST create a reachable git tag. The tag format is:
+For deployments subject to an applicable source-offer obligation, the release process should record
+an immutable, publicly reachable source revision. A `deploy` tag is one possible implementation, not
+a legal requirement. If adopted, the tag format may be:
 
 ```
 deploy/<environment>/<ISO-8601-date>-<short-sha>
@@ -61,76 +59,81 @@ deploy/production/2026-07-31-a1b2c3d
 deploy/staging/2026-07-30-e4f5g6h
 ```
 
-### CI automation (target state)
+### CI automation (recommended target)
 
-The release pipeline MUST:
+Deployment automation should:
 
-1. Build the artefact from a tagged commit or a commit whose SHA is recorded.
-2. Create the deployment tag and push it to the public repository.
-3. Inject the tag or SHA as an environment variable (`DEPLOYED_SHA`, `DEPLOYED_TAG`) into the
-   running container or serverless function.
-4. Expose `DEPLOYED_SHA` via the `/actuator/info` endpoint (already configured via Spring Boot
-   Actuator).
+1. Build the artefact from a source revision whose SHA is recorded.
+2. Preserve or publish the corresponding source using a counsel-reviewed method.
+3. Inject the source revision into deployment metadata and the operator's release record.
+4. Expose the deployed revision through an appropriate operational surface where feasible.
 
 ---
 
 ## Source Offer in the User Interface
 
-Until the footer link is implemented, the source offer is made implicitly via the public GitHub
-repository. Once the footer is implemented, it MUST:
+Do not treat repository discoverability as evidence of a prominent offer to each affected remote
+user. Until the UI and deployment-specific source mapping are implemented and verified, record this
+control as incomplete. Once implemented, the visible source offer MUST:
 
-- Link to `https://github.com/dallay/profiletailors.com/tree/<DEPLOYED_TAG>` (or `/commit/<SHA>`
-  if a tag is unavailable).
+- Link to a counsel-reviewed public source location for the corresponding deployed revision, such as
+  `https://github.com/dallay/profiletailors.com/tree/<DEPLOYED_TAG>` or `/commit/<SHA>`.
 - Be visible on every page of both the marketing site and the dashboard.
 - Use text such as "Source code" or "View source" — conspicuous but not disruptive.
 
-**Marketing site component:** `apps/web/marketing/src/components/layout/Footer.astro` (or
-equivalent layout file).
+**Marketing site component:** `apps/web/marketing/src/components/Footer.astro`.
 
-**Dashboard component:** The global layout component in `apps/web/app/src/`.
+**Dashboard component:** `apps/web/app/src/layouts/AppShell.vue`.
 
 ---
 
-## Source Archive Process
+## Source Capture Process
 
-For deployments where the public repository is the source offer, no additional archive is required
-provided:
+The release process should preserve the exact revision and modifications used for each deployed
+artefact. A public repository reference may be sufficient only when counsel confirms the source is
+complete and corresponds to that deployment, and affected users can access it through the required
+offer. Do not assume a default-branch URL, reachable tag, or source archive automatically satisfies
+all licence conditions.
 
-1. The deployed commit exists in the public repository (i.e., is not in a private branch or a
-   squashed commit with no public ancestor).
-2. The tag or SHA referenced in the UI footer is reachable via the public repository.
-
-If a private fork or a build with local patches is ever deployed, a source archive MUST be
-generated and hosted at a publicly accessible URL. Use the following procedure:
+If a build includes private patches or generated material needed to form the Corresponding Source,
+identify and publish the required source using a counsel-reviewed process. One possible source
+snapshot mechanism is:
 
 ```bash
 git archive --format=tar.gz --prefix=profiletailors-<TAG>/ <TAG> \
   > profiletailors-<TAG>-source.tar.gz
-# Upload to a stable, publicly accessible location
-# (e.g., GitHub Release asset or an S3 public bucket)
 ```
 
 ---
 
 ## Release Checklist
 
-Add the following steps to the release runbook and any CI deploy workflow:
+Before marking source-offer readiness complete, deployment automation and the operator checklist
+must verify each item below. Current status is incomplete:
 
-- [ ] The commit being deployed has a reachable tag in the public repository.
-- [ ] The deployment tag (`deploy/<env>/<date>-<sha>`) has been pushed.
-- [ ] `DEPLOYED_SHA` / `DEPLOYED_TAG` is injected into the running service.
-- [ ] The UI footer contains a link to the source at the deployed tag/SHA.
-- [ ] The Spring Boot Actuator `/actuator/info` endpoint exposes the build version.
+- [ ] Record the exact source revision used to build each deployed artefact.
+- [ ] Verify corresponding source, including applicable modifications, is publicly reachable.
+- [ ] Provide affected remote users a prominent notice linking to the exact corresponding source.
+- [ ] Expose the deployed revision in deployment metadata and preserve it in the release record.
+- [ ] Verify source access without authentication and retain evidence with the release record.
+- [ ] Obtain counsel review of the selected offer method and notice wording.
+
+The existence of a public repository, a release tag, or an Actuator build value alone does not
+complete this checklist.
 
 ---
 
 ## Third-Party Dependency Source Obligations
 
-The Gradle licence report (`just licence-check`) lists all dependency licences. For any dependency
-that is AGPL-3.0 or GPL-3.0, that dependency's own source obligations are handled by the
-dependency's upstream project; Profile Tailors does not redistribute their source. For any
-dependency whose source Profile Tailors bundles (e.g., vendored JS), the corresponding source must
-be included in or linked from the licence report.
+The Gradle task named `generateLicenseReport` contains a failure hook that searches generated JSON
+for configured GPL-2.0 text. That hook is not established as a complete licence-policy control: the
+current report includes `GNU GENERAL PUBLIC LICENSE, Version 2 + Classpath Exception` for
+`jakarta.annotation:jakarta.annotation-api` and `jakarta.validation:jakarta.validation-api`, while
+the configured blocked strings differ in case and wording. The frontend checker likewise uses a
+substring-based name list. `just licence-check` is intended to capture frontend and backend inventories for review; neither
+inventory nor the existing hook is a legal compatibility conclusion. Review each
+dependency's exact licence, exceptions, use and distribution context before adopting a blocking policy.
+The report does not by itself fulfil any source obligations that apply to bundled materials.
 
 ---
 

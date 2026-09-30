@@ -9,6 +9,7 @@ import { VersionBadge } from '@profiletailors/vue-ui'
 import BackendVersionBadge from '@/shared/ui/BackendVersionBadge.vue'
 
 const { t } = useI18n()
+const gitSha = __GIT_SHA__
 const router = useRouter()
 const authStore = useAdminAuthStore()
 
@@ -85,6 +86,12 @@ async function signOut() {
           <VersionBadge />
           <BackendVersionBadge v-if="authStore.hasPermission('platform.system.build-info.read')" />
         </div>
+        <a
+          :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
+          class="mt-2 inline-flex min-h-11 items-center text-xs text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {{ t('common.sourceCode') }}
+        </a>
       </div>
     </aside>
 

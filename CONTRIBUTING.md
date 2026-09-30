@@ -9,6 +9,13 @@ from contributors.
 
 ## Before You Start
 
+### Project licence and commercial use
+
+The repository is distributed under AGPL-3.0. Contributions remain open for use by individuals,
+companies, and competitors under that licence; the project does not reserve an exclusive
+commercial-use restriction. Review [`LICENSE`](./LICENSE) and
+[ADR-0012](./docs/architecture/adr/0012-agpl-commercial-strategy.md) before contributing.
+
 ### Sign the CLA
 
 All contributors must sign our

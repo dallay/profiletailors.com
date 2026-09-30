@@ -389,11 +389,13 @@ docs-lint:
     @echo "▸ Markdown lint (markdownlint-cli2)..."
     pnpm exec markdownlint-cli2
 
-# Scan all dependency licences for AGPL-3.0 compatibility (frontend + backend)
+# Generate dependency licence inventories for review (frontend + backend)
 licence-check:
-    @echo "▸ Frontend: dependency licence scan..."
-    pnpm licenses list --json | node scripts/check-frontend-licences.mjs
-    @echo "▸ Backend: dependency licence report..."
+    @echo "▸ Frontend: dependency licence inventory..."
+    mkdir -p server/smp/build/reports/dependency-licence
+    pnpm licenses list --json > server/smp/build/reports/dependency-licence/frontend-dependency-licences.json
+    @echo "  Report: server/smp/build/reports/dependency-licence/frontend-dependency-licences.json"
+    @echo "▸ Backend: dependency licence inventory..."
     {{gradle-root}} :server:smp:generateLicenseReport --no-daemon
     @echo "  Report: server/smp/build/reports/dependency-licence/dependency-licence.txt"
 

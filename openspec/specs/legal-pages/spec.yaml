@@ -278,8 +278,11 @@ verification_scenarios:
     given: Terms describe intellectual-property restrictions
     when: The repository licence and deployed source route are inspected
     then: >
-      The Terms SHALL preserve AGPL-3.0 rights and the deployed service SHALL
-      satisfy the applicable corresponding-source obligation.
+      The Terms SHALL preserve AGPL-3.0 rights, including commercial and
+      competitive use of the software under its licence, and distinguish those
+      rights from rules governing access to the operator-hosted service. The
+      deployed service SHALL satisfy the applicable corresponding-source
+      obligation.
 
   - id: verify-007
     given: A country is enabled
