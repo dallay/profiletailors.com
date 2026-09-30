@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import Select from '@/components/ui/AdminSelect.vue'
 
 type RegistrationMode = 'OPEN' | 'INVITE_ONLY' | 'CLOSED'
 
@@ -20,6 +22,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
+const confirmOpen = ref(false)
 
 const canManage = computed(() => authStore.hasPermission('platform.configuration.manage'))
 
@@ -50,8 +53,7 @@ async function fetchCurrentMode(): Promise<void> {
 
 async function changeMode(): Promise<void> {
   successMessage.value = null
-  if (!window.confirm(t('configuration.changeConfirm', { mode: selectedMode.value }))) return
-
+  confirmOpen.value = false
   saving.value = true
   error.value = null
   try {
@@ -100,16 +102,24 @@ onMounted(fetchCurrentMode)
           <label for="registration-mode-select" class="mb-1 block text-sm text-text-body">
             {{ t('configuration.changeTo') }}
           </label>
-          <select id="registration-mode-select" v-model="selectedMode" class="admin-input text-sm">
+          <Select id="registration-mode-select" v-model="selectedMode">
             <option v-for="mode in REGISTRATION_MODES" :key="mode" :value="mode">{{ mode }}</option>
-          </select>
+          </Select>
         </div>
-        <button type="button" class="admin-button-secondary" :disabled="saving" @click="changeMode">
+        <button type="button" class="admin-button-secondary" :disabled="saving || selectedMode === currentMode" @click="confirmOpen = true">
           {{ saving ? t('common.loading') : t('configuration.changeTo') }}
         </button>
       </div>
 
       <p v-if="successMessage" role="status" class="text-sm text-success">{{ successMessage }}</p>
     </template>
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      :title="t('configuration.changeTo')"
+      :description="t('configuration.changeConfirm', { mode: selectedMode })"
+      :confirm-text="t('configuration.changeTo')"
+      :busy="saving"
+      @confirm="changeMode"
+    />
   </div>
 </template>

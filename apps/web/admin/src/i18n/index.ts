@@ -12,6 +12,13 @@ export const en: MessageSchema = {
     governance: 'Governance',
     configuration: 'Configuration',
     platformAdministration: 'Platform administration navigation',
+    openNavigation: 'Open navigation',
+    groups: {
+      operations: 'Operations',
+      observability: 'Observability',
+      trust: 'Trust & Safety',
+      system: 'System',
+    },
   },
   planned: {
     message: 'This area is planned and not yet available.',
@@ -36,6 +43,7 @@ export const en: MessageSchema = {
     yes: 'Yes',
     no: 'No',
     back: 'Back',
+    retry: 'Retry',
   },
   auth: {
     signIn: 'Sign In',
@@ -59,6 +67,11 @@ export const en: MessageSchema = {
   },
   dashboard: {
     title: 'Dashboard',
+    subtitle: 'A live view of early-access operations.',
+    waitlistOverview: 'Waitlist overview',
+    invitationHealth: 'Invitation health',
+    systemHealth: 'Delivery & activity',
+    periodLabel: 'LAST {n} DAYS',
     pendingEntries: 'Pending Entries',
     invitedEntries: 'Invited',
     convertedEntries: 'Converted',
@@ -86,6 +99,7 @@ export const en: MessageSchema = {
     cancel: 'Cancel Entry',
     inviteConfirmTitle: 'Invite candidate?',
     inviteConfirmMessage: 'An invitation will be sent to {email}. It will expire in {days} days.',
+    inviteActionMessage: 'Send an invitation to {email}?',
     cancelConfirmTitle: 'Cancel waitlist entry?',
     cancelConfirmMessage:
       'This will cancel the entry for {email} and revoke any active invitation. This operation is not reversible.',
@@ -95,6 +109,7 @@ export const en: MessageSchema = {
     revokeConfirmMessage:
       'The active invitation for {email} will be revoked. The waitlist entry will remain invited.',
     entries: 'Waitlist entries',
+    empty: 'No entries match the current filters.',
     invitationHistory: 'Invitation History',
     consentDetails: 'Consent Details',
     earlyAccessConsent: 'Early Access Consent',
@@ -126,10 +141,12 @@ export const en: MessageSchema = {
       joinedTo: 'Joined to',
       invitedFrom: 'Invited from',
       invitedTo: 'Invited to',
+      advanced: 'More filters',
     },
   },
   users: {
     title: 'Users',
+    empty: 'No users match this search.',
     principalId: 'Principal ID',
     displayName: 'Name',
     principalType: 'Type',
@@ -320,6 +337,13 @@ export const es: MessageSchema = {
     governance: 'Gobernanza',
     configuration: 'Configuración',
     platformAdministration: 'Navegación de administración de plataforma',
+    openNavigation: 'Abrir navegación',
+    groups: {
+      operations: 'Operaciones',
+      observability: 'Observabilidad',
+      trust: 'Confianza y seguridad',
+      system: 'Sistema',
+    },
   },
   planned: {
     message: 'Esta área está planificada y aún no está disponible.',
@@ -344,6 +368,7 @@ export const es: MessageSchema = {
     yes: 'Sí',
     no: 'No',
     back: 'Volver',
+    retry: 'Reintentar',
   },
   auth: {
     signIn: 'Iniciar sesión',
@@ -367,6 +392,11 @@ export const es: MessageSchema = {
   },
   dashboard: {
     title: 'Panel',
+    subtitle: 'Estado actual de las operaciones de acceso anticipado.',
+    waitlistOverview: 'Resumen de lista de espera',
+    invitationHealth: 'Estado de invitaciones',
+    systemHealth: 'Entregas y actividad',
+    periodLabel: 'ÚLTIMOS {n} DÍAS',
     pendingEntries: 'Pendientes',
     invitedEntries: 'Invitados',
     convertedEntries: 'Convertidos',
@@ -394,6 +424,7 @@ export const es: MessageSchema = {
     cancel: 'Cancelar entrada',
     inviteConfirmTitle: '¿Invitar candidato?',
     inviteConfirmMessage: 'Se enviará una invitación a {email}. Vencerá en {days} días.',
+    inviteActionMessage: '¿Enviar una invitación a {email}?',
     cancelConfirmTitle: '¿Cancelar entrada de lista de espera?',
     cancelConfirmMessage:
       'Se cancelará la entrada de {email} y se revocará cualquier invitación activa. Esta operación es irreversible.',
@@ -403,6 +434,7 @@ export const es: MessageSchema = {
     revokeConfirmMessage:
       'Se revocará la invitación activa de {email}. La entrada permanecerá como invitada.',
     entries: 'Entradas de la lista de espera',
+    empty: 'Ninguna entrada coincide con los filtros actuales.',
     invitationHistory: 'Historial de invitaciones',
     consentDetails: 'Detalles de consentimiento',
     earlyAccessConsent: 'Consentimiento de acceso anticipado',
@@ -434,10 +466,12 @@ export const es: MessageSchema = {
       joinedTo: 'Inscrito hasta',
       invitedFrom: 'Invitado desde',
       invitedTo: 'Invitado hasta',
+      advanced: 'Más filtros',
     },
   },
   users: {
     title: 'Usuarios',
+    empty: 'Ningún usuario coincide con esta búsqueda.',
     principalId: 'ID de principal',
     displayName: 'Nombre',
     principalType: 'Tipo',

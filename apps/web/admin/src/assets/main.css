@@ -60,10 +60,79 @@ select {
   min-height: 100vh;
 }
 
-.admin-nav-link:hover,
-.admin-nav-link-active {
+.admin-nav-link:hover {
   background: var(--background-primary);
+  color: var(--text-body);
+}
+
+.admin-nav-link-active {
+  background: color-mix(in srgb, var(--text-display) 7%, transparent);
   color: var(--text-display);
+}
+
+.admin-nav-current {
+  opacity: 0;
+}
+
+.admin-nav-link-active .admin-nav-current {
+  opacity: 1;
+}
+
+.admin-icon-button {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-visible-color);
+  border-radius: 8px;
+  color: var(--text-body);
+}
+
+.admin-icon-button:hover {
+  background: var(--background-surface);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table thead {
+  background: var(--background-secondary);
+}
+
+.admin-table th {
+  padding: 12px 16px 12px 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 14px 16px 14px 0;
+  vertical-align: middle;
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table tbody tr:hover {
+  background: color-mix(in srgb, var(--background-surface) 55%, transparent);
+}
+
+.admin-page {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+}
+
+.admin-confirm-dialog[open] {
+  margin: auto;
 }
 
 .admin-input {
@@ -129,10 +198,6 @@ select {
   opacity: 0.5;
 }
 
-.admin-table {
-  border-collapse: collapse;
-}
-
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -151,7 +216,22 @@ select {
 }
 
 @media (width <= 767px) {
+  .admin-sidebar-open {
+    transform: translateX(0);
+  }
+
+  .admin-page {
+    padding: 20px 16px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding-right: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
   .admin-sidebar {
-    width: 12rem;
+    transition: none;
   }
 }

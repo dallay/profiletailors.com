@@ -9,6 +9,7 @@ export interface NavEntry {
   permission: PlatformPermission
   status: NavStatus
   icon: string
+  group: 'operations' | 'observability' | 'trust' | 'system'
   labelKey: string
 }
 
@@ -19,7 +20,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: '',
     permission: 'platform.dashboard.read',
     status: 'live',
-    icon: '◈',
+    icon: 'LayoutDashboard',
+    group: 'operations',
     labelKey: 'nav.dashboard',
   },
   {
@@ -28,7 +30,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'waitlist',
     permission: 'platform.waitlist.read',
     status: 'live',
-    icon: '≡',
+    icon: 'ListChecks',
+    group: 'operations',
     labelKey: 'nav.waitlist',
   },
   {
@@ -37,7 +40,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'direct-invitations',
     permission: 'platform.invitations.read',
     status: 'live',
-    icon: '✉',
+    icon: 'MailPlus',
+    group: 'operations',
     labelKey: 'nav.directInvitations',
   },
   {
@@ -46,7 +50,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'users',
     permission: 'platform.users.read',
     status: 'live',
-    icon: '◎',
+    icon: 'Users',
+    group: 'operations',
     labelKey: 'nav.users',
   },
   {
@@ -55,7 +60,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'audit',
     permission: 'platform.audit.read',
     status: 'live',
-    icon: '▤',
+    icon: 'ScrollText',
+    group: 'observability',
     labelKey: 'nav.audit',
   },
   {
@@ -64,7 +70,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'overview',
     permission: 'platform.dashboard.read',
     status: 'planned',
-    icon: '▦',
+    icon: 'PanelsTopLeft',
+    group: 'operations',
     labelKey: 'nav.overview',
   },
   {
@@ -73,7 +80,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'notifications',
     permission: 'platform.notifications.read',
     status: 'live',
-    icon: '▣',
+    icon: 'Bell',
+    group: 'observability',
     labelKey: 'nav.notifications',
   },
   {
@@ -82,7 +90,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'governance',
     permission: 'platform.governance.read',
     status: 'live',
-    icon: '⬢',
+    icon: 'ShieldAlert',
+    group: 'trust',
     labelKey: 'nav.governance',
   },
   {
@@ -91,7 +100,8 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     path: 'configuration',
     permission: 'platform.configuration.read',
     status: 'live',
-    icon: '⚙',
+    icon: 'Settings2',
+    group: 'system',
     labelKey: 'nav.configuration',
   },
 ]
@@ -103,5 +113,5 @@ export function plannedNavEntries(): NavEntry[] {
 export function visibleNavEntries(
   hasPermission: (permission: PlatformPermission) => boolean,
 ): NavEntry[] {
-  return NAV_REGISTRY.filter((entry) => hasPermission(entry.permission))
+  return NAV_REGISTRY.filter((entry) => entry.status === 'live' && hasPermission(entry.permission))
 }

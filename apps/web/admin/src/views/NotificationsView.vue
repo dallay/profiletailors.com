@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { PaginationControls, Table } from '@profiletailors/vue-ui'
 import { formatDateTime } from '@/lib/formatters'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import Select from '@/components/ui/AdminSelect.vue'
 
 type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED'
 type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH'
@@ -45,6 +47,8 @@ const error = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
 const statusFilter = ref('')
 const channelFilter = ref('')
+const retryTarget = ref<NotificationRow | null>(null)
+const retryDialogOpen = ref(false)
 
 const canManage = computed(() => authStore.hasPermission('platform.notifications.manage'))
 const hasPrevious = computed(() => page.value > 0)
@@ -92,8 +96,14 @@ async function fetchNotifications(): Promise<void> {
 
 async function retryNotification(row: NotificationRow): Promise<void> {
   successMessage.value = null
-  if (!window.confirm(t('notifications.retryConfirm', { recipient: row.recipient }))) return
+  retryTarget.value = row
+  retryDialogOpen.value = true
+}
 
+async function confirmRetry(): Promise<void> {
+  const row = retryTarget.value
+  if (!row) return
+  retryDialogOpen.value = false
   retryingId.value = row.id
   error.value = null
   try {
@@ -115,6 +125,7 @@ async function retryNotification(row: NotificationRow): Promise<void> {
     error.value = t('common.error')
   } finally {
     retryingId.value = null
+    retryTarget.value = null
   }
 }
 
@@ -131,24 +142,22 @@ onBeforeUnmount(() => activeRequest?.abort())
     <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('notifications.title') }}</h1>
 
     <div class="mb-4 flex flex-wrap gap-3">
-      <select
+      <Select
         v-model="statusFilter"
-        class="admin-input text-sm"
         :aria-label="t('notifications.filterStatus')"
       >
         <option value="">{{ t('notifications.allStatuses') }}</option>
         <option v-for="status in STATUSES" :key="status" :value="status">
           {{ t(`notifications.statuses.${status.toLowerCase()}`) }}
         </option>
-      </select>
-      <select
+      </Select>
+      <Select
         v-model="channelFilter"
-        class="admin-input text-sm"
         :aria-label="t('notifications.filterChannel')"
       >
         <option value="">{{ t('notifications.allChannels') }}</option>
         <option v-for="channel in CHANNELS" :key="channel" :value="channel">{{ channel }}</option>
-      </select>
+      </Select>
     </div>
 
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
@@ -221,5 +230,13 @@ onBeforeUnmount(() => activeRequest?.abort())
         />
       </template>
     </template>
+    <ConfirmDialog
+      v-model:open="retryDialogOpen"
+      :title="t('notifications.retry')"
+      :description="retryTarget ? t('notifications.retryConfirm', { recipient: retryTarget.recipient }) : ''"
+      :confirm-text="t('notifications.retry')"
+      :busy="retryingId !== null"
+      @confirm="confirmRetry"
+    />
   </div>
 </template>

@@ -257,7 +257,7 @@ describe('WaitlistView', () => {
       await cancelButton?.trigger('click')
       await flushPromises()
 
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+      expect(wrapper.find('[role="alertdialog"]').exists()).toBe(true)
       vi.stubGlobal('confirm', () => {})
     })
 
@@ -286,7 +286,7 @@ describe('WaitlistView', () => {
       await cancelButton?.trigger('click')
       await flushPromises()
 
-      const dialog = wrapper.find('[role="dialog"]')
+      const dialog = wrapper.find('[role="alertdialog"]')
       expect(dialog.exists()).toBe(true)
 
       const reasonInput = dialog.find('#cancel-reason')

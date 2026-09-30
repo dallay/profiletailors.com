@@ -79,9 +79,7 @@ describe('ConfigurationView', () => {
     expect(wrapper.find('[role="alert"]').text()).toBe('An error occurred.')
   })
 
-  it('confirms before submitting a mode change and sends a random Idempotency-Key', async () => {
-    const confirmSpy = vi.fn(() => true)
-    vi.stubGlobal('confirm', confirmSpy)
+  it('confirms in the application dialog before submitting and sends a random Idempotency-Key', async () => {
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'generated-key') })
     mockRequest
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ mode: 'OPEN' }) })
@@ -96,9 +94,16 @@ describe('ConfigurationView', () => {
       ?.trigger('click')
     await flushPromises()
 
-    expect(confirmSpy).toHaveBeenCalledWith(
+    const dialog = wrapper.find('[role="alertdialog"]')
+    expect(dialog.text()).toContain(
       'Change the registration mode to CLOSED? This takes effect immediately.',
     )
+    await dialog
+      .findAll('button')
+      .find((button) => button.text() === 'Change mode')
+      ?.trigger('click')
+    await flushPromises()
+
     const changeCall = mockRequest.mock.calls[1]
     expect(changeCall?.[0]).toBe('/api/admin/configuration/registration-mode')
     expect(changeCall?.[1]?.method).toBe('POST')
@@ -107,11 +112,7 @@ describe('ConfigurationView', () => {
     expect(wrapper.text()).toContain('CLOSED')
   })
 
-  it('does not submit the change when the operator cancels the confirmation', async () => {
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => false),
-    )
+  it('does not submit the change when the operator cancels the confirmation dialog', async () => {
     mockRequest.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ mode: 'OPEN' }) })
     const wrapper = createView()
     await flushPromises()
@@ -120,6 +121,12 @@ describe('ConfigurationView', () => {
     await wrapper
       .findAll('button')
       .find((button) => button.text() === 'Change mode')
+      ?.trigger('click')
+    await flushPromises()
+    await wrapper
+      .find('[role="alertdialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'common.cancel')
       ?.trigger('click')
     await flushPromises()
 

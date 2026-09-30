@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Table } from '@profiletailors/vue-ui'
 import { formatDate, formatDateTime } from '@/lib/formatters'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -40,6 +41,8 @@ const workspaces = ref<AdminWorkspaceMembership[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const mutationError = ref<string | null>(null)
+const pendingMutation = ref<'disable' | 'enable' | 'sessions/revoke' | null>(null)
+const mutationBusy = ref(false)
 
 function mutationKey(operation: string): string {
   return `admin-user-${operation}-${principalId}-${crypto.randomUUID()}`
@@ -47,6 +50,7 @@ function mutationKey(operation: string): string {
 
 async function runMutation(operation: 'disable' | 'enable' | 'sessions/revoke'): Promise<void> {
   mutationError.value = null
+  mutationBusy.value = true
   try {
     const response = await authStore.request(`/api/admin/users/${principalId}/${operation}`, {
       method: 'POST',
@@ -59,19 +63,15 @@ async function runMutation(operation: 'disable' | 'enable' | 'sessions/revoke'):
     await fetchUser()
   } catch {
     mutationError.value = t('common.error')
+  } finally {
+    mutationBusy.value = false
   }
 }
 
-async function disableUser(): Promise<void> {
-  if (window.confirm(t('users.disableConfirm'))) await runMutation('disable')
-}
-
-async function enableUser(): Promise<void> {
-  if (window.confirm(t('users.enableConfirm'))) await runMutation('enable')
-}
-
-async function revokeSessions(): Promise<void> {
-  if (window.confirm(t('users.revokeSessionsConfirm'))) await runMutation('sessions/revoke')
+async function confirmMutation(): Promise<void> {
+  const operation = pendingMutation.value
+  pendingMutation.value = null
+  if (operation) await runMutation(operation)
 }
 
 async function fetchUser() {
@@ -119,9 +119,9 @@ onMounted(fetchUser)
       </div>
 
        <div v-if="authStore.hasPermission('platform.users.manage')" class="mb-8 flex flex-wrap gap-3">
-         <button v-if="user.accountState === 'ACTIVE'" class="admin-button-secondary" @click="disableUser">{{ t('users.disable') }}</button>
-         <button v-else class="admin-button-secondary" @click="enableUser">{{ t('users.enable') }}</button>
-         <button class="admin-button-secondary" @click="revokeSessions">{{ t('users.revokeSessions') }}</button>
+         <button v-if="user.accountState === 'ACTIVE'" class="admin-button-secondary" @click="pendingMutation = 'disable'">{{ t('users.disable') }}</button>
+         <button v-else class="admin-button-secondary" @click="pendingMutation = 'enable'">{{ t('users.enable') }}</button>
+         <button class="admin-button-secondary" @click="pendingMutation = 'sessions/revoke'">{{ t('users.revokeSessions') }}</button>
        </div>
        <div v-if="mutationError" role="alert" class="mb-4 text-error">{{ mutationError }}</div>
 
@@ -152,6 +152,16 @@ onMounted(fetchUser)
         </tbody>
       </Table>
     </div>
+    <ConfirmDialog
+      :open="pendingMutation !== null"
+      :title="pendingMutation ? t(`users.${pendingMutation === 'sessions/revoke' ? 'revokeSessions' : pendingMutation}`) : ''"
+      :description="pendingMutation ? t(`users.${pendingMutation === 'sessions/revoke' ? 'revokeSessionsConfirm' : pendingMutation === 'disable' ? 'disableConfirm' : 'enableConfirm'}`) : ''"
+      :confirm-text="pendingMutation ? t(`users.${pendingMutation === 'sessions/revoke' ? 'revokeSessions' : pendingMutation}`) : ''"
+      :busy="mutationBusy"
+      variant="danger"
+      @update:open="(open) => { if (!open) pendingMutation = null }"
+      @confirm="confirmMutation"
+    />
   </div>
 </template>
 

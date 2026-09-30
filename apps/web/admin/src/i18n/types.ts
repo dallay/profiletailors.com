@@ -10,6 +10,8 @@ export type MessageSchema = {
     governance: string
     configuration: string
     platformAdministration: string
+    openNavigation: string
+    groups: { operations: string; observability: string; trust: string; system: string }
   }
   planned: {
     message: string
@@ -34,6 +36,7 @@ export type MessageSchema = {
     yes: string
     no: string
     back: string
+    retry: string
   }
   auth: {
     signIn: string
@@ -57,6 +60,11 @@ export type MessageSchema = {
   }
   dashboard: {
     title: string
+    subtitle: string
+    waitlistOverview: string
+    invitationHealth: string
+    systemHealth: string
+    periodLabel: string
     pendingEntries: string
     invitedEntries: string
     convertedEntries: string
@@ -84,6 +92,7 @@ export type MessageSchema = {
     cancel: string
     inviteConfirmTitle: string
     inviteConfirmMessage: string
+    inviteActionMessage: string
     cancelConfirmTitle: string
     cancelConfirmMessage: string
     cancelReason: string
@@ -91,6 +100,7 @@ export type MessageSchema = {
     revokeConfirmTitle: string
     revokeConfirmMessage: string
     entries: string
+    empty: string
     invitationHistory: string
     consentDetails: string
     earlyAccessConsent: string
@@ -114,10 +124,12 @@ export type MessageSchema = {
       joinedTo: string
       invitedFrom: string
       invitedTo: string
+      advanced: string
     }
   }
   users: {
     title: string
+    empty: string
     principalId: string
     displayName: string
     principalType: string

@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { PaginationControls, Table } from '@profiletailors/vue-ui'
+import { EmptyState, PaginationControls, Table } from '@profiletailors/vue-ui'
 import { formatDate } from '@/lib/formatters'
 import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { messages } from '@/i18n'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import Button from '@/components/ui/AdminButton.vue'
+import Card from '@/components/ui/AdminCard.vue'
+import Input from '@/components/ui/AdminInput.vue'
+import Select from '@/components/ui/AdminSelect.vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -69,6 +74,10 @@ const bulkInviting = ref(false)
 const bulkResults = ref<BulkEntryResult[] | null>(null)
 const bulkSummary = ref<BulkInviteSummary | null>(null)
 const bulkError = ref<string | null>(null)
+const actionError = ref<string | null>(null)
+const inviteTarget = ref<WaitlistEntry | null>(null)
+const advancedFilterCount = computed(() => [waitlistKeyFilter, joinedFrom, joinedTo, invitedFrom, invitedTo]
+  .filter((filter) => filter.value.trim().length > 0).length)
 
 const canInvite = authStore.hasPermission('platform.waitlist.invite')
 const canCancel = authStore.hasPermission('platform.waitlist.cancel')
@@ -110,18 +119,27 @@ async function fetchEntries() {
   }
 }
 
-async function inviteEntry(entry: WaitlistEntry) {
-  if (!confirm(`${t('waitlist.inviteConfirmTitle')}\n${entry.email}`)) return
+function inviteEntry(entry: WaitlistEntry) {
+  actionError.value = null
+  inviteTarget.value = entry
+}
+
+async function confirmInvite() {
+  const entry = inviteTarget.value
+  if (!entry) return
+  inviteTarget.value = null
   invitingId.value = entry.id
   try {
     const res = await authStore.request(`/api/admin/waitlist-entries/${entry.id}/invitations`, { method: 'POST' })
     if (!res.ok) {
       const body = (await res.json()) as { properties?: { code?: string } }
       const code = body.properties?.code
-      alert((code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error'))
+      actionError.value = (code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error')
     } else {
       await Promise.all([fetchEntries(), fetchSummary()])
     }
+  } catch {
+    actionError.value = t('common.error')
   } finally {
     invitingId.value = null
   }
@@ -171,6 +189,7 @@ async function bulkInviteSelected() {
 
 async function confirmCancel() {
   if (!cancelTarget.value || !cancelReason.value.trim()) return
+  actionError.value = null
   cancellingId.value = cancelTarget.value.id
   showCancelDialog.value = false
   try {
@@ -182,10 +201,12 @@ async function confirmCancel() {
     if (!res.ok) {
       const body = (await res.json()) as { properties?: { code?: string } }
       const code = body.properties?.code
-      alert((code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error'))
+      actionError.value = (code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error')
     } else {
       await Promise.all([fetchEntries(), fetchSummary()])
     }
+  } catch {
+    actionError.value = t('common.error')
   } finally {
     cancellingId.value = null
     cancelTarget.value = null
@@ -202,7 +223,7 @@ onMounted(() => {
   <div class="admin-page p-5 sm:p-8">
     <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('waitlist.title') }}</h1>
 
-    <div v-if="summary" class="flex gap-2 mb-4">
+    <div v-if="summary" class="mb-4 flex flex-wrap gap-2">
       <div class="admin-chip bg-pending/10 text-pending border border-pending/30">
         {{ t('waitlist.statuses.pending') }}: {{ summary.PENDING ?? 0 }}
       </div>
@@ -217,74 +238,70 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-3 mb-4">
-      <input
-        v-model="search"
-        type="search"
-        :placeholder="t('waitlist.filters.search')"
-        class="admin-input w-64 text-sm"
-        :aria-label="t('waitlist.filters.search')"
-      />
-      <input
-        v-model="waitlistKeyFilter"
-        type="text"
-        :placeholder="t('waitlist.filters.waitlistKey')"
-        class="admin-input w-40 text-sm"
-        :aria-label="t('waitlist.filters.waitlistKey')"
-      />
-      <select
-        v-model="statusFilter"
-        class="admin-input text-sm"
-        :aria-label="t('waitlist.filters.status')"
-      >
-        <option value="">{{ t('waitlist.filters.all') }}</option>
-        <option value="PENDING">{{ t('waitlist.statuses.pending') }}</option>
-        <option value="INVITED">{{ t('waitlist.statuses.invited') }}</option>
-        <option value="CONVERTED">{{ t('waitlist.statuses.converted') }}</option>
-        <option value="CANCELLED">{{ t('waitlist.statuses.cancelled') }}</option>
-      </select>
-      <input
-        v-model="joinedFrom"
-        type="date"
-        :placeholder="t('waitlist.filters.joinedFrom')"
-        class="admin-input w-36 text-sm"
-        :aria-label="t('waitlist.filters.joinedFrom')"
-      />
-      <input
-        v-model="joinedTo"
-        type="date"
-        :placeholder="t('waitlist.filters.joinedTo')"
-        class="admin-input w-36 text-sm"
-        :aria-label="t('waitlist.filters.joinedTo')"
-      />
-      <input
-        v-model="invitedFrom"
-        type="date"
-        :placeholder="t('waitlist.filters.invitedFrom')"
-        class="admin-input w-36 text-sm"
-        :aria-label="t('waitlist.filters.invitedFrom')"
-      />
-      <input
-        v-model="invitedTo"
-        type="date"
-        :placeholder="t('waitlist.filters.invitedTo')"
-        class="admin-input w-36 text-sm"
-        :aria-label="t('waitlist.filters.invitedTo')"
-      />
+    <div class="mb-5 space-y-3">
+      <div class="flex flex-wrap gap-3">
+        <Input
+          v-model="search"
+          type="search"
+          :placeholder="t('waitlist.filters.search')"
+          class="max-w-md"
+          :aria-label="t('waitlist.filters.search')"
+        />
+        <Select
+          v-model="statusFilter"
+          :aria-label="t('waitlist.filters.status')"
+        >
+          <option value="">{{ t('waitlist.filters.all') }}</option>
+          <option value="PENDING">{{ t('waitlist.statuses.pending') }}</option>
+          <option value="INVITED">{{ t('waitlist.statuses.invited') }}</option>
+          <option value="CONVERTED">{{ t('waitlist.statuses.converted') }}</option>
+          <option value="CANCELLED">{{ t('waitlist.statuses.cancelled') }}</option>
+        </Select>
+      </div>
+      <details class="admin-advanced-filters">
+        <summary class="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-text-secondary hover:text-text-body">
+          {{ t('waitlist.filters.advanced') }}
+          <span v-if="advancedFilterCount" class="status-badge status-badge-neutral">{{ advancedFilterCount }}</span>
+        </summary>
+        <div class="mt-3 grid gap-3 rounded-lg border border-border-subtle p-3 sm:grid-cols-2 xl:grid-cols-3">
+          <label for="waitlist-key-filter" class="flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ t('waitlist.filters.waitlistKey') }}
+            <Input id="waitlist-key-filter" v-model="waitlistKeyFilter" type="text" />
+          </label>
+          <label for="joined-from-filter" class="flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ t('waitlist.filters.joinedFrom') }}
+            <Input id="joined-from-filter" v-model="joinedFrom" type="date" />
+          </label>
+          <label for="joined-to-filter" class="flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ t('waitlist.filters.joinedTo') }}
+            <Input id="joined-to-filter" v-model="joinedTo" type="date" />
+          </label>
+          <label for="invited-from-filter" class="flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ t('waitlist.filters.invitedFrom') }}
+            <Input id="invited-from-filter" v-model="invitedFrom" type="date" />
+          </label>
+          <label for="invited-to-filter" class="flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ t('waitlist.filters.invitedTo') }}
+            <Input id="invited-to-filter" v-model="invitedTo" type="date" />
+          </label>
+        </div>
+      </details>
+      <p v-if="actionError" role="alert" class="text-sm text-error">{{ actionError }}</p>
     </div>
 
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
       <div v-if="canInvite" class="mb-3 flex items-center gap-3">
-        <button
+        <Button
           data-testid="bulk-invite"
           :disabled="selectedIds.length === 0 || bulkInviting"
-          class="admin-button-secondary text-sm disabled:opacity-50"
+          variant="secondary"
+          size="sm"
           @click="bulkInviteSelected"
         >
           {{ bulkInviting ? t('common.loading') : t('waitlist.bulkInvite', { count: selectedIds.length }) }}
-        </button>
+        </Button>
       </div>
 
       <div v-if="bulkError" role="alert" class="mb-3 text-error">{{ bulkError }}</div>
@@ -293,8 +310,9 @@ onMounted(() => {
         v-if="bulkResults && bulkSummary"
         data-testid="bulk-results"
         role="status"
-        class="admin-card mb-4 p-4"
+        class="mb-4 p-4"
       >
+        <Card class="p-4">
         <h2 class="mb-2 text-base font-semibold text-text-display">{{ t('waitlist.bulkResults') }}</h2>
         <p class="mb-2 text-sm text-text-secondary">
           {{
@@ -312,9 +330,13 @@ onMounted(() => {
             <span v-if="item.code" class="text-text-secondary"> ({{ item.code }})</span>
           </li>
         </ul>
+        </Card>
       </div>
 
-      <Table :aria-label="t('waitlist.entries')" class="admin-table">
+      <EmptyState v-if="result.items.length === 0" class="mb-4 text-sm">
+        {{ t('waitlist.empty') }}
+      </EmptyState>
+      <Table v-else :aria-label="t('waitlist.entries')" class="admin-table">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th v-if="canInvite" scope="col" class="py-2 pr-4">
@@ -350,7 +372,7 @@ onMounted(() => {
             </td>
             <td class="py-2 pr-4">
               <button
-                class="text-text-display hover:underline text-left"
+                class="inline-flex min-h-11 items-center text-left text-text-display hover:underline"
                 @click="router.push({ name: 'waitlist-entry', params: { entryId: entry.id } })"
               >
                 {{ entry.email }}
@@ -363,23 +385,27 @@ onMounted(() => {
             <td class="py-2 pr-4 text-text-secondary">
               {{ formatDate(entry.invitedAt, locale) }}
             </td>
-            <td class="py-2 flex gap-2">
-              <button
+            <td class="py-2">
+              <div class="flex flex-wrap gap-2">
+              <Button
                 v-if="canInvite && (entry.status === 'PENDING' || entry.status === 'INVITED')"
                 :disabled="invitingId === entry.id"
-                class="admin-button-secondary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
+                variant="secondary"
+                size="sm"
                 @click="inviteEntry(entry)"
               >
                 {{ invitingId === entry.id ? t('common.loading') : t('waitlist.invite') }}
-              </button>
-              <button
+              </Button>
+              <Button
                 v-if="canCancel && entry.status !== 'CONVERTED' && entry.status !== 'CANCELLED'"
                 :disabled="cancellingId === entry.id"
-                class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
+                variant="danger"
+                size="sm"
                 @click="openCancelDialog(entry)"
               >
                 {{ t('waitlist.cancel') }}
-              </button>
+              </Button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -395,49 +421,36 @@ onMounted(() => {
       />
     </template>
 
-    <div
-      v-if="showCancelDialog"
-      role="dialog"
-      aria-modal="true"
-      :aria-labelledby="'cancel-dialog-title'"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-      @keydown.esc="showCancelDialog = false"
+    <ConfirmDialog
+      :open="showCancelDialog"
+      :title="t('waitlist.cancelConfirmTitle')"
+      :description="cancelTarget ? t('waitlist.cancelConfirmMessage', { email: cancelTarget.email }) : ''"
+      :confirm-text="t('waitlist.cancel')"
+      :confirm-disabled="!cancelReason.trim()"
+      variant="danger"
+      @update:open="(open) => { showCancelDialog = open }"
+      @confirm="confirmCancel"
     >
-      <div class="admin-card w-full max-w-md p-6">
-        <h2 id="cancel-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
-          {{ t('waitlist.cancelConfirmTitle') }}
-        </h2>
-        <p class="mb-4 text-sm text-text-secondary">
-          {{ t('waitlist.cancelConfirmMessage', { email: cancelTarget?.email }) }}
-        </p>
-        <label class="mb-1 block text-sm text-text-body" for="cancel-reason">
-          {{ t('waitlist.cancelReason') }} <span class="text-error">*</span>
-        </label>
-        <input
-          id="cancel-reason"
-          v-model="cancelReason"
-          type="text"
-          class="admin-input mb-4 w-full text-sm"
-          required
-          :aria-required="true"
-        />
-        <div class="flex gap-2 justify-end">
-          <button
-            class="admin-button-secondary"
-            @click="showCancelDialog = false"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            :disabled="!cancelReason.trim()"
-            class="admin-button-danger disabled:opacity-50"
-            @click="confirmCancel"
-          >
-            {{ t('waitlist.cancel') }}
-          </button>
-        </div>
-      </div>
-    </div>
+      <label for="cancel-reason" class="label-mono text-[10px] text-text-secondary">
+        {{ t('waitlist.cancelReason') }}
+      </label>
+      <Input
+        id="cancel-reason"
+        v-model="cancelReason"
+        type="text"
+        class="mt-2"
+        required
+      />
+    </ConfirmDialog>
+    <ConfirmDialog
+      :open="inviteTarget !== null"
+      :title="t('waitlist.inviteConfirmTitle')"
+      :description="inviteTarget ? t('waitlist.inviteActionMessage', { email: inviteTarget.email }) : ''"
+      :confirm-text="t('waitlist.invite')"
+      :busy="invitingId !== null"
+      @update:open="(open) => { if (!open) inviteTarget = null }"
+      @confirm="confirmInvite"
+    />
   </div>
 </template>
 
