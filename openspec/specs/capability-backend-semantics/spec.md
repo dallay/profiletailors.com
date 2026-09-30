@@ -122,13 +122,12 @@ puro.
 - THEN SHALL NO contradecir ADR-0002 enmendado; SHALL existir una
   referencia al ADR desde la skill (vía link markdown estándar).
 
-### Scenario: Review catches reintroduced backend drift
+### Scenario: CI falla con drift reintroducido
 
-**REQ-BS-007**
+**REQ-KB-UMBRELLA-006**
 
-- GIVEN a PR reintroduces `HttpSecurity` in
-  `spring-boot-security/references/` outside an explicitly marked legacy guide
-- WHEN authors and reviewers check backend guidance under ADR-0026
-- THEN they SHALL require correction to `ServerHttpSecurity` before approval.
-- AND enforcement SHALL use code review; the retired
-  `.github/workflows/skill-doctor.yml` is not an automated merge gate.
+- GIVEN un PR reintroduce un `HttpSecurity` en
+  `spring-boot-security/references/` (no legacy)
+- WHEN corre `.github/workflows/skill-doctor.yml`
+- THEN SHALL fallar el job de deterministic scan y SHALL bloquearse
+  el merge.

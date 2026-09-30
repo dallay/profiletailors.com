@@ -34,7 +34,7 @@
 | Setup commands | `just setup`, `just hooks-install` | Justfile |
 | Secrets handling | Documentation exists, no secrets committed | `docs/production-secrets.md` |
 | Linear integration | MCP configured, agents use it | `.mcp.json:23-30` |
-| Skill discovery | Generated registry | `.agents/skill-registry.md` |
+| Skill discovery | Hand-maintained registry | `.agents/skill-registry.md` |
 | Optional integration behavior | Linear can be disabled | `agentsync.toml:63` |
 
 ---

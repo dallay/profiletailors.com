@@ -98,7 +98,7 @@ Single-level prompt files or basic instruction files.
 ### Why ProfileTailors Uses This Solution
 
 1. **Domain separation**: Skills trigger based on context, not manual invocation
-2. **Discovery**: Generated `skill-registry.md` lets agents find relevant skills
+2. **Discovery**: Hand-maintained `skill-registry.md` lets agents find relevant skills
 3. **Consistency**: Skills ensure pattern adherence (hexagonal, DDD, testing)
 4. **Amortization**: One skill definition serves all agents
 5. **Quality gates**: Architecture rules are enforceable via Konsist/Spring Modulith tests

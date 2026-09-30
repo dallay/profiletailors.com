@@ -1,44 +1,32 @@
 # Plan — Skill Knowledge Bundle Hardening
 
-## Overview
+## Ruta
 
-Explicit SDD — complete the active `skill-knowledge-bundle-hardening` change across its five slices, preserving archived history and treating the current repository as authoritative.
+Explicit SDD — completar el cambio activo `skill-knowledge-bundle-hardening` por sus cinco slices, preservando historia archivada y usando repository reality como autoridad.
 
-Status: In progress — SDD-005 remains unchecked. Removal of the deterministic scripts and CI workflow is complete under ADR-0026. PR 4 is cancelled; PR 5 is pending.
+## Tareas
 
-## Changes
+- [x] SDD-001 Confirmar y documentar la línea base de PR 1: topología plana, manifiestos, OpenSpec y gates actuales.
+- [x] SDD-002 PR 2: endurecer recursivamente todos los bundles Spring, reescribir guía incompatible y validar bundles reales en CI. Evidence: recursive Node scanner, scoped negative-guidance regression fixtures, active Spring asset cleanup, current Spring AI MCP patterns, CI invocation, focused tests, manual active-token scan, and real-root scan pass; ready for verification.
+- [x] SDD-003 PR 3: alinear Vue, shadcn-vue, `@profiletailors/vue-ui`, diseño, seguridad web, modern-web-guidance y Kotlin. Evidence: vue skill updated `@profiletailors/vue-ui` and `app` filter; best-practices scrubbed X-XSS-Protection, polyfill.io, npm/yarn, JSON.parse/stringify; modern-web-guidance demoted from MANDATORY to fallback; kotlin coroutines rule clarified; nothing-design activates from DESIGN.md not explicit invocation; frontend-design defers to DESIGN.md; playwright security test fixed. All 16 script tests pass, spring-scrub-rg clean, skill-doctor 66/66 PASS, comment-scan clean, registry regenerated, git diff --check clean.
+- [x] ~~SDD-004 PR 4: convertir Skill Doctor en validador recursivo de bundles, paths, metadata, familias y versiones.~~ Superseded by ADR-0026; scripts removed instead of extended.
+- [ ] SDD-005 PR 5: agregar escenarios semánticos, ejecutar gates, regenerar registry y hacer auditoría independiente.
+- [x] SDD-006 Eliminar los scripts deterministas y el workflow de CI; ADR-0026 registra la cancelación.
 
-- [x] SDD-001 Confirm and document the PR 1 baseline: flat topology, manifests, OpenSpec, and current gates.
-- [x] SDD-002 PR 2: recursively harden all Spring bundles, rewrite incompatible guidance, and validate real bundles in CI. Evidence recorded for this slice: recursive Node scanner, scoped negative-guidance regression fixtures, active Spring asset cleanup, current Spring AI MCP patterns, CI invocation, focused tests, manual active-token scan, and real-root scan pass; ready for verification.
-- [x] SDD-003 PR 3: align Vue, shadcn-vue, `@profiletailors/vue-ui`, design, web security, modern-web-guidance, and Kotlin. Evidence recorded for this slice: vue skill updated `@profiletailors/vue-ui` and `app` filter; best-practices scrubbed X-XSS-Protection, polyfill.io, npm/yarn, JSON.parse/stringify; modern-web-guidance demoted from MANDATORY to fallback; kotlin coroutines rule clarified; nothing-design activates from DESIGN.md not explicit invocation; frontend-design defers to DESIGN.md; playwright security test fixed. All 16 script tests passed, spring-scrub-rg was clean, skill-doctor reported 66/66 PASS, comment-scan was clean, registry was regenerated, and git diff --check was clean.
-- [x] ~~SDD-004 PR 4: turn Skill Doctor into a recursive validator of bundles, paths, metadata, families, and versions.~~ Cancelled under ADR-0026; scripts removed instead of extended.
-- [ ] SDD-005 PR 5: add semantic scenarios, run relevant gates, regenerate the registry, and perform an independent audit.
-- [x] SDD-006 Remove the deterministic scripts and CI workflow; ADR-0026 records the cancellation.
+## Criterios de aceptación
 
-## Usage
+- Las fuentes activas describen la topología plana `.agents/skills/<skill-id>/SKILL.md`.
+- Las especificaciones canónicas expresan invariantes actuales y no snapshots de migración.
+- La guía Spring activa usa Kotlin, coroutines, WebFlux, R2DBC, reactive security y MockK.
+- La guía frontend usa `app`, `@profiletailors/vue-ui` y documenta correctamente shadcn-vue.
+- `DESIGN.md` prevalece sobre skills genéricas y activa automáticamente la visualidad Nothing-inspired cuando corresponde.
+- Skills se validan por code review; los scripts de gate de CI eliminados como solución permanente de drift.
+- Los escenarios semánticos y gates relevantes pasan; cualquier check no ejecutado queda reportado explícitamente.
 
-### Acceptance criteria
+## Evidencia
 
-- Active sources describe the flat `.agents/skills/<skill-id>/SKILL.md` topology.
-- Canonical specifications express current invariants rather than migration snapshots.
-- Active Spring guidance uses Kotlin, coroutines, WebFlux, R2DBC, reactive security, and MockK.
-- Frontend guidance uses `app`, `@profiletailors/vue-ui`, and documents shadcn-vue correctly.
-- `DESIGN.md` takes precedence over generic skills and automatically activates Nothing-inspired visuals where appropriate.
-- Skills are validated through code review; the CI gate scripts have been permanently removed.
-- Semantic scenarios and relevant gates pass; any check not executed is explicitly reported.
+Pendiente hasta completar cada slice. No se declarará éxito por ausencia de tokens ni por tests unitarios aislados.
 
-### Evidence
+## Estado
 
-Record evidence as each slice is completed. Do not declare success based only on the absence of tokens or isolated unit tests. Earlier script results above are historical evidence; the scripts and their CI workflow have since been removed.
-
-## Troubleshooting
-
-- If guidance still requires the removed deterministic scripts or CI workflow, align it with the code review process in ADR-0026.
-- If the summary conflicts with the task checklist or initiative state, keep the initiative in progress while SDD-005 is unchecked; PR 4 is cancelled and PR 5 is pending.
-- If a relevant check cannot run, report it explicitly and leave its verification outstanding.
-
-## References
-
-- [Initiative state](../../openspec/changes/skill-knowledge-bundle-hardening/state.yaml)
-- [ADR-0026: Remove Automated Skill Doctor and Registry Generator](../../docs/architecture/adr/0026-remove-automated-skill-doctor.md)
-- [Skill registry](../../.agents/skill-registry.md)
+Done — scripts deterministas eliminados por ADR-0026; PR 4 y PR 5 canceladas o pendientes. El estado de git refleja la simplificación.
