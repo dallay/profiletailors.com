@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.ValueObject
 @ValueObject
 enum class PlatformPermission(val key: String) {
     DASHBOARD_READ("platform.dashboard.read"),
+    SYSTEM_BUILD_INFO_READ("platform.system.build-info.read"),
     WAITLIST_READ("platform.waitlist.read"),
     WAITLIST_INVITE("platform.waitlist.invite"),
     WAITLIST_CANCEL("platform.waitlist.cancel"),
