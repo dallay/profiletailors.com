@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, type ComputedRef, nextTick, onMounted, type Ref, ref, watch } from 'vue'
 
 type SchedulerTimelineProps = {
   days: Date[]
@@ -6,7 +6,14 @@ type SchedulerTimelineProps = {
   now: Date
 }
 
-export function useSchedulerTimeline(props: Readonly<SchedulerTimelineProps>) {
+type UseSchedulerTimelineReturn = {
+  viewport: Ref<HTMLElement | null>
+  nowMarkerStyle: ComputedRef<{ top: string }>
+}
+
+export function useSchedulerTimeline(
+  props: Readonly<SchedulerTimelineProps>,
+): UseSchedulerTimelineReturn {
   const viewport = ref<HTMLElement | null>(null)
   const nowMarkerStyle = computed(() => ({ top: `${(props.now.getMinutes() / 60) * 100}%` }))
   function revealToday(): void {
