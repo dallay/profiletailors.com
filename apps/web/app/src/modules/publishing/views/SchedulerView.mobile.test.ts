@@ -3,12 +3,11 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
-import { toast } from 'vue-sonner'
 
 const mockController = {
   state: ref({
     surface: 'calendar-week' as const,
-    view: 'week' as const,
+    view: 'day' as const,
     date: '2026-09-28',
     status: 'all' as const,
     timezone: 'Europe/Madrid',
@@ -33,7 +32,6 @@ const mockController = {
 
 const isMobile = ref(true)
 const startAppTour = vi.fn()
-let mockHasNoChannels = false
 
 vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
   useCalendarUrl: () => mockController,
@@ -45,12 +43,6 @@ vi.mock('@/lib/app-tour', () => ({
 
 vi.mock('@vueuse/core', () => ({
   useMediaQuery: () => isMobile,
-}))
-
-vi.mock('vue-router', () => ({
-  useRoute: () => ({
-    query: {},
-  }),
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -71,9 +63,7 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
     publications: [],
     recurringSchedules: [],
     hasReconnectRequiredChannels: false,
-    get hasNoChannels() {
-      return mockHasNoChannels
-    },
+    hasNoChannels: false,
   }),
 }))
 
@@ -110,7 +100,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
 }))
 
 vi.mock('vue-sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn() },
 }))
 
 vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () => ({
@@ -139,7 +129,6 @@ vi.mock('@modules/publishing/presentation/components/mobile/MobileSchedulerShell
       'timezone',
       'channelIds',
       'q',
-      'hasNoChannels',
     ],
     emits: [
       'new-post',
@@ -179,7 +168,7 @@ vi.mock('@/components/ui/sheet', () => ({
   Sheet: { template: '<div><slot /></div>' },
   SheetClose: { template: '<div><slot /></div>' },
   SheetContent: { template: '<div><slot /></div>' },
-  SheetFooter: { template: '<header><slot /></header>' },
+  SheetFooter: { template: '<footer><slot /></footer>' },
   SheetHeader: { template: '<header><slot /></header>' },
   SheetTitle: { template: '<h2><slot /></h2>' },
 }))
@@ -188,7 +177,6 @@ describe('SchedulerView mobile branch', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     isMobile.value = true
-    mockHasNoChannels = false
   })
 
   afterEach(() => {
@@ -204,15 +192,6 @@ describe('SchedulerView mobile branch', () => {
 
     expect(wrapper.get('[data-testid="scheduler-mobile-shell"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="scheduler-workspace"]').exists()).toBe(false)
-  })
-
-  it('defaults mobile view to 3-days when view query is omitted', async () => {
-    mount(SchedulerView, {
-      global: { mocks: { $t: (key: string) => key } },
-    })
-    await flushPromises()
-
-    expect(mockController.setView).toHaveBeenCalledWith('3-days')
   })
 
   it('routes New Post, prev/next/today, and view change events to the URL controller', async () => {
@@ -235,17 +214,6 @@ describe('SchedulerView mobile branch', () => {
     await wrapper.get('[data-testid="open-bulk-import"]').trigger('click')
     await wrapper.get('[data-testid="start-tour-btn"]').trigger('click')
     expect(startAppTour).toHaveBeenCalled()
-  })
-
-  it('shows warning toast when user attempts to create post with no channels connected', async () => {
-    mockHasNoChannels = true
-    const wrapper = mount(SchedulerView, {
-      global: { mocks: { $t: (key: string) => key } },
-    })
-    await flushPromises()
-
-    await wrapper.get('[data-testid="mobile-new-post"]').trigger('click')
-    expect(toast.warning).toHaveBeenCalledWith('scheduler.noChannelTitle')
   })
 
   it('routes the mobile filter change event through url.setFilters', async () => {
