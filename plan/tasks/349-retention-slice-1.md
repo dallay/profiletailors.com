@@ -116,4 +116,5 @@ Evidencia: 2026-09-29 — script usa `%ad` (fecha de autor, sobrevive rebase) + 
 - 2026-09-29: RPI-003 Done (job purga huérfanas expiradas + scheduler) + RPI-004 Done (dry-run/report, refactor LongMethod/LabeledExpression, tests + Detekt PASS).
 - 2026-09-29: RPI-007 Done (doc-date check: autor-date + gracia 3d + tests 7/7 + `just doc-check` PASS; c4/03 y c4/04 al 29).
 - 2026-09-29: RPI-005 Done (`backend-bdd-fast` SUCCESS 9m23s, feature 1/1 PASS); RPI-006 Done (docs + inventario validado).
-- Next: `just backend-check` en background como gate amplio final, luego cierre del slice.
+- 2026-09-30: publicado como stack de 2 — PR1 #1249 (doc-check, ~190 líneas, en presupuesto) y PR2 #1250 (slice retención, excepción de tamaño documentada) en draft. `backend-check` completo no corrió en local (reinicios del entorno); CI es autoritativo.
+- Estado: Ready (pendiente CI).
