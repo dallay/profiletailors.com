@@ -12,17 +12,21 @@ vi.mock('@lucide/vue', () => {
 })
 
 vi.mock('@/components/ui/button', () => ({
-  Button: { template: '<button><slot /></button>' },
+  Button: {
+    template: '<button :disabled="disabled" :title="title"><slot /></button>',
+    props: ['disabled', 'title'],
+  },
 }))
 
 describe('MobileSchedulerHeader', () => {
-  function mountHeader(filtersCount = 2) {
+  function mountHeader(filtersCount = 2, hasNoChannels = false) {
     return mount(MobileSchedulerHeader, {
       props: {
         title: 'All Channels',
         view: 'week',
         periodLabel: 'Jun 15 – 21, 2026',
         filtersCount,
+        hasNoChannels,
       },
       global: { mocks: { $t: (key: string) => key } },
     })
@@ -57,5 +61,13 @@ describe('MobileSchedulerHeader', () => {
     expect(wrapper.emitted('next')).toHaveLength(1)
     expect(wrapper.emitted('today')).toHaveLength(1)
     expect(wrapper.emitted('openFilters')).toHaveLength(1)
+  })
+
+  it('disables New Post button when hasNoChannels is true', () => {
+    const wrapper = mountHeader(0, true)
+    const newPostBtn = wrapper.get('[data-testid="mobile-new-post"]')
+
+    expect(newPostBtn.attributes('disabled')).toBeDefined()
+    expect(newPostBtn.attributes('title')).toBe('scheduler.noChannelTitle')
   })
 })

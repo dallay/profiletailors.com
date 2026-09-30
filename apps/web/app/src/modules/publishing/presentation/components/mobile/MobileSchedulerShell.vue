@@ -9,21 +9,27 @@ import type { Publication } from '@modules/publishing/infrastructure/publishing.
 import type { SchedulerStatus, SchedulerView } from '@modules/publishing/application/useCalendarUrl'
 
 type HourSlot = { hour: number; label: string }
-const props = defineProps<{
-  title: string
-  view: SchedulerView
-  periodLabel: string
-  days: Date[]
-  hourSlots: HourSlot[]
-  status: SchedulerStatus
-  timezone: string
-  channelIds: string[]
-  q: string
-  publicationsForSlot: (day: Date, hour: number) => Publication[]
-  isToday: (day: Date) => boolean
-  formatDayName: (day: Date) => string
-  isPastSlot: (day: Date, hour: number) => boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    title: string
+    view: SchedulerView
+    periodLabel: string
+    days: Date[]
+    hourSlots: HourSlot[]
+    status: SchedulerStatus
+    timezone: string
+    channelIds: string[]
+    q: string
+    publicationsForSlot: (day: Date, hour: number) => Publication[]
+    isToday: (day: Date) => boolean
+    formatDayName: (day: Date) => string
+    isPastSlot: (day: Date, hour: number) => boolean
+    hasNoChannels?: boolean
+  }>(),
+  {
+    hasNoChannels: false,
+  },
+)
 const emit = defineEmits<{
   (event: 'newPost'): void
   (event: 'prev'): void
@@ -56,7 +62,18 @@ function handleOpenNewPost(day: Date, hour: number) {
 </script>
 <template>
   <div data-testid="scheduler-mobile-shell" class="flex min-h-0 flex-1 flex-col gap-3">
-    <MobileSchedulerHeader :title="title" :view="view" :period-label="periodLabel" :filters-count="filtersCount" @new-post="emit('newPost')" @prev="emit('prev')" @next="emit('next')" @today="emit('today')" @open-filters="filtersOpen = true" />
+    <MobileSchedulerHeader
+      :title="title"
+      :view="view"
+      :period-label="periodLabel"
+      :filters-count="filtersCount"
+      :has-no-channels="hasNoChannels"
+      @new-post="emit('newPost')"
+      @prev="emit('prev')"
+      @next="emit('next')"
+      @today="emit('today')"
+      @open-filters="filtersOpen = true"
+    />
     <div class="flex items-center gap-2">
       <SchedulerViewSwitcher :view="view" @change:view="emit('change:view', $event)" />
       <MobileOverflowMenu class="ml-auto" @open-bulk-import="emit('openBulkImport')" @start-tour="emit('startTour')" />

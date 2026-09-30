@@ -3,12 +3,18 @@ import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus } from '@lucide/v
 import { Button } from '@/components/ui/button'
 import type { SchedulerView } from '@modules/publishing/application/useCalendarUrl'
 
-defineProps<{
-  title: string
-  view: SchedulerView
-  periodLabel: string
-  filtersCount: number
-}>()
+withDefaults(
+  defineProps<{
+    title: string
+    view: SchedulerView
+    periodLabel: string
+    filtersCount: number
+    hasNoChannels?: boolean
+  }>(),
+  {
+    hasNoChannels: false,
+  },
+)
 const emit = defineEmits<{
   (event: 'newPost'): void
   (event: 'prev'): void
@@ -27,7 +33,8 @@ const emit = defineEmits<{
       <Button
         data-testid="mobile-new-post"
         class="min-h-11 shrink-0 gap-1.5 px-4 text-xs"
-        :disabled="false"
+        :disabled="Boolean(hasNoChannels)"
+        :title="hasNoChannels ? $t('scheduler.noChannelTitle') : undefined"
         @click="emit('newPost')"
       >
         <Plus class="size-4" />
