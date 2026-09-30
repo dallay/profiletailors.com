@@ -1,27 +1,54 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { visibleNavEntries } from '@/router/nav-registry'
 import { VersionBadge } from '@profiletailors/vue-ui'
+import { Badge } from '@/components/ui/badge'
+import {
+  LayoutDashboardIcon,
+  ListFilterIcon,
+  MailIcon,
+  UsersIcon,
+  FileTextIcon,
+  LayoutGridIcon,
+  BellIcon,
+  ShieldAlertIcon,
+  SettingsIcon,
+  LogOutIcon,
+} from '@lucide/vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAdminAuthStore()
 
+const iconMap: Record<string, Component> = {
+  dashboard: LayoutDashboardIcon,
+  waitlist: ListFilterIcon,
+  'direct-invitations': MailIcon,
+  users: UsersIcon,
+  audit: FileTextIcon,
+  overview: LayoutGridIcon,
+  notifications: BellIcon,
+  governance: ShieldAlertIcon,
+  configuration: SettingsIcon,
+}
+
 interface NavItem {
+  key: string
   name: string
   label: string
-  icon: string
+  iconComponent?: Component
 }
 
 const navItems = computed<NavItem[]>(() =>
   visibleNavEntries((permission) => authStore.hasPermission(permission)).map((entry) => ({
+    key: entry.key,
     name: entry.routeName,
     label: t(entry.labelKey),
-    icon: entry.icon,
+    iconComponent: iconMap[entry.key],
   })),
 )
 
@@ -32,27 +59,28 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="admin-shell flex min-h-screen bg-bg-primary text-text-body">
+  <div class="flex min-h-screen bg-background text-foreground">
     <aside
-      class="admin-sidebar flex w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-surface"
+      class="flex w-64 shrink-0 flex-col border-r border-border bg-card"
       :aria-label="t('nav.platformAdministration')"
     >
-      <div class="border-b border-border-subtle p-6">
+      <div class="border-b border-border p-6">
         <img :src="lightOnDarkLogoUrl" alt="" class="mb-5 h-10 w-9" aria-hidden="true">
-        <p class="label-mono mb-1 text-text-secondary">
+        <p class="label-mono mb-1 text-muted-foreground">
           {{ t('auth.platformAdmin') }}
         </p>
-        <p class="truncate text-sm text-text-secondary">
+        <p class="truncate text-sm text-muted-foreground">
           {{ authStore.principal?.email }}
         </p>
         <div class="mt-2 flex flex-wrap gap-1">
-          <span
+          <Badge
             v-for="role in authStore.principal?.platformRoles"
             :key="role"
-            class="status-badge status-badge-neutral"
+            variant="outline"
+            class="text-[10px] font-mono uppercase"
           >
             {{ role }}
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -61,25 +89,32 @@ async function signOut() {
           v-for="item in navItems"
           :key="item.name"
           :to="{ name: item.name }"
-          class="admin-nav-link flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors"
-          active-class="admin-nav-link-active"
+          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          active-class="bg-muted text-foreground font-medium"
           :aria-label="item.label"
         >
-          <span aria-hidden="true">{{ item.icon }}</span>
+          <component
+            :is="item.iconComponent"
+            v-if="item.iconComponent"
+            class="size-4 shrink-0"
+            aria-hidden="true"
+          />
           {{ item.label }}
         </RouterLink>
       </nav>
 
-      <div class="border-t border-border-subtle p-4">
+      <div class="border-t border-border p-4">
         <button
-          class="admin-nav-link w-full rounded-xl px-3 py-2 text-left text-sm text-text-secondary transition-colors"
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           @click="signOut"
         >
+          <LogOutIcon class="size-4 shrink-0" aria-hidden="true" />
           {{ t('auth.signOut') }}
         </button>
       </div>
 
-      <div class="border-t border-border-subtle px-4 py-3">
+      <div class="border-t border-border px-4 py-3">
         <VersionBadge />
       </div>
     </aside>

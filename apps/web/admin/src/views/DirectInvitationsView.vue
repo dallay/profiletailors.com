@@ -2,10 +2,24 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
-import { Table } from '@profiletailors/vue-ui'
 import { formatDateTime } from '@/lib/formatters'
 import type { PagedResult } from '@/types/pagination'
 import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from '@lucide/vue'
 
 interface CreatedInvitation {
   id: string
@@ -294,360 +308,380 @@ function closeRevokeDialog() {
   revokeDialogOpen.value = false
   revokeError.value = null
 }
-
 </script>
 
 <template>
-  <div class="admin-page p-5 sm:p-8">
+  <div class="p-5 sm:p-8">
     <header class="mb-6">
-      <h1 class="text-2xl font-semibold text-text-display">
+      <h1 class="text-2xl font-semibold text-foreground">
         {{ t('directInvitations.title') }}
       </h1>
-      <p class="mt-1 text-sm text-text-secondary">
+      <p class="mt-1 text-sm text-muted-foreground">
         {{ t('directInvitations.subtitle') }}
       </p>
     </header>
 
-    <section
+    <Card
       v-if="canCreate"
-      class="admin-card mb-6 p-5"
+      class="mb-6 p-5"
       data-testid="direct-invitation-form-card"
     >
-      <h2 class="mb-4 text-lg font-medium text-text-display">
-        {{ t('directInvitations.form.title') }}
-      </h2>
+      <CardHeader class="p-0 mb-4">
+        <CardTitle class="text-lg font-medium text-foreground">
+          {{ t('directInvitations.form.title') }}
+        </CardTitle>
+      </CardHeader>
 
-      <form class="space-y-4" novalidate @submit.prevent="submit">
-        <div>
-          <label
-            for="direct-invitation-email"
-            class="label-mono mb-1 block text-text-secondary"
+      <CardContent class="p-0">
+        <form class="space-y-4" novalidate @submit.prevent="submit">
+          <Field class="space-y-1">
+            <FieldLabel
+              for="direct-invitation-email"
+              class="label-mono mb-1 text-muted-foreground"
+            >
+              {{ t('common.email') }}
+            </FieldLabel>
+            <Input
+              id="direct-invitation-email"
+              v-model="form.email"
+              type="email"
+              autocomplete="off"
+              required
+              class="w-full text-sm"
+              data-testid="direct-invitation-email"
+              :placeholder="t('directInvitations.form.emailPlaceholder')"
+              :disabled="submitting"
+            />
+          </Field>
+
+          <Field class="space-y-1">
+            <FieldLabel
+              for="direct-invitation-target"
+              class="label-mono mb-1 text-muted-foreground"
+            >
+              {{ t('directInvitations.form.target') }}
+            </FieldLabel>
+            <select
+              id="direct-invitation-target"
+              v-model="form.target"
+              class="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+              data-testid="direct-invitation-target"
+              :disabled="submitting"
+            >
+              <option value="EXISTING_WORKSPACE">
+                {{ t('directInvitations.form.targetExisting') }}
+              </option>
+              <option value="NEW_WORKSPACE">
+                {{ t('directInvitations.form.targetNew') }}
+              </option>
+            </select>
+          </Field>
+
+          <Field v-if="workspaceRequired" class="space-y-1">
+            <FieldLabel
+              for="direct-invitation-workspace"
+              class="label-mono mb-1 text-muted-foreground"
+            >
+              {{ t('directInvitations.form.workspaceId') }}
+            </FieldLabel>
+            <Input
+              id="direct-invitation-workspace"
+              v-model="form.workspaceId"
+              type="text"
+              autocomplete="off"
+              required
+              class="w-full text-sm"
+              data-testid="direct-invitation-workspace"
+              :placeholder="t('directInvitations.form.workspaceIdPlaceholder')"
+              :disabled="submitting"
+            />
+          </Field>
+
+          <Alert
+            v-if="formError"
+            variant="destructive"
+            data-testid="direct-invitation-error"
           >
-            {{ t('common.email') }}
-          </label>
-          <input
-            id="direct-invitation-email"
-            v-model="form.email"
-            type="email"
-            autocomplete="off"
-            required
-            class="admin-input w-full text-sm"
-            data-testid="direct-invitation-email"
-            :placeholder="t('directInvitations.form.emailPlaceholder')"
-            :disabled="submitting"
+            <AlertDescription>{{ formError }}</AlertDescription>
+          </Alert>
+
+          <div class="flex items-center gap-3">
+            <Button
+              type="submit"
+              size="sm"
+              data-testid="direct-invitation-submit"
+              :disabled="!formValid || submitting"
+            >
+              {{ submitting ? t('common.loading') : t('directInvitations.form.submit') }}
+            </Button>
+            <span
+              v-if="!emailValid && form.email.length > 0"
+              class="text-xs text-warning"
+            >
+              {{ t('directInvitations.form.emailInvalid') }}
+            </span>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+
+    <Card
+      v-if="created"
+      class="p-5"
+      data-testid="direct-invitation-success"
+    >
+      <CardHeader class="p-0 mb-3">
+        <CardTitle class="text-lg font-medium text-success">
+          {{ t('directInvitations.success.title') }}
+        </CardTitle>
+      </CardHeader>
+      <CardContent class="p-0">
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="label-mono mb-1 text-muted-foreground">
+              {{ t('directInvitations.success.id') }}
+            </dt>
+            <dd class="font-mono text-foreground">
+              {{ created.id }}
+            </dd>
+          </div>
+          <div>
+            <dt class="label-mono mb-1 text-muted-foreground">
+              {{ t('common.status') }}
+            </dt>
+            <dd class="text-foreground">
+              {{ created.status }}
+            </dd>
+          </div>
+          <div>
+            <dt class="label-mono mb-1 text-muted-foreground">
+              {{ t('directInvitations.success.expiresAt') }}
+            </dt>
+            <dd class="text-foreground">
+              {{ formatDateTime(created.expiresAt, locale) }}
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <Button
+            v-if="canResend"
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="direct-invitation-resend"
+            :disabled="resending"
+            @click="resendInvitation"
           >
+            {{ resending ? t('common.loading') : t('directInvitations.success.resend') }}
+          </Button>
+          <Button
+            v-if="canRevoke"
+            type="button"
+            variant="destructive"
+            size="sm"
+            data-testid="direct-invitation-revoke"
+            @click="openRevokeDialog(created.id)"
+          >
+            {{ t('directInvitations.success.revoke') }}
+          </Button>
+          <span
+            v-if="!canRevoke && !canResend && !canRead"
+            class="text-xs text-muted-foreground"
+          >
+            {{ t('directInvitations.success.readOnlyNotice') }}
+          </span>
         </div>
+        <Alert
+          v-if="resendError"
+          variant="destructive"
+          class="mt-3"
+          data-testid="direct-invitation-resend-error"
+        >
+          <AlertDescription>{{ resendError }}</AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
 
-        <div>
-          <label
-            for="direct-invitation-target"
-            class="label-mono mb-1 block text-text-secondary"
-          >
-            {{ t('directInvitations.form.target') }}
-          </label>
+    <p v-if="!canRead" class="text-sm text-muted-foreground">
+      {{ t('auth.accessDeniedMessage') }}
+    </p>
+
+    <Card
+      v-if="canRead"
+      class="mt-6 p-5"
+      data-testid="direct-invitations-list"
+    >
+      <CardHeader class="p-0 mb-4">
+        <CardTitle class="text-lg font-medium text-foreground">
+          {{ t('directInvitations.list.title') }}
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent class="p-0">
+        <div class="mb-4 flex flex-wrap gap-3">
+          <div class="relative w-64">
+            <SearchIcon class="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              v-model="listSearch"
+              type="search"
+              class="pl-8 text-sm"
+              data-testid="direct-invitations-search"
+              :placeholder="t('directInvitations.list.search')"
+              :aria-label="t('directInvitations.list.search')"
+            />
+          </div>
           <select
-            id="direct-invitation-target"
-            v-model="form.target"
-            class="admin-input w-full text-sm"
-            data-testid="direct-invitation-target"
-            :disabled="submitting"
+            v-model="listStatusFilter"
+            class="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            data-testid="direct-invitations-status-filter"
+            :aria-label="t('directInvitations.list.statusFilter')"
           >
-            <option value="EXISTING_WORKSPACE">
-              {{ t('directInvitations.form.targetExisting') }}
+            <option value="">
+              {{ t('directInvitations.list.allStatuses') }}
             </option>
-            <option value="NEW_WORKSPACE">
-              {{ t('directInvitations.form.targetNew') }}
+            <option value="ACTIVE">
+              {{ t('directInvitations.list.statuses.active') }}
+            </option>
+            <option value="ACCEPTED">
+              {{ t('directInvitations.list.statuses.accepted') }}
+            </option>
+            <option value="EXPIRED">
+              {{ t('directInvitations.list.statuses.expired') }}
+            </option>
+            <option value="REVOKED">
+              {{ t('directInvitations.list.statuses.revoked') }}
             </option>
           </select>
         </div>
 
-        <div v-if="workspaceRequired">
-          <label
-            for="direct-invitation-workspace"
-            class="label-mono mb-1 block text-text-secondary"
-          >
-            {{ t('directInvitations.form.workspaceId') }}
-          </label>
-          <input
-            id="direct-invitation-workspace"
-            v-model="form.workspaceId"
-            type="text"
-            autocomplete="off"
-            required
-            class="admin-input w-full text-sm"
-            data-testid="direct-invitation-workspace"
-            :placeholder="t('directInvitations.form.workspaceIdPlaceholder')"
-            :disabled="submitting"
-          >
-        </div>
-
         <div
-          v-if="formError"
-          role="alert"
-          class="rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-error"
-          data-testid="direct-invitation-error"
+          v-if="listLoading"
+          class="text-sm text-muted-foreground"
+          data-testid="direct-invitations-loading"
         >
-          {{ formError }}
+          {{ t('common.loading') }}
         </div>
-
-        <div class="flex items-center gap-3">
-          <button
-            type="submit"
-            class="admin-button-primary text-sm disabled:opacity-40"
-            data-testid="direct-invitation-submit"
-            :disabled="!formValid || submitting"
+        <Alert
+          v-else-if="listError"
+          variant="destructive"
+          data-testid="direct-invitations-error"
+        >
+          <AlertDescription>{{ listError }}</AlertDescription>
+        </Alert>
+        <template v-else-if="listResult">
+          <div
+            v-if="listItems.length === 0"
+            class="text-sm text-muted-foreground"
+            data-testid="direct-invitations-empty"
           >
-            {{ submitting ? t('common.loading') : t('directInvitations.form.submit') }}
-          </button>
-          <span
-            v-if="!emailValid && form.email.length > 0"
-            class="text-xs text-warning"
-          >
-            {{ t('directInvitations.form.emailInvalid') }}
-          </span>
-        </div>
-      </form>
-    </section>
-
-    <section
-      v-if="created"
-      class="admin-card p-5"
-      data-testid="direct-invitation-success"
-    >
-      <h2 class="mb-3 text-lg font-medium text-success">
-        {{ t('directInvitations.success.title') }}
-      </h2>
-      <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <dt class="label-mono mb-1 text-text-secondary">
-            {{ t('directInvitations.success.id') }}
-          </dt>
-          <dd class="font-mono text-text-display">
-            {{ created.id }}
-          </dd>
-        </div>
-        <div>
-          <dt class="label-mono mb-1 text-text-secondary">
-            {{ t('common.status') }}
-          </dt>
-          <dd class="text-text-display">
-            {{ created.status }}
-          </dd>
-        </div>
-        <div>
-          <dt class="label-mono mb-1 text-text-secondary">
-            {{ t('directInvitations.success.expiresAt') }}
-          </dt>
-          <dd class="text-text-display">
-            {{ formatDateTime(created.expiresAt, locale) }}
-          </dd>
-        </div>
-      </dl>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <button
-          v-if="canResend"
-          type="button"
-          class="admin-button-secondary text-sm disabled:opacity-40"
-          data-testid="direct-invitation-resend"
-          :disabled="resending"
-          @click="resendInvitation"
-        >
-          {{ resending ? t('common.loading') : t('directInvitations.success.resend') }}
-        </button>
-        <button
-          v-if="canRevoke"
-          type="button"
-          class="admin-button-danger text-sm"
-          data-testid="direct-invitation-revoke"
-          @click="openRevokeDialog(created.id)"
-        >
-          {{ t('directInvitations.success.revoke') }}
-        </button>
-        <span
-          v-if="!canRevoke && !canResend && !canRead"
-          class="text-xs text-text-secondary"
-        >
-          {{ t('directInvitations.success.readOnlyNotice') }}
-        </span>
-      </div>
-      <div
-        v-if="resendError"
-        role="alert"
-        class="mt-3 rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-error"
-        data-testid="direct-invitation-resend-error"
-      >
-        {{ resendError }}
-      </div>
-    </section>
-
-    <p v-if="!canRead" class="text-sm text-text-secondary">
-      {{ t('auth.accessDeniedMessage') }}
-    </p>
-
-    <section
-      v-if="canRead"
-      class="admin-card mt-6 p-5"
-      data-testid="direct-invitations-list"
-    >
-      <h2 class="mb-4 text-lg font-medium text-text-display">
-        {{ t('directInvitations.list.title') }}
-      </h2>
-
-      <div class="mb-4 flex flex-wrap gap-3">
-        <input
-          v-model="listSearch"
-          type="search"
-          class="admin-input w-64 text-sm"
-          data-testid="direct-invitations-search"
-          :placeholder="t('directInvitations.list.search')"
-          :aria-label="t('directInvitations.list.search')"
-        >
-        <select
-          v-model="listStatusFilter"
-          class="admin-input text-sm"
-          data-testid="direct-invitations-status-filter"
-          :aria-label="t('directInvitations.list.statusFilter')"
-        >
-          <option value="">
-            {{ t('directInvitations.list.allStatuses') }}
-          </option>
-          <option value="ACTIVE">
-            {{ t('directInvitations.list.statuses.active') }}
-          </option>
-          <option value="ACCEPTED">
-            {{ t('directInvitations.list.statuses.accepted') }}
-          </option>
-          <option value="EXPIRED">
-            {{ t('directInvitations.list.statuses.expired') }}
-          </option>
-          <option value="REVOKED">
-            {{ t('directInvitations.list.statuses.revoked') }}
-          </option>
-        </select>
-      </div>
-
-      <div
-        v-if="listLoading"
-        class="text-sm text-text-secondary"
-        data-testid="direct-invitations-loading"
-      >
-        {{ t('common.loading') }}
-      </div>
-      <div
-        v-else-if="listError"
-        role="alert"
-        class="rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-error"
-        data-testid="direct-invitations-error"
-      >
-        {{ listError }}
-      </div>
-      <template v-else-if="listResult">
-        <div
-          v-if="listItems.length === 0"
-          class="text-sm text-text-secondary"
-          data-testid="direct-invitations-empty"
-        >
-          {{ t('directInvitations.list.empty') }}
-        </div>
-        <template v-else>
-          <Table
-            class="admin-table"
-            data-testid="direct-invitations-table"
-            :aria-label="t('directInvitations.list.title')"
-          >
-            <thead>
-              <tr class="border-b border-border-subtle text-xs uppercase text-text-secondary">
-                <th scope="col" class="py-2 pr-4">
-                  {{ t('common.email') }}
-                </th>
-                <th scope="col" class="py-2 pr-4">
-                  {{ t('directInvitations.list.target') }}
-                </th>
-                <th scope="col" class="py-2 pr-4">
-                  {{ t('common.status') }}
-                </th>
-                <th scope="col" class="py-2 pr-4">
-                  {{ t('directInvitations.list.expiresAt') }}
-                </th>
-                <th scope="col" class="py-2">
-                  {{ t('common.actions') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in listItems"
-                :key="row.invitationId"
-                class="border-b border-border-subtle hover:bg-bg-surface"
-                data-testid="direct-invitation-row"
-              >
-                <td class="py-2 pr-4 text-text-display">
-                  {{ row.email }}
-                </td>
-                <td class="py-2 pr-4 text-text-secondary">
-                  {{ invitationTargetLabel(row.target) }}
-                </td>
-                <td class="py-2 pr-4 text-text-display">
-                  {{ invitationStatusLabel(row.status) }}
-                </td>
-                <td class="py-2 pr-4 text-text-secondary">
-                  {{ formatDateTime(row.expiresAt, locale) }}
-                </td>
-                <td class="flex gap-2 py-2">
-                  <button
-                    v-if="canResend && row.status === 'ACTIVE'"
-                    type="button"
-                    class="admin-button-secondary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
-                    data-testid="direct-invitation-row-resend"
-                    :disabled="rowActionId === row.invitationId"
-                    @click="resendRow(row)"
-                  >
-                    {{ t('directInvitations.success.resend') }}
-                  </button>
-                  <button
-                    v-if="canRevoke && row.status === 'ACTIVE'"
-                    type="button"
-                    class="admin-button-danger min-h-0 px-2 py-1 text-xs"
-                    data-testid="direct-invitation-row-revoke"
-                    @click="openRowRevokeDialog(row)"
-                  >
-                    {{ t('directInvitations.success.revoke') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </Table>
-
-          <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
-            <span data-testid="direct-invitations-page-info">
-              {{ t('common.page') }} {{ listResult.page + 1 }} {{ t('common.of') }} {{ listResult.totalPages }}
-            </span>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="admin-button-secondary disabled:opacity-40"
-                data-testid="direct-invitations-prev"
-                :disabled="!listResult.hasPrevious"
-                :aria-label="t('common.previous')"
-                @click="listPage--; fetchList()"
-              >
-                {{ t('common.previous') }}
-              </button>
-              <button
-                type="button"
-                class="admin-button-secondary disabled:opacity-40"
-                data-testid="direct-invitations-next"
-                :disabled="!listResult.hasNext"
-                :aria-label="t('common.next')"
-                @click="listPage++; fetchList()"
-              >
-                {{ t('common.next') }}
-              </button>
-            </div>
+            {{ t('directInvitations.list.empty') }}
           </div>
+          <template v-else>
+            <Table
+              data-testid="direct-invitations-table"
+              :aria-label="t('directInvitations.list.title')"
+            >
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">
+                    {{ t('common.email') }}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {{ t('directInvitations.list.target') }}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {{ t('common.status') }}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {{ t('directInvitations.list.expiresAt') }}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {{ t('common.actions') }}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow
+                  v-for="row in listItems"
+                  :key="row.invitationId"
+                  data-testid="direct-invitation-row"
+                >
+                  <TableCell class="font-medium text-foreground">
+                    {{ row.email }}
+                  </TableCell>
+                  <TableCell class="text-muted-foreground">
+                    {{ invitationTargetLabel(row.target) }}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" class="font-mono text-[10px] uppercase">
+                      {{ invitationStatusLabel(row.status) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell class="text-muted-foreground">
+                    {{ formatDateTime(row.expiresAt, locale) }}
+                  </TableCell>
+                  <TableCell class="flex gap-2">
+                    <Button
+                      v-if="canResend && row.status === 'ACTIVE'"
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      data-testid="direct-invitation-row-resend"
+                      :disabled="rowActionId === row.invitationId"
+                      @click="resendRow(row)"
+                    >
+                      {{ t('directInvitations.success.resend') }}
+                    </Button>
+                    <Button
+                      v-if="canRevoke && row.status === 'ACTIVE'"
+                      type="button"
+                      variant="destructive"
+                      size="xs"
+                      data-testid="direct-invitation-row-revoke"
+                      @click="openRowRevokeDialog(row)"
+                    >
+                      {{ t('directInvitations.success.revoke') }}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+
+            <nav class="mt-4 flex items-center justify-between gap-3 text-sm text-muted-foreground" aria-label="Pagination">
+              <span data-testid="direct-invitations-page-info">
+                {{ t('common.page') }} {{ listResult.page + 1 }} {{ t('common.of') }} {{ listResult.totalPages }}
+              </span>
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="direct-invitations-prev"
+                  :disabled="!listResult.hasPrevious"
+                  :aria-label="t('common.previous')"
+                  @click="listPage--; fetchList()"
+                >
+                  <ChevronLeftIcon class="mr-1 size-3.5" />
+                  {{ t('common.previous') }}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="direct-invitations-next"
+                  :disabled="!listResult.hasNext"
+                  :aria-label="t('common.next')"
+                  @click="listPage++; fetchList()"
+                >
+                  {{ t('common.next') }}
+                  <ChevronRightIcon class="ml-1 size-3.5" />
+                </Button>
+              </div>
+            </nav>
+          </template>
         </template>
-      </template>
-    </section>
+      </CardContent>
+    </Card>
 
     <RevokeInvitationDialog
       :open="revokeDialogOpen"

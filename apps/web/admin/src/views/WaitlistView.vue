@@ -2,11 +2,24 @@
 import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { PaginationControls, Table } from '@profiletailors/vue-ui'
 import { formatDate } from '@/lib/formatters'
 import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { messages } from '@/i18n'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldLabel } from '@/components/ui/field'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from '@lucide/vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -199,42 +212,45 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="admin-page p-5 sm:p-8">
-    <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('waitlist.title') }}</h1>
+  <div class="p-5 sm:p-8">
+    <h1 class="mb-6 text-2xl font-semibold text-foreground">{{ t('waitlist.title') }}</h1>
 
-    <div v-if="summary" class="flex gap-2 mb-4">
-      <div class="admin-chip bg-pending/10 text-pending border border-pending/30">
+    <div v-if="summary" class="flex flex-wrap gap-2 mb-4">
+      <Badge variant="outline" class="admin-chip font-mono text-xs py-1 px-3">
         {{ t('waitlist.statuses.pending') }}: {{ summary.PENDING ?? 0 }}
-      </div>
-      <div class="admin-chip bg-invited/10 text-invited border border-invited/30">
+      </Badge>
+      <Badge variant="outline" class="admin-chip font-mono text-xs py-1 px-3">
         {{ t('waitlist.statuses.invited') }}: {{ summary.INVITED ?? 0 }}
-      </div>
-      <div class="admin-chip bg-converted/10 text-converted border border-converted/30">
+      </Badge>
+      <Badge variant="outline" class="admin-chip font-mono text-xs py-1 px-3">
         {{ t('waitlist.statuses.converted') }}: {{ summary.CONVERTED ?? 0 }}
-      </div>
-      <div class="admin-chip bg-cancelled/10 text-cancelled border border-cancelled/30">
+      </Badge>
+      <Badge variant="outline" class="admin-chip font-mono text-xs py-1 px-3">
         {{ t('waitlist.statuses.cancelled') }}: {{ summary.CANCELLED ?? 0 }}
-      </div>
+      </Badge>
     </div>
 
     <div class="flex flex-wrap gap-3 mb-4">
-      <input
-        v-model="search"
-        type="search"
-        :placeholder="t('waitlist.filters.search')"
-        class="admin-input w-64 text-sm"
-        :aria-label="t('waitlist.filters.search')"
-      />
-      <input
+      <div class="relative w-64">
+        <SearchIcon class="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          v-model="search"
+          type="search"
+          :placeholder="t('waitlist.filters.search')"
+          class="pl-8 text-sm"
+          :aria-label="t('waitlist.filters.search')"
+        />
+      </div>
+      <Input
         v-model="waitlistKeyFilter"
         type="text"
         :placeholder="t('waitlist.filters.waitlistKey')"
-        class="admin-input w-40 text-sm"
+        class="w-40 text-sm"
         :aria-label="t('waitlist.filters.waitlistKey')"
       />
       <select
         v-model="statusFilter"
-        class="admin-input text-sm"
+        class="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         :aria-label="t('waitlist.filters.status')"
       >
         <option value="">{{ t('waitlist.filters.all') }}</option>
@@ -243,81 +259,86 @@ onMounted(() => {
         <option value="CONVERTED">{{ t('waitlist.statuses.converted') }}</option>
         <option value="CANCELLED">{{ t('waitlist.statuses.cancelled') }}</option>
       </select>
-      <input
+      <Input
         v-model="joinedFrom"
         type="date"
         :placeholder="t('waitlist.filters.joinedFrom')"
-        class="admin-input w-36 text-sm"
+        class="w-36 text-sm"
         :aria-label="t('waitlist.filters.joinedFrom')"
       />
-      <input
+      <Input
         v-model="joinedTo"
         type="date"
         :placeholder="t('waitlist.filters.joinedTo')"
-        class="admin-input w-36 text-sm"
+        class="w-36 text-sm"
         :aria-label="t('waitlist.filters.joinedTo')"
       />
-      <input
+      <Input
         v-model="invitedFrom"
         type="date"
         :placeholder="t('waitlist.filters.invitedFrom')"
-        class="admin-input w-36 text-sm"
+        class="w-36 text-sm"
         :aria-label="t('waitlist.filters.invitedFrom')"
       />
-      <input
+      <Input
         v-model="invitedTo"
         type="date"
         :placeholder="t('waitlist.filters.invitedTo')"
-        class="admin-input w-36 text-sm"
+        class="w-36 text-sm"
         :aria-label="t('waitlist.filters.invitedTo')"
       />
     </div>
 
-    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
+    <div v-if="loading" class="text-muted-foreground">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-destructive">{{ error }}</div>
     <template v-else-if="result">
       <div v-if="canInvite" class="mb-3 flex items-center gap-3">
-        <button
+        <Button
           data-testid="bulk-invite"
+          variant="outline"
+          size="sm"
           :disabled="selectedIds.length === 0 || bulkInviting"
-          class="admin-button-secondary text-sm disabled:opacity-50"
           @click="bulkInviteSelected"
         >
           {{ bulkInviting ? t('common.loading') : t('waitlist.bulkInvite', { count: selectedIds.length }) }}
-        </button>
+        </Button>
       </div>
 
-      <div v-if="bulkError" role="alert" class="mb-3 text-error">{{ bulkError }}</div>
+      <div v-if="bulkError" role="alert" class="mb-3 text-destructive">{{ bulkError }}</div>
 
-      <div
+      <Card
         v-if="bulkResults && bulkSummary"
         data-testid="bulk-results"
         role="status"
-        class="admin-card mb-4 p-4"
+        class="mb-4 p-4"
       >
-        <h2 class="mb-2 text-base font-semibold text-text-display">{{ t('waitlist.bulkResults') }}</h2>
-        <p class="mb-2 text-sm text-text-secondary">
-          {{
-            t('waitlist.bulkSummary', {
-              invited: bulkSummary.invited,
-              skipped: bulkSummary.skipped,
-              failed: bulkSummary.failed,
-            })
-          }}
-        </p>
-        <ul class="text-sm">
-          <li v-for="item in bulkResults" :key="item.entryId" class="py-1">
-            <span class="text-text-display">{{ item.entryId }}</span>
-            <span class="text-text-secondary"> — {{ item.outcome }}</span>
-            <span v-if="item.code" class="text-text-secondary"> ({{ item.code }})</span>
-          </li>
-        </ul>
-      </div>
+        <CardHeader class="p-0 mb-2">
+          <CardTitle class="text-base font-semibold text-foreground">{{ t('waitlist.bulkResults') }}</CardTitle>
+        </CardHeader>
+        <CardContent class="p-0">
+          <p class="mb-2 text-sm text-muted-foreground">
+            {{
+              t('waitlist.bulkSummary', {
+                invited: bulkSummary.invited,
+                skipped: bulkSummary.skipped,
+                failed: bulkSummary.failed,
+              })
+            }}
+          </p>
+          <ul class="text-sm">
+            <li v-for="item in bulkResults" :key="item.entryId" class="py-1">
+              <span class="text-foreground">{{ item.entryId }}</span>
+              <span class="text-muted-foreground"> — {{ item.outcome }}</span>
+              <span v-if="item.code" class="text-muted-foreground"> ({{ item.code }})</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
-      <Table :aria-label="t('waitlist.entries')" class="admin-table">
-        <thead>
-          <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
-            <th v-if="canInvite" scope="col" class="py-2 pr-4">
+      <Table :aria-label="t('waitlist.entries')">
+        <TableHeader>
+          <TableRow>
+            <TableHead v-if="canInvite" scope="col" class="w-10">
               <input
                 data-testid="bulk-select-all"
                 type="checkbox"
@@ -325,21 +346,20 @@ onMounted(() => {
                 :aria-label="t('waitlist.bulkSelectAll')"
                 @change="toggleSelectAll"
               />
-            </th>
-            <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
-            <th scope="col" class="py-2 pr-4">{{ t('common.status') }}</th>
-            <th scope="col" class="py-2 pr-4">{{ t('waitlist.joinedAt') }}</th>
-            <th scope="col" class="py-2 pr-4">{{ t('waitlist.invitedAt') }}</th>
-            <th scope="col" class="py-2">{{ t('common.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
+            </TableHead>
+            <TableHead scope="col">{{ t('common.email') }}</TableHead>
+            <TableHead scope="col">{{ t('common.status') }}</TableHead>
+            <TableHead scope="col">{{ t('waitlist.joinedAt') }}</TableHead>
+            <TableHead scope="col">{{ t('waitlist.invitedAt') }}</TableHead>
+            <TableHead scope="col">{{ t('common.actions') }}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow
             v-for="entry in result.items"
             :key="entry.id"
-            class="border-b border-border-subtle hover:bg-bg-surface"
           >
-            <td v-if="canInvite" class="py-2 pr-4">
+            <TableCell v-if="canInvite">
               <input
                 data-testid="bulk-select"
                 type="checkbox"
@@ -347,96 +367,119 @@ onMounted(() => {
                 v-model="selectedIds"
                 :aria-label="t('waitlist.bulkSelect', { email: entry.email })"
               />
-            </td>
-            <td class="py-2 pr-4">
+            </TableCell>
+            <TableCell>
               <button
-                class="text-text-display hover:underline text-left"
+                type="button"
+                class="text-foreground font-medium hover:underline text-left"
                 @click="router.push({ name: 'waitlist-entry', params: { entryId: entry.id } })"
               >
                 {{ entry.email }}
               </button>
-            </td>
-            <td class="py-2 pr-4">
+            </TableCell>
+            <TableCell>
               <StatusBadge :status="entry.status" />
-            </td>
-            <td class="py-2 pr-4 text-text-secondary">{{ formatDate(entry.joinedAt, locale) }}</td>
-            <td class="py-2 pr-4 text-text-secondary">
+            </TableCell>
+            <TableCell class="text-muted-foreground">{{ formatDate(entry.joinedAt, locale) }}</TableCell>
+            <TableCell class="text-muted-foreground">
               {{ formatDate(entry.invitedAt, locale) }}
-            </td>
-            <td class="py-2 flex gap-2">
-              <button
+            </TableCell>
+            <TableCell class="flex gap-2">
+              <Button
                 v-if="canInvite && (entry.status === 'PENDING' || entry.status === 'INVITED')"
+                variant="outline"
+                size="xs"
                 :disabled="invitingId === entry.id"
-                class="admin-button-secondary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
                 @click="inviteEntry(entry)"
               >
                 {{ invitingId === entry.id ? t('common.loading') : t('waitlist.invite') }}
-              </button>
-              <button
+              </Button>
+              <Button
                 v-if="canCancel && entry.status !== 'CONVERTED' && entry.status !== 'CANCELLED'"
+                variant="destructive"
+                size="xs"
                 :disabled="cancellingId === entry.id"
-                class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
                 @click="openCancelDialog(entry)"
               >
                 {{ t('waitlist.cancel') }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
+              </Button>
+            </TableCell>
+          </TableRow>
+        </TableBody>
       </Table>
 
-      <PaginationControls
-        :page="result.page"
-        :total-pages="result.totalPages"
-        :has-previous="result.hasPrevious"
-        :has-next="result.hasNext"
-        @previous="page--; fetchEntries()"
-        @next="page++; fetchEntries()"
-      />
+      <nav class="mt-4 flex items-center justify-between gap-3" aria-label="Pagination">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          :disabled="!result.hasPrevious"
+          @click="page--; fetchEntries()"
+        >
+          <ChevronLeftIcon class="mr-1 size-3.5" />
+          {{ t('common.previous') }}
+        </Button>
+        <span class="font-mono text-xs text-muted-foreground">
+          {{ result.page + 1 }} / {{ result.totalPages }}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          :disabled="!result.hasNext"
+          @click="page++; fetchEntries()"
+        >
+          {{ t('common.next') }}
+          <ChevronRightIcon class="ml-1 size-3.5" />
+        </Button>
+      </nav>
     </template>
 
     <div
       v-if="showCancelDialog"
       role="dialog"
       aria-modal="true"
-      :aria-labelledby="'cancel-dialog-title'"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      aria-labelledby="cancel-dialog-title"
+      class="fixed inset-0 z-50 flex items-center justify-center px-4"
       @keydown.esc="showCancelDialog = false"
     >
-      <div class="admin-card w-full max-w-md p-6">
-        <h2 id="cancel-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
+      <div class="fixed inset-0 bg-black/70" aria-hidden="true" @click="showCancelDialog = false" />
+      <Card class="relative z-10 w-full max-w-md p-6">
+        <h2 id="cancel-dialog-title" class="mb-2 text-lg font-semibold text-foreground">
           {{ t('waitlist.cancelConfirmTitle') }}
         </h2>
-        <p class="mb-4 text-sm text-text-secondary">
+        <p class="mb-4 text-sm text-muted-foreground">
           {{ t('waitlist.cancelConfirmMessage', { email: cancelTarget?.email }) }}
         </p>
-        <label class="mb-1 block text-sm text-text-body" for="cancel-reason">
-          {{ t('waitlist.cancelReason') }} <span class="text-error">*</span>
-        </label>
-        <input
-          id="cancel-reason"
-          v-model="cancelReason"
-          type="text"
-          class="admin-input mb-4 w-full text-sm"
-          required
-          :aria-required="true"
-        />
+        <Field class="mb-4 space-y-1">
+          <FieldLabel class="text-sm font-medium text-foreground" for="cancel-reason">
+            {{ t('waitlist.cancelReason') }} <span class="text-destructive">*</span>
+          </FieldLabel>
+          <Input
+            id="cancel-reason"
+            v-model="cancelReason"
+            type="text"
+            required
+            aria-required="true"
+          />
+        </Field>
         <div class="flex gap-2 justify-end">
-          <button
-            class="admin-button-secondary"
+          <Button
+            variant="outline"
             @click="showCancelDialog = false"
           >
             {{ t('common.cancel') }}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
+            class="admin-button-danger"
             :disabled="!cancelReason.trim()"
-            class="admin-button-danger disabled:opacity-50"
             @click="confirmCancel"
           >
             {{ t('waitlist.cancel') }}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   </div>
 </template>
@@ -444,26 +487,20 @@ onMounted(() => {
 <script lang="ts">
 import { defineComponent, h } from 'vue'
 
-const STATUS_CLASSES: Record<string, string> = {
-  PENDING: 'bg-warning/15 text-warning',
-  INVITED: 'bg-text-secondary/15 text-text-secondary',
-  CONVERTED: 'bg-success/15 text-success',
-  CANCELLED: 'bg-text-secondary/15 text-text-secondary',
-}
-
 const StatusBadge = defineComponent({
   props: { status: { type: String, required: true } },
+  components: { Badge },
   setup(props) {
-const { t, locale } = useI18n()
+    const { t } = useI18n()
     return () => {
-      const cls = STATUS_CLASSES[props.status] ?? 'bg-text-secondary/15 text-text-secondary'
+      const variant = props.status === 'CONVERTED' ? 'default' : props.status === 'CANCELLED' ? 'destructive' : 'outline'
       const statusKey = props.status.toLowerCase()
       const label =
         (statusKey in messages.en.waitlist.statuses && t(`waitlist.statuses.${statusKey}`)) ||
         props.status
       return h(
-        'span',
-        { class: `status-badge ${cls}` },
+        Badge,
+        { variant, class: 'font-mono text-[10px] uppercase' },
         { default: () => label },
       )
     }

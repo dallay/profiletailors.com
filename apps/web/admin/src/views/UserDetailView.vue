@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, defineComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Table } from '@profiletailors/vue-ui'
 import { formatDate, formatDateTime } from '@/lib/formatters'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { ArrowLeftIcon } from '@lucide/vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -93,22 +103,26 @@ async function fetchUser() {
 
 onMounted(fetchUser)
 </script>
+
 <template>
-  <div class="admin-page p-5 sm:p-8">
-    <button
-      class="mb-6 flex items-center gap-1 text-sm text-text-secondary transition-colors hover:text-text-display"
+  <div class="p-5 sm:p-8">
+    <Button
+      variant="ghost"
+      size="sm"
+      class="mb-6 flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
       @click="router.push({ name: 'users' })"
     >
-      ← {{ t('users.title') }}
-    </button>
+      <ArrowLeftIcon class="size-4" />
+      {{ t('users.title') }}
+    </Button>
 
-    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
+    <div v-if="loading" class="text-muted-foreground">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-destructive">{{ error }}</div>
     <div v-else-if="user">
-      <h1 class="mb-1 text-2xl font-semibold text-text-display">{{ user.email }}</h1>
-      <p class="mb-6 font-mono text-xs text-text-secondary">{{ principalId }}</p>
+      <h1 class="mb-1 text-2xl font-semibold text-foreground">{{ user.email }}</h1>
+      <p class="mb-6 font-mono text-xs text-muted-foreground">{{ principalId }}</p>
 
-      <div class="grid grid-cols-2 gap-4 mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <Field :label="t('users.displayName')" :value="user.displayIdentity ?? '—'" />
         <Field :label="t('users.principalType')" :value="user.principalType" />
         <Field :label="t('users.accountState')" :value="user.accountState" />
@@ -119,52 +133,51 @@ onMounted(fetchUser)
       </div>
 
        <div v-if="authStore.hasPermission('platform.users.manage')" class="mb-8 flex flex-wrap gap-3">
-         <button v-if="user.accountState === 'ACTIVE'" class="admin-button-secondary" @click="disableUser">{{ t('users.disable') }}</button>
-         <button v-else class="admin-button-secondary" @click="enableUser">{{ t('users.enable') }}</button>
-         <button class="admin-button-secondary" @click="revokeSessions">{{ t('users.revokeSessions') }}</button>
+         <Button v-if="user.accountState === 'ACTIVE'" variant="outline" @click="disableUser">{{ t('users.disable') }}</Button>
+         <Button v-else variant="outline" @click="enableUser">{{ t('users.enable') }}</Button>
+         <Button variant="outline" @click="revokeSessions">{{ t('users.revokeSessions') }}</Button>
        </div>
-       <div v-if="mutationError" role="alert" class="mb-4 text-error">{{ mutationError }}</div>
+       <div v-if="mutationError" role="alert" class="mb-4 text-destructive">{{ mutationError }}</div>
 
-       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
+       <h2 class="mb-3 text-lg font-semibold text-foreground">{{ t('users.workspaces') }}</h2>
 
-       <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
+       <div v-if="!workspaces.length" class="text-sm text-muted-foreground">{{ t('common.noData') }}</div>
        <Table
          v-else
-         class="admin-table"
          :aria-label="t('users.workspaceMemberships')"
        >
-
-        <thead>
-          <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
-            <th scope="col" class="py-2 pr-4">Workspace</th>
-            <th scope="col" class="py-2 pr-4">{{ t('common.status') }}</th>
-            <th scope="col" class="py-2 pr-4">Roles</th>
-            <th scope="col" class="py-2">Joined</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="ws in workspaces" :key="ws.workspaceId" class="border-b border-border-subtle">
-            <td class="py-2 pr-4 text-text-body">{{ ws.workspaceName }}</td>
-            <td class="py-2 pr-4 text-text-secondary">{{ ws.membershipStatus }}</td>
-            <td class="py-2 pr-4 text-text-secondary">{{ ws.workspaceRoles?.join(', ') || '—' }}</td>
-            <td class="py-2 text-text-secondary">{{ formatDate(ws.joinedAt, locale) }}</td>
-          </tr>
-        </tbody>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">Workspace</TableHead>
+            <TableHead scope="col">{{ t('common.status') }}</TableHead>
+            <TableHead scope="col">Roles</TableHead>
+            <TableHead scope="col">Joined</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="ws in workspaces" :key="ws.workspaceId">
+            <TableCell class="text-foreground">{{ ws.workspaceName }}</TableCell>
+            <TableCell class="text-muted-foreground">{{ ws.membershipStatus }}</TableCell>
+            <TableCell class="text-muted-foreground">{{ ws.workspaceRoles?.join(', ') || '—' }}</TableCell>
+            <TableCell class="text-muted-foreground">{{ formatDate(ws.joinedAt, locale) }}</TableCell>
+          </TableRow>
+        </TableBody>
       </Table>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
-
 const Field = defineComponent({
   props: { label: { type: String, required: true }, value: { type: String, required: true } },
+  components: { Card, CardContent },
   template: `
-    <div class="admin-card p-4">
-      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
-      <p class="text-sm text-text-body">{{ value }}</p>
-    </div>
+    <Card class="p-0">
+      <CardContent class="p-4">
+        <p class="label-mono mb-1 text-muted-foreground">{{ label }}</p>
+        <p class="text-sm text-foreground">{{ value }}</p>
+      </CardContent>
+    </Card>
   `,
 })
 

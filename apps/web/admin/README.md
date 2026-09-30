@@ -17,10 +17,19 @@ Serves as an internal-only administration surface (`https://admin.profiletailors
 
 - **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
 - **Framework & State**: Vue 3.5, Pinia 4.0, Vue Router 5.2
-- **UI & Styling**: Tailwind CSS 4.3, Reka UI, shadcn-vue, Lucide Vue, TanStack Table
+- **UI & Styling**: Tailwind CSS 4.3, Reka UI, shadcn-vue (`reka-nova` style), Lucide Vue, TanStack Table
 - **Internationalization**: Vue I18n 11.4
 - **Testing**: Vitest 3.2 (Unit & Component)
 - **Code Quality**: Biome 2.5 (Linting & Formatting)
+
+## Component Architecture & Registry Strategy
+
+The Admin UI uses `shadcn-vue` primitives built on Reka UI (`reka-nova` style) with Profile Tailors dark identity design tokens.
+
+### Ownership Model
+- **App-Local Primitives**: Standardized UI building blocks are located in `src/components/ui/*` and configured via `components.json`.
+- **Shared Branded Components**: Global branded primitives (such as `VersionBadge`) are reused from `@profiletailors/vue-ui`.
+- **No Pseudo-Components**: Custom `admin-*` CSS component classes are disallowed. All screens consume official `shadcn-vue` primitives (`Button`, `Card`, `Input`, `Field`, `Select`, `Badge`, `Table`, `Dialog`, `AlertDialog`, etc.).
 
 ## Getting started
 
@@ -66,8 +75,11 @@ For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailor
 
 ```text
 apps/web/admin/
+├── components.json  # shadcn-vue CLI registry configuration (reka-nova style)
 ├── src/
 │   ├── assets/      # Stylesheets and global styling
+│   ├── components/  # Admin domain components and shadcn-vue primitives (ui/)
+│   │   └── ui/      # Reusable shadcn-vue UI primitives
 │   ├── i18n/        # Internationalization dictionaries
 │   ├── layouts/     # Admin portal layout wrappers
 │   ├── router/      # Admin route definitions and access control guards
@@ -116,6 +128,7 @@ This internal single-page application manages administrative views:
 
 ## Configuration
 
+- `components.json`: `shadcn-vue` registry configuration using `reka-nova` style and `@/components/ui` alias.
 - `vite.config.ts`: Configures Vue plugin, Tailwind CSS V4, and workspace path aliases.
 
 ## Contributing
