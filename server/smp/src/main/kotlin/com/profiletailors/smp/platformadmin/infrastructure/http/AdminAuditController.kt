@@ -3,12 +3,12 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
+import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
-import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

@@ -11,6 +11,7 @@ import com.profiletailors.smp.platformadmin.application.command.EnableUserComman
 import com.profiletailors.smp.platformadmin.application.command.RevokeUserSessionsCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.handler.UserControlHandlers
+import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
@@ -21,7 +22,6 @@ import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuer
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
-import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

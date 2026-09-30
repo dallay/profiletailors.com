@@ -11,6 +11,7 @@ import com.profiletailors.smp.platformadmin.application.handler.ResendInvitation
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import com.profiletailors.smp.platformadmin.application.model.AdminDirectInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
@@ -23,7 +24,6 @@ import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
-import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
