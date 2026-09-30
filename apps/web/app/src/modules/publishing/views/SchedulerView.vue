@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, toRef } from 'vue'
+import { useRoute } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import {
@@ -35,10 +36,20 @@ const publishingStore = usePublishingStore()
 const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const { locale: i18nLocale, t } = useI18n()
-
+const route = useRoute()
 
 const url = useCalendarUrl()
 const isMobile = useMediaQuery('(max-width: 768px)')
+
+watch(
+  () => isMobile.value,
+  (mobile) => {
+    if (mobile && url.state.value.surface === 'calendar-week' && !route.query.view && url.state.value.view === 'week') {
+      url.setView('3-days')
+    }
+  },
+  { immediate: true },
+)
 
 /** Calendar sub-view derived from URL surface */
 const calendarView = computed(() => {
@@ -548,7 +559,10 @@ function activityForDate(date: Date): ActivityEntry | undefined {
 
 
 function openNewPostForSlot(date: Date, hour?: number) {
-  if (publishingStore.hasNoChannels) return
+  if (publishingStore.hasNoChannels) {
+    toast.warning(t('scheduler.noChannelTitle'))
+    return
+  }
 
   const d = new Date(date)
   if (hour === undefined) d.setHours(12, 0, 0, 0)
@@ -558,7 +572,10 @@ function openNewPostForSlot(date: Date, hour?: number) {
 }
 
 function openNewPostGeneral() {
-  if (publishingStore.hasNoChannels) return
+  if (publishingStore.hasNoChannels) {
+    toast.warning(t('scheduler.noChannelTitle'))
+    return
+  }
 
   selectedCellDate.value = undefined
   isModalOpen.value = true
@@ -682,6 +699,7 @@ watch(
       :is-today="isToday"
       :format-day-name="formatDayName"
       :is-past-slot="isPastSlot"
+      :has-no-channels="publishingStore.hasNoChannels"
       @new-post="openNewPostGeneral"
       @prev="goBackward"
       @next="goForward"
