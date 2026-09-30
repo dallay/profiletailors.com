@@ -140,20 +140,22 @@ components:
 
 ## UI precedence chain
 
-The following skills cooperate and have explicit precedence. When
-multiple skills would otherwise contradict, this document wins.
+The following skills cooperate and have explicit precedence for Profile Tailors design work. This
+file is the visual source of truth; every skill and generic recommendation below it must follow
+these tokens and product commitments.
 
-1. `impeccable` (process and quality). Owns UX review, hierarchy,
-   responsive behavior, accessibility, polish, workflow, visual QA.
-2. `nothing-design` (visual language). Owns tokens, typography, motion,
-   monochrome palette, dark/light first-class, spacing philosophy.
-3. `frontend-design` (generic inspiration only). Use only when neither
-   impeccable nor nothing-design applies. Existing product design
-   systems always override its generic recommendations.
+1. This `DESIGN.md` (visual authority). Owns Profile Tailors tokens, brand commitments, mode
+   treatment, and component language.
+2. `impeccable` (process and quality). Owns UX review, hierarchy, responsive behavior,
+   accessibility, polish, workflow, and visual QA while preserving this design system.
+3. `nothing-design` (visual-language guidance). Apply automatically to Profile Tailors design work;
+   use it to interpret this system's monochrome, typographic, and industrial design language.
+4. `frontend-design` (generic inspiration). Use only for details not covered by this design system
+   or the preceding skills. Its defaults never replace product tokens, fonts, layouts, or palette.
 
-When a token or pattern in any of the above skills contradicts
-DESIGN.md, DESIGN.md wins. CI enforces this via the skill doctor
-(P1-D).
+When guidance in a skill or external source contradicts this file, this file wins. Review that
+precedence during ordinary design work; no dedicated skill-format or skill-drift CI gate is part of
+the workflow.
 
 # Profile Tailors — Design System
 

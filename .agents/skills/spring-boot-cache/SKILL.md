@@ -6,11 +6,16 @@ metadata:
   category: backend-platform
   family: spring-boot
   source: local
-  version: 2026-09-28
+  version: 2026-09-30
 ---
 # Spring Boot Cache Abstraction
 
 ## Overview
+
+Keep cache provider configuration and adapters in Infrastructure. Application services remain
+framework-agnostic and use `com.profiletailors.common.domain.Service` where discovery is required.
+
+## Changes
 
 6-step workflow for enabling cache abstraction, configuring providers (Caffeine,
 Redis, Ehcache), annotating service methods, and validating behavior in
@@ -18,7 +23,9 @@ the Spring Boot version configured in `gradle/libs.versions.toml`. Apply `@Cache
 writes, `@CacheEvict` for deletions. Configure TTL/eviction policies and expose
 metrics via Actuator.
 
-## When to Use
+## Usage
+
+### When to Use
 
 - Add `@Cacheable`, `@CachePut`, or `@CacheEvict` to service methods.
 - Configure Caffeine, Redis, or Ehcache with TTL and capacity policies.
@@ -26,7 +33,7 @@ metrics via Actuator.
 - Diagnose cache misses or invalidation issues.
 - Expose hit/miss metrics via Actuator or Micrometer.
 
-## Instructions
+### Instructions
 
 1. **Add dependencies** — `spring-boot-starter-cache` plus a provider:
     - Caffeine: `caffeine` starter
@@ -49,7 +56,11 @@ metrics via Actuator.
    call; check `GET /actuator/caches` to verify cache manager registration;
    query `GET /actuator/metrics/cache.gets` for hit/miss ratios.
 
-## Examples
+### Examples
+
+These are general Spring examples, not Profile Tailors application-service templates. In this
+repository, apply Spring cache annotations in Infrastructure adapters; keep application services
+framework-agnostic and use the local `Service` marker where discovery is required.
 
 ### Example 1: Basic `@Cacheable` Usage
 
@@ -93,7 +104,7 @@ fun deleteUser(id: Long) {
 For progressive scenarios (basic product cache, multilevel eviction, Redis
 integration), load [`references/cache-examples.md`](references/cache-examples.md).
 
-## Advanced Options
+### Advanced Options
 
 - Use JCache annotations (`@CacheResult`, `@CacheRemove`) for providers favoring
   JSR-107 interoperability; avoid mixing with Spring annotations on the same method.
@@ -101,6 +112,23 @@ integration), load [`references/cache-examples.md`](references/cache-examples.md
 - Apply HTTP `CacheControl` headers when exposing cached responses via REST.
 - Schedule periodic eviction with `@Scheduled` for time-bound caches.
 - Create a `CacheManagementService` for programmatic `cacheManager.getCache(name)`.
+
+### Best Practices
+
+- Prefer constructor injection and immutable DTOs for cache entries.
+- Separate cache names per aggregate (`users`, `orders`) to simplify eviction.
+- Log cache hits/misses only at debug; push metrics via Micrometer.
+- Tune TTLs based on data staleness tolerance; document rationale in code.
+- Guard caches storing PII or credentials with encryption or avoid caching.
+- Align cache eviction with transactional boundaries to prevent dirty reads.
+
+### Constraints and Warnings
+
+- Avoid caching mutable entities that depend on open persistence contexts.
+- Do not mix Spring cache annotations with JCache annotations on the same method.
+- Validate serialization compatibility when caching across service instances.
+- Monitor memory footprint to prevent OOM with in-memory stores.
+- Caffeine + Redis multi-level caches require publish/subscribe invalidation channels.
 
 ## Troubleshooting
 
@@ -124,24 +152,7 @@ If cache misses persist after adding `@Cacheable`:
 - [`references/cache-examples.md`](references/cache-examples.md):
   end-to-end examples with tests.
 
-## Best Practices
-
-- Prefer constructor injection and immutable DTOs for cache entries.
-- Separate cache names per aggregate (`users`, `orders`) to simplify eviction.
-- Log cache hits/misses only at debug; push metrics via Micrometer.
-- Tune TTLs based on data staleness tolerance; document rationale in code.
-- Guard caches storing PII or credentials with encryption or avoid caching.
-- Align cache eviction with transactional boundaries to prevent dirty reads.
-
-## Constraints and Warnings
-
-- Avoid caching mutable entities that depend on open persistence contexts.
-- Do not mix Spring cache annotations with JCache annotations on the same method.
-- Validate serialization compatibility when caching across service instances.
-- Monitor memory footprint to prevent OOM with in-memory stores.
-- Caffeine + Redis multi-level caches require publish/subscribe invalidation channels.
-
-## Related Skills
+### Related Skills
 
 - [`spring-boot`](../spring-boot/SKILL.md) — Core reactive API and infrastructure rules
 - `spring-boot-testing-integrations` — Cache integration and verification patterns

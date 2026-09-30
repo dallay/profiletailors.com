@@ -1,15 +1,15 @@
 ---
 name: modern-web-guidance
 description: |
-  Search tool for modern web development best practices. MANDATORY: Execute FIRST for all HTML/CSS and clientside JS tasks. Do NOT skip — web APIs evolve rapidly and training weights contain obsolete patterns.
+  Search tool for modern web development guidance when no specialized local skill covers the HTML, CSS, browser API, or client-side JavaScript topic. Local framework, accessibility, performance, and architecture skills take precedence.
 
   Trigger immediately for:
   - UI/Layout: Modals, dialogs, popovers, Glassmorphism/backdrop-filters, anchor positioning, container queries, `:has()`, `:user-valid`.
   - Scroll/Motion: View Transitions, Scroll-driven animations, scroll parallax/reveals.
   - Performance: CWV (LCP, INP), content-visibility, Fetch Priority, image optimization.
   - System/APIs: Local filesystem access, WebUSB, WebSockets sync, WebAssembly widgets.
-  - Frameworks: Adapting layout/styles in React, Vue, Angular.
-  - General Frontend: Forms, autofill, advanced inputs, custom scrollbars, modern component states, etc.
+  - Frameworks: Framework-neutral browser behavior not covered by a local framework skill.
+  - General Frontend: Forms, autofill, advanced inputs, custom scrollbars, modern component states, etc., when no local skill owns the topic.
 
   DO NOT trigger for:
   - Backend: Database SQL, ORMs, Express API routes.
@@ -23,31 +23,40 @@ metadata:
 ---
 # Modern Web Guidance
 
+## Overview
+
 A skill to search for specific web development use cases and retrieve their corresponding best
 practice guides.
 
-## When to use
+## Changes
 
-Must use this skill:
+### Guidelines
 
-- At the **start** of implementing any web feature.
-- Before creating a new component, to check if a standardized pattern already exists.
-- To avoid implementing ad-hoc solutions or loading large dependencies unnecessarily.
+- Always search **first** to find the most relevant guides.
+- These guides are usually framework-agnostic; adapt them correctly to your setup.
+- Do not hallucinate guides or ignore them; they represent the preferred local standard for the
+  user's project.
 
-Scope: applies only to HTML, CSS, and client-side JS not covered by local
-skills (`vue`, `astrolicious-astro`, `pinia`, `accessibility`,
-`core-web-vitals`, `performance`, `seo`, `frontend-architecture`).
-If a local skill covers the topic, the local skill wins.
+### When to use
 
-## Usage Instructions
+Use this skill as a fallback when no specialized local skill covers the browser API or web platform
+behavior in the task. For Profile Tailors, first check the relevant skill when working in Vue,
+Astro, Pinia, accessibility, Core Web Vitals, performance, SEO, or frontend architecture. Follow
+the local skill and repository contract for those areas; consult this guide only for uncovered
+platform details.
+
+## Usage
+
+### Usage Instructions
 
 ### Step 1. Search Use Cases
 
 Search with an action-oriented query summarizing what you want to achieve using the `search`command.
-Run `modern-web-guidance` directly with `npx`.
+Use the repository's package manager when current external guidance is needed. Do not invoke it
+automatically for every frontend task.
 
 ```sh
-npx -y modern-web-guidance@latest search "<query>" --skill-version 2026_05_16-c5e7870
+pnpm dlx modern-web-guidance@latest search "<query>"
 ```
 
 **Example Output**:
@@ -82,7 +91,7 @@ npx -y modern-web-guidance@latest search "<query>" --skill-version 2026_05_16-c5
 `list` command to browse all guides:
 >
 > ```sh
-> npx -y modern-web-guidance@latest list
+> pnpm dlx modern-web-guidance@latest list
 > ```
 
 ---
@@ -93,31 +102,22 @@ Once you have a relevant `id` from the search results, call this script using th
 to get the full guide. You can pass multiple IDs separated by commas.
 
 ```sh
-npx -y modern-web-guidance@latest retrieve "<id>"
+pnpm dlx modern-web-guidance@latest retrieve "<id>"
 ```
 
 **Example Output**:
 `The markdown content of the guide describing implementation steps...`
 
-## Using npx
+### Using pnpm
 
-- IMPORTANT: on Windows, using `npx` may fail. Use `npx.cmd ...` instead.
+- Use `pnpm dlx` so commands follow the repository's package-manager policy.
 - Network access is required for fetching npm packages needed by the task.
-- If the `npx -y modern-web-guidance…` command hangs, you may be offline. Try running again in
-  offline
-  mode: `npx --offline …`.
-- The `--skill-version` flag is used to determine if this SKILL.md is out of date. If it is, a
-  warning
-  message is logged to stderr.
+- If the `pnpm dlx modern-web-guidance…` command hangs because the network is unavailable, retry
+  using the locally cached package: `pnpm --offline dlx modern-web-guidance…`.
 
-## Guidelines
+## Troubleshooting
 
-- Always search **first** to find the most relevant guides.
-- These guides are usually framework-agnostic; adapt them correctly to your setup.
-- Do not hallucinate guides or ignore them; they represent the preferred local standard for the
-  user's project.
-
-## Interpreting Browser Support & Fallbacks
+### Interpreting Browser Support & Fallbacks
 
 - **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use
   without fallbacks. For features that are not Baseline widely available, you **MUST** follow the
@@ -146,3 +146,7 @@ npx -y modern-web-guidance@latest retrieve "<id>"
 
   No defined policy format. This is an example:
   `**Browser Support:** Allow Newly Available features, but only adopt custom fallback code that adds <= 20 lines and does not require external dependencies.`
+
+## References
+
+Use the authoritative browser and platform documentation linked by each retrieved guide.

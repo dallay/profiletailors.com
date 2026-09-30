@@ -1,5 +1,9 @@
 # Spring Boot Actuator Examples
 
+This broad reference contains servlet and blocking examples for other Spring applications. They
+are not the Profile Tailors default. In the WebFlux backend, use reactive security, reactive health
+indicators, R2DBC, and non-blocking HTTP clients as defined by the parent skill.
+
 ## Complete Application Example
 
 ### Application Configuration
@@ -143,7 +147,9 @@ class DatabaseHealthIndicator(
 }
 ```
 
-### External API Health Indicator with Circuit Breaker
+### Legacy blocking external API health indicator reference
+
+This blocking `RestTemplate` example is not suitable for the Profile Tailors WebFlux backend.
 
 ```kotlin
 @Component

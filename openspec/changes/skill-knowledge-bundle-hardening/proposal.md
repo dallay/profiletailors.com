@@ -1,70 +1,36 @@
-# Proposal: Skill Knowledge Bundle Hardening
+# Proposal: Curate Agent Skills Against Current Repository Reality
 
 ## Intent
 
-Make the Profile Tailors agent knowledge bundle internally coherent, aligned with repository
-architecture and manifests, and mechanically verifiable as complete bundles rather than isolated
-`SKILL.md` files.
-
-This is a technical governance initiative. It does not introduce or modify a product capability, so
-it intentionally has no capability delta under `openspec/specs/`.
+Finish the focused semantic cleanup of the Profile Tailors skills that still contradict current
+repository architecture, manifests, product surfaces, design authority, or package boundaries.
+Treat skills as living documentation maintained through ordinary authoring and review.
 
 ## Scope
 
-### In Scope
+- Spring and Kotlin guidance: reactive WebFlux/coroutines/R2DBC baseline, MockK conventions,
+  correct blocking boundaries, and manifest-owned dependency versions.
+- Vue and frontend guidance: actual app package, `@profiletailors/vue-ui`, shadcn-vue usage,
+  feature-owned state, and separate app/admin/marketing boundaries.
+- Design and web guidance: `.agents/DESIGN.md` as visual authority, local design skills' roles,
+  modern web guidance as a fallback, and removal of obsolete security or dependency advice.
+- Directly affected agent documentation and active OpenSpec requirements that still describe
+  removed deterministic skill gates.
 
-- Restore referential integrity after flattening `.agents/skills/`.
-- Align architecture guidance around domain-owned repository and gateway ports.
-- Make active Spring guidance consistently WebFlux, coroutines, R2DBC, and MockK based.
-- Align Vue, general web, and design guidance with repository packages and precedence.
-- Validate complete skill bundles, family semantics, local paths, and manifest-owned versions.
-- Add deterministic drift-injection tests and a small semantic scenario corpus.
+## Out of Scope
 
-### Out of Scope
-
-- Rewriting archived OpenSpec history solely to update old paths.
-- Changing product architecture or production dependencies.
-- Refactoring unrelated application source.
-- Replacing deterministic checks with language-model review.
-- Making generic skills authoritative over repository policy or specialized local skills.
-
-## Delivery Strategy
-
-The initiative is delivered as five independently reviewable pull requests:
-
-1. Knowledge graph integrity: flattened paths, ADR-0002, Spring metadata, and registry.
-2. Spring semantic hardening: recursive content cleanup and the flattened-layout Spring validator.
-3. Frontend and UI truth: Vue, best practices, modern web, and design activation contracts.
-4. Skill Doctor v2: bundle-recursive, path-aware, manifest-aware, family-specific validation.
-5. Semantic acceptance: scenario corpus, contextual audit, final registry, and independent report.
-
-Each pull request must preserve the boundaries of its slice. The change remains active until all five
-slices pass their deterministic gates and an independent final audit reaches the same conclusion.
-
-## Affected Areas
-
-| Area | Impact |
-|---|---|
-| `.agents/` | Skill instructions, references, examples, registry, and governance tools |
-| `docs/architecture/adr/` | Canonical architecture wording and links |
-| `.gitleaks.toml` and CI governance | Bundle-consumer paths and deterministic gates |
-| `openspec/changes/skill-knowledge-bundle-hardening/**` | Cross-PR initiative traceability |
-
-## Risks
-
-| Risk | Mitigation |
-|---|---|
-| A broad rewrite becomes unreviewable | Keep the five planned pull requests isolated by concern |
-| Validators encode the current incorrect state | Correct normative guidance before adding enforcement |
-| Root files pass while references remain contradictory | Treat every skill directory as one validation unit |
-| Generic guidance overrides repository policy | Encode and test the documented source-of-truth order |
+- Skill-format validators, contamination scanners, registry generators, or dedicated CI workflows.
+- Rewriting every upstream framework reference that is clearly labeled as legacy, migration, or
+  general reference material.
+- Dependency upgrades, product behavior changes, or changes to production code.
 
 ## Success Criteria
 
-- [ ] All active references resolve against the flattened skill inventory.
-- [ ] Domain owns repository and gateway ports in every normative architecture source.
-- [ ] Active Spring bundles match the repository's reactive stack outside marked migration material.
-- [ ] Frontend and design skills use real packages, feature boundaries, and design precedence.
-- [ ] Skill Doctor validates complete bundles and detects deliberate drift fixtures.
-- [ ] Semantic scenarios consistently produce the repository's canonical decisions.
-- [ ] Independent final verification passes before this change is archived.
+- Changed guidance agrees with current manifests, source, architecture, product files, and
+  `.agents/DESIGN.md`.
+- Incompatible framework examples are removed from active recommendations or clearly labeled as
+  legacy/reference material.
+- Skill activation and design precedence are explicit without requiring an automated gate.
+- `.agents/skill-registry.md` reflects the changed discovery metadata and remains hand-maintained.
+- The diff contains no new skill validation scripts, test fixtures, CI workflows, or generated
+  registry machinery.

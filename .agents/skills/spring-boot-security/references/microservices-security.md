@@ -1,8 +1,12 @@
 # Microservices Security Patterns
 
+These are broad security references, not all repository implementation examples. In Profile
+Tailors, use Kotlin, WebFlux, coroutines, and non-blocking HTTP. The `RestTemplate` samples below
+are legacy blocking references only; use `WebClient` for reactive integrations.
+
 ## Inter-Service Authentication
 
-### Service-to-Service JWT Tokens
+### Legacy blocking service-to-service client reference
 
 ```kotlin
 @Configuration
@@ -396,7 +400,7 @@ class DistributedTokenValidationService {
 }
 ```
 
-### Token Introspection Pattern
+### Legacy blocking token introspection reference
 
 ```kotlin
 @Service

@@ -14,9 +14,9 @@
 
 ## Overview
 
-Retention enforcement today is implemented as three independent scheduled jobs plus one
-governance compliance control. There is no central rule engine. The per-activity retention
-status register is maintained in [`docs/compliance/data-inventory.yaml`](compliance/data-inventory.yaml)
+Retention enforcement today is implemented as four scheduled jobs, one request-driven
+credential deletion, plus one governance compliance control. There is no central rule engine.
+The per-activity retention status register is maintained in [`docs/compliance/data-inventory.yaml`](compliance/data-inventory.yaml)
 and the gap/plan document is
 [`docs/compliance/retention-and-erasure-control-plan.md`](compliance/retention-and-erasure-control-plan.md).
 
@@ -45,7 +45,33 @@ and the gap/plan document is
   5 m initial delay; retention must be non-negative).
 - **Scheduler:** `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/PasswordResetTokenCleanupScheduler.kt`
 
-### 4. Retention compliance control (governance register)
+### 4. OAuth credential deletion on disconnect (tombstoned, idempotent)
+
+- **Flow:** `DELETE /api/publishing/{provider}/connections/{connectionId}` deletes the
+  social accounts/content, the `secure_credentials` row, and the connection in one
+  transaction, then records a `credential_deletion_tombstones` row
+  (`workspace_id, connection_id, provider, reason=DISCONNECT`, traced to `pa-006`).
+- **Handler:** `DisconnectProviderConnectionHandler` — a repeated disconnect returns the
+  same `DELETED` result without side effects; a restored-then-redisconnected row is
+  re-deleted because the live row is checked before the tombstone.
+- **Scope:** OAuth credentials only. Expired-but-referenced credentials and provider-side
+  propagation are not covered (slice 2).
+
+### 5. Expired orphan-credential purge (disabled by default)
+
+- **Job:** `CredentialRetentionJob` — scans `secure_credentials` per provider for rows whose
+  `access_token_expires_at` is past the configured retention (default P30D, overridable per
+  provider via `publishing.credentials.retention.providers.*`) and deletes those not
+  referenced by an `ACTIVE`/`REQUIRES_RECONNECT` connection, in batches with
+  `FOR UPDATE SKIP LOCKED`.
+- **Scheduler:** `CredentialRetentionScheduler` — disabled unless
+  `publishing.credentials.retention.enabled=true`; interval default PT6H.
+- **Dry-run:** set `publishing.credentials.retention.dry-run=true` (or call
+  `run(dryRun=true)`): reports counts plus non-sensitive sample IDs, writes nothing.
+- **Scope:** orphan rows only. Credentials still referenced by terminal
+  (`EXPIRED`/`REVOKED`/`DISABLED`) connections are left for slice 2.
+
+### 6. Retention compliance control (governance register)
 
 - The compliance control `ctrl-privacy-data-retention` (`PRIVACY.DATA_RETENTION`) is seeded in
   the `compliance_controls` table (Liquibase `003-seed-compliance-controls.yaml`) and is
@@ -62,6 +88,8 @@ and the gap/plan document is
 | `MediaAssetExpirationJob` | Every 6 h | Stale media assets | — (state transition) |
 | `FindExpiredRequestsJob` | Daily | Data subject requests | 30 days |
 | `PasswordResetTokenCleanupScheduler` | 24 h | Expired password-reset tokens | Configurable |
+| `CredentialRetentionJob` | 6 h (disabled by default) | Orphaned expired OAuth credentials | P30D default, per-provider override |
+| Disconnect flow | On request | OAuth credential + connection | Immediate + tombstone |
 
 ## Troubleshooting
 
@@ -71,6 +99,12 @@ and the gap/plan document is
 - **A DSR older than 30 days is still present:** Confirm the request type is subject to the
   expiry job and that the scheduler is enabled (`@Scheduled` requires `spring.task.scheduling`
   enabled in the profile).
+- **A disconnected credential is still present:** Confirm the disconnect response was `DELETED`;
+  orphaned expired credentials are only purged when `publishing.credentials.retention.enabled=true`.
+  A credential referenced by an `ACTIVE` connection is never eligible.
+- **A repeated disconnect behaves differently:** Replays return `DELETED` from the tombstone
+  without side effects. If the row was restored from backup, the live row is re-deleted and the
+  tombstone refreshed — that is the intended restore replay for this scope.
 - **Retention behaviour differs from `data-inventory.yaml`:** The inventory is an evidence
   register. Treat any inventory row whose control is `Not implemented` or `Partial` as
   non-enforced.
@@ -87,7 +121,7 @@ and the gap/plan document is
 | Purge evidence | `GET /api/governance/retention/purges/{id}/evidence` |
 | Migration | `V100__retention_governance.xml` (5 tables, 12 indexes) |
 
-Until these are implemented, retention enforcement is limited to the four mechanisms above.
+Until these are implemented, retention enforcement is limited to the six mechanisms above.
 
 ## Support
 
