@@ -18,7 +18,7 @@ describe('SchedulerTimelineBody', () => {
       dayCount?: number
       isTodayFn?: (d: Date) => boolean
       isPastSlotFn?: (d: Date, hour: number) => boolean
-      publicationsForSlotFn?: (day: Date, hour: number) => Publication[]
+      publicationsForSlotFn?: () => Publication[]
     } = {},
   ) {
     const dayCount = options.dayCount ?? 3
