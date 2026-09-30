@@ -35,7 +35,7 @@ grows the system's surface area, look for the version that shrinks it.
 
 Prefer self-documenting code. The agent MUST NOT generate explanatory comments or docblocks by default; intent should be expressed through names, types, structure, and tests. Comment policy is enforced during final cleanup, not as an architectural invariant.
 
-Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter exclusions, and commented-out code remain prohibited. The full enforcement list is codified in `.agents/scripts/skill-comment-scan.mjs` and its allowlist.
+Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter exclusions, and commented-out code remain prohibited.
 
 ## Static Analysis and Linter Compliance
 

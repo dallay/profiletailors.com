@@ -143,8 +143,8 @@ Examples already used in the codebase:
 - `UPDATE_HAR=true pnpm exec playwright test --grep @integration`
 
 Do not invent new tag groups without updating `playwright-best-practices/SKILL.md`
-and announcing the change. The skill-doctor CI gate will flag unknown
-tags as drift.
+and announcing the change. Reviewers should flag unknown tags as drift during
+PR review.
 
 ## Locator and fixture guidance
 
