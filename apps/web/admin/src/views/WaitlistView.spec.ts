@@ -189,15 +189,17 @@ describe('WaitlistView', () => {
     it('renders waitlistKey filter input', async () => {
       const wrapper = createWrapper()
       await flushPromises()
-      const waitlistKeyInput = wrapper.find('input[aria-label="Waitlist key"]')
+      await wrapper.find('.admin-advanced-filters summary').trigger('click')
+      const waitlistKeyInput = wrapper.find('#waitlist-key-filter')
       expect(waitlistKeyInput.exists()).toBe(true)
     })
 
     it('renders date filter inputs for joined dates', async () => {
       const wrapper = createWrapper()
       await flushPromises()
-      const joinedFromInput = wrapper.find('input[aria-label="Joined from"]')
-      const joinedToInput = wrapper.find('input[aria-label="Joined to"]')
+      await wrapper.find('.admin-advanced-filters summary').trigger('click')
+      const joinedFromInput = wrapper.find('#joined-from-filter')
+      const joinedToInput = wrapper.find('#joined-to-filter')
       expect(joinedFromInput.exists()).toBe(true)
       expect(joinedToInput.exists()).toBe(true)
     })
@@ -205,8 +207,9 @@ describe('WaitlistView', () => {
     it('renders date filter inputs for invited dates', async () => {
       const wrapper = createWrapper()
       await flushPromises()
-      const invitedFromInput = wrapper.find('input[aria-label="Invited from"]')
-      const invitedToInput = wrapper.find('input[aria-label="Invited to"]')
+      await wrapper.find('.admin-advanced-filters summary').trigger('click')
+      const invitedFromInput = wrapper.find('#invited-from-filter')
+      const invitedToInput = wrapper.find('#invited-to-filter')
       expect(invitedFromInput.exists()).toBe(true)
       expect(invitedToInput.exists()).toBe(true)
     })
@@ -214,9 +217,10 @@ describe('WaitlistView', () => {
     it('sends date filters in request when set', async () => {
       const wrapper = createWrapper()
       await flushPromises()
+      await wrapper.find('.admin-advanced-filters summary').trigger('click')
       mockRequest.mockClear()
 
-      const joinedFromInput = wrapper.find('input[aria-label="Joined from"]')
+      const joinedFromInput = wrapper.find('#joined-from-filter')
       await joinedFromInput.setValue('2024-01-01')
 
       await flushPromises()

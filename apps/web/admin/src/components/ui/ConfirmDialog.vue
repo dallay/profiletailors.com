@@ -50,7 +50,7 @@ onMounted(() => syncDialog(props.open))
     :aria-describedby="'admin-confirm-description'"
     @close="emit('update:open', false)"
   >
-    <div class="p-5 sm:p-6">
+    <div v-if="open" class="p-5 sm:p-6">
       <h2 id="admin-confirm-title" class="text-lg font-medium text-text-display">{{ title }}</h2>
       <p id="admin-confirm-description" class="mt-3 text-sm leading-6 text-text-secondary">{{ description }}</p>
       <div v-if="$slots.default" class="mt-4">

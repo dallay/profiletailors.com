@@ -150,6 +150,11 @@ describe('ConfigurationView', () => {
       .findAll('button')
       .find((button) => button.text() === 'Change mode')
       ?.trigger('click')
+    await wrapper
+      .find('[role="alertdialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'Change mode')
+      ?.trigger('click')
     await flushPromises()
 
     expect(wrapper.find('[role="alert"]').text()).toBe('An error occurred.')

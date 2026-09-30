@@ -186,6 +186,11 @@ describe('GovernanceView', () => {
       .find((button) => button.text() === 'Approve Takedown')
     expect(approveButton).toBeDefined()
     await approveButton?.trigger('click')
+    await wrapper
+      .find('[role="alertdialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'Approve Takedown')
+      ?.trigger('click')
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledWith(
