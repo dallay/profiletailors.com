@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import DashboardLayout from '@modules/dashboard/presentation/components/DashboardLayout.vue'
 import { toast } from 'vue-sonner'
+import { useSidebar } from '@/components/ui/sidebar'
 
 const auth = useAuthStore()
 const { t } = useI18n()
+const sidebar = useSidebar()
 
 const isModalOpen = ref(false)
 
@@ -19,6 +21,14 @@ function handleOpenModal() {
 function handleCreated(options: { keepOpen?: boolean } = {}) {
   if (!options.keepOpen) isModalOpen.value = false
   toast.success(t('composer.scheduleSuccessToast'))
+}
+
+function openChannelConnections() {
+  if (sidebar.isMobile.value) {
+    sidebar.setOpenMobile(true)
+    return
+  }
+  sidebar.setOpen(true)
 }
 </script>
 
@@ -46,6 +56,7 @@ function handleCreated(options: { keepOpen?: boolean } = {}) {
       :is-open="isModalOpen"
       provider="unsplash"
       @close="isModalOpen = false"
+      @connect-channels="openChannelConnections"
       @created="handleCreated"
     />
   </div>

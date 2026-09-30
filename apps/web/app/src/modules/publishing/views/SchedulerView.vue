@@ -28,6 +28,7 @@ import ConflictBadge from '@modules/publishing/presentation/components/ConflictB
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useSidebar } from '@/components/ui/sidebar'
 import { getProviderColor } from '@shared/lib/provider-styles'
 import { startAppTour } from '@/lib/app-tour'
 import { toast } from 'vue-sonner'
@@ -37,6 +38,7 @@ const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const { locale: i18nLocale, t } = useI18n()
 const route = useRoute()
+const sidebar = useSidebar()
 
 const url = useCalendarUrl()
 const isMobile = useMediaQuery('(max-width: 768px)')
@@ -588,6 +590,14 @@ function openNewPostGeneral() {
   isModalOpen.value = true
 }
 
+function openChannelConnections() {
+  if (sidebar.isMobile.value) {
+    sidebar.setOpenMobile(true)
+    return
+  }
+  sidebar.setOpen(true)
+}
+
 function openDayView(date: Date) {
   // Format using local date components to avoid UTC-offset day shifts.
   const y = date.getFullYear()
@@ -710,6 +720,7 @@ watch(
        :now="clock.now.value"
        :format-current-time="formatCurrentTime"
        @new-post="openNewPostGeneral"
+      @connect-channels="openChannelConnections"
       @prev="goBackward"
       @next="goForward"
       @today="goToToday"
@@ -1085,6 +1096,7 @@ watch(
       :editing-publication="editingPublication ?? undefined"
       provider="unsplash"
       @close="isModalOpen = false; editingPublication = null"
+      @connect-channels="openChannelConnections"
       @created="onPostCreated"
       @updated="handleUpdated"
     />

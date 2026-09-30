@@ -33,6 +33,8 @@ const mockController = {
 
 const isMobile = ref(true)
 const startAppTour = vi.fn()
+const setOpenMobile = vi.fn()
+const setOpen = vi.fn()
 let mockHasNoChannels = false
 
 vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
@@ -45,6 +47,10 @@ vi.mock('@/lib/app-tour', () => ({
 
 vi.mock('@vueuse/core', () => ({
   useMediaQuery: () => isMobile,
+}))
+
+vi.mock('@/components/ui/sidebar', () => ({
+  useSidebar: () => ({ isMobile, setOpenMobile, setOpen }),
 }))
 
 vi.mock('vue-router', () => ({
@@ -143,6 +149,7 @@ vi.mock('@modules/publishing/presentation/components/mobile/MobileSchedulerShell
     ],
     emits: [
       'new-post',
+      'connect-channels',
       'prev',
       'next',
       'today',
@@ -155,7 +162,7 @@ vi.mock('@modules/publishing/presentation/components/mobile/MobileSchedulerShell
     ],
     template: `
       <div data-testid="scheduler-mobile-shell">
-        <button data-testid="mobile-new-post" @click="$emit('new-post')">New Post</button>
+        <button data-testid="mobile-new-post" @click="$emit(hasNoChannels ? 'connect-channels' : 'new-post')">New Post</button>
         <button data-testid="prev-period" @click="$emit('prev')">Prev</button>
         <button data-testid="next-period" @click="$emit('next')">Next</button>
         <button data-testid="today-period" @click="$emit('today')">Today</button>
@@ -237,7 +244,7 @@ describe('SchedulerView mobile branch', () => {
     expect(startAppTour).toHaveBeenCalled()
   })
 
-  it('shows warning toast when user attempts to create post with no channels connected', async () => {
+  it('opens the mobile sidebar to connect a channel when none are connected', async () => {
     mockHasNoChannels = true
     const wrapper = mount(SchedulerView, {
       global: { mocks: { $t: (key: string) => key } },
@@ -245,7 +252,8 @@ describe('SchedulerView mobile branch', () => {
     await flushPromises()
 
     await wrapper.get('[data-testid="mobile-new-post"]').trigger('click')
-    expect(toast.warning).toHaveBeenCalledWith('scheduler.noChannelTitle')
+    expect(setOpenMobile).toHaveBeenCalledWith(true)
+    expect(toast.warning).not.toHaveBeenCalled()
   })
 
   it('routes the mobile filter change event through url.setFilters', async () => {

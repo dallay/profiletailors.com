@@ -92,6 +92,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'connectChannels'): void
   (e: 'created', options: { keepOpen: boolean; publicationId?: string }): void
   (e: 'updated'): void
 }>()
@@ -281,6 +282,11 @@ function initCreateMode() {
     defaultDate.getDate(),
   )
   scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+}
+
+function requestChannelConnection() {
+  emit('close')
+  emit('connectChannels')
 }
 
 async function initializeComposerForOpen() {
@@ -1228,6 +1234,24 @@ async function handleCreateSubmit(
             :is-edit-mode="isEditMode"
             @select="selectChannel"
           />
+
+          <div
+            v-if="publishingStore.hasNoChannels"
+            data-testid="composer-no-channels"
+            role="status"
+            class="flex flex-col gap-3 rounded-xl border border-border-visible bg-bg-primary/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p class="text-sm text-text-secondary">{{ $t('scheduler.noChannelTitle') }}</p>
+            <Button
+              type="button"
+              variant="outline"
+              class="min-h-11 shrink-0"
+              data-testid="composer-connect-channels"
+              @click="requestChannelConnection"
+            >
+              {{ $t('scheduler.connectChannels') }}
+            </Button>
+          </div>
 
           <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
             <div class="border-b border-border-subtle/70 px-3 py-2">
