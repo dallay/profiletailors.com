@@ -117,4 +117,5 @@ Evidencia: 2026-09-29 — script usa `%ad` (fecha de autor, sobrevive rebase) + 
 - 2026-09-29: RPI-007 Done (doc-date check: autor-date + gracia 3d + tests 7/7 + `just doc-check` PASS; c4/03 y c4/04 al 29).
 - 2026-09-29: RPI-005 Done (`backend-bdd-fast` SUCCESS 9m23s, feature 1/1 PASS); RPI-006 Done (docs + inventario validado).
 - 2026-09-30: publicado como stack de 2 — PR1 #1249 (doc-check, ~190 líneas, en presupuesto) y PR2 #1250 (slice retención, excepción de tamaño documentada) en draft. `backend-check` completo no corrió en local (reinicios del entorno); CI es autoritativo.
-- Estado: Ready (pendiente CI).
+- 2026-09-30: CI en #1250 cazó `ValueObjectImmutabilityTest` (faltaba `init` en `ResolvedCredentialRetention`; `CredentialPurgeCandidate` no es VO sino read-model como `StaleJob` y se le quitó la anotación en vez de maquillar el test). Nuestros runs con `--tests` nunca lo ejecutaron — lección: el gate amplio local sí importa.
+- Estado: Checking (fix en camino a #1250, vigilando ambas PRs hasta verde + sin hilos abiertos).

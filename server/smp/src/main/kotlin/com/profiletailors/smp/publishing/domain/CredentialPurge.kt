@@ -1,11 +1,9 @@
 package com.profiletailors.smp.publishing.domain
 
-import com.profiletailors.common.domain.ValueObject
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.util.UUID
 
-@ValueObject
 data class CredentialPurgeCandidate(val id: UUID, val provider: SocialProvider, val accessTokenExpiresAt: Instant?)
 
 interface CredentialPurgeRepository {

@@ -60,4 +60,10 @@ data class ResolvedCredentialRetention(
     val expiredMetadataRetention: Duration,
     val disconnectGrace: Duration,
     val enabled: Boolean,
-)
+) {
+    init {
+        require(activityId.isNotBlank()) { "Activity id is required." }
+        require(!expiredMetadataRetention.isNegative) { "Expired metadata retention must not be negative." }
+        require(!disconnectGrace.isNegative) { "Disconnect grace must not be negative." }
+    }
+}
