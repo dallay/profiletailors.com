@@ -166,6 +166,14 @@ describe('ComposerMediaPickerShell.vue', () => {
     expect(wrapper.find('[data-testid="picker-provider-search"]').exists()).toBe(true)
   })
 
+  it('provides a visible focus indicator for keyboard users', () => {
+    const wrapper = mountShell()
+    const searchInput = wrapper.get('[data-testid="picker-library-search"] input')
+
+    expect(searchInput.classes()).toContain('focus-visible:ring-2')
+    expect(searchInput.classes()).toContain('focus-visible:ring-text-display')
+  })
+
   it('shows a filtered-empty state when the active library query has no assets', async () => {
     const wrapper = mountShell({ collectionState: 'READY' })
 

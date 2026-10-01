@@ -161,7 +161,7 @@ function onOpenChange(isOpen: boolean): void {
               id="picker-library-query"
               v-model="libraryQuery"
               type="search"
-              class="w-full bg-transparent text-sm text-text-display outline-none placeholder:text-text-secondary"
+              class="w-full bg-transparent text-sm text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-display placeholder:text-text-secondary"
               :placeholder="t('composer.picker.librarySearchPlaceholder')"
               @input="emitLibrarySearch"
             >
