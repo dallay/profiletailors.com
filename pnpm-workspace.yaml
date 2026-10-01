@@ -41,3 +41,5 @@ minimumReleaseAgeExclude:
   - wrangler@3.114.17
   # Renovate security update: brace-expansion@1.1.21
   - brace-expansion@1.1.21
+  # Renovate security update: hono@4.13.7
+  - hono@4.13.7
