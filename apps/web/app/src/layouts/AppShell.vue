@@ -448,7 +448,10 @@ onBeforeUnmount(() => {
             </div>
             <RouterView v-slot="{ Component, route: matchedRoute }">
               <Suspense timeout="0">
-                <component :is="Component" :key="matchedRoute.fullPath" />
+                <component
+                  :is="Component"
+                  :key="matchedRoute.meta.viewKey ?? matchedRoute.fullPath"
+                />
                 <template #fallback>
                   <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
                     <span class="sr-only">{{ t('nav.loadingSection') }}</span>
