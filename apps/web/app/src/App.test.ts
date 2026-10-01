@@ -27,9 +27,17 @@ vi.mock('@shared/i18n', () => ({
 
 vi.mock('vue-router', () => ({
   RouterLink: { template: '<a><slot /></a>' },
-  RouterView: { template: '<div class="router-view"><slot /></div>' },
+  RouterView: {
+    template: `<div class="router-view"><slot :Component="'div'" :route="{ fullPath: '/' }" /></div>`,
+  },
   useRoute: () => routeState,
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    beforeEach: vi.fn(() => vi.fn()),
+    afterEach: vi.fn(() => vi.fn()),
+    onError: vi.fn(() => vi.fn()),
+  }),
 }))
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
@@ -136,7 +144,9 @@ function mountApp(channels: TestChannel[]) {
     global: {
       mocks: { $t: mockT },
       stubs: {
-        RouterView: { template: '<div class="router-view" />' },
+        RouterView: {
+          template: `<div class="router-view"><slot :Component="'div'" :route="{ fullPath: '/' }" /></div>`,
+        },
         SidebarNavSection: { template: '<div class="sidebar-nav-section" />' },
       },
     },
