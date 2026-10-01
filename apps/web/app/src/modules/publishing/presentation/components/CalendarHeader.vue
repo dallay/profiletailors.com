@@ -14,7 +14,7 @@ import {
   Radio,
 } from '@lucide/vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
-import type { SchedulerStatus, SchedulerSurface } from '@modules/publishing/application/useCalendarUrl'
+import type { SchedulerStatus, SchedulerSurface, SchedulerView } from '@modules/publishing/application/useCalendarUrl'
 import { Button } from '@/components/ui/button'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
@@ -22,7 +22,7 @@ const publishingStore = usePublishingStore()
 
 const props = defineProps<{
   /** Current calendar sub-view */
-  calendarView: 'month' | 'week' | 'day'
+  calendarView: SchedulerView
   /** Full scheduler surface */
   surface: SchedulerSurface
   /** Formatted period label (e.g. "June 2026", "Jun 8 – 14, 2026") */
@@ -36,7 +36,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'change:view', surface: SchedulerSurface): void
+  (e: 'change:format', surface: SchedulerSurface): void
+  (e: 'change:period', view: Exclude<SchedulerView, 'agenda'>): void
   (e: 'change:date', action: 'forward' | 'backward' | 'today'): void
   (e: 'change:filter', filter: {
     status?: SchedulerStatus
@@ -46,10 +47,20 @@ const emit = defineEmits<{
   (e: 'newPost'): void
 }>()
 
-/** Derives the calendar surface from the current calendarView prop for the calendar toggle. */
 const calendarSurface = computed<SchedulerSurface>(() =>
   props.calendarView === 'month' ? 'calendar-month' : 'calendar-week',
 )
+
+const calendarPeriod = computed<Exclude<SchedulerView, 'agenda'>>(() =>
+  props.calendarView === 'agenda' ? 'week' : props.calendarView,
+)
+
+const periods: Array<{ value: Exclude<SchedulerView, 'agenda'>; label: string }> = [
+  { value: 'day', label: 'scheduler.viewDay' },
+  { value: '3-days', label: 'scheduler.viewThreeDays' },
+  { value: 'week', label: 'scheduler.viewWeek' },
+  { value: 'month', label: 'scheduler.viewMonth' },
+]
 
 /** Computes the currently selected channel to render its custom network icon if filtered. */
 const selectedChannel = computed(() => {
@@ -83,42 +94,40 @@ const statusIcon = computed(() => {
     </div>
 
     <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-      <div
-        v-if="surface !== 'list'"
-        class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold"
-      >
-        <button type="button"
-          class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-          :class="calendarView === 'month' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('change:view', 'calendar-month')"
-        >
-          {{ $t('scheduler.calendar') || 'Month' }}
-        </button>
-        <button type="button"
-          class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-          :class="calendarView === 'week' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('change:view', 'calendar-week')"
-        >
-          {{ $t('scheduler.weekView') || 'Week' }}
-        </button>
-      </div>
-
-      <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
+      <fieldset class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
+        <legend class="sr-only">{{ $t('scheduler.formatLabel') }}</legend>
         <button type="button"
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface !== 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('change:view', calendarSurface)"
+          :aria-pressed="surface !== 'list'"
+          @click="emit('change:format', calendarSurface)"
         >
           {{ $t('scheduler.calendar') || 'Calendar' }}
         </button>
         <button type="button"
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('change:view', 'list')"
+          :aria-pressed="surface === 'list'"
+          @click="emit('change:format', 'list')"
         >
           {{ $t('scheduler.list') || 'List' }}
         </button>
-      </div>
+      </fieldset>
+
+      <fieldset v-if="surface !== 'list'" class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] font-bold uppercase tracking-wider">
+        <legend class="sr-only">{{ $t('scheduler.periodLabel') }}</legend>
+        <button
+          v-for="period in periods"
+          :key="period.value"
+          type="button"
+          class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
+          :class="calendarPeriod === period.value ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
+          :aria-pressed="calendarPeriod === period.value"
+          @click="emit('change:period', period.value)"
+        >
+          {{ $t(period.label) }}
+        </button>
+      </fieldset>
 
       <div class="relative shrink-0">
         <label for="calendar-timezone-select" class="sr-only">Timezone</label>
@@ -228,7 +237,7 @@ const statusIcon = computed(() => {
         {{ $t('scheduler.today') || 'Today' }}
       </button>
       <span class="font-mono text-[9px] uppercase tracking-wider text-text-secondary bg-bg-primary border border-border-visible px-2.5 py-1 rounded-lg">
-        {{ calendarView === 'month' ? 'Month' : 'Week' }}
+        {{ $t(calendarView === 'month' ? 'scheduler.viewMonth' : calendarView === '3-days' ? 'scheduler.viewThreeDays' : calendarView === 'day' ? 'scheduler.viewDay' : calendarView === 'agenda' ? 'scheduler.viewAgenda' : 'scheduler.viewWeek') }}
       </span>
     </div>
   </div>

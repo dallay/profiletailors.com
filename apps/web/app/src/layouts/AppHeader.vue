@@ -20,6 +20,7 @@ const routeNameToNavKey: Record<string, string> = {
   'scheduler-calendar-month': 'scheduler',
   'scheduler-calendar-day': 'scheduler',
   'scheduler-list': 'scheduler',
+  'governance-takedown': 'governance',
   ideas: 'ideas',
 }
 

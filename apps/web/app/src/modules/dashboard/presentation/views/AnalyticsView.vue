@@ -29,6 +29,17 @@ const { t } = useI18n()
 const store = useAnalyticsStore()
 const selectedPost = ref<PostAnalyticsSummary | null>(null)
 
+const reportingPeriod = computed(() => {
+  const format = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return `${format.format(new Date(`${store.activeDateRange.startDate}T00:00:00`))} – ${format.format(new Date(`${store.activeDateRange.endDate}T00:00:00`))}`
+})
+
+const hasAnalyticsData = computed(
+  () =>
+    (store.overview?.dailyMetrics?.length ?? 0) > 0 ||
+    (store.postAnalytics?.posts?.length ?? 0) > 0,
+)
+
 onMounted(() => {
   store.refresh()
 })
@@ -131,6 +142,9 @@ function closePostDetails(open: boolean): void {
         <p class="text-sm text-text-secondary">
           {{ $t('analytics.subtitle') }}
         </p>
+        <p class="font-mono text-[11px] text-text-secondary">
+          {{ $t('analytics.reportingPeriod') }}: {{ reportingPeriod }}
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -196,6 +210,14 @@ function closePostDetails(open: boolean): void {
       class="rounded border border-red-500/30 bg-red-500/10 px-4 py-3 font-mono text-[11px] text-red-400"
     >
       {{ store.error }}
+    </div>
+
+    <div
+      v-else-if="!store.loadingOverview && !store.loadingPosts && !hasAnalyticsData"
+      class="rounded-xl border border-border-visible bg-bg-surface px-4 py-3"
+    >
+      <p class="text-sm font-medium text-text-display">{{ $t('analytics.zeroDataTitle') }}</p>
+      <p class="mt-1 text-xs leading-5 text-text-secondary">{{ $t('analytics.zeroDataGuidance') }}</p>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

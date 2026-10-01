@@ -5,6 +5,10 @@ export default {
   last90: 'Last 90 days',
   custom: 'Custom range',
   dateRange: 'Date range',
+  reportingPeriod: 'Reporting period',
+  zeroDataTitle: 'No analytics collected for this period',
+  zeroDataGuidance:
+    'Connect a channel and publish content to begin collecting analytics. New results may take time to appear after publishing.',
   startDate: 'Start date',
   endDate: 'End date',
   exportCsv: 'Export CSV',

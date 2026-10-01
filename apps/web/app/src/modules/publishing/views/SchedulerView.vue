@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, toRef } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, toRef, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
@@ -65,6 +65,13 @@ const calendarColCount = computed(() => {
   if (calendarView.value === '3-days') return 3
   return 7
 })
+
+const hasActiveFilters = computed(
+  () =>
+    url.state.value.status !== 'all' ||
+    url.state.value.channelIds.length > 0 ||
+    url.state.value.q.length > 0,
+)
 
 /** Navigation base date derived from URL date param */
 const currentBaseDate = computed(() => {
@@ -390,6 +397,10 @@ function handleHeaderViewChange(surface: 'calendar-week' | 'calendar-month' | 'l
   url.setSurface(surface)
 }
 
+function handleHeaderPeriodChange(view: Exclude<SchedulerView, 'agenda'>) {
+  url.setView(view)
+}
+
 function handleMobileViewChange(view: SchedulerView) {
   url.setView(view)
 }
@@ -509,6 +520,41 @@ const publicationsBySlot = computed(() => {
 
 function publicationsForSlot(date: Date, hour: number): Publication[] {
   return publicationsBySlot.value.get(slotKey(date, hour)) ?? []
+}
+
+const focusedSlotKey = ref<string | null>(null)
+
+const firstAvailableSlotKey = computed(() => {
+  for (const slot of hourSlots) {
+    for (const day of timelineDays.value) {
+      if (!isPastSlot(day, slot.hour)) return slotKey(day, slot.hour)
+    }
+  }
+  return null
+})
+
+function slotTabIndex(date: Date, hour: number): 0 | -1 {
+  const key = slotKey(date, hour)
+  return key === (focusedSlotKey.value ?? firstAvailableSlotKey.value) ? 0 : -1
+}
+
+async function moveSlotFocus(event: KeyboardEvent, date: Date, hour: number): Promise<void> {
+  const dayIndex = timelineDays.value.findIndex((day) => dateKey(day) === dateKey(date))
+  const movement: Record<string, [number, number]> = {
+    ArrowLeft: [0, -1],
+    ArrowRight: [0, 1],
+    ArrowUp: [-1, 0],
+    ArrowDown: [1, 0],
+  }
+  const offset = movement[event.key]
+  if (!offset) return
+  event.preventDefault()
+  const nextHour = hour + offset[0]
+  const nextDay = timelineDays.value[dayIndex + offset[1]]
+  if (!nextDay || nextHour < 0 || nextHour > 23 || isPastSlot(nextDay, nextHour)) return
+  focusedSlotKey.value = slotKey(nextDay, nextHour)
+  await nextTick()
+  document.querySelector<HTMLElement>(`[data-calendar-slot="${dateKey(nextDay)}-${nextHour}"]`)?.focus()
 }
 
 
@@ -742,13 +788,14 @@ watch(
     </MobileSchedulerShell>
     <CalendarHeader
       v-else
-      :calendar-view="calendarView === 'agenda' || calendarView === '3-days' ? 'week' : calendarView"
+      :calendar-view="calendarView"
       :period-label="periodLabel"
       :surface="url.state.value.surface"
       :timezone="url.state.value.timezone"
       :status="url.state.value.status"
       :channel-ids="url.state.value.channelIds"
-      @change:view="handleHeaderViewChange"
+      @change:format="handleHeaderViewChange"
+      @change:period="handleHeaderPeriodChange"
       @change:date="handleHeaderDateChange"
       @change:filter="handleHeaderFilterChange"
       @new-post="openNewPostGeneral"
@@ -870,7 +917,7 @@ watch(
                 </div>
               </div>
 
-              <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
+              <section data-testid="week-timeline-viewport" :aria-label="$t('scheduler.calendarGridLabel')" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
                 <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] border-b border-border-subtle last:border-b-0" :style="{ gridTemplateColumns: `48px repeat(${calendarColCount},minmax(0,1fr))` }">
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
@@ -881,11 +928,15 @@ watch(
                     v-for="day in timelineDays"
                     :key="day.toISOString()"
                     type="button"
+                    :data-calendar-slot="`${dateKey(day)}-${slot.hour}`"
+                    :tabindex="slotTabIndex(day, slot.hour)"
                     :disabled="isPastSlot(day, slot.hour)"
                     :aria-label="`Slot for ${formatDayName(day)} at ${slot.label}`"
                     @click="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @keydown.enter.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
+                    @keydown="moveSlotFocus($event, day, slot.hour)"
+                    @focus="focusedSlotKey = slotKey(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
                     class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-1 select-none overflow-hidden"
@@ -994,15 +1045,31 @@ watch(
                     </template>
                   </button>
                 </div>
-              </div>
+              </section>
             </Card>
           </div>
 
         </div>
 
         <div v-else class="flex h-full min-h-0 flex-col gap-4">
-          <div v-if="filteredPublications.length === 0" class="border border-dashed border-border-visible rounded-2xl p-12 text-center text-text-secondary font-mono text-xs uppercase tracking-wider">
-            {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
+          <div v-if="filteredPublications.length === 0" class="rounded-2xl border border-dashed border-border-visible p-12 text-center">
+            <p class="text-sm font-medium text-text-display">
+              {{ $t(hasActiveFilters ? 'scheduler.emptyFiltered' : 'scheduler.emptySchedule') }}
+            </p>
+            <p class="mx-auto mt-2 max-w-md text-xs leading-5 text-text-secondary">
+              {{ $t(hasActiveFilters ? 'scheduler.emptyFilteredHint' : 'scheduler.emptyScheduleHint') }}
+            </p>
+            <Button
+              v-if="hasActiveFilters"
+              variant="outline"
+              class="mt-5"
+              @click="url.setFilters({ status: 'all', channelIds: [], q: '' })"
+            >
+              {{ $t('scheduler.clearFilters') }}
+            </Button>
+            <Button v-else class="mt-5" :disabled="publishingStore.hasNoChannels" @click="openNewPostGeneral">
+              {{ $t('scheduler.newPost') }}
+            </Button>
           </div>
 
           <div v-else class="thin-scrollbar min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">

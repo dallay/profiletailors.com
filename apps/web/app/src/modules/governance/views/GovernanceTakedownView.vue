@@ -142,11 +142,15 @@ onMounted(() => {
       </Button>
     </div>
 
-    <div v-if="error" class="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-      {{ error }}
+    <div v-if="error" role="alert" class="rounded-xl border border-error/30 bg-error/10 px-4 py-4 text-sm text-error">
+      <p class="font-medium">{{ error }}</p>
+      <p class="mt-1 text-text-secondary">{{ $t('governance.takedown.review.errorRecovery') }}</p>
+      <Button type="button" variant="outline" size="sm" class="mt-3" @click="loadReports">
+        {{ $t('governance.takedown.review.tryAgain') }}
+      </Button>
     </div>
 
-    <div v-if="isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
+    <div v-else-if="isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
       <span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
       {{ $t('governance.takedown.review.loading') }}
     </div>

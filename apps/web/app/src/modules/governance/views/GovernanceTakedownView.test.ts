@@ -170,6 +170,8 @@ describe('GovernanceTakedownView.vue', () => {
 
     // The component uses apiError.message ?? t('...'), so it shows the Error message
     expect(wrapper.text()).toContain('Failed to fetch')
+    expect(wrapper.text()).toContain('governance.takedown.review.errorRecovery')
+    expect(wrapper.text()).not.toContain('governance.takedown.review.empty')
   })
 
   it('calls approveTakedown when approve button is clicked', async () => {

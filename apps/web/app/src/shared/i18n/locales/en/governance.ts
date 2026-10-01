@@ -22,6 +22,8 @@ export default {
     review: {
       title: 'Takedown Reports',
       subtitle: 'Review and act on copyright reports submitted by users.',
+      errorRecovery: 'Check your access to this workspace, then try loading the reports again.',
+      tryAgain: 'Try again',
       statusFilter: 'Filter by status',
       filterAll: 'All',
       statusReported: 'Reported',

@@ -22,6 +22,9 @@ export const governance = {
     review: {
       title: 'Reportes de eliminación',
       subtitle: 'Revisa y actúa sobre los reportes de derechos de autor enviados por usuarios.',
+      errorRecovery:
+        'Comprueba tu acceso a este espacio de trabajo e intenta cargar los reportes de nuevo.',
+      tryAgain: 'Intentar de nuevo',
       statusFilter: 'Filtrar por estado',
       filterAll: 'Todos',
       statusReported: 'Reportado',

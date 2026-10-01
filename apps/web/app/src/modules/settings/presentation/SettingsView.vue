@@ -310,7 +310,7 @@ function segmentedControlClass(active: boolean) {
               @click="iconError = null; iconModalOpen = true"
             >
               <Pencil class="size-3.5" />
-              {{ $t('workspace.editIdentity') }}
+              {{ $t('workspace.changeIcon') }}
             </Button>
           </div>
         </CardHeader>
