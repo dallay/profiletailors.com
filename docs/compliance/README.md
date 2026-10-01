@@ -41,3 +41,19 @@ governance. Until then, they serve as:
 If the operational model expands (e.g., the operator takes on subprocessors, enters DPAs, or
 processes data under Article 27), these documents should be reviewed against the new reality and
 either adopted or archived accordingly.
+
+## Register
+
+Full file inventory grouped by use. Start with `status-taxonomy.md`, then the register you need.
+
+| Group | Document |
+| --- | --- |
+| Entry points | [Status Taxonomy](./status-taxonomy.md), [Legal Document Register](./legal-document-register.md), [Legal Acceptance Record](./legal-acceptance-record.md), [Legal Publication Gate](./legal-publication-gate.md) |
+| Processing records | [ROPA](./ropa.md), [Data Inventory](./data-inventory.md) (`data-inventory.yaml`), [Controller-Processor Matrix](./controller-processor-matrix.md), [Consent and Preference Register](./consent-and-preference-register.md) |
+| Rights and retention | [Rights Request Runbook](./rights-request-runbook.md), [Retention and Erasure Control Plan](./retention-and-erasure-control-plan.md), [Underage Account Procedure](./underage-account-procedure.md) |
+| Breach and incident | [Incident Response Runbook](./incident-response-runbook.md) (`incident-sla-table.yaml`), [Breach Authority Template](./breach-notification-authority-template.md), [Breach Subject Template](./breach-notification-subject-template.md) |
+| Transfers and DPIA | [International Transfer Template](./international-transfer-assessment-template.md), [DPIA Screening](./dpia-screening-and-assessment.md), [Customer DPA Template](./customer-dpa-template.md) |
+| Vendors | [Subprocessor Register](./subprocessor-register.md), [Vendor Due Diligence](./vendor-due-diligence-checklist.md), [Contributor Copyright Map](./contributor-copyright-map.md), [AGPL Source Offer](./agpl-source-offer.md) |
+| Market activation | [Global Legal Readiness](./global-legal-readiness.md), [LATAM Matrix](./latam-applicability-matrix.md), [Brazil](./country-activation-br.md), [Canada](./country-activation-ca.md), [Mexico](./country-activation-mx.md), [Record Template](./country-activation-record-template.md) |
+| Market packs | [US Privacy Pack](./us-privacy-market-pack.md), [Asia Entry](./market-entry-asia.md), [Japan Checklist](./readiness-checklist-japan.md), [Singapore Checklist](./readiness-checklist-singapore.md) |
+| Marketing mapping | [Marketing Legal Baseline](./marketing-legal-baseline.md) |

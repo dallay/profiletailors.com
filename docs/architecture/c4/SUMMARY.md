@@ -10,8 +10,8 @@ status: 🔄 In Progress
 ## Executive Summary
 
 Profile Tailors is a social media management platform built with a modern, reactive architecture.
-The system enables teams to schedule, publish, analyze, and collaborate on social media content
-across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
+The system enables teams to schedule, publish, analyze, and collaborate on social media content.
+Early-access ships LinkedIn plus Threads (in verification); further platforms follow after validation.
 
 ---
 
