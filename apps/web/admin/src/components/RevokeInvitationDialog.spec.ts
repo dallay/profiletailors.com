@@ -68,7 +68,7 @@ describe('RevokeInvitationDialog', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
 
     const escapeWrapper = mountDialog({ expectedVersion: 3 })
-    await escapeWrapper.get('[role="dialog"]').trigger('keydown.esc')
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(escapeWrapper.emitted('close')).toBeTruthy()
     wrapper.unmount()
     escapeWrapper.unmount()
