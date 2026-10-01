@@ -57,43 +57,55 @@ test.describe('App section states @frontend', () => {
       await route.continue()
     })
     try {
-      await page.getByRole('link', { name: /Analytics/ }).click()
-      await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeVisible()
+      await test.step('Navigate to Analytics', async () => {
+        await page.getByRole('link', { name: /Analytics/ }).click()
+      })
+      await test.step('Announce loading while Analytics resolves', async () => {
+        await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeVisible()
+      })
     } finally {
       releaseImport()
     }
-    await expect(
-      page.getByRole('heading', { name: 'Analytics', exact: true, level: 2 }),
-    ).toBeVisible()
-    await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeHidden()
-    await expect(page.getByText('Preview data', { exact: true })).toBeHidden()
-    expect(errors).toEqual([])
-    await page.getByRole('link', { name: /Dashboard/ }).click()
-    await expect(page.getByText('Preview data', { exact: true })).toBeVisible()
-    await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeHidden()
+    await test.step('Complete Analytics navigation and clear the loading status', async () => {
+      await expect(
+        page.getByRole('heading', { name: 'Analytics', exact: true, level: 2 }),
+      ).toBeVisible()
+      await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeHidden()
+      await expect(page.getByText('Preview data', { exact: true })).toBeHidden()
+      expect(errors).toEqual([])
+    })
+    await test.step('Return to the Dashboard preview', async () => {
+      await page.getByRole('link', { name: /Dashboard/ }).click()
+      await expect(page.getByText('Preview data', { exact: true })).toBeVisible()
+      await expect(page.getByRole('status').filter({ hasText: 'Loading section' })).toBeHidden()
+    })
   })
 
   test('analytics shows zero-data guidance and updates the reporting period', async ({ page }) => {
-    await page.goto('/analytics')
-    await expect(
-      page.getByText('No analytics collected for this period', { exact: true }),
-    ).toBeVisible()
-    await expect(
-      page.getByText(
-        'Connect a channel and publish content to begin collecting analytics. New results may take time to appear after publishing.',
-      ),
-    ).toBeVisible()
-    await expect(
-      page.getByText('Reporting period: May 17, 2026 – Jun 15, 2026', { exact: true }),
-    ).toBeVisible()
-    await page.getByRole('combobox', { name: 'Date range' }).click()
-    await page.getByRole('option', { name: 'Last 7 days' }).click()
-    await expect(
-      page.getByText('Reporting period: Jun 9, 2026 – Jun 15, 2026', { exact: true }),
-    ).toBeVisible()
-    await expect(
-      page.getByText('No analytics collected for this period', { exact: true }),
-    ).toBeVisible()
+    await test.step('Show zero-data guidance for the initial reporting period', async () => {
+      await page.goto('/analytics')
+      await expect(
+        page.getByText('No analytics collected for this period', { exact: true }),
+      ).toBeVisible()
+      await expect(
+        page.getByText(
+          'Connect a channel and publish content to begin collecting analytics. New results may take time to appear after publishing.',
+        ),
+      ).toBeVisible()
+      await expect(
+        page.getByText('Reporting period: May 17, 2026 – Jun 15, 2026', { exact: true }),
+      ).toBeVisible()
+    })
+    await test.step('Change the reporting period to the last seven days', async () => {
+      await page.getByRole('combobox', { name: 'Date range' }).click()
+      await page.getByRole('option', { name: 'Last 7 days' }).click()
+      await expect(
+        page.getByText('Reporting period: Jun 9, 2026 – Jun 15, 2026', { exact: true }),
+      ).toBeVisible()
+      await expect(
+        page.getByText('No analytics collected for this period', { exact: true }),
+      ).toBeVisible()
+    })
   })
 
   for (const status of [403, 500]) {
@@ -127,18 +139,22 @@ test.describe('App section states @frontend', () => {
               },
         ),
       )
-      await page.goto('/governance/takedown')
       const alert = page.getByRole('alert')
-      await expect(alert).toBeVisible()
-      await expect(alert).toContainText(
-        'Check your access to this workspace, then try loading the reports again.',
-      )
-      await expect(page.getByText('No reports found.', { exact: true })).toBeHidden()
-      failing = false
-      await page.getByRole('button', { name: 'Try again', exact: true }).click()
-      await expect(page.getByText('Copyright infringement', { exact: true })).toBeVisible()
-      await expect(alert).toBeEmpty()
-      await expect(page.getByRole('button', { name: 'Try again' })).toBeHidden()
+      await test.step('Show the governance failure and recovery guidance', async () => {
+        await page.goto('/governance/takedown')
+        await expect(alert).toBeVisible()
+        await expect(alert).toContainText(
+          'Check your access to this workspace, then try loading the reports again.',
+        )
+        await expect(page.getByText('No reports found.', { exact: true })).toBeHidden()
+      })
+      await test.step('Retry governance reports and show the recovered results', async () => {
+        failing = false
+        await page.getByRole('button', { name: 'Try again', exact: true }).click()
+        await expect(page.getByText('Copyright infringement', { exact: true })).toBeVisible()
+        await expect(alert).toBeEmpty()
+        await expect(page.getByRole('button', { name: 'Try again' })).toBeHidden()
+      })
     })
   }
 })
