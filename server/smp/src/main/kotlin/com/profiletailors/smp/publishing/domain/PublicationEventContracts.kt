@@ -41,9 +41,4 @@ fun interface PublicationEventPublisher {
     fun publish(event: PublicationEvent)
 }
 
-object NoOpPublicationEventPublisher : PublicationEventPublisher {
-    /**
-     * Discards the event without delivery or other side effects.
-     */
-    override fun publish(event: PublicationEvent) = Unit
-}
+val NoOpPublicationEventPublisher = PublicationEventPublisher { _ -> }

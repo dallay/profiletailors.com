@@ -154,6 +154,36 @@ describe('initHeroAnimations', () => {
     expect(waapiMock).toHaveBeenCalled()
  })
 
+  it('waits for the form animation before completing setup', async () => {
+    const label = document.createElement('div')
+    label.textContent = 'Label'
+    const headline = document.createElement('div')
+    headline.textContent = 'Headline'
+    const sub = document.createElement('div')
+    sub.textContent = 'Sub'
+    const form = document.createElement('div')
+    const formAnimation = waapiMock()
+    vi.spyOn(form, 'animate').mockReturnValue(formAnimation as Animation)
+    document.querySelector = vi.fn().mockImplementation((selector: string) => {
+      switch (selector) {
+        case '[data-hero-label]': return label
+        case '[data-hero-headline]': return headline
+        case '[data-hero-sub]': return sub
+        case '[data-hero-form]': return form
+        default: return null
+      }
+    })
+
+    const animationPromise = initHeroAnimations()
+    await vi.runAllTimersAsync()
+    await animationPromise
+
+    expect(formAnimation.cancel).toHaveBeenCalled()
+    expect(form.style.opacity).toBe('1')
+    expect(form.style.transform).toBe('none')
+    expect(form.style.filter).toBe('none')
+  })
+
   // -------------------------------------------------------------------------
   // Scenario 4: status is null — graceful handling
   // -------------------------------------------------------------------------

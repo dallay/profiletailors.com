@@ -63,7 +63,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
       :key="group.label"
       class="space-y-2"
     >
-      <p class="px-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary group-data-[collapsible=icon]:hidden">
+      <p v-if="group.label" class="px-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary group-data-[collapsible=icon]:hidden">
         {{ group.label }}
       </p>
       <ul class="space-y-1">
@@ -73,6 +73,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
         >
           <RouterLink
             :to="item.to"
+            :title="t(item.labelKey)"
             class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-text-secondary transition-colors no-underline hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
             @click="handleNavigation"
           >

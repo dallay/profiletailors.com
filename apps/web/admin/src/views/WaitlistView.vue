@@ -9,7 +9,6 @@ import { useAdminAuthStore } from '@/stores/auth.store'
 import { messages } from '@/i18n'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import Button from '@/components/ui/AdminButton.vue'
-import Card from '@/components/ui/AdminCard.vue'
 import Input from '@/components/ui/AdminInput.vue'
 import Select from '@/components/ui/AdminSelect.vue'
 
@@ -306,13 +305,11 @@ onMounted(() => {
 
       <div v-if="bulkError" role="alert" class="mb-3 text-error">{{ bulkError }}</div>
 
-      <div
+      <output
         v-if="bulkResults && bulkSummary"
         data-testid="bulk-results"
-        role="status"
-        class="mb-4 p-4"
+        class="admin-card mb-4 p-4"
       >
-        <Card class="p-4">
         <h2 class="mb-2 text-base font-semibold text-text-display">{{ t('waitlist.bulkResults') }}</h2>
         <p class="mb-2 text-sm text-text-secondary">
           {{
@@ -330,8 +327,7 @@ onMounted(() => {
             <span v-if="item.code" class="text-text-secondary"> ({{ item.code }})</span>
           </li>
         </ul>
-        </Card>
-      </div>
+      </output>
 
       <EmptyState v-if="result.items.length === 0" class="mb-4 text-sm">
         {{ t('waitlist.empty') }}

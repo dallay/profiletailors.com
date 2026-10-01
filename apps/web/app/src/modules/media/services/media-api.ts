@@ -154,7 +154,7 @@ function createMediaFetch(workspaceId?: string): ReturnType<typeof createApiFetc
     return auth.apiFetch
   }
 
-  const apiFetch = (async <T>(path: string, init: ApiFetchOptions = {}) => {
+  const apiFetch = (<T>(path: string, init: ApiFetchOptions = {}) => {
     return auth.apiFetch<T>(path, withPinnedWorkspace(init, workspaceId))
   }) as ReturnType<typeof createApiFetch>
 
@@ -455,11 +455,11 @@ export type ListAssetsOptions = {
  * @param opts - Optional status, page size, and pagination cursor filters.
  * @returns A paginated list of media assets, or an empty result when unauthenticated.
  */
-export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAssetListResponse> {
+export function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAssetListResponse> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    return { assets: [], nextCursor: null }
+    return Promise.resolve({ assets: [], nextCursor: null })
   }
 
   const params = new URLSearchParams()
@@ -487,11 +487,11 @@ export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAss
  * @returns The media asset metadata
  * @throws If the user is not authenticated
  */
-export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
+export function getAsset(assetId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw mediaApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(mediaApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   return auth.apiFetch<MediaAssetSummary>(`/api/media/assets/${assetId}`, {
@@ -529,7 +529,7 @@ export async function searchUnsplashPhotos(query?: string): Promise<UnsplashPhot
  * @param externalId - The provider identifier of the photo to import
  * @returns The persisted media asset summary
  */
-export async function importUnsplashPhoto(externalId: string): Promise<MediaAssetSummary> {
+export function importUnsplashPhoto(externalId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 
   return auth.apiFetch<MediaAssetSummary>(
@@ -545,11 +545,11 @@ export async function importUnsplashPhoto(externalId: string): Promise<MediaAsse
  * Deletes an asset using the CAS soft-delete endpoint.
  * The underlying blob is scheduled for GC if no other assets reference it.
  */
-export async function deleteAsset(assetId: string): Promise<DeleteAssetResponse> {
+export function deleteAsset(assetId: string): Promise<DeleteAssetResponse> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw mediaApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(mediaApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   return auth.apiFetch<DeleteAssetResponse>(`/api/media/assets/${encodeURIComponent(assetId)}`, {

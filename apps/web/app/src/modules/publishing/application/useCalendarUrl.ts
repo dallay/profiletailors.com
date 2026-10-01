@@ -301,8 +301,12 @@ export function createCalendarUrlController(
       )
     },
     setView: async (view) => {
-      const surface =
-        view === 'agenda' ? 'list' : view === 'month' ? 'calendar-month' : 'calendar-week'
+      let surface: SchedulerSurface = 'calendar-week'
+      if (view === 'agenda') {
+        surface = 'list'
+      } else if (view === 'month') {
+        surface = 'calendar-month'
+      }
       await navigate(router, { ...state.value, surface, view }, 'push')
     },
     setDate: async (date) => {
@@ -317,7 +321,12 @@ export function createCalendarUrlController(
         date.setDate(1)
         date.setMonth(date.getMonth() + sign)
       } else {
-        const days = state.value.view === 'day' ? 1 : state.value.view === '3-days' ? 3 : 7
+        let days = 7
+        if (state.value.view === 'day') {
+          days = 1
+        } else if (state.value.view === '3-days') {
+          days = 3
+        }
         date.setDate(date.getDate() + sign * days)
       }
       const y = date.getFullYear()

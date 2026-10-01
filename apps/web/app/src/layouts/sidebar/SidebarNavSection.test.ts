@@ -69,6 +69,29 @@ describe('SidebarNavSection', () => {
     expect(text).toContain('nav.settings')
   })
 
+  it('keeps translated titles on links when labels collapse to icons', () => {
+    const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
+      props: { groups: makeGroups(), totalQueuedCount: 0 },
+    })
+    for (const item of makeGroups().flatMap((group) => group.items)) {
+      expect(wrapper.get(`a[href="${item.to}"]`).attributes('title')).toBe(item.labelKey)
+      expect(wrapper.get(`a[href="${item.to}"] .sr-only`).text()).toBe(item.labelKey)
+    }
+  })
+
+  it('omits an empty group label while retaining its navigation items', () => {
+    const groups = makeGroups()
+    groups[0]!.label = ''
+    const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
+      props: { groups, totalQueuedCount: 0 },
+    })
+    expect(wrapper.findAll('p').map((label) => label.text())).toEqual(['System'])
+    expect(wrapper.findAll('a')).toHaveLength(5)
+    expect(wrapper.get('a[href="/"]').text()).toContain('nav.dashboard')
+  })
+
   it('zero-pads the Dashboard badge for counts 1–9 and renders raw counts for 10+', () => {
     const groups = makeGroups()
 

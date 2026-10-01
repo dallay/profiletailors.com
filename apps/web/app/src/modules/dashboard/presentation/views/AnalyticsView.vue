@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { z } from 'zod'
 import {
   BarChart2,
   Download,
@@ -28,6 +29,27 @@ import type { DateRangePreset, PostAnalyticsSummary } from '@modules/analytics/d
 const { t } = useI18n()
 const store = useAnalyticsStore()
 const selectedPost = ref<PostAnalyticsSummary | null>(null)
+
+const dateSchema = z.iso.date()
+const reportingPeriod = computed(() => {
+  const { startDate, endDate } = store.activeDateRange
+  if (!dateSchema.safeParse(startDate).success || !dateSchema.safeParse(endDate).success) return '—'
+
+  const format = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return `${format.format(new Date(`${startDate}T00:00:00`))} – ${format.format(new Date(`${endDate}T00:00:00`))}`
+})
+
+const hasAnalyticsData = computed(
+  () =>
+    (store.overview?.dailyMetrics?.length ?? 0) > 0 ||
+    (store.postAnalytics?.posts?.length ?? 0) > 0 ||
+    [
+      store.overview?.totalImpressions,
+      store.overview?.totalEngagements,
+      store.overview?.totalClicks,
+      store.overview?.newFollowers,
+    ].some((total) => (total ?? 0) > 0),
+)
 
 onMounted(() => {
   store.refresh()
@@ -131,6 +153,9 @@ function closePostDetails(open: boolean): void {
         <p class="text-sm text-text-secondary">
           {{ $t('analytics.subtitle') }}
         </p>
+        <p class="font-mono text-[11px] text-text-secondary">
+          {{ $t('analytics.reportingPeriod') }}: {{ reportingPeriod }}
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -196,6 +221,14 @@ function closePostDetails(open: boolean): void {
       class="rounded border border-red-500/30 bg-red-500/10 px-4 py-3 font-mono text-[11px] text-red-400"
     >
       {{ store.error }}
+    </div>
+
+    <div
+      v-else-if="!store.loadingOverview && !store.loadingPosts && !hasAnalyticsData"
+      class="rounded-xl border border-border-visible bg-bg-surface px-4 py-3"
+    >
+      <p class="text-sm font-medium text-text-display">{{ $t('analytics.zeroDataTitle') }}</p>
+      <p class="mt-1 text-xs leading-5 text-text-secondary">{{ $t('analytics.zeroDataGuidance') }}</p>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

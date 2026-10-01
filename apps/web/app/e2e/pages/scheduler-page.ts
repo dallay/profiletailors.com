@@ -23,7 +23,7 @@ export class SchedulerPage {
 
   // View toggles
   get monthViewButton(): Locator {
-    return this.page.getByRole('button', { name: /^calendar$/i }).first()
+    return this.page.getByRole('button', { name: 'Month', exact: true })
   }
 
   get weekViewButton(): Locator {

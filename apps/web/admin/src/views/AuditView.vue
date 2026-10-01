@@ -38,7 +38,7 @@ async function fetchEvents() {
     if (actionFilter.value) params.set('action', actionFilter.value)
     if (resultFilter.value) params.set('result', resultFilter.value)
     const res = await authStore.request(`/api/admin/audit-events?${params}`, { signal: controller.signal })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
     result.value = await res.json()
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return

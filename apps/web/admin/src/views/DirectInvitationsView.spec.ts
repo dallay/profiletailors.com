@@ -296,8 +296,8 @@ describe('DirectInvitationsView', () => {
     expect(table.text()).toContain('second@example.com')
     expect(table.text()).toContain('Existing workspace')
     expect(table.text()).toContain('Active')
-    expect(wrapper.findAll('[data-testid="direct-invitation-row-resend"]').length).toBe(2)
-    expect(wrapper.findAll('[data-testid="direct-invitation-row-revoke"]').length).toBe(2)
+    expect(wrapper.findAll('[data-testid="direct-invitation-row-resend"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-testid="direct-invitation-row-revoke"]')).toHaveLength(2)
     wrapper.unmount()
   })
 

@@ -36,7 +36,7 @@ export type HashtagSavedSetsResult = {
 
 async function request<T>(path: string, options?: { method?: string; body?: object }): Promise<T> {
   const auth = useAuthStore()
-  return auth.apiFetch<T>(path, {
+  return await auth.apiFetch<T>(path, {
     method: options?.method ?? 'GET',
     workspaceScoped: true,
     ...(options?.body ? { body: JSON.stringify(options.body) } : {}),

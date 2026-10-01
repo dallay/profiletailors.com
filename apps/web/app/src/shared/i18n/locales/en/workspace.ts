@@ -11,7 +11,7 @@ export default {
   namePlaceholder: 'Workspace name',
   save: 'Save',
   cancel: 'Cancel',
-  editIdentity: 'Edit identity',
+  changeIcon: 'Change icon',
   iconModalTitle: 'Choose workspace icon',
   iconModalDesc: 'Pick an icon that represents this workspace.',
 }

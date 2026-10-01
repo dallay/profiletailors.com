@@ -73,7 +73,7 @@
 
 ### Development & Testing
 
-- [Back Office QA Closure](../plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
+- [Back Office QA Closure](../.agents/rpi/plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
 - [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 - [Test Tags and Env](./testing/test-tags-and-env.md) - Backend test tags and local environment
 - [Mutation Testing](./testing/mutation-testing.md) - Mutation testing with mutflow

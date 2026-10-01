@@ -105,6 +105,7 @@ const nativeSelect = {
 
 describe('AnalyticsView accessibility', () => {
   beforeEach(() => {
+    analyticsStore.activeDateRange = { startDate: '2026-08-01', endDate: '2026-08-03' }
     analyticsStore.overview = null
     analyticsStore.postAnalytics = null
     analyticsStore.bestTimes = null
@@ -149,6 +150,53 @@ describe('AnalyticsView accessibility', () => {
       },
     })
   }
+
+  it.each(['startDate', 'endDate'] as const)(
+    'shows a placeholder for an invalid %s',
+    async (endpoint) => {
+      const wrapper = mountView()
+      const format = new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      const range = `${format.format(new Date('2026-08-01T00:00:00'))} – ${format.format(new Date('2026-08-03T00:00:00'))}`
+      expect(wrapper.text()).toContain(`analytics.reportingPeriod: ${range}`)
+      for (const invalid of ['', 'invalid', '2026-13-01', '2026-02-30']) {
+        Object.assign(storeHolder.current as object, {
+          activeDateRange: { startDate: '2026-08-01', endDate: '2026-08-03', [endpoint]: invalid },
+        })
+        await nextTick()
+        expect(wrapper.text()).toContain('analytics.reportingPeriod: —')
+      }
+      Object.assign(storeHolder.current as object, {
+        activeDateRange: { startDate: '2026-08-01', endDate: '2026-08-03' },
+      })
+      await nextTick()
+      expect(wrapper.text()).toContain(`analytics.reportingPeriod: ${range}`)
+      wrapper.unmount()
+    },
+  )
+
+  it.each(['totalImpressions', 'totalEngagements', 'totalClicks', 'newFollowers'] as const)(
+    'keeps aggregate %s visible without the overall empty state',
+    (metric) => {
+      analyticsStore.overview = {
+        totalImpressions: 0,
+        totalEngagements: 0,
+        totalClicks: 0,
+        newFollowers: 0,
+        engagementRate: 0,
+        dailyMetrics: [],
+        [metric]: 12,
+      }
+      analyticsStore.postAnalytics = { posts: [], total: 0, page: 0, size: 20 }
+      const wrapper = mountView()
+      expect(wrapper.text()).not.toContain('analytics.zeroDataTitle')
+      expect(wrapper.text()).toContain('12')
+      wrapper.unmount()
+    },
+  )
 
   it('associates every date-range control with a stable visible label', () => {
     const wrapper = mountView()
@@ -262,6 +310,7 @@ describe('AnalyticsView accessibility', () => {
 
     const wrapper = mountView()
 
+    expect(wrapper.text()).toContain('analytics.zeroDataTitle')
     expect(wrapper.text()).toContain('analytics.noData')
     expect(wrapper.text()).toContain('analytics.noPostsInPeriod')
   })

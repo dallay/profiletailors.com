@@ -44,7 +44,7 @@ export type MessageSchema = {
     signOut: string
     platformAdmin: string
     email: string
-    password: string
+    passwordLabel: string
     emailRequired: string
     emailInvalid: string
     passwordRequired: string

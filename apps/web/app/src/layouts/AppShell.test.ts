@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { reactive, nextTick } from 'vue'
-import { mount } from '@vue/test-utils'
+import { reactive, nextTick, defineComponent } from 'vue'
+import { mount, flushPromises } from '@vue/test-utils'
+
+import { createRouter, createMemoryHistory, type Router } from 'vue-router'
+
+let navigationRouter: Router | undefined
 
 const routeState = reactive({
   name: 'scheduler-calendar-week',
@@ -28,10 +32,18 @@ const publishingActions = vi.hoisted(() => ({
   connectProviderPersonalProfile: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('vue-router', () => ({
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
   RouterView: { template: '<div class="router-view" />' },
   useRoute: () => routeState,
-  useRouter: () => ({ push, replace }),
+  useRouter: () =>
+    navigationRouter ?? {
+      push,
+      replace,
+      beforeEach: vi.fn().mockReturnValue(() => {}),
+      afterEach: vi.fn().mockReturnValue(() => {}),
+      onError: vi.fn().mockReturnValue(() => {}),
+    },
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -290,6 +302,7 @@ import AppShell from './AppShell.vue'
 describe('AppShell scheduler sidebar navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    navigationRouter = undefined
     routeState.name = 'scheduler-calendar-week'
     routeState.path = '/scheduler/calendar/week'
     routeState.query = {}
@@ -298,6 +311,155 @@ describe('AppShell scheduler sidebar navigation', () => {
     authState.user.emailStatus = 'VERIFIED'
     authState.resendVerificationStatus = 'idle'
     authState.resendVerificationError = null
+  })
+
+  it.each(['success', 'abort', 'error'] as const)(
+    'shows loading during a lazy import and clears it on %s',
+    async (outcome) => {
+      const page = defineComponent({ template: '<div>Page</div>' })
+      let resolveImport!: (component: typeof page) => void
+      let rejectImport!: (error: Error) => void
+      const lazyImport = new Promise<typeof page>((resolve, reject) => {
+        resolveImport = resolve
+        rejectImport = reject
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: page },
+          { path: '/lazy', component: () => lazyImport },
+        ],
+      })
+      await router.push('/')
+      navigationRouter = router
+      const wrapper = mount(AppShell, {
+        global: { mocks: { $t: (key: string) => key } },
+      })
+      if (outcome === 'abort') router.beforeResolve(() => false)
+      const navigation = router.push('/lazy').catch((error: unknown) => error)
+      await flushPromises()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      if (outcome === 'error') rejectImport(new Error('Import failed'))
+      else resolveImport(page)
+      await navigation
+      await nextTick()
+      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      wrapper.unmount()
+    },
+  )
+
+  it('clears abandoned loading on duplicate navigation while the import remains unresolved', async () => {
+    const page = defineComponent({ template: '<div>Page</div>' })
+    const abandonedImport = new Promise<typeof page>(() => {})
+    let resolveNext!: (component: typeof page) => void
+    const nextImport = new Promise<typeof page>((resolve) => {
+      resolveNext = resolve
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: page },
+        { path: '/abandoned', component: () => abandonedImport },
+        { path: '/next', component: () => nextImport },
+      ],
+    })
+    await router.push('/')
+    navigationRouter = router
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+    void router.push('/abandoned')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+
+    await router.push('/')
+    await nextTick()
+    expect(router.currentRoute.value.path).toBe('/')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+
+    const nextNavigation = router.push('/next')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    resolveNext(page)
+    await nextNavigation
+    await nextTick()
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it.each([false, true])(
+    'keeps newer loading when an older import completes (duplicate navigation: %s)',
+    async (duplicateNavigation) => {
+      const page = defineComponent({ template: '<div>Page</div>' })
+      let resolveFirst!: (component: typeof page) => void
+      let resolveSecond!: (component: typeof page) => void
+      const first = new Promise<typeof page>((resolve) => {
+        resolveFirst = resolve
+      })
+      const second = new Promise<typeof page>((resolve) => {
+        resolveSecond = resolve
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: page },
+          { path: '/first', component: () => first },
+          { path: '/second', component: () => second },
+        ],
+      })
+      await router.push('/')
+      navigationRouter = router
+      const wrapper = mount(AppShell, {
+        global: { mocks: { $t: (key: string) => key } },
+      })
+      const firstNavigation = router.push('/first')
+      await flushPromises()
+      const duplicateCompletion = duplicateNavigation ? router.push('/') : undefined
+      const secondNavigation = router.push('/second')
+      await duplicateCompletion
+      await flushPromises()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      resolveFirst(page)
+      await firstNavigation
+      await nextTick()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      resolveSecond(page)
+      await secondNavigation
+      await nextTick()
+      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      wrapper.unmount()
+    },
+  )
+
+  it('can unmount during loading and remount without stale navigation status', async () => {
+    const page = defineComponent({ template: '<div>Page</div>' })
+    let resolveImport!: (component: typeof page) => void
+    const lazyImport = new Promise<typeof page>((resolve) => {
+      resolveImport = resolve
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: page },
+        { path: '/lazy', component: () => lazyImport },
+      ],
+    })
+    await router.push('/')
+    navigationRouter = router
+    const options = { global: { mocks: { $t: (key: string) => key } } }
+    const wrapper = mount(AppShell, options)
+    const navigation = router.push('/lazy')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    wrapper.unmount()
+    resolveImport(page)
+    await navigation
+    const remounted = mount(AppShell, options)
+    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    await router.push('/')
+    await flushPromises()
+    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    remounted.unmount()
   })
 
   it('shows the hosted service terms and source revision in the sidebar footer', () => {

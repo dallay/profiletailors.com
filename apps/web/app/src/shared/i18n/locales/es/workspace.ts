@@ -9,7 +9,7 @@ export default {
   namePlaceholder: 'Nombre del espacio de trabajo',
   save: 'Guardar',
   cancel: 'Cancelar',
-  editIdentity: 'Editar identidad',
+  changeIcon: 'Cambiar icono',
   iconModalTitle: 'Elegir icono del workspace',
   iconModalDesc: 'Selecciona un icono que represente este espacio de trabajo.',
   workspaceNameRequired: 'Por favor, introduce un nombre para el espacio de trabajo.',

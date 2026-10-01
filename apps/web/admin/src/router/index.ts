@@ -108,7 +108,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach((to) => {
   const authStore = useAdminAuthStore()
 
   if (to.meta.public) return true

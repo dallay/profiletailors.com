@@ -2,6 +2,9 @@ export default {
   welcome: 'Welcome back',
   subtitle: 'Here is what is happening with your channels today.',
   newPost: 'New Post',
+  previewDataTitle: 'Preview data',
+  previewDataDescription:
+    'Dashboard metrics and recommendations are illustrative while workspace analytics are being connected. Your connected accounts remain available in the sidebar.',
   scheduled: 'Scheduled Posts',
   platforms: 'Connected Platforms',
   audience: 'Audience Reach',

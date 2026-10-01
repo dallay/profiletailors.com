@@ -33,10 +33,9 @@ function dismiss(): void {
 <template>
   <div
     v-if="visible"
-    role="status"
     class="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-50 mx-auto max-w-md rounded-xl border border-border-visible bg-bg-surface px-4 py-3 shadow-2xl"
   >
-    <p class="text-sm text-text-display">{{ t('pwa.update.message') }}</p>
+    <p role="status" class="text-sm text-text-display">{{ t('pwa.update.message') }}</p>
     <div class="mt-2 flex gap-2">
       <button
         type="button"
