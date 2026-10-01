@@ -450,7 +450,7 @@ onBeforeUnmount(() => {
               <Suspense timeout="0">
                 <component
                   :is="Component"
-                  :key="matchedRoute.meta.viewKey ?? matchedRoute.fullPath"
+                  :key="route.meta.viewKey ?? route.fullPath"
                 />
                 <template #fallback>
                   <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
