@@ -51,6 +51,9 @@ vi.mock('vue-i18n', () => ({
     t: (key: string) =>
       ({
         'emailVerification.banner.title': 'Verify your email',
+        'common.sourceCode': 'Source code',
+        'common.terms': 'Terms of Service',
+        'common.legalAndSource': 'Legal information and source code',
         'emailVerification.banner.description':
           'Publish, social connect, and media upload require email verification.',
         'emailVerification.banner.instructions': 'Check your inbox for the verification link.',
@@ -295,6 +298,19 @@ describe('AppShell scheduler sidebar navigation', () => {
     authState.user.emailStatus = 'VERIFIED'
     authState.resendVerificationStatus = 'idle'
     authState.resendVerificationError = null
+  })
+
+  it('shows the hosted service terms and source revision in the sidebar footer', () => {
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(wrapper.get('a[href="https://profiletailors.com/terms/"]').text()).toBe(
+      'Terms of Service',
+    )
+    expect(
+      wrapper.get('a[href^="https://github.com/dallay/profiletailors.com/commit/"]').text(),
+    ).toBe('Source code')
   })
 
   it('passes the backend-resolved catalog to the connect section', () => {

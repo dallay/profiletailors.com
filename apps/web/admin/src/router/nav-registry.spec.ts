@@ -2,7 +2,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { messages } from '@/i18n'
 import { NAV_REGISTRY } from '@/router/nav-registry'
@@ -133,7 +134,7 @@ describe('NAV_REGISTRY', () => {
 })
 
 describe('AdminLayout nav filtering', () => {
-  async function mountLayout(platformRoles: PlatformRole[]) {
+  async function mountLayout(platformRoles: PlatformRole[], attachToDocument = false) {
     const pinia = createPinia()
     setActivePinia(pinia)
     const authStore = useAdminAuthStore()
@@ -158,6 +159,7 @@ describe('AdminLayout nav filtering', () => {
       })),
     })
     const wrapper = mount(AdminLayout, {
+      attachTo: attachToDocument ? document.body : undefined,
       global: {
         plugins: [pinia, i18n, router],
       },
@@ -166,6 +168,18 @@ describe('AdminLayout nav filtering', () => {
     await flushPromises()
     return wrapper
   }
+
+  it('shows the build source link for a principal with admin access', async () => {
+    const wrapper = await mountLayout(['PLATFORM_OWNER'])
+    const sourceLink = wrapper.get(
+      'a[href^="https://github.com/dallay/profiletailors.com/commit/"]',
+    )
+    expect(sourceLink.text()).toBe('Source code')
+    expect(sourceLink.attributes('href')).toMatch(
+      /^https:\/\/github\.com\/dallay\/profiletailors\.com\/commit\/[0-9a-f]{7}$/,
+    )
+    wrapper.unmount()
+  })
 
   it('shows direct-invitations for a principal holding platform.invitations.read', async () => {
     const wrapper = await mountLayout(['PLATFORM_OWNER'])
@@ -187,5 +201,60 @@ describe('AdminLayout nav filtering', () => {
     expect(wrapper.text()).toContain('Audit')
     expect(wrapper.text()).not.toContain('Direct Invitations')
     wrapper.unmount()
+  })
+
+  it('contains keyboard focus in the open mobile navigation and restores it on Escape', async () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: '(max-width: 767px)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }) as unknown as typeof window.matchMedia
+
+    const wrapper = await mountLayout(['PLATFORM_OWNER'], true)
+    const menuButton = wrapper.get('button[aria-label="Open navigation"]')
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus')
+    await menuButton.trigger('click')
+    await nextTick()
+    await flushPromises()
+
+    const sidebar = wrapper.get('[role="dialog"][aria-modal="true"]')
+    const closeButton = sidebar.get('button[aria-label="Close"]')
+    expect(focusSpy).toHaveBeenCalled()
+    expect(document.activeElement).toBe(closeButton.element)
+    expect(wrapper.get('.admin-main').attributes('inert')).toBeDefined()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }))
+    expect(document.activeElement).toBe(sidebar.get('a[href^="https://github.com/"]').element)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }))
+    expect(document.activeElement).toBe(closeButton.element)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await nextTick()
+    await flushPromises()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(menuButton.element)
+
+    await menuButton.trigger('click')
+    await flushPromises()
+    await wrapper.get('.admin-nav-backdrop').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await menuButton.trigger('click')
+    await flushPromises()
+    await wrapper.get('[role="dialog"] button[aria-label="Close"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    wrapper.unmount()
+    focusSpy.mockRestore()
+    window.matchMedia = originalMatchMedia
   })
 })

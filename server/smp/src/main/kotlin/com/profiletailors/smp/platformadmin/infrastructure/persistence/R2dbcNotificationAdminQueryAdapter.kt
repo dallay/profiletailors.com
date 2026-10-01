@@ -8,6 +8,7 @@ import com.profiletailors.notifications.domain.redactPayload
 import com.profiletailors.smp.platformadmin.application.contracts.NotificationAdminQuery
 import com.profiletailors.smp.platformadmin.application.model.NotificationSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.NotificationFilters
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle

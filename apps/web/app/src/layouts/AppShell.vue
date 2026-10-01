@@ -53,7 +53,8 @@ const publishingStore = usePublishingStore()
 const showCookieSettings = ref(false)
 const router = useRouter()
 const route = useRoute()
-const { t, te } = useI18n()
+const { t, te, locale } = useI18n()
+const gitSha = __GIT_SHA__
 const calendarUrl = useCalendarUrl()
 
 // Page title for SPA route announcer (screen readers)
@@ -343,6 +344,23 @@ onBeforeUnmount(() => {
           <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
             <VersionBadge />
           </div>
+          <nav
+            :aria-label="t('common.legalAndSource')"
+            class="mt-1 flex flex-wrap gap-x-3 px-2 pb-1 group-data-[collapsible=icon]:hidden"
+          >
+            <a
+              :href="locale === 'es' ? 'https://profiletailors.com/es/terms/' : 'https://profiletailors.com/terms/'"
+              class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {{ t('common.terms') }}
+            </a>
+            <a
+              :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
+              class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {{ t('common.sourceCode') }}
+            </a>
+          </nav>
         </SidebarFooter>
 
         <SidebarRail />

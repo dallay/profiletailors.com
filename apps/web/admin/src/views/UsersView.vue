@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PaginationControls, Table } from '@profiletailors/vue-ui'
+import { EmptyState, PaginationControls, Table } from '@profiletailors/vue-ui'
 import { formatDate } from '@/lib/formatters'
 import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import Input from '@/components/ui/AdminInput.vue'
 
 const { t, locale } = useI18n()
 const authStore = useAdminAuthStore()
@@ -67,11 +68,11 @@ onBeforeUnmount(() => {
     <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('users.title') }}</h1>
 
     <div class="mb-4">
-      <input
+      <Input
         v-model="search"
         type="search"
         :placeholder="t('waitlist.filters.search')"
-        class="admin-input w-64 text-sm"
+        class="max-w-md"
         :aria-label="t('waitlist.filters.search')"
       />
     </div>
@@ -79,7 +80,10 @@ onBeforeUnmount(() => {
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <Table aria-label="Users" class="admin-table">
+      <EmptyState v-if="result.items.length === 0" class="mb-4 text-sm">
+        {{ t('users.empty') }}
+      </EmptyState>
+      <Table v-else aria-label="Users" class="admin-table">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>

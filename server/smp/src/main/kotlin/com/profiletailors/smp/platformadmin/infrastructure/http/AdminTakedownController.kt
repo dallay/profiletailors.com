@@ -10,7 +10,7 @@ import com.profiletailors.smp.platformadmin.application.command.ApproveAdminTake
 import com.profiletailors.smp.platformadmin.application.command.RejectAdminTakedownCommand
 import com.profiletailors.smp.platformadmin.application.handler.AdminTakedownHandlers
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.infrastructure.persistence.validatePagination
+import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

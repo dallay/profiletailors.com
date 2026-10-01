@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
-
-const { t } = useI18n()
-const authStore = useAdminAuthStore()
+import Button from '@/components/ui/AdminButton.vue'
+import Card from '@/components/ui/AdminCard.vue'
+import Select from '@/components/ui/AdminSelect.vue'
 
 interface DashboardSummary {
   pendingCount: number
@@ -19,18 +19,32 @@ interface DashboardSummary {
   periodDays: number
 }
 
+const { t } = useI18n()
+const authStore = useAdminAuthStore()
 const summary = ref<DashboardSummary | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const periodDays = ref(30)
 
+const operations = computed(() => summary.value ? [
+  { label: t('dashboard.pendingEntries'), value: summary.value.pendingCount, tone: 'default' },
+  { label: t('dashboard.invitedEntries'), value: summary.value.invitedCount, tone: 'default' },
+  { label: t('dashboard.convertedEntries'), value: summary.value.convertedCount, tone: 'success' },
+  { label: t('dashboard.cancelledEntries'), value: summary.value.cancelledCount, tone: 'muted' },
+] : [])
+
+function changePeriod(value: string) {
+  periodDays.value = Number(value)
+  return fetchDashboard()
+}
+
 async function fetchDashboard() {
   loading.value = true
   error.value = null
   try {
-    const res = await authStore.request(`/api/admin/dashboard?periodDays=${periodDays.value}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    summary.value = await res.json()
+    const response = await authStore.request(`/api/admin/dashboard?periodDays=${periodDays.value}`)
+    if (!response.ok) throw new Error('Failed to load admin dashboard')
+    summary.value = await response.json()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -43,52 +57,83 @@ onMounted(fetchDashboard)
 
 <template>
   <div class="admin-page p-5 sm:p-8">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-semibold text-text-display">{{ t('dashboard.title') }}</h1>
-      <select
-        v-model="periodDays"
-        class="admin-input text-sm"
-        :aria-label="t('dashboard.period')"
-        @change="fetchDashboard"
-      >
-        <option :value="7">{{ t('dashboard.days', { n: 7 }) }}</option>
-        <option :value="30">{{ t('dashboard.days', { n: 30 }) }}</option>
-        <option :value="90">{{ t('dashboard.days', { n: 90 }) }}</option>
-      </select>
+    <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-medium text-text-display">{{ t('dashboard.title') }}</h1>
+        <p class="mt-2 text-sm text-text-secondary">{{ t('dashboard.subtitle') }}</p>
+      </div>
+      <label for="dashboard-period" class="flex items-center gap-3 text-sm text-text-secondary">
+        <span>{{ t('dashboard.period') }}</span>
+        <Select
+          id="dashboard-period"
+          :model-value="periodDays"
+          class="w-auto"
+          :aria-label="t('dashboard.period')"
+          @update:model-value="changePeriod"
+        >
+          <option :value="7">{{ t('dashboard.days', { n: 7 }) }}</option>
+          <option :value="30">{{ t('dashboard.days', { n: 30 }) }}</option>
+          <option :value="90">{{ t('dashboard.days', { n: 90 }) }}</option>
+        </Select>
+      </label>
+    </header>
+
+    <output v-if="loading" aria-live="polite" class="block py-8 text-sm text-text-secondary">{{ t('common.loading') }}</output>
+    <div v-else-if="error" role="alert" class="flex flex-wrap items-center justify-between gap-4 border-y border-error/40 py-5">
+      <p class="text-sm text-error">{{ error }}</p>
+      <Button variant="secondary" @click="fetchDashboard">{{ t('common.retry') }}</Button>
     </div>
 
-    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
-    <div v-else-if="summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <StatCard :label="t('dashboard.pendingEntries')" :value="summary.pendingCount" />
-      <StatCard :label="t('dashboard.invitedEntries')" :value="summary.invitedCount" />
-      <StatCard :label="t('dashboard.convertedEntries')" :value="summary.convertedCount" />
-      <StatCard :label="t('dashboard.cancelledEntries')" :value="summary.cancelledCount" />
-      <StatCard :label="t('dashboard.activeInvitations')" :value="summary.activeInvitationCount" />
-      <StatCard :label="t('dashboard.expiringIn24h')" :value="summary.invitationsExpiringIn24h" warn />
-      <StatCard :label="t('dashboard.expiringIn7d')" :value="summary.invitationsExpiringIn7d" />
-      <StatCard :label="t('dashboard.failedDeliveries')" :value="summary.failedDeliveryCount" warn />
-      <StatCard :label="t('dashboard.registrationsInPeriod')" :value="summary.registrationsInPeriod" />
-    </div>
+    <template v-else-if="summary">
+      <section class="mb-9" :aria-label="t('dashboard.waitlistOverview')">
+        <div class="mb-3 flex items-baseline justify-between gap-4">
+          <h2 class="text-base font-medium text-text-display">{{ t('dashboard.waitlistOverview') }}</h2>
+        </div>
+        <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-4">
+          <div v-for="item in operations" :key="item.label" class="bg-bg-primary p-4 sm:p-5">
+            <p class="label-mono min-h-8 text-[10px] text-text-secondary">{{ item.label }}</p>
+            <p class="mt-2 font-mono text-3xl text-text-display" :class="item.tone === 'success' ? 'text-success' : item.tone === 'muted' ? 'text-text-secondary' : ''">
+              {{ item.value }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid gap-9 lg:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
+        <section :aria-label="t('dashboard.invitationHealth')">
+          <h2 class="mb-3 text-base font-medium text-text-display">{{ t('dashboard.invitationHealth') }}</h2>
+          <Card class="divide-y divide-border-subtle">
+            <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
+              <span class="text-sm text-text-body">{{ t('dashboard.activeInvitations') }}</span>
+              <span class="font-mono text-xl text-text-display">{{ summary.activeInvitationCount }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
+              <span class="text-sm text-text-body">{{ t('dashboard.expiringIn24h') }}</span>
+              <span class="font-mono text-xl" :class="summary.invitationsExpiringIn24h > 0 ? 'text-warning' : 'text-text-display'">{{ summary.invitationsExpiringIn24h }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
+              <span class="text-sm text-text-body">{{ t('dashboard.expiringIn7d') }}</span>
+              <span class="font-mono text-xl text-text-display">{{ summary.invitationsExpiringIn7d }}</span>
+            </div>
+          </Card>
+        </section>
+
+        <section :aria-label="t('dashboard.systemHealth')">
+          <h2 class="mb-3 text-base font-medium text-text-display">{{ t('dashboard.systemHealth') }}</h2>
+          <Card class="h-full p-4 sm:p-5">
+            <p class="label-mono text-[10px] text-text-secondary">{{ t('dashboard.failedDeliveries') }}</p>
+            <p class="mt-3 font-mono text-4xl" :class="summary.failedDeliveryCount > 0 ? 'text-warning' : 'text-text-display'">
+              {{ summary.failedDeliveryCount }}
+            </p>
+            <p class="mt-6 border-t border-border-subtle pt-4 text-sm text-text-secondary">
+              {{ t('dashboard.registrationsInPeriod') }}
+              <span class="ml-2 font-mono text-text-body">{{ summary.registrationsInPeriod }}</span>
+            </p>
+          </Card>
+        </section>
+      </div>
+    </template>
+
+    <p v-else class="py-8 text-sm text-text-secondary">{{ t('common.noData') }}</p>
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-const StatCard = defineComponent({
-  props: {
-    label: { type: String, required: true },
-    value: { type: Number, required: true },
-    warn: { type: Boolean, default: false },
-  },
-  template: `
-    <div class="admin-card p-5">
-      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
-      <p class="text-3xl font-semibold" :class="warn && value > 0 ? 'text-warning' : 'text-text-display'">{{ value }}</p>
-    </div>
-  `,
-})
-
-export { StatCard }
-</script>

@@ -1,4 +1,4 @@
-package com.profiletailors.smp.platformadmin.infrastructure.persistence
+package com.profiletailors.smp.platformadmin.application.model
 
 const val ADMIN_PAGE_MAX_SIZE = 100
 

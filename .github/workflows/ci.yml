@@ -70,6 +70,39 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
 
   # ──────────────────────────────────────────────────────────────
+  # Dependency licence inventory for every pull request and release branch
+  # ──────────────────────────────────────────────────────────────
+  dependency-licences:
+    name: ⚖️ Dependency Licences
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-frontend
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Generate frontend dependency licence inventory
+        shell: bash
+        run: |
+          mkdir -p server/smp/build/reports/dependency-licence
+          pnpm licenses list --json > server/smp/build/reports/dependency-licence/frontend-dependency-licences.json
+
+      - name: Generate backend dependency licence report
+        shell: bash
+        run: ./gradlew :server:smp:generateLicenseReport --no-daemon --no-configuration-cache
+
+      - name: Upload dependency licence inventories
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dependency-licence-inventories
+          path: server/smp/build/reports/dependency-licence/
+          if-no-files-found: error
+          retention-days: 30
+
+  # ──────────────────────────────────────────────────────────────
   # 1. Lint — Biome (marketing/app) + Detekt (backend)
   # ──────────────────────────────────────────────────────────────
   lint:
@@ -382,6 +415,7 @@ jobs:
     if: always()
     needs:
       - changes
+      - dependency-licences
       - lint
       - frontend-unit
       - build
