@@ -22,8 +22,7 @@ async function handleRetry(): Promise<void> {
   isRetrying.value = true
   try {
     await retry()
-    if (!auth.sessionChecked) await auth.hydrateSession()
-    else if (auth.bootstrapState === 'unreachable') await auth.hydrateSession()
+    if (!auth.sessionChecked || auth.bootstrapState === 'unreachable') await auth.hydrateSession()
     if (auth.isAuthenticated) await router.replace(redirectTarget.value)
   } finally {
     isRetrying.value = false

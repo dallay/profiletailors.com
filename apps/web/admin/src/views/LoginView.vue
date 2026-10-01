@@ -90,7 +90,7 @@ function resolveRedirect(value: unknown): string {
         </div>
 
         <div class="space-y-2">
-          <label for="admin-login-password" class="text-sm font-medium text-text-display">{{ t('auth.password') }}</label>
+          <label for="admin-login-password" class="text-sm font-medium text-text-display">{{ t('auth.passwordLabel') }}</label>
           <div class="relative">
             <input
               id="admin-login-password"

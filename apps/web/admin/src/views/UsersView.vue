@@ -41,7 +41,7 @@ async function fetchUsers() {
     const params = new URLSearchParams({ page: String(page.value), size: '25' })
     if (search.value.trim()) params.set('email', search.value.trim())
     const res = await authStore.request(`/api/admin/users?${params}`, { signal: controller.signal })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
     result.value = await res.json()
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return

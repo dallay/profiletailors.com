@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useId } from 'vue'
 import type { InputHTMLAttributes } from 'vue'
 import { cn } from '../lib/utils'
 
@@ -6,6 +7,8 @@ defineOptions({ inheritAttrs: false })
 
 interface Props {
   class?: InputHTMLAttributes['class']
+  id?: InputHTMLAttributes['id']
+  label?: string
   modelValue?: string | number
   type?: InputHTMLAttributes['type']
   disabled?: boolean
@@ -17,14 +20,18 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
 })
 
+const generatedId = useId()
+const inputId = props.id ?? (props.label ? generatedId : undefined)
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 </script>
 
 <template>
+  <label v-if="props.label" class="mb-1 block" :for="inputId">{{ props.label }}</label>
   <input
     v-bind="$attrs"
+    :id="inputId"
     :value="props.modelValue"
     :type="props.type"
     :disabled="props.disabled"
