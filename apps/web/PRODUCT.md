@@ -32,8 +32,7 @@ reaches the right platforms.
 
 Not another generic social media dashboard or scheduler. Profile Tailors is a focused, opinionated
 workspace for deliberate content — not an AI content generator, not a discovery tool, not a full
-agency suite. LinkedIn is the first integrated platform; other integrations follow only after
-validation. The interface earns trust through scanability, precision, and restraint — the
+agency suite. LinkedIn was the first integrated platform and Threads is the second (in verification); further integrations follow after validation. The interface earns trust through scanability, precision, and restraint — the
 Nothing-inspired aesthetic signals that minimalism is a feature, not a limitation.
 
 ## Operating Context
@@ -44,8 +43,7 @@ Nothing-inspired aesthetic signals that minimalism is a feature, not a limitatio
 - EU/UK/ES legal frameworks apply (GDPR, EAA monitoring status, Spanish governing law); consent
   management spans marketing and app via a shared layer
 - EU data residency: Oracle Cloud Frankfurt; CDN: Cloudflare global edge
-- Early-access stage: publishing integrations are still being validated; waitlist submission is
-  client-side only (no backend persistence yet per ADR-0011)
+- Early-access stage: LinkedIn and Threads integrations exist in code (Threads DALLAY-598 in verification); publishing stays gated until integrations are validated; waitlist submission posts to the waitlist API with `earlyAccess: true` (ADR-0011)
 - Licensed under AGPL-3.0; legal documents published on the marketing surface
 
 ## Capabilities and Constraints
@@ -58,7 +56,7 @@ Nothing-inspired aesthetic signals that minimalism is a feature, not a limitatio
   callback)
 - **Admin:** dashboard, waitlist review, user administration, audit log review; permission-gated
   routes (`platform.*` scope)
-- **Constraints:** LinkedIn is the only connected platform at early-access; publishing is gated
+- **Constraints:** LinkedIn and Threads are the connected platforms at early-access stage (Threads in verification); publishing is gated
   until integrations are validated; analytics surface exists but data pipeline is TBD; no
   multi-workspace UI yet for non-owner members
 - **Undecided:** pricing / business model; roadmap beyond early-access; expansion platform list

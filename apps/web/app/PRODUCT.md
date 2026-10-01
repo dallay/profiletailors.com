@@ -75,4 +75,4 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 
 ## Accessibility & Inclusion
 
-Marketing PRODUCT.md targets WCAG 2.2 AA. Same accessibility commitment extends here. Additional app-specific concerns: calendar keyboard navigation, media picker drag-and-drop keyboard alternative, form validation announcements.
+WCAG 2.2 Level AA target. Automated axe-core checks gate PRs; manual screen-reader testing ongoing. Known gaps: calendar keyboard navigation, media picker drag-and-drop keyboard alternative, form validation announcements. EAA applies as a monitoring exercise at early-access stage; not yet a binding compliance obligation.
