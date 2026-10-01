@@ -115,7 +115,7 @@ export function useBulkImport(): {
     return result
   }
 
-  async function downloadTemplateCsv(templateId: string): Promise<string> {
+  function downloadTemplateCsv(templateId: string): Promise<string> {
     return publishing.fetchBulkTemplateCsv(templateId)
   }
 

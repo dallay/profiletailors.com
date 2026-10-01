@@ -38,7 +38,7 @@ export const useInsightsStore = defineStore('insights', () => {
    *
    * In mock mode, the existing insights remain unchanged.
    */
-  async function refreshAll(): Promise<void> {
+  function refreshAll(): void {
     isLoading.value = true
     try {
       // Mock mode — in production this would call the API

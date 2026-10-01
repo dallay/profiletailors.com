@@ -121,7 +121,7 @@ describe('GovernanceView', () => {
     expect(wrapper.text()).toContain('Loading...')
   })
 
-  it('renders reported takedowns from the admin API', async () => {
+  it('renders reported takedowns with labeled filters and a keyboard-accessible detail button', async () => {
     mockRequest.mockResolvedValueOnce(listResponse())
     const wrapper = createView()
     await flushPromises()
@@ -129,6 +129,15 @@ describe('GovernanceView', () => {
     expect(wrapper.text()).toContain('rep-1')
     expect(wrapper.text()).toContain('ws-1')
     expect(wrapper.text()).toContain('Reported')
+    expect(wrapper.find('select[aria-label="Filter by status"]').exists()).toBe(true)
+    expect(wrapper.find('input[aria-label="Workspace"]').exists()).toBe(true)
+    const detailButton = wrapper.find('tbody button')
+    expect(detailButton.text()).toBe('rep-1')
+    await detailButton.trigger('click')
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'governance-detail',
+      params: { reportId: 'rep-1' },
+    })
   })
 
   it('hides approve and reject when the caller lacks manage permission', async () => {

@@ -4,7 +4,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-interface ProviderCredentialInvalidator {
+fun interface ProviderCredentialInvalidator {
     suspend fun invalidateCredential(id: UUID)
 }
 

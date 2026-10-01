@@ -24,20 +24,8 @@ describe('consentReceiptSchema', () => {
     }
   })
 
-  it('rejects wrong consentVersion (0)', () => {
-    const receipt = { ...validReceipt, consentVersion: 0 }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects future consentVersion (2)', () => {
-    const receipt = { ...validReceipt, consentVersion: 2 }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects stale policyVersion', () => {
-    const receipt = { ...validReceipt, policyVersion: '2026-07-22' }
+  it.each([0, 2])('rejects unsupported consentVersion (%s)', (consentVersion) => {
+    const receipt = { ...validReceipt, consentVersion }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(false)
   })
@@ -46,23 +34,14 @@ describe('consentReceiptSchema', () => {
     expect(EXPECTED_POLICY_VERSION).toBe(validReceipt.policyVersion)
   })
 
-  it('rejects invalid policyVersion format', () => {
-    const receipt = { ...validReceipt, policyVersion: 'July 23, 2026' }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects stale policyVersion dates', () => {
-    const receipt = { ...validReceipt, policyVersion: '2026-07-22' }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects impossible ISO date (2026-02-31)', () => {
-    const receipt = { ...validReceipt, policyVersion: '2026-02-31' }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
+  it.each(['July 23, 2026', '2026-07-22', '2026-02-31'])(
+    'rejects invalid policyVersion (%s)',
+    (policyVersion) => {
+      const receipt = { ...validReceipt, policyVersion }
+      const result = consentReceiptSchema.safeParse(receipt)
+      expect(result.success).toBe(false)
+    },
+  )
 
   it('rejects non-ISO timestamp', () => {
     const receipt = { ...validReceipt, timestamp: '2026-07-23 10:00:00' }
@@ -88,22 +67,14 @@ describe('consentReceiptSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects invalid source', () => {
-    const receipt = { ...validReceipt, source: 'invalid' }
+  it.each([
+    ['invalid', false],
+    ['banner', true],
+    ['settings-panel', true],
+  ])('validates source "%s"', (source, expectedSuccess) => {
+    const receipt = { ...validReceipt, source }
     const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(false)
-  })
-
-  it('accepts source "banner"', () => {
-    const receipt = { ...validReceipt, source: 'banner' }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(true)
-  })
-
-  it('accepts source "settings-panel"', () => {
-    const receipt = { ...validReceipt, source: 'settings-panel' }
-    const result = consentReceiptSchema.safeParse(receipt)
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(expectedSuccess)
   })
 
   it('rejects a non-integer consentVersion', () => {

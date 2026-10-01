@@ -158,7 +158,7 @@ export async function initHeroAnimations(): Promise<void> {
   const subDelay = 100
   const subAnimPromise = animateSub(sub, subDelay)
 
-  if (form) animateFade(form, subDelay + 160)
+  const formAnimationPromise = form ? animateFade(form, subDelay + 160) : Promise.resolve()
 
-  await subAnimPromise
+  await Promise.all([subAnimPromise, formAnimationPromise])
 }

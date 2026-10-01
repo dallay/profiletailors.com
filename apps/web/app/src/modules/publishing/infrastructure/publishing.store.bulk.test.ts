@@ -37,7 +37,7 @@ describe('publishing store bulk', () => {
     vi.restoreAllMocks()
   })
 
-  it('validateBulk throws when no workspace selected', async () => {
+  it('validateBulk rejects when no workspace is selected', async () => {
     const store = usePublishingStore()
     const ws = useWorkspaceStore()
     ws.setActiveWorkspaceId(null)
@@ -158,14 +158,14 @@ describe('publishing store bulk', () => {
     expect(result).toBe('a,b,c')
   })
 
-  it('fetchBulkJob throws when no workspace', async () => {
+  it('fetchBulkJob rejects when no workspace is selected', async () => {
     const store = usePublishingStore()
     const ws = useWorkspaceStore()
     ws.setActiveWorkspaceId(null)
     await expect(store.fetchBulkJob('j1')).rejects.toThrow('Select a workspace before bulk import.')
   })
 
-  it('fetchBulkTemplates throws when no workspace', async () => {
+  it('fetchBulkTemplates rejects when no workspace is selected', async () => {
     const store = usePublishingStore()
     const ws = useWorkspaceStore()
     ws.setActiveWorkspaceId(null)

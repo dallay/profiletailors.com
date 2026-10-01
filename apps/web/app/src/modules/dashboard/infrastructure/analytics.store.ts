@@ -44,7 +44,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   /**
    * Refreshes analytics data and updates the loading state.
    */
-  async function refreshAll(): Promise<void> {
+  function refreshAll(): void {
     isLoading.value = true
     try {
       // Mock mode — in production this would call the API

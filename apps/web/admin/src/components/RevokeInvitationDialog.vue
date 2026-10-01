@@ -41,6 +41,7 @@ function onConfirm() {
       role="dialog"
       aria-modal="true"
       :aria-label="t('directInvitations.revokeDialog.title')"
+      @keydown.esc="onCancel"
     >
       <div
         class="admin-modal-overlay absolute inset-0 bg-black/70"

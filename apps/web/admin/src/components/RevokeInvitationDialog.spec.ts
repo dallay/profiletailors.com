@@ -56,6 +56,24 @@ describe('RevokeInvitationDialog', () => {
     wrapper.unmount()
   })
 
+  it('dismisses when the backdrop itself is clicked', async () => {
+    const wrapper = mountDialog({ expectedVersion: 3 })
+    const overlay = wrapper.get('.admin-modal-overlay')
+    const panel = wrapper.get('.admin-modal-panel')
+
+    await panel.trigger('click')
+    expect(wrapper.emitted('close')).toBeFalsy()
+
+    await overlay.trigger('click')
+    expect(wrapper.emitted('close')).toBeTruthy()
+
+    const escapeWrapper = mountDialog({ expectedVersion: 3 })
+    await escapeWrapper.get('[role="dialog"]').trigger('keydown.esc')
+    expect(escapeWrapper.emitted('close')).toBeTruthy()
+    wrapper.unmount()
+    escapeWrapper.unmount()
+  })
+
   it('emits close when cancel button is clicked', async () => {
     const wrapper = mountDialog({ expectedVersion: 3 })
     await wrapper.get('[data-testid="revoke-dialog-cancel"]').trigger('click')

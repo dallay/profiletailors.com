@@ -347,6 +347,7 @@ class AuthRateLimitWebFilterTest {
         filter.filter(blocked, chain).block()
 
         blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        blocked.response.headers.getFirst("Retry-After") shouldNotBe null
         filter.trackedWindowCount() shouldBe 2
 
         val existing = MockServerWebExchange.from(

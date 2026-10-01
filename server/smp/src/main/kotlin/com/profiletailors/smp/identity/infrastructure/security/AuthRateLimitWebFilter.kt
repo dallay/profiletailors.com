@@ -69,7 +69,24 @@ class AuthRateLimitWebFilter internal constructor(
         chain: WebFilterChain,
     ): Mono<Void> {
         val now = currentTimeMillis()
-        val admission = synchronized(admissionLock) {
+        val admission = admitWindow(policy, identifier, now)
+
+        return when (admission) {
+            is RateLimitAdmission.Rejected -> {
+                reject(exchange, admission.window, now)
+            }
+            is RateLimitAdmission.Admitted -> {
+                if (admission.window.count.get() > policy.maxRequests) {
+                    reject(exchange, admission.window, now)
+                } else {
+                    chain.filter(exchange)
+                }
+            }
+        }
+    }
+
+    private fun admitWindow(policy: Policy, identifier: String, now: Long): RateLimitAdmission =
+        synchronized(admissionLock) {
             if (windows.size >= maxTrackedWindows) {
                 evictExpiredEntries(now)
             }
@@ -95,20 +112,6 @@ class AuthRateLimitWebFilter internal constructor(
                 )
             }
         }
-
-        return when (admission) {
-            is RateLimitAdmission.Rejected -> {
-                reject(exchange, admission.window, now)
-            }
-            is RateLimitAdmission.Admitted -> {
-                if (admission.window.count.get() > policy.maxRequests) {
-                    reject(exchange, admission.window, now)
-                } else {
-                    chain.filter(exchange)
-                }
-            }
-        }
-    }
 
     private fun isAuthEndpoint(path: String): Boolean = AUTH_ENDPOINTS.any { path == it || path.startsWith("$it/") }
 

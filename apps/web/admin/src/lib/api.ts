@@ -25,7 +25,9 @@ export class ApiRequestError extends Error {
 export function resolveApiBaseUrl(): string {
   const value = import.meta.env.VITE_API_BASE_URL
   if (typeof value !== 'string' || value.trim() === '') return 'http://localhost:7638'
-  return value.trim().replace(/\/+$/, '')
+  let baseUrl = value.trim()
+  while (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1)
+  return baseUrl
 }
 
 export function resolveApiUrl(path: string): string {
