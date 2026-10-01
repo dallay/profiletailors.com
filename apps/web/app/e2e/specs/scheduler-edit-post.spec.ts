@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { PostDetailModalPage } from '../pages/post-detail-modal-page'
-import { authenticateAs } from '../fixtures/auth-helpers'
+import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 import { createPublicationInStore, ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Edit Post', () => {
   test.beforeEach(async ({ page }) => {
-    await authenticateAs(page)
+    await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()

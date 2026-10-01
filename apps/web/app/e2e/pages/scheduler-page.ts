@@ -22,8 +22,12 @@ export class SchedulerPage {
   }
 
   // View toggles
-  get monthViewButton(): Locator {
+  get calendarFormatButton(): Locator {
     return this.page.getByRole('button', { name: 'Month', exact: true })
+  }
+
+  get monthViewButton(): Locator {
+    return this.page.getByRole('button', { name: /^month$/i })
   }
 
   get weekViewButton(): Locator {
@@ -186,11 +190,13 @@ export class SchedulerPage {
   }
 
   async switchToMonth(): Promise<void> {
+    await this.calendarFormatButton.click()
     await this.monthViewButton.click()
     await this.page.waitForTimeout(300)
   }
 
   async switchToWeek(): Promise<void> {
+    await this.calendarFormatButton.click()
     await this.weekViewButton.click()
     await this.page.waitForTimeout(300)
   }
@@ -233,7 +239,7 @@ export class SchedulerPage {
 
   async expectMonthView(): Promise<void> {
     // Verify month grid is rendered (day numbers visible)
-    await expect(this.page.locator('.group\\/cell')).toHaveCount(42) // 6 weeks * 7 days
+    await expect(this.page.locator('.group\\/cell:visible')).toHaveCount(42) // 6 weeks * 7 days
   }
 
   async expectPostCount(count: number): Promise<void> {

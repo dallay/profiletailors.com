@@ -32,7 +32,7 @@ test.describe('Scheduler — Views & Navigation', () => {
     // Month view
     await scheduler.switchToMonth()
     // Month grid should render 42 cells (6 weeks × 7 days)
-    const cells = page.locator('.group\\/cell')
+    const cells = page.locator('.group\\/cell:visible')
     await expect(cells).toHaveCount(42)
 
     // Week view

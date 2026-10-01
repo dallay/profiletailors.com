@@ -1,5 +1,5 @@
 import { test, expect } from '@bgotink/playwright-coverage';
-import type { Page, Route, Request } from '@playwright/test';
+import type { Locator, Page, Route, Request } from '@playwright/test';
 
 const WAITLIST_KEY = 'profile-tailors-launch';
 
@@ -7,6 +7,10 @@ const FORM_NAMES = {
   'waitlist-hero': 'Early access waitlist form',
   'waitlist-final': 'Waitlist form at the end of the page',
 } as const;
+
+async function waitForFormReady(form: Locator): Promise<void> {
+  await expect(form).toHaveAttribute('data-waitlist-ready', 'true');
+}
 
 /**
  * Helper: Pre-load valid consent receipt to dismiss banner.
@@ -50,13 +54,13 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
     await expect(form).toBeVisible();
+    await waitForFormReady(form);
+    await form.getByLabel('Email address').fill('user@example.com');
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
-    await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-submit]').first().click();
-
-    const success = page.locator('[data-waitlist-success]').first();
+    const success = form.locator('[data-waitlist-success]');
     await expect(success).toBeVisible();
     await expect(success).toContainText("You're on the list");
 
@@ -73,12 +77,13 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
     await expect(form).toBeVisible();
+    await waitForFormReady(form);
 
-    await page.locator('[data-waitlist-submit]').first().click();
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
-    const error = page.locator('[data-waitlist-error]').first();
+    const error = form.locator('[data-waitlist-error]');
     await expect(error).toBeVisible();
     await expect(error).toContainText('Please enter a valid email');
   });
@@ -87,13 +92,13 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
     await expect(form).toBeVisible();
+    await waitForFormReady(form);
+    await form.getByLabel('Email address').fill('invalid-email');
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
-    await page.locator('[data-waitlist-email]').first().fill('invalid-email');
-    await page.locator('[data-waitlist-submit]').first().click();
-
-    const error = page.locator('[data-waitlist-error]').first();
+    const error = form.locator('[data-waitlist-error]');
     await expect(error).toBeVisible();
     await expect(error).toContainText('Please enter a valid email');
   });
@@ -118,8 +123,11 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await page.goto('/');
 
     await expect(page.locator('[data-waitlist-consent-early]')).toHaveCount(0);
-    await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-submit]').first().click();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
+    await expect(form).toBeVisible();
+    await waitForFormReady(form);
+    await form.getByLabel('Email address').fill('user@example.com');
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
     await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();
     expect(interceptedBody).toMatchObject({
       consent: { earlyAccess: true, marketing: false },
@@ -142,10 +150,13 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-submit]').first().click();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
+    await expect(form).toBeVisible();
+    await waitForFormReady(form);
+    await form.getByLabel('Email address').fill('user@example.com');
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
-    const error = page.locator('[data-waitlist-error]').first();
+    const error = form.locator('[data-waitlist-error]');
     await expect(error).toBeVisible();
     await expect(error).toContainText('Too many requests');
   });
@@ -156,7 +167,6 @@ test.describe('Waitlist Form — Marketing E2E', () => {
 
     for (const formId of ['waitlist-hero', 'waitlist-final'] as const) {
       const form = page.getByRole('form', { name: FORM_NAMES[formId] })
-      await form.scrollIntoViewIfNeeded()
       const email = form.getByLabel('Email address')
       await expect(email).toHaveAttribute('id', `${formId}-email`)
       await expect(form.locator(`label[for="${formId}-email"]`)).toHaveCount(1)
@@ -193,8 +203,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
       await page.goto('/')
 
       const form = page.getByRole('form', { name: FORM_NAMES[formId] })
-      await form.scrollIntoViewIfNeeded()
       await expect(form).toBeVisible()
+      await waitForFormReady(form)
+      await form.scrollIntoViewIfNeeded()
 
       const checkMarketing = formId === 'waitlist-final'
       await form.getByLabel('Email address').fill(`${formId}@example.com`)
@@ -234,8 +245,11 @@ test.describe('Waitlist Form — Marketing E2E', () => {
 
     await dismissConsentBanner(page);
     await page.goto('/');
-    await page.locator('[data-waitlist-email]').first().fill('user@example.com');
-    await page.locator('[data-waitlist-submit]').first().click();
+    const form = page.getByRole('form', { name: FORM_NAMES['waitlist-hero'] });
+    await expect(form).toBeVisible();
+    await waitForFormReady(form);
+    await form.getByLabel('Email address').fill('user@example.com');
+    await form.getByRole('button', { name: 'Join the waitlist' }).click();
 
     await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();
 

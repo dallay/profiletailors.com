@@ -426,6 +426,7 @@ export async function createPublicationInStore(
   text: string,
   options?: {
     title?: string | null
+    scheduledAt?: string
     priority?: boolean
     status?: string
     blockedReason?: string | null
@@ -436,6 +437,7 @@ export async function createPublicationInStore(
   const title = options?.title === undefined ? 'E2E Test Post' : options.title
   const priority = options?.priority ?? false
   const status = options?.status ?? 'QUEUED'
+  const scheduledAt = options?.scheduledAt ?? null
 
   const calendarPublication: MockPublication = {
     id: `pub-e2e-${timestamp}`,
@@ -443,11 +445,11 @@ export async function createPublicationInStore(
     socialAccountId: MOCK_SOCIAL_ACCOUNT_ID,
     provider: 'linkedin',
     status,
-    scheduleMode: 'NOW',
+    scheduleMode: scheduledAt ? 'SCHEDULED_AT' : 'NOW',
     priority,
     title,
     bodyText: text,
-    scheduledFor: null,
+    scheduledFor: scheduledAt,
     nextSlotAfter: null,
     assetIds: [],
     hasConflict: false,

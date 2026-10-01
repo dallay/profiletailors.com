@@ -132,7 +132,13 @@ export function useWaitlistForm(root: Readonly<Ref<HTMLElement | null>>): void {
 
   onMounted(() => {
     const form = root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')
-    if (form) unbind = bindWaitlistForm(form)
+    if (form) {
+      unbind = bindWaitlistForm(form)
+      if (unbind) form.dataset.waitlistReady = 'true'
+    }
   })
-  onBeforeUnmount(() => unbind?.())
+  onBeforeUnmount(() => {
+    unbind?.()
+    root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')?.removeAttribute('data-waitlist-ready')
+  })
 }

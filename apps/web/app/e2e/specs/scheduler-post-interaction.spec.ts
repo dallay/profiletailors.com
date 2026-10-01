@@ -165,7 +165,10 @@ test.describe('Scheduler — Post Interaction', () => {
     const testText = `Month detail test ${Date.now()}`
     // Pass testText as title so it appears in the month chip
     // (month chip renders pub.title || pub.content.substring(0, 20))
-    await createPublicationInStore(page, testText, { title: testText })
+    await createPublicationInStore(page, testText, {
+      title: testText,
+      scheduledAt: new Date().toISOString(),
+    })
 
     await scheduler.switchToMonth()
     await page.waitForTimeout(300)

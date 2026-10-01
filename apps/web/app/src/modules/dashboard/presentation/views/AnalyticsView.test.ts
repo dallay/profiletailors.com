@@ -27,6 +27,7 @@ const { analyticsStore, storeHolder } = vi.hoisted(() => ({
       totalEngagements: number
       engagementRate: number
       totalClicks: number
+      clickThroughRate?: number
       newFollowers: number
       dailyMetrics: Array<{
         date: string
@@ -117,6 +118,9 @@ describe('AnalyticsView accessibility', () => {
     analyticsStore.preset = 'custom'
     analyticsStore.customStart = '2026-08-01'
     analyticsStore.customEnd = '2026-08-03'
+    Object.assign(storeHolder.current as object, {
+      activeDateRange: { startDate: '2026-08-01', endDate: '2026-08-03' },
+    })
     analyticsStore.refresh.mockReset()
     analyticsStore.setPreset.mockReset()
     analyticsStore.setCustomRange.mockReset()
@@ -205,6 +209,34 @@ describe('AnalyticsView accessibility', () => {
       expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true)
       expect(wrapper.find(`#${id}`).exists()).toBe(true)
     }
+  })
+
+  it.each([
+    { startDate: '', endDate: '2026-08-03' },
+    { startDate: '2026-02-30', endDate: '2026-08-03' },
+    { startDate: '2026-08-01', endDate: 'invalid' },
+  ])('shows a placeholder for an incomplete or invalid reporting period', (activeDateRange) => {
+    Object.assign(storeHolder.current as object, { activeDateRange })
+    const wrapper = mountView()
+
+    expect(wrapper.text()).toContain('analytics.reportingPeriod: —')
+  })
+
+  it('does not show the zero-data state when aggregate totals exist', () => {
+    analyticsStore.overview = {
+      totalImpressions: 1200,
+      totalEngagements: 0,
+      engagementRate: 0,
+      totalClicks: 0,
+      newFollowers: 0,
+      dailyMetrics: [],
+    }
+    analyticsStore.postAnalytics = { posts: [], total: 0, page: 0, size: 20 }
+
+    const wrapper = mountView()
+
+    expect(wrapper.text()).toContain('1.2K')
+    expect(wrapper.text()).not.toContain('analytics.zeroDataTitle')
   })
 
   it('renders metrics and routes custom dates and export to the store', async () => {
