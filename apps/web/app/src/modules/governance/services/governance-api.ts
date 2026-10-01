@@ -59,13 +59,11 @@ function governanceApiError(
  * Reports a media asset for copyright/DMCA takedown.
  * POST /api/governance/takedown/reports
  */
-export async function reportTakedown(
-  request: ReportTakedownRequest,
-): Promise<TakedownReportResponse> {
+export function reportTakedown(request: ReportTakedownRequest): Promise<TakedownReportResponse> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw governanceApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(governanceApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   return auth.apiFetch<TakedownReportResponse>('/api/governance/takedown/reports', {
@@ -79,11 +77,11 @@ export async function reportTakedown(
  * Approves a pending takedown report.
  * POST /api/governance/takedown/reports/{reportId}/approve
  */
-export async function approveTakedown(reportId: string): Promise<TakedownReportResponse> {
+export function approveTakedown(reportId: string): Promise<TakedownReportResponse> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw governanceApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(governanceApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   return auth.apiFetch<TakedownReportResponse>(
@@ -99,14 +97,14 @@ export async function approveTakedown(reportId: string): Promise<TakedownReportR
  * Rejects/dismisses a pending takedown report.
  * POST /api/governance/takedown/reports/{reportId}/reject
  */
-export async function rejectTakedown(
+export function rejectTakedown(
   reportId: string,
   request: ReviewTakedownRequest,
 ): Promise<TakedownReportResponse> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw governanceApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(governanceApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   return auth.apiFetch<TakedownReportResponse>(
@@ -123,13 +121,13 @@ export async function rejectTakedown(
  * Lists takedown reports for the current workspace.
  * GET /api/governance/takedown/reports?status={status}
  */
-export async function listTakedownReports(
+export function listTakedownReports(
   status?: TakedownReportStatus,
 ): Promise<TakedownReportResponse[]> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw governanceApiError('Not authenticated', 'You must be signed in.', 401)
+    return Promise.reject(governanceApiError('Not authenticated', 'You must be signed in.', 401))
   }
 
   const url = status

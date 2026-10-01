@@ -49,16 +49,21 @@ export function getCalendarRange(
   timezone: string,
 ): CalendarRange {
   const date = parseCalendarDate(dateValue)
-  const start =
-    surface === 'month'
-      ? startOfMonth(date)
-      : surface === 'week'
-        ? date.subtract({ days: getDayOfWeek(date, 'en-US', 'sun') })
-        : date
-  const end =
-    surface === 'month'
-      ? start.add({ months: 1 })
-      : start.add({ days: surface === '3-days' ? 3 : surface === 'day' ? 1 : 7 })
+  let start = date
+  if (surface === 'month') {
+    start = startOfMonth(date)
+  } else if (surface === 'week') {
+    start = date.subtract({ days: getDayOfWeek(date, 'en-US', 'sun') })
+  }
+
+  let end = start.add({ days: 7 })
+  if (surface === 'month') {
+    end = start.add({ months: 1 })
+  } else if (surface === '3-days') {
+    end = start.add({ days: 3 })
+  } else if (surface === 'day') {
+    end = start.add({ days: 1 })
+  }
 
   return {
     from: atStartOfDay(start, timezone),

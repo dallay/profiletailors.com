@@ -61,7 +61,7 @@ const locales = {
     signOut: ['Sign Out', 'Cerrar sesión'],
     platformAdmin: ['Platform Administration', 'Administración de plataforma'],
     email: ['Email', 'Correo electrónico'],
-    password: ['Password', 'Contraseña'],
+    passwordLabel: ['Password', 'Contraseña'],
     emailRequired: ['Enter your email address.', 'Introduce tu correo electrónico.'],
     emailInvalid: ['Enter a valid email address.', 'Introduce un correo electrónico válido.'],
     passwordRequired: ['Enter your password.', 'Introduce tu contraseña.'],

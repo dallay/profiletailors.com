@@ -311,10 +311,13 @@ onMounted(() => {
             <tr
               v-for="r in result.items"
               :key="r.reportId"
-              class="cursor-pointer border-b border-border-subtle hover:bg-surface-hover"
-              @click="navigateToDetail(r)"
+              class="border-b border-border-subtle hover:bg-surface-hover"
             >
-              <td class="py-2 pr-4 font-mono text-sm">{{ r.reportId }}</td>
+              <td class="py-2 pr-4 font-mono text-sm">
+                <button type="button" class="text-left" @click="navigateToDetail(r)">
+                  {{ r.reportId }}
+                </button>
+              </td>
               <td class="py-2 pr-4 font-mono text-sm">{{ r.workspaceId }}</td>
               <td class="py-2 pr-4 text-sm">{{ getStatusLabel(r.status) }}</td>
               <td class="py-2 pr-4 text-sm">{{ formatDateTime(r.createdAt, locale) }}</td>

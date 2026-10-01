@@ -13,8 +13,6 @@ export type ProviderCallbackState = {
   processCallback: () => Promise<void>
 }
 
-export type LinkedInCallbackState = ProviderCallbackState
-
 type CallbackProvider = 'linkedin' | 'threads'
 
 function firstQueryValue(value: unknown): string | null {
@@ -36,7 +34,7 @@ function resolveProvider(value: unknown): CallbackProvider | null {
   return null
 }
 
-export function useLinkedInCallback(): LinkedInCallbackState {
+export function useLinkedInCallback(): ProviderCallbackState {
   return useProviderCallback()
 }
 
@@ -46,8 +44,12 @@ export function useProviderCallback(): ProviderCallbackState {
   const publishing = usePublishingStore()
   const { t } = useI18n()
   const provider = resolveProvider(route.params.provider)
-  const providerLabel =
-    provider === 'threads' ? 'Threads' : provider === 'linkedin' ? 'LinkedIn' : 'provider'
+  let providerLabel = 'provider'
+  if (provider === 'threads') {
+    providerLabel = 'Threads'
+  } else if (provider === 'linkedin') {
+    providerLabel = 'LinkedIn'
+  }
   const redirectUri = provider
     ? `${globalThis.location.origin}/integrations/${provider}/callback`
     : null

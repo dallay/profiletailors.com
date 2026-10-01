@@ -938,7 +938,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         signal: abortController.signal,
       })
       publicationEventsConnected.value = true
-      await consumeSseStream<unknown>(response, async ({ data }) => {
+      await consumeSseStream<unknown>(response, ({ data }) => {
         const invalidation = toPublicationInvalidation(data)
         if (!invalidation) return
         if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
@@ -1227,7 +1227,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   async function validateBulk(
     csvText: string,
   ): Promise<import('@modules/publishing/domain/bulk').ValidateBulkResult> {
-    return auth.apiFetch<import('@modules/publishing/domain/bulk').ValidateBulkResult>(
+    return await auth.apiFetch<import('@modules/publishing/domain/bulk').ValidateBulkResult>(
       `${bulkBasePath()}/validate`,
       { method: 'POST', body: JSON.stringify({ csvText }), workspaceScoped: true },
     )
@@ -1249,7 +1249,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   async function fetchBulkJob(
     jobId: string,
   ): Promise<import('@modules/publishing/domain/bulk').BulkJobResult> {
-    return auth.apiFetch<import('@modules/publishing/domain/bulk').BulkJobResult>(
+    return await auth.apiFetch<import('@modules/publishing/domain/bulk').BulkJobResult>(
       `${bulkBasePath()}/jobs/${encodeURIComponent(jobId)}`,
       { method: 'GET', workspaceScoped: true },
     )
@@ -1258,7 +1258,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   async function fetchBulkTemplates(): Promise<
     import('@modules/publishing/domain/bulk').BulkTemplatesResult
   > {
-    return auth.apiFetch<import('@modules/publishing/domain/bulk').BulkTemplatesResult>(
+    return await auth.apiFetch<import('@modules/publishing/domain/bulk').BulkTemplatesResult>(
       `${bulkBasePath()}/templates`,
       { method: 'GET', workspaceScoped: true },
     )
@@ -1350,7 +1350,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   /** Syncs an authenticated LinkedIn publication and returns backend server truth. */
-  async function syncPublicationWithApi(
+  function syncPublicationWithApi(
     post: Parameters<typeof schedulePost>[0],
     effectiveMode: string,
   ): Promise<PublicationMutationResult> {

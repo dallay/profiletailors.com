@@ -33,9 +33,7 @@ data class ThreadsPublishingProperties(
         mediaUrlTtl >= containerPollTimeout
 
     fun validate() {
-        if (enabled && !isConfigured()) {
-            throw IllegalStateException("Enabled Threads publishing configuration is invalid.")
-        }
+        check(!(enabled && !isConfigured())) { "Enabled Threads publishing configuration is invalid." }
     }
 
     fun isAllowedRedirectUri(candidate: String): Boolean =

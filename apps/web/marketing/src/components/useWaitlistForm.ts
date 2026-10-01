@@ -5,6 +5,14 @@ import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share
 
 const SUCCESS_HIDDEN = 'hidden'
 
+export function normalizeWaitlistApiBase(apiBase: string): string {
+  let normalizedApiBase = apiBase
+  while (normalizedApiBase.endsWith('/')) {
+    normalizedApiBase = normalizedApiBase.slice(0, -1)
+  }
+  return normalizedApiBase
+}
+
 type WaitlistMessages = {
   validEmail: string
   tooManyRequests: string
@@ -86,9 +94,9 @@ function bindWaitlistForm(form: HTMLFormElement): (() => void) | undefined {
       metadata: captureUtm(),
     })
 
-    const apiBase = form.dataset.waitlistApiBase ?? ''
+    const apiBase = normalizeWaitlistApiBase(form.dataset.waitlistApiBase ?? '')
     const endpoint = apiBase
-      ? `${apiBase.replace(/\/+$/, '')}/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
+      ? `${apiBase}/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
       : `/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
     try {
       const response = await fetch(endpoint, {

@@ -57,7 +57,9 @@ watch(
 const calendarView = computed(() => {
   if (url.state.value.surface === 'calendar-month') return 'month' as const
   if (url.state.value.surface === 'list') return 'agenda' as const
-  return url.state.value.view === '3-days' ? '3-days' : url.state.value.view === 'day' ? 'day' : 'week'
+  if (url.state.value.view === '3-days') return '3-days'
+  if (url.state.value.view === 'day') return 'day'
+  return 'week'
 })
 
 const calendarColCount = computed(() => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 type Props = {
@@ -31,6 +31,13 @@ function onConfirm() {
   if (props.pending) return
   emit('confirm', safeVersion.value)
 }
+
+function onWindowKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') onCancel()
+}
+
+onMounted(() => window.addEventListener('keydown', onWindowKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
 </script>
 
 <template>

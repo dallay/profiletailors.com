@@ -19,6 +19,11 @@ describe('LoginView', () => {
     replace.mockReset()
   })
 
+  it('labels the password field in the selected locale', () => {
+    expect(mountLogin('en').get('label[for="admin-login-password"]').text()).toBe('Password')
+    expect(mountLogin('es').get('label[for="admin-login-password"]').text()).toBe('Contraseña')
+  })
+
   it('submits credentials and navigates to a safe redirect', async () => {
     const authStore = useAdminAuthStore()
     const signIn = vi.fn().mockResolvedValue(undefined)
@@ -48,10 +53,10 @@ describe('LoginView', () => {
   })
 })
 
-function mountLogin() {
+function mountLogin(locale = 'en') {
   return mount(LoginView, {
     global: {
-      plugins: [createI18n({ legacy: false, locale: 'en', messages })],
+      plugins: [createI18n({ legacy: false, locale, messages })],
     },
   })
 }
