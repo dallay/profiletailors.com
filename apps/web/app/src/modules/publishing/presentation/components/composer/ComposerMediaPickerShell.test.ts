@@ -12,6 +12,9 @@ const mockT = (key: string) => {
     'media.loading': 'Loading media library...',
     'media.emptyTitle': 'No media assets yet',
     'media.emptyBody': 'Upload your first image, video, or PDF to populate the library.',
+    'media.noFilteredAssetsTitle': 'No assets match the current filters',
+    'media.noFilteredAssetsBody':
+      'Try a different search or change the filters to see more results.',
     'composer.picker.header': 'Media Library',
     'composer.picker.libraryChip': 'Library',
     'composer.picker.unsplashChip': 'Unsplash',
@@ -19,6 +22,8 @@ const mockT = (key: string) => {
     'composer.picker.searchAction': 'Search',
     'composer.picker.searchingAction': 'Searching…',
     'composer.picker.providerSearchLabel': 'Search Unsplash',
+    'composer.picker.librarySearchLabel': 'Search workspace media',
+    'composer.picker.librarySearchPlaceholder': 'Filename, asset ID, or MIME type',
     'composer.picker.libraryDescription':
       'Browse images and videos already saved in this workspace.',
     'composer.picker.providerDescription':
@@ -82,17 +87,23 @@ function mountShell(
     activeSource: ComposerMediaPickerSource
     collectionState: ComposerMediaPickerCollectionState
     assets: ComposerMediaPickerAsset[]
+    selectedAssetIds: string[]
     provider: 'unsplash' | null
   }> = {},
 ) {
+  const assets = options.assets ?? []
+
   return mount(ComposerMediaPickerShell, {
     props: {
       isOpen: true,
       activeSource: 'library',
       collectionState: 'READY',
-      assets: [],
+      assets,
       provider: null,
       ...options,
+      selectedAssetIds:
+        options.selectedAssetIds ??
+        assets.filter((asset) => asset.selected).map((asset) => asset.assetId),
     },
   })
 }
@@ -135,6 +146,61 @@ describe('ComposerMediaPickerShell.vue', () => {
 
     await wrapper.get('[data-testid="picker-source-library"]').trigger('click')
     expect(wrapper.emitted('set-active-source')).toEqual([[{ source: 'library' }]])
+  })
+
+  it('shows an accessible library search and emits trimmed queries while typing', async () => {
+    const wrapper = mountShell({ provider: 'unsplash' })
+
+    const searchInput = wrapper.get('[data-testid="picker-library-search"] input')
+    expect(searchInput.attributes('type')).toBe('search')
+    expect(wrapper.get('label[for="picker-library-query"]').text()).toBe('Search workspace media')
+    expect(searchInput.attributes('placeholder')).toBe('Filename, asset ID, or MIME type')
+    expect(wrapper.find('[data-testid="picker-provider-search"]').exists()).toBe(false)
+
+    await searchInput.setValue('  hero  ')
+    expect(wrapper.emitted('library-search')).toEqual([[{ query: 'hero' }]])
+
+    await wrapper.get('[data-testid="picker-source-unsplash"]').trigger('click')
+    await wrapper.setProps({ activeSource: 'unsplash' })
+    expect(wrapper.find('[data-testid="picker-library-search"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="picker-provider-search"]').exists()).toBe(true)
+  })
+
+  it('shows a filtered-empty state when the active library query has no assets', async () => {
+    const wrapper = mountShell({ collectionState: 'READY' })
+
+    await wrapper.get('[data-testid="picker-library-search"] input').setValue('missing')
+
+    expect(wrapper.text()).toContain('No assets match the current filters')
+    expect(wrapper.text()).toContain(
+      'Try a different search or change the filters to see more results.',
+    )
+    expect(wrapper.text()).not.toContain('No media assets yet')
+  })
+
+  it('applies selected assets that are hidden by the current search', async () => {
+    const wrapper = mountShell({
+      assets: [makeAsset({ assetId: 'visible', selected: true })],
+      selectedAssetIds: ['visible', 'hidden'],
+    })
+
+    await wrapper.get('[data-testid="picker-apply"]').trigger('click')
+
+    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: ['visible', 'hidden'] }]])
+  })
+
+  it('clears the library search when the picker closes', async () => {
+    const wrapper = mountShell()
+
+    await wrapper.get('[data-testid="picker-library-search"] input').setValue('hero')
+    await wrapper.setProps({ isOpen: false })
+    await wrapper.setProps({ isOpen: true })
+
+    expect(wrapper.get('[data-testid="picker-library-search"] input').element).toHaveProperty(
+      'value',
+      '',
+    )
+    expect(wrapper.emitted('library-search')).toEqual([[{ query: 'hero' }], [{ query: '' }]])
   })
 
   it('renders library collection states and fallback previews', async () => {

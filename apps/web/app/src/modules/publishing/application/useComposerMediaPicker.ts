@@ -185,6 +185,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
 
   const providerQuery = ref('')
+  const libraryQuery = ref('')
   const providerResults = ref<ProviderSearchResult[]>([])
   const providerSearching = ref(false)
   const providerSearchError = ref<string | null>(null)
@@ -302,6 +303,18 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     return uniqueAssetIds
       .map((assetId) => mapAssetToPickerAsset(assetId))
       .filter((asset): asset is ComposerMediaPickerAsset => asset !== null)
+  })
+
+  const filteredPickerAssets = computed<ComposerMediaPickerAsset[]>(() => {
+    const normalizedQuery = libraryQuery.value.trim().toLowerCase()
+    if (normalizedQuery.length === 0) return pickerAssets.value
+
+    return pickerAssets.value.filter(
+      (asset) =>
+        asset.name.toLowerCase().includes(normalizedQuery) ||
+        asset.assetId.toLowerCase().includes(normalizedQuery) ||
+        asset.mediaType.toLowerCase().includes(normalizedQuery),
+    )
   })
 
   const draftAttachmentAssets = computed(() =>
@@ -470,6 +483,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   function closeMediaPicker() {
     isMediaPickerOpen.value = false
     pickerSelectionIds.value = []
+    libraryQuery.value = ''
     activeMediaPickerSource.value = 'library'
     stopAllReconciliationPollers()
     pickerSessionActiveAssetIds.clear()
@@ -489,6 +503,10 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
 
     pickerSelectionIds.value = [...pickerSelectionIds.value, assetId]
+  }
+
+  function handleLibrarySearch(payload: { query: string }) {
+    libraryQuery.value = payload.query
   }
 
   function applyPickerSelection() {
@@ -642,6 +660,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     isMediaPickerOpen,
     activeMediaPickerSource,
     mediaPickerCollectionState,
+    libraryQuery,
     draftAttachmentIds,
     pickerSelectionIds,
     autoStagedAssetIds,
@@ -656,6 +675,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     isPickerSelectionOverLimit,
     activeChannels,
     pickerAssets,
+    filteredPickerAssets,
     draftAttachmentAssets,
 
     // Provider state
@@ -668,6 +688,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
 
     // Lifecycle methods
     openMediaPicker,
+    handleLibrarySearch,
     setActiveMediaPickerSource,
     closeMediaPicker,
     applyPickerSelection,

@@ -1,6 +1,6 @@
 # E2E Test Plan — Composer Media Attachments
 
-> Last updated: 2026-07-08
+> Last updated: 2026-10-01
 > Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal
 > Scope: composer inline attachments, local upload UX, media-library staging, social preview
 > reconciliation, and attachment-limit behavior
@@ -332,6 +332,29 @@ The picker must clearly communicate staged selection state at the card level.
 - **When** the picker is inspected visually
 - **Then** selected cards SHALL be clearly distinguishable from unselected cards
 - **And** ambiguity between hover styling and selected styling SHALL be treated as a defect
+
+### Requirement: Composer library search MUST filter loaded assets without changing staged selection
+
+The `Library` source MUST expose a keyboard-accessible search input that filters the loaded workspace
+assets client-side by case-insensitive substring matches on filename, asset ID, and MIME type. An
+empty query MUST show all loaded assets, and filtering MUST NOT remove staged asset IDs.
+
+#### Scenario: Search matches filename, asset ID, and MIME type
+
+- **Given** the composer picker is open on `Library` with loaded workspace assets
+- **When** the author enters a trimmed search query
+- **Then** matching filename, asset ID, and MIME type values SHALL remain visible
+- **And** non-matching cards SHALL be hidden
+- **And** a query with no results SHALL show a filtered-empty state rather than the library-empty state
+- **And** clearing the query SHALL restore all loaded assets
+
+#### Scenario: Applying filtered results preserves previously staged assets
+
+- **Given** an asset is staged in the composer picker
+- **When** the author filters the library so that staged asset is hidden and stages another visible asset
+- **And** the author applies the selection
+- **Then** both staged assets SHALL be attached to the composer
+- **And** the search query SHALL reset when the picker closes
 
 ### Requirement: Media modal source behavior MUST respect environment flags and preserve stage state
 

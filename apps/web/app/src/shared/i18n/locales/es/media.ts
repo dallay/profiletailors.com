@@ -25,7 +25,7 @@ export default {
   emptyTitle: 'Aún no hay assets multimedia',
   emptyBody: 'Sube tu primera imagen, video o PDF para poblar la librería.',
   noFilteredAssetsTitle: 'Ningún asset coincide con los filtros actuales',
-  noFilteredAssetsBody: 'Ajusta los filtros de estado o tipo para ver más resultados.',
+  noFilteredAssetsBody: 'Prueba otra búsqueda o cambia los filtros para ver más resultados.',
   untitledAsset: 'Asset sin título',
   typeLabel: 'Tipo',
   sizeLabel: 'Tamaño',

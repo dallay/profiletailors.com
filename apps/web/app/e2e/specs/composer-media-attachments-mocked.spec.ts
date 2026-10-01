@@ -614,4 +614,64 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await card.click()
     await expect(card).toHaveAttribute('data-selected', 'false')
   })
+
+  test('ML-COMPOSER-031 library search: filters by filename, ID, and MIME type without losing staged selection', async ({
+    page,
+    mockState,
+  }) => {
+    const filenameAsset = mockState.seedAsset({
+      assetId: 'asset-composer-031-filename',
+      originalFilename: 'Campaign-Hero.png',
+      mediaType: 'image/png',
+    })
+    const idAsset = mockState.seedAsset({
+      assetId: 'asset-composer-031-id-match',
+      originalFilename: 'notes.png',
+      mediaType: 'image/png',
+    })
+    const mimeAsset = mockState.seedAsset({
+      assetId: 'asset-composer-031-mime',
+      originalFilename: 'statement',
+      mediaType: 'application/pdf',
+    })
+    const composePage = await openComposeModal(page)
+
+    await composePage.openMediaPicker()
+    await expect(composePage.librarySearchInput).toBeVisible()
+    await expect(composePage.librarySearchInput).toHaveAttribute(
+      'placeholder',
+      'Filename, asset ID, or MIME type',
+    )
+
+    await composePage.librarySearchInput.fill('  HERO  ')
+    await expect(composePage.libraryAssetCard(filenameAsset.assetId)).toBeVisible()
+    await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeHidden()
+
+    await composePage.librarySearchInput.fill('')
+    await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeVisible()
+    await expect(composePage.libraryAssetCard(mimeAsset.assetId)).toBeVisible()
+
+    await composePage.librarySearchInput.fill('031-ID-MATCH')
+    await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeVisible()
+    await expect(composePage.libraryAssetCard(filenameAsset.assetId)).toBeHidden()
+
+    await composePage.librarySearchInput.fill('APPLICATION/PDF')
+    await expect(composePage.libraryAssetCard(mimeAsset.assetId)).toBeVisible()
+    await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeHidden()
+
+    await composePage.librarySearchInput.fill('no-matching-asset')
+    await expect(page.getByTestId('picker-library-filtered-empty')).toContainText(
+      'No assets match the current filters',
+    )
+
+    await composePage.librarySearchInput.fill('')
+    await composePage.libraryAssetCard(idAsset.assetId).click()
+    await composePage.librarySearchInput.fill('hero')
+    await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeHidden()
+    await composePage.libraryAssetCard(filenameAsset.assetId).click()
+    await composePage.pickerApply.click()
+
+    await expect(page.getByTestId(`attachment-remove-${idAsset.assetId}`)).toBeVisible()
+    await expect(page.getByTestId(`attachment-remove-${filenameAsset.assetId}`)).toBeVisible()
+  })
 })

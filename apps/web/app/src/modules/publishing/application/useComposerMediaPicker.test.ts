@@ -67,6 +67,21 @@ function createFakePublishingStore(
   }
 }
 
+function makeMediaAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummary {
+  return {
+    assetId: 'asset-1',
+    workspaceId: 'ws-1',
+    sourceType: 'UPLOADED',
+    mediaType: 'image/png',
+    status: 'READY',
+    originalFilename: 'asset.png',
+    fileSizeBytes: 1024,
+    createdAt: '2026-06-19T12:00:00Z',
+    previewUrl: null,
+    ...overrides,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -78,6 +93,91 @@ describe('useComposerMediaPicker', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  describe('library search', () => {
+    it('matches loaded assets by filename, asset ID, and media type without case sensitivity', () => {
+      const assets = [
+        makeMediaAsset({ assetId: 'filename-match', originalFilename: 'Spring-Hero.PNG' }),
+        makeMediaAsset({
+          assetId: 'library-search-special-42',
+          originalFilename: 'notes.txt',
+          mediaType: 'text/plain',
+        }),
+        makeMediaAsset({
+          assetId: 'pdf-match',
+          originalFilename: 'statement',
+          mediaType: 'application/pdf',
+        }),
+      ]
+      const mediaStore = createFakeMediaStore({
+        assetsById: ref(Object.fromEntries(assets.map((asset) => [asset.assetId, asset]))),
+        assetIds: ref(assets.map((asset) => asset.assetId)),
+      })
+      const picker = useComposerMediaPicker({
+        mediaStore,
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref(null),
+        initialChannelId: ref(null),
+      })
+
+      expect(picker.filteredPickerAssets.value).toHaveLength(3)
+
+      picker.handleLibrarySearch({ query: '  HERO  ' })
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
+        'filename-match',
+      ])
+
+      picker.handleLibrarySearch({ query: 'SEARCH-SPECIAL' })
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
+        'library-search-special-42',
+      ])
+
+      picker.handleLibrarySearch({ query: 'APPLICATION/PDF' })
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(['pdf-match'])
+
+      picker.handleLibrarySearch({ query: '   ' })
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(
+        assets.map((asset) => asset.assetId),
+      )
+    })
+
+    it('preserves staged, pending, and auto-staged IDs while filtering and applying', () => {
+      const assets = [
+        makeMediaAsset({ assetId: 'visible', originalFilename: 'hero.png' }),
+        makeMediaAsset({ assetId: 'hidden', originalFilename: 'portrait.png' }),
+        makeMediaAsset({ assetId: 'pending', originalFilename: 'pending.png' }),
+      ]
+      const mediaStore = createFakeMediaStore({
+        assetsById: ref(Object.fromEntries(assets.map((asset) => [asset.assetId, asset]))),
+        assetIds: ref(assets.map((asset) => asset.assetId)),
+      })
+      const picker = useComposerMediaPicker({
+        mediaStore,
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref(null),
+        initialChannelId: ref(null),
+      })
+      picker.draftAttachmentIds.value = ['visible', 'hidden']
+      picker.openMediaPicker()
+      picker.ensurePickerAssetVisible('pending')
+      picker.autoStagedAssetIds.value = ['hidden']
+
+      picker.handleLibrarySearch({ query: 'hero' })
+
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(['visible'])
+      expect(picker.pickerSelectionIds.value).toEqual(['visible', 'hidden'])
+      expect(picker.pendingPickerAssets.value).toEqual(['pending'])
+      expect(picker.autoStagedAssetIds.value).toEqual(['hidden'])
+
+      picker.applyPickerSelection()
+
+      expect(picker.draftAttachmentIds.value).toEqual(['visible', 'hidden'])
+      expect(picker.libraryQuery.value).toBe('')
+      expect(picker.filteredPickerAssets.value).toHaveLength(3)
+    })
   })
 
   // -------------------------------------------------------------------------

@@ -157,6 +157,10 @@ export class ComposeModalPage {
     return this.pickerShell.getByRole('searchbox')
   }
 
+  get librarySearchInput(): Locator {
+    return this.pickerShell.getByRole('searchbox', { name: /search workspace media/i })
+  }
+
   get unsplashSearchButton(): Locator {
     return this.pickerShell.getByRole('button', { name: /search|buscar/i })
   }
