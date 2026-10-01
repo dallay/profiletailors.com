@@ -1,6 +1,7 @@
 # Plan RPI: SonarCloud quality and coverage remediation
 
 ## Route
+
 Delegated direct. Remediate the vulnerability, bugs, and CRITICAL issue first, then group code smells by surface. No SDD cycle.
 
 ## Tasks
@@ -48,7 +49,9 @@ Delegated direct. Remediate the vulnerability, bugs, and CRITICAL issue first, t
 - Legacy `plan/tasks/` migration: 23 original files were compared byte-for-byte with `.agents/rpi/plan/tasks/`; 23 matched, 0 missing/different. Additional Sonar remediation plan is the only new task file.
 
 ## Status
-PR opened: https://github.com/dallay/profiletailors.com/pull/1260. The branch includes the reconciled fixes and the 23 byte-identical task migrations. Local checks passed as recorded above; the app lint reports a pre-existing unused `viewport` warning in unchanged `SchedulerTimelineBody.vue`. SonarCloud still needs a new analysis; no finding is considered remotely closed until that analysis completes.
+
+PR opened: [#1267](https://github.com/dallay/profiletailors.com/pull/1267). The branch includes the reconciled fixes and the 23 byte-identical task migrations. Local checks passed as recorded above; the app lint reports a pre-existing unused `viewport` warning in unchanged `SchedulerTimelineBody.vue`. SonarCloud still needs a new analysis; no finding is considered remotely closed until that analysis completes.
 
 ## Next step
+
 Monitor CI and the PR-triggered SonarCloud analysis, then record each issue status in RPI-005. Review any actionable comments and address them before declaring the remediation complete.
