@@ -5,7 +5,6 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 
 let navigationRouter: Router | undefined
-const removeHook = vi.fn()
 
 const routeState = reactive({
   name: 'scheduler-calendar-week',
@@ -41,9 +40,9 @@ vi.mock('vue-router', async (importOriginal) => ({
     navigationRouter ?? {
       push,
       replace,
-      beforeEach: vi.fn().mockReturnValue(removeHook),
-      afterEach: vi.fn().mockReturnValue(removeHook),
-      onError: vi.fn().mockReturnValue(removeHook),
+      beforeEach: vi.fn().mockReturnValue(() => {}),
+      afterEach: vi.fn().mockReturnValue(() => {}),
+      onError: vi.fn().mockReturnValue(() => {}),
     },
 }))
 
@@ -432,12 +431,35 @@ describe('AppShell scheduler sidebar navigation', () => {
     },
   )
 
-  it('removes navigation hooks when the shell unmounts', () => {
-    const wrapper = mount(AppShell, {
-      global: { mocks: { $t: (key: string) => key } },
+  it('can unmount during loading and remount without stale navigation status', async () => {
+    const page = defineComponent({ template: '<div>Page</div>' })
+    let resolveImport!: (component: typeof page) => void
+    const lazyImport = new Promise<typeof page>((resolve) => {
+      resolveImport = resolve
     })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: page },
+        { path: '/lazy', component: () => lazyImport },
+      ],
+    })
+    await router.push('/')
+    navigationRouter = router
+    const options = { global: { mocks: { $t: (key: string) => key } } }
+    const wrapper = mount(AppShell, options)
+    const navigation = router.push('/lazy')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
     wrapper.unmount()
-    expect(removeHook).toHaveBeenCalledTimes(3)
+    resolveImport(page)
+    await navigation
+    const remounted = mount(AppShell, options)
+    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    await router.push('/')
+    await flushPromises()
+    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    remounted.unmount()
   })
 
   it('shows the hosted service terms and source revision in the sidebar footer', () => {

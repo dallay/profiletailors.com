@@ -21,7 +21,7 @@ import { postingTimeSlots as mockPostingTimeSlots } from '@modules/dashboard/inf
 // Store
 // ---------------------------------------------------------------------------
 
-export const useAnalyticsStore = defineStore('analytics', () => {
+export const useAnalyticsStore = defineStore('dashboard-analytics', () => {
   const isLoading = ref(false)
   const kpiMetrics = ref<KpiMetric[]>([...mockKpiMetrics])
   const channelPerformance = ref<ChannelPerformance[]>([...mockChannelPerformance])
