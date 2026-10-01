@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import {
+  isNavigationFailure,
+  NavigationFailureType,
+  RouterView,
+  useRoute,
+  useRouter,
+  type RouteLocationNormalized,
+} from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
@@ -56,6 +63,21 @@ const route = useRoute()
 const { t, te, locale } = useI18n()
 const gitSha = __GIT_SHA__
 const calendarUrl = useCalendarUrl()
+
+const pendingNavigation = shallowRef<RouteLocationNormalized | null>(null)
+const removeNavigationStart = router.beforeEach((to) => {
+  pendingNavigation.value = to
+})
+const removeNavigationEnd = router.afterEach((to, from, failure) => {
+  // Duplicates skip beforeEach but still abandon the in-flight navigation.
+  const returnedToCurrentRoute =
+    isNavigationFailure(failure, NavigationFailureType.duplicated) &&
+    from === router.currentRoute.value
+  if (pendingNavigation.value === to || returnedToCurrentRoute) pendingNavigation.value = null
+})
+const removeNavigationError = router.onError((_error, to) => {
+  if (pendingNavigation.value === to) pendingNavigation.value = null
+})
 
 // Page title for SPA route announcer (screen readers)
 const pageTitle = computed(() => {
@@ -118,7 +140,7 @@ const { total: totalQueuedCount, byProvider: queuedByProvider } = useQueuedCount
 
 const navigationGroups = computed<NavGroup[]>(() => [
   {
-    label: t('workspace.title'),
+    label: '',
     items: [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
@@ -251,7 +273,9 @@ async function handleLogout() {
 }
 
 onBeforeUnmount(() => {
-  // Reserved for future shell-level cleanup.
+  removeNavigationStart()
+  removeNavigationEnd()
+  removeNavigationError()
 })
 </script>
 
@@ -419,7 +443,31 @@ onBeforeUnmount(() => {
               isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
             ]"
           >
-            <RouterView />
+            <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
+              {{ t('nav.loadingSection') }}
+            </div>
+            <RouterView v-slot="{ Component, route: matchedRoute }">
+              <Suspense timeout="0">
+                <component
+                  :is="Component"
+                  :key="route.meta.viewKey ?? route.fullPath"
+                />
+                <template #fallback>
+                  <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
+                    <span class="sr-only">{{ t('nav.loadingSection') }}</span>
+                    <div class="h-9 w-48 animate-pulse rounded-lg bg-bg-surface" />
+                    <div class="h-4 w-80 max-w-full animate-pulse rounded bg-bg-surface" />
+                    <div class="grid gap-4 md:grid-cols-3">
+                      <div
+                        v-for="index in 3"
+                        :key="index"
+                        class="h-32 animate-pulse rounded-xl border border-border-subtle bg-bg-surface"
+                      />
+                    </div>
+                  </div>
+                </template>
+              </Suspense>
+            </RouterView>
           </main>
 
           <!-- Cookie settings footer link -->

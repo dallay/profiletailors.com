@@ -50,6 +50,13 @@ function openChannelConnections() {
       </div>
     </div>
 
+    <div class="rounded-xl border border-border-visible bg-bg-surface px-4 py-3">
+      <p class="text-sm font-medium text-text-display">{{ $t('dashboard.previewDataTitle') }}</p>
+      <p class="mt-1 text-xs leading-5 text-text-secondary">
+        {{ $t('dashboard.previewDataDescription') }}
+      </p>
+    </div>
+
     <DashboardLayout />
 
     <CreatePostModal

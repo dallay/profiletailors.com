@@ -125,6 +125,36 @@ describe('GovernanceTakedownView.vue', () => {
     })
   }
 
+  it('updates a persistent alert on failure and clears it after retry', async () => {
+    let rejectFetch!: (error: Error) => void
+    mockListReports.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectFetch = reject
+      }),
+    )
+    const wrapper = mount(GovernanceTakedownView, {
+      global: { stubs: { Teleport: true }, mocks: { $t: (key: string) => key } },
+    })
+    const alert = wrapper.get('[role="alert"]')
+    expect(alert.text()).toBe('')
+    rejectFetch(new Error('Failed to fetch'))
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').element).toBe(alert.element)
+    expect(alert.text()).toContain('Failed to fetch')
+    expect(alert.text()).toContain('governance.takedown.review.errorRecovery')
+    expect(alert.find('button').exists()).toBe(false)
+    mockListReports.mockResolvedValueOnce([])
+    const retry = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'governance.takedown.review.tryAgain')
+    expect(retry).toBeDefined()
+    await retry!.trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').element).toBe(alert.element)
+    expect(alert.text()).toBe('')
+    wrapper.unmount()
+  })
+
   it('renders the title and subtitle', async () => {
     const wrapper = mountView([])
     await flushPromises()
@@ -170,6 +200,8 @@ describe('GovernanceTakedownView.vue', () => {
 
     // The component uses apiError.message ?? t('...'), so it shows the Error message
     expect(wrapper.text()).toContain('Failed to fetch')
+    expect(wrapper.text()).toContain('governance.takedown.review.errorRecovery')
+    expect(wrapper.text()).not.toContain('governance.takedown.review.empty')
   })
 
   it('calls approveTakedown when approve button is clicked', async () => {

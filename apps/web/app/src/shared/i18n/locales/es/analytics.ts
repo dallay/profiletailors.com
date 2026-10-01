@@ -5,6 +5,10 @@ export default {
   last90: 'Últimos 90 días',
   custom: 'Rango personalizado',
   dateRange: 'Rango de fechas',
+  reportingPeriod: 'Periodo del informe',
+  zeroDataTitle: 'No se han recopilado datos analíticos para este periodo',
+  zeroDataGuidance:
+    'Conecta un canal y publica contenido para empezar a recopilar datos. Los nuevos resultados pueden tardar en aparecer.',
   startDate: 'Fecha de inicio',
   endDate: 'Fecha de fin',
   exportCsv: 'Exportar CSV',

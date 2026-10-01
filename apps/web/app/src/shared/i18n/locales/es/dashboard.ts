@@ -2,6 +2,9 @@ export default {
   welcome: 'Bienvenido de nuevo',
   subtitle: 'Esto es lo que está pasando en tus canales hoy.',
   newPost: 'Nueva Publicación',
+  previewDataTitle: 'Datos de muestra',
+  previewDataDescription:
+    'Las métricas y recomendaciones son ilustrativas mientras se conectan los datos del espacio de trabajo. Tus cuentas conectadas siguen disponibles en la barra lateral.',
   scheduled: 'Publicaciones Programadas',
   platforms: 'Plataformas Conectadas',
   audience: 'Alcance de Audiencia',

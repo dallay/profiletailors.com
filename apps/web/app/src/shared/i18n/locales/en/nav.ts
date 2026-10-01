@@ -5,6 +5,7 @@ export default {
   media: 'Media Library',
   ideas: 'Ideas',
   governance: 'Governance',
+  loadingSection: 'Loading section',
   settings: 'Settings',
   system: 'System',
   logout: 'Log Out',

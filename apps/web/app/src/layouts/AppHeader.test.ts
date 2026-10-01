@@ -68,4 +68,12 @@ describe('AppHeader', () => {
     expect(wrapper.text()).toContain('nav.scheduler')
     expect(wrapper.text()).not.toContain('nav.scheduler-calendar-week')
   })
+
+  it('maps the governance takedown route to a human-readable navigation label', async () => {
+    routeState.name = 'governance-takedown'
+    const wrapper = mountHeader()
+    await nextTick()
+    expect(wrapper.text()).toContain('nav.governance')
+    expect(wrapper.text()).not.toContain('nav.governance-takedown')
+  })
 })

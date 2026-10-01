@@ -234,6 +234,9 @@ describe('scheduler route contract', { timeout: 15000 }, () => {
     expect(router.resolve('/scheduler/calendar/week').name).toBe('scheduler-calendar-week')
     expect(router.resolve('/scheduler/calendar/month').name).toBe('scheduler-calendar-month')
     expect(router.resolve('/scheduler/list').name).toBe('scheduler-list')
+    expect(router.resolve('/scheduler/calendar/week').meta.viewKey).toBe('scheduler')
+    expect(router.resolve('/scheduler/calendar/month').meta.viewKey).toBe('scheduler')
+    expect(router.resolve('/scheduler/list').meta.viewKey).toBe('scheduler')
   })
 
   it('redirects /scheduler to canonical week route preserving query params', async () => {
