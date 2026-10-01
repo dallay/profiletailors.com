@@ -117,6 +117,11 @@ describe('UserDetailView', () => {
       .findAll('button')
       .find((button) => button.text() === 'Disable account')
       ?.trigger('click')
+    await wrapper
+      .find('[role="alertdialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'Disable account')
+      ?.trigger('click')
     await flushPromises()
     const mutationRequest = mockRequest.mock.calls.find(
       (call) => call[0] === '/api/admin/users/user-1/disable',

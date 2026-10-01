@@ -129,6 +129,11 @@ describe('NotificationsView', () => {
     const retryButton = wrapper.findAll('button').find((button) => button.text() === 'Retry')
     expect(retryButton).toBeDefined()
     await retryButton?.trigger('click')
+    await wrapper
+      .find('[role="alertdialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'Retry')
+      ?.trigger('click')
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledWith(

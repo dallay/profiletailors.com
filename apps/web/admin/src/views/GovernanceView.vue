@@ -6,6 +6,9 @@ import { PaginationControls, Table } from '@profiletailors/vue-ui'
 import { formatDateTime } from '@/lib/formatters'
 import type { PagedResult } from '@/types/pagination'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import Select from '@/components/ui/AdminSelect.vue'
+import Input from '@/components/ui/AdminInput.vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -37,6 +40,10 @@ const statusFilter = ref('')
 const workspaceFilter = ref('')
 const page = ref(0)
 const rejecting = ref(false)
+const approving = ref(false)
+const approvalTargetId = ref<string | null>(null)
+const rejectionTargetId = ref<string | null>(null)
+const rejectionReason = ref('')
 
 let activeRequest: AbortController | null = null
 
@@ -91,7 +98,9 @@ async function fetchReportDetail(reportId: string) {
 
 async function approveReport(reportId: string) {
   if (!canMutate.value) return
-  if (!window.confirm(t('governance.approveConfirm'))) return
+  approvalTargetId.value = null
+  approving.value = true
+  error.value = null
   const idempotencyKey = `ui-${reportId}-${Date.now()}`
   try {
     const res = await authStore.request(`/api/admin/takedown-reports/${reportId}/approve`, {
@@ -105,12 +114,19 @@ async function approveReport(reportId: string) {
     report.value = await res.json()
   } catch {
     error.value = t('common.error')
+  } finally {
+    approving.value = false
   }
+}
+
+function requestApproval(reportId: string) {
+  approvalTargetId.value = reportId
 }
 
 async function rejectReport(reportId: string, reason: string) {
   if (!canMutate.value) return
   rejecting.value = true
+  error.value = null
   const idempotencyKey = `ui-reject-${reportId}-${Date.now()}`
   try {
     const res = await authStore.request(`/api/admin/takedown-reports/${reportId}/reject`, {
@@ -131,10 +147,15 @@ async function rejectReport(reportId: string, reason: string) {
 }
 
 function openRejectDialog(reportId: string) {
-  const reason = window.prompt(t('governance.rejectConfirm'))
-  if (reason?.trim()) {
-    rejectReport(reportId, reason.trim())
-  }
+  rejectionTargetId.value = reportId
+  rejectionReason.value = ''
+}
+
+async function confirmReject() {
+  const reportId = rejectionTargetId.value
+  if (!reportId || !rejectionReason.value.trim()) return
+  await rejectReport(reportId, rejectionReason.value.trim())
+  if (!error.value) rejectionTargetId.value = null
 }
 
 function navigateToDetail(r: TakedownReport) {
@@ -230,7 +251,7 @@ onMounted(() => {
         <div v-if="canMutate && report.status === 'REPORTED'" class="mt-6 flex gap-3 border-t border-border-subtle pt-4">
           <button
             class="rounded bg-accent-primary px-4 py-1.5 text-sm font-medium text-white hover:opacity-90"
-            @click="approveReport(report.reportId)"
+            @click="requestApproval(report.reportId)"
           >
             {{ t('governance.approve') }}
           </button>
@@ -257,19 +278,19 @@ onMounted(() => {
 
     <template v-else-if="result">
       <div class="mb-4 flex flex-wrap gap-3">
-        <select
+        <Select
           v-model="statusFilter"
-          class="rounded border border-border-subtle bg-surface-elevated px-3 py-1.5 text-sm"
+          :aria-label="t('governance.filterByStatus')"
         >
           <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
             {{ opt.label.value }}
           </option>
-        </select>
-        <input
+        </Select>
+        <Input
           v-model="workspaceFilter"
           type="text"
           :placeholder="t('governance.workspace')"
-          class="rounded border border-border-subtle bg-surface-elevated px-3 py-1.5 text-sm"
+          :aria-label="t('governance.workspace')"
         />
       </div>
 
@@ -313,5 +334,38 @@ onMounted(() => {
         />
       </template>
     </template>
+    <ConfirmDialog
+      :open="approvalTargetId !== null"
+      :title="t('governance.approve')"
+      :description="t('governance.approveConfirm')"
+      :confirm-text="t('governance.approve')"
+      :busy="approving"
+      variant="danger"
+      @update:open="(open) => { if (!open) approvalTargetId = null }"
+      @confirm="approvalTargetId && approveReport(approvalTargetId)"
+    />
+    <ConfirmDialog
+      :open="rejectionTargetId !== null"
+      :title="t('governance.reject')"
+      :description="t('governance.rejectConfirm')"
+      :confirm-text="t('governance.reject')"
+      variant="danger"
+      :busy="rejecting"
+      :confirm-disabled="!rejectionReason.trim()"
+      @update:open="(open) => { if (!open) rejectionTargetId = null }"
+      @confirm="confirmReject"
+    >
+      <p v-if="error" role="alert" class="mb-3 text-sm text-error">{{ error }}</p>
+      <label for="governance-rejection-reason" class="label-mono text-[10px] text-text-secondary">
+        {{ t('governance.rejectionReason') }}
+      </label>
+      <textarea
+        id="governance-rejection-reason"
+        v-model="rejectionReason"
+        rows="4"
+        class="admin-input mt-2 w-full resize-y text-sm"
+        required
+      />
+    </ConfirmDialog>
   </div>
 </template>
