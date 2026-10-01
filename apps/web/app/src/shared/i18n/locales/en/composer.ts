@@ -160,6 +160,8 @@ export default {
     searchAction: 'Search',
     searchingAction: 'Searching…',
     providerSearchLabel: 'Search Unsplash',
+    librarySearchLabel: 'Search workspace media',
+    librarySearchPlaceholder: 'Filename, asset ID, or MIME type',
     libraryDescription: 'Browse images and videos already saved in this workspace.',
     providerDescription:
       'Search Unsplash and import media into this post without leaving the composer.',

@@ -23,6 +23,7 @@ const props = withDefaults(
     activeSource: ComposerMediaPickerSource
     collectionState: ComposerMediaPickerCollectionState
     assets: ComposerMediaPickerAsset[]
+    selectedAssetIds: string[]
     provider?: 'unsplash' | null
     applyDisabled?: boolean
     applyDisabledMessage?: string | null
@@ -39,20 +40,26 @@ const emit = defineEmits<{
   (e: 'apply-selection', payload: ComposerMediaPickerApplyPayload): void
   (e: 'close'): void
   (e: 'provider-search', payload: ComposerMediaPickerProviderSearchPayload): void
+  (e: 'library-search', payload: { query: string }): void
   (e: 'set-active-source', payload: { source: ComposerMediaPickerSource }): void
 }>()
 
 const { t } = useI18n()
 const providerQuery = ref('')
+const libraryQuery = ref('')
+const hasLibraryQuery = computed(() => libraryQuery.value.trim().length > 0)
 
 watch(
   () => props.isOpen,
   (isOpen): void => {
-    if (!isOpen) providerQuery.value = ''
+    if (!isOpen) {
+      providerQuery.value = ''
+      libraryQuery.value = ''
+      emit('library-search', { query: '' })
+    }
   },
 )
 
-const selectedIds = computed(() => props.assets.filter((asset) => asset.selected).map((asset) => asset.assetId))
 const isLibrarySource = computed(() => props.activeSource === 'library')
 const providerEnabled = computed(() => props.provider === 'unsplash')
 const modalTitle = computed(() =>
@@ -70,11 +77,15 @@ function toggleAsset(asset: ComposerMediaPickerAsset): void {
 }
 
 function applySelection(): void {
-  emit('apply-selection', { assetIds: selectedIds.value })
+  emit('apply-selection', { assetIds: [...props.selectedAssetIds] })
 }
 
 function submitProviderSearch(): void {
   emit('provider-search', { query: providerQuery.value.trim() })
+}
+
+function emitLibrarySearch(): void {
+  emit('library-search', { query: libraryQuery.value.trim() })
 }
 
 function setSource(source: ComposerMediaPickerSource): void {
@@ -136,6 +147,27 @@ function onOpenChange(isOpen: boolean): void {
       </div>
 
       <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+        <div
+          v-if="isLibrarySource"
+          data-testid="picker-library-search"
+          class="mb-5 flex items-center gap-3"
+        >
+          <label class="sr-only" for="picker-library-query">
+            {{ t('composer.picker.librarySearchLabel') }}
+          </label>
+          <div class="flex flex-1 items-center gap-2 rounded-2xl border border-border-visible bg-bg-primary px-4 py-3">
+            <Search class="size-4 text-text-secondary" />
+            <input
+              id="picker-library-query"
+              v-model="libraryQuery"
+              type="search"
+              class="w-full bg-transparent text-sm text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-display placeholder:text-text-secondary"
+              :placeholder="t('composer.picker.librarySearchPlaceholder')"
+              @input="emitLibrarySearch"
+            >
+          </div>
+        </div>
+
         <form
           v-if="!isLibrarySource"
           data-testid="picker-provider-search"
@@ -173,6 +205,15 @@ function onOpenChange(isOpen: boolean): void {
 
         <div v-else-if="isLibrarySource && collectionState === 'ERROR'" class="rounded-3xl border border-error/40 bg-error/10 px-5 py-8 text-sm text-error">
           {{ t('composer.picker.errorLoad') }}
+        </div>
+
+        <div
+          v-else-if="isLibrarySource && hasLibraryQuery && assets.length === 0"
+          data-testid="picker-library-filtered-empty"
+          class="rounded-3xl border border-border-subtle bg-bg-primary/30 px-5 py-8 text-sm text-text-secondary"
+        >
+          <p class="font-medium text-text-display">{{ t('media.noFilteredAssetsTitle') }}</p>
+          <p class="mt-2">{{ t('media.noFilteredAssetsBody') }}</p>
         </div>
 
         <div v-else-if="isLibrarySource" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

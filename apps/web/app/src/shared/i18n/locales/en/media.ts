@@ -25,7 +25,7 @@ export default {
   emptyTitle: 'No media assets yet',
   emptyBody: 'Upload your first image, video, or PDF to populate the library.',
   noFilteredAssetsTitle: 'No assets match the current filters',
-  noFilteredAssetsBody: 'Adjust the status or type filters to see more results.',
+  noFilteredAssetsBody: 'Try a different search or change the filters to see more results.',
   untitledAsset: 'Untitled asset',
   typeLabel: 'Type',
   sizeLabel: 'Size',
