@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
-import { RouterView, useRoute, useRouter, type RouteLocationNormalized } from 'vue-router'
+import {
+  isNavigationFailure,
+  NavigationFailureType,
+  RouterView,
+  useRoute,
+  useRouter,
+  type RouteLocationNormalized,
+} from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
@@ -61,8 +68,12 @@ const pendingNavigation = shallowRef<RouteLocationNormalized | null>(null)
 const removeNavigationStart = router.beforeEach((to) => {
   pendingNavigation.value = to
 })
-const removeNavigationEnd = router.afterEach((to) => {
-  if (pendingNavigation.value === to) pendingNavigation.value = null
+const removeNavigationEnd = router.afterEach((to, from, failure) => {
+  // Duplicates skip beforeEach but still abandon the in-flight navigation.
+  const returnedToCurrentRoute =
+    isNavigationFailure(failure, NavigationFailureType.duplicated) &&
+    from === router.currentRoute.value
+  if (pendingNavigation.value === to || returnedToCurrentRoute) pendingNavigation.value = null
 })
 const removeNavigationError = router.onError((_error, to) => {
   if (pendingNavigation.value === to) pendingNavigation.value = null

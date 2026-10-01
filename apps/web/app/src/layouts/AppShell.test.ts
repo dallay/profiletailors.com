@@ -349,22 +349,19 @@ describe('AppShell scheduler sidebar navigation', () => {
     },
   )
 
-  it('keeps loading when an older navigation is cancelled by a newer lazy import', async () => {
+  it('clears abandoned loading on duplicate navigation while the import remains unresolved', async () => {
     const page = defineComponent({ template: '<div>Page</div>' })
-    let resolveFirst!: (component: typeof page) => void
-    let resolveSecond!: (component: typeof page) => void
-    const first = new Promise<typeof page>((resolve) => {
-      resolveFirst = resolve
-    })
-    const second = new Promise<typeof page>((resolve) => {
-      resolveSecond = resolve
+    const abandonedImport = new Promise<typeof page>(() => {})
+    let resolveNext!: (component: typeof page) => void
+    const nextImport = new Promise<typeof page>((resolve) => {
+      resolveNext = resolve
     })
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
         { path: '/', component: page },
-        { path: '/first', component: () => first },
-        { path: '/second', component: () => second },
+        { path: '/abandoned', component: () => abandonedImport },
+        { path: '/next', component: () => nextImport },
       ],
     })
     await router.push('/')
@@ -372,20 +369,68 @@ describe('AppShell scheduler sidebar navigation', () => {
     const wrapper = mount(AppShell, {
       global: { mocks: { $t: (key: string) => key } },
     })
-    const firstNavigation = router.push('/first')
+    void router.push('/abandoned')
     await flushPromises()
-    const secondNavigation = router.push('/second')
-    await flushPromises()
-    resolveFirst(page)
-    await firstNavigation
-    await nextTick()
     expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
-    resolveSecond(page)
-    await secondNavigation
+
+    await router.push('/')
+    await nextTick()
+    expect(router.currentRoute.value.path).toBe('/')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+
+    const nextNavigation = router.push('/next')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    resolveNext(page)
+    await nextNavigation
     await nextTick()
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
     wrapper.unmount()
   })
+
+  it.each([false, true])(
+    'keeps newer loading when an older import completes (duplicate navigation: %s)',
+    async (duplicateNavigation) => {
+      const page = defineComponent({ template: '<div>Page</div>' })
+      let resolveFirst!: (component: typeof page) => void
+      let resolveSecond!: (component: typeof page) => void
+      const first = new Promise<typeof page>((resolve) => {
+        resolveFirst = resolve
+      })
+      const second = new Promise<typeof page>((resolve) => {
+        resolveSecond = resolve
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: page },
+          { path: '/first', component: () => first },
+          { path: '/second', component: () => second },
+        ],
+      })
+      await router.push('/')
+      navigationRouter = router
+      const wrapper = mount(AppShell, {
+        global: { mocks: { $t: (key: string) => key } },
+      })
+      const firstNavigation = router.push('/first')
+      await flushPromises()
+      const duplicateCompletion = duplicateNavigation ? router.push('/') : undefined
+      const secondNavigation = router.push('/second')
+      await duplicateCompletion
+      await flushPromises()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      resolveFirst(page)
+      await firstNavigation
+      await nextTick()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      resolveSecond(page)
+      await secondNavigation
+      await nextTick()
+      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      wrapper.unmount()
+    },
+  )
 
   it('removes navigation hooks when the shell unmounts', () => {
     const wrapper = mount(AppShell, {

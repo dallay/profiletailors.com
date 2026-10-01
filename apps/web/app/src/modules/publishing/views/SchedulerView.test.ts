@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
@@ -57,7 +57,7 @@ function makeUrlController(
 
 // Singleton mock controller — reset in beforeEach
 let mockController = makeUrlController()
-const mockClockNow = ref(new Date())
+let mockClockNow: Ref<Date>
 const mockSidebarIsMobile = ref(false)
 const mockSetOpenMobile = vi.fn()
 const mockSetOpen = vi.fn()
@@ -247,7 +247,7 @@ vi.mock('@modules/publishing/presentation/components/RecurringScheduleModal.vue'
 
 describe('SchedulerView', () => {
   beforeEach(() => {
-    mockClockNow.value = new Date()
+    mockClockNow = ref(new Date())
     setActivePinia(createPinia())
     const store = usePublishingStore()
     store.publications = []
