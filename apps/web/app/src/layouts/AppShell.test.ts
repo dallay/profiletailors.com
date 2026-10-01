@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { reactive, nextTick } from 'vue'
-import { mount } from '@vue/test-utils'
+import { reactive, nextTick, defineComponent } from 'vue'
+import { mount, flushPromises } from '@vue/test-utils'
+
+import { createRouter, createMemoryHistory, type Router } from 'vue-router'
+
+let navigationRouter: Router | undefined
+const removeHook = vi.fn()
 
 const routeState = reactive({
   name: 'scheduler-calendar-week',
@@ -28,10 +33,18 @@ const publishingActions = vi.hoisted(() => ({
   connectProviderPersonalProfile: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('vue-router', () => ({
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
   RouterView: { template: '<div class="router-view" />' },
   useRoute: () => routeState,
-  useRouter: () => ({ push, replace }),
+  useRouter: () =>
+    navigationRouter ?? {
+      push,
+      replace,
+      beforeEach: vi.fn().mockReturnValue(removeHook),
+      afterEach: vi.fn().mockReturnValue(removeHook),
+      onError: vi.fn().mockReturnValue(removeHook),
+    },
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -290,6 +303,7 @@ import AppShell from './AppShell.vue'
 describe('AppShell scheduler sidebar navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    navigationRouter = undefined
     routeState.name = 'scheduler-calendar-week'
     routeState.path = '/scheduler/calendar/week'
     routeState.query = {}
@@ -298,6 +312,87 @@ describe('AppShell scheduler sidebar navigation', () => {
     authState.user.emailStatus = 'VERIFIED'
     authState.resendVerificationStatus = 'idle'
     authState.resendVerificationError = null
+  })
+
+  it.each(['success', 'abort', 'error'] as const)(
+    'shows loading during a lazy import and clears it on %s',
+    async (outcome) => {
+      const page = defineComponent({ template: '<div>Page</div>' })
+      let resolveImport!: (component: typeof page) => void
+      let rejectImport!: (error: Error) => void
+      const lazyImport = new Promise<typeof page>((resolve, reject) => {
+        resolveImport = resolve
+        rejectImport = reject
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: page },
+          { path: '/lazy', component: () => lazyImport },
+        ],
+      })
+      await router.push('/')
+      navigationRouter = router
+      const wrapper = mount(AppShell, {
+        global: { mocks: { $t: (key: string) => key } },
+      })
+      if (outcome === 'abort') router.beforeResolve(() => false)
+      const navigation = router.push('/lazy').catch((error: unknown) => error)
+      await flushPromises()
+      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      if (outcome === 'error') rejectImport(new Error('Import failed'))
+      else resolveImport(page)
+      await navigation
+      await nextTick()
+      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      wrapper.unmount()
+    },
+  )
+
+  it('keeps loading when an older navigation is cancelled by a newer lazy import', async () => {
+    const page = defineComponent({ template: '<div>Page</div>' })
+    let resolveFirst!: (component: typeof page) => void
+    let resolveSecond!: (component: typeof page) => void
+    const first = new Promise<typeof page>((resolve) => {
+      resolveFirst = resolve
+    })
+    const second = new Promise<typeof page>((resolve) => {
+      resolveSecond = resolve
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: page },
+        { path: '/first', component: () => first },
+        { path: '/second', component: () => second },
+      ],
+    })
+    await router.push('/')
+    navigationRouter = router
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+    const firstNavigation = router.push('/first')
+    await flushPromises()
+    const secondNavigation = router.push('/second')
+    await flushPromises()
+    resolveFirst(page)
+    await firstNavigation
+    await nextTick()
+    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    resolveSecond(page)
+    await secondNavigation
+    await nextTick()
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('removes navigation hooks when the shell unmounts', () => {
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+    wrapper.unmount()
+    expect(removeHook).toHaveBeenCalledTimes(3)
   })
 
   it('shows the hosted service terms and source revision in the sidebar footer', () => {

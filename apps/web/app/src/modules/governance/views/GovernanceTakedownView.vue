@@ -142,7 +142,11 @@ onMounted(() => {
       </Button>
     </div>
 
-    <div v-if="error" role="alert" class="rounded-xl border border-error/30 bg-error/10 px-4 py-4 text-sm text-error">
+    <div role="alert" aria-atomic="true" class="sr-only">
+      <template v-if="error">{{ error }} {{ $t('governance.takedown.review.errorRecovery') }}</template>
+    </div>
+
+    <div v-if="error" class="rounded-xl border border-error/30 bg-error/10 px-4 py-4 text-sm text-error">
       <p class="font-medium">{{ error }}</p>
       <p class="mt-1 text-text-secondary">{{ $t('governance.takedown.review.errorRecovery') }}</p>
       <Button type="button" variant="outline" size="sm" class="mt-3" @click="loadReports">

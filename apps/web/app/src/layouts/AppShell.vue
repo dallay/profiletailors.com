@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { RouterView, useRoute, useRouter, type RouteLocationNormalized } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
@@ -56,6 +56,17 @@ const route = useRoute()
 const { t, te, locale } = useI18n()
 const gitSha = __GIT_SHA__
 const calendarUrl = useCalendarUrl()
+
+const pendingNavigation = shallowRef<RouteLocationNormalized | null>(null)
+const removeNavigationStart = router.beforeEach((to) => {
+  pendingNavigation.value = to
+})
+const removeNavigationEnd = router.afterEach((to) => {
+  if (pendingNavigation.value === to) pendingNavigation.value = null
+})
+const removeNavigationError = router.onError((_error, to) => {
+  if (pendingNavigation.value === to) pendingNavigation.value = null
+})
 
 // Page title for SPA route announcer (screen readers)
 const pageTitle = computed(() => {
@@ -251,7 +262,9 @@ async function handleLogout() {
 }
 
 onBeforeUnmount(() => {
-  // Reserved for future shell-level cleanup.
+  removeNavigationStart()
+  removeNavigationEnd()
+  removeNavigationError()
 })
 </script>
 
@@ -419,6 +432,9 @@ onBeforeUnmount(() => {
               isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
             ]"
           >
+            <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
+              {{ t('nav.loadingSection') }}
+            </div>
             <RouterView v-slot="{ Component, route: matchedRoute }">
               <Suspense timeout="0">
                 <component :is="Component" :key="matchedRoute.fullPath" />

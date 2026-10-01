@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { z } from 'zod'
 import {
   BarChart2,
   Download,
@@ -29,15 +30,25 @@ const { t } = useI18n()
 const store = useAnalyticsStore()
 const selectedPost = ref<PostAnalyticsSummary | null>(null)
 
+const dateSchema = z.iso.date()
 const reportingPeriod = computed(() => {
+  const { startDate, endDate } = store.activeDateRange
+  if (!dateSchema.safeParse(startDate).success || !dateSchema.safeParse(endDate).success) return '—'
+
   const format = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-  return `${format.format(new Date(`${store.activeDateRange.startDate}T00:00:00`))} – ${format.format(new Date(`${store.activeDateRange.endDate}T00:00:00`))}`
+  return `${format.format(new Date(`${startDate}T00:00:00`))} – ${format.format(new Date(`${endDate}T00:00:00`))}`
 })
 
 const hasAnalyticsData = computed(
   () =>
     (store.overview?.dailyMetrics?.length ?? 0) > 0 ||
-    (store.postAnalytics?.posts?.length ?? 0) > 0,
+    (store.postAnalytics?.posts?.length ?? 0) > 0 ||
+    [
+      store.overview?.totalImpressions,
+      store.overview?.totalEngagements,
+      store.overview?.totalClicks,
+      store.overview?.newFollowers,
+    ].some((total) => (total ?? 0) > 0),
 )
 
 onMounted(() => {

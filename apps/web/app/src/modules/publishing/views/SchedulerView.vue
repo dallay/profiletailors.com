@@ -533,9 +533,20 @@ const firstAvailableSlotKey = computed(() => {
   return null
 })
 
+const activeSlotKey = computed(() => {
+  for (const day of timelineDays.value) {
+    for (const slot of hourSlots) {
+      if (slotKey(day, slot.hour) === focusedSlotKey.value && !isPastSlot(day, slot.hour)) {
+        return focusedSlotKey.value
+      }
+    }
+  }
+  return firstAvailableSlotKey.value
+})
+
 function slotTabIndex(date: Date, hour: number): 0 | -1 {
   const key = slotKey(date, hour)
-  return key === (focusedSlotKey.value ?? firstAvailableSlotKey.value) ? 0 : -1
+  return key === activeSlotKey.value ? 0 : -1
 }
 
 async function moveSlotFocus(event: KeyboardEvent, date: Date, hour: number): Promise<void> {

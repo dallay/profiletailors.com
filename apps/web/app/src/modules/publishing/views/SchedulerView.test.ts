@@ -57,6 +57,7 @@ function makeUrlController(
 
 // Singleton mock controller — reset in beforeEach
 let mockController = makeUrlController()
+const mockClockNow = ref(new Date())
 const mockSidebarIsMobile = ref(false)
 const mockSetOpenMobile = vi.fn()
 const mockSetOpen = vi.fn()
@@ -122,7 +123,7 @@ vi.mock('@modules/publishing/application/useReactiveClock', () => ({
       onVisible?.()
       onHidden?.()
     })
-    return { now: ref(new Date()), stop: vi.fn() }
+    return { now: mockClockNow, stop: vi.fn() }
   },
 }))
 
@@ -246,6 +247,7 @@ vi.mock('@modules/publishing/presentation/components/RecurringScheduleModal.vue'
 
 describe('SchedulerView', () => {
   beforeEach(() => {
+    mockClockNow.value = new Date()
     setActivePinia(createPinia())
     const store = usePublishingStore()
     store.publications = []
@@ -280,6 +282,34 @@ describe('SchedulerView', () => {
       },
     })
   }
+
+  it('keeps one available tab stop as the date, period, and clock change', async () => {
+    mockClockNow.value = new Date('2026-06-15T08:00:00')
+    const wrapper = mountView({ date: '2026-06-15' })
+    await flushPromises()
+    const focused = wrapper.get('[data-calendar-slot="2026-06-17-10"]')
+    await focused.trigger('focus')
+    expect(focused.attributes('tabindex')).toBe('0')
+    mockController.state.value = { ...mockController.state.value, view: 'day' }
+    await flushPromises()
+    const tabStops = () => wrapper.findAll('[data-calendar-slot][tabindex="0"]')
+    expect(tabStops()).toHaveLength(1)
+    expect(tabStops()[0]?.attributes('disabled')).toBeUndefined()
+    await wrapper.get('[data-calendar-slot="2026-06-15-10"]').trigger('focus')
+    mockController.state.value = { ...mockController.state.value, date: '2026-06-16' }
+    await flushPromises()
+    expect(tabStops()).toHaveLength(1)
+    expect(tabStops()[0]?.attributes('data-calendar-slot')).toBe('2026-06-16-0')
+    await wrapper.get('[data-calendar-slot="2026-06-16-10"]').trigger('focus')
+    mockClockNow.value = new Date('2026-06-16T10:00:00')
+    await flushPromises()
+    expect(tabStops()).toHaveLength(1)
+    expect(tabStops()[0]?.attributes('data-calendar-slot')).toBe('2026-06-16-11')
+    expect(tabStops()[0]?.attributes('disabled')).toBeUndefined()
+    await tabStops()[0]?.trigger('keydown', { key: 'ArrowDown' })
+    expect(tabStops()[0]?.attributes('data-calendar-slot')).toBe('2026-06-16-12')
+    wrapper.unmount()
+  })
 
   it('subscribes to publication events on mount and unsubscribes on unmount', async () => {
     const store = usePublishingStore()
