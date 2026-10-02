@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeSentryPayload } from './sentry-sanitizer'
+import { buildRedactedSpan, sanitizeSentryPayload } from './sentry-sanitizer'
 
 describe('sanitizeSentryPayload', () => {
   it('removes request credentials and identity fields while preserving opaque identifiers', () => {
@@ -117,5 +117,49 @@ describe('sanitizeSentryPayload', () => {
     expect(sanitizeSentryPayload({ tags: Object.freeze({ principalId: 'principal-123' }) })).toBe(
       false,
     )
+  })
+
+  it('builds a redacted span that preserves routing identifiers', () => {
+    expect(
+      buildRedactedSpan({
+        trace_id: 'trace-123',
+        parent_span_id: 'parent-456',
+        span_id: 'span-789',
+        name: 'secret password=plaintext-secret',
+        start_timestamp: 1720000000,
+        end_timestamp: 1720000001,
+        status: 'error',
+        is_segment: true,
+      }),
+    ).toEqual({
+      trace_id: 'trace-123',
+      parent_span_id: 'parent-456',
+      span_id: 'span-789',
+      name: 'redacted',
+      start_timestamp: 1720000000,
+      end_timestamp: 1720000001,
+      status: 'error',
+      is_segment: true,
+      attributes: {},
+    })
+
+    expect(
+      buildRedactedSpan({
+        trace_id: 'trace-123',
+        span_id: 'span-789',
+        name: 'secret',
+        start_timestamp: 1720000000,
+        status: 'ok',
+        is_segment: false,
+      }),
+    ).toEqual({
+      trace_id: 'trace-123',
+      span_id: 'span-789',
+      name: 'redacted',
+      start_timestamp: 1720000000,
+      status: 'ok',
+      is_segment: false,
+      attributes: {},
+    })
   })
 })
