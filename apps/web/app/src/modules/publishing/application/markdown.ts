@@ -87,17 +87,21 @@ function stripHtmlTags(text: string): string {
     current = removeDangerousBlocks(current)
     current = current.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
   }
-  return current
+  return current.replace(/<(?=[a-zA-Z/!?])/g, '')
 }
 
 function removeDangerousBlocks(text: string): string {
   return text
-    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
+    .replace(/<script\b[\s\S]*?<\/script(?:\s[^>]*)?>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style(?:\s[^>]*)?>/gi, '')
 }
 
 export function stripMarkdownToPlainText(text: string): string {
-  const lines = text.split('\n')
+  // Remove script/style blocks from the whole text first: a closing tag split
+  // across lines (or a multiline block) would otherwise survive line-based
+  // stripping and leak its content as plain text.
+  const sanitized = removeDangerousBlocks(text)
+  const lines = sanitized.split('\n')
   const result: string[] = []
   let inCodeBlock = false
 
