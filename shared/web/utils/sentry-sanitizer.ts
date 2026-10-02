@@ -58,6 +58,42 @@ export function sanitizeSentryPayload<T extends object>(payload: T): boolean {
   return sanitizeObject(payload, new WeakSet(), '')
 }
 
+export interface RedactableSpan {
+  trace_id: string
+  span_id: string
+  parent_span_id?: string | undefined
+  start_timestamp: number
+  end_timestamp?: number | undefined
+  status: 'ok' | 'error'
+  is_segment: boolean
+}
+
+export interface RedactedSpan {
+  trace_id: string
+  span_id: string
+  parent_span_id?: string | undefined
+  name: 'redacted'
+  start_timestamp: number
+  end_timestamp?: number | undefined
+  status: 'ok' | 'error'
+  is_segment: boolean
+  attributes: Record<string, never>
+}
+
+export function buildRedactedSpan(span: RedactableSpan): RedactedSpan {
+  return {
+    trace_id: span.trace_id,
+    ...(span.parent_span_id === undefined ? {} : { parent_span_id: span.parent_span_id }),
+    span_id: span.span_id,
+    name: 'redacted',
+    start_timestamp: span.start_timestamp,
+    ...(span.end_timestamp === undefined ? {} : { end_timestamp: span.end_timestamp }),
+    status: span.status,
+    is_segment: span.is_segment,
+    attributes: {},
+  }
+}
+
 function sanitizeObject(value: object, visited: WeakSet<object>, parentKey: string): boolean {
   if (visited.has(value)) return true
   visited.add(value)
