@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/vue'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
-import { sanitizeSentryPayload } from '@profiletailors/shared-web'
+import { buildRedactedSpan, sanitizeSentryPayload } from '@profiletailors/shared-web'
 
 interface AppSentryConfiguration {
   dsn: string
@@ -56,21 +56,7 @@ export function initializeAppSentry(
     integrations: [Sentry.browserTracingIntegration({ router }), ...replayIntegrations],
     beforeSend: (event) => (sanitizeSentryPayload(event) ? event : null),
     beforeBreadcrumb: (breadcrumb) => (sanitizeSentryPayload(breadcrumb) ? breadcrumb : null),
-    beforeSendSpan: (span) => {
-      if (sanitizeSentryPayload(span)) return span
-
-      return {
-        trace_id: span.trace_id,
-        ...(span.parent_span_id === undefined ? {} : { parent_span_id: span.parent_span_id }),
-        span_id: span.span_id,
-        name: 'redacted',
-        start_timestamp: span.start_timestamp,
-        ...(span.end_timestamp === undefined ? {} : { end_timestamp: span.end_timestamp }),
-        status: span.status,
-        is_segment: span.is_segment,
-        attributes: {},
-      }
-    },
+    beforeSendSpan: (span) => (sanitizeSentryPayload(span) ? span : buildRedactedSpan(span)),
   })
 
   return (error) => Sentry.captureException(error)
