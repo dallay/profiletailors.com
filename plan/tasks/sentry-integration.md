@@ -10,6 +10,8 @@ Agregar seguimiento de errores y correlación de releases a las aplicaciones Vue
 
 El diff completo suma 2,289 líneas, por encima del presupuesto de revisión de 400. Estrategia elegida por el usuario: `feature-branch-chain`, con PRs ordinarios secuenciales y sin metadatos GitHub Stack. La rama de integración/seguimiento será `integration/sentry-issue-1273`; cada PR siguiente tomará como base la rama de trabajo del PR anterior.
 
+El usuario fusionó las PR #1287–#1293 dentro de la cadena el 2026-10-02; solo queda abierta la #1286, que ahora contiene el stack completo rebasado sobre el `main` nuevo. Las ramas hijas locales se eliminaron tras confirmar que su contenido quedó preservado en la rama restante.
+
 | Posición | Rama head | Base | Entregable | Líneas estimadas |
 | --- | --- | --- | --- | ---: |
 | 1/7 | `feat/sentry-shared-sanitizer` | `main` | Sanitizador independiente del SDK en `shared/web` y pruebas | 315 |
@@ -86,12 +88,13 @@ Cada capa incluye código/documentación necesarios para su entregable; las prue
 - `pnpm --filter app lint` reportó un warning preexistente de variable `viewport` sin uso en `src/modules/publishing/presentation/components/mobile/SchedulerTimelineBody.vue`, archivo no modificado. `pnpm peers check` reportó incompatibilidades preexistentes entre `@vitest/ui` 3.2.7/Vitest 4.1.11 y `@codecov/vite-plugin`/Vite 7.3.6.
 - `just backend-check` excedió el límite de 15 minutos; el intento de fondo fue cancelado por el reinicio del servidor. No hay resultado final del gate completo. `./gradlew :server:smp:bootJar --no-daemon` pasó como verificación de empaquetado acotada. `just backend-test-fast` terminó con BUILD SUCCESSFUL en 4m11s (37 tareas; excluye los tags `modularity,postgres`).
 - Tras abrir la cadena (PR #1286–#1293), CI reportó: títulos en español rompen `Semantic PR` (revertidos a inglés convencional); `Quality Gate` de #1290 fue un flake de infra (HTTP 500 de services.gradle.org, reintentado sin cambios); cobertura <80% en #1286/#1288/#1289 y duplicación 14.1% en #1289. Fixes aplicados: helper `buildRedactedSpan` en `shared/web` (elimina el bloque duplicado de 21 líneas), tests que invocan los callbacks reales en app/admin, y `main.test.ts`/`main.spec.ts` para el bootstrap. Cobertura local verificada por JSON: `sentry.ts` y `main.ts` de ambas apps al 100% de statements/funciones. Toda la cadena se propagó por rebase y está en sync con `origin`.
+- El usuario fusionó las PR #1287–#1293 el 2026-10-02; `main` avanzó 5 commits (#1274, #1283, #1284, #1285, #1292). La rama restante se rebasó sobre el `main` nuevo con un único conflicto en `gradle/libs.versions.toml`, resuelto conservando las versiones de `main` (caffeine 3.3.0, jackson 3.2.3, bouncycastle 1.86) y añadiendo `sentry 8.59.0`. GitHub reporta la #1286 `MERGEABLE`; el estado `BLOCKED` restante es solo `REVIEW_REQUIRED` (aprobaciones previas caducadas por los merges/rebases).
 - No se comprobaron proyectos/DSN/token, reglas de scrubbing/IP, cuota Replay, carga real de source maps, alertas, evento real ni despliegue Sentry. No afirmar activación de producción.
 
 ## Estado
 
 - RPI-001–RPI-006 completos para verificación local acotada; el gate backend completo queda explícitamente delegado a GitHub Actions por el límite de memoria de la máquina.
-- Próximo paso: no repetir suites pesadas localmente; exigir GitHub CI antes de merge y configurar/verificar Sentry externamente antes de activar DSN o Replay.
+- Próximo paso: esperar CI de la #1286 rebasada, obtener tu aprobación (las anteriores caducaron con los merges) y fusionar. Después configurar/verificar Sentry externamente antes de activar DSN o Replay.
 
 ## Referencias
 
