@@ -81,11 +81,14 @@ function stripInlineMarkdown(text: string): string {
 function stripHtmlTags(text: string): string {
   let previous = text
   let current = removeDangerousBlocks(previous)
-  current = current.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+  current = current
+    .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+    .replace(/[<>]/g, '')
   while (current !== previous) {
     previous = current
     current = removeDangerousBlocks(current)
-    current = current.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+      .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+      .replace(/[<>]/g, '')
   }
   return current
 }
