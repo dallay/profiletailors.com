@@ -44,6 +44,10 @@ describe('app bootstrap', () => {
     expect(mocks.initPwa).toHaveBeenCalled()
     expect(mocks.mount).toHaveBeenCalledWith('#app')
     expect(mocks.reportStartupFailure).not.toHaveBeenCalled()
+
+    const refreshCallback: unknown = mocks.initPwa.mock.calls.at(-1)?.[0]
+    if (typeof refreshCallback !== 'function') throw new Error('PWA refresh was not registered')
+    refreshCallback()
   })
 
   it('reports hydration failures without blocking startup', async () => {
