@@ -2,7 +2,7 @@
 
 ## Ruta
 
-Delegated direct. Revisar todos los OpenSpec migrados, conservar únicamente contratos de comportamiento de negocio/producto y reconciliarlos con la implementación actual, que el usuario define como fuente de verdad. No ejecutar checks, builds ni preparar PR durante esta etapa.
+Delegated direct. Revisar todos los OpenSpec migrados, conservar únicamente contratos de comportamiento de negocio/producto y reconciliarlos con la implementación actual, que el usuario define como fuente de verdad. La auditoría, verificación y preparación del PR quedan autorizadas por el usuario.
 
 ## Estado
 
@@ -20,7 +20,7 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
 - [x] Trasladar las 16 specs no-negocio propuestas (backoffice, platform, infra, standards, release-readiness) a `.agents/knowledge/`.
 - [x] Eliminar `.agents/sdd/specs/.gitkeep` (directorio ya no está vacío).
 - [x] Catálogo `.agents/sdd/specs/` reducido a 41 contratos de negocio.
-- [x] Lote 1 — dashboards: contraste las 8 specs `dashboard-*` contra componentes Vue en `apps/web/app/src/modules/dashboard/`. Hallazgos documentados abajo.
+- [x] Lote 1 — dashboards: contraste las 7 specs `dashboard-*` contra componentes Vue en `apps/web/app/src/modules/dashboard/`. Hallazgos documentados abajo.
 - [x] Lote 2 — consentimiento/privacidad/legal: contraste 5 specs contra código. Hallazgos documentados abajo.
 - [x] Lote 3 — auth/registro/invitaciones: contraste 4 specs contra código. Hallazgos documentados abajo.
 - [x] Lote 4 — publicación y medios: 27 specs inspeccionadas en superficie. `mcp-server` ajustada al código. Resto marcadas como "alineadas en superficie".
@@ -31,10 +31,10 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
   - `governance-consent-api`: ajustar spec al código (sin `applicationOutcomes`, `history` con tres params, locale solo ISO 639-1, sin `.toList()` explícito en el contrato).
   - `privacy-data-aggregation`: ajustar spec al código (sin `request_id` en `_metadata`, sin publication_assets/secure_credentials).
   - `mcp-server`: ajustar spec al código (`mcp_ping` aparece en `tools/list` cuando `spring.ai.mcp.server.enabled=true`, junto con 5 write tools).
-- [ ] Correr checks/builds autorizados (`just frontend-lint`, `just frontend-check`, `just frontend-test`, `just frontend-build`, `just admin-check`, `just admin-test`, `just admin-build`, `just backend-check`, `just backend-build` según corresponda) tras los cambios.
-- [ ] Crear commit y abrir PR.
-- [ ] Obtener decisión del usuario sobre cómo resolver las divergencias detectadas (ver "Decisiones pendientes").
-- [ ] Actualizar índices/referencias, documentar evidencia y límites de verificación; dejar todos los checks, builds y preparación de PR para una autorización posterior.
+- [x] Correr checks/builds autorizados: `just frontend-lint`, `just frontend-check`, `just frontend-test`, `just frontend-build`, `just admin-check`, `just admin-test`, `pnpm --filter app type-check`, `pnpm --filter app test:run`, `./gradlew :server:smp:detekt :server:smp:compileKotlin :server:smp:compileTestKotlin`, `just docs-lint` y `just doc-check`.
+- [x] Aplicar las decisiones del usuario sobre legal, dashboards, age eligibility, consent API, privacy aggregation y MCP.
+- [x] Actualizar índices/referencias y documentar evidencia y límites de verificación.
+- [ ] Crear commit final y abrir PR.
 
 ## Hallazgos del Lote 1 — dashboards (lectura estática)
 
@@ -73,7 +73,7 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
   - Hero card usa `border-l-2` en lugar de `border-l-4 border-accent` (spec línea 47).
   - "marked as 'seen' in local state" — `dismissed` solo se persiste en memoria del store, no en localStorage.
 
-**Resumen Lote 1**: las 8 specs de `dashboard-*` describen una arquitectura/modelo de datos sustancialmente distinto al código actual. La situación es lo bastante grande como para que las 8 specs necesiten una re-arquitectura del módulo o reescritura sustancial para cumplir el contrato.
+**Resumen Lote 1**: las 7 specs de `dashboard-*` describían una arquitectura/modelo de datos sustancialmente distinto al código actual. Por decisión del usuario, se reescribieron para documentar el comportamiento actual; no se modificó el módulo dashboard.
 
 ## Hallazgos del Lote 2 — consentimiento / privacidad / legal (lectura estática)
 
@@ -96,10 +96,10 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
   - **Alineado**: state machine `PENDING → COMPLETED | REJECTED | FAILED` con validación de transición (líneas 14-32 código), coincide con spec líneas 16-30.
 - **`legal-pages`** contra `apps/web/marketing/src/legal/legal-publication.ts`:
   - **Bloqueador**: spec exige `publication_state.current: blocked` y reglas explícitas "passing build/test MUST NOT change to approved" (spec.yaml líneas 60-66) y "approval must remain blocked until an immutable approval record satisfies docs/compliance/legal-publication-gate.md" (spec.yaml líneas 65-68).
-  - **El código declara `APPROVED` por defecto** (líneas 9-10 del archivo TS). No existe `legal-publication-gate.md` aprobado verificable ni registro de aprobación jurídica.
-  - Esto es una **violación directa** del contrato: el código autoriza publicación de páginas legales sin evidencia de aprobación. Imposible cerrar el ciclo sin esa evidencia.
+   - El código ahora declara `BLOCKED` por defecto (líneas 9-10 del archivo TS), coincidiendo con la regla de publicación del spec. No existe `legal-publication-gate.md` aprobado verificable ni registro de aprobación jurídica.
+   - El cambio mantiene bloqueada la publicación; la aprobación legal continúa fuera del alcance de este PR.
 
-**Resumen Lote 2**: `privacy-compliance` y `privacy-dsar` alineados; `governance-consent-api` con divergencias; `age-eligibility` RQ-004 violado; `privacy-data-aggregation` con campos faltantes; **`legal-pages` BLOQUEADO**.
+**Resumen Lote 2**: `privacy-compliance` y `privacy-dsar` alineados; `governance-consent-api`, `age-eligibility` y `privacy-data-aggregation` ajustados para describir el código actual; **`legal-pages` permanece BLOQUEADO**.
 
 ## Hallazgos del Lote 3 — auth / registro / invitaciones (lectura estática)
 
@@ -123,7 +123,7 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
 - **`login-experience`** — spec de UI/UX; no inspeccionado; pendiente Lote 4.
 - **`password-recovery-ui`** — no inspeccionado; pendiente Lote 4.
 
-**Resumen Lote 3**: `invitations` y `registration` alineados; `age-eligibility` RQ-004 con violación directa; 4 specs UI/auth pendientes.
+**Resumen Lote 3**: `invitations` y `registration` alineados en lo inspeccionado; `age-eligibility` ajustado al código; las cuatro specs UI/auth restantes fueron inspeccionadas en superficie y no presentaron divergencias graves.
 
 ## Hallazgos del Lote 4 — publicación y medios (lectura estática)
 
@@ -155,30 +155,30 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
 - `invitations` (aggregate, status, source, validaciones de construcción).
 - `registration` (form, DTO, payload).
 
-### Specs con divergencias
+### Hallazgos reconciliados
 
 #### BLOQUEADOR
 
-- **`legal-pages`**: código declara `APPROVED` por defecto; spec exige `blocked` hasta evidencia jurídica en `docs/compliance/legal-publication-gate.md`. Imposible cerrar el ciclo sin esa evidencia.
+- **`legal-pages`**: el estado por defecto se corrigió a `BLOCKED`; la publicación sigue esperando evidencia jurídica en `docs/compliance/legal-publication-gate.md`.
 
 #### Violación directa
 
-- **`age-eligibility` RQ-004**: código usa `SubjectReference.user(principalId)`; spec exige `SubjectReference.workspace(workspaceId)`.
+- **`age-eligibility` RQ-004**: la spec se ajustó para describir `SubjectReference.user(principalId)`, que es el comportamiento vigente.
 
 #### Diferencias estructurales
 
-- **`dashboard-*` (8 specs)**: tipos TS divergentes, modelos de dominio diferentes, fixtures mock sin endpoint backend, escalas por followers en lugar de engagement rate, selectores de período/timezone ausentes, grupos por tipo en lugar de por plataforma.
+- **`dashboard-*` (7 specs)**: las specs se reescribieron para documentar los tipos TS, fixtures mock, escala por followers, agrupación por tipo y ausencia de selectores de período/timezone vigentes.
 
 #### Diferencias de API/datos
 
-- **`governance-consent-api`**: campo `applicationOutcomes` ausente en respuesta, `history` endpoint con tres params vs `subjectReference` único, locale solo ISO 639-1.
-- **`privacy-data-aggregation`**: `_metadata` sin `request_id`; Publishing sin `publication_assets` y `secure_credentials`.
+- **`governance-consent-api`**: la spec se ajustó al response actual sin `applicationOutcomes`, al endpoint `history` con tres parámetros y al locale ISO 639-1.
+- **`privacy-data-aggregation`**: la spec se ajustó al `_metadata` actual y a las secciones Publishing actualmente expuestas.
 
 ### Riesgos identificados
 
-- El catálogo de dashboards describe una arquitectura sustancialmente distinta al código actual. La reconciliación puede implicar re-arquitectura del módulo o reescritura considerable de specs.
-- `legal-pages` bloquea la publicación pública de páginas legales. Sin evidencia de aprobación jurídica, no se puede revertir la divergencia.
-- `age-eligibility` RQ-004 con violación confirmada puede implicar migración de datos o cambio de comportamiento de registro que requiere autorización de producto.
+- El catálogo de dashboards documenta actualmente fixtures y comportamiento de presentación; implementar datos reales queda fuera del alcance de este PR.
+- `legal-pages` sigue bloqueado por diseño hasta que exista evidencia jurídica aprobada.
+- Los contratos de cumplimiento se documentan según el código MVP actual; una futura fase puede endurecerlos cuando el producto avance hacia producción.
 
 ### Decisiones aplicadas por el usuario
 
@@ -188,15 +188,11 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
 - `governance-consent-api`: **ajustar spec al código**. Se elimina `applicationOutcomes`, `history` usa tres params, `Flow.toList()` no es parte del contrato del controller.
 - `privacy-data-aggregation`: **ajustar spec al código**. Sin `request_id`, sin `publication_assets`/`secure_credentials`.
 
-### Divergencias restantes
+### Límites de verificación
 
-- 33 specs pendientes de inspección o reescritura: 18 de publicación/medios (Lote 4) + 15 ya en la nube y aún no tocadas.
-
-### Decisiones pendientes
-
-- Cómo y cuándo ejecutar el Lote 4 (publicación/medios y 4 UI/auth del Lote 3).
+- Las 27 specs del Lote 4 fueron inspeccionadas en superficie; no se afirma una trazabilidad bit-a-bit de cada escenario.
+- El `backend-build` completo no se usa como evidencia: ejecuta suites PostgreSQL/BDD largas y el intento anterior fue interrumpido. Sí pasan Detekt y compilación Kotlin/test.
 
 ### Próximo paso
 
-- Completar Lote 4 (18 specs de publicación/medios + 4 specs UI/auth de Lote 3).
-- Presentar el resumen al usuario para decidir sobre las divergencias detectadas antes de PR.
+- Crear y abrir el PR con la excepción explícita de tamaño autorizada por el usuario: 2.285 líneas frente al presupuesto recomendado de 400, principalmente por migraciones y reubicaciones de artefactos.
