@@ -74,7 +74,15 @@ Edit `infra/apps/smp/swarm/.env` and configure:
 SMP_IMAGE=registry.example.com/profiletailors/smp@sha256:<digest>
 DASHBOARD_IMAGE=registry.example.com/profiletailors/dashboard@sha256:<digest>
 PUBLIC_ORIGIN=https://app.example.com
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=production
 ```
+
+`SENTRY_DSN` is the optional SMP public ingestion identifier. Keep it empty until the Sentry
+`profiletailors-smp` project and organization-side scrubbing/IP settings have been approved. The
+dashboard image built by the release workflow uses repository variables `SENTRY_APP_DSN` and
+`SENTRY_ORG`; its source-map upload token remains a CI-only BuildKit secret. The SMP image supplies
+its component release identifier. Neither upload token is a Swarm secret or runtime setting.
 
 `swarm-prepare` initializes optional LinkedIn and Resend secret sources with `unconfigured`, because
 Swarm rejects zero-byte secrets. Replace those placeholders before enabling either integration. The

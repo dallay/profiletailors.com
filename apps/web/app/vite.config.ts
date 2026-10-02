@@ -1,8 +1,9 @@
-import { defineConfig, type UserConfig } from 'vite'
+import { defineConfig, loadEnv, type PluginOption, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import type { InlineConfig as VitestInlineConfig } from 'vitest/node'
 import { fileURLToPath, URL } from 'node:url'
 import { writeFileSync } from 'node:fs'
@@ -24,27 +25,38 @@ const buildInfo = process.env.VITEST
     }
   : computeBuildInfo(fileURLToPath(new URL('./package.json', import.meta.url)))
 
-const config = {
-  envDir: '../../..',
-  define: {
-    __APP_VERSION__: JSON.stringify(buildInfo.version),
-    __GIT_SHA__: JSON.stringify(buildInfo.gitSha),
-    __BUILD_TIME__: JSON.stringify(buildInfo.buildTime),
-  },
-  server: {
-    port: parseInt(process.env.PORT || '5173', 10),
-    strictPort: Boolean(process.env.WORKTREE_ID || process.env.PLAYWRIGHT),
-    hmr: !isE2eOrCi,
-    host: true,
-    allowedHosts: ['.localhost', 'pt-app.localhost'],
-    proxy: {
-      '/api': {
-        target: `http://localhost:${process.env.SMP_BACKEND_PORT || '7638'}`,
-        changeOrigin: true,
-      },
-    },
-  },
-  plugins: [
+const environmentRoot = fileURLToPath(new URL('../../../', import.meta.url))
+
+export default defineConfig(({ mode }) => {
+  const environment = loadEnv(mode, environmentRoot, 'VITE_')
+  const sentryGitSha = process.env.GIT_SHA?.trim() || buildInfo.gitSha
+  const sentryRelease = `app@${buildInfo.version}+${sentryGitSha}`
+  const sentryEnabled = mode === 'production' && Boolean(environment.VITE_SENTRY_DSN?.trim())
+
+  if (mode === 'production' && !sentryEnabled) {
+    console.warn(
+      'Sentry is disabled because VITE_SENTRY_DSN is not configured; source maps are off.',
+    )
+  }
+
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
+  const sentryOrg = process.env.SENTRY_ORG
+  const sentryProject = process.env.SENTRY_PROJECT
+  const missingSentrySettings = [
+    ...(!sentryAuthToken ? ['SENTRY_AUTH_TOKEN'] : []),
+    ...(!sentryOrg ? ['SENTRY_ORG'] : []),
+    ...(!sentryProject ? ['SENTRY_PROJECT'] : []),
+  ]
+
+  if (sentryEnabled && missingSentrySettings.length > 0) {
+    throw new Error(`Sentry source-map upload requires ${missingSentrySettings.join(', ')}.`)
+  }
+
+  if (sentryEnabled && sentryProject !== 'profiletailors-app') {
+    throw new Error('SENTRY_PROJECT must be profiletailors-app for this application.')
+  }
+
+  const pluginOptions = [
     {
       name: 'version-json',
       closeBundle() {
@@ -57,7 +69,7 @@ const config = {
       },
     },
     vue(),
-    !isE2eOrCi && vueDevTools(),
+    isE2eOrCi ? false : vueDevTools(),
     tailwind(),
     VitePWA({
       registerType: 'prompt',
@@ -89,33 +101,72 @@ const config = {
       },
       devOptions: { enabled: false },
     }),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@modules': fileURLToPath(new URL('./src/modules', import.meta.url)),
-      '@shared/assets': fileURLToPath(new URL('../../../shared/assets', import.meta.url)),
-      '@profiletailors/vue-ui': fileURLToPath(
-        new URL('../../../shared/vue-ui/src', import.meta.url),
-      ),
+    sentryEnabled
+      ? sentryVitePlugin({
+          authToken: sentryAuthToken,
+          org: sentryOrg,
+          project: sentryProject,
+          release: { name: sentryRelease },
+          sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+          telemetry: false,
+        })
+      : false,
+  ]
+  const plugins = pluginOptions.flatMap((plugin): PluginOption[] => {
+    if (typeof plugin === 'boolean' || plugin === null || plugin === undefined) return []
+    return [plugin]
+  })
 
-      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
-      '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
+  const config = {
+    envDir: '../../..',
+    define: {
+      __APP_VERSION__: JSON.stringify(buildInfo.version),
+      __GIT_SHA__: JSON.stringify(buildInfo.gitSha),
+      __BUILD_TIME__: JSON.stringify(buildInfo.buildTime),
+      __SENTRY_RELEASE__: JSON.stringify(sentryRelease),
     },
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
-    setupFiles: ['./src/vitest-setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      reportsDirectory: './coverage',
-      include: ['src/**/*.ts', 'src/**/*.vue'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
+    build: { sourcemap: sentryEnabled ? ('hidden' as const) : false },
+    server: {
+      port: parseInt(process.env.PORT || '5173', 10),
+      strictPort: Boolean(process.env.WORKTREE_ID || process.env.PLAYWRIGHT),
+      hmr: !isE2eOrCi,
+      host: true,
+      allowedHosts: ['.localhost', 'pt-app.localhost'],
+      proxy: {
+        '/api': {
+          target: `http://localhost:${process.env.SMP_BACKEND_PORT || '7638'}`,
+          changeOrigin: true,
+        },
+      },
     },
-  },
-} satisfies UserConfig & { test?: VitestInlineConfig }
+    plugins,
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        '@modules': fileURLToPath(new URL('./src/modules', import.meta.url)),
+        '@shared/assets': fileURLToPath(new URL('../../../shared/assets', import.meta.url)),
+        '@profiletailors/vue-ui': fileURLToPath(
+          new URL('../../../shared/vue-ui/src', import.meta.url),
+        ),
 
-export default defineConfig(config)
+        '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+        '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
+      },
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+      setupFiles: ['./src/vitest-setup.ts'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'html', 'lcov'],
+        reportsDirectory: './coverage',
+        include: ['src/**/*.ts', 'src/**/*.vue'],
+        exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
+      },
+    },
+  } satisfies UserConfig & { test?: VitestInlineConfig }
+
+  return config
+})
