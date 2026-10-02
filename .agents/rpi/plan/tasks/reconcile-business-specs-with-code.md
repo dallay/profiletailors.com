@@ -96,8 +96,8 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
   - **Alineado**: state machine `PENDING → COMPLETED | REJECTED | FAILED` con validación de transición (líneas 14-32 código), coincide con spec líneas 16-30.
 - **`legal-pages`** contra `apps/web/marketing/src/legal/legal-publication.ts`:
   - **Bloqueador**: spec exige `publication_state.current: blocked` y reglas explícitas "passing build/test MUST NOT change to approved" (spec.yaml líneas 60-66) y "approval must remain blocked until an immutable approval record satisfies docs/compliance/legal-publication-gate.md" (spec.yaml líneas 65-68).
-   - El código ahora declara `BLOCKED` por defecto (líneas 9-10 del archivo TS), coincidiendo con la regla de publicación del spec. No existe `legal-publication-gate.md` aprobado verificable ni registro de aprobación jurídica.
-   - El cambio mantiene bloqueada la publicación; la aprobación legal continúa fuera del alcance de este PR.
+  - El código ahora declara `BLOCKED` por defecto (líneas 9-10 del archivo TS), coincidiendo con la regla de publicación del spec. No existe `legal-publication-gate.md` aprobado verificable ni registro de aprobación jurídica.
+  - El cambio mantiene bloqueada la publicación; la aprobación legal continúa fuera del alcance de este PR.
 
 **Resumen Lote 2**: `privacy-compliance` y `privacy-dsar` alineados; `governance-consent-api`, `age-eligibility` y `privacy-data-aggregation` ajustados para describir el código actual; **`legal-pages` permanece BLOQUEADO**.
 
