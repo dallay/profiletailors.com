@@ -34,7 +34,7 @@ Ready para checks/builds y PR. Catálogo reducido de 61 a 41 contratos de negoci
 - [x] Correr checks/builds autorizados: `just frontend-lint`, `just frontend-check`, `just frontend-test`, `just frontend-build`, `just admin-check`, `just admin-test`, `pnpm --filter app type-check`, `pnpm --filter app test:run`, `./gradlew :server:smp:detekt :server:smp:compileKotlin :server:smp:compileTestKotlin`, `just docs-lint` y `just doc-check`.
 - [x] Aplicar las decisiones del usuario sobre legal, dashboards, age eligibility, consent API, privacy aggregation y MCP.
 - [x] Actualizar índices/referencias y documentar evidencia y límites de verificación.
-- [ ] Crear commit final y abrir PR.
+- [x] Crear commits finales y abrir PR #1296.
 
 ## Hallazgos del Lote 1 — dashboards (lectura estática)
 
