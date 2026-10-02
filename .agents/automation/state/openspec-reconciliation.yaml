@@ -1,18 +1,18 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: "2026-09-25T18:13:02Z"
-outcome: NO_DRIFT_DETECTED
+lastExecution: "2026-10-02T18:30:00Z"
+outcome: CHANGES_APPLIED
 findings: []
 checks:
   - name: active-changes-audit
     target: openspec/changes
     status: Passed
-    notes: "Audited active changes; 0 active changes remain in openspec/changes/ as all previous active changes have been archived."
+    notes: "Audited active changes; archived reactive-calendar-browser-sync and skill-knowledge-bundle-hardening. 1 active change (dallay-598-threads-provider-integration) remains in openspec/changes/ awaiting external QA evidence."
   - name: global-specs-validation
     target: openspec/specs
     status: Passed
-    notes: Global specs match current baseline (61 spec domains); active changes have been archived in openspec/changes/archive/.
+    notes: Global specs match current baseline (72 spec domains); archived active changes moved to openspec/changes/archive/.
   - name: frontend-check
     target: apps/web/marketing
     status: Passed
-    notes: astro check passed with 0 errors and 0 warnings.
+    notes: pnpm --filter marketing check passed with 0 errors and 0 warnings.
