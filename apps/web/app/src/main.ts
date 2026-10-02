@@ -10,9 +10,11 @@ import i18n from '@shared/i18n'
 import { initPwa } from '@/pwa/registerPwa'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
+import { configureAppSentry } from '@shared/lib/sentry'
 
 async function main() {
   const app = createApp(App)
+  const reportStartupFailure = configureAppSentry(app, router)
   const pinia = createPinia()
 
   app.use(pinia)
@@ -20,21 +22,24 @@ async function main() {
   const authStore = useAuthStore(pinia)
   useSettingsStore(pinia)
 
-  // Hydrate session BEFORE mounting the router so the route guard
-  // always sees resolved session state (avoids race where navigation
-  // starts before hydration completes).
   try {
-    await authStore.hydrateSession()
+    try {
+      await authStore.hydrateSession()
+    } catch (error) {
+      reportStartupFailure(error)
+      console.error('Failed to hydrate session:', error)
+    }
+
+    app.use(i18n)
+    app.use(router)
+
+    initPwa(() => window.dispatchEvent(new CustomEvent('pwa:need-refresh')))
+
+    app.mount('#app')
   } catch (error) {
-    console.error('Failed to hydrate session:', error)
+    reportStartupFailure(error)
+    throw error
   }
-
-  app.use(i18n)
-  app.use(router)
-
-  initPwa(() => window.dispatchEvent(new CustomEvent('pwa:need-refresh')))
-
-  app.mount('#app')
 }
 
 try {
