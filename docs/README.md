@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated: 2026-10-01
+**Last Updated:** 2026-10-02
 
 ## 📖 Table of Contents
 
@@ -66,6 +66,8 @@
 
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
   visualization
+- [Sentry Error Tracking Runbook](./monitoring/sentry-runbook.md) - Conditional error tracking,
+  release/source-map verification, privacy setup, and alert operations
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
 - [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 - [Shared Observability Usage Standard](./observability-usage.md) - Canonical usage guide for

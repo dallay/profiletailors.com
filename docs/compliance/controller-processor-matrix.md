@@ -3,7 +3,7 @@
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Draft — no production subprocessor list is approved
 > **Version:** 2.0
-> **Last verified:** 2026-07-17
+> **Last verified:** 2026-10-02
 
 ## Overview
 
@@ -30,6 +30,7 @@ No external provider currently qualifies as **Selected** based on repository evi
 |---------|------------|--------------------------------------------------------------------------------------|
 | 1.0     | 2026-07-17 | Initial matrix containing provider alternatives and unsupported DPA claims           |
 | 2.0     | 2026-07-17 | Reconciled with code and configuration; added provider-selection and agreement gates |
+| 2.1     | 2026-10-02 | Recorded conditional Sentry code without claiming current production processing     |
 
 ## Usage
 
@@ -71,7 +72,7 @@ service operations.
 | External media search     | Unsplash                                                | **Conditional**                   | Search query, server request metadata, imported asset metadata                    | Unknown                        | API terms approval not evidenced                    | Name only if feature enabled.                                                             |
 | Marketing analytics       | Ahrefs Web Analytics                                    | **Conditional**                   | Page, referrer, device/network and analytics request data                         | Unknown                        | Contract/DPA/role not evidenced                     | Verify activation and observed behaviour before notice.                                   |
 | Metrics and logs          | Prometheus-format endpoint; provider not selected       | **Not selected**                  | Metrics, tags, identifiers and application logs                                   | Unknown                        | No managed-provider agreement evidenced             | Do not name Grafana or another managed provider.                                          |
-| Error tracking            | None located                                            | **Not evidenced**                 | Not applicable until selected                                                     | Not applicable                 | None                                                | Remove Sentry from current-provider claims.                                               |
+| Error tracking            | Sentry SDK in app/admin/SMP; DSN-gated                  | **Conditional**                   | Error type, stack, release/environment, sanitized request context                 | Unknown                        | Agreement, project configuration, and region not evidenced | Do not name Sentry as a current processor until production activation and organization settings are evidenced. |
 | Queue/cache               | No external managed provider located                    | **Not evidenced**                 | Application may use internal/runtime mechanisms; external flow unproved           | Unknown                        | None                                                | Remove Upstash, ElastiCache, CloudAMQP, and Confluent from current-provider claims.       |
 
 ### Claims invalidated by repository evidence
@@ -81,7 +82,7 @@ service operations.
 | Vercel is the current host and its DPA/SCCs are in place | No Vercel deployment adapter or production configuration is present; release workflow says deployment is future work.          |
 | Auth0/Clerk is the identity provider                     | Local JWT, refresh sessions, and configurable federated JWT validation are implemented; no Auth0/Clerk selection is evidenced. |
 | Cloudflare R2/AWS S3 is the current media store          | Local filesystem is the default; R2 and S3 are available adapters, not a production selection.                                 |
-| Sentry is a planned/current processor                    | No Sentry integration was located. Planned vendors do not belong in a current processor register.                              |
+| Sentry is a current processor                            | SDK code is conditionally wired, but production DSNs, organization/project settings, region, and agreement are not evidenced.  |
 | Managed Grafana/Prometheus operates in the EEA           | Prometheus-format metrics exist; no managed recipient, region, or contract is evidenced.                                       |
 | Resend/SendGrid is the email provider                    | Resend is conditional; SendGrid was not located. Neither is proved as selected production processing.                          |
 | All social platforms receive content                     | Only LinkedIn has real backend connection and publishing adapters. Frontend types and mock data do not prove processing.       |

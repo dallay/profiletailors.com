@@ -336,6 +336,27 @@ container storage.
 - **Rotation:** Static; only changes if migrating to a different Cloudflare account.
 - **Access:** Infrastructure administrators, GitHub Actions secrets/variables.
 
+### Sentry source-map upload
+
+#### `SENTRY_AUTH_TOKEN`
+
+- **Type:** Sentry API token (String)
+- **Description:** CI-only token used by Release Please to create releases and upload app/admin
+  source maps.
+- **Risk:** HIGH (can modify Sentry release artifacts)
+- **Generation:** Create a Sentry token with only the organization read and project release upload
+  scopes required by the Vite plugin.
+- **Rotation:** Revoke and replace immediately if exposed; review periodically with other CI tokens.
+- **Access:** Infrastructure administrators and the repository-level GitHub Actions secret used by
+  the Release Please app, admin, and dashboard-image build jobs.
+- **Runtime note:** Never prefix this token with `VITE_`, pass it as a Docker build argument, store it
+  in Cloudflare variables, or include it in static artifacts.
+
+`SENTRY_ORG`, `SENTRY_APP_DSN`, and `SENTRY_ADMIN_DSN` are repository configuration values, not
+secrets. `SENTRY_PROJECT` is pinned in each app/admin build to its project slug. Frontend DSNs are
+public ingestion identifiers. Keep the SMP `SENTRY_DSN` in the deployment environment and do not
+substitute it for the CI upload token.
+
 ## Secret validation checklist
 
 Before deploying to production, verify:

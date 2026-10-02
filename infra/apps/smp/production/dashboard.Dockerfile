@@ -19,9 +19,15 @@ COPY shared shared
 COPY apps/web/app apps/web/app
 
 ARG VITE_API_BASE_URL=""
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ARG GIT_SHA=""
+ARG VITE_SENTRY_DSN=""
+ARG VITE_SENTRY_ENVIRONMENT="production"
+ARG VITE_SENTRY_REPLAY_ON_ERROR="false"
+ARG SENTRY_ORG=""
+ARG SENTRY_PROJECT="profiletailors-app"
 
-RUN pnpm --filter app build
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=false \
+    pnpm --filter app build
 
 FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:2ddec616f1cb58bcac057aa388f28cb81e35137641ef4226d321714499329bd1 AS runtime
 

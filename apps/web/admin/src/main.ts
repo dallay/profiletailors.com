@@ -8,6 +8,7 @@ import App from './App.vue'
 import router from './router'
 import { messages } from './i18n'
 import { useAdminAuthStore } from './stores/auth.store'
+import { configureAdminSentry } from '@/lib/sentry'
 
 const i18n = createI18n({
   legacy: false,
@@ -18,16 +19,23 @@ const i18n = createI18n({
 
 async function main() {
   const app = createApp(App)
-  const pinia = createPinia()
+  const reportStartupFailure = configureAdminSentry(app, router)
 
-  app.use(pinia)
+  try {
+    const pinia = createPinia()
 
-  const authStore = useAdminAuthStore(pinia)
-  await authStore.hydrateSession()
+    app.use(pinia)
 
-  app.use(i18n)
-  app.use(router)
-  app.mount('#app')
+    const authStore = useAdminAuthStore(pinia)
+    await authStore.hydrateSession()
+
+    app.use(i18n)
+    app.use(router)
+    app.mount('#app')
+  } catch (error) {
+    reportStartupFailure(error)
+    throw error
+  }
 }
 
 main().catch(console.error)
