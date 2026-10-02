@@ -464,7 +464,7 @@ dispatched asynchronously via domain-event consumers through the `EmailDispatche
 Implementation lives in `TakedownEmailTemplates.kt` under `governance/infrastructure/email/`.
 Consumers in `TakedownEmailConsumers.kt` resolve recipients via `WorkspaceOwnershipRepository`
 
-+ `PrincipalIdentityLookup`.
+- `PrincipalIdentityLookup`.
 
 (Previously: only verification email templates existed.)
 

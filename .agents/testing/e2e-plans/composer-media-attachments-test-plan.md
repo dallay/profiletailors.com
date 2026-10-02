@@ -667,7 +667,7 @@ If Unsplash is absent in local dev:
 
 ## References
 
-- `openspec/specs/e2e/cas-media-library-test-plan.md` — broader media-library and CAS coverage
+- `.agents/testing/e2e-plans/cas-media-library-test-plan.md` — broader media-library and CAS coverage
 - `apps/web/app/e2e/pages/compose-modal-page.ts` — existing page object with basic composer locators
 - `apps/web/app/src/composables/useComposerMediaPicker.ts` — picker staging, source switching,
   attachment limits, and provider import/search stubs

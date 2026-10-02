@@ -10,9 +10,9 @@ context: |
 persistence:
   mode: openspec
   artifact_policy: openspec-only
-  main_specs: openspec/specs
-  active_changes: openspec/changes
-  archive: openspec/changes/archive
+  main_specs: .agents/sdd/specs
+  active_changes: .agents/sdd/changes
+  archive: .agents/sdd/changes/archive
 
 testing:
   strict_tdd: true

@@ -2,14 +2,15 @@
 
 ## Overview
 
-`openspec/` is the source of truth for product behavior and spec-driven development (SDD). It
+`.agents/sdd/` is the source of truth for product behavior and spec-driven development (SDD). It
 contains durable product specifications plus the proposal, design, task, application, and
 verification artifacts for individual changes.
 
 OpenSpec is limited to product, domain, user-facing, legal, privacy, security, and business
 readiness contracts. CI and quality gates, dependency policy, architecture governance, refactors,
 test-harness plans, and deployment plumbing belong in the repository's workflows, ADRs, skills,
-testing documentation, or operational documentation instead of `openspec/specs/`. A change may
+testing documentation, or operational documentation instead of `.agents/sdd/specs/`. Playwright E2E
+plans are maintained under `.agents/testing/e2e-plans/`. A change may
 include technical design and verification evidence when it implements a product contract, but a
 purely technical task must not create a standalone OpenSpec capability.
 

@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: .agents/testing/e2e-plans/login-flow.md
  * section: 6. Authentication State / Session Hydration
  *
  * Covers session persistence across page refreshes, expired session
