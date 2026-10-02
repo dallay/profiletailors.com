@@ -97,4 +97,25 @@ describe('sanitizeSentryPayload', () => {
       longValue: 'x'.repeat(512),
     })
   })
+
+  it('drops invalid user identifiers and falls back for malformed URLs', () => {
+    const withoutId = { user: { email: 'person@example.com' } }
+    expect(sanitizeSentryPayload(withoutId)).toBe(true)
+    expect(withoutId.user).toEqual({})
+
+    const invalidId = { user: { id: 'not valid!!', email: 'person@example.com' } }
+    expect(sanitizeSentryPayload(invalidId)).toBe(true)
+    expect(invalidId.user).toEqual({})
+
+    const malformed = { message: 'see http://[invalid]/reset?token=reset-secret' }
+    expect(sanitizeSentryPayload(malformed)).toBe(true)
+    expect(malformed.message).toBe('see http://[invalid]/reset')
+  })
+
+  it('fails closed when payloads cannot be mutated', () => {
+    expect(sanitizeSentryPayload({ nested: Object.freeze({ note: 'hello' }) })).toBe(false)
+    expect(sanitizeSentryPayload({ tags: Object.freeze({ principalId: 'principal-123' }) })).toBe(
+      false,
+    )
+  })
 })
