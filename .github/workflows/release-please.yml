@@ -84,11 +84,14 @@ jobs:
 
       - name: Resolve release metadata
         id: resolve-meta
+        env:
+          RELEASE_TAG_VALUE: ${{ inputs.app_tag || needs.release-please.outputs['app--tag_name'] }}
+          RELEASE_PROVIDED_SHA: ${{ needs.release-please.outputs['app--sha'] }}
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ inputs.app_tag || needs.release-please.outputs['app--tag_name'] }}" \
+            --tag "$RELEASE_TAG_VALUE" \
             --scope "app" \
-            --provided "${{ needs.release-please.outputs['app--sha'] }}"
+            --provided "$RELEASE_PROVIDED_SHA"
 
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
@@ -207,11 +210,14 @@ jobs:
 
       - name: Resolve release metadata
         id: resolve-meta
+        env:
+          RELEASE_TAG_VALUE: ${{ inputs.admin_tag || needs.release-please.outputs['admin--tag_name'] }}
+          RELEASE_PROVIDED_SHA: ${{ needs.release-please.outputs['admin--sha'] }}
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ inputs.admin_tag || needs.release-please.outputs['admin--tag_name'] }}" \
+            --tag "$RELEASE_TAG_VALUE" \
             --scope "admin" \
-            --provided "${{ needs.release-please.outputs['admin--sha'] }}"
+            --provided "$RELEASE_PROVIDED_SHA"
 
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
@@ -330,11 +336,14 @@ jobs:
 
       - name: Resolve release metadata
         id: resolve-meta
+        env:
+          RELEASE_TAG_VALUE: ${{ inputs.landing_tag || needs.release-please.outputs['landing--tag_name'] }}
+          RELEASE_PROVIDED_SHA: ${{ needs.release-please.outputs['landing--sha'] }}
         run: |
           node scripts/extract-release-info.mjs \
-            --tag "${{ inputs.landing_tag || needs.release-please.outputs['landing--tag_name'] }}" \
+            --tag "$RELEASE_TAG_VALUE" \
             --scope "landing" \
-            --provided "${{ needs.release-please.outputs['landing--sha'] }}"
+            --provided "$RELEASE_PROVIDED_SHA"
 
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
