@@ -52,7 +52,7 @@
     "@biomejs/biome": "2.5.14",
     "markdownlint-cli2": "0.23.3",
     "portless": "0.15.6",
-    "wrangler": "^4.142.0"
+    "wrangler": "^4.143.0"
   },
   "overrides": {
     "undici": ">=8.10.2",
