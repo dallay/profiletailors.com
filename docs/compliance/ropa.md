@@ -196,7 +196,7 @@ approvals required by [`legal-publication-gate.md`](legal-publication-gate.md).
 | Role and purpose  | Proposed controller; operations/security metrics and optional marketing analytics                          |
 | Data subjects     | Visitors, users, and API consumers                                                                         |
 | Data categories   | Metrics/tags, emitted identifiers/log context, and conditional Ahrefs request/usage data                   |
-| Recipients        | Ahrefs conditional; logs/metrics provider not selected; no Sentry/Vercel Analytics integration evidenced   |
+| Recipients        | Ahrefs conditional; logs/metrics provider not selected; Sentry integration conditional with no production activation or organization configuration evidenced   |
 | Transfers         | Unknown                                                                                                    |
 | Proposed basis    | Operational legitimate interest and market-dependent analytics consent; assessments pending                |
 | Retention         | Missing; no 30-day/90-day/13-month controls evidenced                                                      |

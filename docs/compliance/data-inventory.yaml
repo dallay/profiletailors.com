@@ -1,7 +1,7 @@
 schema_version: "2.1"
 status: draft
 production_release_status: blocked
-last_verified_on: 2026-09-25
+last_verified_on: 2026-10-02
 processing_entity: UNRESOLVED - legal person required before publication
 DPO_contact: null
 
@@ -506,6 +506,11 @@ processing_activities:
         legal_basis:
           type: legitimate_interest
           reference: Proposed operational-security interest; necessity and balancing assessment pending
+      - purpose: Investigate unexpected application errors and correlate them with deployed releases
+        role: controller
+        legal_basis:
+          type: legitimate_interest
+          reference: Proposed operational-security interest; necessity and balancing assessment pending
       - purpose: Measure marketing-site page usage with optional Ahrefs Web Analytics
         role: controller
         legal_basis:
@@ -515,6 +520,7 @@ processing_activities:
       - Application metric names, timings, counts, provider tags, and bucket tags
       - Log messages and identifiers emitted by application components
       - Marketing page URL, referrer, device, network, and request data processed by Ahrefs when configured
+      - Conditional Sentry error type, stack trace, release, environment, and sanitized request-path context
     data_subjects: Website visitors, application users, and API consumers
     recipients:
       - name: Ahrefs Web Analytics
@@ -531,6 +537,13 @@ processing_activities:
         agreement_reference: Not executed or evidenced
         activation_status: not_selected
         agreement_status: unverified
+      - name: Sentry error tracking
+        type: processor
+        location_type: unknown
+        location: Organization, processing region, and support locations are not evidenced
+        agreement_reference: Production agreement and DPA are not evidenced
+        activation_status: conditional
+        agreement_status: unverified
     retention:
       trigger: Metric, log, or analytics event created
       duration: Not established
@@ -539,21 +552,38 @@ processing_activities:
       evidence:
         - Prometheus-format Actuator metrics are implemented
         - Ahrefs script loads only when AHREFS_ANALYTICS_KEY is configured
-        - No Sentry integration or Vercel Analytics integration was located
+        - Sentry SDK integration and pre-send sanitizers are present in code but production DSNs and organization settings are not evidenced
+        - No Vercel Analytics integration was located
         - No P30D/P90D/P13M deletion controls were located
     security_measures:
       - Detailed Actuator information requires authorization
       - Management port and endpoint exposure are configurable
+      - Sentry SDK settings disable user info, request/response bodies, headers, cookies, and URL query collection
+      - Sentry event callbacks remove user identity, breadcrumbs, request metadata, unsafe tags, and sensitive text
     evidence_references:
       - path: apps/web/marketing/src/components/Analytics.astro
         reason: Conditional Ahrefs client script
       - path: server/smp/src/main/resources/application.yaml
-        reason: Prometheus Actuator configuration
+        reason: Prometheus Actuator and Sentry privacy configuration
+      - path: shared/web/utils/sentry-sanitizer.ts
+        reason: Shared app/admin pre-send event and breadcrumb sanitizer
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/observability/infrastructure/sentry/SentryPrivacyConfiguration.kt
+        reason: SMP pre-send event sanitizer adapter
+      - path: apps/web/app/src/shared/lib/sentry.ts
+        reason: Customer-app Sentry initialization and pre-send sanitization
+      - path: apps/web/admin/src/lib/sentry.ts
+        reason: Admin Sentry initialization and pre-send sanitization
+      - path: apps/web/app/vite.config.ts
+        reason: Conditional production Sentry DSN, release, and source-map upload setup
+      - path: apps/web/admin/vite.config.ts
+        reason: Conditional production Sentry DSN, release, and source-map upload setup
+      - path: .github/workflows/release-please.yml
+        reason: Release-time Sentry project configuration and source-map uploads
       - path: shared/storage/src/main/kotlin/com/profiletailors/storage/infrastructure/metrics/StorageMetrics.kt
         reason: Example application metric labels and dimensions
     evidence_status: partial
     legal_review_status: pending
-    notes: Ahrefs documents its default Web Analytics implementation as cookieless; configuration and observed production behaviour must still be verified before publication.
+    notes: Sentry is conditionally enabled by DSN. Production project setup, actual activation, server-side scrubbing, IP scrubbing, region, agreement, and retention remain unverified. Ahrefs documents its default Web Analytics implementation as cookieless; configuration and observed production behaviour must still be verified before publication.
 
   - id: pa-012
     name: Browser cookies and local device storage
