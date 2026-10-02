@@ -71,8 +71,9 @@ distinct purpose to allow independent withdrawal:
 2. **Terms acceptance consent:** `purpose = "terms.acceptance"`,
    `policyVersion = <acceptedTermsVersion from command>`
 
-Both consent records SHALL use `SubjectReference.workspace(workspaceId)` where `workspaceId` is
-captured from `provisionDefaultWorkspace()`. The consent recording MUST happen inside the same
+Both consent records SHALL use `SubjectReference.user(principalId)` referencing the principal
+created during registration. The `workspaceId` for the consent record is resolved by the
+existing consent persistence path. The consent recording MUST happen inside the same
 atomic transaction as registration, after `provisionDefaultWorkspace()` but before event
 publication. If either consent record fails, the entire registration transaction SHALL roll back.
 

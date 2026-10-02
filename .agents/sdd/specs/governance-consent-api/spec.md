@@ -89,14 +89,15 @@ semantics:
 | Existing record is `ACTIVE`    | `200 OK`      | No action taken; idempotent replay |
 | Existing record is `WITHDRAWN` | `201 Created` | Re-recorded; new evidence created  |
 
-The response body SHALL include `applicationOutcomes` listing what was applied.
+The response body SHALL be the `ConsentRecordResponse` describing the resulting record. Outcome
+metadata is inferred from the HTTP status (`201` indicates a new record was created).
 
 #### Scenario: First-time consent recording returns 201
 
 - GIVEN no existing consent for `alice@example.com`, purpose `MARKETING`, workspace `ws-123`
 - WHEN `POST /api/governance/consent` with valid payload is invoked
 - THEN status `201 Created` SHALL be returned
-- AND `applicationOutcomes` SHALL list the newly recorded consent
+- AND the body is the recorded consent record
 
 #### Scenario: Idempotent replay of active consent returns 200
 
@@ -104,16 +105,7 @@ The response body SHALL include `applicationOutcomes` listing what was applied.
   `workspaceId`
 - WHEN `POST /api/governance/consent` with identical payload is invoked
 - THEN status `200 OK` SHALL be returned
-- AND `applicationOutcomes` SHALL be empty (nothing applied)
-
-#### Scenario: Re-consent after withdrawal returns 201 with new record
-
-- GIVEN a `WITHDRAWN` consent record for `alice@example.com`, purpose `MARKETING`, workspace
-  `ws-123`
-- WHEN `POST /api/governance/consent` is invoked
-- THEN status `201 Created` SHALL be returned
-- AND a new `ACTIVE` record SHALL be created
-- AND `applicationOutcomes` SHALL include the new consent
+- AND the body reflects the unchanged consent record
 
 ---
 
@@ -164,13 +156,15 @@ authenticated workspace, with optional filters for `subjectKind` and `purpose`.
 ### Requirement: Consent History
 
 The `GET /api/governance/consent/history` endpoint SHALL return the full consent lifecycle for a
-subject, including recording, withdrawals, and re-consents.
+subject scoped by subject kind, value, and purpose. The endpoint accepts three required query
+parameters: `subjectKind`, `subjectValue`, and `purpose`.
 
 #### Scenario: Full history shows lifecycle events
 
-- GIVEN a subject `alice@example.com` with multiple consent state changes
-- WHEN `GET /api/governance/consent/history?subjectReference=alice@example.com` is invoked
-- THEN all records SHALL be returned ordered by `consentedAt` ascending
+- GIVEN a subject with multiple consent state changes for purpose `MARKETING`
+- WHEN `GET /api/governance/consent/history?subjectKind=USER&subjectValue=alice@example.com&purpose=MARKETING`
+  is invoked
+- THEN all matching records SHALL be returned ordered by `consentedAt` ascending
 - AND each record SHALL include `status` (`ACTIVE` or `WITHDRAWN`)
 - AND `withdrawnAt` SHALL be populated for WITHDRAWN records
 
@@ -192,15 +186,15 @@ decisions.
 
 ### Requirement: Flow Materialization
 
-Query handlers SHALL materialize reactive Flows before returning results. The system MUST call
-`.toList()` on all `Flow<T>` returned by repository queries.
+The controller SHALL return the consent record flow unchanged. Whether the flow is materialized
+internally is owned by the query handler. The contract for the API surface is a reactive stream of
+`ConsentRecordResponse`.
 
-#### Scenario: List records with Flow properly materialized
+#### Scenario: List records
 
-- GIVEN repository returns `Flow<ConsentRecord>`
-- WHEN `GetWorkspaceConsentRecordsHandler` processes the query
-- THEN `.toList()` SHALL be invoked on the Flow
-- AND the result SHALL be `List<ConsentRecordResult>`
+- GIVEN repository returns a `Flow<ConsentRecord>`
+- WHEN the controller resolves `GET /api/governance/consent`
+- THEN a reactive stream of `ConsentRecordResponse` is returned
 
 ---
 
@@ -218,10 +212,10 @@ The system SHALL validate all request parameters and return RFC 7807 Problem Det
 
 #### Scenario: Locale format validated
 
-- GIVEN a request with `locale: xx-XX` not matching ISO 639-1 + optional ISO 3166-1
+- GIVEN a request with `locale` not recognised as a valid ISO 639-1 language tag
 - WHEN validation runs
 - THEN status `400 Bad Request` SHALL be returned
-- AND `detail` SHALL describe valid format
+- AND `detail` SHALL describe the expected ISO 639-1 language tag format
 
 #### Scenario: Problem Details structure
 

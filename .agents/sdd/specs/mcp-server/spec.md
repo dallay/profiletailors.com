@@ -6,22 +6,21 @@ Provide a stateless, OAuth-protected, read-only MCP resource server.
 
 ## Requirements
 
-### Requirement: Stateless Endpoint and Stable Catalog (production catalog — profile-gated
-
-`mcp_ping` excluded)
+### Requirement: Stateless Endpoint and Stable Catalog
 
 The system MUST expose `POST /api/mcp` with stateless Streamable HTTP and support `initialize`,
 `tools/list`, and `tools/call`. Configuration MUST use
 `spring.ai.mcp.server.streamable-http.mcp-endpoint` and `spring.ai.mcp.server.enabled`. `tools/list`
-MUST always advertise exactly `list_publications`, `list_channels`, `get_calendar`, and
-`list_providers` (four production tools; profile-gated `mcp_ping` excluded), without scope
-filtering.
+advertises the production read tools `list_publications`, `list_channels`, `get_calendar`, and
+`list_providers`, plus the internal `mcp_ping` health check (gated by
+`spring.ai.mcp.server.enabled=true`) and the write tools (`create_publication`, `edit_publication`,
+`delete_publication`, `cancel_publication`, `retry_publication`).
 
-#### Scenario: Tools list is stable across scopes
+#### Scenario: Tools list is visible across scopes
 
 - GIVEN a valid token with any combination of MVP scopes
 - WHEN `tools/list` is called
-- THEN all four read-only tools MUST be returned
+- THEN all read tools, write tools, and `mcp_ping` MUST be returned
 
 #### Scenario: Unknown method is rejected
 

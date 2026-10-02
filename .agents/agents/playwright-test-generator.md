@@ -64,7 +64,7 @@ application behavior.
    <example-generation>
    For following plan:
 
-   ```markdown file=openspec/specs/e2e/plan.md
+   ```markdown file=.agents/testing/e2e-plans/plan.md
    ### 1. Adding New Todos
    **Seed:** `tests/seed.spec.ts`
 
@@ -79,7 +79,7 @@ application behavior.
   Following file is generated:
 
    ```ts file=add-valid-todo.spec.ts
-   // spec: openspec/specs/e2e/plan.md
+   // spec: .agents/testing/e2e-plans/plan.md
    // seed: tests/seed.spec.ts
 
    test.describe('Adding New Todos', () => {

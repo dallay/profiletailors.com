@@ -35,23 +35,22 @@ Each context's data MUST be a separate section in the response.
 
 ### Requirement: Response Format and Delivery
 
-The response MUST be structured JSON. Small responses (≤10 MB) MUST be returned inline. Larger
-responses MUST be delivered via presigned S3-compatible URL (TTL: 7 days). The JSON schema MUST
-include a `_metadata` section with `generated_at` timestamp, `principal_id`, and `request_id`.
+The response MUST be structured JSON. The JSON schema MUST include a `_metadata` section with
+`generatedAt` timestamp and `principalId`.
 
-#### Scenario: Large export uses presigned URL
+#### Scenario: Aggregated payload returns inline
 
-- GIVEN an EXPORT request whose serialized payload exceeds 10 MB
-- WHEN the handler completes
-- THEN the response MUST contain a presigned download URL
-- AND the URL MUST expire after 7 days
+- GIVEN an ACCESS request is processed
+- WHEN `DataAggregationService.aggregate(principalId, email)` is invoked
+- THEN the response MUST contain the JSON object with `_metadata`, `identity`, `credentials`,
+  `workspaces`, `publishing`, `media`, `governance`, and `leadCapture` sections
 
-#### Scenario: Small export returns inline
+#### Scenario: Publishing section exposes connected content
 
-- GIVEN an EXPORT request whose serialized payload is ≤10 MB
-- WHEN the handler completes
-- THEN the response MAY return the JSON inline
-- AND `result_ref` MUST point to the download URL if available
+- GIVEN publishing data exists for the principal
+- WHEN the section is materialised
+- THEN it MUST expose `socialConnections`, `socialAccounts`, and `publications` arrays for the
+  current principal
 
 ### Requirement: Export File Format
 

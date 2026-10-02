@@ -241,7 +241,7 @@ server/smp/           # Spring Boot 4 backend (Kotlin, WebFlux, R2DBC)
 shared/               # Kotlin shared modules and shared web contracts/assets
 tools/compliance/     # TypeScript/Zod compliance validation CLI
 docs/                 # Architecture, API, operations, compliance, and testing docs
-openspec/             # Product contracts and spec-driven change artifacts
+.agents/sdd/           # Product contracts and spec-driven change artifacts
 .agents/              # Canonical agent instructions, skills, commands, and automation
 ```
 
@@ -326,8 +326,8 @@ Use the artifact that owns the claim:
 
 | Claim                                                 | Canonical owner                                                                   |
 | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Product behavior and user-facing scope                | Relevant `PRODUCT.md` and current `openspec/specs/`                               |
-| Active change status and verification                 | `openspec/changes/<name>/state.yaml` and `verify-report.md`                       |
+| Product behavior and user-facing scope                | Relevant `PRODUCT.md` and current `.agents/sdd/specs/                               |
+| Active change status and verification                 | `.agents/sdd/changes/<name>/state.yaml` and `verify-report.md`                       |
 | Durable architecture decision or exception            | `docs/architecture/adr/` and its index                                            |
 | Current system shape and dependencies                 | `docs/architecture/c4/` and architecture README                                   |
 | API behavior and media-type contract                  | Controllers/OpenAPI annotations, tests, clients, and `docs/api-versioning*.md`    |
@@ -656,7 +656,7 @@ assuming frontend consent tests prove backend behavior. Relevant E2E coverage li
 - `docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md` — identity-only references
 - `docs/architecture/adr/0017-value-objects-are-immutable.md` — value-object invariants
 - `docs/architecture/shared/dependencies.md` — shared-module dependency graph
-- `openspec/README.md` — product contracts and change artifacts
+- `.agents/sdd/README.md` — product contracts and change artifacts
 - `.agents/skills/architecture-governance/SKILL.md` — ARCH-001..005 ownership and routing
 - `.agents/skills/hexagonal-architecture/SKILL.md` — backend layer guidance
 - `.agents/skills/ddd-architecture/SKILL.md` — Kotlin DDD conformance
