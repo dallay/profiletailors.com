@@ -100,7 +100,7 @@ record the alert destination and owner.
 
 - **Frontend build warns that Sentry is disabled:** the corresponding DSN environment variable is
   absent. No source maps are generated or uploaded.
-- **Frontend build fails before deployment:** when a DSN is configured, check the `PROD` environment
+- **Frontend build fails before deployment:** when a DSN is configured, check the repository
   secret `SENTRY_AUTH_TOKEN`, variable `SENTRY_ORG`, the fixed per-app project slug, and the Sentry
   upload error. Do not weaken the build gate or publish the `.map` files as a workaround.
 - **Events have no readable source locations:** compare the event release and debug ID with the
