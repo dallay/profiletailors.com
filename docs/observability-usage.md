@@ -303,6 +303,21 @@ MUST NOT import it. Frontend telemetry, browser consent, and frontend error repo
 contracts and ownership. A web requirement must not be solved by exposing Kotlin classes through a
 shared TypeScript package.
 
+## Sentry error-tracking boundary
+
+The app/admin Sentry adapters and SMP Spring Boot integration are infrastructure concerns. The
+browser apps share only the SDK-independent sanitizer from `shared/web`; Sentry SDK types do not
+belong in `shared/web`, Vue feature domain/application code, SMP domain/application code, or
+`OperationalEventSink`. The integration is DSN-gated, and production activation remains an external
+configuration fact rather than a repository claim.
+
+App/admin sanitize error events, breadcrumbs, streamed spans, and opt-in Replay custom events before
+submission. SMP's `BeforeSendCallback` removes request bodies, query strings, cookies, headers, user
+identity, breadcrumbs, arbitrary extras, and non-allowlisted tags; it preserves only a safe request
+path, scrubbed error text, release/environment, and explicitly allowed opaque identifiers. SMP
+performance traces and Sentry logging/Logs are disabled. Expected HTTP/business outcomes remain
+normal API responses and are not explicitly captured.
+
 ## Event naming and attributes
 
 ### Stable names
@@ -533,14 +548,15 @@ This standard does not implement or approve:
 
 - New Micrometer exporters, OpenTelemetry exporters, or replacement of `Slf4jOperationalEventSink`.
 - Centralized correlation-id propagation through Reactor `Context` and SLF4J MDC.
-- Frontend telemetry or error-reporting SDK integration.
+- Additional telemetry SDKs or Sentry Logs, Metrics, Profiling, and Cron Monitoring.
 - Changes to the shape of `OperationalEvent`, `OperationalEventSink`, `Severity`, or
   `RequestOutcome`.
 - A new event schema-version field or migration framework.
 
 Those items require a separately scoped change with implementation, tests, ownership, and rollout
-or rollback evidence. Documentation of the norm must not be read as evidence that any of those
-capabilities is available.
+or rollback evidence. The conditional Sentry error-tracking integration is documented in the
+[Sentry Error Tracking Runbook](./monitoring/sentry-runbook.md); documentation must not be read as
+evidence that production projects, DSNs, organization scrubbing, or alerts are configured.
 
 ## References
 

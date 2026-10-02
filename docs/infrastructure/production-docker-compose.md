@@ -53,7 +53,15 @@ Edit `.env` and set at least:
 SMP_IMAGE=profiletailors/smp:0.1.0
 DASHBOARD_IMAGE=profiletailors/dashboard:0.1.0
 PUBLIC_ORIGIN=https://app.example.com
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=production
 ```
+
+`SENTRY_DSN` is the optional SMP public ingestion identifier. Leave it empty until the Sentry
+`profiletailors-smp` project and its organization-side scrubbing/IP settings have been approved. The
+dashboard image built by the release workflow uses the repository variables `SENTRY_APP_DSN` and
+`SENTRY_ORG`; its source-map upload token remains a CI-only BuildKit secret. The SMP container image
+supplies its component release identifier. Neither upload token is a runtime setting.
 
 If the backend image is not available in a registry, build it on the server:
 
