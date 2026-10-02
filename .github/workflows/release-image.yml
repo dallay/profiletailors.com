@@ -17,6 +17,9 @@ on:
       DOCKERHUB_TOKEN:
         description: 'Docker Hub access token'
         required: true
+      SENTRY_AUTH_TOKEN:
+        description: 'Sentry release/source-map upload token'
+        required: false
 
 permissions:
   contents: read
@@ -58,8 +61,11 @@ jobs:
             ref_name="${GITHUB_REF_NAME}"
           fi
           release_version="${ref_name#smp@}"
+          version_without_v="${release_version#v}"
+          sentry_release="smp@${version_without_v}+${GITHUB_SHA}"
           echo "RELEASE_VERSION=$release_version" >> "$GITHUB_ENV"
           echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
+          echo "sentry_release=$sentry_release" >> "$GITHUB_OUTPUT"
 
       - name: Extract backend image metadata
         id: metadata
@@ -105,6 +111,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             SMP_VERSION=${{ steps.version.outputs.release_version }}
+            SENTRY_RELEASE=${{ steps.version.outputs.sentry_release }}
             IMAGE_CREATED=${{ steps.build-time.outputs.build_time }}
             IMAGE_REVISION=${{ github.sha }}
           tags: ${{ steps.metadata.outputs.tags }}
@@ -186,6 +193,14 @@ jobs:
           platforms: linux/amd64
           build-args: |
             VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
+            GIT_SHA=${{ github.sha }}
+            VITE_SENTRY_DSN=${{ vars.SENTRY_APP_DSN || '' }}
+            VITE_SENTRY_ENVIRONMENT=production
+            VITE_SENTRY_REPLAY_ON_ERROR=${{ vars.SENTRY_APP_REPLAY_ON_ERROR || 'false' }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG || '' }}
+            SENTRY_PROJECT=profiletailors-app
+          secrets: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           annotations: ${{ steps.metadata.outputs.annotations }}

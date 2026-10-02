@@ -8,12 +8,14 @@ Metrics, dashboards, and actuator hardening for local and production observabili
 
 1. Setup: [Prometheus and Grafana Setup](./prometheus-grafana-setup.md)
 2. Harden: [Actuator Security](./actuator-security.md)
-3. Contracts: [Observability Contracts](../observability-contracts.md)
+3. Errors: [Sentry Error Tracking Runbook](./sentry-runbook.md)
+4. Contracts: [Observability Contracts](../observability-contracts.md)
 
 ## Usage
 
 - [Prometheus and Grafana Setup](./prometheus-grafana-setup.md) — metrics collection and visualization
 - [Actuator Security](./actuator-security.md) — securing Spring Boot Actuator endpoints
+- [Sentry Error Tracking Runbook](./sentry-runbook.md) — optional issue tracking and release verification
 - Shared contracts: [Observability Contracts](../observability-contracts.md) and [Observability Usage](../observability-usage.md)
 
 ## Troubleshooting
