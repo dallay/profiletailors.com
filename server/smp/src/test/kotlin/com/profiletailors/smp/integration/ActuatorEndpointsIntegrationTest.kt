@@ -69,7 +69,6 @@ class ActuatorEndpointsIntegrationTest {
     class TestSecurityConfig {
         @Bean
         fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
-            .csrf { it.disable() }
             .authorizeExchange {
                 it.pathMatchers(
                     "/actuator/health",
