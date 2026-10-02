@@ -79,10 +79,21 @@ function stripInlineMarkdown(text: string): string {
 }
 
 function stripHtmlTags(text: string): string {
+  let previous = text
+  let current = removeDangerousBlocks(previous)
+  current = current.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+  while (current !== previous) {
+    previous = current
+    current = removeDangerousBlocks(current)
+    current = current.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+  }
+  return current
+}
+
+function removeDangerousBlocks(text: string): string {
   return text
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
-    .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
 }
 
 export function stripMarkdownToPlainText(text: string): string {

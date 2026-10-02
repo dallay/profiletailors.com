@@ -140,6 +140,17 @@ describe('stripMarkdownToPlainText', () => {
     )
   })
 
+  it('removes script and style elements whose end tag has trailing whitespace', () => {
+    expect(stripMarkdownToPlainText('<script>alert(1)</' + 'script >safe')).toBe('safe')
+    expect(stripMarkdownToPlainText('<style>.x{color:red}</style >visible')).toBe('visible')
+  })
+
+  it('removes script blocks with attributes and whitespace before the end tag close', () => {
+    expect(
+      stripMarkdownToPlainText('<script type="text/javascript">alert(1)</' + 'script  >safe'),
+    ).toBe('safe')
+  })
+
   it('strips HTML tags with event handler attributes', () => {
     expect(stripMarkdownToPlainText('<img src="x" onerror="alert(1)">')).toBe('')
     expect(stripMarkdownToPlainText('<div onclick="evil()">content</div>')).toBe('content')
