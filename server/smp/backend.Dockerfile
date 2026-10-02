@@ -51,6 +51,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ARG SMP_VERSION="dev"
+ARG SENTRY_RELEASE="smp@dev+unknown"
 ARG IMAGE_CREATED="unknown"
 ARG IMAGE_REVISION="unknown"
 LABEL org.opencontainers.image.title="Profile Tailors SMP" \
@@ -87,7 +88,8 @@ EXPOSE 7638 9091
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom" \
     SMP_BACKEND_PORT=7638 \
-    MANAGEMENT_PORT=9091
+    MANAGEMENT_PORT=9091 \
+    SENTRY_RELEASE=$SENTRY_RELEASE
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=60s \
     CMD wget -q -O - http://127.0.0.1:9091/actuator/health/readiness || exit 1

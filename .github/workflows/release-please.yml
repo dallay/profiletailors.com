@@ -97,6 +97,12 @@ jobs:
         env:
           GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
           VITE_API_BASE_URL: ${{ vars.PT_PRODUCTION_API_URL || 'https://api.profiletailors.com' }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_APP_DSN || '' }}
+          VITE_SENTRY_ENVIRONMENT: production
+          VITE_SENTRY_REPLAY_ON_ERROR: ${{ vars.SENTRY_APP_REPLAY_ON_ERROR || 'false' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG || '' }}
+          SENTRY_PROJECT: profiletailors-app
         run: pnpm --filter app build
 
       - name: Deploy to Cloudflare Pages
@@ -220,6 +226,11 @@ jobs:
         env:
           GIT_SHA: ${{ steps.resolve-meta.outputs.git_sha }}
           VITE_API_BASE_URL: ${{ vars.PT_PRODUCTION_API_URL || 'https://api.profiletailors.com' }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_ADMIN_DSN || '' }}
+          VITE_SENTRY_ENVIRONMENT: production
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG || '' }}
+          SENTRY_PROJECT: profiletailors-admin
         run: pnpm --filter @profiletailors/admin build
 
       - name: Deploy to Cloudflare Pages
@@ -408,3 +419,4 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
