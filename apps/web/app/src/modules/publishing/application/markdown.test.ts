@@ -161,7 +161,17 @@ describe('stripMarkdownToPlainText', () => {
   })
 
   it('drops a trailing unterminated tag open instead of leaking it', () => {
-    expect(stripMarkdownToPlainText('hello <script')).toBe('hello script')
+    expect(stripMarkdownToPlainText('hello <script')).toBe('hello ')
+  })
+
+  it('consumes contiguous angle-bracket prefixes without rescanning per prefix', () => {
+    expect(stripMarkdownToPlainText(`<${'<'.repeat(50)}x`)).toBe(`<${'<'.repeat(49)}`)
+  })
+
+  it('still removes tags exposed by earlier matches in the same fixpoint', () => {
+    expect(stripMarkdownToPlainText('<script><script>x</' + 'script></' + 'script>safe')).toBe(
+      'safe',
+    )
   })
 
   it('removes multiline script blocks without leaking their content', () => {
