@@ -34,7 +34,7 @@ None. Revalidated codebase state and verified that no illegitimate test suppress
 
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `app-unit-test` | `apps/web/app` | Passed | 1756 unit tests passed across 150 test files |
+| `app-unit-test` | `apps/web/app` | Passed | 1895 unit tests passed across 167 test files |
 | `backend-test-fast` | `server/smp` | Passed | Fast backend unit tests passed |
 | `ci-local` | Workspace root | Passed | Full local CI simulation passed without errors |
 
@@ -48,7 +48,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-09-24T17:40:56Z`
+- **Last Execution:** `2026-10-01T18:06:34Z`
 - **Schema Version:** `1`
 - **Task Identity:** `test-suite-hygiene`
 - **Outcome:** `NO_DRIFT_DETECTED`
@@ -59,4 +59,4 @@ None.
 
 ## Human Review Notes
 
-All test suites were verified using `pnpm --filter app test`. No test hygiene drift was found.
+All test suites were verified using `pnpm --filter app test:run`. No test hygiene drift was found.

@@ -162,6 +162,8 @@ export default {
     searchAction: 'Buscar',
     searchingAction: 'Buscando…',
     providerSearchLabel: 'Buscar en Unsplash',
+    librarySearchLabel: 'Buscar en los medios del workspace',
+    librarySearchPlaceholder: 'Nombre de archivo, asset ID o tipo MIME',
     libraryDescription: 'Explora imágenes y videos ya guardados en este workspace.',
     providerDescription:
       'Busca en Unsplash e importa medios a esta publicación sin salir del composer.',

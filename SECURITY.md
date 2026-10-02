@@ -1,80 +1,107 @@
 # Security Policy
 
-## Reporting Security Vulnerabilities
-
-We take security vulnerabilities seriously. If you discover a security issue, please report it
-responsibly.
-
-**Do not open a public GitHub issue for security vulnerabilities.**
-
-### How to Report
-
-Email: **<security@profiletailors.com>**
-
-Include the following in your report:
-
-- Description of the vulnerability
-- Steps to reproduce the issue
-- Potential impact assessment
-- Any suggested fixes (optional)
-
-### Response Timeline
-
-We aim to acknowledge reports within **48 hours** and provide a timeline for remediation:
-
-| Severity             | Initial Response | Target Resolution |
-|----------------------|------------------|-------------------|
-| Critical (CVSS 9-10) | 24 hours         | 72 hours          |
-| High (CVSS 7-8.9)    | 48 hours         | 7 days            |
-| Medium (CVSS 4-6.9)  | 48 hours         | 14 days           |
-| Low (CVSS 0-3.9)     | 5 days           | Next release      |
-
-### Scope
+## Scope
 
 This policy covers:
 
-- `apps/web/marketing/` — The marketing site and waitlist form
-- `server/smp/` — Backend service (when deployed)
-- Shared infrastructure and dependencies
+- `apps/web/marketing/` — Astro marketing site and waitlist
+- `apps/web/app/` — Vue dashboard SPA
+- `apps/web/admin/` — Vue platform-admin SPA
+- `server/smp/` — Spring Boot backend
+- `shared/` — Shared Kotlin modules
+- Infrastructure configurations under `infra/`
 
-Out of scope:
+Out of scope: third-party social media platforms and external services not operated by Profile Tailors.
 
-- Social media platforms integrated via API
-- Third-party services not operated by Profile Tailors
+## Reporting Security Vulnerabilities
 
-### Security Updates
+**Do not open a public GitHub issue for security vulnerabilities.**
 
-- Critical patches are released as soon as possible
-- Regular security updates are included in our release cycle
-- All releases are documented in the [Changelog](apps/web/marketing/CHANGELOG.md)
+Email: **[security@profiletailors.com](mailto:security@profiletailors.com)**
 
-### Disclosure Policy
+Include:
 
-- We follow a **coordinated disclosure** process
-- We request that researchers give us reasonable time to address issues before public disclosure
-- We will credit reporters in the security advisory (unless you prefer to remain anonymous)
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact assessment
+- Suggested fix (optional)
 
-### Supported Versions
+### Response Timeline
 
-| Version | Status                            |
-|---------|-----------------------------------|
-| 0.0.x   | Pre-release — development version |
+| Severity         | Initial Response | Target Resolution |
+|-----------------|-----------------|-------------------|
+| Critical (CVSS 9–10) | 24 hours   | 72 hours          |
+| High (CVSS 7–8.9)     | 48 hours   | 7 days            |
+| Medium (CVSS 4–6.9)   | 48 hours   | 14 days           |
+| Low (CVSS 0–3.9)      | 5 days     | Next release      |
 
-For pre-release software, we recommend using the latest available version.
+## Security Measures
 
-### Security Training
+### Automated Scanning
 
-Contributors must complete security awareness training before contributing to production code. See
-our [Contributing Guide](CONTRIBUTING.md) for details.
+The repository uses a layered DevSecOps scanning model:
 
-### Attribution
+| Scanner  | Coverage                              | Merge Gate |
+|----------|--------------------------------------|------------|
+| Gitleaks | Secrets detection, entire repository  | Yes        |
+| Semgrep  | Backend and frontend SAST             | Yes        |
+| CodeQL   | Backend and frontend code analysis   | Yes        |
+| Trivy    | Dependencies and IaC (HIGH/CRITICAL) | Yes        |
+| Biome    | Frontend JS/TS/Vue security lint    | Yes        |
+| Detekt   | Kotlin static analysis              | Yes        |
 
-Thank you to the following security researchers who have helped improve our security:
+See [docs/security/scanning-stack.md](docs/security/scanning-stack.md) for the full scanner responsibility map and workflow details.
 
-- (Open — submit a report to be added)
+### Branch Protection
+
+- Direct pushes to `main` are blocked
+- All changes require a pull request with passing CI checks
+- Branch status: **protected**
+
+### Vulnerability Management
+
+- Dependabot is enabled for dependency vulnerability alerts
+- Secret scanning is enabled with push protection
+- Private vulnerability reporting is enabled
+
+## Security Updates
+
+Critical patches are released as soon as possible. Regular updates follow the release cycle. All releases are documented in the [Changelog](apps/web/marketing/CHANGELOG.md).
+
+## Disclosure Policy
+
+We follow coordinated disclosure. Request reasonable time to address issues before public disclosure. Reporters are credited in security advisories unless anonymity is preferred.
+
+## Supported Versions
+
+| Version | Status                          |
+|---------|--------------------------------|
+| Current | Actively maintained             |
+| 0.0.x   | Pre-release — use latest build  |
+
+## Contributing Secure Code
+
+Contributors must follow secure coding practices:
+
+- Never commit secrets or credentials
+- Use environment variables for sensitive configuration
+- Follow input validation and output encoding guidelines
+- Run local security checks before submitting PRs:
+
+```bash
+# Frontend security lint
+cd apps/web && pnpm dlx @biomejs/biome ci .
+
+# Secret detection
+gitleaks dir . --config .gitleaks.toml
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+
+## Attribution
+
+Thank you to the security researchers who help improve Profile Tailors.
 
 ---
 
-**Last updated:** May 2026
-
-For general security inquiries: **<security@profiletailors.com>**
+**Security inquiries:** [security@profiletailors.com](mailto:security@profiletailors.com)

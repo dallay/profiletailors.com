@@ -4,11 +4,20 @@ const ROUTES = ['/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/
 const URLS: string[] = ROUTES.flatMap((r) => (r === '/' ? ['/', '/es/'] : [r, `/es${r}`]))
 const BOTS = ['OAI-SearchBot', 'GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'GoogleOther', 'Bingbot']
 
+function isSerifHost(href: string): boolean {
+  try {
+    const u = new URL(href, 'https://profiletailors.com')
+    return u.hostname === 'serif.com' || u.hostname.endsWith('.serif.com')
+  } catch {
+    return false
+  }
+}
+
 function isInternalHref(href: string | null): boolean {
   if (!href) return false
   const t = href.trim()
   if (!t) return false
-  if (t.startsWith('mailto:') || t.startsWith('tel:') || t.startsWith('javascript:') || t.startsWith('data:')) return false
+  if (t.startsWith('mailto:') || t.startsWith('tel:') || t.startsWith('javascript:') || t.startsWith('vbscript:') || t.startsWith('data:')) return false
   if (t.startsWith('#')) return false
   if (t.startsWith('//')) {
     try {
@@ -90,7 +99,7 @@ test.describe('SEO — Link hygiene crawl graph', () => {
             .filter(Boolean)
         )
         for (const h of hrefs as string[]) {
-          if (h.includes('serif.com')) continue
+          if (isSerifHost(h)) continue
           expect(h, `${url} -> ${h}`).not.toMatch(/^http:\/\//)
         }
       })
