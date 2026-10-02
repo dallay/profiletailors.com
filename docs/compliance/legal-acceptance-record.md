@@ -210,5 +210,5 @@ No country is approved by similarity to another country's electronic-transaction
 - [`legal-document-register.md`](legal-document-register.md): Document ownership and status
 - [`global-legal-readiness.md`](global-legal-readiness.md): Country activation overlays
 - [`data-inventory.yaml`](data-inventory.yaml): Current processing evidence
-- [`openspec/specs/legal-pages/spec.yaml`](../../openspec/specs/legal-pages/spec.yaml): Canonical
+- [`.agents/sdd/specs/legal-pages/spec.yaml`](../../.agents/sdd/specs/legal-pages/spec.yaml): Canonical
   legal-page requirements
