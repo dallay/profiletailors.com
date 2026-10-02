@@ -21,11 +21,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 function runAnalyticsScript(ahrefsAnalyticsKey: string | undefined): void {
   const filePath = resolve(__dirname, './Analytics.astro')
   const source = readFileSync(filePath, 'utf-8')
-  const match = source.match(/<script[^>]*>([\s\S]*?)<\/script>/)
-  if (!match) {
+  const template = document.createElement('template')
+  template.innerHTML = source
+  const script = template.content.querySelector('script')
+  if (!script?.textContent) {
     throw new Error('Could not find the <script> block in Analytics.astro')
   }
-  new Function('AHREFS_ANALYTICS_KEY', match[1])(ahrefsAnalyticsKey)
+  new Function('AHREFS_ANALYTICS_KEY', script.textContent)(ahrefsAnalyticsKey)
 }
 
 const AHREFS_URL = 'https://analytics.ahrefs.com/analytics.js'

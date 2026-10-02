@@ -14,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 function runCookieSettingsLinkScript(): void {
   const filePath = resolve(__dirname, './CookieSettingsLink.astro')
   const source = readFileSync(filePath, 'utf-8')
-  const match = source.match(/<script>([\s\S]*?)<\/script>/)
+  const match = source.match(/<script>([\s\S]*?)<\/script\s*>/i)
   if (!match) {
     throw new Error('Could not find the <script> block in CookieSettingsLink.astro')
   }
