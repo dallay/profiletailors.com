@@ -21,6 +21,7 @@ resend = "4.21.0"
 awsS3 = "2.54.5"
 bucket4j = "8.10.1"
 caffeine = "3.2.4"
+sentry = "8.59.0"
 
 # Transitive deps requiring explicit versions
 okio = "3.18.2"
@@ -80,6 +81,7 @@ springdoc-openapi-webflux = { module = "org.springdoc:springdoc-openapi-starter-
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 bucket4j-core = { module = "com.bucket4j:bucket4j-core", version.ref = "bucket4j" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+sentry-spring-boot-four = { module = "io.sentry:sentry-spring-boot-4", version.ref = "sentry" }
 
 # Transitive deps version pins
 okio-jvm = { module = "com.squareup.okio:okio-jvm", version.ref = "okio" }

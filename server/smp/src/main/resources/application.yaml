@@ -1,6 +1,39 @@
 server:
   port: ${SMP_BACKEND_PORT:7638}
 
+sentry:
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:}
+  sample-rate: 1.0
+  traces-sample-rate: 0.0
+  profiles-sample-rate: 0.0
+  use-git-commit-id-as-release: false
+  max-request-body-size: none
+  propagate-traceparent: false
+  trace-options-requests: false
+  trace-propagation-targets: []
+  logging:
+    enabled: false
+  logs:
+    enabled: false
+  data-collection:
+    user-info: false
+    database-query-data: false
+    file-paths: false
+    cookies:
+      mode: off
+    url-query-params:
+      mode: off
+    http-bodies: []
+    http-headers:
+      request:
+        mode: off
+      response:
+        mode: off
+    graphql:
+      document: false
+      variables: false
+
 spring:
   application:
     name: smp
@@ -269,6 +302,9 @@ management:
     port: ${MANAGEMENT_PORT:9091}  # Puerto separado para management
 
 ---
+sentry:
+  enabled: false
+
 spring:
   config:
     activate:
