@@ -14,6 +14,7 @@ allowBuilds:
   sharp: true
   maplibre-gl: true
   workerd: true
+  '@sentry/cli': true
 
 overrides:
   fast-uri: '3.1.8'
