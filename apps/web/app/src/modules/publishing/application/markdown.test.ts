@@ -140,6 +140,49 @@ describe('stripMarkdownToPlainText', () => {
     )
   })
 
+  it('removes script and style elements whose end tag has trailing whitespace', () => {
+    expect(stripMarkdownToPlainText('<script>alert(1)</' + 'script >safe')).toBe('safe')
+    expect(stripMarkdownToPlainText('<style>.x{color:red}</style >visible')).toBe('visible')
+  })
+
+  it('removes script blocks with attributes and whitespace before the end tag close', () => {
+    expect(
+      stripMarkdownToPlainText('<script type="text/javascript">alert(1)</' + 'script  >safe'),
+    ).toBe('safe')
+  })
+
+  it('removes script blocks whose end tag carries junk after the name', () => {
+    expect(stripMarkdownToPlainText('<script>alert(1)</scr' + 'ipt\t\n bar>safe')).toBe('safe')
+    expect(stripMarkdownToPlainText('<style>.x{}</sty' + 'le bar>safe')).toBe('safe')
+  })
+
+  it('removes uppercase script blocks', () => {
+    expect(stripMarkdownToPlainText('<SCRIPT>alert(1)</' + 'SCRIPT>safe')).toBe('safe')
+  })
+
+  it('drops a trailing unterminated tag open instead of leaking it', () => {
+    expect(stripMarkdownToPlainText('hello <script')).toBe('hello ')
+  })
+
+  it('consumes contiguous angle-bracket prefixes without rescanning per prefix', () => {
+    expect(stripMarkdownToPlainText(`<${'<'.repeat(50)}x`)).toBe(`<${'<'.repeat(49)}`)
+  })
+
+  it('still removes tags exposed by earlier matches in the same fixpoint', () => {
+    expect(stripMarkdownToPlainText('<script><script>x</' + 'script></' + 'script>safe')).toBe(
+      'safe',
+    )
+  })
+
+  it('removes multiline script blocks without leaking their content', () => {
+    expect(stripMarkdownToPlainText('<script>\nalert(1)\n</' + 'script>safe')).toBe('safe')
+  })
+
+  it('returns promptly on unclosed script blocks', () => {
+    const input = `<script>${'x'.repeat(5000)}`
+    expect(stripMarkdownToPlainText(input)).toBe('x'.repeat(5000))
+  })
+
   it('strips HTML tags with event handler attributes', () => {
     expect(stripMarkdownToPlainText('<img src="x" onerror="alert(1)">')).toBe('')
     expect(stripMarkdownToPlainText('<div onclick="evil()">content</div>')).toBe('content')

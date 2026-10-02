@@ -78,15 +78,24 @@ function stripInlineMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '$1')
 }
 
+const HTML_UNSAFE_PATTERN = /<(script|style)[\s\S]*?<\/\1[^>]*>|<\/?[a-z][a-z0-9]*[^>]*>?/gi
+
 function stripHtmlTags(text: string): string {
-  return text
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
-    .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+  let previous = text
+  let current = text
+  do {
+    previous = current
+    current = current.replace(HTML_UNSAFE_PATTERN, '')
+  } while (current !== previous)
+  return current
 }
 
 export function stripMarkdownToPlainText(text: string): string {
-  const lines = text.split('\n')
+  // Strip HTML from the whole text first so blocks spanning lines cannot leak:
+  // a closing tag split across lines would otherwise survive line-based
+  // stripping. Script/style examples inside fenced code are removed as well:
+  // fail closed on active content.
+  const lines = stripHtmlTags(text).split('\n')
   const result: string[] = []
   let inCodeBlock = false
 
