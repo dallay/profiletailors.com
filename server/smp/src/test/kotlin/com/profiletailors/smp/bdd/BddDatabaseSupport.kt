@@ -490,6 +490,7 @@ class BddDatabaseSupport(
     suspend fun seedAuthenticatedUserWithWorkspace(
         email: String = "yuniel@example.com",
         principalId: String = PRINCIPAL_ID,
+        workspaceId: String = WORKSPACE_ID,
     ) {
         val principalExists: String? = databaseClient.sql(
             "SELECT id FROM principals WHERE id = :id",
@@ -531,14 +532,14 @@ class BddDatabaseSupport(
         val workspaceExists: String? = databaseClient.sql(
             "SELECT id FROM workspaces WHERE id = :id",
         )
-            .bind("id", WORKSPACE_ID)
+            .bind("id", workspaceId)
             .map { row, _ -> row.get("id", String::class.java) as String }
             .one()
             .awaitSingleOrNull()
         if (workspaceExists == null) {
-            seedWorkspace()
+            seedWorkspace(workspaceId)
         }
-        seedWorkspaceMembershipIdempotent(principalId)
+        seedWorkspaceMembershipIdempotent(principalId, workspaceId)
     }
 
     suspend fun seedWorkspaceMembership(principalId: String, workspaceId: String = WORKSPACE_ID) {
@@ -1182,7 +1183,12 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
-    private fun cleanupStatements(): List<String> = listOf(
+    private fun shortLinksCleanupStatements(): List<String> = listOf(
+        "DELETE FROM shortlink_idempotency",
+        "DELETE FROM links",
+    )
+
+    private fun cleanupStatements(): List<String> = shortLinksCleanupStatements() + listOf(
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",

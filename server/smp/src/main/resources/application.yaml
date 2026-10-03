@@ -1,6 +1,9 @@
 server:
   port: ${SMP_BACKEND_PORT:7638}
 
+shortlinks:
+  public-host: ${SMP_SHORTLINKS_PUBLIC_HOST:go.profiletailors.com}
+
 sentry:
   environment: ${SENTRY_ENVIRONMENT:local}
   release: ${SENTRY_RELEASE:}

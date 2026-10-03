@@ -146,6 +146,7 @@ class IdentitySecurityConfiguration {
                 "/api/media/assets/*/preview",
                 "/api/media/assets/*/content",
                 "/api/media/proxy",
+                "/{shortCode:[0-9A-Za-z]{1,32}}",
             ).permitAll()
                 .pathMatchers(
                     HttpMethod.POST,
