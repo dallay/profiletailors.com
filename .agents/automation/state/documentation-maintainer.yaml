@@ -1,28 +1,28 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: "2026-09-18T12:00:00Z"
-runId: "documentation-maintainer-run-20260918-120000"
+lastExecution: "2026-10-02T18:00:00Z"
+runId: "documentation-maintainer-run-20261002-180000"
 outcome: "CHANGES_APPLIED"
 findings:
-  - id: "DOC-20260918-01"
+  - id: "DOC-20261002-01"
     category: "documentation-drift"
-    description: "26 documentation files in docs/ contained outdated 'Last Updated' dates relative to their latest git commit dates"
+    description: "Kotlin version reference in docs/technical-debt-remediation.md referred to Kotlin 2.3 instead of pinned Kotlin 2.4 (2.4.10)"
     risk: "LOW"
     status: "resolved"
-    firstDetected: "2026-09-18T12:00:00Z"
-    lastVerified: "2026-09-18T12:00:00Z"
+    firstDetected: "2026-10-02T18:00:00Z"
+    lastVerified: "2026-10-02T18:00:00Z"
     occurrences: 1
     remediation:
       status: "implemented"
       pullRequest: "draft"
-      details: "Updated 'Last Updated' header dates in 26 documentation files under docs/ to 2026-09-18 to align with git log commit history."
+      details: "Reconciled Kotlin version reference from 2.3 to 2.4 and corrected Last Updated header formatting in docs/technical-debt-remediation.md."
 checks:
   - name: "node-version-alignment"
     target: "apps/web/app/package.json, README.md, docs/getting-started.md, Justfile"
     status: "Passed"
     notes: "All Node.js version claims reconciled with .nvmrc and package.json (>= 24.19.0)."
   - name: "kotlin-version-alignment"
-    target: "docs/gradle-build-system.md"
+    target: "docs/gradle-build-system.md, docs/technical-debt-remediation.md"
     status: "Passed"
     notes: "Kotlin version reference reconciled with gradle/libs.versions.toml (2.4.10)."
   - name: "relative-links-audit"
