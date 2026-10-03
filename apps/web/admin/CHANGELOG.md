@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.16](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.15...admin@v0.0.16) (2026-10-03)
+
+
+### Features
+
+* **agpl:** document strategy and source offers ([#1260](https://github.com/dallay/profiletailors.com/issues/1260)) ([ae26f8f](https://github.com/dallay/profiletailors.com/commit/ae26f8f8ea772a273fa7c4b7321535154a74bead))
+* **shared-web:** add privacy-safe Sentry sanitizer ([#1286](https://github.com/dallay/profiletailors.com/issues/1286)) ([5c7fef0](https://github.com/dallay/profiletailors.com/commit/5c7fef0b4de416312954de56e71a3be6176fbce2))
+* Show backend build information in the admin console ([#1258](https://github.com/dallay/profiletailors.com/issues/1258)) ([b0ccdd5](https://github.com/dallay/profiletailors.com/commit/b0ccdd51a152331f669ebb0c2a5921c9ebe3d04b))
+
+
+### Bug Fixes
+
+* **quality:** remediate SonarCloud findings ([#1267](https://github.com/dallay/profiletailors.com/issues/1267)) ([6669547](https://github.com/dallay/profiletailors.com/commit/66695476839383ff90193fc12def5f87553ae98a))
+
+
+### Refactoring
+
+* Improve the admin dashboard and navigation experience ([#1257](https://github.com/dallay/profiletailors.com/issues/1257)) ([d93c9a1](https://github.com/dallay/profiletailors.com/commit/d93c9a1d02035bef4711924f9dc79e80b8c716e0))
+
 ## [0.0.15](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.14...admin@v0.0.15) (2026-09-29)
 
 
