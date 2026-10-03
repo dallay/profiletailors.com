@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: .agents/testing/e2e-plans/login-flow.md
  * section: 14. Responsive Design
  *
  * Covers login page rendering on mobile and tablet viewports.

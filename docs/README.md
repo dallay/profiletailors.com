@@ -7,7 +7,7 @@
 ### AI-Assisted Engineering
 
 - [AI Engineering](./ai-engineering/) - How ProfileTailors uses Agent Harness for structured, spec-driven development with AI agents
-- [OpenSpec](../openspec/README.md) - Spec-driven development system with phase DAG
+- [OpenSpec](../.agents/sdd/README.md) - Spec-driven development system with phase DAG
 
 ### Architecture & Design
 
@@ -35,7 +35,7 @@
 
 ### Product Contracts & Release Evidence
 
-- [OpenSpec](../openspec/README.md) - Product specifications, change artifacts, and verification
+- [OpenSpec](../.agents/sdd/README.md) - Product specifications, change artifacts, and verification
   evidence
 - [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
 - [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance boundary
@@ -144,8 +144,8 @@ All documentation in this repository MUST follow these standards:
 5. **Location**: Centralized in the `docs/` directory. Avoid scattering documentation in
    service-specific directories unless it's a `README.md` for that specific module.
 
-OpenSpec artifacts remain under `openspec/` because they are product-contract and change records,
-not general operational documentation. See the [OpenSpec guide](../openspec/README.md) for how to
+OpenSpec artifacts remain under `.agents/sdd/` because they are product-contract and change records,
+not general operational documentation. See the [OpenSpec guide](../.agents/sdd/README.md) for how to
 navigate active and archived changes.
 
 ## 🔄 Contributing

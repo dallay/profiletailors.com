@@ -1,0 +1,54 @@
+schema: spec-driven
+
+context: |
+  Monorepo: profiletailors.com with Astro marketing app, Vue 3/Vite SPA, shared libraries, and Kotlin backend at server/smp.
+  Tech stack: Kotlin 2.3, Spring Boot 4, WebFlux, Spring Security, Spring Modulith, PostgreSQL/R2DBC, Liquibase, Astro 7, Tailwind CSS 4, Vue 3, pnpm 11.
+  Architecture: backend dependency direction domain <- application <- infrastructure, package-by-context, CQRS/mediator-style handlers; frontend feature modules and shared web libraries.
+  Testing: JUnit 5, Spring WebFlux/Security tests, Kotlin coroutines, Modulith, Cucumber BDD, Testcontainers, Kover, Vitest, Playwright, Astro check, and vue-tsc.
+  Style: Gradle Kotlin DSL, strict Kotlin JSR-305 nullability, Biome, Detekt, Spotless, English documentation, and just command recipes.
+
+persistence:
+  mode: openspec
+  artifact_policy: openspec-only
+  main_specs: .agents/sdd/specs
+  active_changes: .agents/sdd/changes
+  archive: .agents/sdd/changes/archive
+
+testing:
+  strict_tdd: true
+  rationale: "Repository instructions explicitly require TDD, and backend/frontend test runners are available."
+  capabilities:
+    backend_unit:
+      runner: "JUnit Platform with Kotlin test, MockK, Kotest assertions, WebFlux/Security tests"
+      command: "just backend-test-fast"
+    backend_architecture:
+      runner: "ArchUnit and Spring Modulith tests"
+      command: "just backend-test-fast"
+    backend_bdd_fast:
+      runner: "Cucumber on JUnit Platform with Testcontainers PostgreSQL"
+      command: "just backend-bdd-fast"
+    backend_postgres_integration:
+      runner: "JUnit Platform with Testcontainers/PostgreSQL"
+      command: "just backend-test-postgres"
+    backend_coverage:
+      runner: "Kover verification/reporting"
+      command: "just backend-coverage"
+    frontend_unit:
+      runner: "Vitest"
+      command: "just frontend-test"
+    frontend_e2e:
+      runner: "Playwright"
+      command: "just frontend-test-e2e"
+    frontend_lint:
+      runner: "Biome"
+      command: "just frontend-lint"
+    full_ci:
+      runner: "Repository CI orchestration"
+      command: "just ci"
+
+qa:
+  acceptance_required_for_behavior_changes: true
+  evidence_policy: "Do not infer product acceptance from unit, integration, BDD, or static checks alone."
+  archive_blockers:
+    - "Unresolved CRITICAL, P0, or P1 findings"
+    - "Acceptance-relevant BLOCKED or NOT TESTED scenarios"

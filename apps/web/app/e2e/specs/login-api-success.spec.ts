@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: .agents/testing/e2e-plans/login-flow.md
  * section: 3. Login API — Success Path
  *
  * Covers successful login, redirect preservation, token validation,
