@@ -86,8 +86,8 @@ The focused and full mocked Playwright results listed above are completed eviden
 - [GitHub #656](https://github.com/dallay/profiletailors.com/issues/656)
 - Linear `DALLAY-560`
 - OpenSpec acceptance QA report (`openspec/changes/private-beta-launch-readiness/qa-report.md`)
-- [Platform admin Cucumber coverage](../../server/smp/src/test/resources/features/platform-admin.feature)
-- [Direct invitation Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature)
-- [Notification delivery Cucumber coverage](../../server/smp/src/test/resources/features/platformadmin/notifications-admin.feature)
-- [Local authentication Cucumber coverage](../../server/smp/src/test/resources/features/local-auth.feature)
-- [Protected admin navigation Playwright coverage](../../apps/web/admin/e2e/specs/protected-navigation.spec.ts)
+- [Platform admin Cucumber coverage](../../../../server/smp/src/test/resources/features/platform-admin.feature)
+- [Direct invitation Cucumber coverage](../../../../server/smp/src/test/resources/features/platformadmin/invitations-direct.feature)
+- [Notification delivery Cucumber coverage](../../../../server/smp/src/test/resources/features/platformadmin/notifications-admin.feature)
+- [Local authentication Cucumber coverage](../../../../server/smp/src/test/resources/features/local-auth.feature)
+- [Protected admin navigation Playwright coverage](../../../../apps/web/admin/e2e/specs/protected-navigation.spec.ts)
