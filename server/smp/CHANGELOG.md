@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.11](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.10...smp@v0.5.11) (2026-10-03)
+
+
+### Features
+
+* **publishing:** credential retention slice 1 with disconnect tombstones and purge job ([#1250](https://github.com/dallay/profiletailors.com/issues/1250)) ([64886a7](https://github.com/dallay/profiletailors.com/commit/64886a7ecc93e53716d705ec4ef8f7930f68378e))
+* **shared-web:** add privacy-safe Sentry sanitizer ([#1286](https://github.com/dallay/profiletailors.com/issues/1286)) ([5c7fef0](https://github.com/dallay/profiletailors.com/commit/5c7fef0b4de416312954de56e71a3be6176fbce2))
+* Show backend build information in the admin console ([#1258](https://github.com/dallay/profiletailors.com/issues/1258)) ([b0ccdd5](https://github.com/dallay/profiletailors.com/commit/b0ccdd51a152331f669ebb0c2a5921c9ebe3d04b))
+
+
+### Bug Fixes
+
+* **deps:** bump Jackson to patched 2.22.3 and 3.2.3 ([#1281](https://github.com/dallay/profiletailors.com/issues/1281)) ([8363b1a](https://github.com/dallay/profiletailors.com/commit/8363b1a26bb05635b8d8c0f2532e2e3e894afee6))
+* **deps:** enforce patched Jackson in shared Spring convention plugins ([#1303](https://github.com/dallay/profiletailors.com/issues/1303)) ([72e52af](https://github.com/dallay/profiletailors.com/commit/72e52af3cae192e52b42c8f28ad9b4d71ce0f8d0))
+* **deps:** pin patched Jackson BOMs declaratively ([#1292](https://github.com/dallay/profiletailors.com/issues/1292)) ([123f6f6](https://github.com/dallay/profiletailors.com/commit/123f6f6d55f011cafe8bdbf474ec113cf7654db9))
+* **quality:** remediate SonarCloud findings ([#1267](https://github.com/dallay/profiletailors.com/issues/1267)) ([6669547](https://github.com/dallay/profiletailors.com/commit/66695476839383ff90193fc12def5f87553ae98a))
+* **tests:** drop CSRF disable in actuator test security chain ([#1295](https://github.com/dallay/profiletailors.com/issues/1295)) ([e0e5253](https://github.com/dallay/profiletailors.com/commit/e0e5253fbd4498ae2a440c32cfe19d8b0b3b70cc))
+
+
+### Refactoring
+
+* **backend:** remediate hexagonal architecture and ddd marker gaps ([#1252](https://github.com/dallay/profiletailors.com/issues/1252)) ([cb97da1](https://github.com/dallay/profiletailors.com/commit/cb97da1d77839017affbb911708eb3756fae7110))
+
 ## [0.5.10](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.9...smp@v0.5.10) (2026-09-29)
 
 
