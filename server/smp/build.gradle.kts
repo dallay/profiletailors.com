@@ -6,6 +6,10 @@ plugins {
     id("com.profiletailors.mutation.testing")
 }
 
+dependencies {
+    implementation(libs.caffeine)
+}
+
 group = "com.profiletailors"
 val defaultVersion = "0.0.1-SNAPSHOT"
 version = providers.gradleProperty("releaseVersion").getOrElse(defaultVersion)
