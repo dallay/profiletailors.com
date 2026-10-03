@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: dead-reference-cleaner
-lastExecution: "2026-09-03T01:45:00Z"
+lastExecution: "2026-09-28T12:00:00Z"
 outcome: CHANGES_APPLIED
 findings:
   - id: FINDING-001
@@ -10,7 +10,7 @@ findings:
     risk: LOW
     status: resolved
     firstDetected: "2026-09-03T01:45:00Z"
-    lastVerified: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-28T12:00:00Z"
     occurrences: 1
     remediation:
       status: implemented
@@ -23,7 +23,7 @@ findings:
     risk: LOW
     status: resolved
     firstDetected: "2026-09-03T01:45:00Z"
-    lastVerified: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-28T12:00:00Z"
     occurrences: 1
     remediation:
       status: implemented
@@ -36,7 +36,7 @@ findings:
     risk: LOW
     status: resolved
     firstDetected: "2026-09-03T01:45:00Z"
-    lastVerified: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-28T12:00:00Z"
     occurrences: 1
     remediation:
       status: implemented
@@ -49,12 +49,25 @@ findings:
     risk: LOW
     status: resolved
     firstDetected: "2026-09-03T01:45:00Z"
-    lastVerified: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-28T12:00:00Z"
     occurrences: 1
     remediation:
       status: implemented
       pullRequest: null
       description: "Removed dead markdown link to deleted proposal file"
+  - id: FINDING-005
+    type: dead_reference
+    file: .agents/rpi/plan/tasks/back-office-qa.md
+    target: "../../server/smp/src/test/resources/features/platform-admin.feature"
+    risk: LOW
+    status: resolved
+    firstDetected: "2026-09-28T12:00:00Z"
+    lastVerified: "2026-09-28T12:00:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      pullRequest: null
+      description: "Corrected relative directory depth in task references from ../.. to ../../../.."
 checks:
   - name: markdown-link-audit
     target: repository-markdown-files
