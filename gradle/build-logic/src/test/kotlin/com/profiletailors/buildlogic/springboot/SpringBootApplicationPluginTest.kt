@@ -132,6 +132,8 @@ class SpringBootApplicationPluginTest {
             """
                 [versions]
                 kotlin = "2.4.10"
+                jackson = "3.2.3"
+                jackson2 = "2.22.3"
 
                 [plugins]
                 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
