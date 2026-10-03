@@ -2,6 +2,7 @@ package com.profiletailors.buildlogic.springboot
 
 import com.profiletailors.buildlogic.ConventionPlugin
 import com.profiletailors.buildlogic.extensions.catalogPlugin
+import com.profiletailors.buildlogic.security.enforcePatchedJacksonVersions
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.Test
@@ -22,6 +23,8 @@ class SpringBootApplicationPlugin : ConventionPlugin {
 
         // Apply Jacoco
         apply(plugin = "jacoco")
+
+        enforcePatchedJacksonVersions()
 
         // Ensure check task runs detekt
         tasks.named("check") {
