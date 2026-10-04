@@ -18,7 +18,7 @@
     "node": ">=24.19.0",
     "pnpm": ">=11.26.0"
   },
-  "packageManager": "pnpm@12.5.1",
+  "packageManager": "pnpm@12.9.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/dallay/profiletailors.com.git"
@@ -41,6 +41,7 @@
     "test:app": "pnpm --filter app test",
     "lint": "pnpm --recursive run lint",
     "format": "pnpm --recursive run format",
+    "deps:update": "pnpm update --recursive --latest --include-workspace-root",
     "clean": "node scripts/workspace-clean.mjs",
     "backend:build": "node scripts/gradle-run.mjs :server:smp:build --no-daemon",
     "backend:run": "node scripts/gradle-run.mjs :server:smp:bootRun --args=--spring.profiles.active=dev",
@@ -49,10 +50,10 @@
     "prepare": "node scripts/prepare-workspace.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@biomejs/biome": "2.5.15",
     "markdownlint-cli2": "0.23.3",
-    "portless": "0.15.6",
-    "wrangler": "^4.143.0"
+    "portless": "0.15.7",
+    "wrangler": "^4.147.0"
   },
   "overrides": {
     "undici": ">=8.10.2",
