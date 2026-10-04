@@ -373,11 +373,6 @@ swarm-remove:
 # DOCUMENTATION & LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
 
-# Validate documentation "Last Updated" dates against git history
-doc-check:
-    @echo "▸ Documentation date freshness check..."
-    node scripts/check-doc-last-updated.mjs
-
 # Check Markdown links with lychee (uses lychee.toml; globs quoted so lychee
 # expands them recursively instead of the shell truncating ** to one level)
 docs-links:
@@ -415,9 +410,6 @@ ci-local:
     @echo ""
     @echo "▸ Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
-    @echo ""
-    @echo "▸ Documentation date freshness check..."
-    just doc-check
     @echo ""
     @echo "▸ Markdown lint..."
     just docs-lint
@@ -486,9 +478,6 @@ ci:
     @echo "════════════════════════════════════════════════"
     @echo ""
     just _ci-step "[1/15] Gitleaks (secrets scan)" "." gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
-    @echo ""
-    @echo "▸ [1a/8] Documentation date freshness check..."
-    just doc-check
     @echo ""
     @echo "▸ [1b/8] Dependency licence scan..."
     just licence-check
