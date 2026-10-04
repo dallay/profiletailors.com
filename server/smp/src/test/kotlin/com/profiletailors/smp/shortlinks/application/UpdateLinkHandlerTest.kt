@@ -14,11 +14,12 @@ import com.profiletailors.smp.shortlinks.domain.LinkRepository
 import com.profiletailors.smp.shortlinks.domain.LinkVersionConflictException
 import com.profiletailors.smp.shortlinks.domain.OwnerId
 import com.profiletailors.smp.shortlinks.domain.ShortCode
+import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Clock
@@ -46,7 +47,7 @@ internal class UpdateLinkHandlerTest {
     }
 
     @Test
-    fun `updates destination and evicts cache`() = runBlocking {
+    fun `updates destination and evicts cache`() = runTest {
         val existing = link(expiresAt = null)
         coEvery { linkRepository.findById(linkId, ownerId) } returns existing
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
@@ -59,7 +60,7 @@ internal class UpdateLinkHandlerTest {
     }
 
     @Test
-    fun `preserves existing expiry when only destination changes`() = runBlocking {
+    fun `preserves existing expiry when only destination changes`() = runTest {
         val existing = link(expiresAt = now.plusSeconds(3600))
         coEvery { linkRepository.findById(linkId, ownerId) } returns existing
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
@@ -70,7 +71,7 @@ internal class UpdateLinkHandlerTest {
     }
 
     @Test
-    fun `sets new expiry when provided`() = runBlocking {
+    fun `sets new expiry when provided`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(expiresAt = null)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
 
@@ -82,53 +83,45 @@ internal class UpdateLinkHandlerTest {
     }
 
     @Test
-    fun `rejects stale expected version`() = runBlocking {
+    fun `rejects stale expected version`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(expiresAt = null)
 
-        try {
+        shouldThrow<LinkVersionConflictException> {
             handler().handle(UpdateLinkCommand(linkId.value, "https://example.com/new", null, 0))
-            throw AssertionError("Expected version conflict")
-        } catch (_: LinkVersionConflictException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
-            coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
+        coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
     }
 
     @Test
-    fun `rejects unknown link`() = runBlocking {
+    fun `rejects unknown link`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns null
 
-        try {
+        shouldThrow<LinkNotFoundApplicationException> {
             handler().handle(UpdateLinkCommand(linkId.value, "https://example.com/new", null, 1))
-            throw AssertionError("Expected link not found")
-        } catch (_: LinkNotFoundApplicationException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
     }
 
     @Test
-    fun `rejects invalid destination`() = runBlocking {
+    fun `rejects invalid destination`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(expiresAt = null)
 
-        try {
+        shouldThrow<InvalidDestinationUrlException> {
             handler().handle(UpdateLinkCommand(linkId.value, "not a url", null, 1))
-            throw AssertionError("Expected invalid destination")
-        } catch (_: InvalidDestinationUrlException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
     }
 
     @Test
-    fun `rejects lost update without evicting`() = runBlocking {
+    fun `rejects lost update without evicting`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(expiresAt = null)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns false
 
-        try {
+        shouldThrow<LinkVersionConflictException> {
             handler().handle(UpdateLinkCommand(linkId.value, "https://example.com/new", null, 1))
-            throw AssertionError("Expected version conflict")
-        } catch (_: LinkVersionConflictException) {
-            coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
         }
+        coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
     }
 
     private fun link(expiresAt: Instant?) = Link.create(

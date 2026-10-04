@@ -11,7 +11,7 @@ import com.profiletailors.smp.shortlinks.application.UpdateLinkCommand
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -33,7 +33,7 @@ internal class LinkManagementControllerTest {
     )
 
     @Test
-    fun `create delegates with idempotency key`() = runBlocking {
+    fun `create delegates with idempotency key`() = runTest {
         coEvery { mediator.send(any<CreateLinkCommand>()) } returns result
 
         val actual = controller.createLink(
@@ -54,7 +54,7 @@ internal class LinkManagementControllerTest {
     }
 
     @Test
-    fun `get delegates with link id`() = runBlocking {
+    fun `get delegates with link id`() = runTest {
         coEvery { mediator.send(any<GetLinkQuery>()) } returns result
 
         assertEquals(result, controller.getLink(linkId))
@@ -62,7 +62,7 @@ internal class LinkManagementControllerTest {
     }
 
     @Test
-    fun `update maps if-match to expected version`() = runBlocking {
+    fun `update maps if-match to expected version`() = runTest {
         coEvery { mediator.send(any<UpdateLinkCommand>()) } returns result
 
         assertEquals(result, controller.updateLink(linkId, 3, UpdateLinkRequest("https://example.com/n", null)))
@@ -78,7 +78,7 @@ internal class LinkManagementControllerTest {
     }
 
     @Test
-    fun `disable delegates`() = runBlocking {
+    fun `disable delegates`() = runTest {
         coEvery { mediator.send(any<DisableLinkCommand>()) } returns result
 
         assertEquals(result, controller.disableLink(linkId))
@@ -86,7 +86,7 @@ internal class LinkManagementControllerTest {
     }
 
     @Test
-    fun `enable delegates`() = runBlocking {
+    fun `enable delegates`() = runTest {
         coEvery { mediator.send(any<EnableLinkCommand>()) } returns result
 
         assertEquals(result, controller.enableLink(linkId))
@@ -94,7 +94,7 @@ internal class LinkManagementControllerTest {
     }
 
     @Test
-    fun `delete delegates`() = runBlocking {
+    fun `delete delegates`() = runTest {
         coEvery { mediator.send(any<DeleteLinkCommand>()) } returns result
 
         assertEquals(result, controller.deleteLink(linkId))

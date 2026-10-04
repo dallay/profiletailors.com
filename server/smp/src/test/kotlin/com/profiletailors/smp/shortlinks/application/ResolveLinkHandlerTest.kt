@@ -11,11 +11,12 @@ import com.profiletailors.smp.shortlinks.domain.LinkStatus
 import com.profiletailors.smp.shortlinks.domain.OwnerId
 import com.profiletailors.smp.shortlinks.domain.RedirectEntry
 import com.profiletailors.smp.shortlinks.domain.ShortCode
+import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Clock
@@ -35,7 +36,7 @@ internal class ResolveLinkHandlerTest {
     private val linkId = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000001"))
 
     @Test
-    fun `returns destination for cached active entry without hitting repository`() = runBlocking {
+    fun `returns destination for cached active entry without hitting repository`() = runTest {
         val entry = entry(status = LinkStatus.ACTIVE, expiresAt = null)
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Present(entry)
 
@@ -49,7 +50,7 @@ internal class ResolveLinkHandlerTest {
     }
 
     @Test
-    fun `treats blank domain as public host`() = runBlocking {
+    fun `treats blank domain as public host`() = runTest {
         val entry = entry(status = LinkStatus.ACTIVE, expiresAt = null)
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Present(entry)
 
@@ -62,97 +63,85 @@ internal class ResolveLinkHandlerTest {
     }
 
     @Test
-    fun `returns not found for cached negative without hitting repository`() = runBlocking {
+    fun `returns not found for cached negative without hitting repository`() = runTest {
         coEvery { linkCachePort.get("short.example", "Missing1") } returns CacheLookup.Negative
 
-        try {
+        shouldThrow<LinkNotFoundApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "Missing1"))
-            throw AssertionError("Expected link not found")
-        } catch (_: LinkNotFoundApplicationException) {
-            coVerify(exactly = 0) {
-                linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("Missing1"))
-            }
+        }
+        coVerify(exactly = 0) {
+            linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("Missing1"))
         }
     }
 
     @Test
-    fun `caches negative miss and returns not found`() = runBlocking {
+    fun `caches negative miss and returns not found`() = runTest {
         coEvery { linkCachePort.get("short.example", "Missing1") } returns CacheLookup.Miss
         coEvery {
             linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("Missing1"))
         } returns null
         coEvery { linkCachePort.putNegative(any(), any()) } coAnswers { }
 
-        try {
+        shouldThrow<LinkNotFoundApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "Missing1"))
-            throw AssertionError("Expected link not found")
-        } catch (_: LinkNotFoundApplicationException) {
-            coVerify(exactly = 1) { linkCachePort.putNegative("short.example", "Missing1") }
         }
+        coVerify(exactly = 1) { linkCachePort.putNegative("short.example", "Missing1") }
     }
 
     @Test
-    fun `recomputes expiry from cached entry and returns gone`() = runBlocking {
+    fun `recomputes expiry from cached entry and returns gone`() = runTest {
         val entry = entry(status = LinkStatus.ACTIVE, expiresAt = now.minusSeconds(1))
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Present(entry)
 
-        try {
+        shouldThrow<LinkExpiredApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link expired")
-        } catch (_: LinkExpiredApplicationException) {
-            coVerify(exactly = 0) {
-                linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
-            }
+        }
+        coVerify(exactly = 0) {
+            linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         }
     }
 
     @Test
-    fun `maps cached disabled entry to not found`() = runBlocking {
+    fun `maps cached disabled entry to not found`() = runTest {
         coEvery { linkCachePort.get("short.example", "AbC123") } returns
             CacheLookup.Present(entry(status = LinkStatus.DISABLED, expiresAt = null))
 
-        try {
+        shouldThrow<LinkDisabledApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link disabled")
-        } catch (_: LinkDisabledApplicationException) {
-            coVerify(exactly = 0) {
-                linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
-            }
+        }
+        coVerify(exactly = 0) {
+            linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         }
     }
 
     @Test
-    fun `maps cached deleted entry to not found`() = runBlocking {
+    fun `maps cached deleted entry to not found`() = runTest {
         coEvery { linkCachePort.get("short.example", "AbC123") } returns
             CacheLookup.Present(entry(status = LinkStatus.DELETED, expiresAt = null))
 
-        try {
+        shouldThrow<LinkDeletedApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link deleted")
-        } catch (_: LinkDeletedApplicationException) {
-            coVerify(exactly = 0) {
-                linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
-            }
+        }
+        coVerify(exactly = 0) {
+            linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         }
     }
 
     @Test
-    fun `maps cached quarantined entry to forbidden`() = runBlocking {
+    fun `maps cached quarantined entry to forbidden`() = runTest {
         coEvery { linkCachePort.get("short.example", "AbC123") } returns
             CacheLookup.Present(entry(status = LinkStatus.QUARANTINED, expiresAt = null))
 
-        try {
+        shouldThrow<LinkQuarantinedApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link quarantined")
-        } catch (_: LinkQuarantinedApplicationException) {
-            coVerify(exactly = 0) {
-                linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
-            }
+        }
+        coVerify(exactly = 0) {
+            linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         }
     }
 
     @Test
-    fun `resolves active link from repository and caches it`() = runBlocking {
+    fun `resolves active link from repository and caches it`() = runTest {
         val link = link(expiresAt = null)
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Miss
         coEvery {
@@ -175,58 +164,54 @@ internal class ResolveLinkHandlerTest {
     }
 
     @Test
-    fun `maps expired database link to gone`() = runBlocking {
+    fun `maps expired database link to gone`() = runTest {
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Miss
         coEvery {
             linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         } returns link(expiresAt = now.minusSeconds(1))
         coEvery { linkCachePort.put(any(), any(), any()) } coAnswers { }
 
-        try {
+        shouldThrow<LinkExpiredApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link expired")
-        } catch (_: LinkExpiredApplicationException) {
-            coVerify(exactly = 1) {
-                linkCachePort.put(
-                    "short.example",
-                    "AbC123",
-                    RedirectEntry(
-                        linkId,
-                        DestinationUrl("https://example.com/path"),
-                        LinkStatus.EXPIRED,
-                        now.minusSeconds(1),
-                        1,
-                    ),
-                )
-            }
+        }
+        coVerify(exactly = 1) {
+            linkCachePort.put(
+                "short.example",
+                "AbC123",
+                RedirectEntry(
+                    linkId,
+                    DestinationUrl("https://example.com/path"),
+                    LinkStatus.EXPIRED,
+                    now.minusSeconds(1),
+                    1,
+                ),
+            )
         }
     }
 
     @Test
-    fun `maps disabled database link to not found`() = runBlocking {
+    fun `maps disabled database link to not found`() = runTest {
         coEvery { linkCachePort.get("short.example", "AbC123") } returns CacheLookup.Miss
         coEvery {
             linkFinderRepository.findByDomainAndShortCode(domain, ShortCode("AbC123"))
         } returns link(expiresAt = null).copy(status = LinkStatus.DISABLED)
         coEvery { linkCachePort.put(any(), any(), any()) } coAnswers { }
 
-        try {
+        shouldThrow<LinkDisabledApplicationException> {
             handler().handle(ResolveLinkQuery("short.example", "AbC123"))
-            throw AssertionError("Expected link disabled")
-        } catch (_: LinkDisabledApplicationException) {
-            coVerify(exactly = 1) {
-                linkCachePort.put(
-                    "short.example",
-                    "AbC123",
-                    RedirectEntry(
-                        linkId,
-                        DestinationUrl("https://example.com/path"),
-                        LinkStatus.DISABLED,
-                        null,
-                        1,
-                    ),
-                )
-            }
+        }
+        coVerify(exactly = 1) {
+            linkCachePort.put(
+                "short.example",
+                "AbC123",
+                RedirectEntry(
+                    linkId,
+                    DestinationUrl("https://example.com/path"),
+                    LinkStatus.DISABLED,
+                    null,
+                    1,
+                ),
+            )
         }
     }
 

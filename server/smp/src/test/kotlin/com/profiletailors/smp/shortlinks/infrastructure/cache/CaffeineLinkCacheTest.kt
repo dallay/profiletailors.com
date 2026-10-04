@@ -7,7 +7,7 @@ import com.profiletailors.smp.shortlinks.domain.LinkStatus
 import com.profiletailors.smp.shortlinks.domain.RedirectEntry
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -20,14 +20,14 @@ internal class CaffeineLinkCacheTest {
     private val now = Instant.parse("2026-10-01T09:00:00Z")
 
     @Test
-    fun `misses on empty cache`() = runBlocking {
+    fun `misses on empty cache`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
 
         assertEquals(CacheLookup.Miss, cache.get("short.example", "AbC123"))
     }
 
     @Test
-    fun `roundtrips a present entry`() = runBlocking {
+    fun `roundtrips a present entry`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
         val entry = entry(expiresAt = now.plusSeconds(60))
 
@@ -37,7 +37,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `invalidates present entry once it expires`() = runBlocking {
+    fun `invalidates present entry once it expires`() = runTest {
         val clock = mockk<Clock>()
         every { clock.instant() } returnsMany listOf(now, now.plusSeconds(61))
         val cache = CaffeineLinkCache(clock)
@@ -48,7 +48,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `does not cache entries that already expired`() = runBlocking {
+    fun `does not cache entries that already expired`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
 
         cache.put("short.example", "AbC123", entry(expiresAt = now.minusSeconds(1)))
@@ -57,7 +57,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `roundtrips a negative entry`() = runBlocking {
+    fun `roundtrips a negative entry`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
 
         cache.putNegative("short.example", "Missing1")
@@ -66,7 +66,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `evicts present entries`() = runBlocking {
+    fun `evicts present entries`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
         cache.put("short.example", "AbC123", entry(expiresAt = null))
 
@@ -76,7 +76,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `evicts negative entries`() = runBlocking {
+    fun `evicts negative entries`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
         cache.putNegative("short.example", "Missing1")
 
@@ -86,7 +86,7 @@ internal class CaffeineLinkCacheTest {
     }
 
     @Test
-    fun `present entry overwrites negative entry`() = runBlocking {
+    fun `present entry overwrites negative entry`() = runTest {
         val cache = CaffeineLinkCache(Clock.fixed(now, ZoneOffset.UTC))
         val entry = entry(expiresAt = null)
         cache.putNegative("short.example", "AbC123")

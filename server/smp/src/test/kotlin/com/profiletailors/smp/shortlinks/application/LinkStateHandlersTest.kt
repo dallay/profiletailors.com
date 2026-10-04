@@ -15,11 +15,12 @@ import com.profiletailors.smp.shortlinks.domain.LinkStatus
 import com.profiletailors.smp.shortlinks.domain.LinkVersionConflictException
 import com.profiletailors.smp.shortlinks.domain.OwnerId
 import com.profiletailors.smp.shortlinks.domain.ShortCode
+import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Clock
@@ -47,7 +48,7 @@ internal class LinkStateHandlersTest {
     }
 
     @Test
-    fun `disables active link and evicts cache`() = runBlocking {
+    fun `disables active link and evicts cache`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(LinkStatus.ACTIVE)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
 
@@ -65,10 +66,10 @@ internal class LinkStateHandlersTest {
     }
 
     @Test
-    fun `rejects disabling unknown link`() = runBlocking {
+    fun `rejects disabling unknown link`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns null
 
-        try {
+        shouldThrow<LinkNotFoundApplicationException> {
             DisableLinkHandler(
                 contextProvider,
                 linkRepository,
@@ -77,18 +78,16 @@ internal class LinkStateHandlersTest {
                 clock,
                 properties,
             ).handle(DisableLinkCommand(linkId.value))
-            throw AssertionError("Expected link not found")
-        } catch (_: LinkNotFoundApplicationException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
     }
 
     @Test
-    fun `rejects disabling without update and without evicting`() = runBlocking {
+    fun `rejects disabling without update and without evicting`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(LinkStatus.ACTIVE)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns false
 
-        try {
+        shouldThrow<LinkVersionConflictException> {
             DisableLinkHandler(
                 contextProvider,
                 linkRepository,
@@ -97,14 +96,12 @@ internal class LinkStateHandlersTest {
                 clock,
                 properties,
             ).handle(DisableLinkCommand(linkId.value))
-            throw AssertionError("Expected version conflict")
-        } catch (_: LinkVersionConflictException) {
-            coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
         }
+        coVerify(exactly = 0) { linkCachePort.evict(any(), any()) }
     }
 
     @Test
-    fun `enables disabled link`() = runBlocking {
+    fun `enables disabled link`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(LinkStatus.DISABLED)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
 
@@ -122,11 +119,11 @@ internal class LinkStateHandlersTest {
     }
 
     @Test
-    fun `rejects enabling expired link`() = runBlocking {
+    fun `rejects enabling expired link`() = runTest {
         val expired = link(LinkStatus.DISABLED).copy(expiresAt = now.minusSeconds(1))
         coEvery { linkRepository.findById(linkId, ownerId) } returns expired
 
-        try {
+        shouldThrow<LinkStateTransitionException> {
             EnableLinkHandler(
                 contextProvider,
                 linkRepository,
@@ -135,14 +132,12 @@ internal class LinkStateHandlersTest {
                 clock,
                 properties,
             ).handle(EnableLinkCommand(linkId.value))
-            throw AssertionError("Expected invalid transition")
-        } catch (_: LinkStateTransitionException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
     }
 
     @Test
-    fun `deletes link and evicts cache`() = runBlocking {
+    fun `deletes link and evicts cache`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(LinkStatus.ACTIVE)
         coEvery { linkRepository.updateWithVersion(any(), 1, ownerId) } returns true
 
@@ -160,10 +155,10 @@ internal class LinkStateHandlersTest {
     }
 
     @Test
-    fun `rejects deleting twice`() = runBlocking {
+    fun `rejects deleting twice`() = runTest {
         coEvery { linkRepository.findById(linkId, ownerId) } returns link(LinkStatus.DELETED)
 
-        try {
+        shouldThrow<LinkStateTransitionException> {
             DeleteLinkHandler(
                 contextProvider,
                 linkRepository,
@@ -172,10 +167,8 @@ internal class LinkStateHandlersTest {
                 clock,
                 properties,
             ).handle(DeleteLinkCommand(linkId.value))
-            throw AssertionError("Expected invalid transition")
-        } catch (_: LinkStateTransitionException) {
-            coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
         }
+        coVerify(exactly = 0) { linkRepository.updateWithVersion(any(), any(), ownerId) }
     }
 
     private fun link(status: LinkStatus) = Link.create(

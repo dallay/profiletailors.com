@@ -4,8 +4,8 @@ sealed class LinkException(message: String, cause: Throwable? = null) : RuntimeE
 
 class LinkNotFoundException(val linkId: LinkId) : LinkException("Link not found: ${linkId.value}")
 
-class AliasAlreadyExistsException(val alias: String, val domainId: DomainId) :
-    LinkException("Alias '$alias' already exists for domain ${domainId.value}")
+class AliasAlreadyExistsException(val alias: String, val domainId: DomainId, cause: Throwable? = null) :
+    LinkException("Alias '$alias' already exists for domain ${domainId.value}", cause)
 
 class ReservedAliasException(val alias: String) : LinkException("Alias '$alias' is reserved")
 
@@ -15,8 +15,8 @@ class InvalidDestinationUrlException(val url: String, val reason: String, cause:
 class ShortCodeCollisionException(cause: Throwable) :
     LinkException("Short code already exists for the domain", cause)
 
-class ShortCodeCollisionExhaustedException(val retries: Int) :
-    LinkException("Failed to generate unique short code after $retries attempts")
+class ShortCodeCollisionExhaustedException(val retries: Int, cause: Throwable? = null) :
+    LinkException("Failed to generate unique short code after $retries attempts", cause)
 
 class LinkVersionConflictException(val linkId: LinkId, val expected: Long, val actual: Long) :
     LinkException("Version conflict for link ${linkId.value}: expected $expected, got $actual")

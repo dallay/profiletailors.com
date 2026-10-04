@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.shortlinks.domain.AliasAlreadyExistsException
 import com.profiletailors.smp.shortlinks.domain.CustomAlias
 import com.profiletailors.smp.shortlinks.domain.DestinationUrl
 import com.profiletailors.smp.shortlinks.domain.DomainId
@@ -82,9 +83,11 @@ internal class CreateLinkHandler(
                 return outcome.result
             } catch (collision: ShortCodeCollisionException) {
                 attempts += 1
-                if (command.customAlias != null) throw collision
+                if (command.customAlias != null) {
+                    throw AliasAlreadyExistsException(command.customAlias, domainId, collision)
+                }
                 if (attempts >= LinkPolicies.MAX_COLLISION_RETRIES) {
-                    throw ShortCodeCollisionExhaustedException(LinkPolicies.MAX_COLLISION_RETRIES)
+                    throw ShortCodeCollisionExhaustedException(LinkPolicies.MAX_COLLISION_RETRIES, collision)
                 }
                 shortCode = shortCodeGenerator.generate()
             }

@@ -12,7 +12,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
@@ -27,7 +27,7 @@ internal class RedirectControllerTest {
     private val linkId = UUID.fromString("0199b1ca-0000-7000-8000-000000000001")
 
     @Test
-    fun `redirects active link with no-store`() = runBlocking {
+    fun `redirects active link with no-store`() = runTest {
         val request = request("go.profiletailors.com")
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)
@@ -40,7 +40,7 @@ internal class RedirectControllerTest {
     }
 
     @Test
-    fun `resolves with request host as domain`() = runBlocking {
+    fun `resolves with request host as domain`() = runTest {
         val request = request("go.profiletailors.com")
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)
@@ -55,35 +55,35 @@ internal class RedirectControllerTest {
     }
 
     @Test
-    fun `unknown code returns not found`() = runBlocking {
+    fun `unknown code returns not found`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkNotFoundApplicationException("Nope")
 
         assertEquals(HttpStatus.NOT_FOUND, controller.redirect("Nope", request("go.profiletailors.com")).statusCode)
     }
 
     @Test
-    fun `expired link returns gone`() = runBlocking {
+    fun `expired link returns gone`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkExpiredApplicationException("Old")
 
         assertEquals(HttpStatus.GONE, controller.redirect("Old", request("go.profiletailors.com")).statusCode)
     }
 
     @Test
-    fun `disabled link returns not found`() = runBlocking {
+    fun `disabled link returns not found`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkDisabledApplicationException("Off")
 
         assertEquals(HttpStatus.NOT_FOUND, controller.redirect("Off", request("go.profiletailors.com")).statusCode)
     }
 
     @Test
-    fun `deleted link returns not found`() = runBlocking {
+    fun `deleted link returns not found`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkDeletedApplicationException("Gone")
 
         assertEquals(HttpStatus.NOT_FOUND, controller.redirect("Gone", request("go.profiletailors.com")).statusCode)
     }
 
     @Test
-    fun `quarantined link returns forbidden`() = runBlocking {
+    fun `quarantined link returns forbidden`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkQuarantinedApplicationException("Bad")
 
         assertEquals(HttpStatus.FORBIDDEN, controller.redirect("Bad", request("go.profiletailors.com")).statusCode)
