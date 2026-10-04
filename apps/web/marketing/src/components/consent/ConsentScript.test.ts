@@ -34,29 +34,20 @@ declare global {
 const CONSENT_KEY = 'pt-consent'
 
 describe('ConsentScript inline consent check', () => {
-  let originalNavigator: Navigator
-
   beforeEach(() => {
-    originalNavigator = global.navigator
     localStorage.clear()
     delete window.__PT_CONSENT_ANALYTICS
     delete window.__PT_DNT
     delete window.doNotTrack
 
-    Object.defineProperty(global.navigator, 'doNotTrack', {
-      value: null,
-      writable: true,
-      configurable: true,
-    })
-    Object.defineProperty(global.navigator, 'globalPrivacyControl', {
-      value: undefined,
-      writable: true,
-      configurable: true,
+    vi.stubGlobal('navigator', {
+      doNotTrack: null,
+      globalPrivacyControl: undefined,
     })
   })
 
   afterEach(() => {
-    global.navigator = originalNavigator
+    vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
 
