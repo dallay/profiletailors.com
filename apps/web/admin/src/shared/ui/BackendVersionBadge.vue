@@ -18,8 +18,9 @@ const loading = ref(true)
 const isKnown = (value?: string) =>
   Boolean(value?.trim() && value.trim().toLowerCase() !== 'unknown')
 const hasVersion = computed(() => isKnown(buildInfo.value?.version))
+const revision = computed(() => buildInfo.value?.revision)
 const shortRevision = computed(() =>
-  isKnown(buildInfo.value?.revision) ? buildInfo.value!.revision.slice(0, 7) : '',
+  revision.value && isKnown(revision.value) ? revision.value.slice(0, 7) : '',
 )
 const builtAt = computed(() => {
   const info = buildInfo.value
@@ -55,12 +56,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section
-    role="group"
+  <div
     class="flex min-h-6 min-w-0 items-center gap-2 text-[10px]"
     :title="title"
     data-testid="backend-version-badge"
-    :aria-label="t('system.backendBuild')"
   >
     <span class="label-mono shrink-0 text-[9px] text-text-secondary">API</span>
     <p
@@ -73,5 +72,5 @@ onMounted(async () => {
     <output v-else aria-live="polite" class="min-w-0 truncate text-text-secondary">
       {{ loading ? t('common.loading') : t('system.backendUnavailable') }}
     </output>
-  </section>
+  </div>
 </template>
