@@ -22,8 +22,8 @@ To optimize rendering, you can utilize the CSS `content-visibility` property and
 
 **MANDATORY**: You MUST carefully identify which elements receive `content-visibility: auto`.
 
-- **DO** target large, self-contained layout blocks that are strictly **below the initial fold** (
-  e.g., card items in an infinite feed, trailing comments, or bottom-heavy layout sections).
+- **DO** target large, self-contained layout blocks that are strictly **below the initial fold**
+  (e.g., card items in an infinite feed, trailing comments, or bottom-heavy layout sections).
 - **DO NOT** apply this property to elements within the initial, above-the-fold viewport. Doing so
   forces the browser to evaluate visibility boundaries before rendering, which paradoxically delays
   critical page load performance.

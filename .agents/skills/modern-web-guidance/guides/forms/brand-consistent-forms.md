@@ -14,8 +14,8 @@ features.
 To apply your brand color to form controls:
 
 1. **Identify your brand color:** Choose a color that represents your brand.
-2. **Apply the `accent-color` property:** Add `accent-color` to the element or a container element (
-   like `body` or a specific form) in your CSS.
+2. **Apply the `accent-color` property:** Add `accent-color` to the element or a container element
+   (like `body` or a specific form) in your CSS.
 3. **Support Dark Mode (Optional but Recommended):** Use `color-scheme` to let the browser know your
    site supports dark mode, and adjust the `accent-color` if necessary for better contrast.
 

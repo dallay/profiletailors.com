@@ -64,8 +64,8 @@ scroller.addEventListener('scrollend', () => {
 ## Fallback Strategy
 
 Baseline status for scrollend: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 114 (May 2023), Edge 114 (Jun 2023), Firefox 109 (Jan 2023), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 114 (May 2023), Edge 114 (Jun 2023), Firefox 109 (Jan 2023), and Safari 26.2
+(Dec 2025).
 
 For unsupported browsers, fall back to a debounced `scroll` event with `setTimeout` to dispatch a
 custom `scrollend` event.

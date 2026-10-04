@@ -41,7 +41,7 @@ to `1` (like `0.5` for 50%) instead of absolute pixels.
 > opacity, where white reveals, black hides, and gray creates semi-transparency. If you want the
 > mask
 > to use the **alpha channel** (transparency) of your SVG shapes instead, you can specify
-`mask-type: alpha;` in your CSS or `mask-type="alpha"` directly on the SVG `<mask>` element.
+> `mask-type: alpha;` in your CSS or `mask-type="alpha"` directly on the SVG `<mask>` element.
 
 ```html
 <!-- White areas reveal content, gray creates semi-transparency, black or transparent hides it -->
@@ -73,8 +73,8 @@ to `1` (like `0.5` for 50%) instead of absolute pixels.
 ### Fallback strategies
 
 Baseline status for Masks: Newly available. It's been Baseline since 2023-12-07.
-Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4 (
-Mar 2022).
+Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4
+(Mar 2022).
 
 If a browser does not support `mask-image` or the prefixed version:
 
