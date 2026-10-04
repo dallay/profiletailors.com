@@ -271,6 +271,7 @@ not exist, use the exact workspace command already used by CI and say so in the 
 | Command                                                           | Action                                                                                        |
 |-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | `just dev-frontend`                                               | Start marketing and dashboard dev servers through Portless                                    |
+| `just serve` / `just serve --force`                               | Start backend + dashboard SPA + admin SPA together under one supervisor; teardown with `just kill-servers` |
 | `just frontend-build`                                             | Build the marketing site                                                                      |
 | `just app-build`                                                  | Type-check and build the dashboard SPA                                                        |
 | `just admin-build`                                                | Type-check and build the admin SPA                                                            |

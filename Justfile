@@ -250,14 +250,14 @@ backend-run:
     node scripts/gradle-run.mjs :server:smp:bootRun --args=--spring.profiles.active=dev
 
 # ═══════════════════════════════════════════════════════════════
-# SERVE  (Backend + Frontend App)
+# SERVE  (Backend + Dashboard + Admin)
 # ═══════════════════════════════════════════════════════════════
 
-# Start backend + frontend app in parallel
+# Start backend + dashboard SPA + admin SPA in parallel (one supervisor)
 serve $force="":
     node scripts/serve-dev.mjs "{{force}}"
 
-# Restart backend + frontend app, killing previous dev servers first
+# Restart backend + dashboard + admin, killing previous dev servers first
 serve-force:
     just serve --force
 
