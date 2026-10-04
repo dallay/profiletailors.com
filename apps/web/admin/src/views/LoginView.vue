@@ -70,7 +70,7 @@ function resolveRedirect(value: unknown): string {
         <p class="label-mono text-text-secondary">{{ t('auth.platformAdmin') }}</p>
       </header>
 
-      <form class="space-y-5" :aria-busy="pending" novalidate data-testid="admin-login-form" @submit.prevent="submit">
+      <form class="space-y-5" name="admin-login" :aria-busy="pending" novalidate data-testid="admin-login-form" @submit.prevent="submit">
         <div class="space-y-2">
           <label for="admin-login-email" class="text-sm font-medium text-text-display">{{ t('auth.email') }}</label>
           <input
@@ -80,7 +80,6 @@ function resolveRedirect(value: unknown): string {
             type="email"
             name="email"
             autocomplete="username"
-            :readonly="pending"
             :aria-invalid="errors.email ? 'true' : 'false'"
             :aria-describedby="errors.email ? 'admin-login-email-error' : undefined"
             data-testid="admin-login-email"
@@ -99,7 +98,6 @@ function resolveRedirect(value: unknown): string {
               :type="showPassword ? 'text' : 'password'"
               name="password"
               autocomplete="current-password"
-              :readonly="pending"
               :aria-invalid="errors.password ? 'true' : 'false'"
               :aria-describedby="errors.password ? 'admin-login-password-error' : undefined"
               data-testid="admin-login-password"
