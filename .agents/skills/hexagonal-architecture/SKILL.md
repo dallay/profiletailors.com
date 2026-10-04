@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Hexagonal Architecture Skill
 
 Patterns for implementing Hexagonal Architecture (Ports and Adapters) with CQRS in Kotlin/Spring

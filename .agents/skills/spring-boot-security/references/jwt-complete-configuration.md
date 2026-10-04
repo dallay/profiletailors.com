@@ -2,8 +2,8 @@
 
 This guide consolidates JWT configuration patterns for the reactive SMP backend. It
 covers JJWT integration, the WebFlux OAuth2 resource server configuration, and
-production-ready security settings. All examples use the reactive stack
-(`ServerHttpSecurity`, `SecurityWebFilterChain`, `WebFilter`, `R2dbcRepository`,
+production-ready security settings. All examples use the reactive stack (`ServerHttpSecurity`,
+`SecurityWebFilterChain`, `WebFilter`, `R2dbcRepository`,
 `suspend fun`). Versions for the JJWT artifact live in `gradle/libs.versions.toml`.
 
 ## Table of Contents

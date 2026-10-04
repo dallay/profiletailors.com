@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 # Zod 4 Best Practices
 
 This document outlines best practices for using Zod 4 in Astro and Vue projects, focusing on schema

@@ -25,10 +25,10 @@ step-by-step guide:
 2. **Attach the entry and exit keyframes to the element.** You can do this by defining multiple
    animations in the `animation` property.
 
-    - Give the entry animation an `animation-fill-mode` of `backwards` so that it applies its
-      initial state before the animation starts.
-    - Give the exit animation an `animation-fill-mode` of `forwards` so that it maintains its final
-      state after the animation is complete.
+   - Give the entry animation an `animation-fill-mode` of `backwards` so that it applies its
+     initial state before the animation starts.
+   - Give the exit animation an `animation-fill-mode` of `forwards` so that it maintains its final
+     state after the animation is complete.
 
    ```css
    .animated-element {
@@ -54,10 +54,10 @@ step-by-step guide:
 4. **Limit the animations to the `entry` and `exit` ranges.** The `animation-range` property allows
    you to specify which part of the timeline an animation should run on.
 
-    - The `entry` range covers the time from when the element first enters the viewport until it is
-      fully visible.
-    - The `exit` range covers the time from when the element starts to leave the viewport until it
-      is completely hidden.
+   - The `entry` range covers the time from when the element first enters the viewport until it is
+     fully visible.
+   - The `exit` range covers the time from when the element starts to leave the viewport until it
+     is completely hidden.
 
    ```css
    .animated-element {
@@ -149,16 +149,16 @@ smooth and accessible experience:
 
 When using the `view()` function to create a scroll-driven animation:
 
-- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
-  such as in a horizontal scroller), be explicit about which axis to track with `view(block)` or
+- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis
+  (such as in a horizontal scroller), be explicit about which axis to track with `view(block)` or
   `view(inline)`.
 - When the animation is not applied to the tracked subject itself, use a named view timeline.
 
 When using the `view-timeline` property to create a scroll-driven animation:
 
 - **DO** use a CSS `<dashed-ident>` for the name.
-- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
-  such as in a horizontal scroller), be explicit about which axis to track with
+- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis
+  (such as in a horizontal scroller), be explicit about which axis to track with
   `view-timeline-axis`.
 - **DO** make sure the scope of the lookup works: When the element that is declaring the
   `view-timeline` is not a flat tree ancestor of the animated element, hoist up the visibility of

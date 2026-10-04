@@ -11,8 +11,8 @@ Delegated direct. User decision: harden-public, keep permitAll and img tags work
 `GET /api/media/proxy` is anonymous by design. The BDD asserts 400 instead
 of 401 for anonymous calls, and dashboard img tags cannot send bearer tokens.
 Allowlist-only plus unthrottled plus reflected content-type enables anonymous
-egress and cost burn with type confusion. Size and time bounds exist
-(2MB per 10s) but no throttle, no explicit redirect policy, and any upstream
+egress and cost burn with type confusion. Size and time bounds exist (2MB per 10s) but no throttle,
+no explicit redirect policy, and any upstream
 content-type is reflected.
 
 ## Invariant

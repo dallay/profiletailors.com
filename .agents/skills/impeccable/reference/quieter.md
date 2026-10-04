@@ -1,12 +1,16 @@
-Quiet design is harder than bold design. Subtlety needs precision. Reduce visual intensity in designs that are too loud, aggressive, or overstimulating without losing personality or making the result generic.
+Quiet design is harder than bold design. Subtlety needs precision. Reduce visual intensity in
+designs that are too loud, aggressive, or overstimulating without losing personality or making the
+result generic.
 
 ---
 
 ## Visitor mode
 
-Persuade + Experience: "quieter" means more restrained palette, more whitespace, more typographic air. Drama is reduced, not eliminated; the POV stays intact.
+Persuade + Experience: "quieter" means more restrained palette, more whitespace, more typographic
+air. Drama is reduced, not eliminated; the POV stays intact.
 
-Operate + Read: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less color, less motion. The tool should disappear more completely into the task.
+Operate + Read: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less
+color, less motion. The tool should disappear more completely into the task.
 
 ---
 
@@ -15,22 +19,24 @@ Operate + Read: "quieter" means reducing visual noise. Fewer background accents,
 Analyze what makes the design feel too intense:
 
 1. **Identify intensity sources**:
-   - **Color saturation**: Overly bright or saturated colors
-   - **Contrast extremes**: Too much high-contrast juxtaposition
-   - **Visual weight**: Too many bold, heavy elements competing
-   - **Animation excess**: Too much motion or overly dramatic effects
-   - **Complexity**: Too many visual elements, patterns, or decorations
-   - **Scale**: Everything is large and loud with no hierarchy
+    - **Color saturation**: Overly bright or saturated colors
+    - **Contrast extremes**: Too much high-contrast juxtaposition
+    - **Visual weight**: Too many bold, heavy elements competing
+    - **Animation excess**: Too much motion or overly dramatic effects
+    - **Complexity**: Too many visual elements, patterns, or decorations
+    - **Scale**: Everything is large and loud with no hierarchy
 
 2. **Understand the context**:
-   - What's the purpose? (Marketing vs tool vs reading experience)
-   - Who's the audience? (Some contexts need energy)
-   - What's working? (Don't throw away good ideas)
-   - What's the core message? (Preserve what matters)
+    - What's the purpose? (Marketing vs tool vs reading experience)
+    - Who's the audience? (Some contexts need energy)
+    - What's working? (Don't throw away good ideas)
+    - What's the core message? (Preserve what matters)
 
-If any of these are unclear from the codebase, STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.
+If any of these are unclear from the codebase, STOP and use Codex's structured user-input/question
+tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.
 
-**CRITICAL**: "Quieter" doesn't mean boring or generic. It means refined and easier on the eyes. Think luxury, not laziness.
+**CRITICAL**: "Quieter" doesn't mean boring or generic. It means refined and easier on the eyes.
+Think luxury, not laziness.
 
 ## Plan Refinement
 
@@ -55,7 +61,8 @@ Systematically reduce intensity across these dimensions:
 - **Neutral dominance**: Let neutrals do more work, use color as accent (10% rule)
 - **Gentler contrasts**: High contrast only where it matters most
 - **Tinted grays**: Use warm or cool tinted grays instead of pure gray. Adds depth without loudness
-- **Never gray on color**: If you have gray text on a colored background, use a darker shade of that color or transparency instead
+- **Never gray on color**: If you have gray text on a colored background, use a darker shade of that
+  color or transparency instead
 
 ### Visual Weight Reduction
 

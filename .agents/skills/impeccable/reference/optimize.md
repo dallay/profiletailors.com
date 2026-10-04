@@ -1,23 +1,25 @@
-Performance is a feature. Identify the actual bottleneck for THIS interface, fix it, then measure. Don't optimize what isn't slow.
+Performance is a feature. Identify the actual bottleneck for THIS interface, fix it, then measure.
+Don't optimize what isn't slow.
 
 ## Assess Performance Issues
 
 Understand current performance and identify problems:
 
 1. **Measure current state**:
-   - **Core Web Vitals**: LCP, INP, CLS scores
-   - **Load time**: Time to interactive, first contentful paint
-   - **Bundle size**: JavaScript, CSS, image sizes
-   - **Runtime performance**: Frame rate, memory usage, CPU usage
-   - **Network**: Request count, payload sizes, waterfall
+    - **Core Web Vitals**: LCP, INP, CLS scores
+    - **Load time**: Time to interactive, first contentful paint
+    - **Bundle size**: JavaScript, CSS, image sizes
+    - **Runtime performance**: Frame rate, memory usage, CPU usage
+    - **Network**: Request count, payload sizes, waterfall
 
 2. **Identify bottlenecks**:
-   - What's slow? (Initial load? Interactions? Animations?)
-   - What's causing it? (Large images? Expensive JavaScript? Layout thrashing?)
-   - How bad is it? (Perceivable? Annoying? Blocking?)
-   - Who's affected? (All users? Mobile only? Slow connections?)
+    - What's slow? (Initial load? Interactions? Animations?)
+    - What's causing it? (Large images? Expensive JavaScript? Layout thrashing?)
+    - How bad is it? (Perceivable? Annoying? Blocking?)
+    - Who's affected? (All users? Mobile only? Slow connections?)
 
-**CRITICAL**: Measure before and after. Premature optimization wastes time. Optimize what actually matters.
+**CRITICAL**: Measure before and after. Premature optimization wastes time. Optimize what actually
+matters.
 
 ## Optimization Strategy
 
@@ -117,7 +119,8 @@ elements.forEach((el, i) => {
 
 **Reduce Paint & Composite**:
 
-- Use `transform` and `opacity` for reliable movement, but allow blur, filters, masks, clip paths, shadows, and color shifts when they create meaningful polish
+- Use `transform` and `opacity` for reliable movement, but allow blur, filters, masks, clip paths,
+  shadows, and color shifts when they create meaningful polish
 - Avoid casual animation of layout-driving properties (`width`, `height`, `top`, `left`, margins)
 - Use `will-change` sparingly for known expensive operations
 - Bound expensive paint areas for blur/filter/shadow effects (smaller and isolated is faster)
@@ -254,7 +257,8 @@ const observer = new IntersectionObserver((entries) => {
 - Bundle size
 - Request count
 
-**IMPORTANT**: Measure on real devices with real network conditions. Desktop Chrome with fast connection isn't representative.
+**IMPORTANT**: Measure on real devices with real network conditions. Desktop Chrome with fast
+connection isn't representative.
 
 **NEVER**:
 

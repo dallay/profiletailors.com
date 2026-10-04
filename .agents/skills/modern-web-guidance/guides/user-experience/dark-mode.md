@@ -71,8 +71,8 @@ button.primary {
 ```
 
 OPTIONAL: A number of system colors are available, which also automatically adapt to the used color
-scheme (and other color modes, e.g. forced colors), such as `canvas`, `canvastext`, `accentcolor` (
-check support) , `buttonborder` etc. These are typically too limited to be useful, beyond very
+scheme (and other color modes, e.g. forced colors), such as `canvas`, `canvastext`, `accentcolor`
+(check support) , `buttonborder` etc. These are typically too limited to be useful, beyond very
 specific cases where you need to exactly match certain default browser UI or as fallbacks/defaults.
 
 #### OPTIONAL: Tailor color pairs to context
@@ -291,11 +291,11 @@ button.primary {
 }
 ```
 
-### Fallbacks & browser support for light-dark()
+### Fallbacks & browser support for light-dark ()
 
-Baseline status for light-dark(): Newly available. It's been Baseline since 2024-05-13.
-Supported by: Chrome 123 (Mar 2024), Edge 123 (Mar 2024), Firefox 120 (Nov 2023), and Safari 17.5 (
-May 2024).
+Baseline status for light-dark (): Newly available. It's been Baseline since 2024-05-13.
+Supported by: Chrome 123 (Mar 2024), Edge 123 (Mar 2024), Firefox 120 (Nov 2023), and Safari 17.5
+(May 2024).
 
 For browsers that support `color-scheme` but not yet `light-dark()`, light and dark versions of
 colors should first be defined as custom properties, and the `prefers-color-scheme` media query
@@ -336,8 +336,8 @@ pre, code {
 ### Fallbacks & browser support for scrollbar-color
 
 Baseline status for scrollbar-color: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 26.2
+(Dec 2025).
 
 This feature is progressive enhancement and does not always require fallbacks.
 

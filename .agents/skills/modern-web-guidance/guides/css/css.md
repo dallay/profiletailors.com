@@ -278,8 +278,8 @@ Using `@scope` fixes this:
 ## 5. Design Tokens and Theming
 
 Use CSS custom properties on `:root` to define core design variables (colors, fonts, sizes, etc)
-used throughout the design, for visual consistency and to scale UI design across teams.
-**DO NOT** specify nontrivial styling values inline. E.g. `background: transparent` or `padding: 0`
+used throughout the design, for visual consistency and to scale UI design across teams. **DO NOT**
+specify nontrivial styling values inline. E.g. `background: transparent` or `padding: 0`
 is ok, but `background: #f06` or `padding: .3em` are not.
 One exception is use cases where keeping code small and simple is far more important than long-term
 maintainability and evolution, such as testcases.
@@ -434,8 +434,8 @@ as normal text containers.
 - Use unitless numbers for `line-height` (e.g., `1.5`) to ensure relative scaling during font-size
   inheritance.
 - Use `overflow-wrap: break-word` (or `anywhere`) to contain long URLs.
-- **DON'T** use `px` for font-size. Prefer `rem` to honor the user's browser font-size preferences (
-  root font size), or `em` for contextual sizing.
+- **DON'T** use `px` for font-size. Prefer `rem` to honor the user's browser font-size preferences
+  (root font size), or `em` for contextual sizing.
 
 ### Text wrapping
 

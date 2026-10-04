@@ -19,19 +19,24 @@
  * subprocess. This file is the thin stdin/stdout adapter.
  */
 
-import { runHook, runStopHook, writeAuditLog } from './hook-lib.mjs'
+import {runHook, runStopHook, writeAuditLog} from './hook-lib.mjs'
 
 async function readStdin() {
-  if (process.stdin.isTTY) return ''
+  if (process.stdin.isTTY) {
+    return ''
+  }
   const chunks = []
-  for await (const chunk of process.stdin) chunks.push(chunk)
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk)
+  }
   return Buffer.concat(chunks).toString('utf-8')
 }
 
 function isStopEvent(stdinJson) {
   try {
     const event = JSON.parse(stdinJson)
-    return event && typeof event === 'object' && event.hook_event_name === 'Stop'
+    return event && typeof event === 'object' && event.hook_event_name
+        === 'Stop'
   } catch {
     // Malformed stdin falls through to runHook, which audits the skip.
     return false
@@ -42,7 +47,7 @@ async function main() {
   // Snapshot the inherited env FIRST so the re-entrancy guard checks the
   // parent's value, not the value we are about to export for any child
   // processes the hook might ever spawn.
-  const inheritedEnv = { ...process.env }
+  const inheritedEnv = {...process.env}
   process.env.IMPECCABLE_HOOK_DEPTH = process.env.IMPECCABLE_HOOK_DEPTH || '1'
 
   let stdinJson = ''
@@ -61,7 +66,9 @@ async function main() {
 
   writeAuditLog(process.env, result.audit, process.cwd())
 
-  if (result.stdout) process.stdout.write(result.stdout)
+  if (result.stdout) {
+    process.stdout.write(result.stdout)
+  }
   process.exit(result.exitCode || 0)
 }
 

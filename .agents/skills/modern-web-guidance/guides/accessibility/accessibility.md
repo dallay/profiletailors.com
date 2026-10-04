@@ -32,13 +32,8 @@ Keep these principles in mind throughout:
 
 - **Don't use fake headings**: Never style `<div>` or `<span>` to look like headings without
   standard `<h1>`–`<h6>` tags.
-- **Don't place headings inside `<summary>`, and avoid relying on headings inside `<details>`
-  content**: Headings inside `<summary>` may be hidden from screen-reader heading lists and
-  heading-navigation shortcuts entirely; headings inside `<details>` content are only reachable via
-  heading navigation when the disclosure is open.
-  - **Caveat**: If a heading must act as a disclosure trigger, use a more robust alternative to
-      `<details>`/`<summary>` instead, e.g. an accordion or a disclosure implemented with ARIA where
-      the heading wraps the button.
+- **Don't place headings inside `<summary>`, and avoid relying on headings inside `<details>` content**: Headings inside `<summary>` may be hidden from screen-reader heading lists and heading-navigation shortcuts entirely; headings inside `<details>` content are only reachable via heading navigation when the disclosure is open.
+  - **Caveat**: If a heading must act as a disclosure trigger, use a more robust alternative to `<details>`/`<summary>` instead, e.g. an accordion or a disclosure implemented with ARIA where the heading wraps the button.
 - **Don't use tables for layout**: Use CSS Grid/Flexbox for visual layouts.
 - **Don't overuse landmarks**: Too many landmarks dilute their value. In particular, avoid labeling
   a `<section>` (which turns it into a `region` landmark) — `region` should be a last resort when no
@@ -95,11 +90,8 @@ Keep these principles in mind throughout:
 
 - **Don't use ARIA when native HTML exists**: Avoid `<div role="button">` or `<a role="button">` if
   `<button>` works.
-- **Don't add redundant ARIA roles or properties**: Avoid `<ul role="list">`,
-  `<nav role="navigation">`, or `<input required aria-required="true">`.
-  - **Caveat**: Safari removes list semantics from `<ul>`/`<ol>` outside `<nav>` when
-      `list-style: none` or `display: flex`/`grid` is applied. In that case `role="list"` is
-      required to restore them.
+- **Don't add redundant ARIA roles or properties**: Avoid `<ul role="list">`, `<nav role="navigation">`, or `<input required aria-required="true">`.
+  - **Caveat**: Safari removes list semantics from `<ul>`/`<ol>` outside `<nav>` when `list-style: none` or `display: flex`/`grid` is applied. In that case `role="list"` is required to restore them.
 - **Don't assume custom elements have no ARIA**: Custom elements can attach ARIA via
   `ElementInternals`, which some automated test tools can't see — so the absence of `role`/`aria-*`
   attributes in markup doesn't prove the element has no semantics. Verify with the browser's
@@ -438,15 +430,10 @@ attention or prevent safe continuation (e.g., data loss, session timeouts, or ne
 #### DOs
 
 - **Minimum contrast standards**: Maintain 4.5:1 for normal text and 3:1 for large text or icons.
-- **Ensure non-text contrast standards**: Maintain a minimum contrast ratio of 3:1 for user
-  interface component boundaries and states.
-  - This includes visual elements (borders, backgrounds, box-shadows, underlines) that form the
-      boundary or indicate the presence of a UI component (e.g., input field borders).
-  - This also includes visual elements indicating active states within a component (e.g., checkbox
-      checkmarks or switch thumbs).
-  - **Caveat**: Meeting 3:1 non-text contrast can challenge minimalistic designs. Soft gradients
-      or subtle inset/outset shadows can soften visual boundaries while satisfying accessibility
-      requirements.
+- **Ensure non-text contrast standards**: Maintain a minimum contrast ratio of 3:1 for user interface component boundaries and states.
+  - This includes visual elements (borders, backgrounds, box-shadows, underlines) that form the boundary or indicate the presence of a UI component (e.g., input field borders).
+  - This also includes visual elements indicating active states within a component (e.g., checkbox checkmarks or switch thumbs).
+  - **Caveat**: Meeting 3:1 non-text contrast can challenge minimalistic designs. Soft gradients or subtle inset/outset shadows can soften visual boundaries while satisfying accessibility requirements.
 - **Use multiple state indicators**: Do not denote success/errors ONLY with color. Use icons or
   text.
 - **Relative font size units**: Use `rem` or `em` for font sizes instead of `px`.

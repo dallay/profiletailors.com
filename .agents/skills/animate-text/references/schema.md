@@ -274,13 +274,10 @@ Fields:
   - structured renderer-specific data used by the generated recipe
 - `recipe`
   - the renderer algorithm needed for exact reproduction
-  - may include `initial_state`, `verification`, `canonical_loop_pseudocode`, and
-      `keyframe_recipe` for renderers where prose is not precise enough
+  - may include `initial_state`, `verification`, `canonical_loop_pseudocode`, and `keyframe_recipe` for renderers where prose is not precise enough
   - `initial_state` defines required pre-animation styles such as word opacity before a reveal
-  - `canonical_loop_pseudocode` defines the low-freedom loop order when prose could lead to
-      double-enter or enter-only implementations
-  - `keyframe_recipe` defines intermediate offsets and formulas that must be preserved for
-      layout-aware renderers
+  - `canonical_loop_pseudocode` defines the low-freedom loop order when prose could lead to double-enter or enter-only implementations
+  - `keyframe_recipe` defines intermediate offsets and formulas that must be preserved for layout-aware renderers
 
 ### `effect.showcase.runtime`
 

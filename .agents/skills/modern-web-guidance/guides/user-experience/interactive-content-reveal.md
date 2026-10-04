@@ -132,8 +132,8 @@ movement will jump between on and off states because they cannot interpolate val
 ```
 
 Baseline status for Masks: Newly available. It's been Baseline since 2023-12-07.
-Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4 (
-Mar 2022).
+Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4
+(Mar 2022).
 
 ### Basic Mask Support
 

@@ -23,17 +23,20 @@ Replaced elements (`<img>`, `<video>`, `<canvas>`, etc.) default to `overflow: c
    and programmatic via JavaScript).
 2. **Align to a Box-Edge**: Use keywords to precisely align the clipping boundary to inner box-model
    edges:
-    - `content-box`: Clips content exactly where the content area begins, leaving the padding area
-      completely clean. Content stops right at the padding's edge. Excellent for nested layout
-      modules.
-    - `padding-box` (Default): Clips content at the inner edge of the border.
-    - `border-box`: Clips content at the outer edge of the border, allowing content to sit under or
-      partially overlap a translucent border.
+
+   - `content-box`: Clips content exactly where the content area begins, leaving the padding area
+     completely clean. Content stops right at the padding's edge. Excellent for nested layout
+     modules.
+   - `padding-box` (Default): Clips content at the inner edge of the border.
+   - `border-box`: Clips content at the outer edge of the border, allowing content to sit under or
+     partially overlap a translucent border.
+
 3. **Define a Specified Offset (The Bleed)**: Provide a length value (e.g., `15px` or `5px`) to
    create a safety zone before cutting pixels. This allows prominent child element shadows to render
    unclipped past the boundary edge without expanding layout geometry.
-4. **Combine Box-Edge and Offset**: Specify both a box edge and a length offset simultaneously (
-   e.g., `content-box 15px`) to offset from a specific box edge.
+
+4. **Combine Box-Edge and Offset**: Specify both a box edge and a length offset simultaneously
+   (e.g., `content-box 15px`) to offset from a specific box edge.
 
 ## Example Code
 

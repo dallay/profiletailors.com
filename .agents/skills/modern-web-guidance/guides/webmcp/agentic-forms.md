@@ -9,12 +9,13 @@ browser synthesizes a JSON Schema from the form inputs and handles agent interac
   interaction.
 * `toolparamdescription`: (Optional) Provides a way to define a property description within the JSON
   Schema.
+
   * **Resolution Order**: The browser uses `toolparamdescription` if present. In its absence, it
-      uses the `textContent` of the associated `<label>` (skipping labelable descendants). If no
-      label exists, it falls back to the `aria-description`.
+    uses the `textContent` of the associated `<label>` (skipping labelable descendants). If no
+    label exists, it falls back to the `aria-description`.
   * **Grouping (Fieldsets)**: To attach a description to a group of related elements (like
-      `<input type="radio">` buttons), place `toolparamdescription` on the nearest parent
-      `<fieldset>` element so it applies to the parameter group as a whole.
+    `<input type="radio">` buttons), place `toolparamdescription` on the nearest parent
+    `<fieldset>` element so it applies to the parameter group as a whole.
 
 ### Example
 

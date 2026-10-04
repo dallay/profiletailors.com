@@ -169,8 +169,8 @@ print. Every element earns its pixel — structure is ornament, type does the he
 
 ## Philosophy
 
-1. **Three-layer hierarchy per screen:** Primary (the ONE thing), Secondary (context), Tertiary (
-   metadata/nav)
+1. **Three-layer hierarchy per screen:** Primary (the ONE thing), Secondary (context), Tertiary
+   (metadata/nav)
 2. **Font discipline:** Doto (hero only) + Space Grotesk (body/UI) + Space Mono (labels/data). Max 3
    sizes, 2 weights.
 3. **Spacing as meaning:** Tight (4–8px) = grouped, Medium (16px) = same group different items,

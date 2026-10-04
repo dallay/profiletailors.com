@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # DDD Architecture Skill
 
 Use this skill for Kotlin domain invariants inside `server/smp` and the shared Kotlin domain
@@ -32,11 +33,11 @@ Do not apply this Kotlin guidance to Vue, TypeScript, Astro, or `shared/web`; us
 
 ## Repository Contracts
 
-| Contract | Invariant | Owner | Scope | ADR |
-|---|---|---|---|---|
-| `ARCH-003` | Aggregate root is the entry point; marked internal entities are not imported from another bounded context and expose no public `set*`/`update*` mutators. | Konsist `AggregateBoundaryTest.kt` | `server/smp` production source | ADR-0015 |
-| `ARCH-004` | Marked aggregate roots and domain entities use identity-only names for cross-context aggregate references. | Konsist `IdentityOnlyAggregateCommunicationTest.kt` | `server/smp` marked production domain classes | ADR-0016 |
-| `ARCH-005` | Marked value objects are immutable and validate at construction or an approved factory. | Konsist `ValueObjectImmutabilityTest.kt` | Marked `server/smp` production domain classes and `shared/common` value objects | ADR-0017 |
+| Contract   | Invariant                                                                                                                                                 | Owner                                               | Scope                                                                           | ADR      |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|---------------------------------------------------------------------------------|----------|
+| `ARCH-003` | Aggregate root is the entry point; marked internal entities are not imported from another bounded context and expose no public `set*`/`update*` mutators. | Konsist `AggregateBoundaryTest.kt`                  | `server/smp` production source                                                  | ADR-0015 |
+| `ARCH-004` | Marked aggregate roots and domain entities use identity-only names for cross-context aggregate references.                                                | Konsist `IdentityOnlyAggregateCommunicationTest.kt` | `server/smp` marked production domain classes                                   | ADR-0016 |
+| `ARCH-005` | Marked value objects are immutable and validate at construction or an approved factory.                                                                   | Konsist `ValueObjectImmutabilityTest.kt`            | Marked `server/smp` production domain classes and `shared/common` value objects | ADR-0017 |
 
 Every failure must retain the existing ADR-labelled detail and identify the offending class,
 property, function, import, or missing validation. Do not weaken an assertion or hide a failure to
@@ -174,7 +175,8 @@ object shape, use this skill.
 
 ## New Bounded Context Checklist
 
-1. Create `server/smp/src/main/kotlin/com/profiletailors/smp/<context>/{domain,application,infrastructure}`
+1. Create
+   `server/smp/src/main/kotlin/com/profiletailors/smp/<context>/{domain,application,infrastructure}`
    according to the existing hexagonal structure.
 2. Keep domain pure Kotlin; application code uses domain ports and the project service marker, not
    Spring stereotypes; infrastructure contains Spring, HTTP, R2DBC, and adapter code.

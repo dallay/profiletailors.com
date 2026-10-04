@@ -1,8 +1,8 @@
 # Security Hardening Checklist
 
 This document collects the reactive variants of security-hardening patterns used in
-the SMP backend. All examples rely on the WebFlux security stack
-(`ServerHttpSecurity`, `SecurityWebFilterChain`, `WebFilter`, `Reactive*` types,
+the SMP backend. All examples rely on the WebFlux security stack (`ServerHttpSecurity`,
+`SecurityWebFilterChain`, `WebFilter`, `Reactive*` types,
 `suspend fun`). The servlet-stack patterns appear only in
 `migration-spring-security-6x.md` for historical reference.
 

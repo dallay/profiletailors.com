@@ -1,7 +1,7 @@
 `calc-size()` is a CSS function for performing mathematical operations on intrinsic sizing keywords
 like `auto`, `min-content`, and `fit-content`. **MANDATORY**: Use `calc-size()` only when you need
-to modify an intrinsic size with a calculation or constraint; for simple keyword-based animations (
-e.g., `0` to `auto`), you must use `interpolate-size: allow-keywords`.
+to modify an intrinsic size with a calculation or constraint; for simple keyword-based animations
+(e.g., `0` to `auto`), you must use `interpolate-size: allow-keywords`.
 
 ## Implementation Steps
 
@@ -72,8 +72,8 @@ The second argument is the mathematical expression.
 
 ### Animating to and from Intrinsic Sizes
 
-By default, browsers cannot interpolate between a length (e.g., `0px`) and an intrinsic keyword (
-e.g., `auto`). Wrapping the keyword in `calc-size()` makes it an interpolatable value.
+By default, browsers cannot interpolate between a length (e.g., `0px`) and an intrinsic keyword
+(e.g., `auto`). Wrapping the keyword in `calc-size()` makes it an interpolatable value.
 
 #### Choosing the Right Tool for Animations
 
@@ -195,7 +195,7 @@ You can use `calc-size()` with any CSS math function—such as `min()`, `max()`,
 
 ## Fallback strategies
 
-calc-size() has limited availability.
+calc-size () has limited availability.
 Supported by: Chrome 129 (Sep 2024) and Edge 129 (Sep 2024).
 Unsupported in: Firefox and Safari.
 interpolate-size has limited availability.

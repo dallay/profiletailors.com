@@ -114,8 +114,8 @@ element.remove();
 ## Fallback strategies
 
 Baseline status for @starting-style: Newly available. It's been Baseline since 2024-08-06.
-Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.5 (
-May 2024).
+Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.5
+(May 2024).
 
 For browsers that do not support these features, elements will toggle `display: none` instantly. You
 can detect support in JavaScript using `CSS.supports()` to conditionally apply manual animation

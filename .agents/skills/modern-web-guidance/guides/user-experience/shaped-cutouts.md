@@ -18,14 +18,14 @@ To implement shaped cutouts:
 
 ### Using an SVG Mask
 
-SVG masks allow you to define shapes that subtract from or add to the visible area using white (
-reveal) and black (hide) fills.
+SVG masks allow you to define shapes that subtract from or add to the visible area using white
+(reveal) and black (hide) fills.
 
 > **Luminance vs. Alpha Masking**: SVG masks default to **luminance** (brightness) mode, which is
 > why we use `fill="white"` to reveal areas and `fill="black"` to cut them out. If you prefer to use
 > the SVG's transparency (alpha channel) instead of colors, you can set `mask-type: alpha;` in CSS
 > or
-`mask-type="alpha"` on the SVG `<mask>` element.
+> `mask-type="alpha"` on the SVG `<mask>` element.
 
 #### Direct Element SVG Masking
 
@@ -164,8 +164,8 @@ define a CSS radial or linear gradient directly inside the `mask-image` property
 ## Fallback strategies
 
 Baseline status for Masks: Newly available. It's been Baseline since 2023-12-07.
-Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4 (
-Mar 2022).
+Supported by: Chrome 120 (Dec 2023), Edge 120 (Dec 2023), Firefox 53 (Apr 2017), and Safari 15.4
+(Mar 2022).
 
 If a browser does not support `mask-image` or the prefixed version:
 

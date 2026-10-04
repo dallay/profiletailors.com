@@ -35,8 +35,8 @@ vetted open source libraries per language instead of hand-rolling cryptography:
 
 * **JavaScript/TypeScript**: SimpleWebAuthn (github.com/MasterKale/SimpleWebAuthn)
 * **Python**: py_webauthn (github.com/duo-labs/py_webauthn)
-* **Java**: Java WebAuthn Server (github.com/Yubico/java-webauthn-server), WebAuthn4J (
-  github.com/webauthn4j/webauthn4j)
+* **Java**: Java WebAuthn Server (github.com/Yubico/java-webauthn-server), WebAuthn4J
+  (github.com/webauthn4j/webauthn4j)
 * **.NET**: .NET library for FIDO2 (github.com/abergs/fido2-net-lib)
 * **Go**: WebAuthn Go Library (github.com/go-webauthn/webauthn)
 * **Ruby**: WebAuthn Ruby (github.com/cedarcode/webauthn-ruby)

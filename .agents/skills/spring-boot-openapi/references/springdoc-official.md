@@ -20,6 +20,7 @@ and annotations.
 ### Maven (Spring Boot 3.x)
 
 <!-- legacy:jvm -->
+
 ```xml
 
 <dependency>
@@ -28,19 +29,23 @@ and annotations.
   <version>2.8.13</version>
 </dependency>
 ```
+
 <!-- /legacy:jvm -->
 
 ### Gradle (Spring Boot 3.x)
 
 <!-- legacy:jvm -->
+
 ```gradle
 implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 ```
+
 <!-- /legacy:jvm -->
 
 ### WebFlux Support
 
 <!-- legacy:jvm -->
+
 ```xml
 
 <dependency>
@@ -49,6 +54,7 @@ implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
   <version>2.8.13</version>
 </dependency>
 ```
+
 <!-- /legacy:jvm -->
 
 ## Default Endpoints
@@ -664,6 +670,7 @@ Check:
 Permit SpringDoc endpoints in Spring Security:
 
 <!-- legacy:servlet -->
+
 ```kotlin
 @Bean
 fun filterChain(HttpSecurity http): SecurityFilterChain {
@@ -675,6 +682,7 @@ fun filterChain(HttpSecurity http): SecurityFilterChain {
     .build();
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ## External References

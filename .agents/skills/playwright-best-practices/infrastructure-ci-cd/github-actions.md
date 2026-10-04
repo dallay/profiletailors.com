@@ -90,8 +90,8 @@ jobs:
 
 ### Sharded Execution
 
-**Use when**: Test suite exceeds 10 minutes. Sharding cuts wall-clock time significantly.
-**Avoid when**: Suite runs under 5 minutes—sharding overhead negates benefits.
+**Use when**: Test suite exceeds 10 minutes. Sharding cuts wall-clock time significantly. **Avoid
+when**: Suite runs under 5 minutes—sharding overhead negates benefits.
 
 ```yaml
 # .github/workflows/e2e-sharded.yml
@@ -194,8 +194,7 @@ export default defineConfig({
 ### Container-Based Execution
 
 **Use when**: Reproducible environment matching local Docker setup, or runner OS dependencies cause
-issues.
-**Avoid when**: Standard `ubuntu-latest` with `--with-deps` works fine.
+issues. **Avoid when**: Standard `ubuntu-latest` with `--with-deps` works fine.
 
 ```yaml
 # .github/workflows/e2e-container.yml
@@ -232,8 +231,8 @@ jobs:
 
 ### Environment Secrets
 
-**Use when**: Tests target staging/production with credentials.
-**Avoid when**: Tests only run against local dev server.
+**Use when**: Tests target staging/production with credentials. **Avoid when**: Tests only run
+against local dev server.
 
 ```yaml
 # .github/workflows/e2e-staging.yml
@@ -289,8 +288,8 @@ jobs:
 
 ### Scheduled Runs
 
-**Use when**: Full regression suite is too slow for every PR—run nightly instead.
-**Avoid when**: Suite runs under 15 minutes and can run on every PR.
+**Use when**: Full regression suite is too slow for every PR—run nightly instead. **Avoid when**:
+Suite runs under 15 minutes and can run on every PR.
 
 ```yaml
 # .github/workflows/nightly.yml
@@ -342,8 +341,8 @@ jobs:
 
 ### Reusable Workflow
 
-**Use when**: Multiple repositories share the same Playwright setup.
-**Avoid when**: Single repo with one workflow.
+**Use when**: Multiple repositories share the same Playwright setup. **Avoid when**: Single repo
+with one workflow.
 
 ```yaml
 # .github/workflows/pw-reusable.yml
