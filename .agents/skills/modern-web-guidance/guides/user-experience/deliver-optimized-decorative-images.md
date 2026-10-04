@@ -5,7 +5,7 @@ alongside different resolutions (like `1x` and `2x`). The browser will dynamical
 smallest compatible image that provides the appropriate pixel density for the user's device.
 
 **CAUTION**: If the image is likely to be the Largest Contentful Paint (LCP) element (e.g., a large
-hero banner), be aware that images referenced in CSS via image-set() are not discoverable by the
+hero banner), be aware that images referenced in CSS via image-set () are not discoverable by the
 browser's preload scanner. This can significantly delay image loading and harm LCP. For LCP
 candidates, consider using a standard HTML `<img>` or `<picture>` tag instead or alternatively,
 preloading the image as well using `<link rel=preload>` option with a `media` attribute.
@@ -39,7 +39,7 @@ optional.
 
 ### Fallback strategies
 
-Baseline status for image-set(): Widely available. It's been Baseline since 2023-09-18.
+Baseline status for image-set (): Widely available. It's been Baseline since 2023-09-18.
 Supported by: Chrome 113 (May 2023), Edge 113 (May 2023), Firefox 89 (Jun 2021), and Safari 17 (Sep
 2023).
 

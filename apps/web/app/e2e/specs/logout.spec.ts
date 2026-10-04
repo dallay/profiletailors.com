@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: .agents/testing/e2e-plans/login-flow.md
  * section: 8. Logout
  *
  * Covers logout clearing session, redirect to login, protected route

@@ -122,8 +122,8 @@ Baseline status for View transitions: Newly available. It's been Baseline since 
 Supported by: Chrome 111 (Mar 2023), Edge 111 (Mar 2023), Firefox 144 (Oct 2025), and Safari 18 (Sep
 2024).
 Baseline status for Active view transition: Newly available. It's been Baseline since 2026-01-13.
-Supported by: Chrome 125 (May 2024), Edge 125 (May 2024), Firefox 147 (Jan 2026), and Safari 18.2 (
-Dec 2024).
+Supported by: Chrome 125 (May 2024), Edge 125 (May 2024), Firefox 147 (Jan 2026), and Safari 18.2
+(Dec 2024).
 
 The View Transitions API is a progressive enhancement. In unsupported browsers,
 `document.startViewTransition` will be `undefined`. You must wrap your navigation logic in a feature

@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Reactive Resilience
 
 Keep resilience policies at the layer that owns the call: application orchestration stays

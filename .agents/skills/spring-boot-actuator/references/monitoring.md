@@ -34,10 +34,10 @@ The preceding example changes the endpoint from `/actuator/{id}` to `/manage/{id
 > **NOTE**
 >
 > Unless the management port has been configured to expose endpoints by using a different HTTP port,
-`management.endpoints.web.base-path` is relative to `server.servlet.context-path` (for servlet web
+> `management.endpoints.web.base-path` is relative to `server.servlet.context-path` (for servlet web
 > applications) or `spring.webflux.base-path` (for reactive web applications). If
-`management.server.port` is configured, `management.endpoints.web.base-path` is relative to
-`management.server.base-path`.
+> `management.server.port` is configured, `management.endpoints.web.base-path` is relative to
+> `management.server.base-path`.
 
 If you want to map endpoints to a different path, you can use the
 `management.endpoints.web.path-mapping` property.
@@ -252,6 +252,7 @@ class ActuatorSecurityConfig {
 ```
 
 <!-- /legacy:servlet -->
+
 ```
 
 <!-- /legacy:servlet -->

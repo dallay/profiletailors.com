@@ -17,6 +17,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Chrome Extensions
 
 Build production-quality Chrome extensions using Manifest V3 and publish them to the Chrome Web
@@ -572,8 +573,8 @@ Verify EVERY item before delivering:
 - [ ] DevTools panel paths in `chrome.devtools.panels.create()` are relative to extension root
 - [ ] Offscreen documents use ONLY `chrome.runtime` messaging — no `chrome.downloads`,
   `chrome.action`, etc.
-- [ ] All image refs in `chrome.notifications`, `chrome.action.setIcon`, etc. point to real files (
-  or use data URLs)
+- [ ] All image refs in `chrome.notifications`, `chrome.action.setIcon`, etc. point to real files
+  (or use data URLs)
 - [ ] Tab/desktop capture uses state locking to prevent double-start errors
 - [ ] `chrome.desktopCapture.chooseDesktopMedia` passes `targetTab` with `tabs` permission
 - [ ] `chrome.windows` calls use `getAll`/`getLastFocused`/`getCurrent` — NOT `.query()` (it doesn't

@@ -133,8 +133,8 @@ if ('onpagereveal' in window) {
 ```
 
 Baseline status for Navigation API: Newly available. It's been Baseline since 2026-01-13.
-Supported by: Chrome 102 (May 2022), Edge 102 (May 2022), Firefox 147 (Jan 2026), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 102 (May 2022), Edge 102 (May 2022), Firefox 147 (Jan 2026), and Safari 26.2
+(Dec 2025).
 
 If a browser does not support the Navigation API, you will not be able to use it to determine a
 transition type. Use an alternate method for determining the transition type, or provide a fallback

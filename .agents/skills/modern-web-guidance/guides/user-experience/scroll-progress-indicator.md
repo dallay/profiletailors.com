@@ -130,15 +130,15 @@ When using the `scroll()` function to create a scroll-driven animation:
 - **OPTIONAL** be explicit about the scroller: When not targeting the nearest ancestor scroller, be
   explicit about which scroller you want to use with `scroll(root)` or `scroll(self)`.
   - When `root`, `nearest`, or `self` are not sufficient, use a named scroll-timeline.
-- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
-  such as in a horizontal scroller), be explicit about which axis to track with `scroll(block)` or
+- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis
+  (such as in a horizontal scroller), be explicit about which axis to track with `scroll(block)` or
   `scroll(inline)`.
 
 When using the `scroll-timeline` property to create a scroll-driven animation:
 
 - **DO** use a CSS `<dashed-ident>` for the name.
-- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
-  such as in a horizontal scroller), be explicit about which axis to track with
+- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis
+  (such as in a horizontal scroller), be explicit about which axis to track with
   `scroll-timeline-axis`.
 - **DO** make sure the scope of the lookup works: When the element that is declaring the
   `scroll-timeline` is not a flat tree ancestor of the animated element, hoist up the visibility of

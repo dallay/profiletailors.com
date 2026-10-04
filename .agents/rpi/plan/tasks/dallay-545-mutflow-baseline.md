@@ -31,7 +31,8 @@ guarantee, and documented commands plus troubleshooting. No blocking gate. No co
 - [ ] RPI-002 Add mutflow plugin classpath to `gradle/build-logic/build.gradle.kts`
   Acceptance: build-logic compiles, no new Detekt findings.
   Evidence:
-- [ ] RPI-003 Create isolated `MutationTestingPlugin` convention (`testing/MutationTestingPlugin.kt`)
+- [ ] RPI-003 Create isolated `MutationTestingPlugin` convention
+  (`testing/MutationTestingPlugin.kt`)
   Acceptance: applies `io.github.anschnapp.mutflow`, sets explicit narrow targets, honors
   `mutflow.enabled` property and `MUTFLOW_VERIFICATION_MODE`, does not alter production source sets.
   Evidence:
@@ -41,7 +42,8 @@ guarantee, and documented commands plus troubleshooting. No blocking gate. No co
   `@MutFlowTest` changes.
   Evidence:
 - [ ] RPI-005 Add build-logic TestKit coverage for mutation convention
-  Acceptance: new `MutationTestingPluginTest` verifies plugin applies, targets explicit, disable flag
+  Acceptance: new `MutationTestingPluginTest` verifies plugin applies, targets explicit, disable
+  flag
   works, production behavior unchanged.
   Evidence:
 - [ ] RPI-006 Establish narrow baseline with one fast domain target plus `MutFlow.underTest` sample
@@ -52,7 +54,8 @@ guarantee, and documented commands plus troubleshooting. No blocking gate. No co
   Acceptance: release JAR scan fails on `MutationRegistry` references, passes on clean build.
   Evidence:
 - [ ] RPI-008 Document scope, exclusions, commands, troubleshooting in `docs/testing/`
-  Acceptance: `docs/testing/mutation-testing.md` covers targets, exclusions, commands, env overrides,
+  Acceptance: `docs/testing/mutation-testing.md` covers targets, exclusions, commands, env
+  overrides,
   troubleshooting, rollback to advisory/disabled. Index updated. No stale JDK/Kotlin versions.
   Evidence:
 - [ ] RPI-009 Run quality gates and record evidence
@@ -67,9 +70,9 @@ guarantee, and documented commands plus troubleshooting. No blocking gate. No co
 - mutflow verified: Apache-2.0 LICENSE, Gradle plugin 1.5.0 on Maven Central, K2 compiler path,
   JUnit6 `@MutFlowTest`, dual-compilation with clean production JAR, `targets`, `enabled`,
   `MUTFLOW_VERIFICATION_MODE` STRICT/LENIENT/DISABLED.
-- Baseline candidate: `publishing/domain` has fast unit tests
-  (`BulkValidationPipelineTest`, `BulkValidationPipelineCoverageTest`); `ideas/domain` is small
-  (18-line policies) and suitable as minimal second target.
+- Baseline candidate: `publishing/domain` has fast unit tests (`BulkValidationPipelineTest`,
+  `BulkValidationPipelineCoverageTest`); `ideas/domain` is small (18-line policies) and suitable as
+  minimal second target.
 
 ## Next step
 

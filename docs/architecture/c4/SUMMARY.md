@@ -268,7 +268,7 @@ Managed & Local Storage
 - **[DESIGN.md](../../../.agents/DESIGN.md)** — Design system and UI guidelines
 - **[README.md](../../../README.md)** — Project overview and setup
 - **[CONTRIBUTING.md](../../../CONTRIBUTING.md)** — Contribution guidelines
-- **[openspec/](../../../openspec/)** — SDD artifacts (specs, designs, tasks)
+- **[.agents/sdd/](../../../.agents/sdd/)** — SDD artifacts (specs, designs, tasks)
 
 ---
 

@@ -75,8 +75,7 @@ e2e:
 ### Sharded Parallel Execution
 
 **Use when**: Test suite exceeds 10 minutes. GitLab's `parallel` keyword splits across jobs
-automatically.
-**Avoid when**: Suite runs under 5 minutes.
+automatically. **Avoid when**: Suite runs under 5 minutes.
 
 ```yaml
 image: mcr.microsoft.com/playwright:v1.48.0-noble

@@ -1,21 +1,24 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import {fileURLToPath} from 'node:url'
 
-import { loadDesignSystemForTarget } from '../design-system.mjs'
-import { RULE_SCOPES, filterByScopes } from '../registry/antipatterns.mjs'
-import { createBrowserDetector, detectUrl } from '../engines/browser/detect-url.mjs'
-import { detectHtml } from '../engines/static-html/detect-html.mjs'
-import { detectText } from '../engines/regex/detect-text.mjs'
+import {loadDesignSystemForTarget} from '../design-system.mjs'
+import {filterByScopes, RULE_SCOPES} from '../registry/antipatterns.mjs'
+import {
+  createBrowserDetector,
+  detectUrl
+} from '../engines/browser/detect-url.mjs'
+import {detectHtml} from '../engines/static-html/detect-html.mjs'
+import {detectText} from '../engines/regex/detect-text.mjs'
 import {
   filterDetectionFindings,
   readDetectionConfig,
   shouldIgnoreDetectionFile,
 } from '../../lib/impeccable-config.mjs'
 import {
-  HTML_EXTENSIONS,
   buildImportGraph,
   detectFrameworkConfig,
+  HTML_EXTENSIONS,
   isPortListening,
   walkDir,
 } from '../node/file-system.mjs'
@@ -49,8 +52,10 @@ function isAdvisory(finding) {
 function partitionAdvisory(findings) {
   const primary = []
   const advisory = []
-  for (const f of findings) (isAdvisory(f) ? advisory : primary).push(f)
-  return { primary, advisory }
+  for (const f of findings) {
+    (isAdvisory(f) ? advisory : primary).push(f)
+  }
+  return {primary, advisory}
 }
 
 // ANSI dim, when stderr is a TTY. Advisory output is chrome, so keep it quiet.
@@ -61,17 +66,20 @@ function dim(text) {
 function formatFindingsBody(findings) {
   const grouped = {}
   for (const f of findings) {
-    if (!grouped[f.file]) grouped[f.file] = []
+    if (!grouped[f.file]) {
+      grouped[f.file] = []
+    }
     grouped[f.file].push(f)
   }
   const out = []
   for (const [file, items] of Object.entries(grouped)) {
     const importNote = items[0]?.importedBy?.length
-      ? ` (imported by ${items[0].importedBy.join(', ')})`
-      : ''
+        ? ` (imported by ${items[0].importedBy.join(', ')})`
+        : ''
     out.push(`\n${file}${importNote}`)
     for (const item of items) {
-      out.push(`  ${item.line ? `line ${item.line}: ` : ''}[${item.antipattern}] ${item.snippet}`)
+      out.push(`  ${item.line ? `line ${item.line}: `
+          : ''}[${item.antipattern}] ${item.snippet}`)
       out.push(`    → ${item.description}`)
     }
   }
@@ -79,13 +87,18 @@ function formatFindingsBody(findings) {
 }
 
 function formatAdvisorySection(advisory) {
-  if (!advisory || advisory.length === 0) return ''
+  if (!advisory || advisory.length === 0) {
+    return ''
+  }
   const lines = [`\n${dim('── Advisory (not counted as failures) ──')}`]
-  for (const line of formatFindingsBody(advisory)) lines.push(dim(line))
+  for (const line of formatFindingsBody(advisory)) {
+    lines.push(dim(line))
+  }
   lines.push(
-    dim(
-      `\n${advisory.length} advisory note${advisory.length === 1 ? '' : 's'}. Suppress with --no-advisory.`,
-    ),
+      dim(
+          `\n${advisory.length} advisory note${advisory.length === 1 ? ''
+              : 's'}. Suppress with --no-advisory.`,
+      ),
   )
   return lines.join('\n')
 }
@@ -94,13 +107,17 @@ function formatAdvisorySection(advisory) {
 // out into their own section and excluded from the failure summary count. JSON
 // output keeps every finding (each advisory one flagged) in a single array.
 function formatFindings(findings, jsonMode) {
-  if (jsonMode) return JSON.stringify(findings, null, 2)
+  if (jsonMode) {
+    return JSON.stringify(findings, null, 2)
+  }
 
-  const { primary, advisory } = partitionAdvisory(findings)
+  const {primary, advisory} = partitionAdvisory(findings)
   const out = [...formatFindingsBody(primary)]
   out.push(`\n${formatFindingSummary(primary.length)}`)
   const advisorySection = formatAdvisorySection(advisory)
-  if (advisorySection) out.push(advisorySection)
+  if (advisorySection) {
+    out.push(advisorySection)
+  }
   return out.join('\n')
 }
 
@@ -112,9 +129,12 @@ function formatFindings(findings, jsonMode) {
 // project design system (or base options when null). Falls back to a plain
 // object so direct/legacy callers still work.
 async function handleStdin(optionsFor = () => ({})) {
-  const resolve = typeof optionsFor === 'function' ? optionsFor : () => optionsFor
+  const resolve = typeof optionsFor === 'function' ? optionsFor
+      : () => optionsFor
   const chunks = []
-  for await (const chunk of process.stdin) chunks.push(chunk)
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk)
+  }
   const input = Buffer.concat(chunks).toString('utf-8')
   try {
     const parsed = JSON.parse(input)
@@ -122,8 +142,8 @@ async function handleStdin(optionsFor = () => ({})) {
     if (fp && fs.existsSync(fp)) {
       const options = resolve(fp)
       return HTML_EXTENSIONS.has(path.extname(fp).toLowerCase())
-        ? detectHtml(fp, options)
-        : detectText(fs.readFileSync(fp, 'utf-8'), fp, options)
+          ? detectHtml(fp, options)
+          : detectText(fs.readFileSync(fp, 'utf-8'), fp, options)
     }
   } catch {
     /* not JSON */
@@ -201,11 +221,17 @@ Examples:
 
 async function detectCli() {
   let args = process.argv.slice(2).map((arg) => {
-    if (arg === '-json') return '--json'
-    if (arg === '-fast') return '--fast'
+    if (arg === '-json') {
+      return '--json'
+    }
+    if (arg === '-fast') {
+      return '--fast'
+    }
     return arg
   })
-  if (args[0] === 'detect') args = args.slice(1)
+  if (args[0] === 'detect') {
+    args = args.slice(1)
+  }
   const jsonMode = args.includes('--json')
   const quietMode = args.includes('--quiet')
   const helpMode = args.includes('--help')
@@ -216,35 +242,38 @@ async function detectCli() {
   // but ignore it and run the full scan.
   if (args.includes('--fast')) {
     process.stderr.write(
-      'Note: --fast is deprecated and ignored. The full scan is fast now and runs every rule.\n',
+        'Note: --fast is deprecated and ignored. The full scan is fast now and runs every rule.\n',
     )
   }
   if (args.includes('--gpt') || args.includes('--gemini')) {
     process.stderr.write(
-      'Note: --gpt and --gemini are deprecated and ignored. Generated-UI tells now run by default.\n',
+        'Note: --gpt and --gemini are deprecated and ignored. Generated-UI tells now run by default.\n',
     )
   }
   const configEnabled = !args.includes('--no-config')
   const detectionConfig = configEnabled
-    ? readDetectionConfig(process.cwd())
-    : { ignoreRules: [], ignoreFiles: [], ignoreValues: [] }
+      ? readDetectionConfig(process.cwd())
+      : {ignoreRules: [], ignoreFiles: [], ignoreValues: []}
   const scopes = []
   for (let i = 0; i < args.length; i++) {
-    if (args[i] !== '--scope' && !args[i].startsWith('--scope=')) continue
+    if (args[i] !== '--scope' && !args[i].startsWith('--scope=')) {
+      continue
+    }
     const inline = args[i].startsWith('--scope=')
     const value = inline ? args[i].slice('--scope='.length) : args[i + 1]
     const parsed =
-      value && !value.startsWith('--')
-        ? value
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : []
+        value && !value.startsWith('--')
+            ? value
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : []
     // A bare `--scope` would otherwise fall out of `targets` and scan unscoped;
     // fail loudly so a mistyped pre-scan never runs the wrong rule set.
     if (parsed.length === 0) {
       process.stderr.write(
-        `Error: --scope requires a value. Valid scopes: ${[...RULE_SCOPES].join(', ')}\n`,
+          `Error: --scope requires a value. Valid scopes: ${[...RULE_SCOPES].join(
+              ', ')}\n`,
       )
       process.exit(1)
     }
@@ -254,35 +283,42 @@ async function detectCli() {
   }
   let viewport = null
   for (let i = 0; i < args.length; i++) {
-    if (args[i] !== '--viewport' && !args[i].startsWith('--viewport=')) continue
+    if (args[i] !== '--viewport' && !args[i].startsWith('--viewport=')) {
+      continue
+    }
     const inline = args[i].startsWith('--viewport=')
     const value = inline ? args[i].slice('--viewport='.length) : args[i + 1]
     const match = /^(\d{2,5})x(\d{2,5})$/i.exec(value || '')
     if (!match) {
-      process.stderr.write('Error: --viewport requires a WxH value, e.g. --viewport 390x844\n')
+      process.stderr.write(
+          'Error: --viewport requires a WxH value, e.g. --viewport 390x844\n')
       process.exit(1)
     }
-    viewport = { width: Number(match[1]), height: Number(match[2]) }
+    viewport = {width: Number(match[1]), height: Number(match[2])}
     args.splice(i, inline ? 1 : 2)
     i -= 1
   }
   const unknownScopes = scopes.filter((s) => !RULE_SCOPES.has(s))
   if (unknownScopes.length > 0) {
     process.stderr.write(
-      `Error: unknown --scope value(s): ${unknownScopes.join(', ')}. Valid scopes: ${[...RULE_SCOPES].join(', ')}\n`,
+        `Error: unknown --scope value(s): ${unknownScopes.join(
+            ', ')}. Valid scopes: ${[...RULE_SCOPES].join(', ')}\n`,
     )
     process.exit(1)
   }
   const designSystemEnabled =
-    configEnabled &&
-    !args.includes('--no-design-system') &&
-    detectionConfig.designSystem?.enabled !== false
+      configEnabled &&
+      !args.includes('--no-design-system') &&
+      detectionConfig.designSystem?.enabled !== false
   // Inline `impeccable-disable*` waivers are part of the scanned file, so they
   // apply by default. `--no-config` (raw scan) and the dedicated
   // `--no-inline-ignores` both turn them off.
-  const inlineIgnoresEnabled = configEnabled && !args.includes('--no-inline-ignores')
-  const baseScanOptions = { inlineIgnores: inlineIgnoresEnabled }
-  if (viewport) baseScanOptions.viewport = viewport
+  const inlineIgnoresEnabled = configEnabled && !args.includes(
+      '--no-inline-ignores')
+  const baseScanOptions = {inlineIgnores: inlineIgnoresEnabled}
+  if (viewport) {
+    baseScanOptions.viewport = viewport
+  }
   // DESIGN.md must resolve from EACH scan target's own project root, not from
   // process.cwd(): scanning project B's files from inside project A applied A's
   // design rules (cross-project contamination). Resolve per target, memoized by
@@ -290,9 +326,12 @@ async function detectCli() {
   // A target with no project marker above it gets no design system (never cwd's).
   const designSystemCache = new Map()
   const scanOptionsFor = (localPath) => {
-    if (!designSystemEnabled || !localPath) return baseScanOptions
-    const designSystem = loadDesignSystemForTarget(localPath, { cache: designSystemCache })
-    return designSystem ? { ...baseScanOptions, designSystem } : baseScanOptions
+    if (!designSystemEnabled || !localPath) {
+      return baseScanOptions
+    }
+    const designSystem = loadDesignSystemForTarget(localPath,
+        {cache: designSystemCache})
+    return designSystem ? {...baseScanOptions, designSystem} : baseScanOptions
   }
   const targets = args.filter((a) => !a.startsWith('--'))
 
@@ -313,7 +352,8 @@ async function detectCli() {
     // instead of the bare path (which stays on the static engine).
     const urlRe = /^(?:https?|file):\/\//i
     const urlTargetCount = paths.filter((target) => urlRe.test(target)).length
-    const browserDetector = urlTargetCount > 1 ? await createBrowserDetector() : null
+    const browserDetector = urlTargetCount > 1 ? await createBrowserDetector()
+        : null
 
     try {
       for (const target of paths) {
@@ -323,12 +363,12 @@ async function detectCli() {
           // local project — it gets base options (no design system), never
           // process.cwd()'s.
           const urlOptions = /^file:/i.test(target)
-            ? scanOptionsFor(fileUrlToLocalPath(target))
-            : baseScanOptions
+              ? scanOptionsFor(fileUrlToLocalPath(target))
+              : baseScanOptions
           try {
             const scanner = browserDetector
-              ? (url) => browserDetector.detectUrl(url, urlOptions)
-              : (url) => detectUrl(url, urlOptions)
+                ? (url) => browserDetector.detectUrl(url, urlOptions)
+                : (url) => detectUrl(url, urlOptions)
             allFindings.push(...(await scanner(target)))
           } catch (e) {
             process.stderr.write(`Error: ${e.message}\n`)
@@ -350,22 +390,27 @@ async function detectCli() {
           if (!jsonMode && !quietMode) {
             const fwConfig = detectFrameworkConfig(resolved)
             if (fwConfig) {
-              const probe = await isPortListening(fwConfig.port, fwConfig.fingerprint)
+              const probe = await isPortListening(fwConfig.port,
+                  fwConfig.fingerprint)
               if (probe.listening && probe.matched) {
                 process.stderr.write(
-                  `\n${fwConfig.name} dev server detected on localhost:${fwConfig.port}.\n` +
+                    `\n${fwConfig.name} dev server detected on localhost:${fwConfig.port}.\n`
+                    +
                     `For more accurate results, scan the running site:\n` +
                     `  npx impeccable detect http://localhost:${fwConfig.port}\n\n`,
                 )
               } else if (probe.listening && !probe.matched) {
                 process.stderr.write(
-                  `\n${fwConfig.name} project detected (${path.basename(fwConfig.configPath)}).\n` +
+                    `\n${fwConfig.name} project detected (${path.basename(
+                        fwConfig.configPath)}).\n` +
                     `Port ${fwConfig.port} is in use by another service. Start the ${fwConfig.name} dev server and scan via URL for best results.\n\n`,
                 )
               } else {
                 process.stderr.write(
-                  `\n${fwConfig.name} project detected (${path.basename(fwConfig.configPath)}).\n` +
-                    `Start the dev server and scan via URL for best results:\n` +
+                    `\n${fwConfig.name} project detected (${path.basename(
+                        fwConfig.configPath)}).\n` +
+                    `Start the dev server and scan via URL for best results:\n`
+                    +
                     `  npx impeccable detect http://localhost:${fwConfig.port}\n\n`,
                 )
               }
@@ -373,17 +418,22 @@ async function detectCli() {
           }
 
           const files = walkDir(resolved).filter(
-            (file) => !shouldIgnoreDetectionFile(file, process.cwd(), detectionConfig),
+              (file) => !shouldIgnoreDetectionFile(file, process.cwd(),
+                  detectionConfig),
           )
           const htmlCount = files.filter((f) =>
-            HTML_EXTENSIONS.has(path.extname(f).toLowerCase()),
+              HTML_EXTENSIONS.has(path.extname(f).toLowerCase()),
           ).length
 
           // Warn and confirm if scanning many files (static HTML/CSS processes each HTML file)
-          if (files.length > 50 && process.stdin.isTTY && !jsonMode && !quietMode) {
+          if (files.length > 50 && process.stdin.isTTY && !jsonMode
+              && !quietMode) {
             process.stderr.write(
-              `\nFound ${files.length} files (${htmlCount} HTML) in ${target}.\n` +
-                `Scanning may take a while${htmlCount > 10 ? ' (static HTML/CSS processes each HTML file individually)' : ''}.\n` +
+                `\nFound ${files.length} files (${htmlCount} HTML) in ${target}.\n`
+                +
+                `Scanning may take a while${htmlCount > 10
+                    ? ' (static HTML/CSS processes each HTML file individually)'
+                    : ''}.\n` +
                 `Target a specific subdirectory to narrow scope.\n`,
             )
             const ok = await confirm('Continue?')
@@ -399,7 +449,10 @@ async function detectCli() {
           const importedByMap = new Map()
           for (const [importer, imports] of graph) {
             for (const imported of imports) {
-              if (!importedByMap.has(imported)) importedByMap.set(imported, new Set())
+              if (!importedByMap.has(imported)) {
+                importedByMap.set(imported,
+                    new Set())
+              }
               importedByMap.get(imported).add(importer)
             }
           }
@@ -413,7 +466,8 @@ async function detectCli() {
             if (HTML_EXTENSIONS.has(ext)) {
               fileFindings = await detectHtml(file, fileOptions)
             } else {
-              fileFindings = detectText(fs.readFileSync(file, 'utf-8'), file, fileOptions)
+              fileFindings = detectText(fs.readFileSync(file, 'utf-8'), file,
+                  fileOptions)
             }
             // Annotate findings with import context
             const importers = importedByMap.get(file)
@@ -426,49 +480,63 @@ async function detectCli() {
             allFindings.push(...fileFindings)
           }
         } else if (stat.isFile()) {
-          if (shouldIgnoreDetectionFile(resolved, process.cwd(), detectionConfig)) continue
+          if (shouldIgnoreDetectionFile(resolved, process.cwd(),
+              detectionConfig)) {
+            continue
+          }
           const ext = path.extname(resolved).toLowerCase()
           const fileOptions = scanOptionsFor(resolved)
           if (HTML_EXTENSIONS.has(ext)) {
             allFindings.push(...(await detectHtml(resolved, fileOptions)))
           } else {
             allFindings.push(
-              ...detectText(fs.readFileSync(resolved, 'utf-8'), resolved, fileOptions),
+                ...detectText(fs.readFileSync(resolved, 'utf-8'), resolved,
+                    fileOptions),
             )
           }
         }
       }
     } finally {
-      if (browserDetector) await browserDetector.close()
+      if (browserDetector) {
+        await browserDetector.close()
+      }
     }
   }
 
   allFindings = filterDetectionFindings(allFindings, detectionConfig)
   allFindings = filterByScopes(allFindings, scopes)
   // --no-advisory drops advisory findings before any output or exit-code math.
-  if (noAdvisory) allFindings = allFindings.filter((f) => !isAdvisory(f))
+  if (noAdvisory) {
+    allFindings = allFindings.filter((f) => !isAdvisory(f))
+  }
 
   // The exit code and failure count reflect non-advisory findings only. An
   // advisory-only scan still prints its notes but exits 0 (a clean pass), so
   // advisory rules never break CI or block automation.
-  const { primary, advisory } = partitionAdvisory(allFindings)
+  const {primary, advisory} = partitionAdvisory(allFindings)
 
   if (allFindings.length > 0) {
-    if (jsonMode) process.stdout.write(formatFindings(allFindings, true) + '\n')
-    else if (quietMode) {
+    if (jsonMode) {
+      process.stdout.write(formatFindings(allFindings, true) + '\n')
+    } else if (quietMode) {
       process.stderr.write(formatFindingSummary(primary.length) + '\n')
       if (advisory.length > 0) {
         process.stderr.write(
-          dim(
-            `${advisory.length} advisory note${advisory.length === 1 ? '' : 's'} (not counted).`,
-          ) + '\n',
+            dim(
+                `${advisory.length} advisory note${advisory.length === 1 ? ''
+                    : 's'} (not counted).`,
+            ) + '\n',
         )
       }
-    } else process.stderr.write(formatFindings(allFindings, false) + '\n')
+    } else {
+      process.stderr.write(formatFindings(allFindings, false) + '\n')
+    }
     process.exit(primary.length > 0 ? 2 : 0)
   }
-  if (jsonMode) process.stdout.write('[]\n')
+  if (jsonMode) {
+    process.stdout.write('[]\n')
+  }
   process.exit(0)
 }
 
-export { formatFindings, handleStdin, confirm, printUsage, detectCli }
+export {formatFindings, handleStdin, confirm, printUsage, detectCli}

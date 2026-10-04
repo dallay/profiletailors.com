@@ -8,8 +8,8 @@ For short text blocks like headings, use `text-wrap: balance`. This property ins
 to distribute text as evenly as possible across lines, creating a more symmetrical appearance.
 
 The `text-wrap: pretty` CSS property allows you to improve the typographic quality of body text by
-enabling a more sophisticated wrapping algorithm. It is specifically designed to prevent "orphans" (
-single words on the last line of a paragraph) and create a more pleasing visual "rag" for long
+enabling a more sophisticated wrapping algorithm. It is specifically designed to prevent "orphans"
+(single words on the last line of a paragraph) and create a more pleasing visual "rag" for long
 blocks of text.
 
 ## Implementation
@@ -90,8 +90,8 @@ p, blockquote, li, .pretty-text {
 ### Fallback strategies
 
 Baseline status for text-wrap: balance: Newly available. It's been Baseline since 2024-05-13.
-Supported by: Chrome 114 (May 2023), Edge 114 (Jun 2023), Firefox 121 (Dec 2023), and Safari 17.5 (
-May 2024).
+Supported by: Chrome 114 (May 2023), Edge 114 (Jun 2023), Firefox 121 (Dec 2023), and Safari 17.5
+(May 2024).
 text-wrap: pretty has limited availability.
 Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), and Safari 26 (Sep 2025).
 Unsupported in: Firefox.

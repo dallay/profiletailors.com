@@ -30,8 +30,8 @@ primitives found in the backend Model Context Protocol.
   rate limiting gracefully. Ensure the function returns *after* UI state updates for consistency.
 - **Tool Strategy**: Tools should be atomic, composable, and distinct. Do not force flow control
   instructions ("Don't call B after A") — let the agent decide. Register/unregister tools
-  dynamically depending on the current page context. Use `annotations: { readOnlyHint: true }` (
-  placed after `execute`) for tools that do not modify state to inform the agent of safe execution.
+  dynamically depending on the current page context. Use `annotations: { readOnlyHint: true }`
+  (placed after `execute`) for tools that do not modify state to inform the agent of safe execution.
 - **Clean Up**: Always use `AbortSignal` to unregister tools when pages transition or resources are
   released to avoid leaks and collisions. Do not use `unregisterTool`.
 - **Web Development Best Practices**: WebMCP tools run as client-side JavaScript in the browser tab.

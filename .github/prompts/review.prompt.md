@@ -27,13 +27,13 @@ Find the relevant OpenSpec specification for the change:
 
 ```bash
 # For archived changes
-openspec/archive/<date>-<name>/specs/
+.agents/sdd/changes/archive/<date>-<name>/specs/
 
 # For active changes
-openspec/changes/<name>/specs/
+.agents/sdd/changes/<name>/specs/
 
 # For main specs
-openspec/specs/
+.agents/sdd/specs/
 ```
 
 ### 2. Read Specification
@@ -157,7 +157,7 @@ Structure findings using the 4R model:
 **Finding**: Missing null check for invitation ID
 
 - **File**: `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/AcceptInvitationHandler.kt:47`
-- **Spec violation**: "The handler MUST return 404 when invitation does not exist" (from `openspec/specs/invitations/spec.md`)
+- **Spec violation**: "The handler MUST return 404 when invitation does not exist" (from `.agents/sdd/specs/invitations/spec.md`)
 - **Risk**: HIGH — Could throw NullPointerException if invitation ID is malformed
 - **Recommendation**: Add null check and return 404 with `INVITATION_NOT_FOUND` code
 

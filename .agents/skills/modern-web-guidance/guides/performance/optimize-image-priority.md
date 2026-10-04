@@ -77,8 +77,8 @@ faster while non-essential ones don't compete for bandwidth.
 ## Fallback strategy
 
 Baseline status for Fetch priority: Newly available. It's been Baseline since 2024-10-29.
-Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2 (
-Dec 2023).
+Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2
+(Dec 2023).
 
 The `fetchpriority` attribute is a progressive enhancement for the `<img>` element. If a browser
 does not support it, the attribute is ignored, and the browser uses its default priority heuristics.

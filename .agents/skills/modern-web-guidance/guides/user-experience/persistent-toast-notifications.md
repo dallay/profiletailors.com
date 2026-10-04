@@ -10,10 +10,10 @@ light-dismiss" behavior and allows multiple notifications to coexist.
   timed out by a script.
 * **DO** use a container to manage the stacking of multiple toasts. Since popovers in the Top Layer
   ignore parent z-index, you must position them individually or within a common layout group.
-* **DO** use sibling-index() to add margin between toast notifications so that items lower in the
+* **DO** use sibling-index () to add margin between toast notifications so that items lower in the
   stack are visible.
 * **DO** provide an explicit "Close" button within the toast using popovertargetaction="hide".
-* **DO** use JavaScript for auto-dismissal timers (e.g., calling hidePopover() after 3000ms).
+* **DO** use JavaScript for auto-dismissal timers (e.g., calling hidePopover () after 3000ms).
 * **DO** utilize transition-behavior: allow-discrete to animate the entry and exit from the Top
   Layer.
 
@@ -24,9 +24,9 @@ light-dismiss" behavior and allows multiple notifications to coexist.
 * **Guidance:** Use the [Popover Polyfill](https://github.com/oddbird/popover-polyfill). For legacy
   browsers, fall back to a fixed-position div with a high z-index.
 
-### sibling-index()
+### sibling-index ()
 
-* **Guidance:** If sibling-index() is not supported, use the `+` operator to add margin manually.
+* **Guidance:** If sibling-index () is not supported, use the `+` operator to add margin manually.
   I.e. `popover + popover { margin-top: 1rem }`
 
 ### anchor-positioning

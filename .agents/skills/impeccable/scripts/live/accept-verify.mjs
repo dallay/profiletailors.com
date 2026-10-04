@@ -13,15 +13,30 @@
 // substrings, so user tokens that merely share the prefix cannot trip the
 // completion gate.
 const FORBIDDEN = [
-  { marker: 'impeccable-variants-start', why: 'variant wrapper comment left in source' },
-  { marker: 'impeccable-variants-end', why: 'variant wrapper comment left in source' },
+  {
+    marker: 'impeccable-variants-start',
+    why: 'variant wrapper comment left in source'
+  },
+  {
+    marker: 'impeccable-variants-end',
+    why: 'variant wrapper comment left in source'
+  },
   {
     marker: 'impeccable-carbonize-start',
     why: 'carbonize block not rewritten into permanent form',
   },
-  { marker: 'impeccable-carbonize-end', why: 'carbonize block not rewritten into permanent form' },
-  { marker: 'impeccable-param-values', why: 'param-values comment not baked and removed' },
-  { marker: 'data-impeccable-', why: 'live-mode plumbing attribute left on markup' },
+  {
+    marker: 'impeccable-carbonize-end',
+    why: 'carbonize block not rewritten into permanent form'
+  },
+  {
+    marker: 'impeccable-param-values',
+    why: 'param-values comment not baked and removed'
+  },
+  {
+    marker: 'data-impeccable-',
+    why: 'live-mode plumbing attribute left on markup'
+  },
   {
     marker: /\bdata-p-[A-Za-z0-9_-]+\s*(?:=|\])/,
     label: 'data-p-*',
@@ -32,7 +47,10 @@ const FORBIDDEN = [
     label: 'var(--p-*)',
     why: 'preview parameter variable not baked to a literal',
   },
-  { marker: '--impeccable-variant-ready', why: 'preview readiness sentinel left in CSS' },
+  {
+    marker: '--impeccable-variant-ready',
+    why: 'preview readiness sentinel left in CSS'
+  },
 ]
 
 /**
@@ -44,8 +62,9 @@ export function verifyAcceptedSource(text) {
   const lines = String(text || '').split('\n')
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    for (const { marker, label, why } of FORBIDDEN) {
-      const hit = marker instanceof RegExp ? marker.test(line) : line.includes(marker)
+    for (const {marker, label, why} of FORBIDDEN) {
+      const hit = marker instanceof RegExp ? marker.test(line) : line.includes(
+          marker)
       if (hit) {
         findings.push({
           marker: label || String(marker),
@@ -56,7 +75,7 @@ export function verifyAcceptedSource(text) {
       }
     }
   }
-  return { clean: findings.length === 0, findings }
+  return {clean: findings.length === 0, findings}
 }
 
 /** Convenience wrapper for CLI callers: read + scan, tolerating a missing file. */
@@ -65,7 +84,7 @@ export function verifyAcceptedFile(fs, filePath) {
   try {
     text = fs.readFileSync(filePath, 'utf-8')
   } catch {
-    return { clean: true, findings: [], missing: true }
+    return {clean: true, findings: [], missing: true}
   }
-  return { ...verifyAcceptedSource(text), missing: false }
+  return {...verifyAcceptedSource(text), missing: false}
 }

@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Spring Boot API Standards
 
 Contract and design standards for **Kotlin + coroutines + WebFlux** APIs in Spring Boot 4.

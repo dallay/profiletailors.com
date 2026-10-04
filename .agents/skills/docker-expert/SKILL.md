@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 ## When to Use
 
 - Creating or optimizing a `Dockerfile` for any project.

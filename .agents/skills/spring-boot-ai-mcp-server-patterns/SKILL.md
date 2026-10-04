@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring AI MCP Server Implementation Patterns
 
 Use Profile Tailors' Kotlin, reactive, and hexagonal architecture as the implementation baseline.

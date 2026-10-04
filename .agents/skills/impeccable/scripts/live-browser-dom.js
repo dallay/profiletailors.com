@@ -6,7 +6,9 @@
  * full overlay UI bundle.
  */
 ;((root) => {
-  if (!root) return
+  if (!root) {
+    return
+  }
 
   function createLiveBrowserDomHelpers({
     prefix,
@@ -15,27 +17,44 @@
     css = root.CSS,
     crypto = root.crypto,
   } = {}) {
-    if (!prefix) throw new Error('prefix required')
-    if (!doc) throw new Error('document required')
+    if (!prefix) {
+      throw new Error('prefix required')
+    }
+    if (!doc) {
+      throw new Error('document required')
+    }
     const tagsToSkip = skipTags || new Set()
 
     function own(el) {
-      return el && (el.id?.startsWith(prefix) || el.closest?.('[id^="' + prefix + '"]'))
+      return el && (el.id?.startsWith(prefix) || el.closest?.(
+          '[id^="' + prefix + '"]'))
     }
 
     function pickable(el) {
-      if (!el || el.nodeType !== 1) return false
-      if (tagsToSkip.has(String(el.tagName || '').toLowerCase())) return false
-      if (own(el)) return false
+      if (!el || el.nodeType !== 1) {
+        return false
+      }
+      if (tagsToSkip.has(String(el.tagName || '').toLowerCase())) {
+        return false
+      }
+      if (own(el)) {
+        return false
+      }
       const r = el.getBoundingClientRect()
       return r.width >= 20 && r.height >= 20
     }
 
     function desc(el) {
-      if (!el) return ''
+      if (!el) {
+        return ''
+      }
       let s = el.tagName.toLowerCase()
-      if (el.id) s += '#' + el.id
-      else if (el.classList.length) s += '.' + [...el.classList].slice(0, 2).join('.')
+      if (el.id) {
+        s += '#' + el.id
+      } else if (el.classList.length) {
+        s += '.' + [...el.classList].slice(0,
+            2).join('.')
+      }
       return s
     }
 
@@ -44,9 +63,13 @@
     }
 
     function makeFrozenAnchor(el) {
-      if (!el || !el.getBoundingClientRect) return null
+      if (!el || !el.getBoundingClientRect) {
+        return null
+      }
       const r = el.getBoundingClientRect()
-      if (!rectIsUsableAnchor(r)) return null
+      if (!rectIsUsableAnchor(r)) {
+        return null
+      }
       const rect = {
         x: r.x,
         y: r.y,
@@ -68,18 +91,27 @@
     }
 
     function id8() {
-      if (crypto?.randomUUID) return crypto.randomUUID().replace(/-/g, '').slice(0, 8)
-      return (Math.random().toString(16).slice(2) + Date.now().toString(16)).slice(0, 8)
+      if (crypto?.randomUUID) {
+        return crypto.randomUUID().replace(/-/g,
+            '').slice(0, 8)
+      }
+      return (Math.random().toString(16).slice(2) + Date.now().toString(
+          16)).slice(0, 8)
     }
 
     function cssId(id) {
-      if (css?.escape) return css.escape(id)
-      return String(id).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1')
+      if (css?.escape) {
+        return css.escape(id)
+      }
+      return String(id).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g,
+          '\\$1')
     }
 
     function liveUiRoot() {
       const uiRoot = root.__IMPECCABLE_LIVE_UI_ROOT__
-      if (uiRoot && typeof uiRoot.appendChild === 'function') return uiRoot
+      if (uiRoot && typeof uiRoot.appendChild === 'function') {
+        return uiRoot
+      }
       return doc.body
     }
 
@@ -90,8 +122,11 @@
 
     function uiAppendStyle(styleEl) {
       const uiRoot = liveUiRoot()
-      if (uiRoot && uiRoot !== doc.body) uiRoot.appendChild(styleEl)
-      else doc.head.appendChild(styleEl)
+      if (uiRoot && uiRoot !== doc.body) {
+        uiRoot.appendChild(styleEl)
+      } else {
+        doc.head.appendChild(styleEl)
+      }
       return styleEl
     }
 
@@ -99,23 +134,31 @@
       const uiRoot = liveUiRoot()
       if (uiRoot?.getElementById) {
         const found = uiRoot.getElementById(id)
-        if (found) return found
+        if (found) {
+          return found
+        }
       }
       if (uiRoot?.querySelector) {
         const found = uiRoot.querySelector('#' + cssId(id))
-        if (found) return found
+        if (found) {
+          return found
+        }
       }
       return doc.getElementById(id)
     }
 
     function activeElementDeep() {
       let active = doc.activeElement
-      while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement
+      while (active?.shadowRoot?.activeElement) {
+        active = active.shadowRoot.activeElement
+      }
       return active
     }
 
-    function defangOutsideHandlers(rootEl, { setPointerEvents = true } = {}) {
-      if (!rootEl) return
+    function defangOutsideHandlers(rootEl, {setPointerEvents = true} = {}) {
+      if (!rootEl) {
+        return
+      }
       if (setPointerEvents) {
         rootEl.style.setProperty('pointer-events', 'auto', 'important')
       }

@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: .agents/testing/e2e-plans/login-flow.md
  * section: 12. Error Banner Visual States
  *
  * Covers error banner visibility states: hidden by default, appears

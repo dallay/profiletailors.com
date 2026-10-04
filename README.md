@@ -30,6 +30,7 @@ shared modules, and infrastructure).
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/dallay/profiletailors.com)
 
 ---
 
@@ -203,7 +204,7 @@ Docker commands separately. Run `just -l` or `make help` to list everything.
   when shown, the form submits directly to backend API endpoints (`POST /api/waitlists/...`).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
-- SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
+- SDD artifacts live in `.agents/sdd/` for tracking specs, designs, and tasks.
 
 ### Project Structure
 
@@ -229,7 +230,7 @@ profiletailors.com/
 ├── .devcontainer/               # VS Code dev container configuration
 ├── .github/workflows/           # CI and automation
 ├── docs/                        # Architecture and security docs
-├── openspec/                    # SDD artifacts
+├── .agents/sdd/                 # SDD artifacts
 ├── CONTRIBUTING.md
 ├── CLA.md
 ├── LICENSE

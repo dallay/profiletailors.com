@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Spring Boot Testing Core
 
 Testing patterns for the **fastest** layer of a Kotlin + coroutines + Spring Boot 4 backend.

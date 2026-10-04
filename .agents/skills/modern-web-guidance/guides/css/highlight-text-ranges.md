@@ -104,8 +104,8 @@ requirements (at least 4.5:1 for normal text).
 ### Fallback strategies
 
 Baseline status for Custom highlights: Newly available. It's been Baseline since 2026-03-24.
-Supported by: Chrome 105 (Sep 2022), Edge 105 (Sep 2022), Firefox 149 (Mar 2026), and Safari 17.2 (
-Dec 2023).
+Supported by: Chrome 105 (Sep 2022), Edge 105 (Sep 2022), Firefox 149 (Mar 2026), and Safari 17.2
+(Dec 2023).
 
 For browsers that do not support the CSS Custom Highlight API, you should provide a functional base
 experience where text is still legible, even without the visual highlight.

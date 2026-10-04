@@ -180,15 +180,10 @@ html {
 When using scroll-driven animations, it's important to follow a few best practices to ensure a
 smooth and accessible experience:
 
-- **DO** include feature detection: Not all browsers support scroll-driven animations. Use
-  `@supports ((animation-timeline: scroll()) and (animation-range: 0% 100%))` to check for support
-  and provide a fallback for browsers that don't support it.
-  - The `(animation-range: 0% 100%)` check **MUST** be included here, to filter out browsers with
-      only partial support.
-  - **DO NOT** use the `scroll-timeline-polyfill` package for the fallback strategy as it is not
-      feature complete and has a lot of known issues.
-  - If the animation is only considered to be decorative, opt for Progressive Enhancement and **DO
-      NOT** provide a fallback.
+- **DO** include feature detection: Not all browsers support scroll-driven animations. Use `@supports ((animation-timeline: scroll()) and (animation-range: 0% 100%))` to check for support and provide a fallback for browsers that don't support it.
+  - The `(animation-range: 0% 100%)` check **MUST** be included here, to filter out browsers with only partial support.
+  - **DO NOT** use the `scroll-timeline-polyfill` package for the fallback strategy as it is not feature complete and has a lot of known issues.
+  - If the animation is only considered to be decorative, opt for Progressive Enhancement and **DO NOT** provide a fallback.
 - **DO** respect user preferences: Some users prefer to have less motion on the web. Use the
   `prefers-reduced-motion` media query to disable or reduce your animations for these users.
 - **DO** try to animate only performant CSS properties: For the smoothest animations, stick to
@@ -201,8 +196,8 @@ smooth and accessible experience:
 When using the `view-timeline` property to create a scroll-driven animation:
 
 - **DO** use a CSS `<dashed-ident>` for the name.
-- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
-  such as in a horizontal scroller), be explicit about which axis to track with
+- **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis
+  (such as in a horizontal scroller), be explicit about which axis to track with
   `view-timeline-axis`.
 - **DO** make sure the scope of the lookup works: When the element that is declaring the
   `view-timeline` is not a flat tree ancestor of the animated element, hoist up the visibility of

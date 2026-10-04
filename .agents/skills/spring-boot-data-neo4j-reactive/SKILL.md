@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Spring Data Neo4j Integration Patterns
 
 ## Overview
