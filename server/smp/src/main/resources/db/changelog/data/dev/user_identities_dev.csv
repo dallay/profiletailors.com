@@ -1,2 +1,3 @@
 "principal_id";"email";"username";"email_status";"created_at"
-"dev-user-001";"dev@profiletailors.com";"dev";"VERIFIED";"2026-01-01 00:00:00+00"
+"00000000-0000-0000-0000-000000000001";"dev@profiletailors.com";"dev";"VERIFIED";"2026-01-01 00:00:00+00"
+"00000000-0000-0000-0000-000000000004";"member@profiletailors.com";"member";"VERIFIED";"2026-01-01 00:00:00+00"

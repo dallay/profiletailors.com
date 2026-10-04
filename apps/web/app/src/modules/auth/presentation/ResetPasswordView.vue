@@ -91,7 +91,7 @@ async function submit(): Promise<void> {
           <output aria-live="polite" class="text-sm leading-6 text-text-secondary">{{ t('passwordRecovery.resetSuccessMessage') }}</output>
           <Button as-child><RouterLink to="/login">{{ t('passwordRecovery.signIn') }}</RouterLink></Button>
         </div>
-        <form v-else class="flex flex-col gap-5" @submit.prevent="submit">
+        <form v-else name="reset-password" class="flex flex-col gap-5" @submit.prevent="submit">
           <div class="flex flex-col gap-2">
             <Label for="new-password">{{ t('passwordRecovery.newPasswordLabel') }}</Label>
             <Input id="new-password" v-model="password" name="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required :aria-invalid="fieldErrors.password ? 'true' : 'false'" :aria-describedby="fieldErrors.password ? 'new-password-error' : 'password-policy'" />
