@@ -3,6 +3,7 @@ package com.profiletailors.buildlogic.springboot
 import com.profiletailors.buildlogic.ConventionPlugin
 import com.profiletailors.buildlogic.extensions.catalogPlugin
 import com.profiletailors.buildlogic.extensions.catalogVersion
+import com.profiletailors.buildlogic.security.addPatchedJacksonPlatforms
 import com.profiletailors.buildlogic.security.enforcePatchedJacksonVersions
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -25,5 +26,6 @@ class SpringBootLibraryPlugin : ConventionPlugin {
         }
 
         enforcePatchedJacksonVersions()
+        addPatchedJacksonPlatforms()
     }
 }

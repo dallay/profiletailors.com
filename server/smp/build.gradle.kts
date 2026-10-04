@@ -141,16 +141,14 @@ dependencies {
 
     constraints {
         // BOMs do not manage these — plain constraints win.
+        // (Jackson BOM pins live in the shared Spring convention plugins as
+        // native platforms, so every module declares them — see
+        // SecurityDependencyVersions.)
         implementation(libs.okio.jvm)
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
         implementation("com.ongres.scram:scram-client:3.4")
         implementation("com.ongres.scram:scram-common:3.4")
-        // Spring Boot 4.0.8 manages vulnerable Jackson lines (tools.jackson 3.1.5,
-        // com.fasterxml.jackson 2.21.5). Pin the patched BOMs declaratively so both
-        // Gradle and static scanners converge on 2.22.3 / 3.2.3.
-        implementation("tools.jackson:jackson-bom:3.2.3")
-        implementation("com.fasterxml.jackson:jackson-bom:2.22.3")
     }
 }
 
