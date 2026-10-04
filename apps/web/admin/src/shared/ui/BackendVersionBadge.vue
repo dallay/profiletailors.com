@@ -15,16 +15,29 @@ const authStore = useAdminAuthStore()
 const { locale, t } = useI18n()
 const buildInfo = ref<BackendBuildInfo | null>(null)
 const loading = ref(true)
-const shortRevision = computed(() => buildInfo.value?.revision.slice(0, 7) ?? '—')
+const isKnown = (value?: string) =>
+  Boolean(value?.trim() && value.trim().toLowerCase() !== 'unknown')
+const hasVersion = computed(() => isKnown(buildInfo.value?.version))
+const shortRevision = computed(() =>
+  isKnown(buildInfo.value?.revision) ? buildInfo.value!.revision.slice(0, 7) : '',
+)
 const builtAt = computed(() => {
-  if (!buildInfo.value) return ''
-  const date = new Date(buildInfo.value.builtAt)
-  if (Number.isNaN(date.getTime())) return buildInfo.value.builtAt
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  const info = buildInfo.value
+  if (!info || !isKnown(info.builtAt)) return ''
+  const date = new Date(info.builtAt)
+  if (Number.isNaN(date.getTime())) return info.builtAt
+  return new Intl.DateTimeFormat(locale.value, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
 })
 const title = computed(() =>
-  buildInfo.value
-    ? `${t('system.backendRevision')}: ${buildInfo.value.revision}\n${t('system.backendBuiltAt')}: ${builtAt.value}`
+  buildInfo.value && hasVersion.value
+    ? [
+        isKnown(buildInfo.value.revision) &&
+          `${t('system.backendRevision')}: ${buildInfo.value.revision}`,
+        builtAt.value && `${t('system.backendBuiltAt')}: ${builtAt.value}`,
+      ].filter(Boolean).join('\n') || `API v${buildInfo.value.version}`
     : t('system.backendUnavailable'),
 )
 
@@ -43,19 +56,22 @@ onMounted(async () => {
 
 <template>
   <section
-    class="rounded-lg border border-border-subtle bg-bg-primary px-3 py-2"
+    role="group"
+    class="flex min-h-6 min-w-0 items-center gap-2 text-[10px]"
     :title="title"
     data-testid="backend-version-badge"
     :aria-label="t('system.backendBuild')"
   >
-    <p class="label-mono text-[10px] text-text-secondary">{{ t('system.backendBuild') }}</p>
-    <p v-if="buildInfo" class="mt-1 flex items-center justify-between gap-2 font-mono text-[11px] text-text-body">
-      <span>API v{{ buildInfo.version }}</span>
-      <span class="text-text-secondary">{{ shortRevision }}</span>
+    <span class="label-mono shrink-0 text-[9px] text-text-secondary">API</span>
+    <p
+      v-if="buildInfo && hasVersion"
+      class="flex min-w-0 items-center gap-2 font-mono text-text-secondary"
+    >
+      <span class="truncate">v{{ buildInfo.version }}</span>
+      <span v-if="shortRevision" class="shrink-0">{{ shortRevision }}</span>
     </p>
-    <output v-else aria-live="polite" class="mt-1 block text-xs text-text-secondary">
+    <output v-else aria-live="polite" class="min-w-0 truncate text-text-secondary">
       {{ loading ? t('common.loading') : t('system.backendUnavailable') }}
     </output>
-    <p v-if="buildInfo && builtAt" class="mt-1 truncate text-[10px] text-text-secondary">{{ builtAt }}</p>
   </section>
 </template>
