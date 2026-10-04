@@ -470,9 +470,11 @@ describe('AppShell scheduler sidebar navigation', () => {
     expect(wrapper.get('a[href="https://profiletailors.com/terms/"]').text()).toBe(
       'Terms of Service',
     )
-    expect(
-      wrapper.get('a[href^="https://github.com/dallay/profiletailors.com/commit/"]').text(),
-    ).toBe('Source code')
+    const sourceLink = wrapper.get(
+      'a[href^="https://github.com/dallay/profiletailors.com/commit/"]',
+    )
+    expect(sourceLink.attributes('aria-label')).toBe('Source code')
+    expect(sourceLink.find('svg').exists()).toBe(true)
   })
 
   it('passes the backend-resolved catalog to the connect section', () => {

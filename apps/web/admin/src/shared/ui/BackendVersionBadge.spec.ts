@@ -46,9 +46,12 @@ describe('BackendVersionBadge', () => {
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledWith('/api/admin/system/build-info')
-    expect(wrapper.text()).toContain('API v1.2.3')
+    expect(wrapper.get('[data-testid="backend-version-badge"]').text()).toContain('API')
+    expect(wrapper.text()).toContain('v1.2.3')
     expect(wrapper.text()).toContain('1234567')
-    expect(wrapper.get('section').attributes('title')).toContain('1234567890abcdef')
+    expect(wrapper.get('[data-testid="backend-version-badge"]').attributes('title')).toContain(
+      '1234567890abcdef',
+    )
   })
 
   it('announces loading and unavailable states', async () => {
