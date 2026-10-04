@@ -75,7 +75,11 @@
 
 ### Development & Testing
 
-- [Back Office QA Closure](../.agents/rpi/plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
+- RPI artifacts (e.g. back-office QA closure, shortlinks Core V1 hardening) live
+  in the agent's local RPI workspace under `.agents/rpi/plan/tasks/` and are
+  intentionally not versioned; this keeps the repo free of ephemeral coordination
+  noise while durable evidence is captured in the relevant ADR, test report, or
+  change artifact.
 - [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 - [Test Tags and Env](./testing/test-tags-and-env.md) - Backend test tags and local environment
 - [Mutation Testing](./testing/mutation-testing.md) - Mutation testing with mutflow

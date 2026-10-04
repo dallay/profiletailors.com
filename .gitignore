@@ -127,3 +127,8 @@ node_modules/
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
+
+# RPI: ephemeral agent coordination artifacts (PR/ticket plans, RPI snapshots).
+# Durable evidence (decisions, roadmaps, evidence) lives in ADRs, OpenSpec
+# changes, and test reports. See docs/README.md → "RPI artifacts".
+.agents/rpi/

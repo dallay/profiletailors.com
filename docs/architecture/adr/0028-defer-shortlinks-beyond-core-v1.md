@@ -52,8 +52,9 @@ analytics API surface, QR encoder dependency) without an immediate user need.
    move to `.agents/sdd/changes/archive/2026-10-04-url-shortener-beyond-core-v1/`
    and must not be reused verbatim.
 2. Remaining work on Core V1 (test hardening, light verification, follow-up
-   cleanup) is tracked as a regular RPI task under
-   `.agents/rpi/plan/tasks/url-shortener-v1.md`, not as a new SDD cycle.
+   cleanup) is tracked as a non-versioned RPI task in the agent's local
+   workspace (see `docs/README.md` → "RPI artifacts" for the policy), not as
+   a new SDD cycle.
 3. The deferred capabilities (asynchronous click capture, custom domains,
    analytics, QR, abuse/quarantine automation, SLO/capacity programs) will be
    re-opened only when an explicit trigger is met. Triggers are listed below;
@@ -161,8 +162,8 @@ analytics API surface, QR encoder dependency) without an immediate user need.
 - `.agents/sdd/changes/archive/2026-10-04-url-shortener-beyond-core-v1/state.yaml`
   declares `current_phase: archive` with `next: null`.
 - This ADR is referenced from `docs/architecture/adr/README.md`.
-- RPI work for Core V1 hardening continues at
-  `.agents/rpi/plan/tasks/url-shortener-v1.md`.
+- RPI work for Core V1 hardening continues in the agent's local, non-versioned
+  RPI workspace. See `docs/README.md` → "RPI artifacts" for the policy.
 
 ## Migration or remediation
 
