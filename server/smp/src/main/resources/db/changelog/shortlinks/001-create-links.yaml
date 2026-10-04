@@ -1,0 +1,79 @@
+databaseChangeLog:
+  - changeSet:
+      id: shortlinks-001-create-links
+      author: yuniel acosta
+      changes:
+        - createTable:
+            tableName: links
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: owner_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: domain_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: short_code
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: destination_url
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_at
+                  type: timestamp with time zone
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: links
+            columnNames: domain_id, short_code
+            constraintName: uq_links_domain_short_code
+        - createIndex:
+            tableName: links
+            indexName: idx_links_owner_created
+            columns:
+              - column:
+                  name: owner_id
+              - column:
+                  name: created_at
+                  descending: true
+        - createIndex:
+            tableName: links
+            indexName: idx_links_expires_at
+            columns:
+              - column:
+                  name: expires_at

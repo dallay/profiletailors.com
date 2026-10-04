@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: shortlinks-002-create-idempotency
+      author: yuniel acosta
+      changes:
+        - createTable:
+            tableName: shortlink_idempotency
+            columns:
+              - column:
+                  name: owner_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload_hash
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: result_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: shortlink_idempotency
+            columnNames: owner_id, idempotency_key
+            constraintName: pk_shortlink_idempotency

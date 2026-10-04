@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
+    implementation(libs.caffeine)
     implementation(libs.sentry.spring.boot.four)
 
     developmentOnly(libs.spring.boot.devtools)
