@@ -6,10 +6,6 @@ plugins {
     id("com.profiletailors.mutation.testing")
 }
 
-dependencies {
-    implementation(libs.caffeine)
-}
-
 group = "com.profiletailors"
 val defaultVersion = "0.0.1-SNAPSHOT"
 version = providers.gradleProperty("releaseVersion").getOrElse(defaultVersion)
@@ -109,6 +105,7 @@ dependencies {
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
+    implementation(libs.caffeine)
     implementation(libs.sentry.spring.boot.four)
 
     developmentOnly(libs.spring.boot.devtools)

@@ -54,24 +54,41 @@ internal class CreateLinkHandler(
         val domainId = DomainId.fromHost(shortLinksProperties.publicHost)
         val payloadHash = payloadHash(command)
 
-        val outcome = transactionRunner.runAtomically {
-            val existing = command.idempotencyKey?.let { idempotencyPort.findStoredResult(it, ownerId) }
-            val claimed = claimIdempotencyKey(command, ownerId, payloadHash, existing)
-            if (claimed != null) {
-                val replayed = existingResult(
-                    command.idempotencyKey,
-                    payloadHash,
-                    claimed.payloadHash,
-                    claimed.resultJson,
-                )
-                CreateOutcome(replayed, null)
-            } else {
-                val created = createLink(command, ownerId, domainId, payloadHash)
-                CreateOutcome(created, created.shortCode)
+        var attempts = 0
+        var shortCode = resolveShortCode(command.customAlias)
+        while (true) {
+            try {
+                val outcome = transactionRunner.runAtomically {
+                    val existing = command.idempotencyKey?.let {
+                        idempotencyPort.findStoredResult(it, ownerId)
+                    }
+                    val claimed = claimIdempotencyKey(command, ownerId, payloadHash, existing)
+                    if (claimed != null) {
+                        val replayed = existingResult(
+                            command.idempotencyKey,
+                            payloadHash,
+                            claimed.payloadHash,
+                            claimed.resultJson,
+                        )
+                        CreateOutcome(replayed, null)
+                    } else {
+                        val created = createLink(command, ownerId, domainId, payloadHash, shortCode)
+                        CreateOutcome(created, created.shortCode)
+                    }
+                }
+                outcome.createdShortCode?.let {
+                    linkCachePort.evict(shortLinksProperties.publicHost, it)
+                }
+                return outcome.result
+            } catch (collision: ShortCodeCollisionException) {
+                attempts += 1
+                if (command.customAlias != null) throw collision
+                if (attempts >= LinkPolicies.MAX_COLLISION_RETRIES) {
+                    throw ShortCodeCollisionExhaustedException(LinkPolicies.MAX_COLLISION_RETRIES)
+                }
+                shortCode = shortCodeGenerator.generate()
             }
         }
-        outcome.createdShortCode?.let { linkCachePort.evict(shortLinksProperties.publicHost, it) }
-        return outcome.result
     }
 
     private suspend fun claimIdempotencyKey(
@@ -94,6 +111,7 @@ internal class CreateLinkHandler(
         ownerId: OwnerId,
         domainId: DomainId,
         payloadHash: String,
+        shortCode: ShortCode,
     ): LinkResult {
         val destinationUrl = try {
             DestinationUrl(command.destinationUrl)
@@ -101,7 +119,6 @@ internal class CreateLinkHandler(
             throw InvalidDestinationUrlException(command.destinationUrl, e.message ?: "Invalid URL", e)
         }
 
-        val shortCode = resolveShortCode(command.customAlias)
         val link = Link.create(
             id = LinkId.generate(),
             ownerId = ownerId,
@@ -112,7 +129,7 @@ internal class CreateLinkHandler(
             now = clock.instant(),
         )
 
-        val saved = saveWithCollisionRetry(link, command.customAlias != null)
+        val saved = linkRepository.save(link)
         command.idempotencyKey?.let { key ->
             val result = saved.toResult(shortLinksProperties.shortUrlBase)
             idempotencyPort.store(key, ownerId, payloadHash, result.toStoredJson())
@@ -176,22 +193,6 @@ internal class CreateLinkHandler(
             throw ReservedAliasException(customAlias)
         }
         return CustomAlias(customAlias).toShortCode()
-    }
-
-    private suspend fun saveWithCollisionRetry(link: Link, isCustomAlias: Boolean): Link {
-        if (isCustomAlias) {
-            return transactionRunner.runAtomically { linkRepository.save(link) }
-        }
-
-        var currentLink = link
-        repeat(LinkPolicies.MAX_COLLISION_RETRIES) {
-            try {
-                return transactionRunner.runAtomically { linkRepository.save(currentLink) }
-            } catch (_: ShortCodeCollisionException) {
-                currentLink = currentLink.copy(shortCode = shortCodeGenerator.generate())
-            }
-        }
-        throw ShortCodeCollisionExhaustedException(LinkPolicies.MAX_COLLISION_RETRIES)
     }
 
     private data class CreateOutcome(val result: LinkResult, val createdShortCode: String?)

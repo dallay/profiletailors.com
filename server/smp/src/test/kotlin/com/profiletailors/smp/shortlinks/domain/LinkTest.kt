@@ -62,4 +62,87 @@ internal class LinkTest {
         assertEquals(2, updated.version)
         assertEquals(now.plusSeconds(1), updated.updatedAt)
     }
+
+    @Test
+    fun `create starts active at version one`() {
+        assertEquals(LinkStatus.ACTIVE, link.status)
+        assertEquals(1, link.version)
+        assertEquals(LinkStatus.ACTIVE, link.effectiveStatus(now))
+    }
+
+    @Test
+    fun `disabled link keeps disabled effective status when expired`() {
+        val disabled = link.copy(status = LinkStatus.DISABLED, expiresAt = now)
+
+        assertEquals(LinkStatus.DISABLED, disabled.effectiveStatus(now.plusSeconds(1)))
+    }
+
+    @Test
+    fun `disable activates disabled transition`() {
+        val disabled = link.disable(now)
+
+        assertEquals(LinkStatus.DISABLED, disabled.status)
+        assertEquals(2, disabled.version)
+    }
+
+    @Test
+    fun `cannot disable twice`() {
+        val disabled = link.disable(now)
+
+        assertThrows(LinkStateTransitionException::class.java) { disabled.disable(now.plusSeconds(1)) }
+    }
+
+    @Test
+    fun `enable reactivates disabled link`() {
+        val enabled = link.disable(now).enable(now.plusSeconds(1))
+
+        assertEquals(LinkStatus.ACTIVE, enabled.status)
+        assertEquals(3, enabled.version)
+    }
+
+    @Test
+    fun `cannot enable active link`() {
+        assertThrows(LinkStateTransitionException::class.java) { link.enable(now) }
+    }
+
+    @Test
+    fun `quarantine suspends active link`() {
+        val quarantined = link.quarantine(now)
+
+        assertEquals(LinkStatus.QUARANTINED, quarantined.status)
+    }
+
+    @Test
+    fun `cannot quarantine disabled link`() {
+        val disabled = link.disable(now)
+
+        assertThrows(LinkStateTransitionException::class.java) { disabled.quarantine(now.plusSeconds(1)) }
+    }
+
+    @Test
+    fun `soft delete records deletion`() {
+        val deleted = link.softDelete(now)
+
+        assertEquals(LinkStatus.DELETED, deleted.status)
+        assertEquals(now, deleted.deletedAt)
+    }
+
+    @Test
+    fun `cannot delete twice`() {
+        val deleted = link.softDelete(now)
+
+        assertThrows(LinkStateTransitionException::class.java) { deleted.softDelete(now.plusSeconds(1)) }
+    }
+
+    @Test
+    fun `disabled link accepts destination update`() {
+        val disabled = link.disable(now)
+        val updated = disabled.updateDestination(
+            newDestinationUrl = DestinationUrl("https://example.com/other"),
+            newExpiresAt = null,
+            now = now.plusSeconds(1),
+        )
+
+        assertEquals("https://example.com/other", updated.destinationUrl.value)
+    }
 }

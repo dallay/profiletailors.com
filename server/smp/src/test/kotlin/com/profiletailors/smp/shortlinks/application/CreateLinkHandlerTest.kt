@@ -8,9 +8,13 @@ import com.profiletailors.smp.shortlinks.domain.IdempotencyKeyConflictException
 import com.profiletailors.smp.shortlinks.domain.IdempotencyPort
 import com.profiletailors.smp.shortlinks.domain.IdempotencyRecord
 import com.profiletailors.smp.shortlinks.domain.IdempotencyRequestInProgressException
+import com.profiletailors.smp.shortlinks.domain.InvalidDestinationUrlException
 import com.profiletailors.smp.shortlinks.domain.LinkRepository
 import com.profiletailors.smp.shortlinks.domain.OwnerId
+import com.profiletailors.smp.shortlinks.domain.ReservedAliasException
 import com.profiletailors.smp.shortlinks.domain.ShortCode
+import com.profiletailors.smp.shortlinks.domain.ShortCodeCollisionException
+import com.profiletailors.smp.shortlinks.domain.ShortCodeCollisionExhaustedException
 import com.profiletailors.smp.shortlinks.domain.ShortCodeGenerator
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -165,6 +169,117 @@ internal class CreateLinkHandlerTest {
         } catch (_: IdempotencyRequestInProgressException) {
             coVerify(exactly = 0) { linkRepository.save(any()) }
         }
+    }
+
+    @Test
+    fun `rejects invalid destination without saving`() = runBlocking {
+        coEvery { idempotencyPort.findStoredResult("bad-key", ownerId) } returns null
+        coEvery { idempotencyPort.claim("bad-key", ownerId, any()) } returns true
+
+        try {
+            handler().handle(CreateLinkCommand("not a url", null, null, "bad-key"))
+            throw AssertionError("Expected invalid destination")
+        } catch (_: InvalidDestinationUrlException) {
+            coVerify(exactly = 0) { linkRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `rejects reserved alias`() = runBlocking {
+        try {
+            handler().handle(CreateLinkCommand("https://destination.example", "admin", null, null))
+            throw AssertionError("Expected reserved alias")
+        } catch (_: ReservedAliasException) {
+            coVerify(exactly = 0) { linkRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `propagates custom alias collision without retry`() = runBlocking {
+        coEvery { idempotencyPort.findStoredResult(any(), ownerId) } returns null
+        coEvery { linkRepository.save(any()) } throws ShortCodeCollisionException(RuntimeException("taken"))
+
+        try {
+            handler().handle(CreateLinkCommand("https://destination.example", "Taken42", null, null))
+            throw AssertionError("Expected collision")
+        } catch (_: ShortCodeCollisionException) {
+            coVerify(exactly = 1) { linkRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `retries generated code on collision`() = runBlocking {
+        var calls = 0
+        coEvery { idempotencyPort.findStoredResult(any(), ownerId) } returns null
+        coEvery { linkRepository.save(any()) } coAnswers {
+            calls += 1
+            if (calls == 1) throw ShortCodeCollisionException(RuntimeException("collision"))
+            firstArg()
+        }
+
+        val result = handler().handle(CreateLinkCommand("https://destination.example", null, null, null))
+
+        assertEquals("generated", result.shortCode)
+        coVerify(exactly = 2) { linkRepository.save(any()) }
+    }
+
+    @Test
+    fun `gives up after repeated collisions`() = runBlocking {
+        coEvery { idempotencyPort.findStoredResult(any(), ownerId) } returns null
+        coEvery { linkRepository.save(any()) } throws ShortCodeCollisionException(RuntimeException("taken"))
+
+        try {
+            handler().handle(CreateLinkCommand("https://destination.example", null, null, null))
+            throw AssertionError("Expected exhausted generation")
+        } catch (_: ShortCodeCollisionExhaustedException) {
+            coVerify(exactly = 5) { linkRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `rejects malformed stored result`() = runBlocking {
+        val command = CreateLinkCommand("https://example.com/replay", null, null, "replay-key")
+        coEvery { idempotencyPort.findStoredResult("replay-key", ownerId) } returns
+            IdempotencyRecord(payloadHash(command), "not-a-valid-result")
+
+        try {
+            handler().handle(command)
+            throw AssertionError("Expected malformed result")
+        } catch (_: IllegalArgumentException) {
+            coVerify(exactly = 0) { linkRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `evicts cache after creating`() = runBlocking {
+        coEvery { idempotencyPort.findStoredResult(any(), ownerId) } returns null
+        coEvery { linkRepository.save(any()) } coAnswers { firstArg() }
+
+        handler().handle(CreateLinkCommand("https://destination.example", null, null, null))
+
+        coVerify(exactly = 1) { linkCache.evict("short.example", "generated") }
+    }
+
+    @Test
+    fun `does not evict on idempotent replay`() = runBlocking {
+        val command = CreateLinkCommand("https://example.com/replay", null, null, "replay-key")
+        val storedResult = listOf(
+            "0199b1ca-0000-7000-0000-000000000002",
+            "generated",
+            "https://short.example/generated",
+            "https://example.com/replay",
+            "ACTIVE",
+            "2026-01-01T00:00:00Z",
+            "",
+            "1",
+        ).joinToString("|")
+        coEvery { idempotencyPort.findStoredResult("replay-key", ownerId) } returns
+            IdempotencyRecord(payloadHash(command), storedResult)
+
+        handler().handle(command)
+
+        coVerify(exactly = 0) { linkRepository.save(any()) }
+        coVerify(exactly = 0) { linkCache.evict(any(), any()) }
     }
 
     private fun payloadHash(command: CreateLinkCommand): String {

@@ -43,11 +43,7 @@ internal class UpdateLinkHandler(
 
         val existing = findExpectedLink(linkId, ownerId, command.expectedVersion)
         val newDestination = command.destinationUrl?.let(::parseDestinationUrl) ?: existing.destinationUrl
-        val newExpiresAt = if (command.destinationUrl != null || command.expiresAt != null) {
-            command.expiresAt
-        } else {
-            existing.expiresAt
-        }
+        val newExpiresAt = command.expiresAt ?: existing.expiresAt
         val updated = existing.updateDestination(
             newDestinationUrl = newDestination,
             newExpiresAt = newExpiresAt,

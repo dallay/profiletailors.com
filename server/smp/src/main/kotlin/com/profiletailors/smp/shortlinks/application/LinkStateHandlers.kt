@@ -7,6 +7,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.shortlinks.domain.LinkCachePort
 import com.profiletailors.smp.shortlinks.domain.LinkId
 import com.profiletailors.smp.shortlinks.domain.LinkRepository
+import com.profiletailors.smp.shortlinks.domain.LinkVersionConflictException
 import com.profiletailors.smp.shortlinks.domain.OwnerId
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.time.Clock
@@ -30,8 +31,11 @@ internal class DisableLinkHandler(
 
         val disabled = existing.disable(clock.instant())
 
-        transactionRunner.runAtomically {
+        val disabledUpdated = transactionRunner.runAtomically {
             linkRepository.updateWithVersion(disabled, existing.version, ownerId)
+        }
+        if (!disabledUpdated) {
+            throw LinkVersionConflictException(linkId, existing.version, existing.version)
         }
 
         linkCachePort.evict(shortLinksProperties.publicHost, existing.shortCode.value)
@@ -58,8 +62,11 @@ internal class EnableLinkHandler(
 
         val enabled = existing.enable(clock.instant())
 
-        transactionRunner.runAtomically {
+        val enabledUpdated = transactionRunner.runAtomically {
             linkRepository.updateWithVersion(enabled, existing.version, ownerId)
+        }
+        if (!enabledUpdated) {
+            throw LinkVersionConflictException(linkId, existing.version, existing.version)
         }
 
         linkCachePort.evict(shortLinksProperties.publicHost, existing.shortCode.value)
@@ -86,8 +93,11 @@ internal class DeleteLinkHandler(
 
         val deleted = existing.softDelete(clock.instant())
 
-        transactionRunner.runAtomically {
+        val deletedUpdated = transactionRunner.runAtomically {
             linkRepository.updateWithVersion(deleted, existing.version, ownerId)
+        }
+        if (!deletedUpdated) {
+            throw LinkVersionConflictException(linkId, existing.version, existing.version)
         }
 
         linkCachePort.evict(shortLinksProperties.publicHost, existing.shortCode.value)

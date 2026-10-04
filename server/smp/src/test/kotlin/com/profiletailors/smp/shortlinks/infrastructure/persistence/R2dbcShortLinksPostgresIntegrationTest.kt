@@ -65,6 +65,9 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
     private lateinit var linkRepository: R2dbcLinkRepository
 
     @jakarta.annotation.Resource
+    private lateinit var linkFinderRepository: R2dbcLinkFinderRepository
+
+    @jakarta.annotation.Resource
     private lateinit var idempotencyAdapter: R2dbcIdempotencyAdapter
 
     override suspend fun seedScenario() = Unit
@@ -112,6 +115,40 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
         assertFalse(linkRepository.updateWithVersion(updated, 1, initial.ownerId))
         assertTrue(linkRepository.updateWithVersion(updated, 0, initial.ownerId))
         assertEquals(updated, linkRepository.findById(initial.id, initial.ownerId))
+    }
+
+    @Test
+    fun `finder resolves by domain and short code`() = runTest {
+        val link = link(shortCode = "FindMe1")
+        linkRepository.save(link)
+
+        assertEquals(link, linkFinderRepository.findByDomainAndShortCode(link.domainId, link.shortCode))
+        assertNull(linkFinderRepository.findByDomainAndShortCode(link.domainId, ShortCode("Nope0000")))
+        assertNull(
+            linkFinderRepository.findByDomainAndShortCode(DomainId.fromHost("other.example"), link.shortCode),
+        )
+    }
+
+    @Test
+    fun `finder pages owner links by creation cursor`() = runTest {
+        val owner = OwnerId(UUID.randomUUID())
+        val base = Instant.parse("2026-01-01T00:00:00Z")
+        val codes = listOf("Page0001", "Page0002", "Page0003")
+        codes.forEachIndexed { index, code ->
+            linkRepository.save(link(shortCode = code).copy(ownerId = owner, createdAt = base.plusSeconds(index * 60L)))
+        }
+
+        val firstPage = linkFinderRepository.findByOwner(owner, 2, null)
+
+        assertEquals(listOf("Page0003", "Page0002"), firstPage.map { it.shortCode.value })
+        val secondPage = linkFinderRepository.findByOwner(owner, 2, base.plusSeconds(60L))
+
+        assertEquals(listOf("Page0001"), secondPage.map { it.shortCode.value })
+        assertEquals(
+            emptyList<String>(),
+            linkFinderRepository.findByOwner(OwnerId(UUID.randomUUID()), 2, null)
+                .map { it.shortCode.value },
+        )
     }
 
     private suspend fun assertThrowsCollision(action: suspend () -> Unit) {
