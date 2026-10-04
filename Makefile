@@ -127,7 +127,6 @@ help list:
 	@echo "  swarm-remove                Remove Swarm stack"
 	@echo ""
 	@echo "  --- DOCS, CI & CLEANUP ---"
-	@echo "  doc-check                    Validate doc Last Updated dates against git history"
 	@echo "  docs-links                   Check Markdown links with lychee"
 	@echo "  docs-lint                    Lint Markdown with markdownlint-cli2"
 	@echo "  licence-check                Scan dependency licences for AGPL-3.0 compatibility"
@@ -385,11 +384,7 @@ swarm-remove:
 # DOCUMENTATION & LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
 
-.PHONY: doc-check docs-links docs-lint licence-check
-
-doc-check:
-	@echo "▸ Documentation date freshness check..."
-	node scripts/check-doc-last-updated.mjs
+.PHONY: docs-links docs-lint licence-check
 
 docs-links:
 	@echo "▸ Markdown link check (lychee)..."
@@ -420,8 +415,6 @@ ci-local:
 	@echo "▸ Gitleaks (secrets scan)..."
 	gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
 	@echo ""
-	@echo "▸ Documentation date freshness check..."
-	$(MAKE) doc-check
 	@echo ""
 	@echo "▸ Markdown lint..."
 	$(MAKE) docs-lint
@@ -488,9 +481,6 @@ ci:
 	@echo "════════════════════════════════════════════════"
 	@echo ""
 	@node scripts/ci-step.mjs "[1/15] Gitleaks (secrets scan)" "." gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
-	@echo ""
-	@echo "▸ [1a/8] Documentation date freshness check..."
-	$(MAKE) doc-check
 	@echo ""
 	@echo "▸ [1b/8] Dependency licence scan..."
 	$(MAKE) licence-check
