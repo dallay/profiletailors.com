@@ -2,6 +2,25 @@ package com.profiletailors.buildlogic.security
 
 import com.profiletailors.buildlogic.extensions.catalogVersion
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.dependencies
+
+/**
+ * Declares the patched Jackson BOMs as platforms.
+ *
+ * Unlike [enforcePatchedJacksonVersions], which rewrites versions at
+ * resolution time, platform declarations are visible to static readers
+ * (Dependabot's updater requires updatable declarations in the snapshot and
+ * errors with dependency_not_found otherwise). Both stay in sync through the
+ * jackson/jackson2 version catalog entries.
+ */
+internal fun Project.addPatchedJacksonPlatforms() {
+    val jackson3 = catalogVersion("jackson")
+    val jackson2 = catalogVersion("jackson2")
+    dependencies {
+        add("implementation", platform("tools.jackson:jackson-bom:$jackson3"))
+        add("implementation", platform("com.fasterxml.jackson:jackson-bom:$jackson2"))
+    }
+}
 
 /**
  * Forces patched Jackson versions across every Spring module.

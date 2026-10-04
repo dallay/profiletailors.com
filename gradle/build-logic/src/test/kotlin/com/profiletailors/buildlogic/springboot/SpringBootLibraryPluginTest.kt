@@ -34,6 +34,32 @@ class SpringBootLibraryPluginTest {
         )
     }
 
+    @Test
+    fun `declares patched Jackson BOM platforms for Dependabot visibility`() {
+        writeProject()
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments("dependencies", "--configuration", "runtimeClasspath", "--stacktrace")
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":dependencies")?.outcome)
+        val rootPlatforms =
+            result.output
+                .lineSequence()
+                .filter { it.startsWith("+--- ") || it.startsWith("\\--- ") }
+                .toList()
+        assertTrue(
+            rootPlatforms.any { it.contains("com.fasterxml.jackson:jackson-bom:2.22.3") },
+            "jackson-bom 2.x platform should be declared at the patched version",
+        )
+        assertTrue(
+            rootPlatforms.any { it.contains("tools.jackson:jackson-bom:3.2.3") },
+            "jackson-bom 3.x platform should be declared at the patched version",
+        )
+    }
+
     private fun writeProject() {
         val versionCatalog = File(projectDir, "gradle/libs.versions.toml")
         versionCatalog.parentFile.mkdirs()
