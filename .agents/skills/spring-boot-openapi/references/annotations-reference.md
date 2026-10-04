@@ -125,7 +125,7 @@ public Book getBook(
 - `deprecated`: Mark as deprecated
 - `hidden`: Hide from docs
 - `allowEmptyValue`: Allow empty string
-- `allowReserved`: Allow reserved characters (:/?#[]@!$&'()*+,;=)
+- `allowReserved`: Allow reserved characters (:/?#[]@!$&' ()*+,;=)
 - `schema`: Parameter schema
 - `content`: Parameter content
 - `explode`: Explode array/object parameters

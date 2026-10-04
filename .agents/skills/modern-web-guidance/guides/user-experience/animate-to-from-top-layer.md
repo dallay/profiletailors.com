@@ -113,11 +113,11 @@ dialog[open]::backdrop,
 ### Top-layer animation features
 
 Baseline status for @starting-style: Newly available. It's been Baseline since 2024-08-06.
-Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.5 (
-May 2024).
+Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.5
+(May 2024).
 Baseline status for transition-behavior: Newly available. It's been Baseline since 2024-08-06.
-Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.4 (
-Mar 2024).
+Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.4
+(Mar 2024).
 overlay has limited availability.
 Supported by: Chrome 117 (Sep 2023) and Edge 117 (Sep 2023).
 Unsupported in: Firefox and Safari.

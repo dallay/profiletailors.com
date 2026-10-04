@@ -36,8 +36,8 @@ This skill bundles 24 specs. The website currently showcases 20 of them.
 - `top-down-letters` (per-character) Letters descend from above in a pronounced staircase, one
   symbol at a time, with zero blur.
 - `kinetic-center-build` (per-word) A word appears in the center; each new word enters from right to
-  left with a soft blur and pushes the existing line until the full phrase locks centered. (
-  renderer: `kinetic-center-build`)
+  left with a soft blur and pushes the existing line until the full phrase locks centered.
+  (renderer: `kinetic-center-build`)
 - `short-slide-right` (per-word) The whole phrase glides in from the left as one compact move, while
   the words themselves are revealed in sequence only through opacity. (renderer:
   `shared-slide-opacity-stage`)

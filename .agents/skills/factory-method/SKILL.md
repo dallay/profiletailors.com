@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Factory Method
 
 ## Objective
 
-Define a creation operation through an abstraction while allowing concrete implementations to decide which product type is instantiated.
+Define a creation operation through an abstraction while allowing concrete implementations to decide
+which product type is instantiated.
 
 ## Trigger conditions
 

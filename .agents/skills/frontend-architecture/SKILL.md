@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Frontend Architecture Skill
 
 Define language-appropriate boundaries for the repository's frontend surfaces. This skill is
@@ -25,12 +26,12 @@ Do not apply Kotlin DDD markers or backend package rules to TypeScript, Vue, or 
 
 ## Surface Profiles
 
-| Surface | Architectural profile | Primary boundaries | Verification |
-|---|---|---|---|
-| `apps/web/app` | Vue 3 + Pinia dashboard SPA | Feature modules expose public barrels; internals stay private; presentation consumes feature APIs rather than another feature's infrastructure. | Existing module relocation/import tests, Vitest, `pnpm --filter app type-check`, Biome. |
-| `apps/web/admin` | Separate, flatter Vue + Pinia platform-admin SPA | `views`, `stores`, `layouts`, `router`, and shared UI are intentionally flatter. Do not require dashboard module folders or dashboard feature barrels. | `just admin-test`, `just admin-check`, Biome. |
-| `apps/web/marketing` | Static-first Astro marketing surface | `pages`, `components`, `layouts`, `scripts`, `i18n`, `legal`, and static assets. Do not import dashboard modules or admin internals. | `just frontend-check`, `just frontend-lint`, marketing Vitest; use the existing Astro commands. |
-| `shared/web` | Dependency-light cross-frontend contract package | Types, validation, storage, and privacy utilities may be consumed by app, admin, and marketing. It must not import from any application surface. | Shared package Vitest and the consuming surface checks. |
+| Surface              | Architectural profile                            | Primary boundaries                                                                                                                                     | Verification                                                                                    |
+|----------------------|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `apps/web/app`       | Vue 3 + Pinia dashboard SPA                      | Feature modules expose public barrels; internals stay private; presentation consumes feature APIs rather than another feature's infrastructure.        | Existing module relocation/import tests, Vitest, `pnpm --filter app type-check`, Biome.         |
+| `apps/web/admin`     | Separate, flatter Vue + Pinia platform-admin SPA | `views`, `stores`, `layouts`, `router`, and shared UI are intentionally flatter. Do not require dashboard module folders or dashboard feature barrels. | `just admin-test`, `just admin-check`, Biome.                                                   |
+| `apps/web/marketing` | Static-first Astro marketing surface             | `pages`, `components`, `layouts`, `scripts`, `i18n`, `legal`, and static assets. Do not import dashboard modules or admin internals.                   | `just frontend-check`, `just frontend-lint`, marketing Vitest; use the existing Astro commands. |
+| `shared/web`         | Dependency-light cross-frontend contract package | Types, validation, storage, and privacy utilities may be consumed by app, admin, and marketing. It must not import from any application surface.       | Shared package Vitest and the consuming surface checks.                                         |
 
 ## Dashboard App: Feature Modules
 

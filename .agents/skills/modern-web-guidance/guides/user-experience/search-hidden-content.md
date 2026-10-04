@@ -29,13 +29,14 @@ If you need to use `hidden="until-found"` instead, follow these instructions:
 2. **Synchronize UI state:** If the interface has related states that depend on the content's
    visibility (e.g., updating ARIA attributes, toggling open/close CSS classes, or rotating
    accordion icons):
-    - You **MUST** add an event listener for the `beforematch` event.
-    - Register the `beforematch` event listener directly on the element carrying the
-      `hidden="until-found"` attribute. Since the event bubbles, you may alternatively use event
-      delegation by registering a single listener on a parent element (such as a tab container) to
-      manage multiple hidden sections at once.
-    - Inside the event listener, execute the logic to synchronize related UI elements (such as
-      closing other open tabs or changing the state of a toggle button).
+
+- You **MUST** add an event listener for the `beforematch` event.
+- Register the `beforematch` event listener directly on the element carrying the
+  `hidden="until-found"` attribute. Since the event bubbles, you may alternatively use event
+  delegation by registering a single listener on a parent element (such as a tab container) to
+  manage multiple hidden sections at once.
+- Inside the event listener, execute the logic to synchronize related UI elements (such as
+  closing other open tabs or changing the state of a toggle button).
 
 ## Example code
 

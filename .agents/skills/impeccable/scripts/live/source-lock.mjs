@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { createHash, randomUUID } from 'node:crypto'
-import { getLiveDir, isLiveServerPidReachable } from '../lib/impeccable-paths.mjs'
+import {createHash, randomUUID} from 'node:crypto'
+import {getLiveDir, isLiveServerPidReachable} from '../lib/impeccable-paths.mjs'
 
 // Only used to retire a lock whose contents we cannot read (empty or truncated
 // by a crash mid-write). A readable lock's fate is decided by its owner's
@@ -9,18 +9,19 @@ import { getLiveDir, isLiveServerPidReachable } from '../lib/impeccable-paths.mj
 const UNREADABLE_LOCK_STALE_MS = 60_000
 
 export function sourceLockPath(file, cwd = process.cwd()) {
-  const digest = createHash('sha256').update(path.resolve(cwd, file)).digest('hex').slice(0, 24)
+  const digest = createHash('sha256').update(path.resolve(cwd, file)).digest(
+      'hex').slice(0, 24)
   return path.join(getLiveDir(cwd), 'locks', digest + '.lock')
 }
 
 export function withSourceLockSync(
-  file,
-  owner,
-  fn,
-  { cwd = process.cwd(), waitMs = 0, retryMs = 5 } = {},
+    file,
+    owner,
+    fn,
+    {cwd = process.cwd(), waitMs = 0, retryMs = 5} = {},
 ) {
   const lockPath = sourceLockPath(file, cwd)
-  fs.mkdirSync(path.dirname(lockPath), { recursive: true })
+  fs.mkdirSync(path.dirname(lockPath), {recursive: true})
   const deadline = Date.now() + Math.max(0, Number(waitMs) || 0)
   // Identifies this acquisition specifically, so release can tell our own lock
   // from a replacement that some other writer created.
@@ -33,29 +34,35 @@ export function withSourceLockSync(
     try {
       fd = fs.openSync(lockPath, 'wx')
       fs.writeFileSync(
-        fd,
-        JSON.stringify({
-          owner,
-          token,
-          pid: process.pid,
-          at: Date.now(),
-          file: path.resolve(cwd, file),
-        }) + '\n',
+          fd,
+          JSON.stringify({
+            owner,
+            token,
+            pid: process.pid,
+            at: Date.now(),
+            file: path.resolve(cwd, file),
+          }) + '\n',
       )
       acquired = true
     } catch (error) {
-      if (error?.code !== 'EEXIST') throw error
+      if (error?.code !== 'EEXIST') {
+        throw error
+      }
       if (Date.now() >= deadline) {
         const locked = new Error('source_locked')
         locked.code = 'SOURCE_LOCKED'
         locked.lockPath = lockPath
         throw locked
       }
-      sleepSync(Math.max(1, Math.min(Number(retryMs) || 5, deadline - Date.now())))
+      sleepSync(
+          Math.max(1, Math.min(Number(retryMs) || 5, deadline - Date.now())))
     } finally {
       try {
-        if (fd !== undefined) fs.closeSync(fd)
-      } catch {}
+        if (fd !== undefined) {
+          fs.closeSync(fd)
+        }
+      } catch {
+      }
     }
   }
 
@@ -85,10 +92,13 @@ function readLock(lockPath) {
  */
 function releaseOwnLock(lockPath, token) {
   const held = readLock(lockPath)
-  if (held && held.token !== token) return
+  if (held && held.token !== token) {
+    return
+  }
   try {
     fs.unlinkSync(lockPath)
-  } catch {}
+  } catch {
+  }
 }
 
 /**
@@ -108,14 +118,20 @@ function clearStaleLock(lockPath) {
     // between create and write in a live acquisition. mtime distinguishes them.
     try {
       const stat = fs.statSync(lockPath)
-      if (Date.now() - stat.mtimeMs > UNREADABLE_LOCK_STALE_MS) fs.unlinkSync(lockPath)
+      if (Date.now() - stat.mtimeMs > UNREADABLE_LOCK_STALE_MS) {
+        fs.unlinkSync(
+            lockPath)
+      }
     } catch {
       /* gone already */
     }
     return
   }
-  if (typeof held.pid === 'number' && isLiveServerPidReachable(held.pid)) return
+  if (typeof held.pid === 'number' && isLiveServerPidReachable(held.pid)) {
+    return
+  }
   try {
     fs.unlinkSync(lockPath)
-  } catch {}
+  } catch {
+  }
 }

@@ -159,8 +159,8 @@ input:user-valid {
 
 Baseline status for :user-valid and :user-invalid: Widely available. It's been Baseline since
 2023-11-02.
-Supported by: Chrome 119 (Oct 2023), Edge 119 (Nov 2023), Firefox 88 (Apr 2021), and Safari 16.5 (
-May 2023).
+Supported by: Chrome 119 (Oct 2023), Edge 119 (Nov 2023), Firefox 88 (Apr 2021), and Safari 16.5
+(May 2023).
 
 ### CSS for Fallback
 

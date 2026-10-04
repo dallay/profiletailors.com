@@ -1,34 +1,36 @@
-Designs that only work with perfect data aren't production-ready. Harden the interface against the inputs, errors, languages, and network conditions that real users will throw at it.
+Designs that only work with perfect data aren't production-ready. Harden the interface against the
+inputs, errors, languages, and network conditions that real users will throw at it.
 
 ## Assess Hardening Needs
 
 Identify weaknesses and edge cases:
 
 1. **Test with extreme inputs**:
-   - Very long text (names, descriptions, titles)
-   - Very short text (empty, single character)
-   - Special characters (emoji, RTL text, accents)
-   - Large numbers (millions, billions)
-   - Many items (1000+ list items, 50+ options)
-   - No data (empty states)
+    - Very long text (names, descriptions, titles)
+    - Very short text (empty, single character)
+    - Special characters (emoji, RTL text, accents)
+    - Large numbers (millions, billions)
+    - Many items (1000+ list items, 50+ options)
+    - No data (empty states)
 
 2. **Test error scenarios**:
-   - Network failures (offline, slow, timeout)
-   - API errors (400, 401, 403, 404, 500)
-   - Validation errors
-   - Permission errors
-   - Rate limiting
-   - Concurrent operations
+    - Network failures (offline, slow, timeout)
+    - API errors (400, 401, 403, 404, 500)
+    - Validation errors
+    - Permission errors
+    - Rate limiting
+    - Concurrent operations
 
 3. **Test internationalization**:
-   - Long translations (German is often 30% longer than English)
-   - RTL languages (Arabic, Hebrew)
-   - Character sets (Chinese, Japanese, Korean, emoji)
-   - Date/time formats
-   - Number formats (1,000 vs 1.000)
-   - Currency symbols
+    - Long translations (German is often 30% longer than English)
+    - RTL languages (Arabic, Hebrew)
+    - Character sets (Chinese, Japanese, Korean, emoji)
+    - Date/time formats
+    - Number formats (1,000 vs 1.000)
+    - Currency symbols
 
-**CRITICAL**: Designs that only work with perfect data aren't production-ready. Harden against reality.
+**CRITICAL**: Designs that only work with perfect data aren't production-ready. Harden against
+reality.
 
 ## Hardening Dimensions
 
@@ -81,7 +83,9 @@ Systematically improve resilience:
 **Responsive text sizing**:
 
 - Use `clamp()` for fluid typography
-- Set minimum readable sizes (16px body on mobile, the same floor the typography guidance sets; 14px only for genuinely secondary text. iOS Safari force-zooms focused inputs under 16px, which breaks form layouts)
+- Set minimum readable sizes (16px body on mobile, the same floor the typography guidance sets; 14px
+  only for genuinely secondary text. iOS Safari force-zooms focused inputs under 16px, which breaks
+  form layouts)
 - Test text scaling (zoom to 200%)
 - Ensure containers expand with text
 
@@ -336,7 +340,8 @@ const throttledScroll = throttle(handleScroll, 100);
 - Visual regression tests
 - Accessibility tests (axe, WAVE)
 
-**IMPORTANT**: Hardening is about expecting the unexpected. Real users will do things you never imagined.
+**IMPORTANT**: Hardening is about expecting the unexpected. Real users will do things you never
+imagined.
 
 **NEVER**:
 

@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Decorator
 
 ## Objective
 
-Add responsibilities to an object dynamically by wrapping it with objects implementing the same contract.
+Add responsibilities to an object dynamically by wrapping it with objects implementing the same
+contract.
 
 ## Trigger conditions
 

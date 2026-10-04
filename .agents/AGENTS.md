@@ -33,9 +33,14 @@ Fixes should make the system simpler, not more complex.
 Prefer removing or consolidating code over adding a new layer, flag, or special case. If a fix
 grows the system's surface area, look for the version that shrinks it.
 
-Prefer self-documenting code. The agent MUST NOT generate explanatory comments or docblocks by default; intent should be expressed through names, types, structure, and tests. Comment policy is enforced during final cleanup, not as an architectural invariant.
+Prefer self-documenting code. The agent MUST NOT generate explanatory comments or docblocks by
+default; intent should be expressed through names, types, structure, and tests. Comment policy is
+enforced during final cleanup, not as an architectural invariant.
 
-Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter exclusions, and commented-out code remain prohibited.
+Allowed comments: SPDX file-header licenses in `License*.kt` / `LICENSE-*.md` files, interpreter
+shebangs (for example, `#!/usr/bin/env node`), and generated markers emitted by an approved
+generator. Nothing else. TODO/FIXME/HACK notes, lint and type suppression directives, formatter
+exclusions, and commented-out code remain prohibited.
 
 ## Static Analysis and Linter Compliance
 
@@ -253,29 +258,29 @@ not exist, use the exact workspace command already used by CI and say so in the 
 
 ### Setup
 
-| Command              | Action                                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `just setup`         | Create local env if needed, install dependencies and Playwright browsers, install hooks, sync agent targets, and set up optional tools |
-| `just install`       | Install all pnpm workspace dependencies from the frozen lockfile                                               |
-| `just playwright-install` | Install Playwright browser binaries for all E2E workspaces                                                |
-| `just hooks-install` | Install Lefthook hooks unless globally disabled                                                                |
-| `just -l`            | List the current command hub; treat this output as authoritative over this table                               |
+| Command                   | Action                                                                                                                                 |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `just setup`              | Create local env if needed, install dependencies and Playwright browsers, install hooks, sync agent targets, and set up optional tools |
+| `just install`            | Install all pnpm workspace dependencies from the frozen lockfile                                                                       |
+| `just playwright-install` | Install Playwright browser binaries for all E2E workspaces                                                                             |
+| `just hooks-install`      | Install Lefthook hooks unless globally disabled                                                                                        |
+| `just -l`                 | List the current command hub; treat this output as authoritative over this table                                                       |
 
 ### Frontend and shared web
 
-| Command                                                           | Action                                                             |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `just dev-frontend`                                               | Start marketing and dashboard dev servers through Portless         |
-| `just frontend-build`                                             | Build the marketing site                                           |
-| `just app-build`                                                  | Type-check and build the dashboard SPA                             |
-| `just admin-build`                                                | Type-check and build the admin SPA                                 |
-| `just frontend-lint`                                              | Biome check for marketing only                                     |
-| `just frontend-format`                                            | Format marketing only; do not use it as an unreviewed bulk rewrite |
-| `just frontend-check`                                             | Astro type/content check for marketing                             |
-| `just frontend-test`                                              | Marketing Vitest suite                                             |
-| `just admin-check` / `just admin-test`                            | Admin type-check / Vitest suite                                    |
+| Command                                                           | Action                                                                                        |
+|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| `just dev-frontend`                                               | Start marketing and dashboard dev servers through Portless                                    |
+| `just frontend-build`                                             | Build the marketing site                                                                      |
+| `just app-build`                                                  | Type-check and build the dashboard SPA                                                        |
+| `just admin-build`                                                | Type-check and build the admin SPA                                                            |
+| `just frontend-lint`                                              | Biome check for marketing only                                                                |
+| `just frontend-format`                                            | Format marketing only; do not use it as an unreviewed bulk rewrite                            |
+| `just frontend-check`                                             | Astro type/content check for marketing                                                        |
+| `just frontend-test`                                              | Marketing Vitest suite                                                                        |
+| `just admin-check` / `just admin-test`                            | Admin type-check / Vitest suite                                                               |
 | `just frontend-test-e2e`                                          | Install Playwright browsers, then run marketing E2E plus the configured mocked app media lane |
-| `just app-test-e2e-media-mocked` / `just app-test-e2e-media-real` | App Media Library E2E lanes                                        |
+| `just app-test-e2e-media-mocked` / `just app-test-e2e-media-real` | App Media Library E2E lanes                                                                   |
 
 For dashboard checks without a dedicated recipe, use the package scripts used by CI, for example
 `pnpm --filter app lint`, `pnpm --filter app test:run`, and `pnpm --filter app type-check`.
@@ -283,7 +288,7 @@ For dashboard checks without a dedicated recipe, use the package scripts used by
 ### Backend and infrastructure
 
 | Command                                        | Action                                                                                |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+|------------------------------------------------|---------------------------------------------------------------------------------------|
 | `just backend-build`                           | Build the SMP backend artifact                                                        |
 | `just backend-test`                            | Run backend tests; optionally pass excluded tags, e.g. `just backend-test 'postgres'` |
 | `just backend-test-fast`                       | Run the backend test task through the repository password helper                      |
@@ -325,7 +330,7 @@ repository's contracts, examples, or operational instructions are stale.
 Use the artifact that owns the claim:
 
 | Claim                                                 | Canonical owner                                                                   |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+|-------------------------------------------------------|-----------------------------------------------------------------------------------|
 | Product behavior and user-facing scope                | Relevant `PRODUCT.md` and current `.agents/sdd/specs/                               |
 | Active change status and verification                 | `.agents/sdd/changes/<name>/state.yaml` and `verify-report.md`                       |
 | Durable architecture decision or exception            | `docs/architecture/adr/` and its index                                            |
@@ -377,11 +382,11 @@ server/smp/src/main/kotlin/com/profiletailors/smp/<context>/
 └── infrastructure/  # Spring, WebFlux, R2DBC, HTTP, security, and external adapters
 ```
 
-| Layer          | May depend on                                             | Must not depend on                                                                                  |
-| -------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Layer          | May depend on                                            | Must not depend on                                                                                  |
+|----------------|----------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | Domain         | Pure Kotlin and approved framework-free shared contracts | Application, infrastructure, Spring, R2DBC, Reactor, persistence annotations, or transport concerns |
 | Application    | Domain, including domain-defined ports                   | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
-| Infrastructure | Domain, application, and external frameworks              | —                                                                                                   |
+| Infrastructure | Domain, application, and external frameworks             | —                                                                                                   |
 
 Rules:
 
@@ -449,7 +454,8 @@ Apply DRY pragmatically:
 - Remove duplicated **knowledge or policy**, not every pair of similar lines.
 - Prefer a small amount of local duplication over an abstraction whose semantics are not stable.
   Usually wait until a rule has repeated use and a clear owner before extracting it.
-- Keep abstractions cohesive and named after domain intent. Do not create generic `shared/`, `utils/`,
+- Keep abstractions cohesive and named after domain intent. Do not create generic `shared/`,
+  `utils/`,
   or `common` catch-alls, and do not put surface-specific behavior in shared packages merely
   because two call sites currently look alike.
 - Do not unify DTOs, persistence models, or value types across bounded contexts when their meanings,
@@ -516,7 +522,7 @@ scenario.
 ### Tests by boundary
 
 | Change                                        | Minimum evidence                                                                                                              |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+|-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | Domain/value object/policy                    | Pure unit tests, including valid and invalid invariants                                                                       |
 | Application/use case/port                     | Plain unit tests with fakes/mocks; verify orchestration and failure behavior                                                  |
 | HTTP/persistence/provider adapter             | Focused integration tests with `WebTestClient`, real serialization, and Testcontainers/real adapter behavior where it matters |
@@ -543,14 +549,16 @@ surfaces or the user asks for full validation. Never skip a failing test to obta
 - **`shared/web`:** run its Vitest suite plus checks/builds for both marketing and dashboard
   consumers; include admin when its contract is consumed there.
 - **Docs/agent-only:** validate links and formatting, inspect the exact diff, and run
-  `pnpm dlx @dallay/agentsync@latest status` when canonical agent files change. Do not claim product or
+  `pnpm dlx @dallay/agentsync@latest status` when canonical agent files change. Do not claim product
+  or
   runtime validation from a docs-only check.
 
 ### Agent Definition of Done
 
 Before reporting completion, the agent must be able to answer yes to all applicable items:
 
-- scope, worktree status, source-of-truth documents, and existing architecture/skills were inspected;
+- scope, worktree status, source-of-truth documents, and existing architecture/skills were
+  inspected;
 - implementation and tests follow the correct layer, bounded-context, and frontend-surface rules;
 - API/OpenAPI, product, ADR, C4, OpenSpec, operational, compliance, and examples were updated or
   explicitly ruled out with a reason;

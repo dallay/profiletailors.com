@@ -127,8 +127,8 @@ transitioning specific elements, and not the entire screen, we can disable the `
 ### Fallback strategies
 
 Baseline status for view-transition-class: Newly available. It's been Baseline since 2025-10-14.
-Supported by: Chrome 125 (May 2024), Edge 125 (May 2024), Firefox 144 (Oct 2025), and Safari 18.2 (
-Dec 2024).
+Supported by: Chrome 125 (May 2024), Edge 125 (May 2024), Firefox 144 (Oct 2025), and Safari 18.2
+(Dec 2024).
 
 View Transitions are a progressive enhancement. If the browser does not support
 `document.startViewTransition`, the DOM update should still occur immediately, providing a

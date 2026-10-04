@@ -11,6 +11,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Singleton
 
 ## Objective

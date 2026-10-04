@@ -1,4 +1,5 @@
-Strip a design to its essence. Remove anything that doesn't earn its place: redundant elements, repeated information, decorative noise, cosmetic complexity.
+Strip a design to its essence. Remove anything that doesn't earn its place: redundant elements,
+repeated information, decorative noise, cosmetic complexity.
 
 ---
 
@@ -7,22 +8,24 @@ Strip a design to its essence. Remove anything that doesn't earn its place: redu
 Analyze what makes the design feel complex or cluttered:
 
 1. **Identify complexity sources**:
-   - **Too many elements**: Competing buttons, redundant information, visual clutter
-   - **Excessive variation**: Too many colors, fonts, sizes, styles without purpose
-   - **Information overload**: Everything visible at once, no progressive disclosure
-   - **Visual noise**: Unnecessary borders, shadows, backgrounds, decorations
-   - **Confusing hierarchy**: Unclear what matters most
-   - **Feature creep**: Too many options, actions, or paths forward
+    - **Too many elements**: Competing buttons, redundant information, visual clutter
+    - **Excessive variation**: Too many colors, fonts, sizes, styles without purpose
+    - **Information overload**: Everything visible at once, no progressive disclosure
+    - **Visual noise**: Unnecessary borders, shadows, backgrounds, decorations
+    - **Confusing hierarchy**: Unclear what matters most
+    - **Feature creep**: Too many options, actions, or paths forward
 
 2. **Find the essence**:
-   - What's the primary user goal? (There should be ONE)
-   - What's actually necessary vs nice-to-have?
-   - What can be removed, hidden, or combined?
-   - What's the 20% that delivers 80% of value?
+    - What's the primary user goal? (There should be ONE)
+    - What's actually necessary vs nice-to-have?
+    - What can be removed, hidden, or combined?
+    - What's the 20% that delivers 80% of value?
 
-If any of these are unclear from the codebase, STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.
+If any of these are unclear from the codebase, STOP and use Codex's structured user-input/question
+tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.
 
-**CRITICAL**: Simplicity is not about removing features. It's about removing obstacles between users and their goals. Every element should justify its existence.
+**CRITICAL**: Simplicity is not about removing features. It's about removing obstacles between users
+and their goals. Every element should justify its existence.
 
 ## Plan Simplification
 
@@ -33,7 +36,8 @@ Create a ruthless editing strategy:
 - **Progressive disclosure**: What can be hidden until needed?
 - **Consolidation opportunities**: What can be combined or integrated?
 
-**IMPORTANT**: Simplification is hard. It requires saying no to good ideas to make room for great execution. Be ruthless.
+**IMPORTANT**: Simplification is hard. It requires saying no to good ideas to make room for great
+execution. Be ruthless.
 
 ## Simplify the Design
 
@@ -42,7 +46,8 @@ Systematically remove complexity across these dimensions:
 ### Information Architecture
 
 - **Reduce scope**: Remove secondary actions, optional features, redundant information
-- **Progressive disclosure**: Hide complexity behind clear entry points (accordions, modals, step-through flows)
+- **Progressive disclosure**: Hide complexity behind clear entry points (accordions, modals,
+  step-through flows)
 - **Combine related actions**: Merge similar buttons, consolidate forms, group related content
 - **Clear hierarchy**: ONE primary action, few secondary actions, everything else tertiary or hidden
 - **Remove redundancy**: If it's said elsewhere, don't repeat it here
@@ -51,9 +56,12 @@ Systematically remove complexity across these dimensions:
 
 - **Reduce color palette**: Use 1-2 colors plus neutrals, not 5-7 colors
 - **Limit typography**: One font family, 3-4 sizes maximum, 2-3 weights
-- **Remove decorations**: Eliminate borders, shadows, backgrounds that don't serve hierarchy or function
-- **Flatten structure**: Reduce nesting, remove unnecessary containers; never nest cards inside cards
-- **Remove unnecessary cards**: Cards aren't needed for basic layout; use spacing and alignment instead
+- **Remove decorations**: Eliminate borders, shadows, backgrounds that don't serve hierarchy or
+  function
+- **Flatten structure**: Reduce nesting, remove unnecessary containers; never nest cards inside
+  cards
+- **Remove unnecessary cards**: Cards aren't needed for basic layout; use spacing and alignment
+  instead
 - **Consistent spacing**: Use one spacing scale, remove arbitrary gaps
 
 ### Layout Simplification
@@ -115,4 +123,6 @@ If you removed features or options:
 - Consider if they need alternative access points
 - Note any user feedback to monitor
 
-When the cuts feel right, hand off to `$impeccable polish` for the final pass. As Antoine de Saint-Exupéry put it: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."
+When the cuts feel right, hand off to `$impeccable polish` for the final pass. As Antoine de
+Saint-Exupéry put it: "Perfection is achieved not when there is nothing more to add, but when there
+is nothing left to take away."

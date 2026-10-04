@@ -421,6 +421,7 @@ Response format:
 ### Secure Audit Endpoint
 
 <!-- legacy:servlet -->
+
 ```kotlin
 @Configuration
 class AuditSecurityConfig {
@@ -438,6 +439,7 @@ class AuditSecurityConfig {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ### Audit Configuration

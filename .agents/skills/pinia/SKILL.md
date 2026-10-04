@@ -7,6 +7,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Pinia
 
 Pinia is the official state management library for Vue, designed to be intuitive and type-safe. It

@@ -106,7 +106,7 @@ page.getByTestId("submit-btn");
 
 ## Filtering & Chaining
 
-### filter()
+### filter ()
 
 Narrow down locators:
 
@@ -140,7 +140,7 @@ page.getByText("Child").locator("..");
 page.getByText("Child").locator("xpath=ancestor::article");
 ```
 
-### nth() and first()/last()
+### nth () and first ()/last ()
 
 ```typescript
 page.getByRole("listitem").first();
@@ -160,7 +160,7 @@ await page.getByText("Loading").waitFor({state: "hidden"});
 ```
 
 > **For comprehensive waiting strategies** (element state, navigation, network, polling with
-`toPass()`), see [assertions-waiting.md](assertions-waiting.md#waiting-strategies).
+> `toPass()`), see [assertions-waiting.md](assertions-waiting.md#waiting-strategies).
 
 ### Lists with Dynamic Items
 

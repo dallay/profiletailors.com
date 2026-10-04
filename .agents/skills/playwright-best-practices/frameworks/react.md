@@ -8,20 +8,17 @@
 4. [Anti-Patterns](#anti-patterns)
 5. [Related](#related)
 
-> **When to use**: Testing React apps built with Vite, Create React App, or custom bundlers. Covers
-> E2E testing, component testing, React Router navigation, form libraries, portals, error
-> boundaries,
-> and context/state verification.
-> **Prerequisites
-**: [configuration.md](../core/configuration.md), [locators.md](../core/locators.md)
+> **When to use**: Testing React apps built with Vite, Create React App, or custom bundlers. Covers E2E testing, component testing, React Router navigation, form libraries, portals, error boundaries, and context/state verification.
+>
+> **Prerequisites**: [configuration.md](../core/configuration.md), [locators.md](../core/locators.md)
 
 ## Patterns
 
 ### Testing Context and Global State
 
 **Use when**: Verifying React context (theme, auth, locale) and state management (Redux, Zustand)
-produce correct UI changes.
-**Avoid when**: You want to assert on raw state objects—test the UI, not internal state.
+produce correct UI changes. **Avoid when**: You want to assert on raw state objects—test the UI, not
+internal state.
 
 ```typescript
 import {test, expect} from '@playwright/test';
@@ -78,8 +75,8 @@ test.describe('auth state', () => {
 ### React Router Navigation
 
 **Use when**: Testing client-side routing with React Router v6+—route transitions, URL parameters,
-protected routes, browser history.
-**Avoid when**: Server-side routing (Next.js App Router—see [nextjs.md](nextjs.md)).
+protected routes, browser history. **Avoid when**: Server-side routing (Next.js App
+Router—see [nextjs.md](nextjs.md)).
 
 ```typescript
 import {test, expect} from '@playwright/test';
@@ -154,8 +151,7 @@ test.describe('client routing', () => {
 ### Testing Hooks Through UI
 
 **Use when**: Verifying custom hooks produce correct UI behavior—Playwright cannot call hooks
-directly.
-**Avoid when**: Hook logic is pure computation—use unit tests instead.
+directly. **Avoid when**: Hook logic is pure computation—use unit tests instead.
 
 ```typescript
 import {test, expect} from '@playwright/test';
@@ -333,8 +329,8 @@ test.describe('portal components', () => {
 
 ### Error Boundaries
 
-**Use when**: Verifying error boundaries catch rendering errors and show fallback UI.
-**Avoid when**: Testing error handling in event handlers or async code—error boundaries only catch
+**Use when**: Verifying error boundaries catch rendering errors and show fallback UI. **Avoid
+when**: Testing error handling in event handlers or async code—error boundaries only catch
 render errors.
 
 ```typescript
@@ -382,8 +378,8 @@ test.describe('error boundary', () => {
 ### Component Testing (Experimental)
 
 **Use when**: Testing complex interactive components in isolation—data tables, form wizards, rich
-editors. Needs real browser but not full app.
-**Avoid when**: Component depends heavily on backend data or routing—use E2E instead.
+editors. Needs real browser but not full app. **Avoid when**: Component depends heavily on backend
+data or routing—use E2E instead.
 
 ```typescript
 // playwright-ct.config.ts

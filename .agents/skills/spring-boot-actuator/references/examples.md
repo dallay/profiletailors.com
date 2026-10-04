@@ -698,7 +698,9 @@ class MetricsService(
 ## Security Configuration Examples
 
 ### Complete Security Setup
+
 <!-- legacy:servlet -->
+
 ```kotlin
 
 @Configuration
@@ -754,10 +756,13 @@ class ActuatorSecurityConfiguration {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ### IP-Based Access Control
+
 <!-- legacy:servlet -->
+
 ```kotlin
 
 @Configuration
@@ -785,10 +790,13 @@ class IpBasedActuatorSecurity {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ## Testing Examples
+
 <!-- legacy:servlet -->
+
 ```kotlin
 
 ### Health Indicator Tests
@@ -829,10 +837,13 @@ class DatabaseHealthIndicatorTest {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ### Endpoint Tests
+
 <!-- legacy:servlet -->
+
 ```kotlin
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -876,6 +887,7 @@ class ActuatorEndpointIntegrationTest {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ## Kubernetes Integration Example

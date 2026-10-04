@@ -10,8 +10,9 @@ makes it even more difficult to diagnose compared to a more repeatable and predi
 page load. Lab data only replicates a small subset of real user scenarios so measuring the causes of
 slow INP in the field is essential.
 
-The Event Timing API allows for splitting the INP duration into three subparts: Input Delay (
-processing that is already happing when the interaction happens), Processing Duration (delays due as
+The Event Timing API allows for splitting the INP duration into three subparts: Input Delay
+(processing that is already happing when the interaction happens), Processing Duration (delays due
+as
 a direct result of the interaction), and Presentation Delay (delays that are due to rendering the
 next frame after the interaction). This helps identify if the issue is in other code, the
 interaction JavaScript code, or browser processing rendering updates respectively rather than
@@ -72,8 +73,8 @@ onINP((metric) => {
 
 ## Best Practices
 
-- **DO** use INP subparts initially to identify whether the delay is already running JavaScript (
-  input delay), the event handlers JavaScript for the interaction (processing duration), or the
+- **DO** use INP subparts initially to identify whether the delay is already running JavaScript
+  (input delay), the event handlers JavaScript for the interaction (processing duration), or the
   subsequent rendering (presentation delay).
 - **DO** attempt to identify the biggest blocking JavaScript as additional detail, particularly for
   input delay, and processing duration.

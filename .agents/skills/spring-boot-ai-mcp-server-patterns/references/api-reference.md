@@ -19,8 +19,7 @@ Complete API documentation for Spring AI MCP server implementations.
 
 Marks a method as an MCP tool that can be invoked by AI models.
 
-**Target**: Method
-**Retention**: Runtime
+**Target**: Method **Retention**: Runtime
 
 ```kotlin
 @Target(AnnotationTarget.FUNCTION)
@@ -66,8 +65,7 @@ fun getWeather(@ToolParam("City name") city: String): WeatherData {
 
 Documents a parameter for tool methods.
 
-**Target**: Parameter
-**Retention**: Runtime
+**Target**: Parameter **Retention**: Runtime
 
 ```kotlin
 @Target(AnnotationTarget.VALUE_PARAMETER)
@@ -99,8 +97,7 @@ annotation class ToolParam(
 
 Marks a method as a prompt template provider.
 
-**Target**: Method
-**Retention**: Runtime
+**Target**: Method **Retention**: Runtime
 
 ```kotlin
 @Target(AnnotationTarget.FUNCTION)
@@ -158,8 +155,7 @@ fun createCodeReviewPrompt(@PromptParam("code") code: String): Prompt {
 
 Documents a parameter for prompt template methods.
 
-**Target**: Parameter
-**Retention**: Runtime
+**Target**: Parameter **Retention**: Runtime
 
 ```kotlin
 @Target(AnnotationTarget.VALUE_PARAMETER)
@@ -191,8 +187,7 @@ annotation class PromptParam(
 
 Enables MCP server auto-configuration.
 
-**Target**: Type
-**Retention**: Runtime
+**Target**: Type **Retention**: Runtime
 
 ```kotlin
 @Target(AnnotationTarget.CLASS)

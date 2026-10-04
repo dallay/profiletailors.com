@@ -15,8 +15,9 @@ which handles month-end transitions predictably using configurable overflow stra
    `{ months: 1 }`).
 3. **OPTIONAL:** **Specify overflow behavior**: Use the `overflow` option to control how invalid
    dates (like Feb 31) are handled.
-    - `'constrain'` (default): Clamps to the last valid day of the month.
-    - `'reject'`: Throws a `RangeError`.
+
+   - `'constrain'` (default): Clamps to the last valid day of the month.
+   - `'reject'`: Throws a `RangeError`.
 
 ### Example: Subscription Billing Cycle
 
@@ -48,8 +49,8 @@ try {
 
 - **DO** use `Temporal.PlainDate` for calculations that do not depend on specific times or time
   zones (like calendar dates or billing cycles).
-- **DO** understand the default `constrain` behavior. It is usually what users expect for billing (
-  e.g., Jan 31 -> Feb 28/29 -> Mar 28/29).
+- **DO** understand the default `constrain` behavior. It is usually what users expect for billing
+  (e.g., Jan 31 -> Feb 28/29 -> Mar 28/29).
 - **DO NOT** modify instances directly; `Temporal` objects are **immutable**. Operations return a
   new instance.
 - **DO** use `overflow: 'reject'` if you need to enforce that the resulting date must exist in the

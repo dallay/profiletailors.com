@@ -33,9 +33,10 @@ export function hasAnyDependency(cwd, names) {
 export function findConfigFile(cwd, re) {
   try {
     return (
-      fs
-        .readdirSync(cwd, { withFileTypes: true })
-        .find((entry) => entry.isFile() && re.test(entry.name))?.name ?? null
+        fs
+            .readdirSync(cwd, {withFileTypes: true})
+            .find((entry) => entry.isFile() && re.test(entry.name))?.name
+        ?? null
     )
   } catch {
     return null
@@ -52,7 +53,9 @@ export function fileExists(cwd, rel) {
 
 export function firstExistingFile(cwd, candidates) {
   for (const rel of candidates) {
-    if (fileExists(cwd, rel)) return rel
+    if (fileExists(cwd, rel)) {
+      return rel
+    }
   }
   return null
 }
@@ -67,9 +70,14 @@ export function literalConfigFiles(cwd, config) {
   const files = Array.isArray(config?.files) ? config.files : []
   const out = []
   for (const rel of files) {
-    if (typeof rel !== 'string' || rel.includes('*') || rel.includes('?')) continue
+    if (typeof rel !== 'string' || rel.includes('*') || rel.includes(
+        '?')) {
+      continue
+    }
     const normalized = rel.split(path.sep).join('/')
-    if (fileExists(cwd, normalized)) out.push(normalized)
+    if (fileExists(cwd, normalized)) {
+      out.push(normalized)
+    }
   }
   return out
 }

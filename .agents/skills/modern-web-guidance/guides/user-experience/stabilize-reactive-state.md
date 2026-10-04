@@ -7,8 +7,8 @@ internal mutations (like `setHours()`) do not change the object's reference and 
 tracked by any framework's default reactivity system. This leads to missed UI updates and
 hard-to-debug side effects.
 
-The `Temporal` API solves this by providing immutable objects. Any operation that modifies a value (
-such as adding time or setting a field) returns a new instance with a new memory reference. This
+The `Temporal` API solves this by providing immutable objects. Any operation that modifies a value
+(such as adding time or setting a field) returns a new instance with a new memory reference. This
 guarantees that state updates are always detected by reactive systems, ensuring UI stability.
 
 ## How to Implement

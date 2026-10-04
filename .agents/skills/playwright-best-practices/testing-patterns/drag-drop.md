@@ -567,8 +567,8 @@ test('drags via touch events', async ({page}) => {
 ## Tips
 
 1. **Start with `dragTo()`, fall back to manual mouse events**. Playwright's `dragTo()` handles most
-   HTML5 drag-and-drop. Use `page.mouse.down()` / `move()` / `up()` only for custom libraries (
-   react-beautiful-dnd, dnd-kit, SortableJS) that need specific event sequences.
+   HTML5 drag-and-drop. Use `page.mouse.down()` / `move()` / `up()` only for custom libraries
+   (react-beautiful-dnd, dnd-kit, SortableJS) that need specific event sequences.
 
 2. **Add intermediate mouse steps for drag libraries**. Libraries like `react-beautiful-dnd` require
    multiple `mousemove` events. Use `{ steps: 10 }` or a manual loop — a single jump often fails

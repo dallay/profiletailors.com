@@ -39,14 +39,18 @@ const crcTable = (() => {
   const t = new Uint32Array(256)
   for (let n = 0; n < 256; n++) {
     let c = n
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    }
     t[n] = c >>> 0
   }
   return t
 })()
 const crc32 = (data) => {
   let c = 0xffffffff
-  for (const b of data) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8)
+  for (const b of data) {
+    c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8)
+  }
   return (c ^ 0xffffffff) >>> 0
 }
 
@@ -55,7 +59,8 @@ function pngChunk(type, data) {
   out.writeUInt32BE(data.length, 0)
   out.write(type, 4, 'ascii')
   data.copy(out, 8)
-  out.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type, 'ascii'), data])), 8 + data.length)
+  out.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type, 'ascii'), data])),
+      8 + data.length)
   return out
 }
 
@@ -68,7 +73,9 @@ function readPngText(b) {
       const data = b.subarray(off + 8, off + 8 + len)
       const nul = data.indexOf(0)
       if (nul !== -1 && data.toString('latin1', 0, nul) === KEYWORD) {
-        if (type === 'tEXt') return data.toString('utf8', nul + 1)
+        if (type === 'tEXt') {
+          return data.toString('utf8', nul + 1)
+        }
         return zlib.inflateSync(data.subarray(nul + 2)).toString('utf8')
       }
     }
@@ -81,11 +88,15 @@ function readJpegCom(b) {
   let off = 2
   while (off + 4 <= b.length && b[off] === 0xff) {
     const marker = b[off + 1]
-    if (marker === 0xda) break // start of scan: no more segments
+    if (marker === 0xda) {
+      break
+    } // start of scan: no more segments
     const len = b.readUInt16BE(off + 2)
     if (marker === 0xfe) {
       const text = b.toString('utf8', off + 4, off + 2 + len)
-      if (text.startsWith(KEYWORD + '\0')) return text.slice(KEYWORD.length + 1)
+      if (text.startsWith(KEYWORD + '\0')) {
+        return text.slice(KEYWORD.length + 1)
+      }
     }
     off += 2 + len
   }
@@ -95,8 +106,11 @@ function readJpegCom(b) {
 const sidecar = `${file}.json`
 if (readMode) {
   let prompt = null
-  if (isPng) prompt = readPngText(buf)
-  else if (isJpeg) prompt = readJpegCom(buf)
+  if (isPng) {
+    prompt = readPngText(buf)
+  } else if (isJpeg) {
+    prompt = readJpegCom(buf)
+  }
   if (prompt == null && fs.existsSync(sidecar)) {
     try {
       prompt = JSON.parse(fs.readFileSync(sidecar, 'utf8')).prompt ?? null
@@ -113,8 +127,9 @@ if (readMode) {
 }
 
 const prompt =
-  argOf('--prompt') ??
-  (argOf('--prompt-file') ? fs.readFileSync(argOf('--prompt-file'), 'utf8') : null)
+    argOf('--prompt') ??
+    (argOf('--prompt-file') ? fs.readFileSync(argOf('--prompt-file'), 'utf8')
+        : null)
 if (!prompt) {
   console.error('embed-prompt: --prompt or --prompt-file required')
   process.exit(1)
@@ -140,44 +155,46 @@ if (isPng) {
       const data = buf.subarray(off + 8, off + 8 + len)
       const nul = data.indexOf(0)
       const ours =
-        (type === 'tEXt' || type === 'zTXt') &&
-        nul !== -1 &&
-        data.toString('latin1', 0, nul) === KEYWORD
-      if (!ours && type !== 'IEND') parts.push(chunk)
+          (type === 'tEXt' || type === 'zTXt') &&
+          nul !== -1 &&
+          data.toString('latin1', 0, nul) === KEYWORD
+      if (!ours && type !== 'IEND') {
+        parts.push(chunk)
+      }
       off += 12 + len
     }
     body = Buffer.concat(parts).subarray(8 * 0) // parts exclude signature
     fs.writeFileSync(
-      file,
-      Buffer.concat([
-        buf.subarray(0, 8),
-        body,
-        pngChunk(
-          'tEXt',
-          Buffer.concat([
-            Buffer.from(KEYWORD, 'latin1'),
-            Buffer.from([0]),
-            Buffer.from(prompt, 'utf8'),
-          ]),
-        ),
-        pngChunk('IEND', Buffer.alloc(0)),
-      ]),
+        file,
+        Buffer.concat([
+          buf.subarray(0, 8),
+          body,
+          pngChunk(
+              'tEXt',
+              Buffer.concat([
+                Buffer.from(KEYWORD, 'latin1'),
+                Buffer.from([0]),
+                Buffer.from(prompt, 'utf8'),
+              ]),
+          ),
+          pngChunk('IEND', Buffer.alloc(0)),
+        ]),
     )
   } else {
     fs.writeFileSync(
-      file,
-      Buffer.concat([
-        buf.subarray(0, iend),
-        pngChunk(
-          'tEXt',
-          Buffer.concat([
-            Buffer.from(KEYWORD, 'latin1'),
-            Buffer.from([0]),
-            Buffer.from(prompt, 'utf8'),
-          ]),
-        ),
-        buf.subarray(iend),
-      ]),
+        file,
+        Buffer.concat([
+          buf.subarray(0, iend),
+          pngChunk(
+              'tEXt',
+              Buffer.concat([
+                Buffer.from(KEYWORD, 'latin1'),
+                Buffer.from([0]),
+                Buffer.from(prompt, 'utf8'),
+              ]),
+          ),
+          buf.subarray(iend),
+        ]),
     )
   }
   console.log(`EMBEDDED: ${file} (png tEXt, ${prompt.length} chars)`)
@@ -192,12 +209,13 @@ if (isPng) {
   com[1] = 0xfe
   com.writeUInt16BE(seg.length + 2, 2)
   seg.copy(com, 4)
-  fs.writeFileSync(file, Buffer.concat([buf.subarray(0, 2), com, buf.subarray(2)]))
+  fs.writeFileSync(file,
+      Buffer.concat([buf.subarray(0, 2), com, buf.subarray(2)]))
   console.log(`EMBEDDED: ${file} (jpeg COM, ${prompt.length} chars)`)
 } else {
   fs.writeFileSync(
-    sidecar,
-    JSON.stringify({ prompt, createdAt: new Date().toISOString() }, null, 2),
+      sidecar,
+      JSON.stringify({prompt, createdAt: new Date().toISOString()}, null, 2),
   )
   console.log(`EMBEDDED: ${sidecar} (sidecar fallback for this format)`)
 }

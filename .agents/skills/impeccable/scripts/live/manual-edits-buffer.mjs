@@ -12,7 +12,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { getLiveDir } from '../lib/impeccable-paths.mjs'
+import {getLiveDir} from '../lib/impeccable-paths.mjs'
 
 const BUFFER_VERSION = 1
 const BUFFER_FILENAME = 'pending-manual-edits.json'
@@ -22,37 +22,42 @@ export function getBufferPath(cwd = process.cwd()) {
 }
 
 export function readBuffer(cwd = process.cwd()) {
-  return readBufferInternal(cwd, { strict: false })
+  return readBufferInternal(cwd, {strict: false})
 }
 
 export function readBufferStrict(cwd = process.cwd()) {
-  return readBufferInternal(cwd, { strict: true })
+  return readBufferInternal(cwd, {strict: true})
 }
 
-function readBufferInternal(cwd, { strict }) {
+function readBufferInternal(cwd, {strict}) {
   const filePath = getBufferPath(cwd)
   try {
     const raw = fs.readFileSync(filePath, 'utf-8')
     const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.entries)) {
-      if (strict) throw new Error('manual_edit_buffer_invalid_schema')
-      return { version: BUFFER_VERSION, entries: [] }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(
+        parsed.entries)) {
+      if (strict) {
+        throw new Error('manual_edit_buffer_invalid_schema')
+      }
+      return {version: BUFFER_VERSION, entries: []}
     }
-    return { version: BUFFER_VERSION, entries: parsed.entries }
+    return {version: BUFFER_VERSION, entries: parsed.entries}
   } catch (err) {
     if (strict && err?.code !== 'ENOENT') {
-      throw new Error('manual_edit_buffer_unreadable: ' + (err.message || String(err)))
+      throw new Error(
+          'manual_edit_buffer_unreadable: ' + (err.message || String(err)))
     }
-    return { version: BUFFER_VERSION, entries: [] }
+    return {version: BUFFER_VERSION, entries: []}
   }
 }
 
 export function writeBuffer(cwd, buffer) {
   const filePath = getBufferPath(cwd)
-  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  fs.mkdirSync(path.dirname(filePath), {recursive: true})
   fs.writeFileSync(
-    filePath,
-    JSON.stringify({ version: BUFFER_VERSION, entries: buffer.entries }, null, 2),
+      filePath,
+      JSON.stringify({version: BUFFER_VERSION, entries: buffer.entries}, null,
+          2),
   )
 }
 
@@ -70,7 +75,9 @@ export function stageEntry(cwd, newEntry) {
   for (const newOp of newEntry.ops) {
     let mergedIntoExisting = false
     for (const existing of buf.entries) {
-      if (existing.pageUrl !== pageUrl) continue
+      if (existing.pageUrl !== pageUrl) {
+        continue
+      }
       const existingOpIdx = existing.ops.findIndex((op) => op.ref === newOp.ref)
       if (existingOpIdx >= 0) {
         // Keep the original source text but refresh the latest DOM/source evidence.
@@ -80,15 +87,20 @@ export function stageEntry(cwd, newEntry) {
           newText: newOp.newText,
           deleted: newOp.deleted || false,
         }
-        if (newEntry.element) existing.element = newEntry.element
+        if (newEntry.element) {
+          existing.element = newEntry.element
+        }
         existing.stagedAt = new Date().toISOString()
         mergedIntoExisting = true
         break
       }
     }
-    if (mergedIntoExisting) continue
+    if (mergedIntoExisting) {
+      continue
+    }
     // No existing op for this (pageUrl, ref). Find or create an entry to hold it.
-    let entry = buf.entries.find((e) => e.pageUrl === pageUrl && e.id === newEntry.id)
+    let entry = buf.entries.find(
+        (e) => e.pageUrl === pageUrl && e.id === newEntry.id)
     if (!entry) {
       entry = {
         id: newEntry.id,
@@ -139,7 +151,7 @@ export function countByPage(cwd = process.cwd()) {
     perPage[entry.pageUrl] = (perPage[entry.pageUrl] || 0) + n
     totalCount += n
   }
-  return { totalCount, perPage }
+  return {totalCount, perPage}
 }
 
 /**
@@ -149,7 +161,9 @@ export function countByPage(cwd = process.cwd()) {
 export function truncateBuffer(cwd) {
   const buf = readBuffer(cwd)
   let removed = 0
-  for (const entry of buf.entries) removed += entry.ops.length
-  writeBuffer(cwd, { version: BUFFER_VERSION, entries: [] })
+  for (const entry of buf.entries) {
+    removed += entry.ops.length
+  }
+  writeBuffer(cwd, {version: BUFFER_VERSION, entries: []})
   return removed
 }

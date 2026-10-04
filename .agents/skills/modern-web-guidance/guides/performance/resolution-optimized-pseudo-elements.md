@@ -33,7 +33,7 @@ both of these arguments are optional.
 
 ### Fallback strategies
 
-Baseline status for image-set(): Widely available. It's been Baseline since 2023-09-18.
+Baseline status for image-set (): Widely available. It's been Baseline since 2023-09-18.
 Supported by: Chrome 113 (May 2023), Edge 113 (May 2023), Firefox 89 (Jun 2021), and Safari 17 (Sep
 2023).
 

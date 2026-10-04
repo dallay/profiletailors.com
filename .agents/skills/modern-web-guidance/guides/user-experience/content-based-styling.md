@@ -87,9 +87,9 @@ more layout recalculations.
 
 ### Fallback strategies
 
-Baseline status for :has(): Newly available. It's been Baseline since 2023-12-19.
-Supported by: Chrome 105 (Sep 2022), Edge 105 (Sep 2022), Firefox 121 (Dec 2023), and Safari 15.4 (
-Mar 2022).
+Baseline status for :has (): Newly available. It's been Baseline since 2023-12-19.
+Supported by: Chrome 105 (Sep 2022), Edge 105 (Sep 2022), Firefox 121 (Dec 2023), and Safari 15.4
+(Mar 2022).
 
 If the content-based layout styling is critical to the user experience or page design, you must
 provide a fallback for browsers that do not support the `:has()` selector. For purely decorative

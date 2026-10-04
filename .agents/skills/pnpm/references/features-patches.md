@@ -57,7 +57,7 @@ patchedDependencies:
 ```
 
 > **Note:** In pnpm v11+, `patchedDependencies` is configured in `pnpm-workspace.yaml`. The
-`package.json` `pnpm.patchedDependencies` field is deprecated.
+> `package.json` `pnpm.patchedDependencies` field is deprecated.
 
 ## Patch File Format
 

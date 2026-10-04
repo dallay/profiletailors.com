@@ -384,8 +384,7 @@ class JwtExceptionHandler : ResponseEntityExceptionHandler() {
 
 ### Issue: Clock Skew
 
-**Error**: JWT is expired or not yet valid
-**Solution**: Add clock skew tolerance.
+**Error**: JWT is expired or not yet valid **Solution**: Add clock skew tolerance.
 
 ```kotlin
 Jwts.parser()

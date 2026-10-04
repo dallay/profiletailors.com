@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Actuator Skill
 
 For Profile Tailors, prefer Kotlin and reactive Actuator APIs. Some broad reference examples use
@@ -54,7 +55,7 @@ curl http://localhost:8080/actuator/info
 
 Include `spring-boot-starter-actuator` in your build configuration.
 > **Validate**: Restart the service and confirm `/actuator/health` and `/actuator/info` respond with
-`200 OK`.
+> `200 OK`.
 
 ### 2. Expose Required Endpoints
 
@@ -68,7 +69,8 @@ Include `spring-boot-starter-actuator` in your build configuration.
 
 ### 3. Secure Management Traffic
 
-- Apply an isolated `SecurityWebFilterChain` (reactive) bean; servlet chains belong in legacy migration notes only
+- Apply an isolated `SecurityWebFilterChain` (reactive) bean; servlet chains belong in legacy
+  migration notes only
   matching `EndpointRequest.toAnyEndpoint()` with role-based rules.
 - Combine `management.server.port` with firewall controls or service mesh policies for operator-only
   access.
@@ -100,7 +102,7 @@ Include `spring-boot-starter-actuator` in your build configuration.
   3.2+.
 
 > **Validate**: Scrape `/actuator/prometheus` and confirm required meters (`http.server.requests`,
-`jvm.memory.used`) are present.
+> `jvm.memory.used`) are present.
 
 ### 6. Enable Diagnostics Tooling
 

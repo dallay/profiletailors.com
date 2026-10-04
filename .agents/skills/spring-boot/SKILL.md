@@ -11,6 +11,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Spring Boot Skill
 
 Implementation patterns for the **Spring Boot 4 infrastructure layer** in a **Kotlin + coroutines +
@@ -77,7 +78,8 @@ Do **not** use this skill to define domain rules, aggregate behavior, or applica
 
 When application classes must be discovered or selected by infrastructure, use the real marker
 `com.profiletailors.common.domain.Service` defined at
-`shared/common/src/main/kotlin/com/profiletailors/common/domain/Service.kt:18`. The discovery mechanism
+`shared/common/src/main/kotlin/com/profiletailors/common/domain/Service.kt:18`. The discovery
+mechanism
 is the `includeFilters` block on `SmpApplication.kt` (`FilterType.ANNOTATION,
 com.profiletailors.common.domain.Service`). Application code must not import Spring stereotypes
 (`@Service`, `@Component`, `@Repository`) to become a bean; those stereotypes are reserved for the
