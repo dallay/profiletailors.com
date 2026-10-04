@@ -26,4 +26,9 @@ Reducir fricción y complejidad innecesaria en `scripts/` conservando únicament
 
 ## Estado
 
-Auditoría lista — retirados los dos checks confirmados como prescindibles y sus referencias activas. `just -l`, dry-runs de `just ci-local`, `make ci-local` y `make ci`, parseo YAML del workflow y `git diff --check` pasaron. Los 27 scripts restantes tienen usos operativos o consumidores activos; no se encontró otra poda/consolidación segura. No se ejecutó la suite completa porque no cambió código de producto.
+Audit ready — removed the two checks confirmed as unnecessary and their active references.
+`just -l`, dry-runs of `just ci-local`, `make ci-local` and `make ci`, workflow YAML parsing,
+and `git diff --check` passed. During the audit, full local `ci-local`/`ci` runs were attempted but failed
+at Markdown lint (`MD025`/`MD001`) and the `node-forge@undefined` licence gate; the full
+suite did not complete successfully. The remaining 27 scripts have operational uses or
+active consumers; no further safe pruning/consolidation was found.
