@@ -104,8 +104,7 @@ dependencies {
     implementation(libs.spring.ai.starter.mcp.server.webflux)
     implementation(libs.jackson.module.kotlin)
     // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
-    @Suppress("GradleDependency")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${libs.versions.jackson2.get()}")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
@@ -179,6 +178,8 @@ dependencyManagement {
 // dependency-management plugin applies its managed versions AFTER Gradle
 // constraints, so plain/strict constraints cannot override it. Configuration-level
 // resolution rules (eachDependency) run at the end of resolution and always win.
+// Jackson pins live in the shared Spring convention plugins
+// (SecurityDependencyVersions) so every module resolves the patched lines;
 // `verifySecurityVersions` fails the build if any patched dependency ever resolves
 // below its patched version.
 configurations.all {
@@ -192,23 +193,6 @@ configurations.all {
             }
             if (requested.group == "org.apache.httpcomponents.core5") {
                 useVersion("5.4.3")
-            }
-            if (requested.group.startsWith("com.fasterxml.jackson")) {
-                useVersion(
-                    when (requested.name) {
-                        "jackson-annotations" -> "2.22"
-                        else -> "2.22.3"
-                    },
-                )
-            }
-            if (requested.group == "tools.jackson.core") {
-                useVersion("3.2.3")
-            }
-            if (requested.group == "tools.jackson.module") {
-                useVersion("3.2.3")
-            }
-            if (requested.group == "tools.jackson.dataformat") {
-                useVersion("3.2.3")
             }
             if (requested.group == "org.postgresql" && requested.name == "postgresql") {
                 useVersion("42.7.12")

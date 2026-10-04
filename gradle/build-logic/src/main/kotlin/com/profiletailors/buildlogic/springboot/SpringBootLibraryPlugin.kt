@@ -3,6 +3,7 @@ package com.profiletailors.buildlogic.springboot
 import com.profiletailors.buildlogic.ConventionPlugin
 import com.profiletailors.buildlogic.extensions.catalogPlugin
 import com.profiletailors.buildlogic.extensions.catalogVersion
+import com.profiletailors.buildlogic.security.enforcePatchedJacksonVersions
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.dependencies
@@ -22,5 +23,7 @@ class SpringBootLibraryPlugin : ConventionPlugin {
             // Manage dependency versions using the Spring Boot BOM
             add("implementation", platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
         }
+
+        enforcePatchedJacksonVersions()
     }
 }
