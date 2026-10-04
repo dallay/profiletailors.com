@@ -114,9 +114,9 @@ Three completed changes demonstrating the workflow:
 
 | Change | Linear | Status | Evidence |
 |--------|--------|--------|----------|
-| Invitation Registration Flow | DALLAY-567 | ✅ Archived | `openspec/archive/2026-09-20-*/` |
-| Direct Invitation FK Fix | — | 🔄 Near-complete | `openspec/changes/hotfix-*/` |
-| Private Beta Launch | DALLAY-555/557 | ⚠️ QA blocked | `openspec/changes/private-*/` |
+| Invitation Registration Flow | DALLAY-567 | ✅ Archived | `.agents/sdd/archive/2026-09-20-*/` |
+| Direct Invitation FK Fix | — | 🔄 Near-complete | `.agents/sdd/changes/hotfix-*/` |
+| Private Beta Launch | DALLAY-555/557 | ⚠️ QA blocked | `.agents/sdd/changes/private-*/` |
 
 See [CHANGES.md](./CHANGES.md) for details.
 
@@ -187,6 +187,6 @@ export LINEAR_API_KEY="lin_api_xxxxx"
 ## Related
 
 - [Agent Harness](https://github.com/yacosta738/agent-harness) — Framework powering this setup
-- [OpenSpec](../../openspec/) — Spec-driven development system
+- [OpenSpec](../../.agents/sdd/) — Spec-driven development system
 - [Architecture](../architecture/) — System architecture
 - [Skills](../../.agents/skills/) — Domain skills

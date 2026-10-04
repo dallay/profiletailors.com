@@ -10,10 +10,10 @@ Point-in-time implementation plans. They record intent and sequence at creation 
 
 ## Troubleshooting
 
-- Do not treat a plan as proof of completion. Check `openspec/changes/*/verify-report.md` and `state.yaml` for actual status.
+- Do not treat a plan as proof of completion. Check `.agents/sdd/changes/*/verify-report.md` and `state.yaml` for actual status.
 - If a plan conflicts with current code, trust code plus tests, then update or supersede the plan.
 
 ## References
 
 - [Docs index](../README.md)
-- [OpenSpec](../../openspec/README.md)
+- [OpenSpec](../../.agents/sdd/README.md)

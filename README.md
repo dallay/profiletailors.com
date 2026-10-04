@@ -203,7 +203,7 @@ Docker commands separately. Run `just -l` or `make help` to list everything.
   when shown, the form submits directly to backend API endpoints (`POST /api/waitlists/...`).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
-- SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
+- SDD artifacts live in `.agents/sdd/` for tracking specs, designs, and tasks.
 
 ### Project Structure
 
@@ -229,7 +229,7 @@ profiletailors.com/
 ├── .devcontainer/               # VS Code dev container configuration
 ├── .github/workflows/           # CI and automation
 ├── docs/                        # Architecture and security docs
-├── openspec/                    # SDD artifacts
+├── .agents/sdd/                 # SDD artifacts
 ├── CONTRIBUTING.md
 ├── CLA.md
 ├── LICENSE

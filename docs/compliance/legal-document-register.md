@@ -137,6 +137,6 @@ approve a brand, branch, or future configuration in the abstract.
   register
 - [`data-inventory.yaml`](data-inventory.yaml): Processing evidence source
 - [`controller-processor-matrix.md`](controller-processor-matrix.md): Role and provider evidence
-- [`openspec/specs/legal-pages/spec.yaml`](../../openspec/specs/legal-pages/spec.yaml): Canonical
+- [`.agents/sdd/specs/legal-pages/spec.yaml`](../../.agents/sdd/specs/legal-pages/spec.yaml): Canonical
   legal-page contract
 - [`LICENSE`](../../LICENSE): Repository licence
