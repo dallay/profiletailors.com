@@ -18,7 +18,7 @@ const main = useMainStore()
 </script>
 ```
 
-## Using Store Outside setup()
+## Using Store Outside setup ()
 
 Pass the `pinia` instance explicitly:
 
@@ -38,7 +38,7 @@ router.beforeEach((to) => {
 })
 ```
 
-## serverPrefetch()
+## serverPrefetch ()
 
 Access pinia via `this.$pinia`:
 
@@ -51,7 +51,7 @@ export default {
 }
 ```
 
-## onServerPrefetch()
+## onServerPrefetch ()
 
 Works normally:
 

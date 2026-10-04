@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Observer
 
 ## Objective
 
-Notify multiple subscribers when a subject changes without tightly coupling the subject to concrete observers.
+Notify multiple subscribers when a subject changes without tightly coupling the subject to concrete
+observers.
 
 ## Trigger conditions
 

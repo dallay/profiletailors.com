@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 # Core Web Vitals optimization
 
 Targeted optimization for the three Core Web Vitals metrics that affect Google Search ranking and

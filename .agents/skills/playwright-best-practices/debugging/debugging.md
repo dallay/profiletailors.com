@@ -490,8 +490,8 @@ test("with attachments", async ({page}, testInfo) => {
    ```
 
 4. **Check related areas**
-    - Network requests: Are API calls completing? (
-      see [Debugging Network Issues](#debugging-network-issues))
+    - Network requests: Are API calls completing?
+      (see [Debugging Network Issues](#debugging-network-issues))
     - Timing: Is auto-waiting working correctly?
     - State: Is the test isolated? (see [flaky-tests.md](flaky-tests.md))
     - Environment: Does it work locally but fail in CI? (see [Debugging in CI](#debugging-in-ci))

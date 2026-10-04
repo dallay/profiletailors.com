@@ -7,8 +7,8 @@ if (IS_BROWSER) {
   // currentScript is reliable for synchronously-executing scripts (which our IIFE is).
   const _myScript = document.currentScript
   const EXTENSION_MODE =
-    (_myScript && _myScript.dataset.impeccableExtension === 'true') ||
-    document.documentElement.dataset.impeccableExtension === 'true'
+      (_myScript && _myScript.dataset.impeccableExtension === 'true') ||
+      document.documentElement.dataset.impeccableExtension === 'true'
 
   // Kinpaku gold — pinned to the site's brand token (see
   // site/styles/kinpaku-tokens.css --ks-kinpaku). Keep this in sync with
@@ -76,7 +76,8 @@ if (IS_BROWSER) {
     .impeccable-spotlight-backdrop.impeccable-visible {
       opacity: 1;
     }
-    .impeccable-hidden .impeccable-overlay${EXTENSION_MODE ? '' : ':not(.impeccable-banner)'} {
+    .impeccable-hidden .impeccable-overlay${EXTENSION_MODE ? ''
+      : ':not(.impeccable-banner)'} {
       display: none !important;
     }
   `
@@ -96,7 +97,9 @@ if (IS_BROWSER) {
   }
 
   function updateSpotlightClipPath() {
-    if (!spotlightBackdrop || !spotlightTarget) return
+    if (!spotlightBackdrop || !spotlightTarget) {
+      return
+    }
     const r = spotlightTarget.getBoundingClientRect()
     // Match the overlay's outer edge: element rect + 4px (2px overlay offset + 2px outline width)
     const inset = 4
@@ -108,12 +111,18 @@ if (IS_BROWSER) {
     const vw = window.innerWidth
     const vh = window.innerHeight
     // Outer rect + rounded inner rect (evenodd creates a hole)
-    const path = `M0 0H${vw}V${vh}H0Z M${x1 + radius} ${y1}H${x2 - radius}A${radius} ${radius} 0 0 1 ${x2} ${y1 + radius}V${y2 - radius}A${radius} ${radius} 0 0 1 ${x2 - radius} ${y2}H${x1 + radius}A${radius} ${radius} 0 0 1 ${x1} ${y2 - radius}V${y1 + radius}A${radius} ${radius} 0 0 1 ${x1 + radius} ${y1}Z`
+    const path = `M0 0H${vw}V${vh}H0Z M${x1 + radius} ${y1}H${x2
+    - radius}A${radius} ${radius} 0 0 1 ${x2} ${y1 + radius}V${y2
+    - radius}A${radius} ${radius} 0 0 1 ${x2 - radius} ${y2}H${x1
+    + radius}A${radius} ${radius} 0 0 1 ${x1} ${y2 - radius}V${y1
+    + radius}A${radius} ${radius} 0 0 1 ${x1 + radius} ${y1}Z`
     spotlightBackdrop.style.clipPath = `path(evenodd, "${path}")`
   }
 
   function showSpotlight(target) {
-    if (!target || !target.getBoundingClientRect) return
+    if (!target || !target.getBoundingClientRect) {
+      return
+    }
     // Respect the spotlightBlur setting: if disabled, don't show the backdrop
     if (window.__IMPECCABLE_CONFIG__?.spotlightBlur === false) {
       spotlightTarget = target
@@ -127,26 +136,34 @@ if (IS_BROWSER) {
 
   function hideSpotlight() {
     spotlightTarget = null
-    if (spotlightBackdrop) spotlightBackdrop.classList.remove('impeccable-visible')
+    if (spotlightBackdrop) {
+      spotlightBackdrop.classList.remove(
+          'impeccable-visible')
+    }
   }
 
   function isInViewport(el) {
     const r = el.getBoundingClientRect()
     return (
-      r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth
+        r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right
+        <= window.innerWidth
     )
   }
 
   // Reposition spotlight on scroll/resize
   window.addEventListener(
-    'scroll',
-    () => {
-      if (spotlightTarget) updateSpotlightClipPath()
-    },
-    { passive: true },
+      'scroll',
+      () => {
+        if (spotlightTarget) {
+          updateSpotlightClipPath()
+        }
+      },
+      {passive: true},
   )
   window.addEventListener('resize', () => {
-    if (spotlightTarget) updateSpotlightClipPath()
+    if (spotlightTarget) {
+      updateSpotlightClipPath()
+    }
   })
 
   const overlays = []
@@ -160,7 +177,9 @@ if (IS_BROWSER) {
   function isInFixedContext(el) {
     let p = el
     while (p && p !== document.body) {
-      if (getComputedStyle(p).position === 'fixed') return true
+      if (getComputedStyle(p).position === 'fixed') {
+        return true
+      }
       p = p.parentElement
     }
     return false
@@ -168,7 +187,9 @@ if (IS_BROWSER) {
 
   function positionOverlay(overlay) {
     const el = overlay._targetEl
-    if (!el) return
+    if (!el) {
+      return
+    }
     const rect = el.getBoundingClientRect()
     if (overlay._isFixed) {
       // Viewport-relative coords for fixed targets
@@ -185,9 +206,13 @@ if (IS_BROWSER) {
 
   function repositionOverlays() {
     for (const o of overlays) {
-      if (!o._targetEl || o.classList.contains('impeccable-banner')) continue
+      if (!o._targetEl || o.classList.contains('impeccable-banner')) {
+        continue
+      }
       // Skip overlays whose target is currently hidden (display: none on the overlay)
-      if (o.style.display === 'none') continue
+      if (o.style.display === 'none') {
+        continue
+      }
       positionOverlay(o)
     }
   }
@@ -199,7 +224,7 @@ if (IS_BROWSER) {
   }
   window.addEventListener('resize', onResize)
   // Reposition on scroll too -- catches sticky/parallax shifts
-  window.addEventListener('scroll', onResize, { passive: true })
+  window.addEventListener('scroll', onResize, {passive: true})
   // Reposition when body resizes (lazy-loaded images, dynamic content, fonts loading)
   if (typeof ResizeObserver !== 'undefined') {
     const bodyResizeObserver = new ResizeObserver(onResize)
@@ -212,37 +237,44 @@ if (IS_BROWSER) {
   // This is event-driven -- no polling needed.
   let overlayIndex = 0
   const visibilityObserver = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        const overlay = entry.target._impeccableOverlay
-        if (!overlay) continue
-        if (entry.isIntersecting) {
-          overlay.style.display = ''
-          positionOverlay(overlay)
-          if (!overlay._revealed) {
-            overlay._revealed = true
-            if (firstScanDone) {
-              // Subsequent reveals (re-scans, scroll-into-view): instant, no animation
-              overlay.style.animation = 'none'
-            } else {
-              // Initial scan: staggered cascade reveal
-              overlay.style.animationDelay = `${Math.min((overlay._staggerIndex || 0) * 60, 600)}ms`
-            }
-            requestAnimationFrame(() => {
-              overlay.classList.add('impeccable-visible')
-              if (overlay._checkLabel) overlay._checkLabel()
-            })
+      (entries) => {
+        for (const entry of entries) {
+          const overlay = entry.target._impeccableOverlay
+          if (!overlay) {
+            continue
           }
-        } else {
-          overlay.style.display = 'none'
+          if (entry.isIntersecting) {
+            overlay.style.display = ''
+            positionOverlay(overlay)
+            if (!overlay._revealed) {
+              overlay._revealed = true
+              if (firstScanDone) {
+                // Subsequent reveals (re-scans, scroll-into-view): instant, no animation
+                overlay.style.animation = 'none'
+              } else {
+                // Initial scan: staggered cascade reveal
+                overlay.style.animationDelay = `${Math.min(
+                    (overlay._staggerIndex || 0) * 60, 600)}ms`
+              }
+              requestAnimationFrame(() => {
+                overlay.classList.add('impeccable-visible')
+                if (overlay._checkLabel) {
+                  overlay._checkLabel()
+                }
+              })
+            }
+          } else {
+            overlay.style.display = 'none'
+          }
         }
-      }
-    },
-    { rootMargin: '99999px' },
+      },
+      {rootMargin: '99999px'},
   )
 
   function detachOverlay(overlay) {
-    if (!overlay) return
+    if (!overlay) {
+      return
+    }
     if (typeof overlay._cleanup === 'function') {
       try {
         overlay._cleanup()
@@ -255,7 +287,9 @@ if (IS_BROWSER) {
       delete overlay._targetEl._impeccableOverlay
     }
     const idx = overlays.indexOf(overlay)
-    if (idx >= 0) overlays.splice(idx, 1)
+    if (idx >= 0) {
+      overlays.splice(idx, 1)
+    }
     overlay.remove()
   }
 
@@ -263,10 +297,14 @@ if (IS_BROWSER) {
   // Listens at document level so it catches transitions on ancestor elements
   // (the transform may be on a parent, not the flagged element itself).
   document.addEventListener('transitionend', (e) => {
-    if (e.propertyName !== 'transform') return
+    if (e.propertyName !== 'transform') {
+      return
+    }
     for (const o of overlays) {
-      if (!o._targetEl || o.classList.contains('impeccable-banner') || o.style.display === 'none')
+      if (!o._targetEl || o.classList.contains('impeccable-banner')
+          || o.style.display === 'none') {
         continue
+      }
       if (e.target === o._targetEl || e.target.contains(o._targetEl)) {
         positionOverlay(o)
       }
@@ -274,8 +312,11 @@ if (IS_BROWSER) {
   })
 
   const highlight = (el, findings) => {
-    if (el._impeccableOverlay) detachOverlay(el._impeccableOverlay)
-    const hasSlop = findings.some((f) => RULE_CATEGORY[f.type || f.id] === 'slop')
+    if (el._impeccableOverlay) {
+      detachOverlay(el._impeccableOverlay)
+    }
+    const hasSlop = findings.some(
+        (f) => RULE_CATEGORY[f.type || f.id] === 'slop')
 
     const fixed = isInFixedContext(el)
     const rect = el.getBoundingClientRect()
@@ -297,7 +338,7 @@ if (IS_BROWSER) {
     const entries = findings.map((f) => {
       const name = TYPE_LABELS[f.type || f.id] || f.type || f.id
       const prefix = RULE_CATEGORY[f.type || f.id] === 'slop' ? '\u2726 ' : ''
-      return { name: prefix + name, detail: f.detail || f.snippet }
+      return {name: prefix + name, detail: f.detail || f.snippet}
     })
     const allText = entries.map((e) => e.name).join(', ')
 
@@ -337,7 +378,9 @@ if (IS_BROWSER) {
     }
 
     function enableCycleMode() {
-      if (cycleMode || entries.length < 2) return
+      if (cycleMode || entries.length < 2) {
+        return
+      }
       cycleMode = true
 
       const btnStyle = {
@@ -436,7 +479,9 @@ if (IS_BROWSER) {
   }
 
   const showPageBanner = (findings) => {
-    if (!findings.length) return
+    if (!findings.length) {
+      return
+    }
     const banner = document.createElement('div')
     banner.className = 'impeccable-overlay impeccable-banner'
     Object.assign(banner.style, {
@@ -459,9 +504,9 @@ if (IS_BROWSER) {
       transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
     })
     requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        banner.style.transform = 'translateY(0)'
-      }),
+        requestAnimationFrame(() => {
+          banner.style.transform = 'translateY(0)'
+        }),
     )
 
     // Scrollable findings area
@@ -554,10 +599,18 @@ if (IS_BROWSER) {
   // Heuristic for skipping CSS-in-JS hashed class names like "css-1a2b3c" or "_2x4hG_".
   // These change between builds and produce brittle, ugly selectors.
   function isLikelyHashedClass(c) {
-    if (!c) return true
-    if (/^(css|sc|emotion|jsx|module)-[\w-]{4,}$/i.test(c)) return true
-    if (/^_[\w-]{5,}$/.test(c)) return true
-    if (/^[a-z0-9]{6,}$/i.test(c) && /\d/.test(c)) return true
+    if (!c) {
+      return true
+    }
+    if (/^(css|sc|emotion|jsx|module)-[\w-]{4,}$/i.test(c)) {
+      return true
+    }
+    if (/^_[\w-]{5,}$/.test(c)) {
+      return true
+    }
+    if (/^[a-z0-9]{6,}$/i.test(c) && /\d/.test(c)) {
+      return true
+    }
     return false
   }
 
@@ -567,8 +620,9 @@ if (IS_BROWSER) {
 
     if (el.classList && el.classList.length > 0) {
       const classes = [...el.classList]
-        .filter((c) => !c.startsWith('impeccable-') && !isLikelyHashedClass(c))
-        .slice(0, 2)
+          .filter(
+              (c) => !c.startsWith('impeccable-') && !isLikelyHashedClass(c))
+          .slice(0, 2)
       if (classes.length > 0) {
         sel += '.' + classes.map((c) => CSS.escape(c)).join('.')
       }
@@ -580,7 +634,8 @@ if (IS_BROWSER) {
       try {
         const matching = parent.querySelectorAll(':scope > ' + sel)
         if (matching.length > 1) {
-          const sameType = [...parent.children].filter((c) => c.tagName === el.tagName)
+          const sameType = [...parent.children].filter(
+              (c) => c.tagName === el.tagName)
           const idx = sameType.indexOf(el) + 1
           sel += `:nth-of-type(${idx})`
         }
@@ -593,13 +648,19 @@ if (IS_BROWSER) {
   }
 
   function generateSelector(el) {
-    if (el === document.body) return 'body'
-    if (el === document.documentElement) return 'html'
+    if (el === document.body) {
+      return 'body'
+    }
+    if (el === document.documentElement) {
+      return 'html'
+    }
     // Read via getAttribute when `el.id` is not a string — a <form> with a
     // named control (e.g. <input name="id">) shadows the builtin getter and
     // returns the element, producing a garbage `#[object …]` selector (#407).
     const elId = typeof el.id === 'string' ? el.id : el.getAttribute('id') || ''
-    if (elId) return '#' + CSS.escape(elId)
+    if (elId) {
+      return '#' + CSS.escape(elId)
+    }
 
     const parts = []
     let current = el
@@ -607,11 +668,11 @@ if (IS_BROWSER) {
     const MAX_DEPTH = 10
 
     while (
-      current &&
-      current !== document.body &&
-      current !== document.documentElement &&
-      depth < MAX_DEPTH
-    ) {
+        current &&
+        current !== document.body &&
+        current !== document.documentElement &&
+        depth < MAX_DEPTH
+        ) {
       parts.unshift(buildSelectorSegment(current))
 
       // Anchor on an ancestor's ID and stop walking up
@@ -640,23 +701,29 @@ if (IS_BROWSER) {
 
   function getDirectText(el) {
     return [...el.childNodes]
-      .filter((n) => n.nodeType === 3)
-      .map((n) => n.textContent || '')
-      .join('')
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent || '')
+        .join('')
   }
 
   function getDirectTextRect(el) {
     const rects = []
     for (const node of el.childNodes) {
-      if (node.nodeType !== 3 || !(node.textContent || '').trim()) continue
+      if (node.nodeType !== 3 || !(node.textContent || '').trim()) {
+        continue
+      }
       const range = document.createRange()
       range.selectNodeContents(node)
       for (const rect of range.getClientRects()) {
-        if (rect.width >= 1 && rect.height >= 1) rects.push(rect)
+        if (rect.width >= 1 && rect.height >= 1) {
+          rects.push(rect)
+        }
       }
       range.detach?.()
     }
-    if (rects.length === 0) return null
+    if (rects.length === 0) {
+      return null
+    }
     const left = Math.min(...rects.map((r) => r.left))
     const top = Math.min(...rects.map((r) => r.top))
     const right = Math.max(...rects.map((r) => r.right))
@@ -680,7 +747,10 @@ if (IS_BROWSER) {
     if (bgClip === 'text' && ownBgImage && ownBgImage !== 'none') {
       reasons.add('background-clip text')
     }
-    if (style.textShadow && style.textShadow !== 'none') reasons.add('text shadow')
+    if (style.textShadow && style.textShadow !== 'none') {
+      reasons.add(
+          'text shadow')
+    }
 
     let current = el
     while (current && current.nodeType === 1) {
@@ -690,49 +760,72 @@ if (IS_BROWSER) {
       const isDocumentSurface = tag === 'body' || tag === 'html'
 
       if (!isDocumentSurface && bgImage && bgImage !== 'none') {
-        if (/url\s*\(/i.test(bgImage)) reasons.add('image background')
-        if (/gradient/i.test(bgImage)) reasons.add('gradient background')
+        if (/url\s*\(/i.test(bgImage)) {
+          reasons.add('image background')
+        }
+        if (/gradient/i.test(bgImage)) {
+          reasons.add('gradient background')
+        }
       }
-      if (parseFloat(currentStyle.opacity) < 0.99) reasons.add('opacity stack')
-      if (currentStyle.mixBlendMode && currentStyle.mixBlendMode !== 'normal')
+      if (parseFloat(currentStyle.opacity) < 0.99) {
+        reasons.add('opacity stack')
+      }
+      if (currentStyle.mixBlendMode && currentStyle.mixBlendMode !== 'normal') {
         reasons.add('blend mode')
-      if (currentStyle.filter && currentStyle.filter !== 'none') reasons.add('filter')
-      if (currentStyle.backdropFilter && currentStyle.backdropFilter !== 'none')
+      }
+      if (currentStyle.filter && currentStyle.filter !== 'none') {
+        reasons.add(
+            'filter')
+      }
+      if (currentStyle.backdropFilter && currentStyle.backdropFilter
+          !== 'none') {
         reasons.add('backdrop filter')
+      }
 
       const solidBg = parseRgb(currentStyle.backgroundColor)
-      if (solidBg && solidBg.a >= 0.95 && (!bgImage || bgImage === 'none')) break
+      if (solidBg && solidBg.a >= 0.95 && (!bgImage || bgImage
+          === 'none')) {
+        break
+      }
       current = current.parentElement
     }
 
     const sampleRect = getDirectTextRect(el) || el.getBoundingClientRect()
     if (sampleRect && document.elementsFromPoint) {
       const points = [
-        [sampleRect.left + sampleRect.width / 2, sampleRect.top + sampleRect.height / 2],
+        [sampleRect.left + sampleRect.width / 2,
+          sampleRect.top + sampleRect.height / 2],
         [
-          sampleRect.left + Math.min(sampleRect.width - 1, Math.max(1, sampleRect.width * 0.25)),
+          sampleRect.left + Math.min(sampleRect.width - 1,
+              Math.max(1, sampleRect.width * 0.25)),
           sampleRect.top + sampleRect.height / 2,
         ],
         [
-          sampleRect.left + Math.min(sampleRect.width - 1, Math.max(1, sampleRect.width * 0.75)),
+          sampleRect.left + Math.min(sampleRect.width - 1,
+              Math.max(1, sampleRect.width * 0.75)),
           sampleRect.top + sampleRect.height / 2,
         ],
       ]
       for (const [x, y] of points) {
-        if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue
+        if (x < 0 || y < 0 || x > window.innerWidth || y
+            > window.innerHeight) {
+          continue
+        }
         const stack = document.elementsFromPoint(x, y)
         const selfIndex = stack.findIndex(
-          (node) => node === el || el.contains(node) || node.contains?.(el),
+            (node) => node === el || el.contains(node) || node.contains?.(el),
         )
-        if (selfIndex < 0) continue
+        if (selfIndex < 0) {
+          continue
+        }
         for (const node of stack.slice(selfIndex + 1)) {
           const nodeTag = node.tagName?.toLowerCase()
           if (
-            nodeTag === 'img' ||
-            nodeTag === 'picture' ||
-            nodeTag === 'video' ||
-            nodeTag === 'canvas' ||
-            nodeTag === 'svg'
+              nodeTag === 'img' ||
+              nodeTag === 'picture' ||
+              nodeTag === 'video' ||
+              nodeTag === 'canvas' ||
+              nodeTag === 'svg'
           ) {
             reasons.add(`${nodeTag} underlay`)
             break
@@ -745,42 +838,64 @@ if (IS_BROWSER) {
   }
 
   function collectVisualContrastCandidates(options = {}) {
-    const maxCandidates = Number.isFinite(options.maxCandidates) ? options.maxCandidates : 12
+    const maxCandidates = Number.isFinite(options.maxCandidates)
+        ? options.maxCandidates : 12
     const candidates = []
     for (const el of document.querySelectorAll('*')) {
-      if (candidates.length >= maxCandidates) break
+      if (candidates.length >= maxCandidates) {
+        break
+      }
       if (
-        el.closest(
-          '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
-        )
-      )
+          el.closest(
+              '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
+          )
+      ) {
         continue
-      if (el.closest('[id^="impeccable-live-"]')) continue
-      if (el === document.body || el === document.documentElement) continue
-      if (!isRenderedForBrowserRule(el)) continue
+      }
+      if (el.closest('[id^="impeccable-live-"]')) {
+        continue
+      }
+      if (el === document.body || el === document.documentElement) {
+        continue
+      }
+      if (!isRenderedForBrowserRule(el)) {
+        continue
+      }
 
       const tag = el.tagName.toLowerCase()
       const style = getComputedStyle(el)
-      if (style.display === 'none' || style.visibility === 'hidden') continue
+      if (style.display === 'none' || style.visibility === 'hidden') {
+        continue
+      }
       const directText = getDirectText(el)
       const hasDirectText = directText.trim().length > 0
-      if (!hasDirectText || isEmojiOnlyText(directText)) continue
+      if (!hasDirectText || isEmojiOnlyText(directText)) {
+        continue
+      }
 
       const bgColor = readOwnBackgroundColor(el, style)
-      const isStyledButton = (tag === 'a' || tag === 'button') && bgColor && bgColor.a > 0.5
-      if (SAFE_TAGS.has(tag) && !isStyledButton) continue
+      const isStyledButton = (tag === 'a' || tag === 'button') && bgColor
+          && bgColor.a > 0.5
+      if (SAFE_TAGS.has(tag) && !isStyledButton) {
+        continue
+      }
 
       const rect = getDirectTextRect(el) || el.getBoundingClientRect()
-      if (!rect || rect.width < 4 || rect.height < 4) continue
+      if (!rect || rect.width < 4 || rect.height < 4) {
+        continue
+      }
 
       const reasons = collectVisualContrastReasons(el, style)
-      if (reasons.length === 0) continue
+      if (reasons.length === 0) {
+        continue
+      }
 
       const textColor = parseRgb(style.color)
       const fontSize = parseFloat(style.fontSize) || 16
       const fontWeight = parseInt(style.fontWeight) || 400
       const isLargeText =
-        fontSize >= WCAG_LARGE_TEXT_PX || (fontSize >= WCAG_LARGE_BOLD_TEXT_PX && fontWeight >= 700)
+          fontSize >= WCAG_LARGE_TEXT_PX || (fontSize >= WCAG_LARGE_BOLD_TEXT_PX
+              && fontWeight >= 700)
       const threshold = isLargeText ? 3.0 : 4.5
       const clip = {
         x: Math.max(0, Math.floor(rect.left + window.scrollX - 2)),
@@ -798,16 +913,16 @@ if (IS_BROWSER) {
         clip,
         textColor,
         preferRenderedForeground:
-          !textColor ||
-          textColor.a < 0.99 ||
-          reasons.some(
-            (reason) =>
-              reason === 'opacity stack' ||
-              reason === 'blend mode' ||
-              reason === 'filter' ||
-              reason === 'backdrop filter' ||
-              reason === 'background-clip text',
-          ),
+            !textColor ||
+            textColor.a < 0.99 ||
+            reasons.some(
+                (reason) =>
+                    reason === 'opacity stack' ||
+                    reason === 'blend mode' ||
+                    reason === 'filter' ||
+                    reason === 'backdrop filter' ||
+                    reason === 'background-clip text',
+            ),
         backgroundClipText: reasons.includes('background-clip text'),
       })
     }
@@ -822,7 +937,9 @@ if (IS_BROWSER) {
   }
 
   function blendRgba(fg, bg) {
-    if (!fg) return bg || null
+    if (!fg) {
+      return bg || null
+    }
     if (!bg || fg.a == null || fg.a >= 0.999) {
       return {
         r: clampByte(fg.r),
@@ -842,7 +959,9 @@ if (IS_BROWSER) {
 
   function pickWorstContrastColor(textColor, colors) {
     const usable = (colors || []).filter(Boolean)
-    if (!usable.length) return null
+    if (!usable.length) {
+      return null
+    }
     let worst = usable[0]
     let worstRatio = contrastRatio(textColor, worst)
     for (const color of usable.slice(1)) {
@@ -856,73 +975,103 @@ if (IS_BROWSER) {
   }
 
   function firstCssUrl(value) {
-    const match = String(value || '').match(/url\((?:"([^"]+)"|'([^']+)'|([^)]*))\)/i)
-    if (!match) return ''
+    const match = String(value || '').match(
+        /url\((?:"([^"]+)"|'([^']+)'|([^)]*))\)/i)
+    if (!match) {
+      return ''
+    }
     return (match[1] || match[2] || match[3] || '').trim()
   }
 
   function getLayerValue(value, index = 0) {
     return (
-      String(value || '')
-        .split(',')
-        [index]?.trim() || ''
+        String(value || '')
+            .split(',')
+            [index]?.trim() || ''
     )
   }
 
   function parsePositionToken(token, container, painted) {
-    if (!token || token === 'center') return (container - painted) / 2
-    if (token === 'left' || token === 'top') return 0
-    if (token === 'right' || token === 'bottom') return container - painted
+    if (!token || token === 'center') {
+      return (container - painted) / 2
+    }
+    if (token === 'left' || token === 'top') {
+      return 0
+    }
+    if (token === 'right' || token === 'bottom') {
+      return container - painted
+    }
     if (/%$/.test(token)) {
       const pct = parseFloat(token) / 100
       return (container - painted) * pct
     }
-    if (/px$/.test(token)) return parseFloat(token) || 0
+    if (/px$/.test(token)) {
+      return parseFloat(token) || 0
+    }
     return (container - painted) / 2
   }
 
   function parsePositionPair(positionValue) {
     const tokens = String(positionValue || '50% 50%')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
     const first = tokens[0] || '50%'
     if (tokens.length < 2) {
-      if (first === 'top' || first === 'bottom') return ['50%', first]
+      if (first === 'top' || first === 'bottom') {
+        return ['50%', first]
+      }
       return [first, '50%']
     }
     return [first, tokens[1] || '50%']
   }
 
-  function resolvePaintedImageRect(containerRect, image, sizeValue, positionValue) {
-    const intrinsicWidth = image.naturalWidth || image.videoWidth || image.width || 1
-    const intrinsicHeight = image.naturalHeight || image.videoHeight || image.height || 1
+  function resolvePaintedImageRect(containerRect, image, sizeValue,
+      positionValue) {
+    const intrinsicWidth = image.naturalWidth || image.videoWidth || image.width
+        || 1
+    const intrinsicHeight = image.naturalHeight || image.videoHeight
+        || image.height || 1
     let paintedWidth = intrinsicWidth
     let paintedHeight = intrinsicHeight
     const size = String(sizeValue || 'auto').trim()
 
     if (size === 'cover' || size === 'contain') {
       const scale =
-        size === 'cover'
-          ? Math.max(containerRect.width / intrinsicWidth, containerRect.height / intrinsicHeight)
-          : Math.min(containerRect.width / intrinsicWidth, containerRect.height / intrinsicHeight)
+          size === 'cover'
+              ? Math.max(containerRect.width / intrinsicWidth,
+                  containerRect.height / intrinsicHeight)
+              : Math.min(containerRect.width / intrinsicWidth,
+                  containerRect.height / intrinsicHeight)
       paintedWidth = intrinsicWidth * scale
       paintedHeight = intrinsicHeight * scale
     } else if (size && size !== 'auto') {
       const parts = size.split(/\s+/)
       const widthToken = parts[0]
       const heightToken = parts[1] || 'auto'
-      if (/%$/.test(widthToken)) paintedWidth = containerRect.width * (parseFloat(widthToken) / 100)
-      else if (/px$/.test(widthToken)) paintedWidth = parseFloat(widthToken) || paintedWidth
-      if (heightToken === 'auto') paintedHeight = paintedWidth * (intrinsicHeight / intrinsicWidth)
-      else if (/%$/.test(heightToken))
+      if (/%$/.test(widthToken)) {
+        paintedWidth = containerRect.width
+            * (parseFloat(widthToken) / 100)
+      } else if (/px$/.test(widthToken)) {
+        paintedWidth = parseFloat(widthToken)
+            || paintedWidth
+      }
+      if (heightToken === 'auto') {
+        paintedHeight = paintedWidth
+            * (intrinsicHeight / intrinsicWidth)
+      } else if (/%$/.test(heightToken)) {
         paintedHeight = containerRect.height * (parseFloat(heightToken) / 100)
-      else if (/px$/.test(heightToken)) paintedHeight = parseFloat(heightToken) || paintedHeight
+      } else if (/px$/.test(heightToken)) {
+        paintedHeight = parseFloat(heightToken)
+            || paintedHeight
+      }
     }
 
     const [xToken, yToken] = parsePositionPair(positionValue)
-    const positionX = parsePositionToken(xToken, containerRect.width, paintedWidth)
-    const positionY = parsePositionToken(yToken, containerRect.height, paintedHeight)
+    const positionX = parsePositionToken(xToken, containerRect.width,
+        paintedWidth)
+    const positionY = parsePositionToken(yToken, containerRect.height,
+        paintedHeight)
     return {
       left: containerRect.left + positionX,
       top: containerRect.top + positionY,
@@ -938,16 +1087,20 @@ if (IS_BROWSER) {
   }
 
   function resolveObjectImageRect(containerRect, image, style) {
-    const intrinsicWidth = image.naturalWidth || image.videoWidth || image.width || 1
-    const intrinsicHeight = image.naturalHeight || image.videoHeight || image.height || 1
+    const intrinsicWidth = image.naturalWidth || image.videoWidth || image.width
+        || 1
+    const intrinsicHeight = image.naturalHeight || image.videoHeight
+        || image.height || 1
     const fit = style.objectFit || 'fill'
     let paintedWidth = containerRect.width
     let paintedHeight = containerRect.height
     if (fit === 'contain' || fit === 'cover') {
       const scale =
-        fit === 'cover'
-          ? Math.max(containerRect.width / intrinsicWidth, containerRect.height / intrinsicHeight)
-          : Math.min(containerRect.width / intrinsicWidth, containerRect.height / intrinsicHeight)
+          fit === 'cover'
+              ? Math.max(containerRect.width / intrinsicWidth,
+                  containerRect.height / intrinsicHeight)
+              : Math.min(containerRect.width / intrinsicWidth,
+                  containerRect.height / intrinsicHeight)
       paintedWidth = intrinsicWidth * scale
       paintedHeight = intrinsicHeight * scale
     } else if (fit === 'none') {
@@ -955,17 +1108,19 @@ if (IS_BROWSER) {
       paintedHeight = intrinsicHeight
     } else if (fit === 'scale-down') {
       const containScale = Math.min(
-        containerRect.width / intrinsicWidth,
-        containerRect.height / intrinsicHeight,
-        1,
+          containerRect.width / intrinsicWidth,
+          containerRect.height / intrinsicHeight,
+          1,
       )
       paintedWidth = intrinsicWidth * containScale
       paintedHeight = intrinsicHeight * containScale
     }
     const [xToken, yToken] = parseObjectPosition(style.objectPosition)
     return {
-      left: containerRect.left + parsePositionToken(xToken, containerRect.width, paintedWidth),
-      top: containerRect.top + parsePositionToken(yToken, containerRect.height, paintedHeight),
+      left: containerRect.left + parsePositionToken(xToken, containerRect.width,
+          paintedWidth),
+      top: containerRect.top + parsePositionToken(yToken, containerRect.height,
+          paintedHeight),
       width: paintedWidth,
       height: paintedHeight,
       intrinsicWidth,
@@ -975,39 +1130,48 @@ if (IS_BROWSER) {
 
   function pointToImageSource(point, paintedRect) {
     if (
-      point.x < paintedRect.left ||
-      point.y < paintedRect.top ||
-      point.x > paintedRect.left + paintedRect.width ||
-      point.y > paintedRect.top + paintedRect.height
+        point.x < paintedRect.left ||
+        point.y < paintedRect.top ||
+        point.x > paintedRect.left + paintedRect.width ||
+        point.y > paintedRect.top + paintedRect.height
     ) {
       return null
     }
     return {
       x: Math.max(
-        0,
-        Math.min(
-          paintedRect.intrinsicWidth - 1,
-          ((point.x - paintedRect.left) / paintedRect.width) * paintedRect.intrinsicWidth,
-        ),
+          0,
+          Math.min(
+              paintedRect.intrinsicWidth - 1,
+              ((point.x - paintedRect.left) / paintedRect.width)
+              * paintedRect.intrinsicWidth,
+          ),
       ),
       y: Math.max(
-        0,
-        Math.min(
-          paintedRect.intrinsicHeight - 1,
-          ((point.y - paintedRect.top) / paintedRect.height) * paintedRect.intrinsicHeight,
-        ),
+          0,
+          Math.min(
+              paintedRect.intrinsicHeight - 1,
+              ((point.y - paintedRect.top) / paintedRect.height)
+              * paintedRect.intrinsicHeight,
+          ),
       ),
     }
   }
 
   async function loadVisualContrastImage(src) {
-    if (!src) return null
-    if (visualContrastImageCache.has(src)) return visualContrastImageCache.get(src)
+    if (!src) {
+      return null
+    }
+    if (visualContrastImageCache.has(src)) {
+      return visualContrastImageCache.get(
+          src)
+    }
     const promise = new Promise((resolve) => {
       const img = new Image()
       let settled = false
       const finish = (value) => {
-        if (settled) return
+        if (settled) {
+          return
+        }
         settled = true
         clearTimeout(timer)
         resolve(value)
@@ -1016,9 +1180,9 @@ if (IS_BROWSER) {
       try {
         const absolute = new URL(src, location.href)
         if (
-          absolute.origin !== location.origin &&
-          absolute.protocol !== 'data:' &&
-          absolute.protocol !== 'blob:'
+            absolute.origin !== location.origin &&
+            absolute.protocol !== 'data:' &&
+            absolute.protocol !== 'blob:'
         ) {
           img.crossOrigin = 'anonymous'
         }
@@ -1036,38 +1200,49 @@ if (IS_BROWSER) {
   function sampleDrawablePixel(drawable, sourcePoint) {
     if (visualContrastRasterCache.has(drawable)) {
       const cached = visualContrastRasterCache.get(drawable)
-      if (!cached || !cached.ctx)
-        return { status: 'unresolved', reason: cached?.reason || 'image sample failed' }
+      if (!cached || !cached.ctx) {
+        return {
+          status: 'unresolved',
+          reason: cached?.reason || 'image sample failed'
+        }
+      }
       try {
-        const x = Math.max(0, Math.min(cached.width - 1, Math.floor(sourcePoint.x * cached.scaleX)))
+        const x = Math.max(0, Math.min(cached.width - 1,
+            Math.floor(sourcePoint.x * cached.scaleX)))
         const y = Math.max(
-          0,
-          Math.min(cached.height - 1, Math.floor(sourcePoint.y * cached.scaleY)),
+            0,
+            Math.min(cached.height - 1,
+                Math.floor(sourcePoint.y * cached.scaleY)),
         )
         const data = cached.ctx.getImageData(x, y, 1, 1).data
         return {
           status: 'sampled',
-          color: { r: data[0], g: data[1], b: data[2], a: data[3] / 255 },
+          color: {r: data[0], g: data[1], b: data[2], a: data[3] / 255},
         }
       } catch (err) {
         return {
           status: 'unresolved',
           reason: /taint|cross-origin|Security/i.test(err?.message || '')
-            ? 'tainted image'
-            : 'image sample failed',
+              ? 'tainted image'
+              : 'image sample failed',
         }
       }
     }
 
     const canvas = document.createElement('canvas')
-    const intrinsicWidth = drawable.naturalWidth || drawable.videoWidth || drawable.width || 1
-    const intrinsicHeight = drawable.naturalHeight || drawable.videoHeight || drawable.height || 1
+    const intrinsicWidth = drawable.naturalWidth || drawable.videoWidth
+        || drawable.width || 1
+    const intrinsicHeight = drawable.naturalHeight || drawable.videoHeight
+        || drawable.height || 1
     const maxRasterSide = 640
-    const scale = Math.min(1, maxRasterSide / Math.max(intrinsicWidth, intrinsicHeight))
+    const scale = Math.min(1,
+        maxRasterSide / Math.max(intrinsicWidth, intrinsicHeight))
     canvas.width = Math.max(1, Math.round(intrinsicWidth * scale))
     canvas.height = Math.max(1, Math.round(intrinsicHeight * scale))
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) return { status: 'unresolved', reason: 'canvas unavailable' }
+    const ctx = canvas.getContext('2d', {willReadFrequently: true})
+    if (!ctx) {
+      return {status: 'unresolved', reason: 'canvas unavailable'}
+    }
     try {
       ctx.drawImage(drawable, 0, 0, canvas.width, canvas.height)
       const cached = {
@@ -1078,18 +1253,20 @@ if (IS_BROWSER) {
         scaleY: canvas.height / intrinsicHeight,
       }
       visualContrastRasterCache.set(drawable, cached)
-      const x = Math.max(0, Math.min(cached.width - 1, Math.floor(sourcePoint.x * cached.scaleX)))
-      const y = Math.max(0, Math.min(cached.height - 1, Math.floor(sourcePoint.y * cached.scaleY)))
+      const x = Math.max(0,
+          Math.min(cached.width - 1, Math.floor(sourcePoint.x * cached.scaleX)))
+      const y = Math.max(0, Math.min(cached.height - 1,
+          Math.floor(sourcePoint.y * cached.scaleY)))
       const data = ctx.getImageData(x, y, 1, 1).data
       return {
         status: 'sampled',
-        color: { r: data[0], g: data[1], b: data[2], a: data[3] / 255 },
+        color: {r: data[0], g: data[1], b: data[2], a: data[3] / 255},
       }
     } catch (err) {
       const reason = /taint|cross-origin|Security/i.test(err?.message || '')
-        ? 'tainted image'
-        : 'image sample failed'
-      visualContrastRasterCache.set(drawable, { ctx: null, reason })
+          ? 'tainted image'
+          : 'image sample failed'
+      visualContrastRasterCache.set(drawable, {ctx: null, reason})
       return {
         status: 'unresolved',
         reason,
@@ -1102,28 +1279,53 @@ if (IS_BROWSER) {
     const bgImage = style.backgroundImage || ''
     if (bgImage && bgImage !== 'none') {
       if (/gradient/i.test(bgImage)) {
-        const color = pickWorstContrastColor(textColor, parseGradientColors(bgImage))
-        if (color) return { status: 'sampled', color, method: 'analytic-gradient' }
+        const color = pickWorstContrastColor(textColor,
+            parseGradientColors(bgImage))
+        if (color) {
+          return {
+            status: 'sampled',
+            color,
+            method: 'analytic-gradient'
+          }
+        }
       }
       if (/url\s*\(/i.test(bgImage)) {
         const img = await loadVisualContrastImage(firstCssUrl(bgImage))
-        if (!img) return { status: 'unresolved', reason: 'image unavailable' }
+        if (!img) {
+          return {status: 'unresolved', reason: 'image unavailable'}
+        }
         const paintedRect = resolvePaintedImageRect(
-          rect,
-          img,
-          getLayerValue(style.backgroundSize) || 'auto',
-          getLayerValue(style.backgroundPosition) || '50% 50%',
+            rect,
+            img,
+            getLayerValue(style.backgroundSize) || 'auto',
+            getLayerValue(style.backgroundPosition) || '50% 50%',
         )
         const sourcePoint = pointToImageSource(point, paintedRect)
-        if (!sourcePoint) return { status: 'unresolved', reason: 'point outside background image' }
+        if (!sourcePoint) {
+          return {
+            status: 'unresolved',
+            reason: 'point outside background image'
+          }
+        }
         const sample = sampleDrawablePixel(img, sourcePoint)
-        if (sample.status === 'sampled') return { ...sample, method: 'canvas-background-image' }
+        if (sample.status === 'sampled') {
+          return {
+            ...sample,
+            method: 'canvas-background-image'
+          }
+        }
         return sample
       }
     }
     const bg = parseRgb(style.backgroundColor)
-    if (bg && bg.a > 0.05) return { status: 'sampled', color: bg, method: 'solid-background' }
-    return { status: 'unresolved', reason: 'no readable background' }
+    if (bg && bg.a > 0.05) {
+      return {
+        status: 'sampled',
+        color: bg,
+        method: 'solid-background'
+      }
+    }
+    return {status: 'unresolved', reason: 'no readable background'}
   }
 
   async function sampleImageElement(img, point) {
@@ -1131,23 +1333,36 @@ if (IS_BROWSER) {
     const style = getComputedStyle(img)
     const paintedRect = resolveObjectImageRect(rect, img, style)
     const sourcePoint = pointToImageSource(point, paintedRect)
-    if (!sourcePoint) return { status: 'unresolved', reason: 'point outside image' }
+    if (!sourcePoint) {
+      return {
+        status: 'unresolved',
+        reason: 'point outside image'
+      }
+    }
     const sample = sampleDrawablePixel(img, sourcePoint)
-    if (sample.status === 'sampled') return { ...sample, method: 'canvas-img-underlay' }
+    if (sample.status === 'sampled') {
+      return {
+        ...sample,
+        method: 'canvas-img-underlay'
+      }
+    }
 
     if (img.currentSrc || img.src) {
       const loaded = await loadVisualContrastImage(img.currentSrc || img.src)
       if (loaded) {
         const loadedRect = {
           ...paintedRect,
-          intrinsicWidth: loaded.naturalWidth || loaded.width || paintedRect.intrinsicWidth,
-          intrinsicHeight: loaded.naturalHeight || loaded.height || paintedRect.intrinsicHeight,
+          intrinsicWidth: loaded.naturalWidth || loaded.width
+              || paintedRect.intrinsicWidth,
+          intrinsicHeight: loaded.naturalHeight || loaded.height
+              || paintedRect.intrinsicHeight,
         }
         const loadedPoint = pointToImageSource(point, loadedRect)
         if (loadedPoint) {
           const loadedSample = sampleDrawablePixel(loaded, loadedPoint)
-          if (loadedSample.status === 'sampled')
-            return { ...loadedSample, method: 'canvas-img-underlay' }
+          if (loadedSample.status === 'sampled') {
+            return {...loadedSample, method: 'canvas-img-underlay'}
+          }
         }
       }
     }
@@ -1158,47 +1373,58 @@ if (IS_BROWSER) {
     const insetX = Math.min(12, Math.max(1, rect.width * 0.12))
     const insetY = Math.min(8, Math.max(1, rect.height * 0.22))
     const xs =
-      rect.width < 28
-        ? [rect.left + rect.width / 2]
-        : [rect.left + insetX, rect.left + rect.width / 2, rect.right - insetX]
+        rect.width < 28
+            ? [rect.left + rect.width / 2]
+            : [rect.left + insetX, rect.left + rect.width / 2,
+              rect.right - insetX]
     const ys =
-      rect.height < 22
-        ? [rect.top + rect.height / 2]
-        : [rect.top + insetY, rect.top + rect.height / 2, rect.bottom - insetY]
+        rect.height < 22
+            ? [rect.top + rect.height / 2]
+            : [rect.top + insetY, rect.top + rect.height / 2,
+              rect.bottom - insetY]
     const points = []
     for (const y of ys) {
       for (const x of xs) {
-        if (x >= 0 && y >= 0 && x <= window.innerWidth && y <= window.innerHeight)
-          points.push({ x, y })
+        if (x >= 0 && y >= 0 && x <= window.innerWidth && y
+            <= window.innerHeight) {
+          points.push({x, y})
+        }
       }
     }
     return points
   }
 
-  async function sampleVisualBackgroundAtPoint(el, point, textColor, depth = 0) {
+  async function sampleVisualBackgroundAtPoint(el, point, textColor,
+      depth = 0) {
     if (depth > 8) {
-      return { status: 'unresolved', reason: 'background stack too deep' }
+      return {status: 'unresolved', reason: 'background stack too deep'}
     }
     const stack =
-      typeof document.elementsFromPoint === 'function'
-        ? document.elementsFromPoint(point.x, point.y)
-        : []
-    const selfIndex = stack.findIndex((node) => node === el || el.contains(node))
+        typeof document.elementsFromPoint === 'function'
+            ? document.elementsFromPoint(point.x, point.y)
+            : []
+    const selfIndex = stack.findIndex(
+        (node) => node === el || el.contains(node))
     const nodes = selfIndex >= 0 ? stack.slice(selfIndex) : [el, ...stack]
     const unresolved = []
 
     for (const node of nodes) {
-      if (!node || node.nodeType !== 1) continue
-      if (
-        node.closest?.(
-          '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
-        )
-      )
+      if (!node || node.nodeType !== 1) {
         continue
+      }
+      if (
+          node.closest?.(
+              '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
+          )
+      ) {
+        continue
+      }
       const tag = node.tagName?.toLowerCase()
       if (tag === 'img') {
         const sample = await sampleImageElement(node, point)
-        if (sample.status === 'sampled') return sample
+        if (sample.status === 'sampled') {
+          return sample
+        }
         unresolved.push(sample.reason)
         continue
       }
@@ -1214,7 +1440,12 @@ if (IS_BROWSER) {
         })
         if (sourcePoint) {
           const sample = sampleDrawablePixel(node, sourcePoint)
-          if (sample.status === 'sampled') return { ...sample, method: `canvas-${tag}-underlay` }
+          if (sample.status === 'sampled') {
+            return {
+              ...sample,
+              method: `canvas-${tag}-underlay`
+            }
+          }
           unresolved.push(sample.reason)
         }
         continue
@@ -1222,12 +1453,15 @@ if (IS_BROWSER) {
       const style = getComputedStyle(node)
       const sample = await sampleCssBackground(node, style, point, textColor)
       if (sample.status === 'sampled') {
-        if (!sample.color || sample.color.a == null || sample.color.a >= 0.95) return sample
+        if (!sample.color || sample.color.a == null || sample.color.a
+            >= 0.95) {
+          return sample
+        }
         const under = await sampleVisualBackgroundAtPoint(
-          node.parentElement || document.body,
-          point,
-          textColor,
-          depth + 1,
+            node.parentElement || document.body,
+            point,
+            textColor,
+            depth + 1,
         )
         if (under.status === 'sampled') {
           return {
@@ -1244,8 +1478,8 @@ if (IS_BROWSER) {
     return {
       status: 'unresolved',
       reason:
-        [...new Set(unresolved.filter(Boolean))].slice(0, 3).join(', ') ||
-        'no readable visual background',
+          [...new Set(unresolved.filter(Boolean))].slice(0, 3).join(', ') ||
+          'no readable visual background',
     }
   }
 
@@ -1254,21 +1488,38 @@ if (IS_BROWSER) {
     try {
       el = document.querySelector(candidate.selector)
     } catch {
-      return { ...candidate, status: 'unresolved', confidence: 'none', reason: 'stale selector' }
+      return {
+        ...candidate,
+        status: 'unresolved',
+        confidence: 'none',
+        reason: 'stale selector'
+      }
     }
-    if (!el)
-      return { ...candidate, status: 'unresolved', confidence: 'none', reason: 'missing element' }
-    if (!isRenderedForBrowserRule(el))
-      return { ...candidate, status: 'unresolved', confidence: 'none', reason: 'hidden element' }
+    if (!el) {
+      return {
+        ...candidate,
+        status: 'unresolved',
+        confidence: 'none',
+        reason: 'missing element'
+      }
+    }
+    if (!isRenderedForBrowserRule(el)) {
+      return {
+        ...candidate,
+        status: 'unresolved',
+        confidence: 'none',
+        reason: 'hidden element'
+      }
+    }
 
     const blockingReason = (candidate.reasons || []).find(
-      (reason) =>
-        reason === 'background-clip text' ||
-        reason === 'blend mode' ||
-        reason === 'filter' ||
-        reason === 'backdrop filter' ||
-        reason === 'opacity stack' ||
-        reason === 'text shadow',
+        (reason) =>
+            reason === 'background-clip text' ||
+            reason === 'blend mode' ||
+            reason === 'filter' ||
+            reason === 'backdrop filter' ||
+            reason === 'opacity stack' ||
+            reason === 'text shadow',
     )
     if (blockingReason) {
       return {
@@ -1281,17 +1532,23 @@ if (IS_BROWSER) {
 
     const style = getComputedStyle(el)
     const textColor = parseRgb(style.color) || candidate.textColor
-    if (!textColor)
+    if (!textColor) {
       return {
         ...candidate,
         status: 'unresolved',
         confidence: 'none',
         reason: 'unreadable text color',
       }
+    }
 
     const rect = getDirectTextRect(el) || el.getBoundingClientRect()
     if (!rect || rect.width < 4 || rect.height < 4) {
-      return { ...candidate, status: 'unresolved', confidence: 'none', reason: 'missing text rect' }
+      return {
+        ...candidate,
+        status: 'unresolved',
+        confidence: 'none',
+        reason: 'missing text rect'
+      }
     }
 
     const points = textSamplePoints(rect)
@@ -1315,7 +1572,9 @@ if (IS_BROWSER) {
       }
       const fg = blendRgba(textColor, sample.color)
       ratios.push(contrastRatio(fg, sample.color))
-      if (sample.method) methods.add(sample.method)
+      if (sample.method) {
+        methods.add(sample.method)
+      }
     }
 
     if (ratios.length < Math.min(3, points.length)) {
@@ -1325,20 +1584,23 @@ if (IS_BROWSER) {
         confidence: 'none',
         samples: ratios.length,
         reason:
-          [...new Set(unresolved.filter(Boolean))].slice(0, 3).join(', ') ||
-          'not enough readable samples',
+            [...new Set(unresolved.filter(Boolean))].slice(0, 3).join(', ') ||
+            'not enough readable samples',
       }
     }
 
     ratios.sort((a, b) => a - b)
     const pick = (pct) =>
-      ratios[Math.min(ratios.length - 1, Math.max(0, Math.floor((pct / 100) * ratios.length)))]
+        ratios[Math.min(ratios.length - 1,
+            Math.max(0, Math.floor((pct / 100) * ratios.length)))]
     const measuredRatio = pick(10)
     const medianRatio = pick(50)
     const status = measuredRatio < candidate.threshold ? 'fail' : 'pass'
     const method = [...methods].sort().join(', ') || 'browser-visual'
     const textLabel = candidate.text ? ` "${candidate.text}"` : ''
-    const detail = `browser contrast ${measuredRatio.toFixed(1)}:1 median ${medianRatio.toFixed(1)}:1 (need ${candidate.threshold}:1) via ${method}${textLabel}`
+    const detail = `browser contrast ${measuredRatio.toFixed(
+        1)}:1 median ${medianRatio.toFixed(
+        1)}:1 (need ${candidate.threshold}:1) via ${method}${textLabel}`
     return {
       ...candidate,
       status,
@@ -1347,7 +1609,7 @@ if (IS_BROWSER) {
       ratio: measuredRatio,
       medianRatio,
       samples: ratios.length,
-      finding: status === 'fail' ? { id: 'low-contrast', snippet: detail } : null,
+      finding: status === 'fail' ? {id: 'low-contrast', snippet: detail} : null,
     }
   }
 
@@ -1361,20 +1623,21 @@ if (IS_BROWSER) {
     const candidates = collectVisualContrastCandidates(options)
     const results = []
     const shouldScrollOffscreen = options.scrollOffscreen === true
-    const restoreScroll = { x: window.scrollX, y: window.scrollY }
+    const restoreScroll = {x: window.scrollX, y: window.scrollY}
     for (const candidate of candidates) {
       if (
-        shouldScrollOffscreen &&
-        (window.scrollX !== restoreScroll.x || window.scrollY !== restoreScroll.y)
+          shouldScrollOffscreen &&
+          (window.scrollX !== restoreScroll.x || window.scrollY
+              !== restoreScroll.y)
       ) {
         window.scrollTo(restoreScroll.x, restoreScroll.y)
         await waitForVisualPaint()
       }
       let result = await analyzeVisualContrastCandidate(candidate)
       if (
-        shouldScrollOffscreen &&
-        result.status === 'unresolved' &&
-        result.reason === 'text outside viewport'
+          shouldScrollOffscreen &&
+          result.status === 'unresolved' &&
+          result.reason === 'text outside viewport'
       ) {
         let el = null
         try {
@@ -1383,7 +1646,8 @@ if (IS_BROWSER) {
           el = null
         }
         if (el && typeof el.scrollIntoView === 'function') {
-          el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' })
+          el.scrollIntoView(
+              {block: 'center', inline: 'nearest', behavior: 'instant'})
           await waitForVisualPaint()
           result = await analyzeVisualContrastCandidate(candidate)
         }
@@ -1391,8 +1655,9 @@ if (IS_BROWSER) {
       results.push(result)
     }
     if (
-      shouldScrollOffscreen &&
-      (window.scrollX !== restoreScroll.x || window.scrollY !== restoreScroll.y)
+        shouldScrollOffscreen &&
+        (window.scrollX !== restoreScroll.x || window.scrollY
+            !== restoreScroll.y)
     ) {
       window.scrollTo(restoreScroll.x, restoreScroll.y)
     }
@@ -1400,21 +1665,27 @@ if (IS_BROWSER) {
   }
 
   function isElementHidden(el) {
-    if (!el || el === document.body || el === document.documentElement) return false
-    if (typeof el.checkVisibility === 'function')
-      return !el.checkVisibility({ checkOpacity: false, checkVisibilityCSS: true })
+    if (!el || el === document.body || el
+        === document.documentElement) {
+      return false
+    }
+    if (typeof el.checkVisibility === 'function') {
+      return !el.checkVisibility(
+          {checkOpacity: false, checkVisibilityCSS: true})
+    }
     // Fallback: zero size or no offsetParent (covers display:none and detached subtrees)
     return el.offsetWidth === 0 && el.offsetHeight === 0
   }
 
   function serializeFindings(allFindings) {
-    return allFindings.map(({ el, findings }) => ({
+    return allFindings.map(({el, findings}) => ({
       selector: generateSelector(el),
       tagName: el.tagName?.toLowerCase() || 'unknown',
       rect:
-        el !== document.body && el !== document.documentElement && el.getBoundingClientRect
-          ? el.getBoundingClientRect().toJSON()
-          : null,
+          el !== document.body && el !== document.documentElement
+          && el.getBoundingClientRect
+              ? el.getBoundingClientRect().toJSON()
+              : null,
       isPageLevel: el === document.body || el === document.documentElement,
       isHidden: isElementHidden(el),
       findings: findings.map((f) => {
@@ -1438,20 +1709,22 @@ if (IS_BROWSER) {
 
   const printSummary = (allFindings) => {
     if (allFindings.length === 0) {
-      console.log('%c[impeccable] No anti-patterns found.', 'color: #22c55e; font-weight: bold')
+      console.log('%c[impeccable] No anti-patterns found.',
+          'color: #22c55e; font-weight: bold')
       return
     }
     console.group(
-      `%c[impeccable] ${allFindings.length} anti-pattern${allFindings.length === 1 ? '' : 's'} found`,
-      'color: oklch(84% 0.19 80.46); font-weight: bold',
+        `%c[impeccable] ${allFindings.length} anti-pattern${allFindings.length
+        === 1 ? '' : 's'} found`,
+        'color: oklch(84% 0.19 80.46); font-weight: bold',
     )
-    for (const { el, findings } of allFindings) {
+    for (const {el, findings} of allFindings) {
       for (const f of findings) {
         console.log(
-          `%c${f.type || f.id}%c ${f.detail || f.snippet}`,
-          'color: oklch(84% 0.19 80.46); font-weight: bold',
-          'color: inherit',
-          el,
+            `%c${f.type || f.id}%c ${f.detail || f.snippet}`,
+            'color: oklch(84% 0.19 80.46); font-weight: bold',
+            'color: inherit',
+            el,
         )
       }
     }
@@ -1459,14 +1732,19 @@ if (IS_BROWSER) {
   }
 
   function addBrowserFindings(groupMap, el, findings) {
-    if (!findings || findings.length === 0) return
+    if (!findings || findings.length === 0) {
+      return
+    }
     const existing = groupMap.get(el)
-    if (existing) existing.push(...findings)
-    else groupMap.set(el, [...findings])
+    if (existing) {
+      existing.push(...findings)
+    } else {
+      groupMap.set(el, [...findings])
+    }
   }
 
   function browserFindingsFromMap(groupMap) {
-    return [...groupMap.entries()].map(([el, findings]) => ({ el, findings }))
+    return [...groupMap.entries()].map(([el, findings]) => ({el, findings}))
   }
 
   const DESIGN_COLOR_TOLERANCE = 6
@@ -1485,36 +1763,42 @@ if (IS_BROWSER) {
 
   function normalizeBrowserFontName(value) {
     return String(value || '')
-      .trim()
-      .replace(/^["']|["']$/g, '')
-      .replace(/\+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .toLowerCase()
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .toLowerCase()
   }
 
   function browserPrimaryFont(stack) {
-    if (!stack || /var\(/i.test(stack)) return ''
+    if (!stack || /var\(/i.test(stack)) {
+      return ''
+    }
     return (
-      String(stack || '')
-        .split(',')
-        .map(normalizeBrowserFontName)
-        .find((font) => font && !GENERIC_FONTS.has(font)) || ''
+        String(stack || '')
+            .split(',')
+            .map(normalizeBrowserFontName)
+            .find((font) => font && !GENERIC_FONTS.has(font)) || ''
     )
   }
 
   function browserDesignSystemConfig() {
     const raw = window.__IMPECCABLE_CONFIG__?.designSystem
-    if (!raw?.present) return null
+    if (!raw?.present) {
+      return null
+    }
     const allowedFonts = new Set(
-      (raw.allowedFonts || []).map(normalizeBrowserFontName).filter(Boolean),
+        (raw.allowedFonts || []).map(normalizeBrowserFontName).filter(Boolean),
     )
     const allowedColors = (raw.allowedColors || [])
-      .filter(
-        (color) =>
-          color && Number.isFinite(color.r) && Number.isFinite(color.g) && Number.isFinite(color.b),
-      )
-      .map((color) => ({ r: color.r, g: color.g, b: color.b }))
-    const allowedRadii = (raw.allowedRadii || []).map(Number).filter((px) => Number.isFinite(px))
+        .filter(
+            (color) =>
+                color && Number.isFinite(color.r) && Number.isFinite(color.g)
+                && Number.isFinite(color.b),
+        )
+        .map((color) => ({r: color.r, g: color.g, b: color.b}))
+    const allowedRadii = (raw.allowedRadii || []).map(Number).filter(
+        (px) => Number.isFinite(px))
     return {
       present: true,
       hasFonts: raw.hasFonts === true && allowedFonts.size > 0,
@@ -1528,76 +1812,102 @@ if (IS_BROWSER) {
   }
 
   function browserColorsClose(a, b) {
-    if (!a || !b) return false
+    if (!a || !b) {
+      return false
+    }
     return (
-      Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b)) <=
-      DESIGN_COLOR_TOLERANCE
+        Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b))
+        <=
+        DESIGN_COLOR_TOLERANCE
     )
   }
 
   function isBrowserDesignColorAllowed(raw, designSystem) {
-    if (!designSystem?.hasColors) return true
-    const text = String(raw || '')
-      .trim()
-      .toLowerCase()
-    if (
-      !text ||
-      text === 'transparent' ||
-      text === 'currentcolor' ||
-      text === 'inherit' ||
-      text === 'initial'
-    )
+    if (!designSystem?.hasColors) {
       return true
-    if (text.includes('var(')) return true
+    }
+    const text = String(raw || '')
+        .trim()
+        .toLowerCase()
+    if (
+        !text ||
+        text === 'transparent' ||
+        text === 'currentcolor' ||
+        text === 'inherit' ||
+        text === 'initial'
+    ) {
+      return true
+    }
+    if (text.includes('var(')) {
+      return true
+    }
     const parsed = parseAnyColor(text)
-    if (!parsed) return true
-    if ((parsed.a ?? 1) <= 0.05) return true
-    return designSystem.allowedColors.some((color) => browserColorsClose(parsed, color))
+    if (!parsed) {
+      return true
+    }
+    if ((parsed.a ?? 1) <= 0.05) {
+      return true
+    }
+    return designSystem.allowedColors.some(
+        (color) => browserColorsClose(parsed, color))
   }
 
   function isBrowserTransparentCss(value) {
     const text = String(value || '')
-      .trim()
-      .toLowerCase()
-    if (!text || text === 'transparent') return true
+        .trim()
+        .toLowerCase()
+    if (!text || text === 'transparent') {
+      return true
+    }
     const parsed = parseAnyColor(text)
     return parsed ? (parsed.a ?? 1) <= 0.05 : false
   }
 
   function isBrowserDesignRadiusAllowed(raw, designSystem) {
-    if (!designSystem?.hasRadii) return true
-    const text = String(raw || '')
-      .trim()
-      .toLowerCase()
-    if (!text || text === '0' || text === 'none' || text === 'initial' || text === 'inherit')
+    if (!designSystem?.hasRadii) {
       return true
-    if (text.includes('var(') || text.includes('%')) return true
+    }
+    const text = String(raw || '')
+        .trim()
+        .toLowerCase()
+    if (!text || text === '0' || text === 'none' || text === 'initial' || text
+        === 'inherit') {
+      return true
+    }
+    if (text.includes('var(') || text.includes('%')) {
+      return true
+    }
     const px = resolveLengthPx(text, 16)
-    if (px == null || !Number.isFinite(px) || px <= DESIGN_RADIUS_TOLERANCE_PX) return true
-    if (designSystem.hasPillRadius && px >= 99) return true
+    if (px == null || !Number.isFinite(px) || px
+        <= DESIGN_RADIUS_TOLERANCE_PX) {
+      return true
+    }
+    if (designSystem.hasPillRadius && px >= 99) {
+      return true
+    }
     return designSystem.allowedRadii.some(
-      (allowed) => Math.abs(allowed - px) <= DESIGN_RADIUS_TOLERANCE_PX,
+        (allowed) => Math.abs(allowed - px) <= DESIGN_RADIUS_TOLERANCE_PX,
     )
   }
 
   function browserRadiusTokens(value) {
     return String(value || '')
-      .replace(/\s*\/\s*/g, ' ')
-      .split(/\s+/)
-      .map((token) => token.trim())
-      .filter(Boolean)
+        .replace(/\s*\/\s*/g, ' ')
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean)
   }
 
   function browserHasDirectText(el) {
     return [...(el.childNodes || [])].some(
-      (node) => node.nodeType === 3 && node.textContent.trim().length > 0,
+        (node) => node.nodeType === 3 && node.textContent.trim().length > 0,
     )
   }
 
   function browserSampleText(el) {
     const text = String(el.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
+        .replace(/\s+/g, ' ')
+        .trim()
     return text ? ` "${text.slice(0, 40)}"` : ''
   }
 
@@ -1607,18 +1917,22 @@ if (IS_BROWSER) {
   }
 
   function checkElementDesignSystemDOM(el, designSystem, seen) {
-    if (!designSystem?.present || shouldSkipDesignElement(el)) return []
+    if (!designSystem?.present || shouldSkipDesignElement(el)) {
+      return []
+    }
     const findings = []
     const tag = el.tagName?.toLowerCase?.() || 'unknown'
     const style = getComputedStyle(el)
 
     if (designSystem.hasFonts && browserHasDirectText(el)) {
       const font = browserPrimaryFont(style.fontFamily || '')
-      if (font && !designSystem.allowedFonts.has(font) && !seen.fonts.has(font)) {
+      if (font && !designSystem.allowedFonts.has(font) && !seen.fonts.has(
+          font)) {
         seen.fonts.add(font)
         findings.push({
           type: 'design-system-font',
-          detail: `${tag}${browserSampleText(el)} uses ${font}; not declared in DESIGN.md typography`,
+          detail: `${tag}${browserSampleText(
+              el)} uses ${font}; not declared in DESIGN.md typography`,
           ignoreValue: font,
         })
       }
@@ -1626,28 +1940,39 @@ if (IS_BROWSER) {
 
     if (designSystem.hasColors) {
       const colorChecks = []
-      if (browserHasDirectText(el)) colorChecks.push(['text color', style.color])
-      if (!isBrowserTransparentCss(style.backgroundColor))
+      if (browserHasDirectText(el)) {
+        colorChecks.push(
+            ['text color', style.color])
+      }
+      if (!isBrowserTransparentCss(style.backgroundColor)) {
         colorChecks.push(['background', style.backgroundColor])
+      }
       for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
         if ((parseFloat(style[`border${side}Width`]) || 0) > 0) {
-          colorChecks.push([`border-${side.toLowerCase()}`, style[`border${side}Color`]])
+          colorChecks.push(
+              [`border-${side.toLowerCase()}`, style[`border${side}Color`]])
         }
       }
-      if ((parseFloat(style.outlineWidth) || 0) > 0)
+      if ((parseFloat(style.outlineWidth) || 0) > 0) {
         colorChecks.push(['outline', style.outlineColor])
+      }
 
       for (const [kind, raw] of colorChecks) {
         const label = String(raw || '')
-          .trim()
-          .replace(/\s+/g, ' ')
-        if (isBrowserDesignColorAllowed(label, designSystem)) continue
+            .trim()
+            .replace(/\s+/g, ' ')
+        if (isBrowserDesignColorAllowed(label, designSystem)) {
+          continue
+        }
         const key = `${kind}:${label}`
-        if (seen.colors.has(key)) continue
+        if (seen.colors.has(key)) {
+          continue
+        }
         seen.colors.add(key)
         findings.push({
           type: 'design-system-color',
-          detail: `${kind} ${label} on ${tag}${browserSampleText(el)} is outside DESIGN.md colors`,
+          detail: `${kind} ${label} on ${tag}${browserSampleText(
+              el)} is outside DESIGN.md colors`,
           ignoreValue: label,
         })
       }
@@ -1655,12 +1980,17 @@ if (IS_BROWSER) {
 
     if (designSystem.hasRadii) {
       for (const token of browserRadiusTokens(style.borderRadius || '')) {
-        if (isBrowserDesignRadiusAllowed(token, designSystem)) continue
-        if (seen.radii.has(token)) continue
+        if (isBrowserDesignRadiusAllowed(token, designSystem)) {
+          continue
+        }
+        if (seen.radii.has(token)) {
+          continue
+        }
         seen.radii.add(token)
         findings.push({
           type: 'design-system-radius',
-          detail: `border-radius ${token} on ${tag}${browserSampleText(el)} is outside the DESIGN.md rounded scale`,
+          detail: `border-radius ${token} on ${tag}${browserSampleText(
+              el)} is outside the DESIGN.md rounded scale`,
           ignoreValue: token,
         })
       }
@@ -1671,8 +2001,8 @@ if (IS_BROWSER) {
 
   function decodeBrowserGoogleFamily(value) {
     const family = String(value || '')
-      .split(':')[0]
-      .replace(/\+/g, ' ')
+        .split(':')[0]
+        .replace(/\+/g, ' ')
     try {
       return decodeURIComponent(family)
     } catch {
@@ -1681,14 +2011,20 @@ if (IS_BROWSER) {
   }
 
   function checkBrowserDesignSystemSources(designSystem, seen) {
-    if (!designSystem?.hasFonts) return []
+    if (!designSystem?.hasFonts) {
+      return []
+    }
     const findings = []
-    for (const link of document.querySelectorAll('link[href*="fonts.googleapis.com/css"]')) {
+    for (const link of
+        document.querySelectorAll('link[href*="fonts.googleapis.com/css"]')) {
       const href = link.getAttribute('href') || ''
       for (const match of href.matchAll(/[?&]family=([^&]+)/g)) {
         const display = decodeBrowserGoogleFamily(match[1])
         const font = normalizeBrowserFontName(display)
-        if (!font || designSystem.allowedFonts.has(font) || seen.fonts.has(font)) continue
+        if (!font || designSystem.allowedFonts.has(font) || seen.fonts.has(
+            font)) {
+          continue
+        }
         seen.fonts.add(font)
         findings.push({
           type: 'design-system-font',
@@ -1702,51 +2038,74 @@ if (IS_BROWSER) {
 
   function collectBrowserFindings() {
     const groupMap = new Map()
-    const _disabled = EXTENSION_MODE ? window.__IMPECCABLE_CONFIG__?.disabledRules || [] : []
+    const _disabled = EXTENSION_MODE
+        ? window.__IMPECCABLE_CONFIG__?.disabledRules || [] : []
     const _ruleOk = (id) => !_disabled.length || !_disabled.includes(id)
     const designSystem = browserDesignSystemConfig()
-    const designSeen = { fonts: new Set(), colors: new Set(), radii: new Set() }
+    const designSeen = {fonts: new Set(), colors: new Set(), radii: new Set()}
     // All deterministic rules run in the browser and extension path.
 
     for (const el of document.querySelectorAll('*')) {
       // Skip impeccable's own elements and any descendants (overlays, labels, banner, nav buttons)
       if (
-        el.closest(
-          '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
-        )
-      )
+          el.closest(
+              '.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip',
+          )
+      ) {
         continue
+      }
       // Skip browser extension elements (Claude, etc.). Use getAttribute when
       // `el.id` is not a string: a <form> with a named control like
       // <input name="id"> shadows the builtin `id` getter and returns the
       // element, whose `.startsWith` throws (issue #407).
-      const elId = typeof el.id === 'string' ? el.id : el.getAttribute('id') || ''
-      if (elId.startsWith('claude-') || elId.startsWith('cic-')) continue
+      const elId = typeof el.id === 'string' ? el.id : el.getAttribute('id')
+          || ''
+      if (elId.startsWith('claude-') || elId.startsWith('cic-')) {
+        continue
+      }
       // Skip the impeccable live-mode overlay (highlight, tooltip, bar, picker, toast).
       // These are inspector chrome, not part of the user's design.
-      if (el.closest('[id^="impeccable-live-"]')) continue
+      if (el.closest('[id^="impeccable-live-"]')) {
+        continue
+      }
       // Skip html/body -- page-level findings go in the banner, not a full-page overlay
-      if (el === document.body || el === document.documentElement) continue
+      if (el === document.body || el === document.documentElement) {
+        continue
+      }
 
       const findings = [
-        ...checkElementBordersDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementPseudoStripeDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementColorsDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementMotionDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementGlowDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementAIPaletteDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementRadialSpotlightDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementIconTileDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementItalicSerifDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementQualityDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementOversizedH1DOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementClippedOverflowDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementGptBorderShadowDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
-        ...checkElementTextOverflowDOM(el).map((f) => ({ type: f.id, detail: f.snippet })),
+        ...checkElementBordersDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementPseudoStripeDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementColorsDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementMotionDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementGlowDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementAIPaletteDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementRadialSpotlightDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementIconTileDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementItalicSerifDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementQualityDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementOversizedH1DOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementClippedOverflowDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementGptBorderShadowDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
+        ...checkElementTextOverflowDOM(el).map(
+            (f) => ({type: f.id, detail: f.snippet})),
         ...checkElementBlinkingCursorDOM(el).map((f) => ({
           type: f.id,
           detail: f.snippet,
-          ...(f.severity ? { severity: f.severity } : {}),
+          ...(f.severity ? {severity: f.severity} : {}),
         })),
         ...checkElementDesignSystemDOM(el, designSystem, designSeen),
       ].filter((f) => _ruleOk(f.type))
@@ -1756,8 +2115,8 @@ if (IS_BROWSER) {
       // Hero eyebrow: the offending element is the eyebrow above the heading,
       // not the heading itself — highlight the previous sibling instead.
       const eyebrowFindings = checkElementHeroEyebrowDOM(el)
-        .map((f) => ({ type: f.id, detail: f.snippet }))
-        .filter((f) => _ruleOk(f.type))
+          .map((f) => ({type: f.id, detail: f.snippet}))
+          .filter((f) => _ruleOk(f.type))
       if (eyebrowFindings.length > 0 && el.previousElementSibling) {
         addBrowserFindings(groupMap, el.previousElementSibling, eyebrowFindings)
       }
@@ -1765,8 +2124,9 @@ if (IS_BROWSER) {
 
     const pageLevelFindings = []
 
-    const designSourceFindings = checkBrowserDesignSystemSources(designSystem, designSeen).filter(
-      (f) => _ruleOk(f.type),
+    const designSourceFindings = checkBrowserDesignSystemSources(designSystem,
+        designSeen).filter(
+        (f) => _ruleOk(f.type),
     )
     if (designSourceFindings.length > 0) {
       pageLevelFindings.push(...designSourceFindings)
@@ -1780,24 +2140,24 @@ if (IS_BROWSER) {
     }
 
     const sectionKickerFindings = checkKickerAboveHeadingDOM()
-      .map((f) => ({ type: f.id, detail: f.snippet }))
-      .filter((f) => _ruleOk(f.type))
+        .map((f) => ({type: f.id, detail: f.snippet}))
+        .filter((f) => _ruleOk(f.type))
     if (sectionKickerFindings.length > 0) {
       pageLevelFindings.push(...sectionKickerFindings)
       addBrowserFindings(groupMap, document.body, sectionKickerFindings)
     }
 
     const numberedLabelFindings = checkNumberedSectionLabelsDOM()
-      .map((f) => ({ type: f.id, detail: f.snippet }))
-      .filter((f) => _ruleOk(f.type))
+        .map((f) => ({type: f.id, detail: f.snippet}))
+        .filter((f) => _ruleOk(f.type))
     if (numberedLabelFindings.length > 0) {
       pageLevelFindings.push(...numberedLabelFindings)
       addBrowserFindings(groupMap, document.body, numberedLabelFindings)
     }
 
     const repeatedTextFindings = checkRepeatedContainerTextDOM()
-      .map((f) => ({ type: f.id, detail: f.snippet }))
-      .filter((f) => _ruleOk(f.type))
+        .map((f) => ({type: f.id, detail: f.snippet}))
+        .filter((f) => _ruleOk(f.type))
     if (repeatedTextFindings.length > 0) {
       pageLevelFindings.push(...repeatedTextFindings)
       addBrowserFindings(groupMap, document.body, repeatedTextFindings)
@@ -1807,8 +2167,8 @@ if (IS_BROWSER) {
     // Reads rendered body text so it catches dashes written as HTML entities.
     // serializeFindings stamps the advisory flag from the registry.
     const emDashFindings = checkEmDashOveruseDOM()
-      .map((f) => ({ type: f.id, detail: f.snippet }))
-      .filter((f) => _ruleOk(f.type))
+        .map((f) => ({type: f.id, detail: f.snippet}))
+        .filter((f) => _ruleOk(f.type))
     if (emDashFindings.length > 0) {
       pageLevelFindings.push(...emDashFindings)
       addBrowserFindings(groupMap, document.body, emDashFindings)
@@ -1817,34 +2177,43 @@ if (IS_BROWSER) {
     const layoutFindings = checkLayout().filter((f) => _ruleOk(f.type))
     for (const f of layoutFindings) {
       const el = f.el || document.body
-      addBrowserFindings(groupMap, el, [{ type: f.type, detail: f.detail || f.snippet }])
+      addBrowserFindings(groupMap, el,
+          [{type: f.type, detail: f.detail || f.snippet}])
     }
 
     // Heading rhythm (browser-only: needs real layout for the gap math)
-    const headingRhythmFindings = checkHeadingRhythmDOM().filter((f) => _ruleOk(f.type))
+    const headingRhythmFindings = checkHeadingRhythmDOM().filter(
+        (f) => _ruleOk(f.type))
     for (const f of headingRhythmFindings) {
-      addBrowserFindings(groupMap, f.el || document.body, [{ type: f.type, detail: f.detail }])
+      addBrowserFindings(groupMap, f.el || document.body,
+          [{type: f.type, detail: f.detail}])
     }
 
     // Edge-flush cards in horizontal scrollers (browser-only: needs real
     // layout for the scroller clip box vs card rect math)
-    const edgeFlushFindings = checkEdgeFlushCardsDOM().filter((f) => _ruleOk(f.type))
+    const edgeFlushFindings = checkEdgeFlushCardsDOM().filter(
+        (f) => _ruleOk(f.type))
     for (const f of edgeFlushFindings) {
-      addBrowserFindings(groupMap, f.el || document.body, [{ type: f.type, detail: f.detail }])
+      addBrowserFindings(groupMap, f.el || document.body,
+          [{type: f.type, detail: f.detail}])
     }
 
     // Text occlusion / element overlap (browser-only: needs real layout +
     // elementFromPoint to confirm what actually paints on top)
-    const occlusionFindings = checkTextOcclusionDOM().filter((f) => _ruleOk(f.type))
+    const occlusionFindings = checkTextOcclusionDOM().filter(
+        (f) => _ruleOk(f.type))
     for (const f of occlusionFindings) {
-      addBrowserFindings(groupMap, f.el || document.body, [{ type: f.type, detail: f.detail }])
+      addBrowserFindings(groupMap, f.el || document.body,
+          [{type: f.type, detail: f.detail}])
     }
 
     // First-viewport column overflow — the stretched-hero signature
     // (browser-only: needs real layout for the content-extent math)
-    const colOverflowFindings = checkFirstViewportColumnOverflowDOM().filter((f) => _ruleOk(f.type))
+    const colOverflowFindings = checkFirstViewportColumnOverflowDOM().filter(
+        (f) => _ruleOk(f.type))
     for (const f of colOverflowFindings) {
-      addBrowserFindings(groupMap, f.el || document.body, [{ type: f.type, detail: f.detail }])
+      addBrowserFindings(groupMap, f.el || document.body,
+          [{type: f.type, detail: f.detail}])
     }
 
     // Page-level quality checks (headings, etc.)
@@ -1855,8 +2224,8 @@ if (IS_BROWSER) {
     }
 
     const creamFindings = checkCreamPalette(document)
-      .map((f) => ({ type: f.id, detail: f.snippet }))
-      .filter((f) => _ruleOk(f.type))
+        .map((f) => ({type: f.id, detail: f.snippet}))
+        .filter((f) => _ruleOk(f.type))
     if (creamFindings.length > 0) {
       pageLevelFindings.push(...creamFindings)
       addBrowserFindings(groupMap, document.body, creamFindings)
@@ -1873,28 +2242,30 @@ if (IS_BROWSER) {
     const htmlPatternFindings = checkHtmlPatterns(docClone.outerHTML)
     if (htmlPatternFindings.length > 0) {
       const mapped = htmlPatternFindings
-        .map((f) => {
-          const item = { type: f.id, detail: f.snippet }
-          if (f.severity) {
-            item.severity = f.severity
-          } else if (f.id === 'pulsing-dot' && f.selector) {
-            // The string scan promotes header/nav dots on its own; with a live
-            // layout also promote dots resting in the first ~900px of the page
-            // (the hero region), which the source scan cannot measure.
-            try {
-              const dotEl = document.querySelector(f.selector)
-              if (dotEl) {
-                const rect = dotEl.getBoundingClientRect()
-                const pageTop = rect.top + (window.scrollY || 0)
-                if (pageTop <= 900) item.severity = 'error'
+          .map((f) => {
+            const item = {type: f.id, detail: f.snippet}
+            if (f.severity) {
+              item.severity = f.severity
+            } else if (f.id === 'pulsing-dot' && f.selector) {
+              // The string scan promotes header/nav dots on its own; with a live
+              // layout also promote dots resting in the first ~900px of the page
+              // (the hero region), which the source scan cannot measure.
+              try {
+                const dotEl = document.querySelector(f.selector)
+                if (dotEl) {
+                  const rect = dotEl.getBoundingClientRect()
+                  const pageTop = rect.top + (window.scrollY || 0)
+                  if (pageTop <= 900) {
+                    item.severity = 'error'
+                  }
+                }
+              } catch {
+                /* unresolvable selector: keep registry severity */
               }
-            } catch {
-              /* unresolvable selector: keep registry severity */
             }
-          }
-          return item
-        })
-        .filter((f) => _ruleOk(f.type))
+            return item
+          })
+          .filter((f) => _ruleOk(f.type))
       pageLevelFindings.push(...mapped)
       addBrowserFindings(groupMap, document.body, mapped)
     }
@@ -1907,28 +2278,29 @@ if (IS_BROWSER) {
   }
 
   function shouldRunVisualContrast(options = {}) {
-    return options.visualContrast === true || window.__IMPECCABLE_CONFIG__?.visualContrast === true
+    return options.visualContrast === true
+        || window.__IMPECCABLE_CONFIG__?.visualContrast === true
   }
 
   function visualContrastOptions(options = {}) {
     const config = window.__IMPECCABLE_CONFIG__ || {}
     const scrollOffscreen =
-      typeof options.scrollOffscreen === 'boolean'
-        ? options.scrollOffscreen
-        : typeof options.visualContrastScrollOffscreen === 'boolean'
-          ? options.visualContrastScrollOffscreen
-          : typeof config.visualContrastScrollOffscreen === 'boolean'
-            ? config.visualContrastScrollOffscreen
-            : false
+        typeof options.scrollOffscreen === 'boolean'
+            ? options.scrollOffscreen
+            : typeof options.visualContrastScrollOffscreen === 'boolean'
+                ? options.visualContrastScrollOffscreen
+                : typeof config.visualContrastScrollOffscreen === 'boolean'
+                    ? config.visualContrastScrollOffscreen
+                    : false
     return {
       ...options,
       maxCandidates: Number.isFinite(options.visualContrastMaxCandidates)
-        ? options.visualContrastMaxCandidates
-        : Number.isFinite(options.maxCandidates)
-          ? options.maxCandidates
-          : Number.isFinite(config.visualContrastMaxCandidates)
-            ? config.visualContrastMaxCandidates
-            : undefined,
+          ? options.visualContrastMaxCandidates
+          : Number.isFinite(options.maxCandidates)
+              ? options.maxCandidates
+              : Number.isFinite(config.visualContrastMaxCandidates)
+                  ? config.visualContrastMaxCandidates
+                  : undefined,
       scrollOffscreen,
     }
   }
@@ -1944,9 +2316,13 @@ if (IS_BROWSER) {
       lastVisualContrastAnalyses.push(result)
       return
     }
-    const idx = lastVisualContrastAnalyses.findIndex((item) => item.selector === result.selector)
-    if (idx >= 0) lastVisualContrastAnalyses[idx] = result
-    else lastVisualContrastAnalyses.push(result)
+    const idx = lastVisualContrastAnalyses.findIndex(
+        (item) => item.selector === result.selector)
+    if (idx >= 0) {
+      lastVisualContrastAnalyses[idx] = result
+    } else {
+      lastVisualContrastAnalyses.push(result)
+    }
   }
 
   function disconnectLazyVisualContrastObserver() {
@@ -1958,24 +2334,33 @@ if (IS_BROWSER) {
   }
 
   function addVisualContrastResult(groupMap, result, options = {}) {
-    if (result.status !== 'fail' || !result.finding || !result.selector) return false
+    if (result.status !== 'fail' || !result.finding
+        || !result.selector) {
+      return false
+    }
     let el = null
     try {
       el = document.querySelector(result.selector)
     } catch {
       el = null
     }
-    if (!el) return false
-    const findingType = result.finding.type || result.finding.id || 'low-contrast'
+    if (!el) {
+      return false
+    }
+    const findingType = result.finding.type || result.finding.id
+        || 'low-contrast'
     const existing = groupMap.get(el) || []
-    if (existing.some((f) => (f.type || f.id) === findingType)) return false
+    if (existing.some((f) => (f.type || f.id) === findingType)) {
+      return false
+    }
     addBrowserFindings(groupMap, el, [
       {
         type: findingType,
         detail: result.finding.detail || result.finding.snippet,
       },
     ])
-    if (options.decorate && el !== document.body && el !== document.documentElement) {
+    if (options.decorate && el !== document.body && el
+        !== document.documentElement) {
       highlight(el, groupMap.get(el) || [])
     }
     return true
@@ -1983,43 +2368,49 @@ if (IS_BROWSER) {
 
   function scanResultMeta(options = {}) {
     const scanId = options.scanId
-    if (typeof scanId !== 'string' && typeof scanId !== 'number') return {}
-    return { scanId: String(scanId) }
+    if (typeof scanId !== 'string' && typeof scanId !== 'number') {
+      return {}
+    }
+    return {scanId: String(scanId)}
   }
 
   function postSerializedFindings(groupMap, options = {}) {
-    if (!EXTENSION_MODE) return
+    if (!EXTENSION_MODE) {
+      return
+    }
     const allFindings = browserFindingsFromMap(groupMap)
     window.postMessage(
-      {
-        source: 'impeccable-results',
-        findings: serializeFindings(allFindings),
-        count: allFindings.length,
-        ...scanResultMeta(options),
-      },
-      '*',
+        {
+          source: 'impeccable-results',
+          findings: serializeFindings(allFindings),
+          count: allFindings.length,
+          ...scanResultMeta(options),
+        },
+        '*',
     )
   }
 
   function postExtensionError(err) {
-    if (!EXTENSION_MODE) return
+    if (!EXTENSION_MODE) {
+      return
+    }
     window.postMessage(
-      {
-        source: 'impeccable-error',
-        message: err?.message || String(err),
-      },
-      '*',
+        {
+          source: 'impeccable-error',
+          message: err?.message || String(err),
+        },
+        '*',
     )
   }
 
   function reportVisualContrastError(err, detail = {}) {
     window.dispatchEvent(
-      new CustomEvent('impeccable-visual-contrast-error', {
-        detail: {
-          ...detail,
-          message: err?.message || String(err),
-        },
-      }),
+        new CustomEvent('impeccable-visual-contrast-error', {
+          detail: {
+            ...detail,
+            message: err?.message || String(err),
+          },
+        }),
     )
     if (EXTENSION_MODE) {
       postExtensionError(err)
@@ -2028,57 +2419,72 @@ if (IS_BROWSER) {
     }
   }
 
-  function scheduleLazyVisualContrast(groupMap, analyses, options = {}, runtime = {}) {
+  function scheduleLazyVisualContrast(groupMap, analyses, options = {},
+      runtime = {}) {
     disconnectLazyVisualContrastObserver()
-    if (options.visualContrastLazy === false || options.scrollOffscreen !== false) return
-    if (typeof IntersectionObserver === 'undefined') return
+    if (options.visualContrastLazy === false || options.scrollOffscreen
+        !== false) {
+      return
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      return
+    }
     const unresolved = (analyses || []).filter(
-      (result) =>
-        result?.status === 'unresolved' &&
-        result.reason === 'text outside viewport' &&
-        result.selector,
+        (result) =>
+            result?.status === 'unresolved' &&
+            result.reason === 'text outside viewport' &&
+            result.selector,
     )
-    if (unresolved.length === 0) return
+    if (unresolved.length === 0) {
+      return
+    }
     const generation = runtime.generation || scanGeneration
 
     lazyVisualContrastObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          const el = entry.target
-          const candidate = lazyVisualContrastPending.get(el)
-          if (!candidate || lazyVisualContrastResolving.has(el)) continue
-          lazyVisualContrastObserver?.unobserve(el)
-          lazyVisualContrastPending.delete(el)
-          lazyVisualContrastResolving.add(el)
-          waitForVisualPaint()
-            .then(() => analyzeVisualContrastCandidate(candidate))
-            .then((result) => {
-              if (generation !== scanGeneration) return
-              rememberVisualContrastAnalysis(result)
-              const added = addVisualContrastResult(groupMap, result, { decorate: true })
-              if (added) {
-                postSerializedFindings(groupMap, options)
-                window.dispatchEvent(
-                  new CustomEvent('impeccable-visual-contrast-resolved', {
-                    detail: {
-                      selector: result.selector,
-                      status: result.status,
-                      finding: result.finding || null,
-                    },
-                  }),
-                )
-              }
-            })
-            .catch((err) => {
-              reportVisualContrastError(err, { selector: candidate.selector })
-            })
-            .finally(() => {
-              lazyVisualContrastResolving.delete(el)
-            })
-        }
-      },
-      { threshold: 0.5 },
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) {
+              continue
+            }
+            const el = entry.target
+            const candidate = lazyVisualContrastPending.get(el)
+            if (!candidate || lazyVisualContrastResolving.has(el)) {
+              continue
+            }
+            lazyVisualContrastObserver?.unobserve(el)
+            lazyVisualContrastPending.delete(el)
+            lazyVisualContrastResolving.add(el)
+            waitForVisualPaint()
+                .then(() => analyzeVisualContrastCandidate(candidate))
+                .then((result) => {
+                  if (generation !== scanGeneration) {
+                    return
+                  }
+                  rememberVisualContrastAnalysis(result)
+                  const added = addVisualContrastResult(groupMap, result,
+                      {decorate: true})
+                  if (added) {
+                    postSerializedFindings(groupMap, options)
+                    window.dispatchEvent(
+                        new CustomEvent('impeccable-visual-contrast-resolved', {
+                          detail: {
+                            selector: result.selector,
+                            status: result.status,
+                            finding: result.finding || null,
+                          },
+                        }),
+                    )
+                  }
+                })
+                .catch((err) => {
+                  reportVisualContrastError(err, {selector: candidate.selector})
+                })
+                .finally(() => {
+                  lazyVisualContrastResolving.delete(el)
+                })
+          }
+        },
+        {threshold: 0.5},
     )
 
     for (const candidate of unresolved) {
@@ -2088,13 +2494,16 @@ if (IS_BROWSER) {
       } catch {
         el = null
       }
-      if (!el) continue
+      if (!el) {
+        continue
+      }
       lazyVisualContrastPending.set(el, candidate)
       lazyVisualContrastObserver.observe(el)
     }
   }
 
-  async function addVisualContrastFindings(groupMap, options = {}, runtime = {}) {
+  async function addVisualContrastFindings(groupMap, options = {},
+      runtime = {}) {
     if (!shouldRunVisualContrast(options)) {
       lastVisualContrastAnalyses = []
       disconnectLazyVisualContrastObserver()
@@ -2102,13 +2511,17 @@ if (IS_BROWSER) {
     }
     const resolvedOptions = visualContrastOptions(options)
     const analyses = await analyzeVisualContrast(resolvedOptions)
-    if (runtime.generation && runtime.generation !== scanGeneration) return analyses
+    if (runtime.generation && runtime.generation
+        !== scanGeneration) {
+      return analyses
+    }
     lastVisualContrastAnalyses = analyses
     for (const result of analyses) {
-      addVisualContrastResult(groupMap, result, { decorate: runtime.decorate })
+      addVisualContrastResult(groupMap, result, {decorate: runtime.decorate})
     }
-    if (runtime.decorate || runtime.scheduleLazy)
+    if (runtime.decorate || runtime.scheduleLazy) {
       scheduleLazyVisualContrast(groupMap, analyses, resolvedOptions, runtime)
+    }
     return analyses
   }
 
@@ -2125,17 +2538,21 @@ if (IS_BROWSER) {
   function clearOverlays() {
     scanGeneration += 1
     disconnectLazyVisualContrastObserver()
-    for (const o of [...overlays]) detachOverlay(o)
+    for (const o of [...overlays]) {
+      detachOverlay(o)
+    }
     overlays.length = 0
     visibilityObserver.disconnect()
     overlayIndex = 0
   }
 
   function renderBrowserFindings(collected, options = {}) {
-    const { allFindings, pageLevelFindings } = collected
+    const {allFindings, pageLevelFindings} = collected
 
-    for (const { el, findings } of allFindings) {
-      if (el === document.body || el === document.documentElement) continue
+    for (const {el, findings} of allFindings) {
+      if (el === document.body || el === document.documentElement) {
+        continue
+      }
       highlight(el, findings)
     }
 
@@ -2143,18 +2560,20 @@ if (IS_BROWSER) {
       showPageBanner(pageLevelFindings)
     }
 
-    if (!EXTENSION_MODE) printSummary(allFindings)
+    if (!EXTENSION_MODE) {
+      printSummary(allFindings)
+    }
 
     // In extension mode, post serialized results for the DevTools panel
     if (EXTENSION_MODE) {
       window.postMessage(
-        {
-          source: 'impeccable-results',
-          findings: serializeFindings(allFindings),
-          count: allFindings.length,
-          ...scanResultMeta(options),
-        },
-        '*',
+          {
+            source: 'impeccable-results',
+            findings: serializeFindings(allFindings),
+            count: allFindings.length,
+            ...scanResultMeta(options),
+          },
+          '*',
       )
     }
 
@@ -2173,13 +2592,17 @@ if (IS_BROWSER) {
     const collected = collectBrowserFindings()
     const allFindings = renderBrowserFindings(collected, options)
     if (shouldRunVisualContrast(options)) {
-      addVisualContrastFindings(collected.groupMap, options, { decorate: true, generation })
-        .then(() => {
-          if (generation === scanGeneration) postSerializedFindings(collected.groupMap, options)
-        })
-        .catch((err) => {
-          reportVisualContrastError(err)
-        })
+      addVisualContrastFindings(collected.groupMap, options,
+          {decorate: true, generation})
+          .then(() => {
+            if (generation === scanGeneration) {
+              postSerializedFindings(
+                  collected.groupMap, options)
+            }
+          })
+          .catch((err) => {
+            reportVisualContrastError(err)
+          })
     }
     return allFindings
   }
@@ -2192,7 +2615,9 @@ if (IS_BROWSER) {
         generation,
         scheduleLazy: true,
       })
-      if (generation !== scanGeneration) return []
+      if (generation !== scanGeneration) {
+        return []
+      }
       return renderBrowserFindings(collected, options)
     }
     lastVisualContrastAnalyses = []
@@ -2201,26 +2626,34 @@ if (IS_BROWSER) {
 
   const detect = (options = {}) => {
     lastVisualContrastAnalyses = []
-    const { allFindings } = collectBrowserFindings()
-    return options.serialize === false ? allFindings : serializeFindings(allFindings)
+    const {allFindings} = collectBrowserFindings()
+    return options.serialize === false ? allFindings : serializeFindings(
+        allFindings)
   }
 
   const detectAsync = async (options = {}) => {
     if (shouldRunVisualContrast(options)) {
-      const { allFindings } = await collectBrowserFindingsAsync(options)
-      return options.serialize === false ? allFindings : serializeFindings(allFindings)
+      const {allFindings} = await collectBrowserFindingsAsync(options)
+      return options.serialize === false ? allFindings : serializeFindings(
+          allFindings)
     }
     lastVisualContrastAnalyses = []
-    const { allFindings } = collectBrowserFindings()
-    return options.serialize === false ? allFindings : serializeFindings(allFindings)
+    const {allFindings} = collectBrowserFindings()
+    return options.serialize === false ? allFindings : serializeFindings(
+        allFindings)
   }
 
   if (EXTENSION_MODE) {
     // Extension mode: listen for commands, don't auto-scan
     window.addEventListener('message', (e) => {
-      if (e.source !== window || !e.data || e.data.source !== 'impeccable-command') return
+      if (e.source !== window || !e.data || e.data.source
+          !== 'impeccable-command') {
+        return
+      }
       if (e.data.action === 'scan') {
-        if (e.data.config) window.__IMPECCABLE_CONFIG__ = e.data.config
+        if (e.data.config) {
+          window.__IMPECCABLE_CONFIG__ = e.data.config
+        }
         try {
           scan(e.data.config || {})
         } catch (err) {
@@ -2230,7 +2663,8 @@ if (IS_BROWSER) {
       if (e.data.action === 'toggle-overlays') {
         const visible = !document.body.classList.contains('impeccable-hidden')
         document.body.classList.toggle('impeccable-hidden', visible)
-        window.postMessage({ source: 'impeccable-overlays-toggled', visible: !visible }, '*')
+        window.postMessage(
+            {source: 'impeccable-overlays-toggled', visible: !visible}, '*')
       }
       if (e.data.action === 'remove') {
         clearOverlays()
@@ -2243,14 +2677,17 @@ if (IS_BROWSER) {
       }
       if (e.data.action === 'highlight') {
         try {
-          const target = e.data.selector ? document.querySelector(e.data.selector) : null
+          const target = e.data.selector ? document.querySelector(
+              e.data.selector) : null
           if (target) {
             // Scroll first so positionOverlay reads the post-scroll rect
             if (!isInViewport(target) && target.scrollIntoView) {
-              target.scrollIntoView({ behavior: 'instant', block: 'center' })
+              target.scrollIntoView({behavior: 'instant', block: 'center'})
             }
             for (const o of overlays) {
-              if (o.classList.contains('impeccable-banner')) continue
+              if (o.classList.contains('impeccable-banner')) {
+                continue
+              }
               const isMatch = o._targetEl === target
               o.classList.toggle('impeccable-spotlight', isMatch)
               o.classList.toggle('impeccable-spotlight-dimmed', !isMatch)
@@ -2277,7 +2714,7 @@ if (IS_BROWSER) {
         }
       }
     })
-    window.postMessage({ source: 'impeccable-ready' }, '*')
+    window.postMessage({source: 'impeccable-ready'}, '*')
   } else {
     if (window.__IMPECCABLE_CONFIG__?.autoScan !== false) {
       const runAutoScan = () => {
@@ -2288,7 +2725,8 @@ if (IS_BROWSER) {
         }
       }
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(runAutoScan, 100))
+        document.addEventListener('DOMContentLoaded',
+            () => setTimeout(runAutoScan, 100))
       } else {
         setTimeout(runAutoScan, 100)
       }

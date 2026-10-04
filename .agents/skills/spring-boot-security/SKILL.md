@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Reactive Security
 
 Reactive authentication and authorization patterns for **Spring Boot 4 + WebFlux + Kotlin

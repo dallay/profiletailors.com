@@ -8,7 +8,7 @@
  * Public API facade. Runtime engines live under cli/engine/engines/.
  */
 
-import { detectCli } from './cli/main.mjs'
+import {detectCli} from './cli/main.mjs'
 
 export {
   ANTIPATTERNS,
@@ -34,7 +34,7 @@ export {
   getHue,
   colorToHex,
 } from './shared/color.mjs'
-export { isFullPage } from './shared/page.mjs'
+export {isFullPage} from './shared/page.mjs'
 export {
   checkElementBorders,
   checkElementMotion,
@@ -43,7 +43,9 @@ export {
   checkPageLayout,
   checkHtmlPatterns,
 } from './rules/checks.mjs'
-export { createDetectorProfile, summarizeDetectorProfile } from './profile/profiler.mjs'
+export {
+  createDetectorProfile, summarizeDetectorProfile
+} from './profile/profiler.mjs'
 export {
   parseFrontmatter as parseDesignFrontmatter,
   normalizeDesignSystem,
@@ -51,9 +53,13 @@ export {
   checkSourceDesignSystem,
   collectStaticDesignSystemFindings,
 } from './design-system.mjs'
-export { detectHtml } from './engines/static-html/detect-html.mjs'
-export { detectUrl, createBrowserDetector } from './engines/browser/detect-url.mjs'
-export { detectText, extractStyleBlocks, extractCSSinJS } from './engines/regex/detect-text.mjs'
+export {detectHtml} from './engines/static-html/detect-html.mjs'
+export {
+  detectUrl, createBrowserDetector
+} from './engines/browser/detect-url.mjs'
+export {
+  detectText, extractStyleBlocks, extractCSSinJS
+} from './engines/regex/detect-text.mjs'
 export {
   walkDir,
   SCANNABLE_EXTENSIONS,
@@ -64,9 +70,11 @@ export {
   isPortListening,
   FRAMEWORK_CONFIGS,
 } from './node/file-system.mjs'
-export { formatFindings, detectCli } from './cli/main.mjs'
+export {formatFindings, detectCli} from './cli/main.mjs'
 
 const isMainModule =
-  process.argv[1]?.endsWith('detect-antipatterns.mjs') ||
-  process.argv[1]?.endsWith('detect-antipatterns.mjs/')
-if (isMainModule) detectCli()
+    process.argv[1]?.endsWith('detect-antipatterns.mjs') ||
+    process.argv[1]?.endsWith('detect-antipatterns.mjs/')
+if (isMainModule) {
+  detectCli()
+}

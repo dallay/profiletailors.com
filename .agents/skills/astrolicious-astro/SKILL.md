@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 # Astro Usage Guide
 
 **Always consult [docs.astro.build](https://docs.astro.build) for code examples and latest API.**

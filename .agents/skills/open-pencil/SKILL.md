@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # OpenPencil
 
 OpenPencil provides a CLI and MCP server for `.fig` design files and the running OpenPencil editor.
@@ -37,7 +38,8 @@ bun add -g @open-pencil/cli
 bun add -g @open-pencil/mcp
 ```
 
-The desktop app starts `openpencil-mcp-http` automatically in production Tauri builds when `@open-pencil/mcp` is installed globally and exposes automation on:
+The desktop app starts `openpencil-mcp-http` automatically in production Tauri builds when
+`@open-pencil/mcp` is installed globally and exposes automation on:
 
 - HTTP/RPC: `http://127.0.0.1:7600`
 - WebSocket bridge: `ws://127.0.0.1:7601`
@@ -96,7 +98,8 @@ openpencil query design.fig "//COMPONENT//FRAME//TEXT"
 openpencil query "//FRAME[@width > 1000]"             # app mode
 ```
 
-Common node types: `FRAME`, `TEXT`, `RECTANGLE`, `ELLIPSE`, `VECTOR`, `GROUP`, `COMPONENT`, `COMPONENT_SET`, `INSTANCE`, `SECTION`, `LINE`, `STAR`, `POLYGON`, `SLICE`, `BOOLEAN_OPERATION`.
+Common node types: `FRAME`, `TEXT`, `RECTANGLE`, `ELLIPSE`, `VECTOR`, `GROUP`, `COMPONENT`,
+`COMPONENT_SET`, `INSTANCE`, `SECTION`, `LINE`, `STAR`, `POLYGON`, `SLICE`, `BOOLEAN_OPERATION`.
 
 ### Export and convert
 
@@ -201,32 +204,53 @@ openpencil-mcp-http
 
 ### MCP workflow
 
-1. **Open/create a document** — `open_file { path }` when `OPENPENCIL_MCP_ROOT` is configured, or `new_document {}`.
-2. **Query** — `get_page_tree`, `find_nodes`, `query_nodes`, `get_node`, `list_pages`, `get_current_page`.
+1. **Open/create a document** — `open_file { path }` when `OPENPENCIL_MCP_ROOT` is configured, or
+   `new_document {}`.
+2. **Query** — `get_page_tree`, `find_nodes`, `query_nodes`, `get_node`, `list_pages`,
+   `get_current_page`.
 3. **Inspect** — `get_jsx`, `diff_jsx`, `describe`, `export_image`, `export_svg`, `export_pdf`.
-4. **Modify** — `render`, `batch_update`, `update_node`, `set_fill`, `set_layout`, `create_shape`, `import_svg`, etc.
-5. **Navigate** — after creating or editing visible canvas content, call `select_nodes` and `viewport_zoom_to_fit { id }` (or `node_bounds` + `viewport_set`) so the user can see the result in the running editor.
+4. **Modify** — `render`, `batch_update`, `update_node`, `set_fill`, `set_layout`, `create_shape`,
+   `import_svg`, etc.
+5. **Navigate** — after creating or editing visible canvas content, call `select_nodes` and
+   `viewport_zoom_to_fit { id }` (or `node_bounds` + `viewport_set`) so the user can see the result
+   in the running editor.
 6. **Save/export** — `save_file`, `export_image`, `export_svg`, `export_pdf`, or CLI `export`.
 
 ## MCP Tools in 0.12.0 (106 total)
 
-**Read and selection (17):** `get_selection`, `get_node`, `find_nodes`, `get_page_tree`, `get_current_page`, `list_pages`, `select_nodes`, `query_nodes`, `get_components`, `switch_page`, `page_bounds`, `list_fonts`, `list_available_fonts`, `get_jsx`, `diff_jsx`, `describe`, `node_tree`
+**Read and selection (17):** `get_selection`, `get_node`, `find_nodes`, `get_page_tree`,
+`get_current_page`, `list_pages`, `select_nodes`, `query_nodes`, `get_components`, `switch_page`,
+`page_bounds`, `list_fonts`, `list_available_fonts`, `get_jsx`, `diff_jsx`, `describe`, `node_tree`
 
-**Create and import (12):** `render`, `create_shape`, `create_component`, `create_instance`, `create_page`, `create_vector`, `create_slice`, `import_svg`, `search_icons`, `insert_icon`, `fetch_icons`, `stock_photo`
+**Create and import (12):** `render`, `create_shape`, `create_component`, `create_instance`,
+`create_page`, `create_vector`, `create_slice`, `import_svg`, `search_icons`, `insert_icon`,
+`fetch_icons`, `stock_photo`
 
-**Modify (24):** `update_node`, `batch_update`, `set_layout`, `set_layout_child`, `set_radius`, `set_fill`, `set_stroke`, `set_text`, `set_text_properties`, `set_effects`, `set_opacity`, `set_font`, `set_visible`, `set_constraints`, `set_rotation`, `set_minmax`, `set_font_range`, `set_text_resize`, `set_blend`, `set_locked`, `set_stroke_align`, `set_image_fill`, `set_variable`, `bind_variable`
+**Modify (24):** `update_node`, `batch_update`, `set_layout`, `set_layout_child`, `set_radius`,
+`set_fill`, `set_stroke`, `set_text`, `set_text_properties`, `set_effects`, `set_opacity`,
+`set_font`, `set_visible`, `set_constraints`, `set_rotation`, `set_minmax`, `set_font_range`,
+`set_text_resize`, `set_blend`, `set_locked`, `set_stroke_align`, `set_image_fill`, `set_variable`,
+`bind_variable`
 
-**Structure (16):** `delete_node`, `reparent_node`, `node_resize`, `clone_node`, `node_move`, `rename_node`, `group_nodes`, `ungroup_node`, `flatten_nodes`, `node_to_component`, `node_bounds`, `node_ancestors`, `node_children`, `node_bindings`, `node_replace_with`, `arrange`
+**Structure (16):** `delete_node`, `reparent_node`, `node_resize`, `clone_node`, `node_move`,
+`rename_node`, `group_nodes`, `ungroup_node`, `flatten_nodes`, `node_to_component`, `node_bounds`,
+`node_ancestors`, `node_children`, `node_bindings`, `node_replace_with`, `arrange`
 
-**Variables (9):** `list_variables`, `list_collections`, `get_variable`, `find_variables`, `create_variable`, `delete_variable`, `get_collection`, `create_collection`, `delete_collection`
+**Variables (9):** `list_variables`, `list_collections`, `get_variable`, `find_variables`,
+`create_variable`, `delete_variable`, `get_collection`, `create_collection`, `delete_collection`
 
-**Vector and viewport (15):** `boolean_union`, `boolean_subtract`, `boolean_intersect`, `boolean_exclude`, `path_get`, `path_set`, `path_scale`, `path_flip`, `path_move`, `viewport_get`, `viewport_set`, `viewport_zoom_to_fit`, `export_svg`, `export_pdf`, `export_image`
+**Vector and viewport (15):** `boolean_union`, `boolean_subtract`, `boolean_intersect`,
+`boolean_exclude`, `path_get`, `path_set`, `path_scale`, `path_flip`, `path_move`, `viewport_get`,
+`viewport_set`, `viewport_zoom_to_fit`, `export_svg`, `export_pdf`, `export_image`
 
-**Analyze and generation (9):** `analyze_colors`, `analyze_typography`, `analyze_spacing`, `analyze_clusters`, `diff_create`, `diff_show`, `design_to_tokens`, `design_to_component_map`, `calc`
+**Analyze and generation (9):** `analyze_colors`, `analyze_typography`, `analyze_spacing`,
+`analyze_clusters`, `diff_create`, `diff_show`, `design_to_tokens`, `design_to_component_map`,
+`calc`
 
 **File and prompts (4):** `save_file`, `open_file`, `new_document`, `get_codegen_prompt`
 
-> Tool availability can depend on server mode. `open_file`, `save_file`, and disk-writing export paths require `OPENPENCIL_MCP_ROOT` for path scoping.
+> Tool availability can depend on server mode. `open_file`, `save_file`, and disk-writing export
+> paths require `OPENPENCIL_MCP_ROOT` for path scoping.
 
 ## Key tools for agents
 
@@ -236,12 +260,14 @@ openpencil-mcp-http
 - **`describe`** — semantic analysis of role, visual style, layout, and design issues.
 - **`batch_update`** — apply multiple node updates efficiently.
 - **`export_image` / `export_svg` / `export_pdf`** — visual verification and deliverables.
-- **`viewport_zoom_to_fit` / `viewport_set` / `viewport_get`** — keep the live editor focused on the created or edited design.
+- **`viewport_zoom_to_fit` / `viewport_set` / `viewport_get`** — keep the live editor focused on the
+  created or edited design.
 - **`get_codegen_prompt`** — retrieve OpenPencil's current JSX/codegen guidance.
 
 ## JSX Rendering
 
-Use the `render` tool or `eval` to create component trees. If unsure about JSX syntax, call `get_codegen_prompt` first.
+Use the `render` tool or `eval` to create component trees. If unsure about JSX syntax, call
+`get_codegen_prompt` first.
 
 ```jsx
 <Frame name="Card" w={320} h="hug" flex="col" gap={16} p={24} bg="#FFF" rounded={16}>
@@ -255,7 +281,8 @@ Use the `render` tool or `eval` to create component trees. If unsure about JSX s
 </Frame>
 ```
 
-Elements: `Frame`, `Text`, `Rectangle`, `Ellipse`, `Line`, `Star`, `Polygon`, `Group`, `Section`, `Component`, `Instance`.
+Elements: `Frame`, `Text`, `Rectangle`, `Ellipse`, `Line`, `Star`, `Polygon`, `Group`, `Section`,
+`Component`, `Instance`.
 
 Text content is the child content of `<Text>`. Use design-JSX props, not Figma API field names:
 
@@ -265,26 +292,26 @@ Text content is the child content of `<Text>`. Use design-JSX props, not Figma A
 
 Common props:
 
-| Prop | Meaning |
-|------|---------|
-| `w`, `h` | Width, height (number or `"hug"` / `"fill"`) |
-| `flex` | `"row"` or `"col"` |
-| `grid`, `columns`, `rows` | CSS Grid, e.g. `columns="1fr 200px 1fr"` |
-| `gap`, `rowGap`, `columnGap` | Item spacing |
-| `p`, `px`, `py`, `pt`, `pr`, `pb`, `pl` | Padding |
-| `justify` | `"start"`, `"center"`, `"end"`, `"between"` |
-| `items` | `"start"`, `"center"`, `"end"`, `"stretch"` |
-| `grow` | Flex grow factor |
-| `bg` | Fill color (hex) |
-| `rounded`, `roundedTL/TR/BL/BR` | Corner radius |
-| `stroke`, `strokeWidth` | Stroke color and weight |
-| `opacity` | 0–1 |
-| `rotate` | Degrees |
-| `overflow` | `"hidden"` to clip children |
-| `shadow` | `"offsetX offsetY blur #color"` |
-| `blur` | Layer blur |
-| `size`, `weight`, `font`, `color`, `textAlign` | Text properties |
-| `colStart`, `rowStart`, `colSpan`, `rowSpan` | Grid child positioning |
+| Prop                                           | Meaning                                      |
+|------------------------------------------------|----------------------------------------------|
+| `w`, `h`                                       | Width, height (number or `"hug"` / `"fill"`) |
+| `flex`                                         | `"row"` or `"col"`                           |
+| `grid`, `columns`, `rows`                      | CSS Grid, e.g. `columns="1fr 200px 1fr"`     |
+| `gap`, `rowGap`, `columnGap`                   | Item spacing                                 |
+| `p`, `px`, `py`, `pt`, `pr`, `pb`, `pl`        | Padding                                      |
+| `justify`                                      | `"start"`, `"center"`, `"end"`, `"between"`  |
+| `items`                                        | `"start"`, `"center"`, `"end"`, `"stretch"`  |
+| `grow`                                         | Flex grow factor                             |
+| `bg`                                           | Fill color (hex)                             |
+| `rounded`, `roundedTL/TR/BL/BR`                | Corner radius                                |
+| `stroke`, `strokeWidth`                        | Stroke color and weight                      |
+| `opacity`                                      | 0–1                                          |
+| `rotate`                                       | Degrees                                      |
+| `overflow`                                     | `"hidden"` to clip children                  |
+| `shadow`                                       | `"offsetX offsetY blur #color"`              |
+| `blur`                                         | Layer blur                                   |
+| `size`, `weight`, `font`, `color`, `textAlign` | Text properties                              |
+| `colStart`, `rowStart`, `colSpan`, `rowSpan`   | Grid child positioning                       |
 
 ## Tips
 
@@ -293,8 +320,10 @@ Common props:
 - Use `tree --depth 2` or `query_nodes` to avoid overwhelming output on large files.
 - Export specific nodes with `--node` for faster visual checks.
 - Use `export_image` after changes to verify visual quality.
-- After creating a visible design, select it and zoom the editor to it: `select_nodes { ids: [id] }` then `viewport_zoom_to_fit { id }`.
-- If zoom-to-fit is unavailable in a client, use `node_bounds` to calculate the center and call `viewport_set { x, y, zoom }`.
+- After creating a visible design, select it and zoom the editor to it: `select_nodes { ids: [id] }`
+  then `viewport_zoom_to_fit { id }`.
+- If zoom-to-fit is unavailable in a client, use `node_bounds` to calculate the center and call
+  `viewport_set { x, y, zoom }`.
 - Use `analyze colors --similar` to find near-duplicate colors.
 - Use `eval` for Figma Plugin API operations not covered by a dedicated CLI/MCP tool.
 - Use `--json` when piping CLI output to scripts.

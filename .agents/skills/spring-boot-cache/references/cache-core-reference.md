@@ -69,7 +69,7 @@ interface Cache {
 
 #### value / cacheNames
 
-Name(s) of the cache(s) to use.
+Name (s) of the cache (s) to use.
 
 ```kotlin
 @Cacheable(value = "products")  // Single cache

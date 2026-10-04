@@ -75,6 +75,7 @@ Available options:
 ### Database-backed Repository
 
 <!-- legacy:servlet -->
+
 ```kotlin
 @Entity
 @Table(name = "http_exchanges")
@@ -187,6 +188,7 @@ class DatabaseHttpExchangeRepository(
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ### Filtered HTTP Exchange Repository

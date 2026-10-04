@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Gradle Best Practices Skill
 
 Conventions for writing efficient, maintainable, and cacheable Gradle builds.

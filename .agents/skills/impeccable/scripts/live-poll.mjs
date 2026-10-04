@@ -9,13 +9,16 @@
  *   node <scripts_path>/live-poll.mjs --reply <id> error "msg" # Reply with error
  */
 
-import { execFileSync } from 'node:child_process'
+import {execFileSync} from 'node:child_process'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { completionAckForAcceptResult, completionTypeForAcceptResult } from './live/completion.mjs'
-import { readLiveServerInfo } from './lib/impeccable-paths.mjs'
-import { enterLiveRoot } from './live/roots.mjs'
-import { instructionsForEvent } from './live/instructions.mjs'
+import {fileURLToPath} from 'node:url'
+import {
+  completionAckForAcceptResult,
+  completionTypeForAcceptResult
+} from './live/completion.mjs'
+import {readLiveServerInfo} from './lib/impeccable-paths.mjs'
+import {enterLiveRoot} from './live/roots.mjs'
+import {instructionsForEvent} from './live/instructions.mjs'
 
 // Absolute path to a sibling script in this skill's scripts dir, so runtime
 // error hints print a directly-runnable command instead of a placeholder.
@@ -40,25 +43,27 @@ const EVENT_TYPES_NEEDING_AGENT_REPLY = new Set([
 function readServerInfo() {
   const record = readLiveServerInfo(process.cwd())
   if (!record) {
-    console.error(`No running live server found. Start one with: ${scriptCmd('live.mjs')}`)
+    console.error(`No running live server found. Start one with: ${scriptCmd(
+        'live.mjs')}`)
     process.exit(1)
   }
   return record.info
 }
 
-export function buildPollReplyPayload(token, { id, type, message, file, data, sourceEventType }) {
-  return { token, id, type, message, file, data, sourceEventType }
+export function buildPollReplyPayload(token,
+    {id, type, message, file, data, sourceEventType}) {
+  return {token, id, type, message, file, data, sourceEventType}
 }
 
 export function manualApplyPollBanner(event = {}) {
   const id = event.id || 'EVENT_ID'
   return (
-    [
-      `Manual Apply action required: edit source, then reply with \`live-poll.mjs --reply ${id} done --data '<json>'\`.`,
-      'The JSON data must include status, appliedEntryIds, failed, files, and notes; summary counters are only a recovery fallback.',
-      'Do not run live-commit-manual-edits.mjs for this leased event.',
-      'Do not poll again before replying.',
-    ].join('\n') + '\n'
+      [
+        `Manual Apply action required: edit source, then reply with \`live-poll.mjs --reply ${id} done --data '<json>'\`.`,
+        'The JSON data must include status, appliedEntryIds, failed, files, and notes; summary counters are only a recovery fallback.',
+        'Do not run live-commit-manual-edits.mjs for this leased event.',
+        'Do not poll again before replying.',
+      ].join('\n') + '\n'
   )
 }
 
@@ -70,12 +75,15 @@ export function manualApplyPollBanner(event = {}) {
  */
 export function parseReplyArgs(args) {
   const replyIdx = args.indexOf('--reply')
-  if (replyIdx === -1) return null
+  if (replyIdx === -1) {
+    return null
+  }
   const id = args[replyIdx + 1]
   const status = args[replyIdx + 2]
-  validateReplyArgs({ id, status })
+  validateReplyArgs({id, status})
   const fileIdx = args.indexOf('--file')
-  const file = fileIdx !== -1 && fileIdx + 1 < args.length ? args[fileIdx + 1] : undefined
+  const file = fileIdx !== -1 && fileIdx + 1 < args.length ? args[fileIdx + 1]
+      : undefined
   const dataIdx = args.indexOf('--data')
   let data
   if (dataIdx !== -1 && dataIdx + 1 < args.length) {
@@ -88,14 +96,16 @@ export function parseReplyArgs(args) {
     }
   }
   const message =
-    args.find(
-      (a, i) => i > replyIdx + 2 && !a.startsWith('--') && i !== fileIdx + 1 && i !== dataIdx + 1,
-    ) || undefined
-  return { id, type: status, message, file, data }
+      args.find(
+          (a, i) => i > replyIdx + 2 && !a.startsWith('--') && i !== fileIdx + 1
+              && i !== dataIdx + 1,
+      ) || undefined
+  return {id, type: status, message, file, data}
 }
 
-function validateReplyArgs({ id, status }) {
-  const usage = `Usage: ${scriptCmd('live-poll.mjs')} --reply <id> <status> [--file path] [--data '<json>'] [message]`
+function validateReplyArgs({id, status}) {
+  const usage = `Usage: ${scriptCmd(
+      'live-poll.mjs')} --reply <id> <status> [--file path] [--data '<json>'] [message]`
   if (!id || id.startsWith('--')) {
     const err = new Error(`${usage}\nMissing event id after --reply.`)
     err.code = 'INVALID_REPLY_ARGS'
@@ -103,13 +113,15 @@ function validateReplyArgs({ id, status }) {
   }
   if (['done', 'error', 'complete', 'discard', 'discarded'].includes(id)) {
     const err = new Error(
-      `${usage}\nThe value after --reply must be the event id, not the status ${JSON.stringify(id)}. Use --reply EVENT_ID ${id}.`,
+        `${usage}\nThe value after --reply must be the event id, not the status ${JSON.stringify(
+            id)}. Use --reply EVENT_ID ${id}.`,
     )
     err.code = 'INVALID_REPLY_ARGS'
     throw err
   }
   if (!status || status.startsWith('--')) {
-    const err = new Error(`${usage}\nMissing reply status after event id ${JSON.stringify(id)}.`)
+    const err = new Error(
+        `${usage}\nMissing reply status after event id ${JSON.stringify(id)}.`)
     err.code = 'INVALID_REPLY_ARGS'
     throw err
   }
@@ -122,16 +134,17 @@ export function requiresAgentReply(event) {
 export async function postReply(base, token, reply) {
   const res = await fetch(`${base}/poll`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(buildPollReplyPayload(token, reply)),
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     const failureLines = Array.isArray(body.failures)
-      ? body.failures
-          .map((f) => `  ${f.file}${f.line != null ? `:${f.line}` : ''} ${f.message}`)
-          .join('\n')
-      : null
+        ? body.failures
+            .map((f) => `  ${f.file}${f.line != null ? `:${f.line}`
+                : ''} ${f.message}`)
+            .join('\n')
+        : null
     const parts = [
       body.error || res.statusText,
       body.reason,
@@ -146,7 +159,8 @@ export async function postReply(base, token, reply) {
 export async function fetchServerStatus(base, token) {
   const res = await fetch(`${base}/status?token=${token}`)
   if (res.status === 401) {
-    const err = new Error('Authentication failed. The server token may have changed.')
+    const err = new Error(
+        'Authentication failed. The server token may have changed.')
     err.code = 'AUTH_FAILED'
     throw err
   }
@@ -161,50 +175,58 @@ export function isEventPending(status, eventId) {
 }
 
 export async function waitForEventAck(
-  base,
-  token,
-  eventId,
-  { pollIntervalMs = 400, maxWaitMs = 600_000 } = {},
+    base,
+    token,
+    eventId,
+    {pollIntervalMs = 400, maxWaitMs = 600_000} = {},
 ) {
   const deadline = Date.now() + maxWaitMs
   while (Date.now() < deadline) {
     const status = await fetchServerStatus(base, token)
-    if (!isEventPending(status, eventId)) return true
+    if (!isEventPending(status, eventId)) {
+      return true
+    }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
   }
   return false
 }
 
 export async function fetchNextEvent(
-  base,
-  token,
-  {
-    totalDeadline,
-    types,
-    resolveTypes,
-    perRequestTimeoutMs = PER_REQUEST_TIMEOUT_MS,
-    leaseMs = DEFAULT_EVENT_LEASE_MS,
-    signal,
-  } = {},
+    base,
+    token,
+    {
+      totalDeadline,
+      types,
+      resolveTypes,
+      perRequestTimeoutMs = PER_REQUEST_TIMEOUT_MS,
+      leaseMs = DEFAULT_EVENT_LEASE_MS,
+      signal,
+    } = {},
 ) {
   while (true) {
     if (totalDeadline && Date.now() >= totalDeadline) {
-      return { type: 'timeout' }
+      return {type: 'timeout'}
     }
 
-    const remaining = totalDeadline ? totalDeadline - Date.now() : PER_REQUEST_TIMEOUT_MS
+    const remaining = totalDeadline ? totalDeadline - Date.now()
+        : PER_REQUEST_TIMEOUT_MS
     const slice = Math.min(Math.max(remaining, 1000), perRequestTimeoutMs)
     const query = new URLSearchParams({
       token,
       timeout: String(slice),
       leaseMs: String(leaseMs),
     })
-    const normalizedTypes = normalizePollTypes(resolveTypes ? await resolveTypes() : types)
-    if (normalizedTypes.length > 0) query.set('types', normalizedTypes.join(','))
-    const res = await fetch(`${base}/poll?${query}`, { signal })
+    const normalizedTypes = normalizePollTypes(
+        resolveTypes ? await resolveTypes() : types)
+    if (normalizedTypes.length > 0) {
+      query.set('types',
+          normalizedTypes.join(','))
+    }
+    const res = await fetch(`${base}/poll?${query}`, {signal})
 
     if (res.status === 401) {
-      const err = new Error('Authentication failed. The server token may have changed.')
+      const err = new Error(
+          'Authentication failed. The server token may have changed.')
       err.code = 'AUTH_FAILED'
       throw err
     }
@@ -215,8 +237,12 @@ export async function fetchNextEvent(
 
     const next = await res.json()
     if (next?.type === 'timeout') {
-      if (totalDeadline && Date.now() < totalDeadline) continue
-      if (!totalDeadline) continue
+      if (totalDeadline && Date.now() < totalDeadline) {
+        continue
+      }
+      if (!totalDeadline) {
+        continue
+      }
       return next
     }
     return next
@@ -224,7 +250,9 @@ export async function fetchNextEvent(
 }
 
 export async function augmentEventWithAcceptHandling(event, base, token) {
-  if (event.type !== 'accept' && event.type !== 'discard') return event
+  if (event.type !== 'accept' && event.type !== 'discard') {
+    return event
+  }
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
   const acceptScript = path.join(__dirname, 'live-accept.mjs')
@@ -238,7 +266,7 @@ export async function augmentEventWithAcceptHandling(event, base, token) {
     })
     event._acceptResult = JSON.parse(out.trim())
   } catch (err) {
-    event._acceptResult = { handled: false, mode: 'error', error: err.message }
+    event._acceptResult = {handled: false, mode: 'error', error: err.message}
   }
 
   await completeAcceptHandling(event, base, token)
@@ -246,7 +274,8 @@ export async function augmentEventWithAcceptHandling(event, base, token) {
 }
 
 export async function completeAcceptHandling(event, base, token) {
-  const completionType = completionTypeForAcceptResult(event.type, event._acceptResult)
+  const completionType = completionTypeForAcceptResult(event.type,
+      event._acceptResult)
   try {
     await postReply(base, token, {
       id: event.id,
@@ -254,16 +283,17 @@ export async function completeAcceptHandling(event, base, token) {
       sourceEventType: event.type,
       message: event._acceptResult?.error,
       file: event._acceptResult?.file,
-      data: event._acceptResult?.carbonize === true ? { carbonize: true } : undefined,
+      data: event._acceptResult?.carbonize === true ? {carbonize: true}
+          : undefined,
     })
   } catch (err) {
-    event._completionAck = { ok: false, error: err.message }
+    event._completionAck = {ok: false, error: err.message}
   }
   if (!event._completionAck) {
     event._completionAck = completionAckForAcceptResult(
-      event.id,
-      completionType,
-      event._acceptResult,
+        event.id,
+        completionType,
+        event._acceptResult,
     )
   }
   return event
@@ -271,11 +301,14 @@ export async function completeAcceptHandling(event, base, token) {
 
 export function buildAcceptScriptArgs(event) {
   const scriptArgs =
-    event.type === 'discard'
-      ? ['--id', String(event.id), '--discard']
-      : ['--id', String(event.id), '--variant', String(event.variantId)]
-  if (event.pageUrl) scriptArgs.push('--page-url', String(event.pageUrl))
-  if (event.type === 'accept' && event.paramValues && Object.keys(event.paramValues).length > 0) {
+      event.type === 'discard'
+          ? ['--id', String(event.id), '--discard']
+          : ['--id', String(event.id), '--variant', String(event.variantId)]
+  if (event.pageUrl) {
+    scriptArgs.push('--page-url', String(event.pageUrl))
+  }
+  if (event.type === 'accept' && event.paramValues && Object.keys(
+      event.paramValues).length > 0) {
     scriptArgs.push('--param-values', JSON.stringify(event.paramValues))
   }
   return scriptArgs
@@ -287,7 +320,8 @@ export function writeCarbonizeBanner(event) {
   }
   if (event._acceptResult?.carbonize === true) {
     process.stderr.write(
-      '\n⚠ Carbonize cleanup REQUIRED before next poll. After cleanup, run live-complete.mjs --id ' +
+        '\n⚠ Carbonize cleanup REQUIRED before next poll. After cleanup, run live-complete.mjs --id '
+        +
         event.id +
         '. See reference/live.md "Required after accept".\n\n',
     )
@@ -299,16 +333,18 @@ export function printPollEvent(event) {
   // authoritative next step, with real ids and paths substituted, so the
   // reference doc can stay lean and can never drift from script behavior.
   if (event && typeof event === 'object' && !event._instructions) {
-    const instructions = instructionsForEvent(event, { scriptsPath: SELF_DIR })
-    if (instructions) event._instructions = instructions
+    const instructions = instructionsForEvent(event, {scriptsPath: SELF_DIR})
+    if (instructions) {
+      event._instructions = instructions
+    }
   }
   console.log(JSON.stringify(event))
 }
 
 export async function runPollOnce(
-  base,
-  token,
-  { totalTimeout = 600_000, types, resolveTypes, perRequestTimeoutMs } = {},
+    base,
+    token,
+    {totalTimeout = 600_000, types, resolveTypes, perRequestTimeoutMs} = {},
 ) {
   const deadline = Date.now() + totalTimeout
   const event = await fetchNextEvent(base, token, {
@@ -324,28 +360,31 @@ export async function runPollOnce(
 }
 
 export async function runPollStream(
-  base,
-  token,
-  {
-    ackTimeoutMs = 600_000,
-    ackPollIntervalMs = 400,
-    shouldContinue = () => true,
-    types,
-    resolveTypes,
-    perRequestTimeoutMs,
-  } = {},
+    base,
+    token,
+    {
+      ackTimeoutMs = 600_000,
+      ackPollIntervalMs = 400,
+      shouldContinue = () => true,
+      types,
+      resolveTypes,
+      perRequestTimeoutMs,
+    } = {},
 ) {
   process.stderr.write(
-    '[impeccable-poll] stream mode: one JSON object per line on stdout; use --reply while this process stays running\n',
+      '[impeccable-poll] stream mode: one JSON object per line on stdout; use --reply while this process stays running\n',
   )
 
   while (shouldContinue()) {
-    const event = await fetchNextEvent(base, token, { types, resolveTypes, perRequestTimeoutMs })
+    const event = await fetchNextEvent(base, token,
+        {types, resolveTypes, perRequestTimeoutMs})
     await augmentEventWithAcceptHandling(event, base, token)
     writeCarbonizeBanner(event)
     printPollEvent(event)
 
-    if (event.type === 'exit') return event
+    if (event.type === 'exit') {
+      return event
+    }
 
     if (requiresAgentReply(event)) {
       const acked = await waitForEventAck(base, token, event.id, {
@@ -353,7 +392,8 @@ export async function runPollStream(
         maxWaitMs: ackTimeoutMs,
       })
       if (!acked) {
-        const err = new Error(`Timed out waiting for --reply on event ${event.id}`)
+        const err = new Error(
+            `Timed out waiting for --reply on event ${event.id}`)
         err.code = 'ACK_TIMEOUT'
         throw err
       }
@@ -367,12 +407,14 @@ function handlePollError(err) {
   if (err.code === 'AUTH_FAILED') {
     console.error(err.message)
     console.error(
-      `Try restarting: ${scriptCmd('live-server.mjs')} stop && ${scriptCmd('live.mjs')}`,
+        `Try restarting: ${scriptCmd('live-server.mjs')} stop && ${scriptCmd(
+            'live.mjs')}`,
     )
     process.exit(1)
   }
   if (err.cause?.code === 'ECONNREFUSED') {
-    console.error(`Live server not running. Start one with: ${scriptCmd('live.mjs')}`)
+    console.error(
+        `Live server not running. Start one with: ${scriptCmd('live.mjs')}`)
     process.exit(1)
   }
   if (err.code === 'ACK_TIMEOUT') {
@@ -433,7 +475,8 @@ Harness note:
       await postReply(base, info.token, reply)
     } catch (err) {
       if (err.cause?.code === 'ECONNREFUSED') {
-        console.error(`Live server not running. Start one with: ${scriptCmd('live.mjs')}`)
+        console.error(
+            `Live server not running. Start one with: ${scriptCmd('live.mjs')}`)
       } else {
         console.error('Reply failed:', err.message)
       }
@@ -444,19 +487,22 @@ Harness note:
 
   const streamMode = args.includes('--stream')
   const typesArg = args.find((a) => a.startsWith('--types='))
-  const types = normalizePollTypes(typesArg ? typesArg.slice('--types='.length) : null)
+  const types = normalizePollTypes(
+      typesArg ? typesArg.slice('--types='.length) : null)
   const ackTimeoutArg = args.find((a) => a.startsWith('--ack-timeout='))
-  const ackTimeoutMs = ackTimeoutArg ? parseInt(ackTimeoutArg.split('=')[1], 10) : 600_000
+  const ackTimeoutMs = ackTimeoutArg ? parseInt(ackTimeoutArg.split('=')[1], 10)
+      : 600_000
 
   try {
     if (streamMode) {
-      await runPollStream(base, info.token, { ackTimeoutMs, types })
+      await runPollStream(base, info.token, {ackTimeoutMs, types})
       return
     }
 
     const timeoutArg = args.find((a) => a.startsWith('--timeout='))
-    const totalTimeout = timeoutArg ? parseInt(timeoutArg.split('=')[1], 10) : 600_000
-    await runPollOnce(base, info.token, { totalTimeout, types })
+    const totalTimeout = timeoutArg ? parseInt(timeoutArg.split('=')[1], 10)
+        : 600_000
+    await runPollOnce(base, info.token, {totalTimeout, types})
   } catch (err) {
     handlePollError(err)
   }
@@ -469,7 +515,8 @@ export function normalizePollTypes(value) {
 
 // Auto-execute when run directly
 const _running = process.argv[1]
-if (_running?.endsWith('live-poll.mjs') || _running?.endsWith('live-poll.mjs/')) {
+if (_running?.endsWith('live-poll.mjs') || _running?.endsWith(
+    'live-poll.mjs/')) {
   enterLiveRoot()
   pollCli()
 }

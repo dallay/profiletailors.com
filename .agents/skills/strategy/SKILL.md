@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Strategy
 
 ## Objective
 
-Encapsulate interchangeable algorithms behind a common contract and select one independently from the client.
+Encapsulate interchangeable algorithms behind a common contract and select one independently from
+the client.
 
 ## Trigger conditions
 

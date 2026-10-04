@@ -1,8 +1,11 @@
 > **Additional context needed**: target platforms/devices and usage contexts.
 
-Adapt an existing design to a different context: another screen size, device, platform, or use case. The trap is treating adaptation as scaling. The job is rethinking the experience for the new context.
+Adapt an existing design to a different context: another screen size, device, platform, or use case.
+The trap is treating adaptation as scaling. The job is rethinking the experience for the new
+context.
 
-**Web only** (mobile web included). Native platforms (`ios` / `android` / `adaptive`) route to [adapt.native.md](adapt.native.md) instead; if the project is native, switch to it now.
+**Web only** (mobile web included). Native platforms (`ios` / `android` / `adaptive`) route
+to [adapt.native.md](adapt.native.md) instead; if the project is native, switch to it now.
 
 ---
 
@@ -11,22 +14,22 @@ Adapt an existing design to a different context: another screen size, device, pl
 Understand what needs adaptation and why:
 
 1. **Identify the source context**:
-   - What was it designed for originally? (Desktop web? Mobile app?)
-   - What assumptions were made? (Large screen? Mouse input? Fast connection?)
-   - What works well in current context?
+    - What was it designed for originally? (Desktop web? Mobile app?)
+    - What assumptions were made? (Large screen? Mouse input? Fast connection?)
+    - What works well in current context?
 
 2. **Understand target context**:
-   - **Device**: Mobile, tablet, desktop, TV, watch, print?
-   - **Input method**: Touch, mouse, keyboard, voice, gamepad?
-   - **Screen constraints**: Size, resolution, orientation?
-   - **Connection**: Fast wifi, slow 3G, offline?
-   - **Usage context**: On-the-go vs desk, quick glance vs focused reading?
-   - **User expectations**: What do users expect on this platform?
+    - **Device**: Mobile, tablet, desktop, TV, watch, print?
+    - **Input method**: Touch, mouse, keyboard, voice, gamepad?
+    - **Screen constraints**: Size, resolution, orientation?
+    - **Connection**: Fast wifi, slow 3G, offline?
+    - **Usage context**: On-the-go vs desk, quick glance vs focused reading?
+    - **User expectations**: What do users expect on this platform?
 
 3. **Identify adaptation challenges**:
-   - What won't fit? (Content, navigation, features)
-   - What won't work? (Hover states on touch, tiny touch targets)
-   - What's inappropriate? (Desktop patterns on mobile, mobile patterns on desktop)
+    - What won't fit? (Content, navigation, features)
+    - What won't work? (Hover states on touch, tiny touch targets)
+    - What's inappropriate? (Desktop patterns on mobile, mobile patterns on desktop)
 
 **CRITICAL**: Adaptation is rethinking the experience for the new context, not scaling pixels.
 
@@ -203,27 +206,33 @@ Test thoroughly across contexts:
 - **Edge cases**: Very small screens (320px), very large screens (4K)
 - **Slow connections**: Test on throttled network
 
-When the adaptation feels native to each context, hand off to `$impeccable polish` for the final pass.
+When the adaptation feels native to each context, hand off to `$impeccable polish` for the final
+pass.
 
 ---
 
 ## Reference Material
 
-The sections below were previously `responsive-design.md` and live inline now so the adapt flow has its deep responsive reference in one place.
+The sections below were previously `responsive-design.md` and live inline now so the adapt flow has
+its deep responsive reference in one place.
 
 ### Responsive Design
 
 #### Mobile-First: Write It Right
 
-Start with base styles for mobile, use `min-width` queries to layer complexity. Desktop-first (`max-width`) means mobile loads unnecessary styles first.
+Start with base styles for mobile, use `min-width` queries to layer complexity. Desktop-first
+(`max-width`) means mobile loads unnecessary styles first.
 
 #### Breakpoints: Content-Driven
 
-Don't chase device sizes; let content tell you where to break. Start narrow, stretch until design breaks, add breakpoint there. Three breakpoints usually suffice (640, 768, 1024px). Use `clamp()` for fluid values without breakpoints.
+Don't chase device sizes; let content tell you where to break. Start narrow, stretch until design
+breaks, add breakpoint there. Three breakpoints usually suffice (640, 768, 1024px). Use `clamp()`
+for fluid values without breakpoints.
 
 #### Detect Input Method, Not Just Screen Size
 
-**Screen size doesn't tell you input method.** A laptop with touchscreen, a tablet with keyboard. Use pointer and hover queries:
+**Screen size doesn't tell you input method.** A laptop with touchscreen, a tablet with keyboard.
+Use pointer and hover queries:
 
 ```css
 /* Fine pointer (mouse, trackpad) */
@@ -310,7 +319,10 @@ When you need different crops/compositions (not just resolutions):
 
 #### Layout Adaptation Patterns
 
-**Navigation**: Three stages: hamburger + drawer on mobile, horizontal compact on tablet, full with labels on desktop. **Tables**: Transform to cards on mobile using `display: block` and `data-label` attributes. **Progressive disclosure**: Use `<details>/<summary>` for content that can collapse on mobile.
+**Navigation**: Three stages: hamburger + drawer on mobile, horizontal compact on tablet, full with
+labels on desktop. **Tables**: Transform to cards on mobile using `display: block` and `data-label`
+attributes. **Progressive disclosure**: Use `<details>/<summary>` for content that can collapse on
+mobile.
 
 #### Testing: Don't Trust DevTools Alone
 
@@ -322,8 +334,10 @@ DevTools device emulation is useful for layout but misses:
 - Font rendering differences
 - Browser chrome/keyboard appearances
 
-**Test on at least**: One real iPhone, one real Android, a tablet if relevant. Cheap Android phones reveal performance issues you'll never see on simulators.
+**Test on at least**: One real iPhone, one real Android, a tablet if relevant. Cheap Android phones
+reveal performance issues you'll never see on simulators.
 
 ---
 
-**Avoid**: Desktop-first design. Device detection instead of feature detection. Separate mobile/desktop codebases. Ignoring tablet and landscape. Assuming all mobile devices are powerful.
+**Avoid**: Desktop-first design. Device detection instead of feature detection. Separate
+mobile/desktop codebases. Ignoring tablet and landscape. Assuming all mobile devices are powerful.

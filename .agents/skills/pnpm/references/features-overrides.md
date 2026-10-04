@@ -32,7 +32,7 @@ overrides:
 ```
 
 > **Note:** pnpm v11+ requires project-level configuration in `pnpm-workspace.yaml`. The
-`package.json` `pnpm.overrides` field is deprecated.
+> `package.json` `pnpm.overrides` field is deprecated.
 
 ## Override Patterns
 

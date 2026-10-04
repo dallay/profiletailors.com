@@ -16,7 +16,7 @@
  */
 
 const ICON_ATTRS =
-  'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"'
+    'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"'
 
 export const LIVE_COMMANDS = [
   {
@@ -177,7 +177,8 @@ export const SESSION_PHASES = Object.freeze([
 ])
 
 /** Phases that retire a session from the active list. */
-export const COMPLETED_SESSION_PHASES = Object.freeze(['completed', 'discarded'])
+export const COMPLETED_SESSION_PHASES = Object.freeze(
+    ['completed', 'discarded'])
 
 /**
  * Phases after which a late generation write is a ghost from a canceled cycle.

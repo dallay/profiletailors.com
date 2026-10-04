@@ -16,8 +16,8 @@
 
 ## Core Principle
 
-**Mock at the boundary, test your stack end-to-end.** Mock third-party services you don't own (
-payment gateways, email providers, OAuth). Never mock your own frontend-to-backend communication.
+**Mock at the boundary, test your stack end-to-end.** Mock third-party services you don't own
+(payment gateways, email providers, OAuth). Never mock your own frontend-to-backend communication.
 Tests should prove YOUR code works, not that third-party APIs are available.
 
 ## Decision Matrix

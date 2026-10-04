@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Spring Boot OpenAPI
 
 OpenAPI and SpringDoc guidance for **Spring Boot 4 + WebFlux + Kotlin coroutines**.

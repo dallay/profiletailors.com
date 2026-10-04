@@ -236,7 +236,7 @@ await page.waitForFunction(
 
 ## Polling & Retrying
 
-### toPass() for Polling
+### toPass () for Polling
 
 Retry until block passes or times out:
 
@@ -253,7 +253,7 @@ await expect(async () => {
 });
 ```
 
-### expect.poll()
+### expect.poll ()
 
 Poll a function until assertion passes:
 

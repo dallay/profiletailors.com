@@ -15,22 +15,22 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { isGeneratedFile } from './lib/is-generated.mjs'
-import { getLiveDir, safeSessionId } from './lib/impeccable-paths.mjs'
-import { resolveLiveTemplateExtensions } from './lib/template-extensions.mjs'
+import {isGeneratedFile} from './lib/is-generated.mjs'
+import {getLiveDir, safeSessionId} from './lib/impeccable-paths.mjs'
+import {resolveLiveTemplateExtensions} from './lib/template-extensions.mjs'
 import {
   readBuffer as readManualEditsBuffer,
   writeBuffer as writeManualEditsBuffer,
 } from './live/manual-edits-buffer.mjs'
-import { NEVER_SOURCE_DIRS, findSourceFile } from './live/source-search.mjs'
-import { withSourceLockSync } from './live/source-lock.mjs'
+import {findSourceFile, NEVER_SOURCE_DIRS} from './live/source-search.mjs'
+import {withSourceLockSync} from './live/source-lock.mjs'
 import {
   applyDeferredSvelteComponentAccepts,
   findSvelteComponentManifest,
   inlineSvelteComponentAccept,
   removeSvelteComponentSession,
 } from './live/svelte-component.mjs'
-import { enterLiveRoot } from './live/roots.mjs'
+import {enterLiveRoot} from './live/roots.mjs'
 
 const ACCEPT_LOCK_WAIT_MS = 1_000
 // Mirrors VARIANT_ID_PATTERN in live/event-validation.mjs, which gates the same
@@ -48,7 +48,7 @@ const VARIANT_NUM_PATTERN = /^[0-9]{1,3}$/
  * holding the lock), and a crash needs surfacing, not a hand-applied guess.
  */
 function operationFailure(err, extra = {}) {
-  return { handled: false, mode: 'error', error: err.message, ...extra }
+  return {handled: false, mode: 'error', error: err.message, ...extra}
 }
 
 /**
@@ -68,7 +68,7 @@ function operationFailure(err, extra = {}) {
  */
 function markPreviewFailure(result) {
   if (result?.handled === false && !result.mode && result.previewMode) {
-    return { ...result, mode: 'error' }
+    return {...result, mode: 'error'}
   }
   return result
 }
@@ -139,25 +139,25 @@ Output (JSON):
   const priorReceipt = readAcceptReceipt(process.cwd(), id)
   if (priorReceipt) {
     const sameOperation =
-      priorReceipt.operation === requestedOperation &&
-      (isDiscard || String(priorReceipt.variantId) === String(variantNum))
+        priorReceipt.operation === requestedOperation &&
+        (isDiscard || String(priorReceipt.variantId) === String(variantNum))
     console.log(
-      JSON.stringify(
-        sameOperation
-          ? { ...priorReceipt.result, handled: true, alreadyApplied: true }
-          : {
-              // mode: 'error' is what marks this a real failure rather than a manual
-              // handoff. Without it, live/completion.mjs classifies the reply as
-              // agent_done and reference/live.md tells the agent to "read file, find
-              // markers, edit" by hand — which would apply a second, conflicting
-              // accept on top of the one the receipt already recorded.
-              handled: false,
-              mode: 'error',
-              error: 'accept_receipt_conflict',
-              priorOperation: priorReceipt.operation,
-              priorVariantId: priorReceipt.variantId ?? null,
-            },
-      ),
+        JSON.stringify(
+            sameOperation
+                ? {...priorReceipt.result, handled: true, alreadyApplied: true}
+                : {
+                  // mode: 'error' is what marks this a real failure rather than a manual
+                  // handoff. Without it, live/completion.mjs classifies the reply as
+                  // agent_done and reference/live.md tells the agent to "read file, find
+                  // markers, edit" by hand — which would apply a second, conflicting
+                  // accept on top of the one the receipt already recorded.
+                  handled: false,
+                  mode: 'error',
+                  error: 'accept_receipt_conflict',
+                  priorOperation: priorReceipt.operation,
+                  priorVariantId: priorReceipt.variantId ?? null,
+                },
+        ),
     )
     return
   }
@@ -184,11 +184,13 @@ Output (JSON):
 
   // Find the file containing this session's markers
   const found = findSessionFile(id, process.cwd())
-  const svelteComponentManifest = found ? null : findSvelteComponentManifest(id, process.cwd())
+  const svelteComponentManifest = found ? null : findSvelteComponentManifest(id,
+      process.cwd())
 
   if (!found && !svelteComponentManifest) {
     console.log(
-      JSON.stringify({ handled: false, error: 'Session markers not found for id: ' + id }),
+        JSON.stringify(
+            {handled: false, error: 'Session markers not found for id: ' + id}),
     )
     process.exit(0)
   }
@@ -198,13 +200,13 @@ Output (JSON):
       let result
       try {
         result = withSourceLockSync(
-          path.resolve(process.cwd(), svelteComponentManifest.sourceFile),
-          'discard:' + id,
-          () => {
-            removeSvelteComponentSession(id, process.cwd())
-            return { handled: true }
-          },
-          { waitMs: ACCEPT_LOCK_WAIT_MS },
+            path.resolve(process.cwd(), svelteComponentManifest.sourceFile),
+            'discard:' + id,
+            () => {
+              removeSvelteComponentSession(id, process.cwd())
+              return {handled: true}
+            },
+            {waitMs: ACCEPT_LOCK_WAIT_MS},
         )
       } catch (err) {
         result = operationFailure(err)
@@ -222,16 +224,16 @@ Output (JSON):
     let result
     try {
       result = withSourceLockSync(
-        path.resolve(process.cwd(), svelteComponentManifest.sourceFile),
-        'accept:' + id,
-        () =>
-          inlineSvelteComponentAccept(
-            svelteComponentManifest,
-            variantNum,
-            paramValues,
-            process.cwd(),
-          ),
-        { waitMs: ACCEPT_LOCK_WAIT_MS },
+          path.resolve(process.cwd(), svelteComponentManifest.sourceFile),
+          'accept:' + id,
+          () =>
+              inlineSvelteComponentAccept(
+                  svelteComponentManifest,
+                  variantNum,
+                  paramValues,
+                  process.cwd(),
+              ),
+          {waitMs: ACCEPT_LOCK_WAIT_MS},
       )
     } catch (err) {
       result = operationFailure(err, {
@@ -243,38 +245,39 @@ Output (JSON):
     }
     if (result.carbonize) {
       result.todo =
-        'REQUIRED before next poll: carbonize cleanup in ' +
-        result.file +
-        '. See reference/live.md "Required after accept".'
+          'REQUIRED before next poll: carbonize cleanup in ' +
+          result.file +
+          '. See reference/live.md "Required after accept".'
     }
-    emitResult({ handled: result.handled !== false, ...result })
+    emitResult({handled: result.handled !== false, ...result})
     return
   }
 
-  const { file: targetFile, content, lines } = found
+  const {file: targetFile, content, lines} = found
   const relFile = path.relative(process.cwd(), targetFile)
   const previewBlock = findMarkerBlock(id, lines)
-  const sourceShadowPreview = previewBlock ? readSourceShadowPreviewMeta(content, id) : null
+  const sourceShadowPreview = previewBlock ? readSourceShadowPreviewMeta(
+      content, id) : null
 
   if (sourceShadowPreview) {
     console.log(
-      JSON.stringify({
-        handled: false,
-        error: 'source_shadow_preview_deprecated',
-        hint: 'Svelte live mode now uses svelte-component injection. Re-wrap the element and regenerate variants.',
-      }),
+        JSON.stringify({
+          handled: false,
+          error: 'source_shadow_preview_deprecated',
+          hint: 'Svelte live mode now uses svelte-component injection. Re-wrap the element and regenerate variants.',
+        }),
     )
     process.exit(0)
   }
 
-  if (isGeneratedFile(targetFile, { cwd: process.cwd() })) {
+  if (isGeneratedFile(targetFile, {cwd: process.cwd()})) {
     console.log(
-      JSON.stringify({
-        handled: false,
-        mode: 'fallback',
-        file: relFile,
-        hint: 'Session is in a generated file. Persist the accepted variant in source; do not rely on this script.',
-      }),
+        JSON.stringify({
+          handled: false,
+          mode: 'fallback',
+          file: relFile,
+          hint: 'Session is in a generated file. Persist the accepted variant in source; do not rely on this script.',
+        }),
     )
     process.exit(0)
   }
@@ -287,16 +290,16 @@ Output (JSON):
     try {
       result = handleDiscard(id, lines, targetFile)
     } catch (err) {
-      emitResult(operationFailure(err, { file: relFile }))
+      emitResult(operationFailure(err, {file: relFile}))
       return
     }
-    emitResult({ handled: true, file: relFile, carbonize: false, ...result })
+    emitResult({handled: true, file: relFile, carbonize: false, ...result})
   } else {
     let result
     try {
       result = handleAccept(id, variantNum, lines, targetFile, paramValues)
     } catch (err) {
-      emitResult(operationFailure(err, { file: relFile }))
+      emitResult(operationFailure(err, {file: relFile}))
       return
     }
     const acceptedOriginalText = result.acceptedOriginalText || ''
@@ -306,21 +309,22 @@ Output (JSON):
     // session); repeating it per-event would waste tokens.
     if (result.carbonize) {
       result.todo =
-        'REQUIRED before next poll: carbonize cleanup in ' +
-        relFile +
-        '. See reference/live.md "Required after accept".'
+          'REQUIRED before next poll: carbonize cleanup in ' +
+          relFile +
+          '. See reference/live.md "Required after accept".'
     }
     // Scrub stash entries whose text appeared inside the just-replaced
     // original wrap block. The accept embodies those manual edits (wrap was
     // buffer-aware), so only those scoped ops are redundant.
     if (result.handled !== false) {
       try {
-        scrubManualEditsAgainstOriginalBlock(acceptedOriginalText, process.cwd(), pageUrl)
+        scrubManualEditsAgainstOriginalBlock(acceptedOriginalText,
+            process.cwd(), pageUrl)
       } catch {
         // Non-fatal; the buffer stays as-is and the user can discard later.
       }
     }
-    emitResult({ handled: true, file: relFile, ...result })
+    emitResult({handled: true, file: relFile, ...result})
   }
 }
 
@@ -334,64 +338,80 @@ Output (JSON):
  * preview block to reflect pending manual edits before variants are generated.
  */
 function scrubManualEditsAgainstOriginalBlock(
-  originalBlockText,
-  cwd = process.cwd(),
-  pageUrl = null,
+    originalBlockText,
+    cwd = process.cwd(),
+    pageUrl = null,
 ) {
   const originalBlock = String(originalBlockText || '')
-  if (!originalBlock) return
-  if (!pageUrl) return
+  if (!originalBlock) {
+    return
+  }
+  if (!pageUrl) {
+    return
+  }
   const buffer = readManualEditsBuffer(cwd)
-  if (buffer.entries.length === 0) return
+  if (buffer.entries.length === 0) {
+    return
+  }
   let mutated = false
   for (const entry of buffer.entries) {
-    if (entry.pageUrl !== pageUrl) continue
+    if (entry.pageUrl !== pageUrl) {
+      continue
+    }
     const before = entry.ops.length
     entry.ops = entry.ops.filter((op) => {
       return !manualEditOpAppearsInBlock(op, originalBlock)
     })
-    if (entry.ops.length !== before) mutated = true
+    if (entry.ops.length !== before) {
+      mutated = true
+    }
   }
   buffer.entries = buffer.entries.filter((entry) => entry.ops.length > 0)
-  if (mutated) writeManualEditsBuffer(cwd, buffer)
+  if (mutated) {
+    writeManualEditsBuffer(cwd, buffer)
+  }
 }
 
 function manualEditOpAppearsInBlock(op, originalBlock) {
   const candidates = [op?.newText, op?.originalText].filter(
-    (text) => typeof text === 'string' && text.length > 0,
+      (text) => typeof text === 'string' && text.length > 0,
   )
-  return candidates.some((text) => originalBlockHasExactManualText(originalBlock, text))
+  return candidates.some(
+      (text) => originalBlockHasExactManualText(originalBlock, text))
 }
 
 function originalBlockHasExactManualText(originalBlock, text) {
   const needle = normalizeManualEditText(text)
-  if (!needle) return false
-  return manualEditTextSegments(originalBlock).some((segment) => segment === needle)
+  if (!needle) {
+    return false
+  }
+  return manualEditTextSegments(originalBlock).some(
+      (segment) => segment === needle)
 }
 
 function manualEditTextSegments(source) {
   return String(source || '')
-    .replace(/<[^>]*>/g, '\n')
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '\n')
-    .replace(/<!--[\s\S]*?-->/g, '\n')
-    .split(/\n+/)
-    .map(normalizeManualEditText)
-    .filter(Boolean)
+      .replace(/<[^>]*>/g, '\n')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '\n')
+      .replace(/<!--[\s\S]*?-->/g, '\n')
+      .split(/\n+/)
+      .map(normalizeManualEditText)
+      .filter(Boolean)
 }
 
 function normalizeManualEditText(text) {
   return String(text || '')
-    .replace(/\s+/g, ' ')
-    .trim()
+      .replace(/\s+/g, ' ')
+      .trim()
 }
 
 // Compatibility export for older tests/callers. The unsafe file-wide scrub was
 // removed; callers must pass accepted original-block text for scoped cleanup.
 function scrubManualEditsAgainstFile(
-  _targetFile,
-  cwd = process.cwd(),
-  originalBlockText = '',
-  pageUrl = null,
+    _targetFile,
+    cwd = process.cwd(),
+    originalBlockText = '',
+    pageUrl = null,
 ) {
   return scrubManualEditsAgainstOriginalBlock(originalBlockText, cwd, pageUrl)
 }
@@ -402,19 +422,21 @@ function scrubManualEditsAgainstFile(
 
 function handleDiscard(id, _lines, targetFile) {
   return withSourceLockSync(
-    targetFile,
-    'discard:' + id,
-    () => {
-      const lines = fs.readFileSync(targetFile, 'utf-8').split('\n')
-      return handleDiscardUnlocked(id, lines, targetFile)
-    },
-    { waitMs: ACCEPT_LOCK_WAIT_MS },
+      targetFile,
+      'discard:' + id,
+      () => {
+        const lines = fs.readFileSync(targetFile, 'utf-8').split('\n')
+        return handleDiscardUnlocked(id, lines, targetFile)
+      },
+      {waitMs: ACCEPT_LOCK_WAIT_MS},
   )
 }
 
 function handleDiscardUnlocked(id, lines, targetFile) {
   const block = findMarkerBlock(id, lines)
-  if (!block) return { handled: false, error: 'Markers not found' }
+  if (!block) {
+    return {handled: false, error: 'Markers not found'}
+  }
 
   const original = extractOriginal(lines, block)
   const isJsx = detectCommentSyntax(targetFile).open === '{/*'
@@ -464,26 +486,29 @@ function buildCarbonizeReplacement({
     return lines
   }
 
-  const variantStyleAttr = isJsx ? "style={{ display: 'contents' }}" : 'style="display: contents"'
+  const variantStyleAttr = isJsx ? "style={{ display: 'contents' }}"
+      : 'style="display: contents"'
 
   const pushCarbonizeBody = (bodyIndent) => {
     const bodyRestored = reindentContent(restored, indent, bodyIndent + '  ')
     lines.push(
-      bodyIndent +
+        bodyIndent +
         commentSyntax.open +
         ' impeccable-carbonize-start ' +
         id +
         ' ' +
         commentSyntax.close,
     )
-    lines.push(bodyIndent + '<style data-impeccable-css="' + id + '">' + (isJsx ? '{`' : ''))
+    lines.push(
+        bodyIndent + '<style data-impeccable-css="' + id + '">' + (isJsx ? '{`'
+            : ''))
     for (const cssLine of cssContent) {
       lines.push(bodyIndent + cssLine.trimStart())
     }
     lines.push(bodyIndent + (isJsx ? '`}</style>' : '</style>'))
     if (paramValues && Object.keys(paramValues).length > 0) {
       lines.push(
-        bodyIndent +
+          bodyIndent +
           commentSyntax.open +
           ' impeccable-param-values ' +
           id +
@@ -494,7 +519,7 @@ function buildCarbonizeReplacement({
       )
     }
     lines.push(
-      bodyIndent +
+        bodyIndent +
         commentSyntax.open +
         ' impeccable-carbonize-end ' +
         id +
@@ -502,7 +527,8 @@ function buildCarbonizeReplacement({
         commentSyntax.close,
     )
     lines.push(
-      bodyIndent + '<div data-impeccable-variant="' + variantNum + '" ' + variantStyleAttr + '>',
+        bodyIndent + '<div data-impeccable-variant="' + variantNum + '" '
+        + variantStyleAttr + '>',
     )
     lines.push(...bodyRestored)
     lines.push(bodyIndent + '</div>')
@@ -510,7 +536,9 @@ function buildCarbonizeReplacement({
 
   if (isJsx) {
     const wrapperStyle = 'style={{ display: "contents" }}'
-    lines.push(indent + '<div data-impeccable-carbonize="' + id + '" ' + wrapperStyle + '>')
+    lines.push(
+        indent + '<div data-impeccable-carbonize="' + id + '" ' + wrapperStyle
+        + '>')
     pushCarbonizeBody(indent + '  ')
     lines.push(indent + '</div>')
   } else {
@@ -522,27 +550,36 @@ function buildCarbonizeReplacement({
 
 function reindentContent(contentLines, fromIndent, toIndent) {
   return contentLines.map((line) => {
-    if (line.trim() === '') return ''
-    if (line.startsWith(fromIndent)) return toIndent + line.slice(fromIndent.length)
+    if (line.trim() === '') {
+      return ''
+    }
+    if (line.startsWith(fromIndent)) {
+      return toIndent + line.slice(
+          fromIndent.length)
+    }
     return toIndent + line.trimStart()
   })
 }
 
 function handleAccept(id, variantNum, _lines, targetFile, paramValues) {
   return withSourceLockSync(
-    targetFile,
-    'accept:' + id,
-    () => {
-      const lines = fs.readFileSync(targetFile, 'utf-8').split('\n')
-      return handleAcceptUnlocked(id, variantNum, lines, targetFile, paramValues)
-    },
-    { waitMs: ACCEPT_LOCK_WAIT_MS },
+      targetFile,
+      'accept:' + id,
+      () => {
+        const lines = fs.readFileSync(targetFile, 'utf-8').split('\n')
+        return handleAcceptUnlocked(id, variantNum, lines, targetFile,
+            paramValues)
+      },
+      {waitMs: ACCEPT_LOCK_WAIT_MS},
   )
 }
 
 function handleAcceptUnlocked(id, variantNum, lines, targetFile, paramValues) {
-  const built = buildAcceptedWrappedSource(id, variantNum, lines, targetFile, paramValues)
-  if (built.handled === false) return built
+  const built = buildAcceptedWrappedSource(id, variantNum, lines, targetFile,
+      paramValues)
+  if (built.handled === false) {
+    return built
+  }
   fs.writeFileSync(targetFile, built.content, 'utf-8')
   return {
     carbonize: built.carbonize,
@@ -550,9 +587,12 @@ function handleAcceptUnlocked(id, variantNum, lines, targetFile, paramValues) {
   }
 }
 
-function buildAcceptedWrappedSource(id, variantNum, lines, targetFile, paramValues) {
+function buildAcceptedWrappedSource(id, variantNum, lines, targetFile,
+    paramValues) {
   const block = findMarkerBlock(id, lines)
-  if (!block) return { handled: false, error: 'Markers not found' }
+  if (!block) {
+    return {handled: false, error: 'Markers not found'}
+  }
 
   const commentSyntax = detectCommentSyntax(targetFile)
   const isJsx = commentSyntax.open === '{/*'
@@ -565,7 +605,12 @@ function buildAcceptedWrappedSource(id, variantNum, lines, targetFile, paramValu
 
   // Extract the chosen variant's inner content
   const variantContent = extractVariant(lines, block, variantNum)
-  if (!variantContent) return { handled: false, error: 'Variant ' + variantNum + ' not found' }
+  if (!variantContent) {
+    return {
+      handled: false,
+      error: 'Variant ' + variantNum + ' not found'
+    }
+  }
   const originalContent = extractOriginal(lines, block)
 
   // Extract CSS block if present
@@ -604,33 +649,44 @@ function buildAcceptedWrappedSource(id, variantNum, lines, targetFile, paramValu
 
 function readSourceShadowPreviewMeta(content, id) {
   const escaped = escapeRegExp(id)
-  const wrapperRe = new RegExp('<[^>]+data-impeccable-variants=(["\'])' + escaped + '\\1[^>]*>')
+  const wrapperRe = new RegExp(
+      '<[^>]+data-impeccable-variants=(["\'])' + escaped + '\\1[^>]*>')
   const match = String(content || '').match(wrapperRe)
-  if (!match) return null
-  const tag = match[0]
-  if (readHtmlAttr(tag, 'data-impeccable-preview') !== 'source-shadow') return null
-  const sourceFile = readHtmlAttr(tag, 'data-impeccable-source-file')
-  const sourceStartLine = Number(readHtmlAttr(tag, 'data-impeccable-source-start'))
-  const sourceEndLine = Number(readHtmlAttr(tag, 'data-impeccable-source-end'))
-  if (!sourceFile || !Number.isFinite(sourceStartLine) || !Number.isFinite(sourceEndLine))
+  if (!match) {
     return null
-  return { sourceFile, sourceStartLine, sourceEndLine }
+  }
+  const tag = match[0]
+  if (readHtmlAttr(tag, 'data-impeccable-preview')
+      !== 'source-shadow') {
+    return null
+  }
+  const sourceFile = readHtmlAttr(tag, 'data-impeccable-source-file')
+  const sourceStartLine = Number(
+      readHtmlAttr(tag, 'data-impeccable-source-start'))
+  const sourceEndLine = Number(readHtmlAttr(tag, 'data-impeccable-source-end'))
+  if (!sourceFile || !Number.isFinite(sourceStartLine) || !Number.isFinite(
+      sourceEndLine)) {
+    return null
+  }
+  return {sourceFile, sourceStartLine, sourceEndLine}
 }
 
 function readHtmlAttr(tag, name) {
   const match = String(tag || '').match(
-    new RegExp('\\s' + escapeRegExp(name) + '\\s*=\\s*(["\'])(.*?)\\1'),
+      new RegExp('\\s' + escapeRegExp(name) + '\\s*=\\s*(["\'])(.*?)\\1'),
   )
-  if (!match) return null
+  if (!match) {
+    return null
+  }
   return decodeHtmlAttr(match[2])
 }
 
 function decodeHtmlAttr(value) {
   return String(value || '')
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
 }
 
 // ---------------------------------------------------------------------------
@@ -648,14 +704,16 @@ function findMarkerBlock(id, lines) {
   const endPattern = 'impeccable-variants-end ' + id
 
   for (let i = 0; i < lines.length; i++) {
-    if (start === -1 && lines[i].includes(startPattern)) start = i
+    if (start === -1 && lines[i].includes(startPattern)) {
+      start = i
+    }
     if (lines[i].includes(endPattern)) {
       end = i
       break
     }
   }
 
-  return start !== -1 && end !== -1 ? { start, end, id } : null
+  return start !== -1 && end !== -1 ? {start, end, id} : null
 }
 
 /**
@@ -675,25 +733,31 @@ function findMarkerBlock(id, lines) {
  * extractVariant / extractCss continue to walk the same range.
  */
 function expandReplaceRange(block, lines, isJsx) {
-  if (!isJsx) return { start: block.start, end: block.end }
+  if (!isJsx) {
+    return {start: block.start, end: block.end}
+  }
 
-  let { start, end } = block
+  let {start, end} = block
 
   // Walk back for the wrapper `<div data-impeccable-variants="..."` opener.
   // The attr may sit on a continuation line of a multi-line opening tag, so
   // also walk to the line that actually contains `<div`.
   for (let i = start - 1; i >= 0; i--) {
-    if (isVariantEndMarkerLine(lines[i], block.id)) break
+    if (isVariantEndMarkerLine(lines[i], block.id)) {
+      break
+    }
     if (hasVariantWrapperAttr(lines[i], block.id)) {
       let opener = i
       while (
-        opener > 0 &&
-        !/<div\b/.test(lines[opener]) &&
-        !isVariantEndMarkerLine(lines[opener], block.id)
-      ) {
+          opener > 0 &&
+          !/<div\b/.test(lines[opener]) &&
+          !isVariantEndMarkerLine(lines[opener], block.id)
+          ) {
         opener--
       }
-      if (/<div\b/.test(lines[opener])) start = opener
+      if (/<div\b/.test(lines[opener])) {
+        start = opener
+      }
       break
     }
   }
@@ -715,11 +779,15 @@ function expandReplaceRange(block, lines, isJsx) {
   while ((m = tagRe.exec(joined)) !== null) {
     const isClose = m[0].startsWith('</')
     const isSelfClose = !isClose && m[1] === '/'
-    if (isClose) depth--
-    else if (!isSelfClose) depth++
+    if (isClose) {
+      depth--
+    } else if (!isSelfClose) {
+      depth++
+    }
     if (depth <= 0) {
       // m.index is offset within `joined`; convert back to a file line.
-      const linesBefore = joined.slice(0, m.index + m[0].length).split('\n').length - 1
+      const linesBefore = joined.slice(0, m.index + m[0].length).split(
+          '\n').length - 1
       const candidateEnd = start + linesBefore
       if (candidateEnd >= end) {
         end = candidateEnd
@@ -728,7 +796,7 @@ function expandReplaceRange(block, lines, isJsx) {
     }
   }
 
-  return { start, end }
+  return {start, end}
 }
 
 function escapeRegExp(value) {
@@ -736,15 +804,16 @@ function escapeRegExp(value) {
 }
 
 function isVariantEndMarkerLine(line, id) {
-  return new RegExp('impeccable-variants-end\\s+' + escapeRegExp(id) + '(?:\\s|--|\\*/|$)').test(
-    line,
+  return new RegExp('impeccable-variants-end\\s+' + escapeRegExp(id)
+      + '(?:\\s|--|\\*/|$)').test(
+      line,
   )
 }
 
 function hasVariantWrapperAttr(line, id) {
   const escaped = escapeRegExp(id)
   return new RegExp(
-    `data-impeccable-variants\\s*=\\s*(?:"${escaped}"|'${escaped}'|\\{["']${escaped}["']\\})`,
+      `data-impeccable-variants\\s*=\\s*(?:"${escaped}"|'${escaped}'|\\{["']${escaped}["']\\})`,
   ).test(line)
 }
 
@@ -767,8 +836,8 @@ function stripStyleAndJoin(lines, block) {
       // Strip any complete <style> elements on this line (self-closed or
       // same-line-closed), including their body content.
       line = line
-        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/g, '')
-        .replace(/<style\b[^>]*\/\s*>/g, '')
+          .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/g, '')
+          .replace(/<style\b[^>]*\/\s*>/g, '')
 
       // If a <style> opener remains (multi-line body starts here), strip from
       // the opener to end-of-line and flip into skip mode.
@@ -798,9 +867,12 @@ function stripStyleAndJoin(lines, block) {
  * Returns the inner string (may be empty), or null if not found.
  */
 function extractInnerByAttr(text, attrMatch) {
-  const openerRe = new RegExp('<([A-Za-z][A-Za-z0-9]*)\\b[^>]*' + attrMatch + '[^>]*>')
+  const openerRe = new RegExp(
+      '<([A-Za-z][A-Za-z0-9]*)\\b[^>]*' + attrMatch + '[^>]*>')
   const openMatch = text.match(openerRe)
-  if (!openMatch) return null
+  if (!openMatch) {
+    return null
+  }
 
   const tagName = openMatch[1]
   const innerStart = openMatch.index + openMatch[0].length
@@ -817,7 +889,9 @@ function extractInnerByAttr(text, attrMatch) {
     const isSelfClose = !isClose && /\/\s*>$/.test(m[0])
     if (isClose) {
       depth--
-      if (depth === 0) return text.slice(innerStart, m.index)
+      if (depth === 0) {
+        return text.slice(innerStart, m.index)
+      }
     } else if (!isSelfClose) {
       depth++
     }
@@ -832,7 +906,9 @@ function extractInnerByAttr(text, attrMatch) {
 function extractOriginal(lines, block) {
   const text = stripStyleAndJoin(lines, block)
   const inner = extractInnerByAttr(text, 'data-impeccable-variant="original"')
-  if (inner === null) return []
+  if (inner === null) {
+    return []
+  }
   return inner.split('\n')
 }
 
@@ -842,12 +918,20 @@ function extractOriginal(lines, block) {
  */
 function extractVariant(lines, block, variantNum) {
   const text = stripStyleAndJoin(lines, block)
-  const inner = extractInnerByAttr(text, 'data-impeccable-variant="' + variantNum + '"')
-  if (inner === null) return null
+  const inner = extractInnerByAttr(text,
+      'data-impeccable-variant="' + variantNum + '"')
+  if (inner === null) {
+    return null
+  }
   const result = inner.split('\n')
   // Collapse a lone empty leading/trailing line (common after string splice).
-  while (result.length > 1 && result[0].trim() === '') result.shift()
-  while (result.length > 1 && result[result.length - 1].trim() === '') result.pop()
+  while (result.length > 1 && result[0].trim() === '') {
+    result.shift()
+  }
+  while (result.length > 1 && result[result.length - 1].trim()
+  === '') {
+    result.pop()
+  }
   return result.length > 0 ? result : null
 }
 
@@ -871,7 +955,9 @@ function extractCss(lines, block, id) {
 
     if (!inStyle && line.includes(styleAttr)) {
       // Self-closing: nothing to carbonize.
-      if (/<style\b[^>]*\/\s*>/.test(line)) return null
+      if (/<style\b[^>]*\/\s*>/.test(line)) {
+        return null
+      }
       // Same-line open + close: extract inner text.
       const sameLine = line.match(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/)
       if (sameLine) {
@@ -887,12 +973,16 @@ function extractCss(lines, block, id) {
       // (`}</style>`) put the close mid-line, and we don't want to absorb the
       // template-literal punctuation as CSS content.
       const closeIdx = line.indexOf('</style>')
-      if (closeIdx !== -1) break
+      if (closeIdx !== -1) {
+        break
+      }
       content.push(line)
     }
   }
 
-  if (content.length === 0) return null
+  if (content.length === 0) {
+    return null
+  }
   return stripJsxTemplateLines(content)
 }
 
@@ -912,9 +1002,15 @@ function stripJsxTemplateLines(content) {
 
   // Drop any leading blank lines so we don't miss a `{` line buried below
   // them; same for trailing.
-  while (out.length > 0 && out[0].trim() === '') out.shift()
-  while (out.length > 0 && out[out.length - 1].trim() === '') out.pop()
-  if (out.length === 0) return null
+  while (out.length > 0 && out[0].trim() === '') {
+    out.shift()
+  }
+  while (out.length > 0 && out[out.length - 1].trim() === '') {
+    out.pop()
+  }
+  if (out.length === 0) {
+    return null
+  }
 
   // Leading `{`: own line, or attached to the first CSS line.
   const firstTrim = out[0].trimStart()
@@ -923,9 +1019,13 @@ function stripJsxTemplateLines(content) {
   } else if (firstTrim.startsWith('{`')) {
     const idx = out[0].indexOf('{`')
     out[0] = out[0].slice(0, idx) + out[0].slice(idx + 2)
-    if (out[0].trim() === '') out.shift()
+    if (out[0].trim() === '') {
+      out.shift()
+    }
   }
-  if (out.length === 0) return null
+  if (out.length === 0) {
+    return null
+  }
 
   // Trailing `` ` `` `}`: own line, or attached to the last CSS line.
   const lastIdx = out.length - 1
@@ -936,7 +1036,9 @@ function stripJsxTemplateLines(content) {
     const text = out[lastIdx]
     const idx = text.lastIndexOf('`}')
     out[lastIdx] = text.slice(0, idx) + text.slice(idx + 2)
-    if (out[lastIdx].trim() === '') out.pop()
+    if (out[lastIdx].trim() === '') {
+      out.pop()
+    }
   }
 
   return out.length > 0 ? out : null
@@ -957,15 +1059,21 @@ function deindentContent(contentLines, baseIndent) {
   // Find the minimum indentation in the content to determine how much was added
   let minIndent = Infinity
   for (const line of contentLines) {
-    if (line.trim() === '') continue
+    if (line.trim() === '') {
+      continue
+    }
     const leadingSpaces = line.match(/^(\s*)/)[1].length
     minIndent = Math.min(minIndent, leadingSpaces)
   }
-  if (minIndent === Infinity) minIndent = 0
+  if (minIndent === Infinity) {
+    minIndent = 0
+  }
 
   // Strip the extra indentation and re-add base indent
   return contentLines.map((line) => {
-    if (line.trim() === '') return ''
+    if (line.trim() === '') {
+      return ''
+    }
     return baseIndent + line.slice(minIndent)
   })
 }
@@ -973,9 +1081,9 @@ function deindentContent(contentLines, baseIndent) {
 function detectCommentSyntax(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   if (ext === '.jsx' || ext === '.tsx') {
-    return { open: '{/*', close: '*/}' }
+    return {open: '{/*', close: '*/}'}
   }
-  return { open: '<!--', close: '-->' }
+  return {open: '<!--', close: '-->'}
 }
 
 // ---------------------------------------------------------------------------
@@ -997,9 +1105,11 @@ function findSessionFile(id, cwd) {
     extensions: resolveLiveTemplateExtensions(cwd),
     skipDirs: SEARCH_SKIP_DIRS,
   })
-  if (!result) return null
+  if (!result) {
+    return null
+  }
   const content = fs.readFileSync(result, 'utf-8')
-  return { file: result, content, lines: content.split('\n') }
+  return {file: result, content, lines: content.split('\n')}
 }
 
 // ---------------------------------------------------------------------------
@@ -1007,7 +1117,8 @@ function findSessionFile(id, cwd) {
 // ---------------------------------------------------------------------------
 
 function acceptReceiptPath(cwd, id) {
-  return path.join(getLiveDir(cwd), 'accept-receipts', `${safeSessionId(id)}.json`)
+  return path.join(getLiveDir(cwd), 'accept-receipts',
+      `${safeSessionId(id)}.json`)
 }
 
 function readAcceptReceipt(cwd, id) {
@@ -1020,7 +1131,7 @@ function readAcceptReceipt(cwd, id) {
 
 function writeAcceptReceipt(cwd, id, receipt) {
   const file = acceptReceiptPath(cwd, id)
-  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.mkdirSync(path.dirname(file), {recursive: true})
   const value = {
     id,
     ...receipt,
@@ -1039,7 +1150,8 @@ function argVal(args, flag) {
 
 // Auto-execute when run directly
 const _running = process.argv[1]
-if (_running?.endsWith('live-accept.mjs') || _running?.endsWith('live-accept.mjs/')) {
+if (_running?.endsWith('live-accept.mjs') || _running?.endsWith(
+    'live-accept.mjs/')) {
   enterLiveRoot()
   acceptCli()
 }

@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Reactive Messaging
 
 ## Overview
@@ -283,6 +284,7 @@ If using Kafka, RabbitMQ, or another broker:
 
 ## References
 
-- [`spring-boot`](../spring-boot/SKILL.md) — Core reactive persistence and transaction boundary rules
+- [`spring-boot`](../spring-boot/SKILL.md) — Core reactive persistence and transaction boundary
+  rules
 - `spring-boot-testing-integrations` — Event-driven and outbox verification patterns
 - `spring-boot-resilience` — Retry, timeout, and downstream protection patterns

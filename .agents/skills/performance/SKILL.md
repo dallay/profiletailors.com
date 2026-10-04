@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 # Performance optimization
 
 Deep performance optimization based on Lighthouse performance audits. Focuses on loading speed,

@@ -78,7 +78,7 @@ router.beforeEach((to) => {
 })
 ```
 
-## serverPrefetch()
+## serverPrefetch ()
 
 Access pinia via `this.$pinia`:
 
@@ -91,7 +91,7 @@ export default {
 }
 ```
 
-## onServerPrefetch()
+## onServerPrefetch ()
 
 Works normally in `<script setup>`:
 

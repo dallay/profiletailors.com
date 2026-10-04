@@ -1,29 +1,32 @@
-> **Additional context needed**: the "aha moment" you want users to reach, and users' experience level.
+> **Additional context needed**: the "aha moment" you want users to reach, and users' experience
+> level.
 
-Get users to first value as fast as possible. Onboarding's job is not to teach the product. Its job is to get people to the moment that proves the product is worth their time.
+Get users to first value as fast as possible. Onboarding's job is not to teach the product. Its job
+is to get people to the moment that proves the product is worth their time.
 
 ## Assess Onboarding Needs
 
 Understand what users need to learn and why:
 
 1. **Identify the challenge**:
-   - What are users trying to accomplish?
-   - What's confusing or unclear about current experience?
-   - Where do users get stuck or drop off?
-   - What's the "aha moment" we want users to reach?
+    - What are users trying to accomplish?
+    - What's confusing or unclear about current experience?
+    - Where do users get stuck or drop off?
+    - What's the "aha moment" we want users to reach?
 
 2. **Understand the users**:
-   - What's their experience level? (Beginners, power users, mixed?)
-   - What's their motivation? (Excited and exploring? Required by work?)
-   - What's their time commitment? (5 minutes? 30 minutes?)
-   - What alternatives do they know? (Coming from competitor? New to category?)
+    - What's their experience level? (Beginners, power users, mixed?)
+    - What's their motivation? (Excited and exploring? Required by work?)
+    - What's their time commitment? (5 minutes? 30 minutes?)
+    - What alternatives do they know? (Coming from competitor? New to category?)
 
 3. **Define success**:
-   - What's the minimum users need to learn to be successful?
-   - What's the key action we want them to take? (First project? First invite?)
-   - How do we know onboarding worked? (Completion rate? Time to value?)
+    - What's the minimum users need to learn to be successful?
+    - What's the key action we want them to take? (First project? First invite?)
+    - How do we know onboarding worked? (Completion rate? Time to value?)
 
-**CRITICAL**: Onboarding should get users to value as quickly as possible, not teach everything possible.
+**CRITICAL**: Onboarding should get users to value as quickly as possible, not teach everything
+possible.
 
 ## Onboarding Principles
 
@@ -222,11 +225,9 @@ Illustration or icon (not just text on blank page)
 
 ### Technical approaches:
 
-**Tooltip libraries**: Tippy.js, Popper.js
-**Tour libraries**: Intro.js, Shepherd.js, React Joyride
-**Modal patterns**: Focus trap, backdrop, ESC to close
-**Progress tracking**: LocalStorage for "seen" states
-**Analytics**: Track completion, drop-off points
+**Tooltip libraries**: Tippy.js, Popper.js **Tour libraries**: Intro.js, Shepherd.js, React Joyride
+**Modal patterns**: Focus trap, backdrop, ESC to close **Progress tracking**: LocalStorage for
+"seen" states **Analytics**: Track completion, drop-off points
 
 **Storage patterns**:
 
@@ -260,4 +261,5 @@ Test with real users:
 - **Completion rate**: Are users completing? (If low, simplify)
 - **Time to value**: How long until users get first value?
 
-When users hit the aha moment fast and don't drop off, hand off to `$impeccable polish` for the final pass.
+When users hit the aha moment fast and don't drop off, hand off to `$impeccable polish` for the
+final pass.

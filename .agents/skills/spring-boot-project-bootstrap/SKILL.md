@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Project Bootstrap
 
 ## Overview
@@ -67,7 +68,7 @@ Ask for only the parameters that materially affect the scaffold.
 | Group ID            | `com.example`                 | valid package root                           |
 | Artifact ID         | `demo-service`                | kebab-case                                   |
 | Package name        | derived from group + artifact | Kotlin package                               |
-| Spring Boot version | latest compatible `4.x`       | choose the current compatible release       |
+| Spring Boot version | latest compatible `4.x`       | choose the current compatible release        |
 | Java version        | deployment requirement        | check the supported runtime and build config |
 | Primary datastore   | user choice                   | PostgreSQL / Redis / MongoDB / none          |
 | Build tool          | `gradle`                      | use Maven only by explicit request           |

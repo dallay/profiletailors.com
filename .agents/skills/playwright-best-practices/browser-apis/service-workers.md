@@ -513,7 +513,8 @@ test("sync event fires when online", async ({context, page}) => {
 
 ## Related References
 
-- **Network Failures**: See [error-testing.md](../debugging/error-testing.md#offline-testing) for unexpected
+- **Network Failures**: See [error-testing.md](../debugging/error-testing.md#offline-testing) for
+  unexpected
   network failure patterns
 - **Browser APIs**: See [browser-apis.md](browser-apis.md) for permissions
 - **Network Mocking**: See [network-advanced.md](../advanced/network-advanced.md) for network

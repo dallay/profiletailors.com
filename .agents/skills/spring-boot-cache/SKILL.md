@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-30
 ---
+
 # Spring Boot Cache Abstraction
 
 ## Overview
@@ -19,7 +20,8 @@ framework-agnostic and use `com.profiletailors.common.domain.Service` where disc
 
 6-step workflow for enabling cache abstraction, configuring providers (Caffeine,
 Redis, Ehcache), annotating service methods, and validating behavior in
-the Spring Boot version configured in `gradle/libs.versions.toml`. Apply `@Cacheable` for reads, `@CachePut` for
+the Spring Boot version configured in `gradle/libs.versions.toml`. Apply `@Cacheable` for reads,
+`@CachePut` for
 writes, `@CacheEvict` for deletions. Configure TTL/eviction policies and expose
 metrics via Actuator.
 

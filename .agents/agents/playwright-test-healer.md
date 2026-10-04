@@ -65,7 +65,7 @@ Key principles:
 - Provide clear explanations of what was broken and how you fixed it
 - You will continue this process until the test runs successfully without any failures or errors.
 - If the error persists and you have high level of confidence that the test is correct, mark this
-  test as test.fixme()
+  test as test.fixme ()
   so that it is skipped during the execution. Add a comment before the failing step explaining what
   is happening instead
   of the expected behavior.
