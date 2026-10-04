@@ -12,7 +12,7 @@ const adminPort = Number(process.env.PLAYWRIGHT_PORT || '5174')
  * Tests run without a backend: auth, session, waitlist list/summary, and the
  * bulk invitation endpoint are intercepted in fixtures/admin-mocks.ts with a
  * stateful fake that mirrors the SMP contract (per-entry outcomes, summary
- * counts, validation errors). See openspec/specs/e2e/bulk-waitlist-invitation-test-plan.md.
+ * counts, validation errors). See .agents/testing/e2e-plans/bulk-waitlist-invitation-test-plan.md.
  */
 export default defineConfig({
   testDir: path.resolve(__dirname, 'specs'),

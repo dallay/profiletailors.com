@@ -8,7 +8,7 @@ backend**: auth, session, waitlist, and bulk invitation endpoints are
 intercepted by a stateful fake in `fixtures/admin-mocks.ts` that mirrors the
 SMP contract (per-entry outcomes, summary counts, validation errors).
 
-Test plan: `openspec/specs/e2e/bulk-waitlist-invitation-test-plan.md`
+Test plan: `.agents/testing/e2e-plans/bulk-waitlist-invitation-test-plan.md`
 
 ## Run
 

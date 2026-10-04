@@ -15,7 +15,7 @@ localized user-facing messages via an allowlist boundary (see
 [Frontend Failure Mapping](#frontend-failure-mapping)).
 
 The full specification lives in
-[`openspec/specs/publishing/spec.md`](../openspec/specs/publishing/spec.md) under
+[`.agents/sdd/specs/publishing/spec.md`](../.agents/sdd/specs/publishing/spec.md) under
 the requirements: *Typed Failure Classification and Retry Semantics*,
 *Unknown and Historical Failure Compatibility*, *Server-Side Diagnostic
 Redaction*, and *Localized Failure Copy and Actions*.
@@ -49,7 +49,7 @@ automatically reschedules another delivery attempt. It does NOT govern
 user-initiated manual retries. Any `FAILED` publication — including
 non-auto-retryable categories like `PROVIDER_VALIDATION_FAILED` — remains
 eligible for manual retry or rescheduling by an authorized workspace member
-(see [Delivery Attempts spec, line 478-479](../openspec/specs/publishing/spec.md)).
+(see [Delivery Attempts spec, line 478-479](../.agents/sdd/specs/publishing/spec.md)).
 When a user manually retries a failed publication, the system resets the
 delivery attempt counter and transitions the publication back to `QUEUED`,
 regardless of the original failure category. Blocked publications
@@ -243,7 +243,7 @@ sanitization, extend the sanitizer to cover it.
 
 ## References
 
-- [Publishing Specification](../openspec/specs/publishing/spec.md) — full
+- [Publishing Specification](../.agents/sdd/specs/publishing/spec.md) — full
   requirements including Typed Failure Classification, Unknown and Historical
   Failure Compatibility, Server-Side Diagnostic Redaction, Localized Failure
   Copy and Actions

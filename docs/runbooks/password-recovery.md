@@ -191,7 +191,7 @@ and actions taken. Follow the compliance incident-response runbook for suspected
 
 ## References
 
-- [`openspec/specs/password-recovery-ui/spec.md`](../../openspec/specs/password-recovery-ui/spec.md)
+- [`.agents/sdd/specs/password-recovery-ui/spec.md`](../../.agents/sdd/specs/password-recovery-ui/spec.md)
 - [`docs/compliance/incident-response-runbook.md`](../compliance/incident-response-runbook.md)
 - [`docs/monitoring/prometheus-grafana-setup.md`](../monitoring/prometheus-grafana-setup.md)
 - [`Justfile`](../../Justfile)
