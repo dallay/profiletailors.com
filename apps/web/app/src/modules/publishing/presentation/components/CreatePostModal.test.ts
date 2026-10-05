@@ -192,7 +192,7 @@ vi.mock('@modules/media/services/media-api', async (importOriginal) => {
   }
 })
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },
 }))
 

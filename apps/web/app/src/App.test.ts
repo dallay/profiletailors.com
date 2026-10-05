@@ -55,11 +55,11 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   proxyImageUrl: (url: string) => url,
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
+vi.mock('@profiletailors/vue-ui/shell/tooltip', () => ({
   TooltipProvider: { template: '<div><slot /></div>' },
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   Sidebar: { template: '<div class="sidebar"><slot /></div>' },
   SidebarContent: { template: '<div class="sidebar-content"><slot /></div>' },
   SidebarFooter: { template: '<div class="sidebar-footer"><slot /></div>' },
@@ -79,7 +79,7 @@ vi.mock('@/components/ui/sidebar', () => ({
   useSidebar: () => sidebarContext,
 }))
 
-vi.mock('@/components/ui/sidebar/utils', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar/utils', () => ({
   useSidebar: () => sidebarContext,
 }))
 

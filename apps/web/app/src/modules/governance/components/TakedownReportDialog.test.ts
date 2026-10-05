@@ -56,11 +56,11 @@ vi.mock('@/components/ui/dialog', () => ({
   },
 }))
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },
 }))
 
-vi.mock('@/components/ui/input', () => ({
+vi.mock('@profiletailors/vue-ui/shell/input', () => ({
   Input: {
     props: ['modelValue'],
     emits: ['update:modelValue'],

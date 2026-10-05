@@ -26,7 +26,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: {
     name: 'Button',
     props: ['type', 'variant', 'size', 'disabled'],

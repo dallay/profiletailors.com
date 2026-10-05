@@ -23,8 +23,8 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-} from '@/components/ui/sidebar'
-import { TooltipProvider } from '@/components/ui/tooltip'
+} from '@profiletailors/vue-ui/shell/sidebar'
+import { TooltipProvider } from '@profiletailors/vue-ui/shell/tooltip'
 import AppHeader from './AppHeader.vue'
 import {
   getProviderPresentation,

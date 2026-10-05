@@ -49,7 +49,7 @@ vi.mock('@vueuse/core', () => ({
   useMediaQuery: () => isMobile,
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   useSidebar: () => ({ isMobile, setOpenMobile, setOpen }),
 }))
 
@@ -182,7 +182,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuItem: { template: '<div><slot /></div>' },
 }))
 
-vi.mock('@/components/ui/sheet', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sheet', () => ({
   Sheet: { template: '<div><slot /></div>' },
   SheetClose: { template: '<div><slot /></div>' },
   SheetContent: { template: '<div><slot /></div>' },

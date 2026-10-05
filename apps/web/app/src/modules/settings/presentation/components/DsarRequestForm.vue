@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DsarRequestType, CorrectionData } from '@modules/settings/infrastructure/privacy.store'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import {
   Select,
   SelectContent,

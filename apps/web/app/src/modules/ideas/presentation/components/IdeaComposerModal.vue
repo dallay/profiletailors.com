@@ -7,8 +7,8 @@ import { useIdeasStore } from '@modules/ideas/infrastructure/ideas.store'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { buildPublishingPrefill, useIdeaComposer } from '@modules/ideas/application/useIdeaComposer'
 import type { Idea, IdeaColumn } from '@modules/ideas/domain'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@profiletailors/vue-ui/shell/button'
+import { Input } from '@profiletailors/vue-ui/shell/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,

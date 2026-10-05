@@ -13,7 +13,7 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
 }))
 

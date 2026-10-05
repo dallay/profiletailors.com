@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LucideIcon } from '@lucide/vue'
-import { useSidebar } from '@/components/ui/sidebar/utils'
+import { useSidebar } from '@profiletailors/vue-ui/shell/sidebar/utils'
 
 export interface NavItem {
   labelKey: string

@@ -8,7 +8,7 @@ const sidebarState = vi.hoisted(() => ({
   setOpenMobile: vi.fn(),
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   useSidebar: () => sidebarState,
 }))
 

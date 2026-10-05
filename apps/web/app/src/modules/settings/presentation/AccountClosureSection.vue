@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { closeAccount } from '@modules/auth/infrastructure/auth-api'
 

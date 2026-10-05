@@ -7,7 +7,7 @@ import HomeView from './HomeView.vue'
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({ displayName: 'Taylor' }),
 }))
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   useSidebar: () => ({ isMobile: { value: false }, setOpen: vi.fn() }),
 }))
 vi.mock('@modules/dashboard/presentation/components/DashboardLayout.vue', () => ({

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Hash, TrendingUp, Bookmark, BookmarkPlus, X, ChevronDown, ChevronUp, Loader2 } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { LINKEDIN_HASHTAG_LIMIT } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
 import type { HashtagSuggestion, HashtagSavedSet } from '@modules/publishing/services/hashtag-api'
 

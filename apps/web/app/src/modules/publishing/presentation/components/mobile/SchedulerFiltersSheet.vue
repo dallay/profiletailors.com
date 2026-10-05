@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Button } from '@profiletailors/vue-ui/shell/button'
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@profiletailors/vue-ui/shell/sheet'
 import type { SchedulerStatus } from '@modules/publishing/application/useCalendarUrl'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 

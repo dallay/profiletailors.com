@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import IdeaLane from './IdeaLane.vue'
 import IdeaCard from './IdeaCard.vue'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@profiletailors/vue-ui/shell/skeleton'
 import { Plus } from '@lucide/vue'
 import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 

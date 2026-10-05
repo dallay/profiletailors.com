@@ -225,7 +225,7 @@ vi.mock('@/components/consent/ConsentBanner.vue', () => ({
   default: { template: '<div class="consent-banner" />' },
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   Sidebar: { template: '<div><slot /></div>' },
   SidebarContent: { template: '<div><slot /></div>' },
   SidebarFooter: { template: '<div><slot /></div>' },
@@ -239,7 +239,7 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarRail: { template: '<div />' },
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
+vi.mock('@profiletailors/vue-ui/shell/tooltip', () => ({
   TooltipProvider: { template: '<div><slot /></div>' },
 }))
 

@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { CircleHelp } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Button } from '@profiletailors/vue-ui/shell/button'
+import { SidebarTrigger } from '@profiletailors/vue-ui/shell/sidebar'
 
 const emit = defineEmits<{
   startTour: []

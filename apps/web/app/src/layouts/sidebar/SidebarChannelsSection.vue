@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Users } from '@lucide/vue'
-import { useSidebar } from '@/components/ui/sidebar'
+import { useSidebar } from '@profiletailors/vue-ui/shell/sidebar'
 import SidebarChannelRow from './SidebarChannelRow.vue'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
