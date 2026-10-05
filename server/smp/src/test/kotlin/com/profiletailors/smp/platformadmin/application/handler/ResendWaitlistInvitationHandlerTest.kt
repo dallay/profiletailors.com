@@ -12,6 +12,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvita
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
+import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
@@ -156,6 +157,82 @@ class ResendWaitlistInvitationHandlerTest {
         assertThat(eventSlot.captured).isInstanceOf(InvitationResent::class.java)
         val published = eventSlot.captured as InvitationResent
         assertThat(published.previousInvitationId).isEqualTo(invitationId)
+    }
+
+    @Test
+    fun `manual fallback resends invitation when delivery previously failed`() = runTest {
+        val failedInvitation = activeInvitation().copy(
+            deliveryStatus = InvitationDeliveryStatus.FAILED,
+            deliveryAttemptCount = 2,
+            lastDeliveryAttemptAt = clock.instant().minusSeconds(1800),
+        )
+        coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns failedInvitation
+        coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
+        val supersededSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
+        val savedSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.save(capture(savedSlot)) } answers { savedSlot.captured }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
+
+        val result = handler.handle(command())
+
+        assertEquals(WaitlistInvitationStatus.ACTIVE.name, result.status)
+        assertEquals(InvitationDeliveryStatus.PENDING.name, result.deliveryStatus)
+
+        val superseded = supersededSlot.captured
+        assertThat(superseded.status).isEqualTo(WaitlistInvitationStatus.SUPERSEDED)
+        assertThat(superseded.deliveryStatus).isEqualTo(InvitationDeliveryStatus.FAILED)
+
+        val saved = savedSlot.captured
+        assertThat(saved.status).isEqualTo(WaitlistInvitationStatus.ACTIVE)
+        assertThat(saved.deliveryStatus).isEqualTo(InvitationDeliveryStatus.PENDING)
+        assertThat(saved.tokenHash).startsWith("hashed-")
+        assertThat(saved.id.value).isNotEqualTo(failedInvitation.id.value)
+    }
+
+    @Test
+    fun `manual fallback resend links InvitationResent to previous failed delivery`() = runTest {
+        val failedInvitation = activeInvitation().copy(
+            deliveryStatus = InvitationDeliveryStatus.FAILED,
+            deliveryAttemptCount = 3,
+        )
+        coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns failedInvitation
+        coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
+        coEvery { invitationRepository.update(any()) } answers { firstArg() }
+        coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        val eventSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
+
+        handler.handle(command())
+
+        val published = eventSlot.captured as InvitationResent
+        assertThat(published.previousInvitationId).isEqualTo(invitationId)
+    }
+
+    @Test
+    fun `manual fallback resend records INVITATION_RESENT audit event for failed delivery recovery`() = runTest {
+        val failedInvitation = activeInvitation().copy(
+            deliveryStatus = InvitationDeliveryStatus.FAILED,
+            deliveryAttemptCount = 2,
+        )
+        coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns failedInvitation
+        coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
+        coEvery { invitationRepository.update(any()) } answers { firstArg() }
+        coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        val auditSlot = slot<AdminAuditEvent>()
+        coEvery { auditPublisher.publish(capture(auditSlot)) } returns Unit
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
+
+        handler.handle(command())
+
+        val audit = auditSlot.captured
+        assertThat(audit.action).isEqualTo(AdminAuditAction.INVITATION_RESENT)
+        assertThat(audit.targetId).isEqualTo(invitationId.toString())
+        assertThat(audit.operatorPrincipalId).isEqualTo(operatorId)
+        assertThat(audit.result).isEqualTo(AdminAuditResult.SUCCEEDED)
     }
 
     private fun command(roles: Set<PlatformRole> = ownerRoles) = ResendWaitlistInvitationCommand(
