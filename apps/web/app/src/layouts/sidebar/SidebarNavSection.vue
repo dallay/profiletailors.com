@@ -1,20 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LucideIcon } from '@lucide/vue'
+import type { NavGroup, NavItem } from '@profiletailors/vue-ui/shell/ports'
 import { useSidebar } from '@profiletailors/vue-ui/shell/sidebar/utils'
-
-export interface NavItem {
-  labelKey: string
-  to: string
-  icon: LucideIcon
-  badge?: string
-}
-
-export interface NavGroup {
-  label: string
-  items: NavItem[]
-}
 
 const props = defineProps<{
   groups: NavGroup[]
@@ -44,7 +32,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
   props.groups.map((group) => ({
     ...group,
     items: group.items.map((item) => {
-      if (item.to !== '/') return item
+      if (item.path !== '/') return item
       const badge = formatBadge(props.totalQueuedCount)
       if (badge === '') {
         const { badge: _omit, ...rest } = item
@@ -60,7 +48,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
   <div class="space-y-4">
     <div
       v-for="group in renderedGroups"
-      :key="group.label"
+      :key="group.key"
       class="space-y-1"
     >
       <p v-if="group.label" class="flex h-5 items-center px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary/70 group-data-[collapsible=icon]:hidden">
@@ -69,17 +57,17 @@ const renderedGroups = computed<NavGroup[]>(() =>
       <ul class="space-y-0.5">
         <li
           v-for="item in group.items"
-          :key="item.to"
+          :key="item.key"
         >
           <RouterLink
-            :to="item.to"
+            :to="item.path ?? '/'"
             :title="t(item.labelKey)"
             class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-text-secondary transition-colors no-underline hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
             active-class="bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-accent font-medium"
             @click="handleNavigation"
           >
             <component
-              :is="item.icon"
+              :is="item.iconComponent"
               class="size-4 shrink-0"
             />
             <span class="sr-only">{{ t(item.labelKey) }}</span>

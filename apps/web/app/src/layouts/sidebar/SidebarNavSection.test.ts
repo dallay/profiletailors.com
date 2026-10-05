@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { LucideIcon } from '@lucide/vue'
 import { defineComponent, h, markRaw } from 'vue'
 import { mount, type DOMWrapper } from '@vue/test-utils'
-import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
+import type { NavGroup } from '@profiletailors/vue-ui/shell/ports'
+import SidebarNavSection from './SidebarNavSection.vue'
 
 const sidebar = vi.hoisted(() => ({
   isMobile: { value: true },
@@ -23,24 +23,37 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-const StubIcon = markRaw(
-  defineComponent({ name: 'StubIcon', render: () => h('svg') }),
-) as unknown as LucideIcon
+const StubIcon = markRaw(defineComponent({ name: 'StubIcon', render: () => h('svg') }))
 
 function makeGroups(): NavGroup[] {
   return [
     {
+      key: 'primary',
       label: 'Workspace',
       items: [
-        { labelKey: 'nav.dashboard', to: '/', icon: StubIcon },
-        { labelKey: 'nav.scheduler', to: '/scheduler', icon: StubIcon },
-        { labelKey: 'nav.analytics', to: '/analytics', icon: StubIcon, badge: 'Live' },
-        { labelKey: 'nav.media', to: '/media', icon: StubIcon },
+        { key: 'dashboard', labelKey: 'nav.dashboard', path: '/', iconComponent: StubIcon },
+        {
+          key: 'scheduler',
+          labelKey: 'nav.scheduler',
+          path: '/scheduler',
+          iconComponent: StubIcon,
+        },
+        {
+          key: 'analytics',
+          labelKey: 'nav.analytics',
+          path: '/analytics',
+          iconComponent: StubIcon,
+          badge: 'Live',
+        },
+        { key: 'media', labelKey: 'nav.media', path: '/media', iconComponent: StubIcon },
       ],
     },
     {
+      key: 'system',
       label: 'System',
-      items: [{ labelKey: 'nav.settings', to: '/settings', icon: StubIcon }],
+      items: [
+        { key: 'settings', labelKey: 'nav.settings', path: '/settings', iconComponent: StubIcon },
+      ],
     },
   ]
 }
@@ -75,8 +88,8 @@ describe('SidebarNavSection', () => {
       props: { groups: makeGroups(), totalQueuedCount: 0 },
     })
     for (const item of makeGroups().flatMap((group) => group.items)) {
-      expect(wrapper.get(`a[href="${item.to}"]`).attributes('title')).toBe(item.labelKey)
-      expect(wrapper.get(`a[href="${item.to}"] .sr-only`).text()).toBe(item.labelKey)
+      expect(wrapper.get(`a[href="${item.path}"]`).attributes('title')).toBe(item.labelKey)
+      expect(wrapper.get(`a[href="${item.path}"] .sr-only`).text()).toBe(item.labelKey)
     }
   })
 
@@ -137,8 +150,9 @@ describe('SidebarNavSection', () => {
   it('closes the mobile sidebar after selecting a navigation item', async () => {
     const groups: NavGroup[] = [
       {
+        key: 'primary',
         label: 'Workspace',
-        items: [{ labelKey: 'nav.ideas', to: '/ideas', icon: StubIcon }],
+        items: [{ key: 'ideas', labelKey: 'nav.ideas', path: '/ideas', iconComponent: StubIcon }],
       },
     ]
     const wrapper = mount(SidebarNavSection, {

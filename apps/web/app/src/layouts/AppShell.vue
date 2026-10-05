@@ -10,7 +10,7 @@ import {
 } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
-import { BarChart3, CalendarDays, Images, LayoutGrid, Lightbulb, Settings, Shield } from '@lucide/vue'
+import { useNav } from '@shared/nav'
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +35,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { usePublishingStore, type Channel } from '@modules/publishing/infrastructure/publishing.store'
 import SidebarHeaderSection from '@layouts/sidebar/SidebarHeaderSection.vue'
-import SidebarNavSection, { type NavGroup } from '@layouts/sidebar/SidebarNavSection.vue'
+import SidebarNavSection from '@layouts/sidebar/SidebarNavSection.vue'
 import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/SidebarChannelsSection.vue'
 import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
@@ -62,6 +62,7 @@ const router = useRouter()
 const route = useRoute()
 const { t, te } = useI18n()
 const calendarUrl = useCalendarUrl()
+const { groups: navigationGroups } = useNav()
 
 const pendingNavigation = shallowRef<RouteLocationNormalized | null>(null)
 const removeNavigationStart = router.beforeEach((to) => {
@@ -136,24 +137,6 @@ watch(
 // ---------------------------------------------------------------------------
 
 const { total: totalQueuedCount, byProvider: queuedByProvider } = useQueuedCounts()
-
-const navigationGroups = computed<NavGroup[]>(() => [
-  {
-    label: '',
-    items: [
-      { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
-      { labelKey: 'nav.scheduler', to: '/scheduler', icon: CalendarDays },
-      { labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, badge: 'Live' },
-      { labelKey: 'nav.media', to: '/media', icon: Images },
-      { labelKey: 'nav.ideas', to: '/ideas', icon: Lightbulb },
-      { labelKey: 'nav.governance', to: '/governance/takedown', icon: Shield },
-    ],
-  },
-  {
-    label: t('nav.system'),
-    items: [{ labelKey: 'nav.settings', to: '/settings', icon: Settings }],
-  },
-])
 
 // ---------------------------------------------------------------------------
 // Channels (drives SidebarChannelsSection)
