@@ -631,7 +631,8 @@ kover {
 
 1. **Test Pyramid**: Maintain the proper pyramid with more unit tests than integration tests.
 2. **Test Isolation**: Each test must be independent and free of ordering assumptions.
-3. **Test Data**: Use realistic data that covers edge cases (expired tokens, large payloads, revoked tokens).
+3. **Test Data**: Use realistic data that covers edge cases (expired tokens, large payloads, revoked
+   tokens).
 4. **Performance**: Include performance tests for token generation and validation.
 5. **Security**: Test both positive and negative security paths.
 6. **Mocking**: Use MockK for service-level mocks and `WebTestClient` for HTTP-level verification.

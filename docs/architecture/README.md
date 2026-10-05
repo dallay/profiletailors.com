@@ -1,6 +1,6 @@
 # Profile Tailors — Architecture Documentation
 
-**Last Updated: 2026-09-29
+**Last Updated: 2026-10-04
 
 This directory contains the architecture documentation for Profile Tailors, a social media
 management platform.
@@ -168,7 +168,7 @@ architecture at different levels of abstraction.
 
 ### Specifications
 
-- **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
+- **[.agents/sdd/](../../.agents/sdd/)** — SDD artifacts (specs, designs, tasks)
 - **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
   deduplication for workspace-scoped media assets
 
@@ -186,4 +186,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last Updated: 2026-09-29
+Last Updated: 2026-10-04

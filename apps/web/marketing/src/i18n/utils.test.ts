@@ -78,8 +78,8 @@ describe('i18n utils', () => {
       });
     });
 
-    it('confirms the legal publication gate is APPROVED for the current policies', () => {
-      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.APPROVED);
+    it('confirms the legal publication gate is BLOCKED until an immutable approval record exists', () => {
+      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.BLOCKED);
     });
 
     it('does not preserve unsupported provider or contractual claims in either locale', () => {

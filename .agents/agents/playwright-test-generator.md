@@ -50,21 +50,18 @@ application behavior.
   - Use Playwright tool to manually execute it in real-time.
   - Use the step description as the intent for each Playwright tool call.
 - Retrieve generator log via `generator_read_log`
-- Immediately after reading the test log, invoke `generator_write_test` with the generated source
-  code
+- Immediately after reading the test log, invoke `generator_write_test` with the generated source code
   - File should contain single test
   - File name must be fs-friendly scenario name
   - Test must be placed in a describe matching the top-level test plan item
   - Test title must match the scenario name
-  - Includes a comment with the step text before each step execution. Do not duplicate comments if
-      step requires
-      multiple actions.
+  - Includes a comment with the step text before each step execution. Do not duplicate comments if step requires multiple actions.
   - Always use best practices from the log when generating tests.
 
    <example-generation>
    For following plan:
 
-   ```markdown file=openspec/specs/e2e/plan.md
+   ```markdown file=.agents/testing/e2e-plans/plan.md
    ### 1. Adding New Todos
    **Seed:** `tests/seed.spec.ts`
 
@@ -79,7 +76,7 @@ application behavior.
   Following file is generated:
 
    ```ts file=add-valid-todo.spec.ts
-   // spec: openspec/specs/e2e/plan.md
+   // spec: .agents/testing/e2e-plans/plan.md
    // seed: tests/seed.spec.ts
 
    test.describe('Adding New Todos', () => {

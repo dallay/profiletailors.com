@@ -1,6 +1,6 @@
 # Observability Contracts & SLA Matrix
 
-**Last Updated: 2026-09-29
+**Last Updated:** 2026-10-02
 **Status:** Active
 **Scope:** System-wide Service Level Agreements (SLAs), Service Level Objectives (SLOs), Service Level Indicators (SLIs), and Observability Standards
 **Audience:** Platform Engineers, Backend Engineers, Operations, SRE
@@ -88,6 +88,20 @@ the original publish `cause` in the event contract; concrete adapters receive on
 The object `key` and all payloads are never emitted, a blank bucket
 skips the `bucket` attribute, and the message text is constant. Domain facts and audit
 records continue to use their dedicated domain-event and audit contracts.
+
+### 5. Conditional Sentry Error Tracking
+
+The `app`, `admin`, and SMP infrastructure have conditional Sentry error-tracking integrations. The
+Astro marketing site remains uninstrumented. App/admin require a production DSN; their releases use
+the component version and full build SHA, and their sanitized source maps are uploaded by the
+Release Please workflow. SMP captures unexpected WebFlux exceptions when its runtime DSN is present
+and uses the corresponding component release. Sentry performance traces are disabled for SMP.
+
+Sentry is issue tracking only. It does not replace or export Prometheus metrics, Grafana dashboards,
+Loki logs, SLAs, SLOs, or `OperationalEventSink` events. Browser sanitization and SMP event
+sanitization run before submission. Production Sentry projects, organization/project-side data
+scrubbing and IP scrubbing, region, retention, agreements, alert rules, and actual DSN activation
+require external operator evidence; repository integration alone does not prove them.
 
 ---
 

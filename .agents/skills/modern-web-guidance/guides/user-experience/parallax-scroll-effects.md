@@ -180,12 +180,13 @@ smooth and accessible experience:
 * **DO** include feature detection: Not all browsers support scroll-driven animations. Use
   `@supports ((animation-timeline: view()) and (animation-range: entry))` to check for support and
   provide a fallback for browsers that don't support it.
+
   * The `(animation-range: entry)` check **MUST** be included here, to filter out browsers with
-      only partial support.
+    only partial support.
   * **DO NOT** use the `scroll-timeline-polyfill` package for the fallback strategy as it is not
-      feature complete and has a lot of known issues.
+    feature complete and has a lot of known issues.
   * If the animation is only considered to be decorative, opt for Progressive Enhancement and **DO
-      NOT** provide a fallback.
+    NOT** provide a fallback.
 * **DO** respect user preferences: Some users prefer to have less motion on the web. Use the
   `prefers-reduced-motion` media query to disable or reduce your animations for these users.
 * **DO** try to animate only performant CSS properties: For the smoothest animations, stick to

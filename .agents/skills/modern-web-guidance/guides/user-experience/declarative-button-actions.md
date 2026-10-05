@@ -72,8 +72,8 @@ commands.
 ## Fallback strategies
 
 Baseline status for Invoker commands: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2
+(Dec 2025).
 
 If the Invoker Commands API is not supported, the `command` event will not fire. For full support
 across all modern browsers, it is recommended to use the invokers-polyfill

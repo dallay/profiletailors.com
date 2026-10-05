@@ -1,13 +1,13 @@
 # Profile Tailors Documentation
 
-**Last Updated: 2026-10-01
+**Last Updated:** 2026-10-02
 
 ## 📖 Table of Contents
 
 ### AI-Assisted Engineering
 
 - [AI Engineering](./ai-engineering/) - How ProfileTailors uses Agent Harness for structured, spec-driven development with AI agents
-- [OpenSpec](../openspec/README.md) - Spec-driven development system with phase DAG
+- [OpenSpec](../.agents/sdd/README.md) - Spec-driven development system with phase DAG
 
 ### Architecture & Design
 
@@ -35,7 +35,7 @@
 
 ### Product Contracts & Release Evidence
 
-- [OpenSpec](../openspec/README.md) - Product specifications, change artifacts, and verification
+- [OpenSpec](../.agents/sdd/README.md) - Product specifications, change artifacts, and verification
   evidence
 - [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
 - [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance boundary
@@ -66,6 +66,8 @@
 
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
   visualization
+- [Sentry Error Tracking Runbook](./monitoring/sentry-runbook.md) - Conditional error tracking,
+  release/source-map verification, privacy setup, and alert operations
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
 - [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 - [Shared Observability Usage Standard](./observability-usage.md) - Canonical usage guide for
@@ -73,7 +75,11 @@
 
 ### Development & Testing
 
-- [Back Office QA Closure](../.agents/rpi/plan/tasks/back-office-qa.md) - QA coverage for the waitlist-to-first-login journey, local evidence, and remaining CI/deployed/operator closure status
+- RPI artifacts (e.g. back-office QA closure, shortlinks Core V1 hardening) live
+  in the agent's local RPI workspace under `.agents/rpi/plan/tasks/` and are
+  intentionally not versioned; this keeps the repo free of ephemeral coordination
+  noise while durable evidence is captured in the relevant ADR, test report, or
+  change artifact.
 - [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 - [Test Tags and Env](./testing/test-tags-and-env.md) - Backend test tags and local environment
 - [Mutation Testing](./testing/mutation-testing.md) - Mutation testing with mutflow
@@ -142,8 +148,8 @@ All documentation in this repository MUST follow these standards:
 5. **Location**: Centralized in the `docs/` directory. Avoid scattering documentation in
    service-specific directories unless it's a `README.md` for that specific module.
 
-OpenSpec artifacts remain under `openspec/` because they are product-contract and change records,
-not general operational documentation. See the [OpenSpec guide](../openspec/README.md) for how to
+OpenSpec artifacts remain under `.agents/sdd/` because they are product-contract and change records,
+not general operational documentation. See the [OpenSpec guide](../.agents/sdd/README.md) for how to
 navigate active and archived changes.
 
 ## 🔄 Contributing

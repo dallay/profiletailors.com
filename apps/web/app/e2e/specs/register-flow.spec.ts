@@ -14,7 +14,7 @@ import {
 import { safeGoto } from '../fixtures/navigation'
 
 function uniqueEmail(prefix = 'e2e-register'): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}@profiletailors.com`
+  return `${prefix}-${Date.now()}-${crypto.randomUUID()}@profiletailors.com`
 }
 
 async function capabilities(page: Page, enabled: boolean) {

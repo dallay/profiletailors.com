@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-30
 ---
+
 # Frontend Design Skill
 
 When working in Profile Tailors, follow `.agents/DESIGN.md` and the current surface `PRODUCT.md`

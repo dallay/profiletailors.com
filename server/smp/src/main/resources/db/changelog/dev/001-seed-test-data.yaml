@@ -76,3 +76,14 @@ databaseChangeLog:
               - column:
                   name: created_at
                   type: STRING
+
+        - loadData:
+            file: db/changelog/data/dev/platform_role_assignments_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: platform_role_assignments
+            columns:
+              - column:
+                  name: assigned_at
+                  type: STRING

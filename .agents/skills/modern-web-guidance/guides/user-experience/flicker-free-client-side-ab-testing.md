@@ -45,8 +45,8 @@ anything until the script has executed.
 <head>
   <!--
     MANDATORY: Both `async` and `blocking="render"` are required.
-    - `async`: Prevents parser-blocking, so the DOM is built in parallel.
-    - `blocking="render"`: Holds rendering until the script executes,
+  - `async`: Prevents parser-blocking, so the DOM is built in parallel.
+  - `blocking="render"`: Holds rendering until the script executes,
       ensuring experiment changes are applied before the user sees anything.
   -->
   <script
@@ -208,7 +208,7 @@ function onExperimentReady() {
    outage could block rendering entirely. The browser applies its own timeout heuristics (which may
    be longer than 4 seconds), but there is no developer-controlled timeout for `blocking="render"`.
    Ensure the third-party provider has strong uptime guarantees.
-3. **Server-Side Alternatives**: For performance-critical pages, consider server-side A/B testing (
-   where the server renders the correct variant directly) instead of client-side testing.
+3. **Server-Side Alternatives**: For performance-critical pages, consider server-side A/B testing
+   (where the server renders the correct variant directly) instead of client-side testing.
    Server-side approaches eliminate flicker entirely without any render-blocking cost. Use
    client-side `blocking="render"` only when server-side testing is not feasible.

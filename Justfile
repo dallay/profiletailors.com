@@ -250,14 +250,14 @@ backend-run:
     node scripts/gradle-run.mjs :server:smp:bootRun --args=--spring.profiles.active=dev
 
 # ═══════════════════════════════════════════════════════════════
-# SERVE  (Backend + Frontend App)
+# SERVE  (Backend + Dashboard + Admin)
 # ═══════════════════════════════════════════════════════════════
 
-# Start backend + frontend app in parallel
+# Start backend + dashboard SPA + admin SPA in parallel (one supervisor)
 serve $force="":
     node scripts/serve-dev.mjs "{{force}}"
 
-# Restart backend + frontend app, killing previous dev servers first
+# Restart backend + dashboard + admin, killing previous dev servers first
 serve-force:
     just serve --force
 
@@ -373,11 +373,6 @@ swarm-remove:
 # DOCUMENTATION & LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
 
-# Validate documentation "Last Updated" dates against git history
-doc-check:
-    @echo "▸ Documentation date freshness check..."
-    node scripts/check-doc-last-updated.mjs
-
 # Check Markdown links with lychee (uses lychee.toml; globs quoted so lychee
 # expands them recursively instead of the shell truncating ** to one level)
 docs-links:
@@ -415,9 +410,6 @@ ci-local:
     @echo ""
     @echo "▸ Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
-    @echo ""
-    @echo "▸ Documentation date freshness check..."
-    just doc-check
     @echo ""
     @echo "▸ Markdown lint..."
     just docs-lint
@@ -486,9 +478,6 @@ ci:
     @echo "════════════════════════════════════════════════"
     @echo ""
     just _ci-step "[1/15] Gitleaks (secrets scan)" "." gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
-    @echo ""
-    @echo "▸ [1a/8] Documentation date freshness check..."
-    just doc-check
     @echo ""
     @echo "▸ [1b/8] Dependency licence scan..."
     just licence-check

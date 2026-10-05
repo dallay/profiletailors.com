@@ -1,4 +1,4 @@
-# Style Parent with :has()
+# Style Parent with :has ()
 
 ## The Problem
 

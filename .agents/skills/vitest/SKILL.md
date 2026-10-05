@@ -7,6 +7,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Vitest
 
 Vitest is a next-generation testing framework powered by Vite. It provides a Jest-compatible API

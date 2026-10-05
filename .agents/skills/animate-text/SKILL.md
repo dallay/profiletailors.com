@@ -7,6 +7,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Animate Text
 
 Use this skill as a text animation catalog backed by generated JSON contracts.

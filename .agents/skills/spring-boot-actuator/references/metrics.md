@@ -598,6 +598,7 @@ Or using Spring Security:
 
 <!-- legacy:servlet -->
 <!-- legacy:servlet -->
+
 ```kotlin
 @Configuration
 class ActuatorSecurity {
@@ -614,6 +615,7 @@ class ActuatorSecurity {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 <!-- /legacy:servlet -->
 

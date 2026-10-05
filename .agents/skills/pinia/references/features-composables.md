@@ -68,7 +68,7 @@ implementation details.
 
 ## SSR Considerations
 
-### Option Stores with hydrate()
+### Option Stores with hydrate ()
 
 Define a `hydrate()` function to handle client-side hydration:
 
@@ -88,7 +88,7 @@ export const useAuthStore = defineStore('auth', {
 })
 ```
 
-### Setup Stores with skipHydrate()
+### Setup Stores with skipHydrate ()
 
 Mark state that shouldn't hydrate from server:
 

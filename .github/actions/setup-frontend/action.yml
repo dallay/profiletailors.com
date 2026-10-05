@@ -6,7 +6,7 @@ description: >
 inputs:
   node-version:
     description: Node.js version
-    default: '22'
+    default: '24.19.0'
   install-playwright:
     description: Install Playwright browsers after deps
     default: 'false'

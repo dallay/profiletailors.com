@@ -22,7 +22,7 @@ newParent.moveBefore(dialogElement, null);
 
 ### Fallback strategies
 
-moveBefore() has limited availability.
+moveBefore () has limited availability.
 Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), and Firefox 144 (Oct 2025).
 Unsupported in: Safari.
 

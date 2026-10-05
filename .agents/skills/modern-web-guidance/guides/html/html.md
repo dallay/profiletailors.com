@@ -306,8 +306,8 @@ info, and `<details>` for inline content expansion.
   This ensures the heading semantics aren’t lost, and the button and its state are announced.
 - **DO** use `details[open]` attribute for styling expanded states.
 - **DO** use `details::details-content` for styling the contents of the `<details>` element.
-- **DO** use the `name` attribute on multiple `<details>` elements to create exclusive accordions (
-  opening one closes others).
+- **DO** use the `name` attribute on multiple `<details>` elements to create exclusive accordions
+  (opening one closes others).
 
 - **DON'T** nest other interactive elements (links, buttons) directly inside `<summary>` text as it
   acts as a button and breaks focus.

@@ -27,9 +27,9 @@ if (force === '--force') {
 const environment = await prepareBackendEnvironment(context)
 
 console.log(
-  `Ensure Portless proxy is running for ${context.appUrl} (run \`pnpm exec portless proxy start\` if needed).`,
+  `Ensure Portless proxy is running for ${context.appUrl} and ${context.adminUrl} (run \`pnpm exec portless proxy start\` if needed).`,
 )
-console.log('Starting backend (Spring Boot) + frontend app (Vite)...')
+console.log('Starting backend (Spring Boot) + dashboard (Vite) + admin (Vite)...')
 
 const backend = spawn(
   process.execPath,
@@ -43,8 +43,16 @@ const backend = spawn(
   },
 )
 
-const frontend = spawn('pnpm', ['dev'], {
+const dashboard = spawn('pnpm', ['dev'], {
   cwd: `${context.root}/apps/web/app`,
+  stdio: 'inherit',
+  shell: isWin,
+  env: environment,
+  detached: !isWin,
+})
+
+const admin = spawn('pnpm', ['dev'], {
+  cwd: `${context.root}/apps/web/admin`,
   stdio: 'inherit',
   shell: isWin,
   env: environment,
@@ -56,7 +64,8 @@ writeProcessRecord(
   [
     { pid: process.pid, detached: false },
     { pid: backend.pid, detached: !isWin },
-    { pid: frontend.pid, detached: !isWin },
+    { pid: dashboard.pid, detached: !isWin },
+    { pid: admin.pid, detached: !isWin },
   ],
   context,
 )
@@ -65,7 +74,7 @@ let shuttingDown = false
 const shutdown = (code = 0) => {
   if (shuttingDown) return
   shuttingDown = true
-  for (const child of [backend, frontend]) {
+  for (const child of [backend, dashboard, admin]) {
     if (child.pid) {
       try {
         if (isWin) child.kill('SIGTERM')
@@ -80,10 +89,14 @@ const shutdown = (code = 0) => {
 process.on('SIGINT', () => shutdown())
 process.on('SIGTERM', () => shutdown())
 
-frontend.on('exit', (code) => {
+dashboard.on('exit', (code) => {
   shutdown(code ?? 1)
 })
 
 backend.on('exit', (code) => {
+  if (!shuttingDown) shutdown(code ?? 1)
+})
+
+admin.on('exit', (code) => {
   if (!shuttingDown) shutdown(code ?? 1)
 })

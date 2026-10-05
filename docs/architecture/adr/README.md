@@ -51,6 +51,8 @@ as a historical record and a guide for current and future development.
 | 0024 | [Durable Admin-Mutable Operational Configuration](./0024-durable-admin-mutable-operational-configuration.md) | Accepted | 2026-09-19 |
 | 0025 | [Agent Knowledge Bundle Governance](./0025-agent-knowledge-bundle-governance.md) | Superseded | 2026-09-28 |
 | 0026 | [Remove Automated Skill Doctor and Registry Generator](./0026-remove-automated-skill-doctor.md) | Accepted | 2026-09-30 |
+| 0027 | [Conditional Sentry Error-Tracking Boundary](./0027-conditional-sentry-error-tracking-boundary.md) | Accepted | 2026-10-02 |
+| 0028 | [Defer Shortlinks Capabilities Beyond Core V1](./0028-defer-shortlinks-beyond-core-v1.md) | Accepted | 2026-10-04 |
 
 ## Relationship with other docs
 

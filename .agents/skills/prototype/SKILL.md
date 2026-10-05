@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Prototype
 
 ## Objective
 
-Create new objects by copying an existing prototype instead of depending on its concrete construction details.
+Create new objects by copying an existing prototype instead of depending on its concrete
+construction details.
 
 ## Trigger conditions
 

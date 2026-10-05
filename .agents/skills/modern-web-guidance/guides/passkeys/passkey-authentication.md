@@ -199,8 +199,8 @@ window.addEventListener("DOMContentLoaded", initializeConditionalAutofill);
 
 Baseline status for the api.PublicKeyCredential.getClientCapabilities_static capability: Newly
 available. It's been Baseline since 2025-02-06.
-Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), Firefox 135 (Feb 2025), and Safari 17.4 (
-Mar 2024).
+Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), Firefox 135 (Feb 2025), and Safari 17.4
+(Mar 2024).
 
 Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported, `PublicKeyCredential.getClientCapabilities`
@@ -227,8 +227,8 @@ managers in sync with the server credential state.
 
 Baseline status for the api.PublicKeyCredential.parseRequestOptionsFromJSON_static capability: Newly
 available. It's been Baseline since 2025-03-31.
-Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 119 (Oct 2023), and Safari 18.4 (
-Mar 2025).
+Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 119 (Oct 2023), and Safari 18.4
+(Mar 2025).
 
 Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported,

@@ -13,6 +13,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Playwright E2E Testing Skill
 
 Playwright guidance specific to the Profile Tailors monorepo. This skill
@@ -29,8 +30,8 @@ is specific to this monorepo.
 - Adding or refreshing a HAR capture for an API-backed flow in
   `apps/web/app`.
 - Running an E2E lane locally or in CI.
-- Distinguishing between mocked lanes (no backend) and real-CAS lanes
-  (live SMP backend) on the dashboard; the admin lane is mocked today.
+- Distinguishing between mocked lanes (no backend) and real-CAS lanes (live SMP backend) on the
+  dashboard; the admin lane is mocked today.
 - Reviewing or updating Playwright config, fixtures, or selectors.
 
 ## Surfaces in scope
@@ -40,11 +41,11 @@ Playwright configuration, its own fixtures, and its own specs. Specs and
 helpers live next to each surface. Shared consent contracts and validation
 fixtures live under `shared/web/`; there is no shared E2E package.
 
-| Surface             | Path                                    | Config files                                                                  | Specs / fixtures                                                                   |
-|---------------------|-----------------------------------------|-------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| Dashboard SPA       | `apps/web/app/`                         | `e2e/playwright.config.ts`, `e2e/playwright.{media-mocked,media-real,scheduler,pwa}.config.ts` | `e2e/specs/`, `e2e/fixtures/` (incl. HAR-mocked `base-test.ts`), `e2e/pages/`, `e2e/hars/` |
-| Admin SPA (mocked)  | `apps/web/admin/`                       | `e2e/playwright.mocked.config.ts`                                            | `e2e/specs/`, `e2e/fixtures/` (stateful API fake), `e2e/pages/`                    |
-| Marketing (Astro)   | `apps/web/marketing/`                   | `playwright.config.ts`                                                        | `tests/e2e/*.spec.ts` (accessibility, consent, landing-page, seo, waitlist-form)   |
+| Surface            | Path                  | Config files                                                                                   | Specs / fixtures                                                                           |
+|--------------------|-----------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Dashboard SPA      | `apps/web/app/`       | `e2e/playwright.config.ts`, `e2e/playwright.{media-mocked,media-real,scheduler,pwa}.config.ts` | `e2e/specs/`, `e2e/fixtures/` (incl. HAR-mocked `base-test.ts`), `e2e/pages/`, `e2e/hars/` |
+| Admin SPA (mocked) | `apps/web/admin/`     | `e2e/playwright.mocked.config.ts`                                                              | `e2e/specs/`, `e2e/fixtures/` (stateful API fake), `e2e/pages/`                            |
+| Marketing (Astro)  | `apps/web/marketing/` | `playwright.config.ts`                                                                         | `tests/e2e/*.spec.ts` (accessibility, consent, landing-page, seo, waitlist-form)           |
 
 Shared code that several consumers touch (consent contract, validation
 fixtures) lives under `shared/web/`. The local Playwright runner entry
@@ -130,12 +131,12 @@ HAR file.
 The dashboard SPA defines the canonical tag groups. Other surfaces
 should align with this convention when they add tags.
 
-| Tag             | Meaning                                                       | Backend needed |
-|-----------------|---------------------------------------------------------------|----------------|
-| `@frontend`     | Specs that only need the Vite dev server (rendering, validation, responsive, i18n text) | No |
-| `@integration`  | Specs that exercise API-backed flows via HAR replay and targeted Playwright route overrides | No (HAR replay by default; record mode flips this) |
-| `@smoke`        | Fast subset kept green by every lane                          | Depends        |
-| `@fast`         | Run during `just ci-local`; excluded from the longest lanes   | Depends        |
+| Tag            | Meaning                                                                                     | Backend needed                                     |
+|----------------|---------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `@frontend`    | Specs that only need the Vite dev server (rendering, validation, responsive, i18n text)     | No                                                 |
+| `@integration` | Specs that exercise API-backed flows via HAR replay and targeted Playwright route overrides | No (HAR replay by default; record mode flips this) |
+| `@smoke`       | Fast subset kept green by every lane                                                        | Depends                                            |
+| `@fast`        | Run during `just ci-local`; excluded from the longest lanes                                 | Depends                                            |
 
 Examples already used in the codebase:
 
@@ -235,5 +236,5 @@ frontend-test-e2e`; the dashboard opts in per spec.
   stateful API fake contract.
 - `apps/web/marketing/tests/e2e/README.md` — marketing Astro runs.
 - `scripts/run-playwright.mjs` — port-leasing runner used by `just`.
-- `playwright-best-practices/SKILL.md` — generic Playwright patterns
-  (POM, locator priority table, accessibility, retries, fixtures).
+- `playwright-best-practices/SKILL.md` — generic Playwright patterns (POM, locator priority table,
+  accessibility, retries, fixtures).

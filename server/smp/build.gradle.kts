@@ -100,12 +100,13 @@ dependencies {
     implementation(libs.spring.ai.starter.mcp.server.webflux)
     implementation(libs.jackson.module.kotlin)
     // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
-    @Suppress("GradleDependency")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${libs.versions.jackson2.get()}")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
+    implementation(libs.caffeine)
+    implementation(libs.sentry.spring.boot.four)
 
     developmentOnly(libs.spring.boot.devtools)
     developmentOnly(libs.spring.boot.docker.compose)
@@ -141,6 +142,9 @@ dependencies {
 
     constraints {
         // BOMs do not manage these — plain constraints win.
+        // (Jackson BOM pins live in the shared Spring convention plugins as
+        // native platforms, so every module declares them — see
+        // SecurityDependencyVersions.)
         implementation(libs.okio.jvm)
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
@@ -169,6 +173,8 @@ dependencyManagement {
 // dependency-management plugin applies its managed versions AFTER Gradle
 // constraints, so plain/strict constraints cannot override it. Configuration-level
 // resolution rules (eachDependency) run at the end of resolution and always win.
+// Jackson pins live in the shared Spring convention plugins
+// (SecurityDependencyVersions) so every module resolves the patched lines;
 // `verifySecurityVersions` fails the build if any patched dependency ever resolves
 // below its patched version.
 configurations.all {
@@ -182,23 +188,6 @@ configurations.all {
             }
             if (requested.group == "org.apache.httpcomponents.core5") {
                 useVersion("5.4.3")
-            }
-            if (requested.group.startsWith("com.fasterxml.jackson")) {
-                useVersion(
-                    when (requested.name) {
-                        "jackson-annotations" -> "2.22"
-                        else -> "2.22.2"
-                    },
-                )
-            }
-            if (requested.group == "tools.jackson.core") {
-                useVersion("3.2.2")
-            }
-            if (requested.group == "tools.jackson.module") {
-                useVersion("3.2.2")
-            }
-            if (requested.group == "tools.jackson.dataformat") {
-                useVersion("3.2.2")
             }
             if (requested.group == "org.postgresql" && requested.name == "postgresql") {
                 useVersion("42.7.12")
@@ -231,16 +220,16 @@ val verifySecurityVersions =
                     "org.apache.httpcomponents.client5:httpclient5" to "5.6.4",
                     "org.apache.httpcomponents.core5:httpcore5" to "5.4.3",
                     "org.apache.httpcomponents.core5:httpcore5-h2" to "5.4.3",
-                    "com.fasterxml.jackson:jackson-bom" to "2.22.2",
+                    "com.fasterxml.jackson:jackson-bom" to "2.22.3",
                     "com.fasterxml.jackson.core:jackson-annotations" to "2.22",
-                    "com.fasterxml.jackson.core:jackson-core" to "2.22.2",
-                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.2",
-                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.2",
-                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.2",
-                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.2",
-                    "tools.jackson.core:jackson-core" to "3.2.2",
-                    "tools.jackson.core:jackson-databind" to "3.2.2",
-                    "tools.jackson.module:jackson-module-kotlin" to "3.2.2",
+                    "com.fasterxml.jackson.core:jackson-core" to "2.22.3",
+                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.3",
+                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.3",
+                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.3",
+                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.3",
+                    "tools.jackson.core:jackson-core" to "3.2.3",
+                    "tools.jackson.core:jackson-databind" to "3.2.3",
+                    "tools.jackson.module:jackson-module-kotlin" to "3.2.3",
                     "org.postgresql:postgresql" to "42.7.12",
                 )
             val violations =

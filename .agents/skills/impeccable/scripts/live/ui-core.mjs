@@ -7,7 +7,8 @@
  * values at runtime because it is served as a standalone script.
  */
 
-export const LIVE_CHROME_MOUNT_CONTRACT = Object.freeze(['root', 'transport', 'state', 'actions'])
+export const LIVE_CHROME_MOUNT_CONTRACT = Object.freeze(
+    ['root', 'transport', 'state', 'actions'])
 
 export const LIVE_UI_SURFACES = Object.freeze([
   {
@@ -29,7 +30,8 @@ export const LIVE_UI_SURFACES = Object.freeze([
   {
     key: 'pending-copy-edit-dock',
     ids: ['impeccable-live-pending-dock'],
-    states: ['closed', 'open', 'hover', 'pressed', 'loading', 'rollback', 'keep-fixing'],
+    states: ['closed', 'open', 'hover', 'pressed', 'loading', 'rollback',
+      'keep-fixing'],
   },
   {
     key: 'element-selection-chrome',
@@ -52,7 +54,8 @@ export const LIVE_UI_SURFACES = Object.freeze([
   {
     key: 'edit-chrome',
     ids: ['impeccable-live-edit-badge'],
-    states: ['enabled', 'disabled', 'editing', 'cancel', 'save', 'edited-content'],
+    states: ['enabled', 'disabled', 'editing', 'cancel', 'save',
+      'edited-content'],
   },
   {
     key: 'generating-row',
@@ -94,7 +97,8 @@ export const LIVE_UI_SURFACES = Object.freeze([
       'impeccable-live-insert-create',
       'impeccable-live-insert-create-tooltip',
     ],
-    states: ['toggle-active', 'line', 'placeholder', 'resize', 'enabled', 'disabled', 'tooltip'],
+    states: ['toggle-active', 'line', 'placeholder', 'resize', 'enabled',
+      'disabled', 'tooltip'],
   },
   {
     key: 'annotation-chrome',
@@ -129,29 +133,40 @@ export const LIVE_UI_COMPONENT_IDS = Object.freeze([
 
 export function resolveLiveUiRoot(env = globalThis) {
   const doc = env?.document
-  const explicit = env?.__IMPECCABLE_LIVE_UI_ROOT__ || env?.window?.__IMPECCABLE_LIVE_UI_ROOT__
-  if (explicit && typeof explicit.appendChild === 'function') return explicit
+  const explicit = env?.__IMPECCABLE_LIVE_UI_ROOT__
+      || env?.window?.__IMPECCABLE_LIVE_UI_ROOT__
+  if (explicit && typeof explicit.appendChild === 'function') {
+    return explicit
+  }
   return doc?.body || null
 }
 
 export function getLiveUiElementById(id, env = globalThis) {
   const doc = env?.document
   const root = resolveLiveUiRoot(env)
-  if (!id) return null
+  if (!id) {
+    return null
+  }
   if (root?.getElementById) {
     const found = root.getElementById(id)
-    if (found) return found
+    if (found) {
+      return found
+    }
   }
   if (root?.querySelector) {
     const found = root.querySelector('#' + escapeCssIdent(id))
-    if (found) return found
+    if (found) {
+      return found
+    }
   }
   return doc?.getElementById?.(id) || null
 }
 
 export function appendToLiveUiRoot(el, env = globalThis) {
   const root = resolveLiveUiRoot(env)
-  if (!root) throw new Error('Impeccable live UI root is not available')
+  if (!root) {
+    throw new Error('Impeccable live UI root is not available')
+  }
   root.appendChild(el)
   return el
 }

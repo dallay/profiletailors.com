@@ -15,8 +15,8 @@
 
 ### Request Fixtures for Authenticated Clients
 
-**Use when**: Multiple tests need an authenticated API client with shared configuration.
-**Avoid when**: A single test makes one-off API calls — use the built-in `request` fixture directly.
+**Use when**: Multiple tests need an authenticated API client with shared configuration. **Avoid
+when**: A single test makes one-off API calls — use the built-in `request` fixture directly.
 
 ```typescript
 // fixtures/api-fixtures.ts
@@ -84,8 +84,8 @@ test("admin retrieves all accounts", async ({adminApi}) => {
 ### CRUD Operations
 
 **Use when**: Making HTTP requests — GET, POST, PUT, PATCH, DELETE with headers, query params, and
-bodies.
-**Avoid when**: You need to test browser-rendered responses (redirects, cookies with `HttpOnly`).
+bodies. **Avoid when**: You need to test browser-rendered responses (redirects, cookies with
+`HttpOnly`).
 
 ```typescript
 import {test, expect} from "@playwright/test";
@@ -181,8 +181,8 @@ export default defineConfig({
 
 ### Response Assertions
 
-**Use when**: Validating response status, headers, and body structure.
-**Avoid when**: Never skip these — every API test should assert on status and body.
+**Use when**: Validating response status, headers, and body structure. **Avoid when**: Never skip
+these — every API test should assert on status and body.
 
 ```typescript
 import {test, expect} from "@playwright/test";
@@ -259,8 +259,8 @@ test("list response structure", async ({request}) => {
 ### API Data Seeding
 
 **Use when**: E2E tests need specific data to exist before running. API seeding is 10-100x faster
-than UI-based setup.
-**Avoid when**: The test specifically validates the creation flow through the UI.
+than UI-based setup. **Avoid when**: The test specifically validates the creation flow through the
+UI.
 
 ```typescript
 import {test as base, expect} from "@playwright/test";
@@ -415,8 +415,8 @@ test.describe("Error responses", () => {
 
 ### File Upload via API
 
-**Use when**: Testing file upload endpoints with multipart form data.
-**Avoid when**: You need to test the browser file picker dialog — use `page.setInputFiles()`
+**Use when**: Testing file upload endpoints with multipart form data. **Avoid when**: You need to
+test the browser file picker dialog — use `page.setInputFiles()`
 instead.
 
 ```typescript
@@ -470,8 +470,8 @@ test("rejects oversized files", async ({request}) => {
 ### Chained API Calls
 
 **Use when**: Testing multi-step workflows — create, read, update, delete sequences; order flows;
-state machine transitions.
-**Avoid when**: You can test each endpoint in isolation and the interactions are trivial.
+state machine transitions. **Avoid when**: You can test each endpoint in isolation and the
+interactions are trivial.
 
 ```typescript
 import {test, expect} from "@playwright/test";
@@ -581,8 +581,8 @@ test("API + E2E hybrid — seed via API, verify in browser", async ({
 ### Schema Validation with Zod
 
 **Use when**: Verifying API responses match a contract — field types, required fields, value
-constraints.
-**Avoid when**: You only need to check one or two specific fields — use `toMatchObject` instead.
+constraints. **Avoid when**: You only need to check one or two specific fields — use `toMatchObject`
+instead.
 
 ```typescript
 import {test, expect} from "@playwright/test";
@@ -678,7 +678,7 @@ export default defineConfig({
 });
 ```
 
-### "response.json() failed — body is not valid JSON"
+### "response.json () failed — body is not valid JSON"
 
 **Cause**: The endpoint returned HTML (error page), plain text, or an empty body instead of JSON.
 

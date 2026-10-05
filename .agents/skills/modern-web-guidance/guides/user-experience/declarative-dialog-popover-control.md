@@ -70,8 +70,8 @@ Unlike popovers, modal dialogs typically use separate buttons for opening and cl
 ## Fallback strategies
 
 Baseline status for Invoker commands: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2
+(Dec 2025).
 Baseline status for Popover: Newly available. It's been Baseline since 2025-01-27.
 Supported by: Chrome 116 (Aug 2023), Edge 116 (Aug 2023), Firefox 125 (Apr 2024), Safari 17 (Sep
 2023), and Safari iOS 18.3 (Jan 2025).
@@ -121,8 +121,8 @@ button the way native browsers do. You are strongly encouraged to handle these s
 ensure your site is fully accessible.
 
 Baseline status for Invoker commands: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 135 (Apr 2025), Edge 135 (Apr 2025), Firefox 144 (Oct 2025), and Safari 26.2
+(Dec 2025).
 
 If the Invoker Commands API is not supported, the `command` event will not fire. For full support
 across all modern browsers, it is recommended to use the invokers-polyfill

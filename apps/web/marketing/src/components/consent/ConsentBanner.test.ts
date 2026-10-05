@@ -29,7 +29,7 @@ function readConsentBannerSource(): string {
  */
 function extractConsentBannerScript(): string {
   const source = readConsentBannerSource()
-  const scriptBlocks = [...source.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  const scriptBlocks = [...source.matchAll(/<script>([\s\S]*?)<\/script\s*>/gi)]
   const clientScript = scriptBlocks.find(([, body]) => body.includes('initConsentBanner'))
   if (!clientScript) {
     throw new Error('Could not find the client <script> block in ConsentBanner.astro')

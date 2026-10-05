@@ -27,14 +27,14 @@ readability and maintainability (especially when using fallbacks).
 ## Fallback strategies
 
 Baseline status for scrollbar-width: Newly available. It's been Baseline since 2024-12-11.
-Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 18.2 (
-Dec 2024).
+Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 18.2
+(Dec 2024).
 
 ### Fallbacks & browser support for scrollbar-color
 
 Baseline status for scrollbar-color: Newly available. It's been Baseline since 2025-12-12.
-Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 26.2 (
-Dec 2025).
+Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 26.2
+(Dec 2025).
 
 This feature is progressive enhancement and does not always require fallbacks.
 

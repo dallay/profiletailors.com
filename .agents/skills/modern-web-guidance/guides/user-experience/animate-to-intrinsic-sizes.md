@@ -111,8 +111,8 @@ triggerBtn?.addEventListener('click', () => {
 
 ## Key constraints
 
-* **Keyword-to-Keyword Restriction**: You cannot animate between two different keywords directly (
-  e.g., from `min-content` to `max-content`). One end of the transition must be a fixed length or
+* **Keyword-to-Keyword Restriction**: You cannot animate between two different keywords directly
+  (e.g., from `min-content` to `max-content`). One end of the transition must be a fixed length or
   percentage (e.g., `0` to `auto`).
 * **Calc-size Syntax**: Inside `calc-size()`, you cannot mix different intrinsic keywords in the
   same expression. The first argument (the basis) defines what `size` represents.
@@ -126,7 +126,7 @@ triggerBtn?.addEventListener('click', () => {
 interpolate-size has limited availability.
 Supported by: Chrome 129 (Sep 2024) and Edge 129 (Sep 2024).
 Unsupported in: Firefox and Safari.
-calc-size() has limited availability.
+calc-size () has limited availability.
 Supported by: Chrome 129 (Sep 2024) and Edge 129 (Sep 2024).
 Unsupported in: Firefox and Safari.
 

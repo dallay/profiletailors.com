@@ -55,8 +55,8 @@ placeholder by the CSS Working Group and may change in the future.
 ### Fallback strategies
 
 Baseline status for text-wrap: Newly available. It's been Baseline since 2024-10-17.
-Supported by: Chrome 130 (Oct 2024), Edge 130 (Oct 2024), Firefox 124 (Mar 2024), and Safari 17.5 (
-May 2024).
+Supported by: Chrome 130 (Oct 2024), Edge 130 (Oct 2024), Firefox 124 (Mar 2024), and Safari 17.5
+(May 2024).
 
 For browsers that do not yet support `text-wrap`, use the legacy `white-space` property. Modern
 browsers treat `white-space` as a shorthand for setting both the `text-wrap-mode` and

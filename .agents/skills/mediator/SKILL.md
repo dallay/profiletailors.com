@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # Mediator
 
 ## Objective
 
-Centralize communication between collaborating components so they do not depend directly on one another.
+Centralize communication between collaborating components so they do not depend directly on one
+another.
 
 ## Trigger conditions
 

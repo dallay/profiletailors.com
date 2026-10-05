@@ -4,11 +4,20 @@ const ROUTES = ['/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/
 const URLS: string[] = ROUTES.flatMap((r) => (r === '/' ? ['/', '/es/'] : [r, `/es${r}`]))
 const BOTS = ['OAI-SearchBot', 'GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'GoogleOther', 'Bingbot']
 
+function isSerifHost(href: string): boolean {
+  try {
+    const u = new URL(href, 'https://profiletailors.com')
+    return u.hostname === 'serif.com' || u.hostname.endsWith('.serif.com')
+  } catch {
+    return false
+  }
+}
+
 function isInternalHref(href: string | null): boolean {
   if (!href) return false
   const t = href.trim()
   if (!t) return false
-  if (t.startsWith('mailto:') || t.startsWith('tel:') || t.startsWith('javascript:') || t.startsWith('data:')) return false
+  if (t.startsWith('mailto:') || t.startsWith('tel:') || t.startsWith('javascript:') || t.startsWith('vbscript:') || t.startsWith('data:')) return false
   if (t.startsWith('#')) return false
   if (t.startsWith('//')) {
     try {
@@ -90,7 +99,7 @@ test.describe('SEO — Link hygiene crawl graph', () => {
             .filter(Boolean)
         )
         for (const h of hrefs as string[]) {
-          if (h.includes('serif.com')) continue
+          if (isSerifHost(h)) continue
           expect(h, `${url} -> ${h}`).not.toMatch(/^http:\/\//)
         }
       })
@@ -175,10 +184,17 @@ test.describe('SEO — robots.txt per-bot Allow', () => {
           .split(',')
           .map((s: string): string => s.trim().toLowerCase())
           .filter(Boolean)
-        expect(directives, `${url} missing index`).toContain('index')
-        expect(directives, `${url} missing follow`).toContain('follow')
-        expect(directives, `${url} should not contain noindex`).not.toContain('noindex')
-        expect(directives, `${url} should not contain nofollow`).not.toContain('nofollow')
+        const unavailable = await page.locator('#legal-unavailable-title').count() > 0
+        if (unavailable) {
+          expect(directives, `${url} missing noindex`).toContain('noindex')
+          expect(directives, `${url} missing nofollow`).toContain('nofollow')
+          expect(directives, `${url} missing noarchive`).toContain('noarchive')
+        } else {
+          expect(directives, `${url} missing index`).toContain('index')
+          expect(directives, `${url} missing follow`).toContain('follow')
+          expect(directives, `${url} should not contain noindex`).not.toContain('noindex')
+          expect(directives, `${url} should not contain nofollow`).not.toContain('nofollow')
+        }
       })
     }
   })
@@ -235,7 +251,12 @@ test.describe('SEO — invariants head (titles, meta, h1, canonical, hreflang, o
         const h1Text = (await h1.innerText()).trim()
         expect(h1Text.length, `${url} h1`).toBeGreaterThan(0)
         if (url !== '/' && url !== '/es/') {
-          expect(h1Text, `${url} h1===title`).toBe(title)
+          const unavailable = await page.locator('#legal-unavailable-title').count() > 0
+          if (unavailable) {
+            expect(h1Text, `${url} unavailable h1`).toMatch(/Legal document not yet available|Documento legal todavía no disponible/)
+          } else {
+            expect(h1Text, `${url} h1===title`).toBe(title)
+          }
         }
 
         const canonical = await page.getAttribute('link[rel="canonical"]', 'href')
@@ -347,6 +368,11 @@ test.describe('SEO — JSON-LD structured data identity', () => {
   for (const url of URLS) {
     test(`${url} JSON-LD type and language match expected identity`, async ({ page }) => {
       await page.goto(url)
+      const unavailable = await page.locator('#legal-unavailable-title').count() > 0
+      if (unavailable) {
+        await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0)
+        return
+      }
       const jsonLd = await page
         .locator('script[type="application/ld+json"]')
         .first()
@@ -368,17 +394,22 @@ test.describe('SEO — JSON-LD structured data identity', () => {
   }
 })
 
-test.describe('SEO — Markdown mailto links render without cdn-cgi obfuscation', () => {
+test.describe('SEO — legal contact links respect publication state', () => {
   const legalUrls = URLS.filter((u) => u !== '/' && u !== '/es/')
   for (const url of legalUrls) {
-    test(`${url} renders mailto contact links and no cdn-cgi paths`, async ({ page }) => {
+    test(`${url} renders the correct contact state without cdn-cgi paths`, async ({ page }) => {
       await page.goto(url)
+      const unavailableState = page.locator('#legal-unavailable-title')
       const mailtoHrefs: string[] = await page.evaluate(() => {
         return Array.from(document.querySelectorAll('a[href^="mailto:"]'))
           .map((a) => a.getAttribute('href') ?? '')
           .filter(Boolean)
       })
-      expect(mailtoHrefs.length, `${url} must contain at least one mailto link`).toBeGreaterThan(0)
+      if (await unavailableState.count() > 0) {
+        expect(mailtoHrefs, `${url} must not expose contact links while publication is blocked`).toHaveLength(0)
+      } else {
+        expect(mailtoHrefs.length, `${url} must contain at least one mailto link`).toBeGreaterThan(0)
+      }
       for (const href of mailtoHrefs) {
         expect(href.startsWith('mailto:'), `${url} mailto ${href}`).toBe(true)
         expect(href, `${url} mailto ${href} contains cdn-cgi`).not.toContain('cdn-cgi')

@@ -76,6 +76,7 @@ or similar configuration.
 **Solution**: Permit SpringDoc endpoints in Spring Security:
 
 <!-- legacy:servlet -->
+
 ```kotlin
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -97,6 +98,7 @@ class SecurityConfig {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ### Maven/Gradle Build Issues

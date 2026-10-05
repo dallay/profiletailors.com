@@ -373,8 +373,8 @@ For this feature:
 - **3 E2E tests** — ~15 seconds total, full stack
 
 Total: 24 tests, ~22 seconds. API tests catch most regressions. Component tests catch UI bugs. E2E
-tests prove wiring works. If E2E fails but API and component pass, the problem is in integration (
-routing, state management, API client).
+tests prove wiring works. If E2E fails but API and component pass, the problem is in integration
+(routing, state management, API client).
 
 ## Common Mistakes
 

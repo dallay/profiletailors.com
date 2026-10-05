@@ -31,32 +31,32 @@ replaces every servlet binding with its reactive equivalent.
 
 ### Key Reactive Changes
 
-| Servlet API                              | WebFlux reactive equivalent                                |
-|------------------------------------------|------------------------------------------------------------|
-| `WebSecurityConfigurerAdapter`           | (removed) `SecurityWebFilterChain` bean                    |
-| `HttpSecurity`                           | `ServerHttpSecurity`                                       |
-| `SecurityFilterChain`                    | `SecurityWebFilterChain`                                   |
-| `OncePerRequestFilter`                   | `WebFilter` (implements `Mono<Void>`)                      |
-| `HttpServletRequest` / `HttpServletResponse` | `ServerWebExchange` / `ServerHttpRequest`/`Response`     |
-| `FilterChain.doFilter(req, res)`         | `chain.filter(exchange).then()`                            |
-| `SecurityContextHolder.getContext()`     | `exchange.exchange.getPrincipal<Authentication>()`          |
-| `UsernamePasswordAuthenticationFilter`   | `SecurityWebFiltersOrder.HTTP_BASIC` (or a filter slot)     |
-| `AuthenticationManager`                  | `ReactiveAuthenticationManager`                            |
-| `AuthenticationProvider`                 | `ReactiveAuthenticationProvider` (Coroutine variant)        |
-| `UserDetailsService`                     | `ReactiveUserDetailsService`                               |
-| `requestMatchers(...)` (path matcher)    | `pathMatchers(...)`                                        |
-| `antMatchers(...)`                       | `pathMatchers(...)`                                        |
-| `authorizeHttpRequests(...)`             | `authorizeExchange(...)`                                   |
-| `csrf(...)`                              | `csrf { ... }` (same DSL, runs on `ServerHttpSecurity`)     |
-| `oauth2ResourceServer(...)`              | same DSL, runs against `ServerHttpSecurity`                |
-| `@EnableMethodSecurity`                  | `@EnableReactiveMethodSecurity`                            |
-| `MockMvc`                                | `WebTestClient`                                            |
-| `@AutoConfigureMockMvc`                  | `@AutoConfigureWebTestClient`                              |
-| `@MockBean`                              | `@MockkBean` (`com.ninja-squad:springmockk`)               |
-| `@WebMvcTest`                            | `@WebFluxTest`                                             |
-| `JdbcTemplate` / `JpaRepository`         | `DatabaseClient` / `CoroutineCrudRepository`               |
-| `spring.datasource.*` properties         | `spring.r2dbc.*` properties                                |
-| `starter-data-jpa` / `starter-web`       | `starter-data-r2dbc` / `starter-webflux`                   |
+| Servlet API                                  | WebFlux reactive equivalent                             |
+|----------------------------------------------|---------------------------------------------------------|
+| `WebSecurityConfigurerAdapter`               | (removed) `SecurityWebFilterChain` bean                 |
+| `HttpSecurity`                               | `ServerHttpSecurity`                                    |
+| `SecurityFilterChain`                        | `SecurityWebFilterChain`                                |
+| `OncePerRequestFilter`                       | `WebFilter` (implements `Mono<Void>`)                   |
+| `HttpServletRequest` / `HttpServletResponse` | `ServerWebExchange` / `ServerHttpRequest`/`Response`    |
+| `FilterChain.doFilter(req, res)`             | `chain.filter(exchange).then()`                         |
+| `SecurityContextHolder.getContext()`         | `exchange.exchange.getPrincipal<Authentication>()`      |
+| `UsernamePasswordAuthenticationFilter`       | `SecurityWebFiltersOrder.HTTP_BASIC` (or a filter slot) |
+| `AuthenticationManager`                      | `ReactiveAuthenticationManager`                         |
+| `AuthenticationProvider`                     | `ReactiveAuthenticationProvider` (Coroutine variant)    |
+| `UserDetailsService`                         | `ReactiveUserDetailsService`                            |
+| `requestMatchers(...)` (path matcher)        | `pathMatchers(...)`                                     |
+| `antMatchers(...)`                           | `pathMatchers(...)`                                     |
+| `authorizeHttpRequests(...)`                 | `authorizeExchange(...)`                                |
+| `csrf(...)`                                  | `csrf { ... }` (same DSL, runs on `ServerHttpSecurity`) |
+| `oauth2ResourceServer(...)`                  | same DSL, runs against `ServerHttpSecurity`             |
+| `@EnableMethodSecurity`                      | `@EnableReactiveMethodSecurity`                         |
+| `MockMvc`                                    | `WebTestClient`                                         |
+| `@AutoConfigureMockMvc`                      | `@AutoConfigureWebTestClient`                           |
+| `@MockBean`                                  | `@MockkBean` (`com.ninja-squad:springmockk`)            |
+| `@WebMvcTest`                                | `@WebFluxTest`                                          |
+| `JdbcTemplate` / `JpaRepository`             | `DatabaseClient` / `CoroutineCrudRepository`            |
+| `spring.datasource.*` properties             | `spring.r2dbc.*` properties                             |
+| `starter-data-jpa` / `starter-web`           | `starter-data-r2dbc` / `starter-webflux`                |
 
 ## Configuration Changes
 

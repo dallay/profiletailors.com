@@ -8,6 +8,7 @@ metadata:
   source: upstream-adapted
   version: 2026-09-28
 ---
+
 # Playwright Best Practices
 
 This skill provides comprehensive guidance for all aspects of Playwright test development, from
@@ -128,11 +129,11 @@ monorepo. Next.js examples in upstream references are kept as generic
 inspiration when the lesson is platform-agnostic; the monorepo does not
 ship Next.js surfaces.
 
-| Activity                    | Reference Files                                       |
-|-----------------------------|-------------------------------------------------------|
-| **Testing Vue SPA (apps/web/app, apps/web/admin)** | [vue.md](frameworks/vue.md)         |
-| **Testing Astro sites (apps/web/marketing)**      | [astrolicious-astro](../astrolicious-astro/SKILL.md)     |
-| **Upstream-only React example** | [react.md](frameworks/react.md) — Next.js example, lesson is platform-agnostic |
+| Activity                                           | Reference Files                                                                |
+|----------------------------------------------------|--------------------------------------------------------------------------------|
+| **Testing Vue SPA (apps/web/app, apps/web/admin)** | [vue.md](frameworks/vue.md)                                                    |
+| **Testing Astro sites (apps/web/marketing)**       | [astrolicious-astro](../astrolicious-astro/SKILL.md)                           |
+| **Upstream-only React example**                    | [react.md](frameworks/react.md) — Next.js example, lesson is platform-agnostic |
 
 ### Refactoring & Maintenance
 

@@ -6,10 +6,11 @@ withDefaults(defineProps<{
   id: string
   label: string
   modelValue: string
+  name?: string
   autocomplete?: string
   error?: string
   readonly?: boolean
-}>(), { autocomplete: 'current-password', error: undefined, readonly: false })
+}>(), { name: 'password', autocomplete: 'current-password', error: undefined, readonly: false })
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const visible = ref(false)
 const input = ref<HTMLInputElement | null>(null)
@@ -25,6 +26,7 @@ defineExpose({ focus: () => input.value?.focus() })
         ref="input"
         :id="id"
         :value="modelValue"
+        :name="name"
         :type="visible ? 'text' : 'password'"
         :autocomplete="autocomplete"
         :readonly="readonly"

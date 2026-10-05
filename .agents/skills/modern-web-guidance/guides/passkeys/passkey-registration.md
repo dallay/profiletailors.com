@@ -202,8 +202,8 @@ managers in sync with the server credential state.
 
 Baseline status for the api.PublicKeyCredential.parseCreationOptionsFromJSON_static capability:
 Newly available. It's been Baseline since 2025-03-31.
-Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 119 (Oct 2023), and Safari 18.4 (
-Mar 2025).
+Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 119 (Oct 2023), and Safari 18.4
+(Mar 2025).
 
 Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported,

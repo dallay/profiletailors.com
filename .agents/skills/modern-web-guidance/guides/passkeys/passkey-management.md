@@ -54,7 +54,8 @@ authentication options:
    the response is empty, render a helpful empty-state message (e.g., "No passkeys found").
 2. **Map AAGUID Metadata**: For each passkey, lookup its `aaguid` property against your local
    registry to render its provider details.
-   See [Determine the passkey provider from AAGUID](#determine-the-passkey-provider-from-aaguid) section for more details.
+   See [Determine the passkey provider from AAGUID](#determine-the-passkey-provider-from-aaguid)
+   section for more details.
 3. **Per-Item UI Requirements**: Every row inside the list container MUST render:
     * **Provider Icon**: AAGUID-derived image or data URI.
     * **Provider/Custom Name**: AAGUID-derived name or user-renamed string.
@@ -78,18 +79,12 @@ authentication options:
 The Signal API lets the application communicate credential states to password managers, keeping the
 user's synced vaults and your backend database in lockstep.
 
-* **Parameter Encoding Rule**:
-  * All `userId` and credential ID parameters passed to Signal API methods (
-      `signalAllAcceptedCredentials`, `signalCurrentUserDetails`) MUST be **Base64URL-encoded
-      strings**.
-* **Initiating Page Load Sync**:
-  * The application MUST invoke `signalAllAcceptedCredentials()` automatically in a
-      `DOMContentLoaded` page load event listener.
+* **Parameter Encoding Rule**: All `userId` and credential ID parameters passed to Signal API methods (`signalAllAcceptedCredentials`, `signalCurrentUserDetails`) MUST be **Base64URL-encoded strings**.
+* **Initiating Page Load Sync**: The application MUST invoke `signalAllAcceptedCredentials()` automatically in a `DOMContentLoaded` page load event listener.
 * **Management Updates Sync**:
-  * The application MUST invoke `signalAllAcceptedCredentials()` immediately within your delete
-      credential click handler post-fetch.
-  * The application MUST invoke `signalCurrentUserDetails()` immediately within your username or
-      display name rename click handler post-fetch.
+
+  * The application MUST invoke `signalAllAcceptedCredentials()` immediately within your delete credential click handler post-fetch.
+  * The application MUST invoke `signalCurrentUserDetails()` immediately within your username or display name rename click handler post-fetch.
 
 ```javascript
 // Client-side management synchronization ES module
@@ -154,8 +149,8 @@ async function performRename(rpId, userId, updatedName, updatedDisplayName) {
 
 An AAGUID (Authenticator Attestation Globally Unique Identifier) is a 128-bit identifier that
 represents the model of the authenticator, not a specific instance. It is included in the
-authenticator data during passkey registration and can be used to determine which passkey provider (
-e.g. Google Password Manager, iCloud Keychain, 1Password) created a credential.
+authenticator data during passkey registration and can be used to determine which passkey provider
+(e.g. Google Password Manager, iCloud Keychain, 1Password) created a credential.
 
 AAGUID should only be used to help users with passkey management. It can be modified unless
 cryptographically attested, which platform passkeys currently don't support.
@@ -215,8 +210,8 @@ if (aaguid === '00000000-0000-0000-0000-000000000000') {
 
 Baseline status for the api.PublicKeyCredential.getClientCapabilities_static capability: Newly
 available. It's been Baseline since 2025-02-06.
-Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), Firefox 135 (Feb 2025), and Safari 17.4 (
-Mar 2024).
+Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), Firefox 135 (Feb 2025), and Safari 17.4
+(Mar 2024).
 
 Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported, `PublicKeyCredential.getClientCapabilities`

@@ -190,8 +190,7 @@ Before turning anything on, gather facts:
 
 Use "Report-Only" headers to identify potential breakages before they happen.
 
-- **DO**: Use report-only headers to dry-run policies without enforcement. Standard report-only
-  headers include:
+- **DO**: Use report-only headers to dry-run policies without enforcement. Standard report-only headers include:
   - `Content-Security-Policy-Report-Only` for CSP rules.
   - `Cross-Origin-Opener-Policy-Report-Only` for COOP isolation.
   - `Cross-Origin-Embedder-Policy-Report-Only` for COEP isolation.
@@ -278,14 +277,10 @@ Once filtered and triaged, analyze the reports against the following common scen
   - **Decision**: Implement Nonces (server-rendered) or Hashes (static) before enforcing.
 - **Scenario**: Violations for third-party analytics scripts.
   - **Condition**: The scripts are required.
-  - **Decision**: Use `'strict-dynamic'` with a per-request nonce so the analytics loader can
-      attach its dependencies. Do **not** add the analytics origin to a URL allowlist — domain
-      allowlists are bypassable via open redirects, JSONP, and dependency injection on the listed
-      origin.
+  - **Decision**: Use `'strict-dynamic'` with a per-request nonce so the analytics loader can attach its dependencies. Do **not** add the analytics origin to a URL allowlist — domain allowlists are bypassable via open redirects, JSONP, and dependency injection on the listed origin.
 - **Scenario**: Trusted Types violations on specific sinks.
   - **Condition**: Legacy code paths still write strings to `innerHTML` etc.
-  - **Decision**: Refactor those sinks (per §1.2) or route them through a Trusted Types policy (
-      §3.3) before enforcing.
+  - **Decision**: Refactor those sinks (per §1.2) or route them through a Trusted Types policy (§3.3) before enforcing.
 
 #### 3.2 Transitioning to CSP Enforcement
 
@@ -379,8 +374,8 @@ Set CORP explicitly on each response based on whether it should be embeddable in
 core benefits: it protects resources from malicious cross-origin reads, and ensures compatibility
 when pages request stronger client-side isolation.
 
-- **DO**: Default to `Cross-Origin-Resource-Policy: same-origin` for app-internal resources (
-  authenticated data, user session JSON, restricted internal scripts).
+- **DO**: Default to `Cross-Origin-Resource-Policy: same-origin` for app-internal resources
+  (authenticated data, user session JSON, restricted internal scripts).
 - **DO**: Use `same-site` for endpoints utilized across subdomains of the same eTLD+1.
 - **DO**: Provide `cross-origin` exclusively for resources created for generic embedding or widely
   cached delivery (e.g., static shared assets or public CDNs).

@@ -37,8 +37,8 @@ within each-other and each decision is based on the use-case for that container.
    your Baseline target (see [§8](#8-grid-lanes-aka-masonry)).
 6. **Does an element need to float above the page and stay spatially tethered to a trigger, even
    across DOM boundaries or stacking contexts?** Use **anchor positioning** — `anchor-name` on the
-   trigger, `position-anchor` on the overlay (
-   see [§5](#5-native-overlays-anchor-positioning-and-stacking-contexts)).
+   trigger, `position-anchor` on the overlay
+   (see [§5](#5-native-overlays-anchor-positioning-and-stacking-contexts)).
 
 ### 1.2 Working principles
 
@@ -80,7 +80,7 @@ body.centered {
 ```
 
 > For `calc-size()` and constraint-aware intrinsic sizing, see `calculate-with-intrinsic-sizes` (via
-`npx -y modern-web-guidance@latest retrieve "calculate-with-intrinsic-sizes"`).
+> `npx -y modern-web-guidance@latest retrieve "calculate-with-intrinsic-sizes"`).
 
 ## 2 Flexbox
 
@@ -105,8 +105,8 @@ axis. Reach for it for navbars, toolbars, item rows, and any single-row-or-colum
 - Use `align-items` to center all items on the cross axis; use `margin: auto` on a single item to
   center it on both axes independently; use `align-content` only when the container wraps and has
   extra space across rows.
-- Set `min-inline-size: 0` (or `min-width: 0`) on flex items that contain long unbreakable content (
-  URLs, code, long strings) — flex items won't shrink below their content size by default, causing
+- Set `min-inline-size: 0` (or `min-width: 0`) on flex items that contain long unbreakable content
+  (URLs, code, long strings) — flex items won't shrink below their content size by default, causing
   overflow.
 
 **Do not:**
@@ -310,8 +310,8 @@ container queries = component context; media queries = global page layout and us
 ```
 
 > For component-driven responsive styling patterns, see `size-aware-styling` (via
-`npx -y modern-web-guidance@latest retrieve "size-aware-styling"`) and `fluid-scaling` (via
-`npx -y modern-web-guidance@latest retrieve "fluid-scaling"`).
+> `npx -y modern-web-guidance@latest retrieve "size-aware-styling"`) and `fluid-scaling` (via
+> `npx -y modern-web-guidance@latest retrieve "fluid-scaling"`).
 
 ## 5 Native overlays, anchor positioning, and stacking contexts
 
@@ -343,14 +343,14 @@ Anchor positioning is not natively supported by any major browser yet.
 - Feature-detect with `@supports (anchor-name: --x)` and provide an absolute-position fallback.
 
 > For full implementation detail, polyfill strategies, and `popover` value reference, see
-`declarative-dialog-popover-control` (via
-`npx -y modern-web-guidance@latest retrieve "declarative-dialog-popover-control"`) and
-`position-aware-tooltips` (via
-`npx -y modern-web-guidance@latest retrieve "position-aware-tooltips"`). For anchor positioning
+> `declarative-dialog-popover-control` (via
+> `npx -y modern-web-guidance@latest retrieve "declarative-dialog-popover-control"`) and
+> `position-aware-tooltips` (via
+> `npx -y modern-web-guidance@latest retrieve "position-aware-tooltips"`). For anchor positioning
 > applied to menus and tab indicators, see `resilient-context-menus-and-nested-dropdowns` (via
-`npx -y modern-web-guidance@latest retrieve "resilient-context-menus-and-nested-dropdowns"`) and
-`anchor-positioning-tab-underline` (via
-`npx -y modern-web-guidance@latest retrieve "anchor-positioning-tab-underline"`).
+> `npx -y modern-web-guidance@latest retrieve "resilient-context-menus-and-nested-dropdowns"`) and
+> `anchor-positioning-tab-underline` (via
+> `npx -y modern-web-guidance@latest retrieve "anchor-positioning-tab-underline"`).
 
 ## 6 Overflow tracking and layout stability
 
@@ -373,8 +373,7 @@ Manage layout shifts, scrollbars, and clipping predictably.
 - Use the `-webkit-line-clamp` + `display: -webkit-box` + `-webkit-box-orient: vertical` triad for
   multi-line truncation — despite the prefix, this pattern is fully specified and not deprecated.
   Declare the unprefixed `line-clamp` shorthand alongside it; browsers that don't yet support it
-  ignore the property harmlessly.
-  **Do not:**
+  ignore the property harmlessly. **Do not:**
 
 - Don't use `overflow: scroll` when `auto` will do — `scroll` forces scrollbars even when there's
   nothing to scroll.
@@ -399,19 +398,19 @@ Manage layout shifts, scrollbars, and clipping predictably.
 ```
 
 > For `overflow: clip` and `overflow-clip-margin` in depth, see `overflow-clipping-control` (via
-`npx -y modern-web-guidance@latest retrieve "overflow-clipping-control"`). For scrollbar color,
+> `npx -y modern-web-guidance@latest retrieve "overflow-clipping-control"`). For scrollbar color,
 > sizing, and theming, see `customize-scrollbar-color-and-thickness` (via
-`npx -y modern-web-guidance@latest retrieve "customize-scrollbar-color-and-thickness"`),
-`dark-mode` (via `npx -y modern-web-guidance@latest retrieve "dark-mode"`), and
-`adapt-scrollbar-to-contrast-preferences` (via
-`npx -y modern-web-guidance@latest retrieve "adapt-scrollbar-to-contrast-preferences"`).
+> `npx -y modern-web-guidance@latest retrieve "customize-scrollbar-color-and-thickness"`),
+> `dark-mode` (via `npx -y modern-web-guidance@latest retrieve "dark-mode"`), and
+> `adapt-scrollbar-to-contrast-preferences` (via
+> `npx -y modern-web-guidance@latest retrieve "adapt-scrollbar-to-contrast-preferences"`).
 
 ## 7 Viewport mechanics and track distribution
 
 Baseline status for Small, large, and dynamic viewport units: Widely available. It's been Baseline
 since 2022-12-05.
-Supported by: Chrome 108 (Nov 2022), Edge 108 (Dec 2022), Firefox 101 (May 2022), and Safari 15.4 (
-Mar 2022).
+Supported by: Chrome 108 (Nov 2022), Edge 108 (Dec 2022), Firefox 101 (May 2022), and Safari 15.4
+(Mar 2022).
 
 - Use `dvh`/`dvw` for mobile layout containers that must account for browser UI shifting (URL bar
   collapse/expand).
@@ -419,7 +418,7 @@ Mar 2022).
   overflow. Use `100%`, `100dvw`, or `100svw` instead.
 
 > For the full viewport unit reference (`svh`, `lvh`, `dvi`, `dvb`, etc.), see `css` (via
-`npx -y modern-web-guidance@latest retrieve "css"`).
+> `npx -y modern-web-guidance@latest retrieve "css"`).
 
 ## 8 Grid lanes (aka masonry)
 

@@ -42,8 +42,10 @@ const SKIP_DIRS = new Set([
   '.vercel',
 ])
 
-const SCAN_EXTS = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx', '.jsx'])
-const LAYOUT_EXTS = new Set(['.tsx', '.jsx', '.astro', '.vue', '.svelte', '.html'])
+const SCAN_EXTS = new Set(
+    ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx', '.jsx'])
+const LAYOUT_EXTS = new Set(
+    ['.tsx', '.jsx', '.astro', '.vue', '.svelte', '.html'])
 const MAX_DEPTH = 6
 const MAX_READ_BYTES = 64 * 1024
 
@@ -56,7 +58,8 @@ const MONOREPO_HELPER_SIGNALS = [
   /\bcreateBaseNextConfig\b/,
 ]
 const SVELTEKIT_CSP_SIGNALS = [/\bkit\s*:/, /\bcsp\s*:/, /\bdirectives\s*:/]
-const NUXT_SECURITY_SIGNALS = [/['"]nuxt-security['"]/, /\bcontentSecurityPolicy\b/]
+const NUXT_SECURITY_SIGNALS = [/['"]nuxt-security['"]/,
+  /\bcontentSecurityPolicy\b/]
 
 // append-string signals: CSP written as a literal value string
 const INLINE_HEADER_SIGNALS = [
@@ -64,7 +67,8 @@ const INLINE_HEADER_SIGNALS = [
   /\bscript-src\b/,
   /\bconnect-src\b/,
 ]
-const NUXT_ROUTE_RULES_SIGNALS = [/\brouteRules\b/, /Content-Security-Policy/i, /\bscript-src\b/]
+const NUXT_ROUTE_RULES_SIGNALS = [/\brouteRules\b/, /Content-Security-Policy/i,
+  /\bscript-src\b/]
 
 const MIDDLEWARE_HINT = /headers\.set\(\s*["']Content-Security-Policy["']/i
 const META_TAG_HINT = /http-equiv\s*=\s*["']Content-Security-Policy["']/i
@@ -74,20 +78,21 @@ const META_TAG_HINT = /http-equiv\s*=\s*["']Content-Security-Policy["']/i
  * @returns {{ shape: string|null, signals: string[] }}
  */
 export function detectCsp(cwd = process.cwd()) {
-  const hits = { appendArrays: [], appendString: [], middleware: [], metaTag: [] }
+  const hits = {appendArrays: [], appendString: [], middleware: [], metaTag: []}
 
   walk(cwd, cwd, 0, (absPath, relPath, body) => {
     const ext = path.extname(absPath)
     const base = path.basename(absPath).toLowerCase()
-    const isConfig = (name) => new RegExp('(^|/)' + name + '\\.config\\.').test(relPath)
+    const isConfig = (name) => new RegExp('(^|/)' + name + '\\.config\\.').test(
+        relPath)
 
     // === append-arrays candidates ===
 
     // Monorepo CSP helper: packages/*/src/.../(config|security)/*
     if (
-      SCAN_EXTS.has(ext) &&
-      /packages\/[^/]+\/src\/.*(config|next-config|security)/.test(relPath) &&
-      MONOREPO_HELPER_SIGNALS.some((re) => re.test(body))
+        SCAN_EXTS.has(ext) &&
+        /packages\/[^/]+\/src\/.*(config|next-config|security)/.test(relPath) &&
+        MONOREPO_HELPER_SIGNALS.some((re) => re.test(body))
     ) {
       hits.appendArrays.push(relPath)
       return
@@ -95,9 +100,9 @@ export function detectCsp(cwd = process.cwd()) {
 
     // SvelteKit kit.csp.directives
     if (
-      SCAN_EXTS.has(ext) &&
-      isConfig('svelte') &&
-      SVELTEKIT_CSP_SIGNALS.every((re) => re.test(body))
+        SCAN_EXTS.has(ext) &&
+        isConfig('svelte') &&
+        SVELTEKIT_CSP_SIGNALS.every((re) => re.test(body))
     ) {
       hits.appendArrays.push(relPath)
       return
@@ -105,9 +110,9 @@ export function detectCsp(cwd = process.cwd()) {
 
     // Nuxt nuxt-security module
     if (
-      SCAN_EXTS.has(ext) &&
-      isConfig('nuxt') &&
-      NUXT_SECURITY_SIGNALS.every((re) => re.test(body))
+        SCAN_EXTS.has(ext) &&
+        isConfig('nuxt') &&
+        NUXT_SECURITY_SIGNALS.every((re) => re.test(body))
     ) {
       hits.appendArrays.push(relPath)
       return
@@ -117,9 +122,9 @@ export function detectCsp(cwd = process.cwd()) {
 
     // Inline headers in Next/Nuxt/SvelteKit/Astro/Vite config
     if (
-      SCAN_EXTS.has(ext) &&
-      /(^|\/)(next|nuxt|vite|astro|svelte)\.config\./.test(relPath) &&
-      INLINE_HEADER_SIGNALS.every((re) => re.test(body))
+        SCAN_EXTS.has(ext) &&
+        /(^|\/)(next|nuxt|vite|astro|svelte)\.config\./.test(relPath) &&
+        INLINE_HEADER_SIGNALS.every((re) => re.test(body))
     ) {
       // Nuxt routeRules is a sub-shape of append-string; we already covered
       // nuxt-security above via return, so any remaining Nuxt CSP match here
@@ -132,8 +137,9 @@ export function detectCsp(cwd = process.cwd()) {
     // === detect-only shapes ===
 
     if (
-      (base === 'middleware.ts' || base === 'middleware.js' || base === 'middleware.mjs') &&
-      MIDDLEWARE_HINT.test(body)
+        (base === 'middleware.ts' || base === 'middleware.js' || base
+            === 'middleware.mjs') &&
+        MIDDLEWARE_HINT.test(body)
     ) {
       hits.middleware.push(relPath)
     }
@@ -147,25 +153,27 @@ export function detectCsp(cwd = process.cwd()) {
   // Structured patches are safer than string splices; runtime and HTML
   // injection patches are less reliable and v1 doesn't auto-apply them.
   if (hits.appendArrays.length > 0) {
-    return { shape: 'append-arrays', signals: hits.appendArrays }
+    return {shape: 'append-arrays', signals: hits.appendArrays}
   }
   if (hits.appendString.length > 0) {
-    return { shape: 'append-string', signals: hits.appendString }
+    return {shape: 'append-string', signals: hits.appendString}
   }
   if (hits.middleware.length > 0) {
-    return { shape: 'middleware', signals: hits.middleware }
+    return {shape: 'middleware', signals: hits.middleware}
   }
   if (hits.metaTag.length > 0) {
-    return { shape: 'meta-tag', signals: hits.metaTag }
+    return {shape: 'meta-tag', signals: hits.metaTag}
   }
-  return { shape: null, signals: [] }
+  return {shape: null, signals: []}
 }
 
 function walk(root, dir, depth, visit) {
-  if (depth > MAX_DEPTH) return
+  if (depth > MAX_DEPTH) {
+    return
+  }
   let entries
   try {
-    entries = fs.readdirSync(dir, { withFileTypes: true })
+    entries = fs.readdirSync(dir, {withFileTypes: true})
   } catch {
     return
   }
@@ -173,13 +181,19 @@ function walk(root, dir, depth, visit) {
   for (const entry of entries) {
     const abs = path.join(dir, entry.name)
     if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue
+      if (SKIP_DIRS.has(entry.name)) {
+        continue
+      }
       walk(root, abs, depth + 1, visit)
       continue
     }
-    if (!entry.isFile()) continue
+    if (!entry.isFile()) {
+      continue
+    }
     const ext = path.extname(entry.name)
-    if (!SCAN_EXTS.has(ext) && !LAYOUT_EXTS.has(ext)) continue
+    if (!SCAN_EXTS.has(ext) && !LAYOUT_EXTS.has(ext)) {
+      continue
+    }
     let body
     try {
       const fd = fs.openSync(abs, 'r')
@@ -199,7 +213,8 @@ function walk(root, dir, depth, visit) {
 
 // CLI mode
 const _running = process.argv[1]
-if (_running?.endsWith('detect-csp.mjs') || _running?.endsWith('detect-csp.mjs/')) {
+if (_running?.endsWith('detect-csp.mjs') || _running?.endsWith(
+    'detect-csp.mjs/')) {
   const result = detectCsp(process.cwd())
   console.log(JSON.stringify(result, null, 2))
 }

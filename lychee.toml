@@ -36,6 +36,10 @@ exclude = [
     # CI runners) as of 2026-09-16. The canonical AGPL-3.0 text URL is a
     # stable legal citation, not a monitored endpoint.
     "gnu\\.org/licenses/agpl-3\\.0",
+    # DeepWiki badges: rate-limited (HTTP 429) for automated checks as of
+    # 2026-10-04. Live badges, not broken links; re-check before removing.
+    "deepwiki\\.com/badge\\.svg",
+    "deepwiki\\.com/dallay/profiletailors\\.com",
 ]
 
 # Hide progress bar (non-interactive friendly)

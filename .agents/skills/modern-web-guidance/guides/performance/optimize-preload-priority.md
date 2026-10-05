@@ -8,8 +8,8 @@ and use get more bandwidth resources.
 
 ## How to implement
 
-1. **Identify preload candidates**: Find resources that are not discovered early by the browser (
-   e.g., video poster images or background images in CSS) but are essential for the page's
+1. **Identify preload candidates**: Find resources that are not discovered early by the browser
+   (e.g., video poster images or background images in CSS) but are essential for the page's
    appearance.
 2. **Elevate critical image preloads**: For the LCP image or other critical images that are not
    prioritized by default, use `<link rel="preload" fetchpriority="high">` to ensure they are
@@ -52,8 +52,8 @@ and use get more bandwidth resources.
 ## Fallback strategy
 
 Baseline status for Fetch priority: Newly available. It's been Baseline since 2024-10-29.
-Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2 (
-Dec 2023).
+Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2
+(Dec 2023).
 
 The `fetchpriority` attribute on `<link rel="preload">` is a progressive enhancement. Browsers that
 do not support it will still preload the resource using their default priority for that resource

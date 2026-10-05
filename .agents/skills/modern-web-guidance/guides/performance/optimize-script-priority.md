@@ -44,8 +44,8 @@ control to ensure critical scripts load first, while non-essential scripts stay 
 ## Fallback strategy
 
 Baseline status for Fetch priority: Newly available. It's been Baseline since 2024-10-29.
-Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2 (
-Dec 2023).
+Supported by: Chrome 103 (Jun 2022), Edge 103 (Jun 2022), Firefox 132 (Oct 2024), and Safari 17.2
+(Dec 2023).
 
 The `fetchpriority` attribute is a progressive enhancement. Browsers that do not support it will
 ignore the attribute and use their internal scheduling logic without error. No explicit feature

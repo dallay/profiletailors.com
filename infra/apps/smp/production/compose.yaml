@@ -45,6 +45,8 @@ services:
       SPRINGDOC_SWAGGER_UI_ENABLED: "false"
       SMP_BACKEND_PORT: "7638"
       MANAGEMENT_PORT: "9091"
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       SMP_R2DBC_URL: r2dbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
       SMP_LIQUIBASE_JDBC_URL: jdbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
       SMP_LIQUIBASE_CONTEXTS: prod

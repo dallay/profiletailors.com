@@ -202,18 +202,26 @@ async function signOut() {
         </Button>
       </div>
 
-      <div class="border-t border-border-subtle px-4 py-3">
-        <div class="flex flex-col gap-1">
+      <footer class="border-t border-border-subtle px-4 py-3">
+        <div class="flex min-h-11 items-center justify-between gap-2">
           <VersionBadge />
-          <BackendVersionBadge v-if="authStore.hasPermission('platform.system.build-info.read')" />
+          <a
+            :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
+            class="inline-flex min-h-11 min-w-11 items-center justify-center text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            :aria-label="t('common.sourceCode')"
+            :title="t('common.sourceCode')"
+          >
+            <svg viewBox="0 0 24 24" class="size-[18px]" fill="currentColor" aria-hidden="true">
+              <path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.08c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.7 1.15 1.7 1.15 1 1.7 2.61 1.21 3.24.92.1-.72.39-1.21.71-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.21.43-2.2 1.15-2.97-.12-.28-.5-1.41.11-2.94 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.12-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.66.12 2.94.71.77 1.14 1.76 1.14 2.97 0 4.27-2.6 5.21-5.08 5.49.4.35.76 1.02.76 2.06V22c0 .29.2.63.77.53A11.1 11.1 0 0 0 12 .9Z" />
+            </svg>
+            <span class="sr-only">{{ t('common.sourceCode') }}</span>
+          </a>
         </div>
-        <a
-          :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
-          class="mt-2 inline-flex min-h-11 items-center text-xs text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {{ t('common.sourceCode') }}
-        </a>
-      </div>
+        <BackendVersionBadge
+          v-if="authStore.hasPermission('platform.system.build-info.read')"
+          class="mt-1"
+        />
+      </footer>
     </aside>
 
     <main class="admin-main min-w-0 flex-1" id="main-content" tabindex="-1" :inert="isMobileViewport && mobileNavOpen">

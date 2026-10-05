@@ -11,11 +11,13 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # State
 
 ## Objective
 
-Change an object's behavior when its internal state changes by delegating state-specific behavior to state objects.
+Change an object's behavior when its internal state changes by delegating state-specific behavior to
+state objects.
 
 ## Trigger conditions
 

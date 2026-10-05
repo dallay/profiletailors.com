@@ -534,8 +534,8 @@ contained.
 ### Fallback for `scrollbar-width`
 
 Baseline status for scrollbar-width: Newly available. It's been Baseline since 2024-12-11.
-Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 18.2 (
-Dec 2024).
+Supported by: Chrome 121 (Jan 2024), Edge 121 (Jan 2024), Firefox 64 (Dec 2018), and Safari 18.2
+(Dec 2024).
 
 Hidden scrollbars are a visual enhancement, not the mechanism that makes swipe-to-remove work. If
 your Baseline target does not include `scrollbar-width`, the row still scrolls, snaps, detects

@@ -8,6 +8,7 @@ metadata:
   source: local
   version: 2026-09-28
 ---
+
 # TypeScript Best Practices
 
 This document outlines best practices for using TypeScript in Astro and Vue projects, focusing on

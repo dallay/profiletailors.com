@@ -20,7 +20,7 @@ persistent background pages, you CANNOT rely on in-memory state.
 | Survives browser restart, syncs across devices | `chrome.storage.sync` (8KB/item, 100KB total) |
 | Survives browser restart, local only           | `chrome.storage.local` (10MB default)         |
 | Survives SW restart only                       | `chrome.storage.session` (10MB default)       |
-| Never persisted (avoid)                        | Global variables ❌                            |
+| Never persisted (avoid)                        | Global variables ❌                           |
 
 ## Pattern: State Read-on-Demand
 

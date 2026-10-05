@@ -11,9 +11,9 @@ Evidence backing AI-assisted engineering reviews. Parent workflow lives in [AI-A
 ## Troubleshooting
 
 - Evidence is append-only context; new reviews get new entries instead of rewriting past ones.
-- If evidence conflicts with current specs, trust current `openspec/specs/` plus verification reports.
+- If evidence conflicts with current specs, trust current `.agents/sdd/specs/` plus verification reports.
 
 ## References
 
 - [AI-Assisted Engineering](../README.md)
-- [OpenSpec](../../../openspec/README.md)
+- [OpenSpec](../../../.agents/sdd/README.md)

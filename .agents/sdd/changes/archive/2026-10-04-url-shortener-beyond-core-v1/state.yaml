@@ -1,0 +1,16 @@
+change: url-shortener-beyond-core-v1
+current_phase: archive
+completed: [explore, propose, spec, design, tasks]
+next: null
+updated: 2026-10-04T18:30:00Z
+artifact_policy: openspec-only
+scope_status: withdrawn_no_active_users
+external_evidence: not_run
+archive_reason: |
+  Deferred for activation only when shortlinks reaches real production usage.
+  Core V1 already shipped (#1305) and suffices for an early-access product without
+  active users; the spec defined beyond it assumed scale, regulated observability
+  and third-party infrastructure that the product has not needed.
+  Recorded as deferred in docs/architecture/adr/0028-defer-shortlinks-beyond-core-v1.md.
+  Re-activate by opening a fresh change with explicit trigger conditions, not by
+  reusing these artifacts unchanged.

@@ -3,7 +3,7 @@
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Internal control artifact — not a public policy document
 > **Schema version:** 2.1
-> **Last verified:** 2026-09-25
+> **Last verified:** 2026-10-02
 
 ## Overview
 
@@ -32,6 +32,7 @@ provider, and a database field or proposed duration is not an implemented deleti
 | 1.0     | 2026-07-17 | Initial inventory containing unverified providers and retention promises                                   |
 | 2.0     | 2026-07-17 | Revalidated against code; added evidence states and browser storage; removed unsupported production claims |
 | 2.1     | 2026-09-25 | Reconciled `pt_publications` boundary: authenticated publication data is no longer persisted to local storage; only the anonymous fallback retains the existing scope. |
+| 2.2     | 2026-10-02 | Recorded the conditional Sentry integration without claiming production activation, provider region, agreement, or retention. |
 
 ## Usage
 
@@ -58,7 +59,7 @@ be described as an operational guarantee.
 | pa-008 | Media storage and import           | Verified      | Implemented       | Physical media objects are garbage-collected after seven days; database rows remain with a terminal status.                                                 |
 | pa-009 | Publication delivery               | Partial       | Partial           | Worker and delivery records exist; the claimed seven/90-day cleanup does not.                                                                               |
 | pa-010 | Audit and governance logs          | Partial       | Missing           | Insert/read paths exist and hooks are configurable; no one/five-year control or database immutability proof exists.                                         |
-| pa-011 | Analytics and observability        | Partial       | Missing           | Prometheus metrics and conditional Ahrefs exist; Sentry/Vercel Analytics and claimed retention periods do not.                                              |
+| pa-011 | Analytics and observability        | Partial       | Missing           | Prometheus metrics and conditional Ahrefs exist; Sentry integration is code-evidenced but production activation, processor terms, region, and retention are not. |
 | pa-012 | Cookies and browser storage        | Verified      | Partial           | The previous inventory omitted authentication/UI cookies and local storage, including locally persisted publication content.                                |
 
 ### Verified provider and integration state
@@ -73,7 +74,7 @@ be described as an operational guarantee.
 | External media      | Unsplash adapter disabled by default                                                                       | Conditional, not proved active or contracted.                                                          |
 | Marketing analytics | Ahrefs script conditional on `AHREFS_ANALYTICS_KEY`                                                        | Conditional. Provider role, contract, region, and observed production behaviour remain unverified.     |
 | Metrics             | Spring Actuator/Prometheus endpoint and application metrics                                                | Collection capability exists; no managed metrics recipient or retention schedule is selected.          |
-| Error tracking      | Application logs                                                                                           | No Sentry integration was located. Log destination and retention are unknown.                          |
+| Error tracking      | Conditional Sentry SDK integration in app, admin, and SMP                                                   | DSN-gated code is present; no production project, recipient region, agreement, or retention is evidenced. |
 | Hosting/CDN         | Static Astro and Vue build configuration                                                                   | No production provider selection is evidenced.                                                         |
 
 ### Browser storage register

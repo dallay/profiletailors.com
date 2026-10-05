@@ -40,7 +40,7 @@ describe('LoginForm', () => {
     expect(wrapper.find('#login-email-error[role="alert"]').exists()).toBe(false)
   })
 
-  it('prevents duplicates, marks busy, and makes fields readonly while pending', async () => {
+  it('prevents duplicates, marks busy, and disables submit while pending', async () => {
     let resolve!: () => void
     loginWithPassword.mockReturnValue(
       new Promise<void>((done) => {
@@ -54,8 +54,9 @@ describe('LoginForm', () => {
     await wrapper.get('form').trigger('submit.prevent')
     expect(loginWithPassword).toHaveBeenCalledOnce()
     expect(wrapper.get('form').attributes('aria-busy')).toBe('true')
-    expect(wrapper.get('input[type="email"]').attributes('readonly')).toBeDefined()
-    expect(wrapper.get('input[type="password"]').attributes('readonly')).toBeDefined()
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('input[type="email"]').attributes('readonly')).toBeUndefined()
+    expect(wrapper.get('input[type="password"]').attributes('readonly')).toBeUndefined()
     resolve()
     await flushPromises()
   })

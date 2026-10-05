@@ -285,6 +285,7 @@ logging:
 ## Complete Security Configuration
 
 <!-- legacy:servlet -->
+
 ```kotlin
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -313,11 +314,13 @@ class SecurityConfig {
     }
 }
 ```
+
 <!-- /legacy:servlet -->
 
 ## Maven pom.xml
 
 <!-- legacy:jvm -->
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -377,4 +380,5 @@ class SecurityConfig {
   </build>
 </project>
 ```
+
 <!-- /legacy:jvm -->

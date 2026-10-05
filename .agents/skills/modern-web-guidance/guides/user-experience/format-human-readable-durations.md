@@ -35,8 +35,8 @@ console.log(formatter.format(balanced));
 
 ### Best Practices
 
-* **DO** use `Temporal.Duration.round()` with `largestUnit` to control the display strategy (
-  detailed breakdown vs total count).
+* **DO** use `Temporal.Duration.round()` with `largestUnit` to control the display strategy
+  (detailed breakdown vs total count).
 * **DO** use `Intl.DurationFormat` for localized string formatting and automatic pluralization, or
   fall back to manual construction if not supported.
 * **DO NOT** rely on `Temporal.Duration.prototype.toString()` for user-facing text; it returns ISO
@@ -74,8 +74,8 @@ avoid conflicts. You must manually assign it if your code relies on the global `
 ### Intl.DurationFormat
 
 Baseline status for Intl.DurationFormat: Newly available. It's been Baseline since 2025-03-04.
-Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 136 (Mar 2025), and Safari 16.4 (
-Mar 2023).
+Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 136 (Mar 2025), and Safari 16.4
+(Mar 2023).
 
 If `Intl.DurationFormat` is not supported, you should feature-detect it and fall back to manual
 string construction by extracting the balanced duration properties.
