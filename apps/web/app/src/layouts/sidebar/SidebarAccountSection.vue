@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { LogOut, Settings } from '@lucide/vue'
-import { usePopoverDismissal } from '@shared/composables/usePopoverDismissal'
+import { usePopoverDismissal } from '@profiletailors/vue-ui/composables/usePopoverDismissal'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 
 defineProps<{
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const settings = useSettingsStore()
+const route = useRoute()
 
 const containerRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
@@ -29,6 +31,7 @@ const menuRef = ref<HTMLElement | null>(null)
 const { open, toggle, close } = usePopoverDismissal({
   container: containerRef,
   trigger: triggerRef,
+  getRouteFullPath: () => route.fullPath,
 })
 
 // Focus management for menu popover

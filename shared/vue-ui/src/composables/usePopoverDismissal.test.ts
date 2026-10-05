@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { defineComponent, h, ref, nextTick } from 'vue'
+import { defineComponent, h, reactive, ref, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { usePopoverDismissal } from './usePopoverDismissal'
 
@@ -7,20 +7,12 @@ import { usePopoverDismissal } from './usePopoverDismissal'
 // A shared, reactive route object so each test can swap the path AFTER mount.
 // ---------------------------------------------------------------------------
 
-// The route object MUST be stable across renders so that `() => route.path`
-// re-reads the same property. We use `reactive` (not `ref`) and read `.path`
-// off the same proxy every time, which lets the watcher re-track.
-import { reactive } from 'vue'
-
 interface RouteLike {
   path: string
   fullPath: string
 }
 const routeState = reactive<RouteLike>({ path: '/', fullPath: '/' })
-vi.mock('vue-router', () => ({
-  useRoute: () => routeState,
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-}))
+const getRouteFullPath = () => routeState.fullPath
 
 // ---------------------------------------------------------------------------
 // Test harness — a tiny SFC that mounts the composable and exposes its refs.
@@ -38,7 +30,7 @@ interface HarnessExposed {
 /** Collect wrappers here so afterEach can unmount them all. */
 const wrappers: ReturnType<typeof mount>[] = []
 
-function mountHarness(opts: { withTrigger?: boolean } = {}): {
+function mountHarness(opts: { withTrigger?: boolean; withRoute?: boolean } = {}): {
   wrapper: ReturnType<typeof mount>
   exposed: HarnessExposed
 } {
@@ -49,7 +41,8 @@ function mountHarness(opts: { withTrigger?: boolean } = {}): {
   const Harness = defineComponent({
     setup() {
       const triggerMaybe = opts.withTrigger ? triggerRef : undefined
-      api = usePopoverDismissal({ container: containerRef, trigger: triggerMaybe })
+      const getRoute = opts.withRoute !== false ? getRouteFullPath : undefined
+      api = usePopoverDismissal({ container: containerRef, trigger: triggerMaybe, getRouteFullPath: getRoute })
       return { containerRef, triggerRef }
     },
     render() {
@@ -114,7 +107,7 @@ afterEach(() => {
 })
 
 // ---------------------------------------------------------------------------
-// Tests — covering the 6 scenarios in design §6
+// Tests
 // ---------------------------------------------------------------------------
 
 describe('usePopoverDismissal', () => {
@@ -183,19 +176,16 @@ describe('usePopoverDismissal', () => {
     await nextTick()
     expect(exposed.open()).toBe(true)
 
-    // Move focus off the trigger so we can detect if it's stolen
     document.body.tabIndex = -1
     document.body.focus()
     const before = document.activeElement
 
-    // Swap the route's path — composable's watcher must close
     routeState.path = '/scheduler'
     routeState.fullPath = '/scheduler'
     await nextTick()
     await nextTick()
 
     expect(exposed.open()).toBe(false)
-    // The trigger must NOT have been re-focused by the route-change handler
     expect(document.activeElement).toBe(before)
   })
 
@@ -209,7 +199,6 @@ describe('usePopoverDismissal', () => {
     expect(removeSpy).toHaveBeenCalledWith('click', expect.any(Function))
     expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function))
 
-    // Dispatch events after unmount — no errors, no state mutation
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     document.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await nextTick()
@@ -232,4 +221,17 @@ describe('usePopoverDismissal', () => {
     expect(exposed.open()).toBe(false)
     expect(document.activeElement).not.toBe(trigger)
   })
+
+  it('works without a route accessor (no route watcher installed)', async () => {
+    const { exposed } = mountHarness({ withTrigger: true, withRoute: false })
+    exposed.openIt()
+    await nextTick()
+    expect(exposed.open()).toBe(true)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await nextTick()
+    await nextTick()
+    expect(exposed.open()).toBe(false)
+  })
 })
+

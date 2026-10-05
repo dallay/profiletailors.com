@@ -1,11 +1,17 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
-import { useRoute } from 'vue-router'
 
 export interface UsePopoverDismissalOptions {
   /** Ref pointing to the popover container element. */
   container: Ref<HTMLElement | null>
   /** Optional ref pointing to the trigger element. When provided, focus is restored to it on Escape/click-outside. */
   trigger?: Ref<HTMLElement | null>
+  /**
+   * Optional accessor returning the current route's `fullPath`. When provided,
+   * the popover closes on route change but does NOT call `.focus()` — the
+   * browser shifts focus to the new route. When omitted, the route watcher
+   * is not installed.
+   */
+  getRouteFullPath?: () => string
 }
 
 export interface UsePopoverDismissalApi {
@@ -29,15 +35,16 @@ export interface UsePopoverDismissalApi {
  *   after `nextTick()` so the popover's removal from the DOM does not suppress
  *   the focus request. If the trigger is no longer in the document, focus is
  *   NOT restored.
- * - `useRoute().path` watcher closes the popover but does NOT call `.focus()` —
- *   the browser shifts focus to the new route.
+ * - When `getRouteFullPath` is provided, its return value is watched; the popover
+ *   closes on change but does NOT call `.focus()`. This keeps the composable
+ *   free of any direct vue-router dependency so it can be consumed by tests
+ *   and non-router contexts without module-resolution surprises.
  * - `onBeforeUnmount` removes the `document` listeners and stops the route
- *   watcher. No store deps; unit-testable without Pinia.
+ *   watcher. No store deps; unit-testable without Pinia or vue-router.
  */
 export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopoverDismissalApi {
-  const { container, trigger } = opts
+  const { container, trigger, getRouteFullPath } = opts
   const open = ref(false)
-  const route = useRoute()
 
   function close() {
     open.value = false
@@ -62,7 +69,6 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
 
     close()
     if (trigger) {
-      // Defer focus so the popover's removal from the DOM doesn't suppress the call.
       nextTick().then(() => {
         const t = trigger.value
         if (t && document.contains(t)) {
@@ -87,13 +93,15 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
     }
   }
 
-  // Route-change close — NO focus restore. The browser shifts focus on navigation.
-  const stopRouteWatch = watch(
-    () => route.fullPath,
-    () => {
-      if (open.value) close()
-    },
-  )
+  let stopRouteWatch: (() => void) | undefined
+  if (getRouteFullPath) {
+    stopRouteWatch = watch(
+      () => getRouteFullPath(),
+      () => {
+        if (open.value) close()
+      },
+    )
+  }
 
   onMounted(() => {
     document.addEventListener('click', handleDocumentClick)
@@ -103,7 +111,7 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
   onBeforeUnmount(() => {
     document.removeEventListener('click', handleDocumentClick)
     document.removeEventListener('keydown', handleKeydown)
-    stopRouteWatch()
+    stopRouteWatch?.()
   })
 
   return { open, toggle, close, openIt }

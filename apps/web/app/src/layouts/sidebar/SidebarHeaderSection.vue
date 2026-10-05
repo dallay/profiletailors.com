@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ChevronsUpDown, Plus } from '@lucide/vue'
 import WorkspaceAvatar from '@shared/components/WorkspaceAvatar.vue'
-import { usePopoverDismissal } from '@shared/composables/usePopoverDismissal'
+import { usePopoverDismissal } from '@profiletailors/vue-ui/composables/usePopoverDismissal'
 import type { WorkspaceSummary } from '@modules/auth/infrastructure/auth-api'
 
 const props = defineProps<{
@@ -15,10 +16,12 @@ const emit = defineEmits<(e: 'select', workspace: WorkspaceSummary) => void>()
 
 const containerRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
+const route = useRoute()
 
 const { open, toggle, close } = usePopoverDismissal({
   container: containerRef,
   trigger: triggerRef,
+  getRouteFullPath: () => route.fullPath,
 })
 
 function selectWorkspace(ws: WorkspaceSummary) {
