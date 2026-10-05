@@ -83,6 +83,13 @@ vi.mock('@profiletailors/vue-ui/shell/sidebar/utils', () => ({
   useSidebar: () => sidebarContext,
 }))
 
+vi.mock('@profiletailors/vue-ui/shell', () => ({
+  DashboardShell: {
+    template:
+      '<div class="dashboard-shell"><slot name="inset"></slot><slot name="header"></slot><slot name="content"></slot><slot name="account"></slot><slot name="footer"></slot><slot name="pwa"></slot></div>',
+  },
+}))
+
 vi.mock('@shared/components/ThemeToggle.vue', () => ({
   default: { template: '<div class="theme-toggle" />' },
 }))
@@ -170,13 +177,13 @@ describe('App.vue — avatar rendering', () => {
     const wrapper = mountApp([])
 
     expect(wrapper.find('.router-view').exists()).toBe(true)
-    expect(wrapper.find('.sidebar-provider').exists()).toBe(false)
+    expect(wrapper.find('.dashboard-shell').exists()).toBe(false)
   })
 
   it('renders AppShell for routes without standalone metadata', () => {
     const wrapper = mountApp([])
 
-    expect(wrapper.find('.sidebar-provider').exists()).toBe(true)
+    expect(wrapper.find('.dashboard-shell').exists()).toBe(true)
   })
 
   it('renders <img> when channel has a valid avatarUrl', () => {

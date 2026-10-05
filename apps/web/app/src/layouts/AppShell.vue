@@ -12,19 +12,12 @@ import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import { useNav } from '@shared/nav'
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
 } from '@profiletailors/vue-ui/shell/sidebar'
-import { TooltipProvider } from '@profiletailors/vue-ui/shell/tooltip'
+import { DashboardShell } from '@profiletailors/vue-ui/shell'
 import AppHeader from './AppHeader.vue'
 import {
   getProviderPresentation,
@@ -282,185 +275,184 @@ onBeforeUnmount(() => {
     {{ pageTitle }}
   </output>
 
-  <TooltipProvider>
-    <SidebarProvider class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
-      <Sidebar collapsible="icon">
-        <SidebarHeader
-          class="gap-3"
-          data-tour="workspace-switcher"
-        >
-          <SidebarHeaderSection
-            :active-workspace="workspace.activeWorkspace"
-            :options="workspace.workspaces"
-            :is-loading="workspace.isLoadingWorkspaces"
-            @select="selectWorkspace"
-          />
-        </SidebarHeader>
+  <DashboardShell
+    :nav="{ groups: navigationGroups }"
+    @sign-out="handleLogout"
+    @open-settings="onOpenSettings"
+  >
+    <template #header>
+      <SidebarHeaderSection
+        :active-workspace="workspace.activeWorkspace"
+        :options="workspace.workspaces"
+        :is-loading="workspace.isLoadingWorkspaces"
+        data-tour="workspace-switcher"
+        @select="selectWorkspace"
+      />
+    </template>
 
-        <SidebarContent class="gap-6">
-          <SidebarGroup class="gap-2">
-            <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
-              {{ $t('workspace.title') }}
-            </SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarNavSection
-                  :groups="navigationGroups"
-                  :total-queued-count="totalQueuedCount"
-                  data-tour="primary-navigation"
-                />
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-
-          <div class="mx-2 border-t border-sidebar-border group-data-[collapsible=icon]:mx-0" />
-
-          <SidebarGroup class="gap-2">
-            <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
-              {{ $t('channels.title') }}
-            </SidebarGroupLabel>
-
-            <SidebarChannelsSection
-              :channels="sidebarChannels"
-              :active-channel-id="extractFirstChannelId(route.query)"
+    <template #content>
+      <SidebarGroup class="gap-2">
+        <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
+          {{ $t('workspace.title') }}
+        </SidebarGroupLabel>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarNavSection
+              :groups="navigationGroups"
               :total-queued-count="totalQueuedCount"
-              :is-scheduler-route="isSchedulerRoute()"
-              data-tour="channel-filters"
-              @select-all="showAllChannels"
-              @select-channel="selectChannel"
+              data-tour="primary-navigation"
             />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
 
-            <SidebarConnectSection
-              :providers="publishingStore.providerCatalog"
-              @connect="handleConnectProvider"
-            />
-          </SidebarGroup>
-        </SidebarContent>
+      <div class="mx-2 border-t border-sidebar-border group-data-[collapsible=icon]:mx-0" />
 
-        <div class="mx-2 border-t border-sidebar-border group-data-[collapsible=icon]:mx-0" />
+      <SidebarGroup class="gap-2">
+        <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
+          {{ $t('channels.title') }}
+        </SidebarGroupLabel>
 
-        <SidebarFooter>
-          <InstallPrompt />
-          <SidebarAccountSection
-            :user="{
-              displayName: auth.displayName,
-              email: auth.user?.email ?? null,
-              initials: auth.userInitials,
-              isRefreshing: auth.isRefreshingProfile,
-            }"
-            @open-settings="onOpenSettings"
-            @logout="handleLogout"
-          />
-          <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
-            <VersionBadge />
-          </div>
-        </SidebarFooter>
+        <SidebarChannelsSection
+          :channels="sidebarChannels"
+          :active-channel-id="extractFirstChannelId(route.query)"
+          :total-queued-count="totalQueuedCount"
+          :is-scheduler-route="isSchedulerRoute()"
+          data-tour="channel-filters"
+          @select-all="showAllChannels"
+          @select-channel="selectChannel"
+        />
 
-        <SidebarRail />
-      </Sidebar>
+        <SidebarConnectSection
+          :providers="publishingStore.providerCatalog"
+          @connect="handleConnectProvider"
+        />
+      </SidebarGroup>
+    </template>
 
-      <SidebarInset>
-        <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <AppHeader @start-tour="onStartTour" />
+    <template #pwa>
+      <InstallPrompt />
+    </template>
 
-          <section
-            v-if="shouldShowEmailVerificationBanner"
-            role="alert"
-            aria-label="Email verification required"
-            class="mx-4 mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50 md:mx-6 lg:mx-8"
-          >
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div class="space-y-1">
-                <p class="font-semibold text-amber-100">
-                  {{ t('emailVerification.banner.title') }}
-                </p>
-                <p>{{ t('emailVerification.banner.description') }}</p>
-                <p class="text-amber-100/80">
-                  {{ t('emailVerification.banner.instructions') }}
-                </p>
-                <p
-                  v-if="resendVerificationFeedback"
-                  aria-live="polite"
-                  class="font-medium text-amber-100"
-                >
-                  {{ resendVerificationFeedback }}
-                </p>
-              </div>
+    <template #account>
+      <SidebarAccountSection
+        :user="{
+          displayName: auth.displayName,
+          email: auth.user?.email ?? null,
+          initials: auth.userInitials,
+          isRefreshing: auth.isRefreshingProfile,
+        }"
+        @open-settings="onOpenSettings"
+        @logout="handleLogout"
+      />
+    </template>
 
-              <button
-                type="button"
-                data-testid="resend-verification"
-                class="inline-flex items-center justify-center rounded-lg border border-amber-300/60 px-3 py-2 font-medium text-amber-50 transition hover:bg-amber-300/10 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="isResendingVerification"
-                @click="handleResendVerification"
+    <template #footer>
+      <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
+        <VersionBadge />
+      </div>
+    </template>
+
+    <template #inset>
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <AppHeader @start-tour="onStartTour" />
+
+        <section
+          v-if="shouldShowEmailVerificationBanner"
+          role="alert"
+          aria-label="Email verification required"
+          class="mx-4 mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50 md:mx-6 lg:mx-8"
+        >
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div class="space-y-1">
+              <p class="font-semibold text-amber-100">
+                {{ t('emailVerification.banner.title') }}
+              </p>
+              <p>{{ t('emailVerification.banner.description') }}</p>
+              <p class="text-amber-100/80">
+                {{ t('emailVerification.banner.instructions') }}
+              </p>
+              <p
+                v-if="resendVerificationFeedback"
+                aria-live="polite"
+                class="font-medium text-amber-100"
               >
-                {{
-                  isResendingVerification
-                    ? t('emailVerification.banner.resending')
-                    : t('emailVerification.banner.resend')
-                }}
-              </button>
+                {{ resendVerificationFeedback }}
+              </p>
             </div>
-          </section>
 
-          <main
-            id="main-content"
-            tabindex="-1"
-            data-tour="main-content"
-            :class="[
-              'dot-grid flex-1 px-4 py-6 md:px-6 lg:px-8 lg:py-8',
-              isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
-            ]"
-          >
-            <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
-              {{ t('nav.loadingSection') }}
-            </div>
-            <RouterView v-slot="{ Component, route: matchedRoute }">
-              <Suspense timeout="0">
-                <component
-                  :is="Component"
-                  :key="route.meta.viewKey ?? route.fullPath"
-                />
-                <template #fallback>
-                  <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
-                    <span class="sr-only">{{ t('nav.loadingSection') }}</span>
-                    <div class="h-9 w-48 animate-pulse rounded-lg bg-bg-surface" />
-                    <div class="h-4 w-80 max-w-full animate-pulse rounded bg-bg-surface" />
-                    <div class="grid gap-4 md:grid-cols-3">
-                      <div
-                        v-for="index in 3"
-                        :key="index"
-                        class="h-32 animate-pulse rounded-xl border border-border-subtle bg-bg-surface"
-                      />
-                    </div>
-                  </div>
-                </template>
-              </Suspense>
-            </RouterView>
-          </main>
-
-          <!-- Cookie settings footer link -->
-          <div class="flex items-center justify-center border-t border-border-subtle px-4 py-2">
             <button
               type="button"
-              class="text-xs text-text-secondary transition-colors hover:text-text-display hover:underline"
-              data-testid="cookie-settings-link"
-              data-tour="cookie-settings"
-              @click="openCookieSettings"
+              data-testid="resend-verification"
+              class="inline-flex items-center justify-center rounded-lg border border-amber-300/60 px-3 py-2 font-medium text-amber-50 transition hover:bg-amber-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isResendingVerification"
+              @click="handleResendVerification"
             >
-              {{ t('consent.footer.cookieSettings') }}
+              {{
+                isResendingVerification
+                  ? t('emailVerification.banner.resending')
+                  : t('emailVerification.banner.resend')
+              }}
             </button>
           </div>
+        </section>
 
-          <UploadProgressToast />
-          <UpdatePrompt />
-          <Toaster position="bottom-right" />
-          <ConsentBanner />
-          <CookieSettings v-model:open="showCookieSettings" />
+        <main
+          id="main-content"
+          tabindex="-1"
+          data-tour="main-content"
+          :class="[
+            'dot-grid flex-1 px-4 py-6 md:px-6 lg:px-8 lg:py-8',
+            isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
+          ]"
+        >
+          <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
+            {{ t('nav.loadingSection') }}
+          </div>
+          <RouterView v-slot="{ Component, route: matchedRoute }">
+            <Suspense timeout="0">
+              <component
+                :is="Component"
+                :key="route.meta.viewKey ?? route.fullPath"
+              />
+              <template #fallback>
+                <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
+                  <span class="sr-only">{{ t('nav.loadingSection') }}</span>
+                  <div class="h-9 w-48 animate-pulse rounded-lg bg-bg-surface" />
+                  <div class="h-4 w-80 max-w-full animate-pulse rounded bg-bg-surface" />
+                  <div class="grid gap-4 md:grid-cols-3">
+                    <div
+                      v-for="index in 3"
+                      :key="index"
+                      class="h-32 animate-pulse rounded-xl border border-border-subtle bg-bg-surface"
+                    />
+                  </div>
+                </div>
+              </template>
+              </Suspense>
+            </RouterView>
+        </main>
+
+        <div class="flex items-center justify-center border-t border-border-subtle px-4 py-2">
+          <button
+            type="button"
+            class="text-xs text-text-secondary transition-colors hover:text-text-display hover:underline"
+            data-testid="cookie-settings-link"
+            data-tour="cookie-settings"
+            @click="openCookieSettings"
+          >
+            {{ t('consent.footer.cookieSettings') }}
+          </button>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
-  </TooltipProvider>
+
+        <UploadProgressToast />
+        <UpdatePrompt />
+        <Toaster position="bottom-right" />
+        <ConsentBanner />
+        <CookieSettings v-model:open="showCookieSettings" />
+      </div>
+    </template>
+  </DashboardShell>
 </template>
 
 <style scoped>

@@ -40,9 +40,9 @@ vi.mock('vue-router', async (importOriginal) => ({
     navigationRouter ?? {
       push,
       replace,
-      beforeEach: vi.fn().mockReturnValue(() => { }),
-      afterEach: vi.fn().mockReturnValue(() => { }),
-      onError: vi.fn().mockReturnValue(() => { }),
+      beforeEach: vi.fn().mockReturnValue(() => {}),
+      afterEach: vi.fn().mockReturnValue(() => {}),
+      onError: vi.fn().mockReturnValue(() => {}),
     },
 }))
 
@@ -243,6 +243,13 @@ vi.mock('@profiletailors/vue-ui/shell/tooltip', () => ({
   TooltipProvider: { template: '<div><slot /></div>' },
 }))
 
+vi.mock('@profiletailors/vue-ui/shell', () => ({
+  DashboardShell: {
+    template:
+      '<div><slot name="inset"></slot><slot name="header"></slot><slot name="content"></slot><slot name="account"></slot><slot name="footer"></slot><slot name="pwa"></slot></div>',
+  },
+}))
+
 vi.mock('@layouts/AppHeader.vue', () => ({
   default: { template: '<div class="app-header" />' },
 }))
@@ -350,7 +357,7 @@ describe('AppShell scheduler sidebar navigation', () => {
 
   it('clears abandoned loading on duplicate navigation while the import remains unresolved', async () => {
     const page = defineComponent({ template: '<div>Page</div>' })
-    const abandonedImport = new Promise<typeof page>(() => { })
+    const abandonedImport = new Promise<typeof page>(() => {})
     let resolveNext!: (component: typeof page) => void
     const nextImport = new Promise<typeof page>((resolve) => {
       resolveNext = resolve
@@ -647,7 +654,7 @@ describe('AppShell scheduler sidebar navigation', () => {
 
   it('logs resend failures without crashing the banner', async () => {
     authState.user.emailStatus = 'PENDING'
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     resendVerificationEmail.mockRejectedValueOnce(new Error('boom'))
 
     const wrapper = mount(AppShell, {
