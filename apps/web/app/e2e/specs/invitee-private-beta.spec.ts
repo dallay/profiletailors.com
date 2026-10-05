@@ -288,7 +288,12 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await composeModal.fillText('First invitee workspace post')
     await composeModal.clickScheduleNow()
     await composeModal.expectHidden()
-    await scheduler.switchToList()
+    if (await scheduler.agendaViewButton.isVisible()) {
+      await scheduler.agendaViewButton.click()
+      await expect(scheduler.mobileAgenda).toBeVisible()
+    } else {
+      await scheduler.switchToList()
+    }
     await expect(page.getByText('First invitee workspace post').first()).toBeVisible()
   })
 
