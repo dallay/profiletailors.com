@@ -66,19 +66,19 @@ const allBadge = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-1">
+  <div class="space-y-0.5">
     <button
       type="button"
-      class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
-      :class="isSchedulerRoute && !activeChannelId ? 'border-border-visible bg-bg-primary text-text-display' : ''"
+      class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+      :class="isSchedulerRoute && !activeChannelId ? 'border-sidebar-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''"
       @click="selectAll"
     >
-      <Users class="size-4 shrink-0 text-text-secondary" />
+      <Users class="size-4 shrink-0" />
       <span class="sr-only">All channels</span>
       <span class="truncate group-data-[collapsible=icon]:hidden">All channels</span>
       <span
         v-if="allBadge"
-        class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary group-data-[collapsible=icon]:hidden"
+        class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary group-data-[collapsible=icon]:hidden"
       >
         {{ allBadge }}
       </span>

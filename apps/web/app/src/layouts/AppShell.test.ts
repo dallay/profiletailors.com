@@ -40,9 +40,9 @@ vi.mock('vue-router', async (importOriginal) => ({
     navigationRouter ?? {
       push,
       replace,
-      beforeEach: vi.fn().mockReturnValue(() => {}),
-      afterEach: vi.fn().mockReturnValue(() => {}),
-      onError: vi.fn().mockReturnValue(() => {}),
+      beforeEach: vi.fn().mockReturnValue(() => { }),
+      afterEach: vi.fn().mockReturnValue(() => { }),
+      onError: vi.fn().mockReturnValue(() => { }),
     },
 }))
 
@@ -63,9 +63,6 @@ vi.mock('vue-i18n', () => ({
     t: (key: string) =>
       ({
         'emailVerification.banner.title': 'Verify your email',
-        'common.sourceCode': 'Source code',
-        'common.terms': 'Terms of Service',
-        'common.legalAndSource': 'Legal information and source code',
         'emailVerification.banner.description':
           'Publish, social connect, and media upload require email verification.',
         'emailVerification.banner.instructions': 'Check your inbox for the verification link.',
@@ -291,9 +288,12 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 }))
 
 vi.mock('@lucide/vue', () => ({
+  BarChart3: { template: '<svg />' },
+  CalendarDays: { template: '<svg />' },
   Images: { template: '<svg />' },
   Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
+  Settings: { template: '<svg />' },
   Shield: { template: '<svg />' },
 }))
 
@@ -350,7 +350,7 @@ describe('AppShell scheduler sidebar navigation', () => {
 
   it('clears abandoned loading on duplicate navigation while the import remains unresolved', async () => {
     const page = defineComponent({ template: '<div>Page</div>' })
-    const abandonedImport = new Promise<typeof page>(() => {})
+    const abandonedImport = new Promise<typeof page>(() => { })
     let resolveNext!: (component: typeof page) => void
     const nextImport = new Promise<typeof page>((resolve) => {
       resolveNext = resolve
@@ -462,19 +462,13 @@ describe('AppShell scheduler sidebar navigation', () => {
     remounted.unmount()
   })
 
-  it('shows the hosted service terms and source revision in the sidebar footer', () => {
+  it('shows build information in the sidebar footer', () => {
     const wrapper = mount(AppShell, {
       global: { mocks: { $t: (key: string) => key } },
     })
 
-    expect(wrapper.get('a[href="https://profiletailors.com/terms/"]').text()).toBe(
-      'Terms of Service',
-    )
-    const sourceLink = wrapper.get(
-      'a[href^="https://github.com/dallay/profiletailors.com/commit/"]',
-    )
-    expect(sourceLink.attributes('aria-label')).toBe('Source code')
-    expect(sourceLink.find('svg').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="version-badge"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="https://profiletailors.com/terms/"]').exists()).toBe(false)
   })
 
   it('passes the backend-resolved catalog to the connect section', () => {
@@ -653,7 +647,7 @@ describe('AppShell scheduler sidebar navigation', () => {
 
   it('logs resend failures without crashing the banner', async () => {
     authState.user.emailStatus = 'PENDING'
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
     resendVerificationEmail.mockRejectedValueOnce(new Error('boom'))
 
     const wrapper = mount(AppShell, {

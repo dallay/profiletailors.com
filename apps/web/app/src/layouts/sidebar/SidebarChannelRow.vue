@@ -38,10 +38,10 @@ function onAvatarError() {
 <template>
   <button
     type="button"
-    class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+    class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
     :class="isActive
-      ? 'border-border-visible bg-bg-primary text-text-display'
-      : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
+      ? 'border-sidebar-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+      : 'text-text-secondary'"
     :aria-label="`${channel.name} · ${providerLabel}${needsReconnect(channel.status) ? ` · ${reconnectLabel}` : ''}`"
     @click="emit('select')"
   >

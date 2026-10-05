@@ -10,7 +10,7 @@ import {
 } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
-import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
+import { BarChart3, CalendarDays, Images, LayoutGrid, Lightbulb, Settings, Shield } from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -60,8 +60,7 @@ const publishingStore = usePublishingStore()
 const showCookieSettings = ref(false)
 const router = useRouter()
 const route = useRoute()
-const { t, te, locale } = useI18n()
-const gitSha = __GIT_SHA__
+const { t, te } = useI18n()
 const calendarUrl = useCalendarUrl()
 
 const pendingNavigation = shallowRef<RouteLocationNormalized | null>(null)
@@ -143,8 +142,8 @@ const navigationGroups = computed<NavGroup[]>(() => [
     label: '',
     items: [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
-      { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
-      { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
+      { labelKey: 'nav.scheduler', to: '/scheduler', icon: CalendarDays },
+      { labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, badge: 'Live' },
       { labelKey: 'nav.media', to: '/media', icon: Images },
       { labelKey: 'nav.ideas', to: '/ideas', icon: Lightbulb },
       { labelKey: 'nav.governance', to: '/governance/takedown', icon: Shield },
@@ -152,7 +151,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
   },
   {
     label: t('nav.system'),
-    items: [{ labelKey: 'nav.settings', to: '/settings', icon: LayoutGrid }],
+    items: [{ labelKey: 'nav.settings', to: '/settings', icon: Settings }],
   },
 ])
 
@@ -331,6 +330,8 @@ onBeforeUnmount(() => {
             </SidebarMenu>
           </SidebarGroup>
 
+          <div class="mx-2 border-t border-sidebar-border group-data-[collapsible=icon]:mx-0" />
+
           <SidebarGroup class="gap-2">
             <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
               {{ $t('channels.title') }}
@@ -353,6 +354,8 @@ onBeforeUnmount(() => {
           </SidebarGroup>
         </SidebarContent>
 
+        <div class="mx-2 border-t border-sidebar-border group-data-[collapsible=icon]:mx-0" />
+
         <SidebarFooter>
           <InstallPrompt />
           <SidebarAccountSection
@@ -368,28 +371,6 @@ onBeforeUnmount(() => {
           <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
             <VersionBadge />
           </div>
-          <nav
-            :aria-label="t('common.legalAndSource')"
-            class="mt-1 flex flex-wrap items-center gap-x-3 px-2 pb-1 group-data-[collapsible=icon]:hidden"
-          >
-            <a
-              :href="locale === 'es' ? 'https://profiletailors.com/es/terms/' : 'https://profiletailors.com/terms/'"
-              class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {{ t('common.terms') }}
-            </a>
-            <a
-              :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
-              class="inline-flex min-h-11 min-w-11 items-center justify-center text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              :aria-label="t('common.sourceCode')"
-              :title="t('common.sourceCode')"
-            >
-              <svg viewBox="0 0 24 24" class="size-[18px]" fill="currentColor" aria-hidden="true">
-                <path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.08c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.7 1.15 1.7 1.15 1 1.7 2.61 1.21 3.24.92.1-.72.39-1.21.71-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.21.43-2.2 1.15-2.97-.12-.28-.5-1.41.11-2.94 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.12-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.66.12 2.94.71.77 1.14 1.76 1.14 2.97 0 4.27-2.6 5.21-5.08 5.49.4.35.76 1.02.76 2.06V22c0 .29.2.63.77.53A11.1 11.1 0 0 0 12 .9Z" />
-              </svg>
-              <span class="sr-only">{{ t('common.sourceCode') }}</span>
-            </a>
-          </nav>
         </SidebarFooter>
 
         <SidebarRail />

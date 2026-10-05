@@ -228,7 +228,7 @@ function segmentedControlClass(isActive: boolean) {
 
     <button
       ref="triggerRef"
-      class="flex h-12 w-full min-w-0 items-center gap-2 rounded-md p-2 text-left transition-colors hover:bg-bg-primary/70 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
+      class="flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-left transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"

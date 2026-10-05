@@ -6,5 +6,4 @@ export default {
   saving: 'Guardando...',
   sourceCode: 'Código fuente',
   terms: 'Términos del Servicio',
-  legalAndSource: 'Información legal y código fuente',
 }
