@@ -126,6 +126,8 @@ databaseChangeLog:
       file: db/changelog/shortlinks/001-create-links.yaml
   - include:
       file: db/changelog/shortlinks/002-create-idempotency.yaml
+  - include:
+      file: db/changelog/shortlinks/003-create-link-clicks.yaml
 
   - include:
       file: db/changelog/platform-admin/008-create-user-control-idempotency.yaml

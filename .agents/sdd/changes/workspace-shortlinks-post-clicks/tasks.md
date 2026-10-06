@@ -26,10 +26,11 @@ Chain strategy: github-stacked-prs
 
 ## Phase 1: Click Capture Foundation (PR 1)
 
-- [ ] 1.1 RED: Test click recording only for active redirects; inactive/missing links and tracking failure preserve redirect behavior.
-- [ ] 1.2 Add Liquibase migration under `server/smp/src/main/resources/db/changelog/shortlinks/` for link identity and timestamp only.
-- [ ] 1.3 GREEN: Add shortlink persistence port/adapter; await best-effort recording after resolution. Measure latency; never detach work.
-- [ ] 1.4 Verify migration and redirect recording with focused persistence/shortlinks tests.
+- [x] 1.1 RED: Test click recording only for active redirects; inactive/missing links and tracking failure preserve redirect behavior.
+- [x] 1.2 Add Liquibase migration under `server/smp/src/main/resources/db/changelog/shortlinks/` for link identity and timestamp only.
+- [x] 1.3 GREEN: Add shortlink persistence port/adapter; await best-effort recording after resolution. Measure latency; never detach work.
+- [x] 1.4 Verify migration and redirect recording with focused persistence/shortlinks tests.
+- [x] Phase 1 independent verification: controller and PostgreSQL persistence tests passed after cleanup fix; Detekt and diff checks passed.
 
 ## Phase 2: Workspace Metrics API (PR 2)
 

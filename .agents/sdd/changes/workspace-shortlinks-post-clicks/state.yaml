@@ -1,8 +1,13 @@
 change: workspace-shortlinks-post-clicks
-current_phase: tasks
-completed: [explore, propose, spec, design, tasks]
-next: apply
-updated: 2026-10-06T16:30:00Z
+current_phase: apply_phase_2
+completed: [explore, propose, spec, design, tasks, apply_phase_1, verify_phase_1]
+next: apply_phase_2
+updated: 2026-10-06T18:00:00Z
+phase_verification:
+  phase: 1
+  status: passed
+  report: verify-report.md
+  follow_up: none
 artifact_store: openspec
 strict_tdd: true
 source_implementation_authorized: true

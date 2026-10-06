@@ -14,6 +14,7 @@ import com.profiletailors.smp.shortlinks.domain.ShortCodeCollisionException
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -70,6 +71,9 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
     @jakarta.annotation.Resource
     private lateinit var idempotencyAdapter: R2dbcIdempotencyAdapter
 
+    @jakarta.annotation.Resource
+    private lateinit var clickRecorder: R2dbcRedirectClickRecorder
+
     override suspend fun seedScenario() = Unit
 
     @Test
@@ -89,6 +93,47 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
         assertNotNull(stored)
         assertEquals("payload-a", stored?.payloadHash?.trim())
         assertEquals("result-a", stored?.resultJson)
+    }
+
+    @Test
+    fun `records each resolved redirect against its link`() = runTest {
+        val link = link(shortCode = "ClickMe1")
+        linkRepository.save(link)
+
+        clickRecorder.record(link.id)
+        clickRecorder.record(link.id)
+
+        val rows = databaseClient.sql("SELECT id FROM link_clicks WHERE link_id = :linkId")
+            .bind("linkId", link.id.value)
+            .fetch()
+            .all()
+            .collectList()
+            .awaitSingle()
+
+        assertEquals(2, rows.size)
+    }
+
+    @Test
+    fun `cleanup removes click records before their links`() = runTest {
+        val link = link(shortCode = "Cleanup1")
+        linkRepository.save(link)
+        clickRecorder.record(link.id)
+
+        cleanupStatements().forEach { statement ->
+            databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
+        }
+
+        val clickCount = databaseClient.sql("SELECT COUNT(*) AS count FROM link_clicks")
+            .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+        val linkCount = databaseClient.sql("SELECT COUNT(*) AS count FROM links")
+            .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+
+        assertEquals(0, clickCount)
+        assertEquals(0, linkCount)
     }
 
     @Test

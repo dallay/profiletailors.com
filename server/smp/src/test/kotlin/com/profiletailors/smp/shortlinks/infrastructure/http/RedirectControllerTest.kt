@@ -6,8 +6,10 @@ import com.profiletailors.smp.shortlinks.application.LinkDisabledApplicationExce
 import com.profiletailors.smp.shortlinks.application.LinkExpiredApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkNotFoundApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkQuarantinedApplicationException
+import com.profiletailors.smp.shortlinks.application.RedirectClickRecorder
 import com.profiletailors.smp.shortlinks.application.ResolveLinkQuery
 import com.profiletailors.smp.shortlinks.application.ResolveResult
+import com.profiletailors.smp.shortlinks.domain.LinkId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -15,6 +17,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.server.reactive.ServerHttpRequest
@@ -23,11 +26,14 @@ import java.util.UUID
 
 internal class RedirectControllerTest {
     private val mediator = mockk<Mediator>()
-    private val controller = RedirectController(mediator)
+    private val clickRecorder = mockk<RedirectClickRecorder>()
+    private val controller = RedirectController(mediator, clickRecorder)
     private val linkId = UUID.fromString("0199b1ca-0000-7000-8000-000000000001")
+    private val domainLinkId = LinkId(linkId)
 
     @Test
     fun `redirects active link with no-store`() = runTest {
+        coEvery { clickRecorder.record(domainLinkId) } returns Unit
         val request = request("go.profiletailors.com")
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)
@@ -37,10 +43,12 @@ internal class RedirectControllerTest {
         assertEquals(HttpStatus.FOUND, response.statusCode)
         assertEquals("https://example.com/path", response.headers.getFirst(HttpHeaders.LOCATION))
         assertEquals("no-store", response.headers.getFirst(HttpHeaders.CACHE_CONTROL))
+        coVerify(exactly = 1) { clickRecorder.record(domainLinkId) }
     }
 
     @Test
     fun `resolves with request host as domain`() = runTest {
+        coEvery { clickRecorder.record(domainLinkId) } returns Unit
         val request = request("go.profiletailors.com")
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)
@@ -59,6 +67,19 @@ internal class RedirectControllerTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } throws LinkNotFoundApplicationException("Nope")
 
         assertEquals(HttpStatus.NOT_FOUND, controller.redirect("Nope", request("go.profiletailors.com")).statusCode)
+        coVerify(exactly = 0) { clickRecorder.record(any()) }
+    }
+
+    @Test
+    fun `tracking failure preserves active redirect`() = runTest {
+        coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
+            ResolveResult("https://example.com/path", "ACTIVE", linkId)
+        coEvery { clickRecorder.record(domainLinkId) } throws DataAccessResourceFailureException("storage unavailable")
+
+        val response = controller.redirect("AbC123", request("go.profiletailors.com"))
+
+        assertEquals(HttpStatus.FOUND, response.statusCode)
+        assertEquals("https://example.com/path", response.headers.getFirst(HttpHeaders.LOCATION))
     }
 
     @Test
