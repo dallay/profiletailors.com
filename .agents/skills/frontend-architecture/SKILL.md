@@ -24,6 +24,26 @@ Do not apply Kotlin DDD markers or backend package rules to TypeScript, Vue, or 
 - Changing static marketing pages, Astro components, or shared consent contracts.
 - Deciding whether a generated shadcn-vue or composition-root import is an approved exception.
 
+## Shared Vue UI shell
+
+`@profiletailors/vue-ui/shell` owns the reusable navigation frame and shared sidebar/mobile Sheet
+interaction. Applications own navigation registries, authorization filtering, route links, labels,
+stores, identity/account behavior, optional PWA content, and the routed page tree. Supply a typed
+`NavPort` and render app-owned content through the shell slots; never import an app store or router
+into the shared package. Keep shell integration covered by the consuming app's tests, including the
+mobile trigger/Sheet path and permission-filtered navigation where authorization applies.
+
+## Shared Vue UI foundation
+
+`@profiletailors/vue-ui` is the only cross-SPA owner for Vue presentation primitives, visual tokens,
+typography assets, and reusable shell behavior. App and admin may consume its public package exports;
+neither app may import components, styles, stores, or utilities from the other app. Keep routes,
+permissions, API models, feature workflows, and product-specific composite components in their owning
+surface. Promote a component to the shared package when both consumers need the same behavior and
+visual contract, not just because their markup looks similar. Keep shadcn-vue/Reka wrappers in the
+shared package when they form a stable cross-surface contract; feature-specific compositions remain
+local. Marketing stays Astro and must not consume this Vue package.
+
 ## Surface Profiles
 
 | Surface              | Architectural profile                            | Primary boundaries                                                                                                                                     | Verification                                                                                    |

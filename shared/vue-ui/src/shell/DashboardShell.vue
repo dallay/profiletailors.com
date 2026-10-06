@@ -8,7 +8,6 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
-  SidebarRail,
 } from './sidebar'
 
 defineProps<{
@@ -38,8 +37,6 @@ defineEmits<{
           <slot name="account" :sign-out="() => $emit('signOut')" :open-settings="() => $emit('openSettings')" />
           <slot name="footer" />
         </SidebarFooter>
-
-        <SidebarRail />
       </Sidebar>
 
       <SidebarInset>
