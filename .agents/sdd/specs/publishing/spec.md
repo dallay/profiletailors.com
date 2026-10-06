@@ -45,7 +45,12 @@ plans.
 After an authenticated create succeeds, the client MUST replace any optimistic publication identity
 and fields with the returned backend publication. The store MUST use the returned `publicationId`,
 `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative
-values and MUST NOT retain a synthetic local ID.
+values and MUST NOT retain a synthetic local ID. For a publication containing links, the create
+flow MUST make shortlink behavior explicit and MUST NOT silently replace link destinations or alter
+submitted post content. The exact user choice, supported link cardinality, transformation timing,
+and behavior when shortening is unavailable remain open for design, based on verified Core V1
+contracts.
+(Previously: authenticated create reconciliation specified authoritative publication fields but did not specify shortlink behavior for posts containing links.)
 
 #### Scenario: Standard create adopts server truth
 
@@ -67,6 +72,26 @@ values and MUST NOT retain a synthetic local ID.
 - WHEN an authenticated edit is submitted
 - THEN the backend MUST return 404
 - AND publications in every other workspace MUST remain unchanged
+
+#### Scenario: Publication with a link exposes explicit shortlink behavior
+
+- GIVEN a workspace member creates a publication containing a link
+- WHEN the composer presents the publication for creation
+- THEN the shortlink behavior and resulting URL MUST be observable before or as part of creation
+- AND neither the destination nor post content MUST be silently changed
+
+#### Scenario: Publication without links does not introduce a shortlink
+
+- GIVEN a workspace member creates a publication without a link
+- WHEN the publication is created
+- THEN no shortlink MUST be added to the publication content
+
+#### Scenario: Shortlink integration cannot produce a usable link
+
+- GIVEN a publication link cannot be shortened or the shortlink service is unavailable
+- WHEN the user attempts to create the publication
+- THEN the destination MUST NOT be silently replaced by a different URL
+- AND the user-visible result and whether publication creation may proceed MUST be defined by design before implementation
 
 ### Requirement: Reconciled Composer Edit State
 

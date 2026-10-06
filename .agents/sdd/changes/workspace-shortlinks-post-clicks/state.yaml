@@ -1,0 +1,29 @@
+change: workspace-shortlinks-post-clicks
+current_phase: tasks
+completed: [explore, propose, spec, design, tasks]
+next: apply
+updated: 2026-10-06T16:30:00Z
+artifact_store: openspec
+strict_tdd: true
+source_implementation_authorized: true
+scope_status: bounded_workspace_scoped_shortlink_publication_and_click_analytics_specified
+adr_reconciliation: explicit_product_decision_confirmed_to_allow_bounded_integration; ADR-0028_reconciled_before_apply
+external_evidence: not_run
+delivery_strategy: ask-on-risk
+review_workload_forecast:
+  estimated_changed_lines: 500-800
+  budget_risk: High
+  chained_prs_recommended: true
+  decision_needed_before_apply: true
+  chain_strategy: github-stacked-prs
+  user_decision: github-stacked-prs
+design_decisions:
+  post_creation: explicit_opt_in_create_before_publication_submit_preserve_original_on_failure
+  clicks: successful_active_redirect_attempt_non_deduplicated_without_visitor_identity
+  recording: best_effort_awaited_insert_before_response; latency_must_be_measured
+  tenant_isolation: workspace_derived_from_authenticated_context_and_database_owner_filter
+  metric_scope: all_stored_click_records_without_retention_or_precision_promise
+remaining_design_risks:
+  - Confirm click write latency; redesign as separately approved durable async mechanism if unacceptable
+  - Confirm management endpoint auth and versioned media-type conventions during apply
+  - Confirm repository migration changelog placement and frontend publishing API/client paths during apply

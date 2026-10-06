@@ -156,6 +156,28 @@ analytics API surface, QR encoder dependency) without an immediate user need.
 - Static-analysis debt rules in `.agents/AGENTS.md` continue to apply; this
   ADR does not authorise any suppressions or baseline entries.
 
+## Bounded follow-up decision: publication shortlinks and workspace click counts
+
+On 2026-10-06, the product decision explicitly authorizes the scoped change in
+`.agents/sdd/changes/workspace-shortlinks-post-clicks/`. This is a narrow exception to the
+original deferral, not a reversal of it: the approved scope is explicit shortlink integration
+when composing publications and workspace-isolated counts of successful shortlink redirects.
+
+The design keeps link ownership in Core V1, derives tenant identity from authenticated workspace
+context for protected analytics, and leaves public redirects free of management/analytics data.
+It excludes durable outbox delivery, Edge/Logpush reconciliation, custom domains, QR, retention
+policy, visitor identity/PII, abuse automation, and capacity/SLO guarantees. Clicks are proposed as
+non-deduplicated recorded active-link redirect attempts, without identity data or an accuracy
+promise. Tracking must not block the redirect on failure; redirect latency remains a verification
+risk and must be measured before accepting this mechanism.
+
+Post composition must make shortening explicit and present the resulting URL. The original URL and
+content remain unchanged unless the user opts in; if shortening fails, the original destination is
+preserved and publication may proceed with it or the user may retry. Link creation is proposed
+before publication submission because the existing publication handler persists/enqueues the
+submitted body. This decision is bounded to the named OpenSpec change; it does not authorize the
+larger deferred shortlinks design.
+
 ## Verification
 
 - The change directory is archived under `.agents/sdd/changes/archive/2026-10-04-url-shortener-beyond-core-v1/`.
