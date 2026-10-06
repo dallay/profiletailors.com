@@ -7,6 +7,8 @@ import { Input } from '../input'
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
+  id?: string
+  ariaLabel?: string
   class?: HTMLAttributes["class"]
 }>()
 
@@ -15,6 +17,8 @@ const attrs = useAttrs()
 
 <template>
   <Input
+    :id="props.id"
+    :aria-label="props.ariaLabel"
     v-bind="attrs"
     data-slot="sidebar-input"
     data-sidebar="input"

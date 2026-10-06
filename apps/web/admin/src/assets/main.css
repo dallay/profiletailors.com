@@ -1,9 +1,9 @@
 @import '@profiletailors/vue-ui/styles/fonts.css';
 @import 'tailwindcss';
-@source "../../../../../shared/vue-ui/src";
 @import 'tw-animate-css';
 @import '@profiletailors/vue-ui/styles/design-tokens.css';
 @import '@profiletailors/vue-ui/styles/utilities.css';
+@source "../../../../../shared/vue-ui/src";
 
 *,
 *::before,

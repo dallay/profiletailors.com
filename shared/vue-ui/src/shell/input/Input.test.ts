@@ -10,11 +10,15 @@ describe('Input', () => {
         class: 'custom-input',
         type: 'email',
         placeholder: 'Email',
+        id: 'account-email',
+        ariaLabel: 'Account email',
       },
     })
 
     const input = wrapper.get('input')
     expect((input.element as HTMLInputElement).value).toBe('hello')
+    expect(input.attributes('id')).toBe('account-email')
+    expect(input.attributes('aria-label')).toBe('Account email')
     expect(input.attributes('type')).toBe('email')
     expect(input.attributes('placeholder')).toBe('Email')
     expect(input.classes()).toContain('custom-input')

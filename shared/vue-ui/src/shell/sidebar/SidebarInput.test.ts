@@ -7,6 +7,8 @@ describe('SidebarInput', () => {
     const wrapper = mount(SidebarInput, {
       props: { class: 'custom-sidebar-input' },
       attrs: {
+        id: 'sidebar-search',
+        'aria-label': 'Search navigation',
         placeholder: 'Search',
         disabled: true,
         type: 'text',
@@ -14,6 +16,8 @@ describe('SidebarInput', () => {
     })
 
     const input = wrapper.get('input')
+    expect(input.attributes('id')).toBe('sidebar-search')
+    expect(input.attributes('aria-label')).toBe('Search navigation')
     expect(input.attributes('placeholder')).toBe('Search')
     expect(input.attributes('disabled')).toBeDefined()
     expect(input.attributes('type')).toBe('text')

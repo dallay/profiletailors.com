@@ -1,13 +1,11 @@
 
 @import "@profiletailors/vue-ui/styles/fonts.css";
-
 @import "tailwindcss";
-@source "../../../../../shared/vue-ui/src";
-
 @import "tw-animate-css";
 @import "shadcn-vue/tailwind.css";
 @import "@profiletailors/vue-ui/styles/design-tokens.css";
 @import "@profiletailors/vue-ui/styles/utilities.css";
+@source "../../../../../shared/vue-ui/src";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -8,6 +8,8 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(defineProps<{
   defaultValue?: string | number
   modelValue?: string | number
+  id?: string
+  ariaLabel?: string
   class?: HTMLAttributes["class"]
 }>(), {})
 
@@ -21,6 +23,8 @@ const modelValue = useVModel(props, "modelValue", emits, {
 
 <template>
   <input
+    :id="props.id"
+    :aria-label="props.ariaLabel"
     v-bind="$attrs"
     v-model="modelValue"
     data-slot="input"
