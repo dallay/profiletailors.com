@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownReportResponse, type TakedownReportStatus } from '@modules/governance/services/governance-api'

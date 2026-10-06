@@ -11,6 +11,8 @@
 
 ### Architecture & Design
 
+- [Design Sources](./design/README.md) - Brand design sources and implementation guidance
+- [Shared Vue UI Shell](./design/shared-vue-ui-shell.md) - Shared navigation shell ownership and adoption
 - [API Versioning](./api-versioning.md) - Spring Boot 4 media-type versioning implementation
 - [API Versioning Frontend Migration](./api-versioning-frontend-migration.md) - Frontend migration
   notes and media-type requirements

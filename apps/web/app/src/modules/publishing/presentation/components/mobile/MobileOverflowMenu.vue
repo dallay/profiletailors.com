@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { MoreHorizontal } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 const emit = defineEmits<{
   (event: 'openBulkImport'): void

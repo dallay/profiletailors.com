@@ -3,7 +3,9 @@ import { mount } from '@vue/test-utils'
 import MobileOverflowMenu from './MobileOverflowMenu.vue'
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
-vi.mock('@/components/ui/button', () => ({ Button: { template: '<button><slot /></button>' } }))
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
+  Button: { template: '<button><slot /></button>' },
+}))
 vi.mock('@lucide/vue', () => ({ MoreHorizontal: { template: '<svg />' } }))
 vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: { template: '<div><slot /></div>' },

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { InboxItem, Platform } from '@modules/dashboard/domain/dashboard.types'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 
 const props = defineProps<{
   items: InboxItem[]

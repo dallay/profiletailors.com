@@ -2,9 +2,9 @@
 import { ChevronLeftIcon } from '@lucide/vue';
 
 import type { WithClassAsProps } from "./interface"
-import type { ButtonVariants } from '@/components/ui/button'
+import type { ButtonVariants } from '@profiletailors/vue-ui/shell/button'
 import { cn } from "@/lib/utils"
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { useCarousel } from "./useCarousel"
 
 const props = withDefaults(defineProps<{

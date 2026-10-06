@@ -7,7 +7,9 @@ vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
   useI18n: () => ({ t: (key: string) => key }),
 }))
-vi.mock('@/components/ui/button', () => ({ Button: { template: '<button><slot /></button>' } }))
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
+  Button: { template: '<button><slot /></button>' },
+}))
 vi.mock('@lucide/vue', () => {
   const icon = { template: '<svg />' }
   return {
@@ -19,7 +21,7 @@ vi.mock('@lucide/vue', () => {
     MoreHorizontal: icon,
   }
 })
-vi.mock('@/components/ui/sheet', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sheet', () => ({
   Sheet: { template: '<div><slot /></div>' },
   SheetClose: { template: '<div><slot /></div>' },
   SheetContent: { template: '<section><slot /></section>' },

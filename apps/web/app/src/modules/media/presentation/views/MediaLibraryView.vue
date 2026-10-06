@@ -6,7 +6,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import type { MediaStatus } from '@modules/media/services/media-api'
 import MediaAttribution from '@modules/media/presentation/components/MediaAttribution.vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import {
   AlertDialog,
   AlertDialogAction,

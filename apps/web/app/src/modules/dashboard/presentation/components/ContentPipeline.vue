@@ -9,7 +9,7 @@ import {
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import type { PipelineColumn, Platform } from '@modules/dashboard/domain/dashboard.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 
 const props = defineProps<{
   columns: PipelineColumn[]

@@ -21,7 +21,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   logoutSession: vi.fn(),
 }))
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: { template: '<button><slot /></button>' },
 }))
 

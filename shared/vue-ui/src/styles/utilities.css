@@ -1,0 +1,12 @@
+.dot-grid {
+  background-image: radial-gradient(circle, var(--border-visible-color) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.label-mono {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

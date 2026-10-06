@@ -3,7 +3,6 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { messages } from '@/i18n'
 import { NAV_REGISTRY } from '@/router/nav-registry'
@@ -152,11 +151,18 @@ describe('AdminLayout nav filtering', () => {
     })
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: NAV_REGISTRY.map((entry) => ({
-        path: `/${entry.path}`,
-        name: entry.routeName,
-        component: { template: '<div />' },
-      })),
+      routes: [
+        {
+          path: '/login',
+          name: 'login',
+          component: { template: '<div>Sign in</div>' },
+        },
+        ...NAV_REGISTRY.map((entry) => ({
+          path: `/${entry.path}`,
+          name: entry.routeName,
+          component: { template: '<div />' },
+        })),
+      ],
     })
     const wrapper = mount(AdminLayout, {
       attachTo: attachToDocument ? document.body : undefined,
@@ -168,6 +174,41 @@ describe('AdminLayout nav filtering', () => {
     await flushPromises()
     return wrapper
   }
+
+  it('opens and closes the shared mobile navigation from the accessible trigger', async () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: '(max-width: 767px)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }) as unknown as typeof window.matchMedia
+
+    try {
+      const wrapper = await mountLayout(['AUDITOR'], true)
+      const openButton = wrapper.get('button[aria-label="Open navigation"]')
+      await openButton.trigger('click')
+      await flushPromises()
+
+      const mobileNavigation = document.body.querySelector('[role="dialog"]')
+      expect(mobileNavigation).not.toBeNull()
+      const closeButton = mobileNavigation?.querySelector<HTMLButtonElement>(
+        '[data-slot="sheet-close"]',
+      )
+      expect(closeButton).not.toBeNull()
+      closeButton?.click()
+      await flushPromises()
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+
+      wrapper.unmount()
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
+  })
 
   it('shows the build source link for a principal with admin access', async () => {
     const wrapper = await mountLayout(['PLATFORM_OWNER'])
@@ -187,6 +228,16 @@ describe('AdminLayout nav filtering', () => {
     wrapper.unmount()
   })
 
+  it('returns to sign-in when the admin session expires', async () => {
+    const wrapper = await mountLayout(['PLATFORM_OWNER'])
+
+    useAdminAuthStore().clearSession()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Sign in')
+    wrapper.unmount()
+  })
+
   it('hides direct-invitations for a principal missing platform.invitations.read', async () => {
     const wrapper = await mountLayout(['SUPPORT_AGENT'])
     expect(wrapper.text()).not.toContain('Direct Invitations')
@@ -201,60 +252,5 @@ describe('AdminLayout nav filtering', () => {
     expect(wrapper.text()).toContain('Audit')
     expect(wrapper.text()).not.toContain('Direct Invitations')
     wrapper.unmount()
-  })
-
-  it('contains keyboard focus in the open mobile navigation and restores it on Escape', async () => {
-    const originalMatchMedia = window.matchMedia
-    window.matchMedia = vi.fn().mockReturnValue({
-      matches: true,
-      media: '(max-width: 767px)',
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }) as unknown as typeof window.matchMedia
-
-    const wrapper = await mountLayout(['PLATFORM_OWNER'], true)
-    const menuButton = wrapper.get('button[aria-label="Open navigation"]')
-    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus')
-    await menuButton.trigger('click')
-    await nextTick()
-    await flushPromises()
-
-    const sidebar = wrapper.get('[role="dialog"][aria-modal="true"]')
-    const closeButton = sidebar.get('button[aria-label="Close"]')
-    expect(focusSpy).toHaveBeenCalled()
-    expect(document.activeElement).toBe(closeButton.element)
-    expect(wrapper.get('.admin-main').attributes('inert')).toBeDefined()
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }))
-    expect(document.activeElement).toBe(sidebar.get('a[href^="https://github.com/"]').element)
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }))
-    expect(document.activeElement).toBe(closeButton.element)
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    await nextTick()
-    await flushPromises()
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
-    expect(document.activeElement).toBe(menuButton.element)
-
-    await menuButton.trigger('click')
-    await flushPromises()
-    await wrapper.get('.admin-nav-backdrop').trigger('click')
-    await flushPromises()
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
-
-    await menuButton.trigger('click')
-    await flushPromises()
-    await wrapper.get('[role="dialog"] button[aria-label="Close"]').trigger('click')
-    await flushPromises()
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
-
-    wrapper.unmount()
-    focusSpy.mockRestore()
-    window.matchMedia = originalMatchMedia
   })
 })

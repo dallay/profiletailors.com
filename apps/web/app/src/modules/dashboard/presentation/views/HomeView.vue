@@ -2,11 +2,11 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import DashboardLayout from '@modules/dashboard/presentation/components/DashboardLayout.vue'
 import { toast } from 'vue-sonner'
-import { useSidebar } from '@/components/ui/sidebar'
+import { useSidebar } from '@profiletailors/vue-ui/shell/sidebar'
 
 const auth = useAuthStore()
 const { t } = useI18n()

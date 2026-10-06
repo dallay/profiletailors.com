@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import type { SchedulerView } from '@modules/publishing/application/useCalendarUrl'
 
 withDefaults(

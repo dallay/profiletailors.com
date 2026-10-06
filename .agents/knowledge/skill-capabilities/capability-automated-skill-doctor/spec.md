@@ -2,7 +2,7 @@
 
 ## Status
 
-This capability is withdrawn by [ADR-0026](../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
+This capability is withdrawn by [ADR-0026](../../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
 The repository does not require a deterministic skill validator, format scanner, registry
 generator, dedicated workflow, or CI gate for skill content.
 

@@ -11,7 +11,7 @@ vi.mock('@lucide/vue', () => {
   return { CalendarDays: icon, ChevronLeft: icon, ChevronRight: icon, Filter: icon, Plus: icon }
 })
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: {
     template: '<button :disabled="disabled" :title="title"><slot /></button>',
     props: ['disabled', 'title'],

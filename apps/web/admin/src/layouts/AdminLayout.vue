@@ -1,40 +1,38 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, nextTick, ref, watch } from 'vue'
-import { useMediaQuery } from '@vueuse/core'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
+import { RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   Bell,
-  ChevronRight,
   LayoutDashboard,
   ListChecks,
   LogOut,
   MailPlus,
-  Menu,
   PanelsTopLeft,
   ScrollText,
   Settings2,
   ShieldAlert,
   Users,
-  X,
 } from '@lucide/vue'
 import type { Component } from 'vue'
+import { DashboardHeader, DashboardShell } from '@profiletailors/vue-ui/shell'
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@profiletailors/vue-ui/shell/sidebar'
 import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { visibleNavEntries } from '@/router/nav-registry'
 import { VersionBadge } from '@profiletailors/vue-ui'
-import Button from '@/components/ui/AdminButton.vue'
 import BackendVersionBadge from '@/shared/ui/BackendVersionBadge.vue'
 
 const { t } = useI18n()
 const gitSha = __GIT_SHA__
 const router = useRouter()
 const authStore = useAdminAuthStore()
-const mobileNavOpen = ref(false)
-const isMobileViewport = useMediaQuery('(max-width: 767px)')
-const mobileNavButton = ref<HTMLButtonElement | null>(null)
-const mobileCloseButton = ref<HTMLButtonElement | null>(null)
-const mobileSidebar = ref<HTMLElement | null>(null)
 
 const iconByName: Record<string, Component> = {
   LayoutDashboard,
@@ -48,6 +46,12 @@ const iconByName: Record<string, Component> = {
   Settings2,
 }
 
+const fallbackIcon: Component = LayoutDashboard
+
+function resolveIcon(name: string): Component {
+  return iconByName[name] ?? fallbackIcon
+}
+
 const groupOrder = ['operations', 'observability', 'trust', 'system'] as const
 const navGroups = computed(() => {
   const entries = visibleNavEntries((permission) => authStore.hasPermission(permission))
@@ -57,7 +61,13 @@ const navGroups = computed(() => {
       label: t(`nav.groups.${group}`),
       items: entries
         .filter((entry) => entry.group === group)
-        .map((entry) => ({ ...entry, label: t(entry.labelKey), iconComponent: iconByName[entry.icon] })),
+        .map((entry) => ({
+          key: entry.key,
+          labelKey: entry.labelKey,
+          label: t(entry.labelKey),
+          routeName: entry.routeName,
+          iconComponent: resolveIcon(entry.icon),
+        })),
     }))
     .filter((group) => group.items.length > 0)
 })
@@ -72,101 +82,28 @@ const pageTitle = computed(() => {
   return t('auth.platformAdmin')
 })
 
-watch(() => router.currentRoute.value.fullPath, () => {
-  mobileNavOpen.value = false
-})
+const navPort = computed(() => ({ groups: navGroups.value }))
 
-function trapMobileNavigationFocus(event: KeyboardEvent) {
-  if (!isMobileViewport.value || !mobileNavOpen.value) return
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    mobileNavOpen.value = false
-    return
-  }
-  if (event.key !== 'Tab') return
-
-  const sidebar = mobileSidebar.value
-  if (!sidebar) return
-  const focusable = Array.from(sidebar.querySelectorAll<HTMLElement>(
-    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  ))
-  const first = focusable[0]
-  const last = focusable.at(-1)
-  if (!first || !last) {
-    event.preventDefault()
-    sidebar.focus()
-    return
-  }
-
-  const activeIsOutside = !sidebar.contains(document.activeElement)
-  if (event.shiftKey && (document.activeElement === first || activeIsOutside)) {
-    event.preventDefault()
-    last.focus()
-  } else if (!event.shiftKey && (document.activeElement === last || activeIsOutside)) {
-    event.preventDefault()
-    first.focus()
-  }
-}
-
-watch(mobileNavOpen, async (open) => {
-  if (!isMobileViewport.value) return
-  if (open) {
-    document.addEventListener('keydown', trapMobileNavigationFocus)
-    await nextTick()
-    mobileCloseButton.value?.focus()
-  } else {
-    document.removeEventListener('keydown', trapMobileNavigationFocus)
-    await nextTick()
-    mobileNavButton.value?.focus()
-  }
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', trapMobileNavigationFocus)
-})
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    if (!isAuthenticated) void router.replace({ name: 'login' })
+  },
+)
 
 async function signOut() {
   await authStore.signOut()
-  router.push({ name: 'login' })
 }
 </script>
 
 <template>
-  <div class="admin-shell flex min-h-screen bg-bg-primary text-text-body">
-    <button
-      v-if="mobileNavOpen"
-      type="button"
-      class="admin-nav-backdrop fixed inset-0 z-30 bg-black/70 md:hidden"
-      :aria-label="t('common.close')"
-      @click="mobileNavOpen = false"
-    />
-
-    <aside
-      class="admin-sidebar fixed inset-y-0 left-0 z-40 flex w-[min(19rem,86vw)] -translate-x-full flex-col border-r border-border-subtle bg-bg-surface transition-transform duration-200 md:sticky md:top-0 md:w-64 md:translate-x-0"
-      :class="{ 'admin-sidebar-open': mobileNavOpen }"
-      :aria-label="t('nav.platformAdministration')"
-      :role="isMobileViewport && mobileNavOpen ? 'dialog' : undefined"
-      :aria-modal="isMobileViewport && mobileNavOpen ? 'true' : undefined"
-      :inert="isMobileViewport && !mobileNavOpen"
-      ref="mobileSidebar"
-    >
-      <div class="flex min-h-[84px] items-center justify-between border-b border-border-subtle px-5">
+  <DashboardShell :nav="navPort">
+    <template #header>
+      <div class="space-y-1 px-1 group-data-[collapsible=icon]:hidden">
         <img :src="lightOnDarkLogoUrl" alt="Profile Tailors" class="h-9 w-auto max-w-[140px] object-contain object-left">
-        <button
-          type="button"
-          class="admin-icon-button md:hidden"
-          :aria-label="t('common.close')"
-          @click="mobileNavOpen = false"
-          ref="mobileCloseButton"
-        >
-          <X :size="18" aria-hidden="true" />
-        </button>
-      </div>
-
-      <div class="border-b border-border-subtle px-5 py-4">
-        <p class="label-mono mb-1 text-text-secondary">{{ t('auth.platformAdmin') }}</p>
+        <p class="label-mono text-text-secondary">{{ t('auth.platformAdmin') }}</p>
         <p class="truncate text-sm text-text-body">{{ authStore.principal?.email }}</p>
-        <div class="mt-3 flex flex-wrap gap-1.5">
+        <div class="flex flex-wrap gap-1.5">
           <span
             v-for="role in authStore.principal?.platformRoles"
             :key="role"
@@ -174,40 +111,62 @@ async function signOut() {
           >{{ role }}</span>
         </div>
       </div>
+    </template>
 
-      <nav class="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-5">
-        <section v-for="group in navGroups" :key="group.key" :aria-label="group.label">
-          <h2 class="label-mono px-3 pb-2 text-[10px] text-text-secondary">{{ group.label }}</h2>
-          <div class="space-y-1">
+    <template #content>
+      <SidebarGroup v-for="group in navGroups" :key="group.key" class="gap-2">
+        <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
+          {{ group.label }}
+        </SidebarGroupLabel>
+        <SidebarMenu>
+          <SidebarMenuItem v-for="item in group.items" :key="item.routeName">
             <RouterLink
-              v-for="item in group.items"
-              :key="item.routeName"
               :to="{ name: item.routeName }"
-              class="admin-nav-link flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm text-text-secondary transition-colors"
-              active-class="admin-nav-link-active"
-              :aria-label="item.label"
+              :title="item.label"
+              class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-text-secondary transition-colors no-underline hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+              active-class="bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-accent font-medium"
             >
-              <component :is="item.iconComponent" :size="18" :stroke-width="1.7" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-              <ChevronRight class="admin-nav-current" :size="14" aria-hidden="true" />
+              <component
+                :is="item.iconComponent"
+                :size="18"
+                :stroke-width="1.7"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ item.label }}</span>
+              <span class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">{{ item.label }}</span>
             </RouterLink>
-          </div>
-        </section>
-      </nav>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
+    </template>
 
-      <div class="border-t border-border-subtle px-3 py-3">
-        <Button variant="ghost" class="w-full justify-start px-3" @click="signOut">
-          <LogOut :size="17" aria-hidden="true" />
-          {{ t('auth.signOut') }}
-        </Button>
+    <template #account>
+      <div class="border-t border-sidebar-border px-2 pt-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              :tooltip="t('auth.signOut')"
+              :aria-label="t('auth.signOut')"
+              class="min-h-11 rounded-xl text-text-secondary hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-11!"
+              @click="signOut"
+            >
+              <LogOut :size="18" :stroke-width="1.7" aria-hidden="true" />
+              <span class="group-data-[collapsible=icon]:hidden">{{ t('auth.signOut') }}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </div>
+    </template>
 
-      <footer class="border-t border-border-subtle px-4 py-3">
-        <div class="flex min-h-11 items-center justify-between gap-2">
+    <template #footer>
+      <div class="space-y-1 px-3 pb-2 group-data-[collapsible=icon]:hidden">
+        <div class="flex min-h-8 items-center justify-between gap-2">
           <VersionBadge />
           <a
             :href="`https://github.com/dallay/profiletailors.com/commit/${gitSha}`"
-            class="inline-flex min-h-11 min-w-11 items-center justify-center text-text-secondary transition-colors hover:text-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             :aria-label="t('common.sourceCode')"
             :title="t('common.sourceCode')"
           >
@@ -219,27 +178,25 @@ async function signOut() {
         </div>
         <BackendVersionBadge
           v-if="authStore.hasPermission('platform.system.build-info.read')"
-          class="mt-1"
         />
-      </footer>
-    </aside>
+      </div>
+    </template>
 
-    <main class="admin-main min-w-0 flex-1" id="main-content" tabindex="-1" :inert="isMobileViewport && mobileNavOpen">
-      <header class="admin-mobile-header sticky top-0 z-20 flex min-h-14 items-center gap-3 border-b border-border-subtle bg-bg-primary px-4 md:hidden">
-        <button
-          type="button"
-          class="admin-icon-button"
-          :aria-label="t('nav.openNavigation')"
-          :aria-expanded="mobileNavOpen"
-          ref="mobileNavButton"
-          @click="mobileNavOpen = true"
+    <template #inset>
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <DashboardHeader
+          :eyebrow="t('auth.platformAdmin')"
+          :title="pageTitle"
+          :toggle-label="t('nav.openNavigation')"
         >
-          <Menu :size="19" aria-hidden="true" />
-        </button>
-        <span class="min-w-0 flex-1 truncate text-sm font-medium text-text-display">{{ pageTitle }}</span>
-        <span class="label-mono text-[10px] text-text-secondary">PT</span>
-      </header>
-      <RouterView />
-    </main>
-  </div>
+          <template #actions>
+            <span class="label-mono text-[10px] text-text-secondary">PT</span>
+          </template>
+        </DashboardHeader>
+        <main id="main-content" tabindex="-1" class="admin-main dot-grid min-w-0 flex-1 overflow-y-auto">
+          <RouterView />
+        </main>
+      </div>
+    </template>
+  </DashboardShell>
 </template>

@@ -78,7 +78,7 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   }
 })
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   useSidebar: () => ({
     isMobile: mockSidebarIsMobile,
     setOpenMobile: mockSetOpenMobile,
@@ -212,7 +212,7 @@ vi.mock('@/components/ui/card', () => ({
   Card: { template: '<div><slot /></div>' },
 }))
 
-vi.mock('@/components/ui/button', () => ({
+vi.mock('@profiletailors/vue-ui/shell/button', () => ({
   Button: { template: '<button><slot /></button>' },
 }))
 

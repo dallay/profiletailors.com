@@ -20,9 +20,9 @@ import IdeaComposerModal from '@modules/ideas/presentation/components/IdeaCompos
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useIdeaDragAndDrop } from '@modules/ideas/application/useIdeaDragAndDrop'
-import { Button } from '@/components/ui/button'
-import { useSidebar } from '@/components/ui/sidebar'
-import { Input } from '@/components/ui/input'
+import { Button } from '@profiletailors/vue-ui/shell/button'
+import { useSidebar } from '@profiletailors/vue-ui/shell/sidebar'
+import { Input } from '@profiletailors/vue-ui/shell/input'
 import {
   Dialog,
   DialogContent,

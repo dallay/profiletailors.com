@@ -63,9 +63,6 @@ vi.mock('vue-i18n', () => ({
     t: (key: string) =>
       ({
         'emailVerification.banner.title': 'Verify your email',
-        'common.sourceCode': 'Source code',
-        'common.terms': 'Terms of Service',
-        'common.legalAndSource': 'Legal information and source code',
         'emailVerification.banner.description':
           'Publish, social connect, and media upload require email verification.',
         'emailVerification.banner.instructions': 'Check your inbox for the verification link.',
@@ -228,7 +225,7 @@ vi.mock('@/components/consent/ConsentBanner.vue', () => ({
   default: { template: '<div class="consent-banner" />' },
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   Sidebar: { template: '<div><slot /></div>' },
   SidebarContent: { template: '<div><slot /></div>' },
   SidebarFooter: { template: '<div><slot /></div>' },
@@ -242,8 +239,15 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarRail: { template: '<div />' },
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
+vi.mock('@profiletailors/vue-ui/shell/tooltip', () => ({
   TooltipProvider: { template: '<div><slot /></div>' },
+}))
+
+vi.mock('@profiletailors/vue-ui/shell', () => ({
+  DashboardShell: {
+    template:
+      '<div><slot name="inset"></slot><slot name="header"></slot><slot name="content"></slot><slot name="account"></slot><slot name="footer"></slot><slot name="pwa"></slot></div>',
+  },
 }))
 
 vi.mock('@layouts/AppHeader.vue', () => ({
@@ -291,9 +295,12 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 }))
 
 vi.mock('@lucide/vue', () => ({
+  BarChart3: { template: '<svg />' },
+  CalendarDays: { template: '<svg />' },
   Images: { template: '<svg />' },
   Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
+  Settings: { template: '<svg />' },
   Shield: { template: '<svg />' },
 }))
 
@@ -462,19 +469,13 @@ describe('AppShell scheduler sidebar navigation', () => {
     remounted.unmount()
   })
 
-  it('shows the hosted service terms and source revision in the sidebar footer', () => {
+  it('shows build information in the sidebar footer', () => {
     const wrapper = mount(AppShell, {
       global: { mocks: { $t: (key: string) => key } },
     })
 
-    expect(wrapper.get('a[href="https://profiletailors.com/terms/"]').text()).toBe(
-      'Terms of Service',
-    )
-    const sourceLink = wrapper.get(
-      'a[href^="https://github.com/dallay/profiletailors.com/commit/"]',
-    )
-    expect(sourceLink.attributes('aria-label')).toBe('Source code')
-    expect(sourceLink.find('svg').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="version-badge"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="https://profiletailors.com/terms/"]').exists()).toBe(false)
   })
 
   it('passes the backend-resolved catalog to the connect section', () => {

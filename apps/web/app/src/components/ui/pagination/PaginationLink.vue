@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue"
-import type { ButtonVariants } from '@/components/ui/button'
+import type { ButtonVariants } from '@profiletailors/vue-ui/shell/button'
 import { cn } from "@/lib/utils"
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@profiletailors/vue-ui/shell/button'
 
 const props = withDefaults(defineProps<{
   href?: string

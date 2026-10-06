@@ -78,6 +78,21 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.text()).toContain('channels.connectLinkedInProfile')
   })
 
+  it('links to the project repository from the settings overview', async () => {
+    const publishing = usePublishingStore()
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const sourceLink = wrapper.get('[data-testid="settings-source-link"]')
+    expect(sourceLink.attributes('href')).toBe('https://github.com/dallay/profiletailors.com')
+    expect(sourceLink.attributes('target')).toBe('_blank')
+    expect(sourceLink.attributes('rel')).toContain('noopener')
+    expect(sourceLink.text()).toBe('common.sourceCode')
+  })
+
   it('clicking LinkedIn connect CTA starts the store connection flow', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])

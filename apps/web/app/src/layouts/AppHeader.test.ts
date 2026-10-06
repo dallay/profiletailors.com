@@ -13,8 +13,19 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-vi.mock('@/components/ui/sidebar', () => ({
-  SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
+  SidebarTrigger: {
+    props: ['ariaLabel'],
+    template: '<button class="sidebar-trigger" :aria-label="ariaLabel || \'Toggle Sidebar\'" />',
+  },
+}))
+
+vi.mock('@profiletailors/vue-ui/shell', () => ({
+  DashboardHeader: {
+    props: ['eyebrow', 'title', 'toggleLabel', 'titleDataTour'],
+    template:
+      '<header><p>{{ eyebrow }}</p><button :aria-label="toggleLabel" /><h1>{{ title }}</h1><slot name="actions" /></header>',
+  },
 }))
 
 function mountHeader() {

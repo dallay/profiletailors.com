@@ -6,6 +6,7 @@ export default {
   ideas: 'Ideas',
   governance: 'Gobernanza',
   loadingSection: 'Cargando sección',
+  openNavigation: 'Abrir navegación',
   settings: 'Ajustes',
   system: 'Sistema',
   logout: 'Cerrar Sesión',

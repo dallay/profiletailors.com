@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import type { ScheduleItem, Platform } from '@modules/dashboard/domain/dashboard.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 
 type Props = {
   items: ScheduleItem[]

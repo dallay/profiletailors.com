@@ -7,6 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./composables/*": "./src/composables/*",
+    "./shell/*": "./src/shell/*",
     "./styles/*": "./src/styles/*"
   },
   "scripts": {
@@ -15,7 +17,15 @@
     "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
-    "vue": "3.5.43"
+    "@lucide/vue": "1.49.0",
+    "@vueuse/core": "^15.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "2.1.1",
+    "reka-ui": "2.10.5",
+    "tailwind-merge": "3.7.0",
+    "vaul-vue": "^0.4.1",
+    "vue": "3.5.43",
+    "vue-router": "5.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.9",

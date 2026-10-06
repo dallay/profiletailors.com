@@ -12,9 +12,9 @@ import {
   Clock,
 } from '@lucide/vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
+import { Input } from '@profiletailors/vue-ui/shell/input'
 import {
   Dialog,
   DialogContent,

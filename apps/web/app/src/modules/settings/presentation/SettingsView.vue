@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pencil } from '@lucide/vue'
+import { ArrowUpRight, Pencil } from '@lucide/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -7,7 +7,7 @@ import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import WorkspaceAvatar from '@shared/components/WorkspaceAvatar.vue'
 import { getProviderPresentation } from '@shared/lib/provider-presentation'
 import WorkspaceIconModal from '@modules/workspace/presentation/components/WorkspaceIconModal.vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { renameWorkspace, updateWorkspaceIcon, proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { workspaceNameSchema } from '@shared/lib/validation/schemas'
@@ -173,6 +173,16 @@ function segmentedControlClass(active: boolean) {
           <p class="max-w-2xl text-sm leading-7 text-text-secondary">
             {{ $t('settings.subtitle') }}
           </p>
+          <a
+            data-testid="settings-source-link"
+            href="https://github.com/dallay/profiletailors.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex min-h-9 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary underline decoration-border-visible underline-offset-4 transition-colors hover:text-text-display hover:decoration-text-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {{ $t('common.sourceCode') }}
+            <ArrowUpRight class="size-3" aria-hidden="true" />
+          </a>
         </div>
       </div>
     </section>

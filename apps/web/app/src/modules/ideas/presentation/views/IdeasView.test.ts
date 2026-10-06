@@ -12,7 +12,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
   }
 })
 
-vi.mock('@/components/ui/sidebar', () => ({
+vi.mock('@profiletailors/vue-ui/shell/sidebar', () => ({
   useSidebar: () => ({
     isMobile: { value: true },
     setOpenMobile: vi.fn(),

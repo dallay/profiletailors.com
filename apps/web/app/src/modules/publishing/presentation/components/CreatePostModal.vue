@@ -29,7 +29,7 @@ import PostPreviewPanel from '@modules/publishing/presentation/components/compos
 import HashtagSuggestionPanel from '@modules/publishing/presentation/components/composer/HashtagSuggestionPanel.vue'
 import { useHashtagSuggestions } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
-import { Button } from '@/components/ui/button'
+import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Progress } from '@/components/ui/progress'
 import Spinner from '@/components/ui/spinner/Spinner.vue'

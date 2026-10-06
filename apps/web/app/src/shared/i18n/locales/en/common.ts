@@ -6,5 +6,4 @@ export default {
   saving: 'Saving...',
   sourceCode: 'Source code',
   terms: 'Terms of Service',
-  legalAndSource: 'Legal information and source code',
 }

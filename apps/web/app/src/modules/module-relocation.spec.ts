@@ -7,7 +7,7 @@ const sourceRoot = resolve(process.cwd(), 'src')
 const approvedCompatibilityPaths = ['components/ui', 'lib/utils.ts'] as const
 
 const phaseFiveComposableInventory = {
-  shared: ['useFocusTrap.ts', 'usePopoverDismissal.ts'],
+  shared: ['useFocusTrap.ts'],
   layout: ['useConnectMessage.ts'],
   auth: ['useLinkedInCallback.ts'],
   media: ['useFileHash.ts'],
@@ -138,7 +138,7 @@ describe('module relocation guard', () => {
 
   it('tracks Phase 5 root composables by target owner before relocation', (): void => {
     expect(phaseFiveComposableInventory).toEqual({
-      shared: ['useFocusTrap.ts', 'usePopoverDismissal.ts'],
+      shared: ['useFocusTrap.ts'],
       layout: ['useConnectMessage.ts'],
       auth: ['useLinkedInCallback.ts'],
       media: ['useFileHash.ts'],
