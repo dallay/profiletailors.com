@@ -20,4 +20,4 @@
 Treat skills as living documentation and review semantic changes with the repository's normal
 review process. Do not require a skill doctor, format validator, fixed scenario corpus, or dedicated
 CI gate before updating or closing this guidance. The former hard dependency on an automated skill
-doctor is withdrawn by [ADR-0026](../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
+doctor is withdrawn by [ADR-0026](../../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
