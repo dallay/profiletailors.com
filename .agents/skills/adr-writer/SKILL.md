@@ -1,6 +1,6 @@
 ---
 name: adr-writer
-description: Write, review, supersede and index Architecture Decision Records (ADRs) for the profiletailors.com monorepo, following the house format in docs/architecture/adr/ (see ADR-0012). Use this skill whenever the user mentions ADR, architecture decision, decision record, "document this decision", "why did we choose X", superseding or deprecating a decision, or when a change introduces a cross-cutting technical choice (new dependency, persistence/messaging/auth strategy, module boundary, licensing, CI gate, build tooling, bounded-context split) — even if they never say the word "ADR".
+description: Write, review, supersede and index Architecture Decision Records (ADRs) for the profiletailors.com monorepo, following the house format in docs/architecture/adr/template.md. Use this skill whenever the user mentions ADR, architecture decision, decision record, "document this decision", "why did we choose X", superseding or deprecating a decision, or when a change introduces a cross-cutting technical choice (new dependency, persistence/messaging/auth strategy, module boundary, licensing, CI gate, build tooling, bounded-context split) — even if they never say the word "ADR".
 ---
 
 # ADR Writer — profiletailors.com
@@ -31,22 +31,23 @@ what is and is not decided.
    sets a policy (security, licensing, CI gate, data handling), or will be questioned in 6 months.
    Skip it for local refactors, naming, or reversible implementation details — suggest a code
    comment, PR description or SDD design note instead.
-2. **Get the next number:** run `scripts/next_adr.sh [path-to-adr-dir]` (defaults to
-   `docs/architecture/adr`). Do not guess the number.
+2. **Get the next number:** list `docs/architecture/adr/` and use max existing NNNN + 1
+   (4-digit, zero-padded, never reused). Do not guess the number.
 3. **Calibrate against the repo (when you have access):** read the 1–2 most recent ADRs and
    `docs/architecture/c4/` to confirm the header fields, tone and link style have not drifted from
    this skill. If they differ, follow the repo and mention the drift.
 4. **Gather inputs** (infer from the conversation first, ask only for what is missing): the
    problem/forces, the decision, the options considered and why they lost, consequences (positive
    *and* negative), owner, scope, related issue/PR/SDD change.
-5. **Draft** from `assets/adr-template.md`.
+5. **Draft** from `docs/architecture/adr/template.md`, then conform the header and sections
+   to the newest accepted ADR when they differ (see step 3).
 6. **Run the quality gate** (section 4) and fix before presenting.
 7. **Wire it in:** update the ADR index if one exists (`docs/architecture/adr/README.md`), and if
    this ADR supersedes another, edit the old one's `Status` and `Superseded by` in the same change.
 8. **Suggest the commit:** `docs(adr): add ADR-NNNN <short title>` (Conventional Commits, as
    required by CONTRIBUTING.md).
 
-## 2. Format (house style, derived from ADR-0012)
+## 2. Format (house style, from `docs/architecture/adr/template.md` as used by recent ADRs)
 
 Title: `# ADR-NNNN: Title in Title Case`
 
@@ -99,14 +100,14 @@ Tie the decision to the architecture the project actually uses; name the layer i
 
 ## 4. Quality gate (check before presenting)
 
-- [ ] Number comes from `next_adr.sh`; filename is kebab-case and matches the title.
+- [ ] Number is max existing + 1 in `docs/architecture/adr/`; filename is kebab-case and matches the title.
 - [ ] Status and dates are consistent (`Date` ≤ `Last revised`; `Accepted` has a date).
 - [ ] Context contains no recommendation; Decision contains no background story.
 - [ ] Every Decision item is falsifiable (someone could check it in code, CI or docs).
 - [ ] At least two real alternatives, including "do nothing" when relevant.
 - [ ] Consequences list at least one negative or risk.
 - [ ] No overclaiming: where something is unverified, the ADR says so (mirror the "Partial — …
-  remains unverified" style of ADR-0012).
+  remain unverified" style of ADR-0012).
 - [ ] Legal/compliance topics carry the legal-review marker.
 - [ ] Links are relative, resolve in the repo (lychee runs in CI), and Markdown passes markdownlint
   (blank lines around headings/lists, hard-wrap consistent with existing files).
