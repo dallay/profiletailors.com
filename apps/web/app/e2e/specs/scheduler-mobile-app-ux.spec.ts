@@ -41,7 +41,7 @@ test.describe('Mobile app UX route sweep', { tag: '@mobile @responsive' }, () =>
     await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     await page.goto('/scheduler/calendar/week', { waitUntil: 'domcontentloaded' })
 
-    await page.getByRole('button', { name: /toggle sidebar/i }).click()
+    await page.getByRole('button', { name: /open navigation/i }).click()
     const sidebar = page.locator('[data-slot="sidebar"][data-mobile="true"]')
     await expect(sidebar).toBeVisible()
     await sidebar.getByRole('link', { name: /media library/i }).click()

@@ -84,6 +84,7 @@ vi.mock('@profiletailors/vue-ui/shell/sidebar/utils', () => ({
 }))
 
 vi.mock('@profiletailors/vue-ui/shell', () => ({
+  DashboardHeader: { template: '<header><slot name="actions" /></header>' },
   DashboardShell: {
     template:
       '<div class="dashboard-shell"><slot name="inset"></slot><slot name="header"></slot><slot name="content"></slot><slot name="account"></slot><slot name="footer"></slot><slot name="pwa"></slot></div>',
