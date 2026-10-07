@@ -16,4 +16,4 @@ version scanner, script, or CI gate for skill versions. Framework and language i
 such as “Vue 3” remain valid when they describe the product stack rather than pinning a dependency.
 
 The former automated-gate requirement is withdrawn by
-[ADR-0026](../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
+[ADR-0026](../../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
