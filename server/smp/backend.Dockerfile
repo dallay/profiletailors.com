@@ -42,7 +42,7 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 # On each target platform the base image is automatically the matching
 # variant. Temurin 25-jre-noble ships multi-arch (linux/amd64,
 # linux/arm64).
-FROM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
+FROM eclipse-temurin:25-jre-noble@sha256:d9a39a23634650173f1e2bbc176227af9728587ecf0f4b62d53e9355cd7a19ab AS runtime
 
 USER root
 
