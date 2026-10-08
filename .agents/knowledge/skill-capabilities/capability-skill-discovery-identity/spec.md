@@ -15,4 +15,4 @@
 Check identity, required metadata, and relevant registry rows while reviewing a skill change. This
 is a human review responsibility; there is no discovery-identity CI gate or registry generator.
 The earlier deterministic implementation was removed by
-[ADR-0026](../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).
+[ADR-0026](../../../../docs/architecture/adr/0026-remove-automated-skill-doctor.md).

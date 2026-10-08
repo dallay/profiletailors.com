@@ -14,7 +14,7 @@ plans are maintained under `.agents/testing/e2e-plans/`. A change may
 include technical design and verification evidence when it implements a product contract, but a
 purely technical task must not create a standalone OpenSpec capability.
 
-Use the repository [documentation index](../docs/README.md) for operational, architecture,
+Use the repository [documentation index](../../docs/README.md) for operational, architecture,
 security, infrastructure, and onboarding documentation. Use this directory when you need to
 understand what the product must do, why a change was made, or what evidence verifies it.
 
@@ -72,6 +72,6 @@ If `state.yaml` and a report appear inconsistent, use the report's final verdict
 
 ## References
 
-- [Repository documentation](../docs/README.md)
-- [Architecture documentation](../docs/architecture/README.md)
-- [Contribution guide](../CONTRIBUTING.md)
+- [Repository documentation](../../docs/README.md)
+- [Architecture documentation](../../docs/architecture/README.md)
+- [Contribution guide](../../CONTRIBUTING.md)
