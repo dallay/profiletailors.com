@@ -27,16 +27,29 @@ class R2dbcLinkClickMetricsRepository(private val databaseClient: DatabaseClient
         val sql = buildString {
             append(
                 """
-                SELECT links.id, links.owner_id, links.domain_id, links.short_code, links.destination_url,
-                       links.status, links.expires_at, links.created_at, links.updated_at, links.deleted_at,
-                       links.version, COUNT(link_clicks.id) AS click_count
-                FROM links
-                LEFT JOIN link_clicks ON link_clicks.link_id = links.id
-                WHERE links.owner_id = :ownerId AND links.deleted_at IS NULL
+                WITH page AS (
+                    SELECT links.id, links.owner_id, links.domain_id, links.short_code, links.destination_url,
+                           links.status, links.expires_at, links.created_at, links.updated_at, links.deleted_at,
+                           links.version
+                    FROM links
+                    WHERE links.owner_id = :ownerId AND links.deleted_at IS NULL
                 """.trimIndent(),
             )
             if (cursor != null) append(" AND (links.created_at, links.id) < (:createdAt, :linkId)")
-            append(" GROUP BY links.id ORDER BY links.created_at DESC, links.id DESC LIMIT :limit")
+            append(" ORDER BY links.created_at DESC, links.id DESC LIMIT :limit\n)")
+            append(
+                """
+                SELECT page.id, page.owner_id, page.domain_id, page.short_code, page.destination_url,
+                       page.status, page.expires_at, page.created_at, page.updated_at, page.deleted_at,
+                       page.version, COUNT(link_clicks.id) AS click_count
+                FROM page
+                LEFT JOIN link_clicks ON link_clicks.link_id = page.id
+                GROUP BY page.id, page.owner_id, page.domain_id, page.short_code, page.destination_url,
+                         page.status, page.expires_at, page.created_at, page.updated_at, page.deleted_at,
+                         page.version
+                ORDER BY page.created_at DESC, page.id DESC
+                """.trimIndent(),
+            )
         }
         var statement = databaseClient.sql(sql).bind("ownerId", ownerId.value)
         if (cursor != null) {

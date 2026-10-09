@@ -35,7 +35,11 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
   assert.equal(runtime.COMPOSE_PROJECT_NAME, context.composeProjectName)
   assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
   assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
-  assert.equal(compose.WIREMOCK_HOST_PORT, process.env.WIREMOCK_HOST_PORT || '33185')
+  assert.equal(compose.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+  assert.equal(runtime.SMP_LINKEDIN_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
+  assert.equal(runtime.SMP_LINKEDIN_PUBLISHING_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
+  assert.equal(runtime.SMP_LINKEDIN_AUTHORIZATION_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`)
+  assert.equal(runtime.SMP_LINKEDIN_TOKEN_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/accessToken`)
 })
 
 test('uses the root env CORS allow-list when the process environment omits it', () => {

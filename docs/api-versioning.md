@@ -11,7 +11,9 @@ This document specifies the implementation of the API versioning system using **
 Versioning** via the custom `Accept` header with the format `application/vnd.api.v{version}+json`.
 This leverages the native Spring Boot 4 / WebFlux API versioning support.
 
-## Shortlink click metrics collection
+## Changes
+
+### Shortlink click metrics collection
 
 Authenticated workspace members can request `GET /api/v1/links?limit={limit}&cursor={cursor}` with `Accept: application/vnd.api.v1+json`. The endpoint derives workspace ownership from the authenticated request context and returns only that workspace's non-deleted links, each with `recordedRedirects`, the count of all click records currently stored for that link (including zero).
 

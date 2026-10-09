@@ -17,11 +17,36 @@ import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModalComponent from './CreatePostModal.vue'
-import { createShortlink } from '@modules/shortlinks'
+
+const { createShortlink } = vi.hoisted(() => ({ createShortlink: vi.fn() }))
 
 vi.mock('@modules/shortlinks', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@modules/shortlinks')>()
-  return { ...actual, createShortlink: vi.fn() }
+  return {
+    ...actual,
+    useComposerShortlinks: () => ({
+      failedUrls: [],
+      shortlinkWarning: { value: false },
+      shorten: async (content: string) => {
+        const urls = [
+          ...new Set(
+            (content.match(/https?:\/\/[^\s<>()]+/g) ?? []).map((url) =>
+              url.replace(/[.,!?;:]+$/, ''),
+            ),
+          ),
+        ]
+        let result = content
+        for (const url of urls) {
+          try {
+            const shortened = await createShortlink(url)
+            result = result.replaceAll(url, shortened.shortUrl)
+          } catch {}
+        }
+        return result
+      },
+      reset: vi.fn(),
+    }),
+  }
 })
 
 // ---------------------------------------------------------------------------

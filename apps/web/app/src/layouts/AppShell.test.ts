@@ -298,6 +298,7 @@ vi.mock('@lucide/vue', () => ({
   BarChart3: { template: '<svg />' },
   CalendarDays: { template: '<svg />' },
   Images: { template: '<svg />' },
+  Link: { template: '<svg />' },
   Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
   Settings: { template: '<svg />' },

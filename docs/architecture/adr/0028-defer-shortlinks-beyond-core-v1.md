@@ -1,7 +1,7 @@
 # ADR-0028: Defer Shortlinks Capabilities Beyond Core V1
 
 - Status: Accepted
-- Date: 2026-10-04
+- Date: 2026-10-04 (original deferral); amended 2026-10-09
 - Decision owners: Principal Architect
 - Scope: `server/smp/shortlinks`, repository-wide documentation and OpenSpec workflow
 - Supersedes: None
@@ -63,6 +63,10 @@ analytics API surface, QR encoder dependency) without an immediate user need.
    OpenSpec cycle. Designers MAY read the archived exploration/proposal/specs
    for context, but MUST regenerate specs and design against the current
    repository state and updated product requirements.
+
+## Amendment — 2026-10-09
+
+The publishing-shortlinks and workspace click-metrics slice is authorized as a bounded exception to the original deferral. At publication submit, shortlink creation is automatic and best-effort: on shortlink creation failure, the original URL remains usable and publication submission is not blocked. The authoritative publishing contract is `.agents/sdd/specs/publishing-shortlinks/spec.md`. This amendment does not authorize the remaining advanced capabilities listed below; they remain deferred until their stated triggers are met.
 
 ## Scope and boundaries
 

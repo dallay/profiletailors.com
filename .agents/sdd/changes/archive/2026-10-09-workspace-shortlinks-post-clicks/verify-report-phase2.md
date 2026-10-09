@@ -1,78 +1,78 @@
-# Informe de verificación — Fase 2 (PR 2)
+# Verification Report — Phase 2 (PR 2)
 
-## Cambio y modo
+## Change and mode
 
-- Cambio: `workspace-shortlinks-post-clicks`.
-- Fase: 2 — API de métricas de enlaces cortos por workspace (PR 2).
-- Modo de persistencia: OpenSpec.
-- Modo de verificación: `fallback`. No hay manifiesto `.agents/sdd/quality-runner.json`; por tanto, no hubo enforcement determinista ni envelopes del quality runner.
-- Rama actual: `workspace-shortlinks-analytics-api`. Worktree con cambios locales existentes; se preservaron. No se hizo commit, push, cambio de rama ni cambio de código de producto.
-- Alcance: endpoint backend de métricas. Fase 3 (UI) no se implementó ni se verificó.
+- Change: `workspace-shortlinks-post-clicks`.
+- Phase: 2 — workspace shortlink metrics API (PR 2).
+- Persistence mode: OpenSpec.
+- Verification mode: `fallback`. There is no manifest `.agents/sdd/quality-runner.json`; therefore, deterministic enforcement and quality-runner envelopes were unavailable.
+- Current branch: `workspace-shortlinks-analytics-api`. The worktree had existing local changes; they were preserved. No commit, push, branch change, or product-code change was made.
+- Scope: metrics backend endpoint. Phase 3 (UI) was neither implemented nor verified.
 
-## Completitud
+## Completion
 
-| Área | Estado | Evidencia |
+| Area | Status | Evidence |
 |---|---|---|
-| Tareas 2.1–2.4 | Completadas para Fase 2 | Tests del handler, controller, PostgreSQL y escenarios Cucumber presentes; quality gate completo reportado como pasado; comprobación independiente del código y del formato. La comprobación RED anterior con SQL previo no quedó aislada y reproducible; se registra como advertencia, no como bloqueo de comportamiento. |
-| Fase 2 | PASS | Sin desviación observada respecto a los requisitos de métricas, autorización y aislamiento de workspace. |
-| Fase 3 | Pendiente / fuera del alcance de esta verificación | No se verificó UI ni aceptación de usuario. Siguiente fase: `apply_phase_3`. |
+| Tasks 2.1–2.4 | Complete for Phase 2 | Handler, controller, PostgreSQL, and Cucumber scenario tests are present; the full quality gate was reported as passed; code and formatting were independently checked. The earlier RED check against the previous SQL was not isolated and reproducible; it is recorded as a warning, not a behavioral blocker. |
+| Phase 2 | PASS | No deviation was observed from the metrics, authorization, and workspace-isolation requirements. |
+| Phase 3 | Pending / outside this verification scope | UI and user acceptance were not verified. Next phase: `apply_phase_3`. |
 
-## Evidencia de build, tests y cobertura
+## Build, test, and coverage evidence
 
-| Check | Estado | Evidencia / procedencia |
+| Check | Status | Evidence / source |
 |---|---|---|
-| `just backend-check` | PASS | Ejecución local reciente reportada por el implementador: `BUILD SUCCESSFUL` en 9m57s; incluye Spotless, compilación, Detekt, tests, `postgresIntegrationTest` y `koverVerify`. Este verificador no repitió la ejecución completa. |
-| `just backend-bdd-fast` | PASS con evidencia previa | El implementador reporta 14 escenarios shortlinks, sin fallos, errores ni skips, y el conjunto fast PASS. Un intento de repetición durante esta verificación no produjo una terminación/salida capturable dentro de la ventana del tool; no lo cuento como nueva ejecución PASS. |
-| Tests enfocados handler/controller/PostgreSQL | PASS con evidencia previa | Resultados reportados: handler 2/2, controller 8/8, PostgreSQL 9/9, incluyendo el caso sin clics. El intento de repetición enfocado no produjo salida final capturable; no lo cuento como nueva ejecución PASS. |
-| `./gradlew :server:smp:spotlessKotlinCheck --no-daemon --console=plain` | PASS | Reejecutado independientemente en esta verificación: `BUILD SUCCESSFUL` en 7s (`UP-TO-DATE`). |
-| Cobertura de escenario | PASS según ejecución registrada | Cucumber contiene escenarios runtime de métricas propias, petición sin autenticación y acceso cross-workspace (200/401/404). El informe previo registra 14/14 escenarios shortlinks en `backend-bdd-fast`; el handler y PostgreSQL test agregan pruebas de ownership y cero clics. |
-| Runner determinista / remoto / despliegue | No disponible / no ejecutado | No existe quality-runner configurado. No se consultaron CI remoto ni despliegue; no se infiere su estado. |
+| `just backend-check` | PASS | Recent local run reported by the implementer: `BUILD SUCCESSFUL` in 9m57s; includes Spotless, compilation, Detekt, tests, `postgresIntegrationTest`, and `koverVerify`. This verifier did not repeat the full run. |
+| `just backend-bdd-fast` | PASS based on prior evidence | The implementer reports 14 shortlinks scenarios with no failures, errors, or skips, and the fast suite passed. A rerun attempt during this verification did not produce a capturable completion/output within the tool window; it is not counted as a new PASS run. |
+| Focused handler/controller/PostgreSQL tests | PASS based on prior evidence | Reported results: handler 2/2, controller 8/8, PostgreSQL 9/9, including the no-click case. The focused rerun attempt produced no capturable final output; it is not counted as a new PASS run. |
+| `./gradlew :server:smp:spotlessKotlinCheck --no-daemon --console=plain` | PASS | Independently rerun during this verification: `BUILD SUCCESSFUL` in 7s (`UP-TO-DATE`). |
+| Scenario coverage | PASS according to recorded run | Cucumber includes runtime scenarios for own metrics, unauthenticated requests, and cross-workspace access (200/401/404). The prior report records 14/14 shortlinks scenarios in `backend-bdd-fast`; handler and PostgreSQL tests add ownership and zero-click coverage. |
+| Deterministic runner / remote / deployment | Unavailable / not run | No quality runner is configured. Remote CI and deployment were not checked; no status is inferred. |
 
-## Matriz de cumplimiento de especificación
+## Specification compliance matrix
 
-| Requisito / escenario | Evidencia de implementación | Evidencia de test/runtime | Resultado |
+| Requirement / scenario | Implementation evidence | Test/runtime evidence | Result |
 |---|---|---|---|
-| Métrica consultable por workspace propietario | `GetLinkMetricsHandler` obtiene workspace desde `ResourceContextProvider.requireWorkspaceContext()` y deriva `OwnerId`; la petición no recibe owner/workspace como parámetro. | Handler tests y escenario Cucumber autorizado con 200 y cero. Tests PostgreSQL específicos reportados 9/9. | PASS |
-| Significado de métrica y scope claros | Endpoint `GET /api/v1/links/{linkId}/metrics`; respuesta `recordedRedirects`; suma todos los registros almacenados, sin parámetro temporal. | Controller test valida la representación; Cucumber comprueba `recordedRedirects = 0`. | PASS |
-| Cero registros no implica métrica desconocida | SQL usa `LEFT JOIN`, cuenta registros y agrupa por link propietario activo/no eliminado; distingue link propio sin clics (0) de link inexistente/ajeno (sin fila). | Caso PostgreSQL no-click reportado; handler/Postgres y Cucumber. | PASS |
-| Aislamiento y no divulgación cross-workspace | Filtro SQL combina `links.id`, `links.owner_id` y `deleted_at IS NULL`; handler convierte ausencia a `LinkNotFoundApplicationException`. | Cucumber devuelve 404 para workspace ajeno; PostgreSQL test verifica foreign/missing not found con comportamiento equivalente. | PASS |
-| Auth, media type versionado | Ruta de métricas restringida a `produces = application/vnd.api.v1+json`; requiere contexto autenticado mediante handler. | Controller mapping test; Cucumber da 401 sin autenticación y usa la convención de API versionada. | PASS |
-| Resolución pública sin filtración de analítica | Ruta de métricas es separada de `GET /{linkId}` y del redirect público por short code; no se encontró cambio en la respuesta pública en el diff de Fase 2. | Los escenarios de redirect existentes siguen en el feature; suite fast reportada PASS. | PASS para el alcance revisado |
+| Metric queryable by the owning workspace | `GetLinkMetricsHandler` obtains workspace from `ResourceContextProvider.requireWorkspaceContext()` and derives `OwnerId`; the request does not receive owner/workspace as a parameter. | Handler tests and an authorized Cucumber scenario with 200 and zero. Focused PostgreSQL tests reported as 9/9. | PASS |
+| Metric meaning and scope are clear | Endpoint `GET /api/v1/links/{linkId}/metrics`; response `recordedRedirects`; counts all stored records, with no time parameter. | Controller test validates the representation; Cucumber checks `recordedRedirects = 0`. | PASS |
+| No records do not imply an unknown metric | SQL uses `LEFT JOIN`, counts records, and groups by active, non-deleted owned link; distinguishes an owned link with no clicks (0) from a nonexistent/foreign link (no row). | PostgreSQL no-click case reported; handler/PostgreSQL and Cucumber tests. | PASS |
+| Cross-workspace isolation and non-disclosure | SQL filter combines `links.id`, `links.owner_id`, and `deleted_at IS NULL`; handler maps absence to `LinkNotFoundApplicationException`. | Cucumber devuelve 404 para workspace ajeno; PostgreSQL test verifica foreign/missing not found con comportamiento equivalente. | PASS |
+| Authentication and versioned media type | Metrics route restricted to `produces = application/vnd.api.v1+json`; requires authenticated context through the handler. | Controller mapping test; Cucumber returns 401 without authentication and uses the versioned API convention. | PASS |
+| Public resolution does not expose analytics | Metrics route is separate from `GET /{linkId}` and the public redirect by short code; no change to the public response was found in the Phase 2 diff. | Existing redirect scenarios remain in the feature; fast suite reported PASS. | PASS for the reviewed scope |
 
-## Correctitud y límites
+## Correctness and limitations
 
-| Comprobación | Resultado | Evidencia |
+| Check | Result | Evidence |
 |---|---|---|
-| Auth de owner | PASS | El owner se obtiene del `ResourceContext` autenticado; no se acepta identidad de owner enviada por caller. |
-| Aislamiento cross-workspace | PASS | El predicado SQL aplica ownership y el caso ajeno produce el mismo not-found que el desconocido en integración/BDD. |
-| Fixtures limpios | PASS | La limpieza BDD fue modificada para eliminar registros de clic dependientes antes de borrar enlaces; Cucumber shortlinks reportado 14/14 sin skips/errores. |
-| HTTP/media-type | PASS | La ruta declara media type v1 y los tests del controller inspeccionan esa declaración; BDD cubre no autenticado y resultados 200/404. |
-| Alcance temporal | PASS | Sin filtro o parámetro de fechas; cuenta los registros actualmente almacenados, según spec. No se promete retención ni precisión. |
-| Atomicidad/redirección | PASS para contrato Phase 2 | No alterada por el endpoint de consulta; la captura best-effort pertenece a Phase 1. |
+| Owner authentication | PASS | Owner is obtained from the authenticated `ResourceContext`; caller-supplied owner identity is not accepted. |
+| Aislamiento cross-workspace | PASS | The SQL predicate enforces ownership, and the foreign-resource case returns the same not-found response as an unknown resource in integration/BDD. |
+| Fixtures limpios | PASS | BDD cleanup was updated to delete dependent click records before deleting links; shortlinks Cucumber reported 14/14 with no skips/errors. |
+| HTTP/media-type | PASS | The route declares the v1 media type and controller tests inspect that declaration; BDD covers unauthenticated requests and 200/404 results. |
+| Alcance temporal | PASS | No date filter or parameter; counts currently stored records, as specified. No retention or accuracy guarantee is made. |
+| Atomicity/redirect | PASS for Phase 2 contract | Unchanged by the query endpoint; best-effort capture belongs to Phase 1. |
 
-## Coherencia de diseño
+## Design consistency
 
-| Decisión | Evaluación |
+| Decision | Assessment |
 |---|---|
 | Capas hexagonales | Coherente: handler en application consume puerto del domain; adapter R2DBC en infrastructure; controller solo traduce request/response mediante Mediator. |
-| Propietario de workspace | Coherente con diseño: contexto autenticado y filtro adicional en consulta SQL. |
-| Cero vs no encontrado | Coherente con diseño: LEFT JOIN devuelve cero para link propio sin clicks; fila ausente para foreign, deleted o desconocido. |
-| Sin migración Phase 2 | Adecuado: Phase 2 agrega una consulta sobre el esquema de captura de Phase 1, no un formato/dato persistido nuevo. |
-| Latencia de captura | Riesgo explícito y no bloqueante de Phase 2: Phase 1 espera best-effort la escritura antes de responder redirect. El diseño exige medir la latencia y detenerse para una decisión separada si resulta inaceptable; este reporte no afirma que se haya medido. No se debe ocultar con fire-and-forget. |
+| Propietario de workspace | Consistent with design: authenticated context and an additional SQL query filter. |
+| Cero vs no encontrado | Consistent with design: LEFT JOIN returns zero for an owned link without clicks; no row for foreign, deleted, or unknown links. |
+| No Phase 2 migration | Appropriate: Phase 2 adds a query over the Phase 1 capture schema, not a new persisted format/data. |
+| Latencia de captura | Explicit, non-blocking Phase 2 risk: Phase 1 waits for the best-effort write before responding to the redirect. The design requires measuring latency and stopping for a separate decision if it is unacceptable; this report does not claim it was measured. Do not hide it with fire-and-forget. |
 
-## Hallazgos
+## Findings
 
-| Hallazgo | Judge A | Judge B | Severidad | Estado |
+| Finding | Judge A | Judge B | Severity | Status |
 |---|---|---|---|---|
-| No se conservó evidencia aislada del RED previo a cambiar la consulta a `LEFT JOIN` | ✅ | ✅ | WARNING | Confirmado: el test actual demuestra GREEN (cero para link sin clics), pero no acredita la secuencia RED/GREEN aislada. No bloquea conformidad de comportamiento; queda como limitación de trazabilidad TDD. |
-| La escritura best-effort de click se espera antes de responder al redirect; latencia no medida en esta verificación | ✅ | ✅ | WARNING (riesgo aceptado por diseño) | Confirmado como riesgo abierto, no como defecto de Phase 2. Medir; si no es aceptable, decisión/diseño separado antes de cambiar el modelo de entrega. |
-| Hallazgos críticos | — | — | CRITICAL | Ninguno observado. |
-| Verificación remota / aceptación de usuario | — | — | SUGGESTION | No ejecutada; corresponde a CI/QA independiente. |
+| Isolated RED evidence was not retained before changing the query to `LEFT JOIN` | ✅ | ✅ | WARNING | Confirmed: the current test demonstrates GREEN (zero for a link without clicks), but does not establish an isolated RED/GREEN sequence. This does not block behavioral conformance; it remains a TDD traceability limitation. |
+| Best-effort click write is awaited before responding to the redirect; latency was not measured in this verification | ✅ | ✅ | WARNING (design-accepted risk) | Confirmed as an open risk, not a Phase 2 defect. Measure it; if unacceptable, make a separate decision/design before changing the delivery model. |
+| Critical findings | — | — | CRITICAL | None observed. |
+| Remote verification / user acceptance | — | — | SUGGESTION | Not run; belongs to independent CI/QA. |
 
-## Veredicto
+## Verdict
 
-**PASS — Fase 2 solamente.** La implementación revisada y la evidencia runtime reportada cubren los escenarios de API y aislamiento requeridos. La corrección de Spotless se confirma localmente; el `backend-check`, BDD y pruebas enfocadas se aceptan como ejecuciones recientes reportadas, sin atribuirles una nueva repetición independiente aquí. Los dos riesgos anteriores no bloquean Phase 2 según el diseño y permanecen explícitos. La siguiente fase autorizada en el flujo es `apply_phase_3`; la UI aún requiere implementación y verificación propias.
+**PASS — Phase 2 only.** The reviewed implementation and reported runtime evidence cover the required API and isolation scenarios. The Spotless correction is locally confirmed; `backend-check`, BDD, and focused tests are accepted as recently reported runs, without claiming a new independent rerun here. The two risks above do not block Phase 2 under the design and remain explicit. The next authorized workflow phase is `apply_phase_3`; the UI still requires its own implementation and verification.
 
 ## Handoff
 
-Verificación técnica completada. Esto no equivale a aceptación de usuario/operator; entregar a `sdd-qa` para sus escenarios de aceptación y `qa-report.md` antes de cerrar/archivar el cambio.
+Technical verification is complete. This is not user/operator acceptance; hand off to `sdd-qa` for its acceptance scenarios and `qa-report.md` before closing/archiving the change.

@@ -12,7 +12,7 @@
   "response": {
     "status": 302,
     "headers": {
-      "Location": "{{{request.query.redirect_uri}}}?code=local-wiremock-authorization-code&state={{{request.query.state}}}"
+      "Location": "{{#assign 'separator'}}{{#if (contains request.query.redirect_uri '?')}}&{{else}}?{{/if}}{{/assign}}{{#assign 'base'}}{{#if (contains request.query.redirect_uri '#')}}{{substring request.query.redirect_uri 0 (indexOf request.query.redirect_uri '#')}}{{else}}{{request.query.redirect_uri}}{{/if}}{{/assign}}{{{base}}}{{separator}}code=local-wiremock-authorization-code&state={{{request.query.state}}}{{#if (contains request.query.redirect_uri '#')}}#{{substring request.query.redirect_uri (add (indexOf request.query.redirect_uri '#') 1)}}{{/if}}"
     },
     "transformers": ["response-template"]
   }

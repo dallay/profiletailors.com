@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePwaInstall } from './usePwaInstall'
 
 const { t } = useI18n()
 const { canInstall, install, showIosGuide } = usePwaInstall()
 
-onMounted(() => {
-  if (canInstall.value) {
-    void install()
-  }
-})
 </script>
 
 <template>

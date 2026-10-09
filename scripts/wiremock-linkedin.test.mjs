@@ -6,13 +6,32 @@ const mappingDirectory = new URL('../infra/wiremock/mappings/linkedin/', import.
 const readMapping = (name) => JSON.parse(readFileSync(new URL(name, mappingDirectory), 'utf8'))
 
 const requestBodyPattern = (mapping) => mapping.request.bodyPatterns?.[0]?.matches
+const javaRegex = (pattern) => new RegExp(pattern.replace(/^\(\?s\)/, ''), 's')
 
-test('LinkedIn authorization-code exchange matches only authorization_code grants', () => {
+test('LinkedIn authorization-code exchange matches a whole form parameter only', () => {
   const mapping = readMapping('070-oauth-token.json')
+  const pattern = javaRegex(requestBodyPattern(mapping))
 
   assert.equal(mapping.request.method, 'POST')
   assert.equal(mapping.request.urlPath, '/oauth/v2/accessToken')
-  assert.match(requestBodyPattern(mapping), /grant_type=authorization_code/)
+  for (const body of ['grant_type=authorization_code', 'client_id=x&grant_type=authorization_code&code=y']) {
+    assert.match(body, pattern)
+  }
+  for (const body of ['xgrant_type=authorization_code', 'grant_type=authorization_codex', 'grant_type=not_authorization_code']) {
+    assert.doesNotMatch(body, pattern)
+  }
+})
+
+test('LinkedIn refresh exchange matches a whole refresh_token form parameter only', () => {
+  const mapping = readMapping('071-oauth-refresh-token.json')
+  const pattern = javaRegex(requestBodyPattern(mapping))
+
+  for (const body of ['grant_type=refresh_token', 'client_id=x&grant_type=refresh_token&refresh_token=y']) {
+    assert.match(body, pattern)
+  }
+  for (const body of ['xgrant_type=refresh_token', 'grant_type=refresh_tokenx', 'grant_type=not_refresh_token']) {
+    assert.doesNotMatch(body, pattern)
+  }
 })
 
 test('LinkedIn rejects absent and unsupported OAuth grants without shadowing supported grants', () => {
@@ -43,22 +62,22 @@ test('LinkedIn rejects absent and unsupported OAuth grants without shadowing sup
   }
 })
 
-test('LinkedIn browser authorization redirects to the supplied local callback with mock code and state', () => {
+test('LinkedIn browser authorization accepts the representative callback URI', () => {
   const mapping = readMapping('072-oauth-authorization.json')
+  const callbackMatcher = new RegExp(mapping.request.queryParameters.redirect_uri.matches)
 
   assert.equal(mapping.request.method, 'GET')
   assert.equal(mapping.request.urlPath, '/oauth/v2/authorization')
-  assert.match(mapping.request.queryParameters.redirect_uri.matches, /^http:\/\//)
-  assert.match(mapping.response.headers.Location, /code=local-wiremock-authorization-code/)
-  assert.match(mapping.response.headers.Location, /state=\{\{\{request\.query\.state\}\}\}/)
+  assert.match('http://localhost:5173/integrations/linkedin/callback', callbackMatcher)
 })
 
-test('LinkedIn refresh exchange matches only refresh_token grants', () => {
-  const mapping = readMapping('071-oauth-refresh-token.json')
+test('LinkedIn authorization redirect template inserts code and state before fragments', () => {
+  const mapping = readMapping('072-oauth-authorization.json')
+  const location = mapping.response.headers.Location
 
-  assert.equal(mapping.request.method, 'POST')
-  assert.equal(mapping.request.urlPath, '/oauth/v2/accessToken')
-  assert.match(requestBodyPattern(mapping), /grant_type=refresh_token/)
+  assert.match(location, /code=local-wiremock-authorization-code/)
+  assert.match(location, /state=\{\{\{request\.query\.state\}\}\}/)
+  assert.match(location, /#.*code=|#.*state=/)
 })
 
 test('LinkedIn mock upload accepts only the local upload paths returned by mappings', () => {
@@ -70,11 +89,12 @@ test('LinkedIn mock upload accepts only the local upload paths returned by mappi
   assert.equal(mapping.request.headers['Content-Type'].matches, 'application/octet-stream')
 })
 
-test('development LinkedIn endpoints point to the local WireMock on port 33185', () => {
-  const development = readFileSync(new URL('../server/smp/src/main/resources/application-dev.yaml', import.meta.url), 'utf8')
+test('development LinkedIn endpoints use worktree WireMock runtime configuration', () => {
+  const contextModule = readFileSync(new URL('./worktree-context.mjs', import.meta.url), 'utf8')
 
-  assert.match(development, /SMP_LINKEDIN_API_BASE_URL:http:\/\/localhost:33185/)
-  assert.match(development, /SMP_LINKEDIN_PUBLISHING_API_BASE_URL:http:\/\/localhost:33185/)
-  assert.match(development, /SMP_LINKEDIN_AUTHORIZATION_BASE_URL:http:\/\/localhost:33185\/oauth\/v2\/authorization/)
-  assert.match(development, /SMP_LINKEDIN_TOKEN_BASE_URL:http:\/\/localhost:33185\/oauth\/v2\/accessToken/)
+  assert.match(contextModule, /WIREMOCK_HOST_PORT = context\.wiremockHostPort/)
+  assert.match(contextModule, /SMP_LINKEDIN_API_BASE_URL: process\.env\.SMP_LINKEDIN_API_BASE_URL \|\| `http:\/\/localhost:\$\{context\.wiremockHostPort\}`/)
+  assert.match(contextModule, /SMP_LINKEDIN_PUBLISHING_API_BASE_URL: process\.env\.SMP_LINKEDIN_PUBLISHING_API_BASE_URL \|\| `http:\/\/localhost:\$\{context\.wiremockHostPort\}`/)
+  assert.match(contextModule, /SMP_LINKEDIN_AUTHORIZATION_BASE_URL: process\.env\.SMP_LINKEDIN_AUTHORIZATION_BASE_URL/)
+  assert.match(contextModule, /SMP_LINKEDIN_TOKEN_BASE_URL: process\.env\.SMP_LINKEDIN_TOKEN_BASE_URL/)
 })

@@ -23,7 +23,6 @@ paths = [
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
   ".agents/skills/playwright-best-practices/advanced/authentication-flows.md",
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
-  ".agents/sdd/changes/archive/2026-10-09-workspace-shortlinks-post-clicks/qa-report.md", # False positive: local dev URL with port 1355 matched generic-api-key, no secret present
 ]
 regexes = [
   # False positive: TypeScript type name matched by linkedin-client-secret rule.

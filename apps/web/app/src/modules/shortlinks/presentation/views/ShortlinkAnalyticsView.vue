@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { listWorkspaceShortlinkMetrics, type WorkspaceLinkMetric } from '@modules/shortlinks'
 import { useI18n } from 'vue-i18n'
 
@@ -9,6 +10,7 @@ const nextCursor = ref<string | null>(null)
 const cursors = ref<Array<string | null>>([null])
 const isLoading = ref(false)
 const error = ref(false)
+const workspaceStore = useWorkspaceStore()
 
 async function loadPage(pageCursor: string | null) {
   isLoading.value = true
@@ -39,6 +41,12 @@ async function loadPreviousPage() {
 }
 
 onMounted(() => loadPage(null))
+watch(() => workspaceStore.activeWorkspaceId, () => {
+  cursors.value = [null]
+  nextCursor.value = null
+  links.value = []
+  void loadPage(null)
+})
 </script>
 
 <template>

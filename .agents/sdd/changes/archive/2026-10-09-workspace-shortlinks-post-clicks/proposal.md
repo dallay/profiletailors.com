@@ -1,68 +1,82 @@
-# Propuesta: Acortamiento y métricas de clics por workspace
+# Workspace Shortlinks and Click Metrics Proposal
 
-## Intención
+## Overview
 
-Integrar el acortador propio al crear publicaciones con enlaces y permitir que usuarios consulten clics de enlaces cortos pertenecientes a su workspace. La autorización debe impedir leer o inferir recursos o métricas de otros workspaces. El cambio archivado de 2026-10-04 contemplaba un sistema avanzado, no este alcance específico; Core V1 backend ya existe, pero no se ha demostrado que registre clics ni tenga UI de métricas.
+Integrate the first-party shortener into post creation and let users view clicks for shortlinks belonging to their workspace. Authorization must prevent reading or inferring resources or metrics from other workspaces. The archived 2026-10-04 change considered an advanced system, not this specific scope. Core V1 backend already exists, but click recording and a metrics UI have not been demonstrated.
 
-## Alcance
+## Changes
 
-### Incluido
-- Definir e integrar en creación de posts la selección/momento de acortamiento y la presentación de URLs cortas, sin cambiar silenciosamente destinos o contenido.
-- Medir clics de enlaces cortos y ofrecer consulta de métricas dentro del workspace.
-- Hacer cumplir aislamiento de workspace en resolución/consulta administrativa de enlaces y métricas, con escenarios negativos entre workspaces.
-- Diseñar el mecanismo mínimo de registro y consulta de clics tras verificar la infraestructura disponible.
+### Included
 
-### Excluido
-- Reproducir el diseño histórico completo: outbox durable, reconciliación Edge/Logpush, dominios custom, QR, automatización de abuso, SLO/capacidad extrema.
-- Decidir retención, datos personales, precisión garantizada o tecnología de medición sin evidencia y decisión explícita.
-- Cambiar infraestructura/desplegar o implementar antes de aprobar especificación, diseño y tareas.
+- Define and integrate when/how links are shortened during post creation, without silently changing destinations or content.
+- Measure shortlink clicks and provide workspace-scoped metrics.
+- Enforce workspace isolation in link resolution/administrative queries and metrics, including cross-workspace negative scenarios.
+- Design the minimal click recording and query mechanism after verifying available infrastructure.
 
-## Capacidades
+### Excluded
 
-### Nuevas
-- `publishing-shortlinks`: integración de enlaces cortos en la creación de publicaciones.
-- `workspace-shortlink-click-analytics`: consulta de clics de enlaces cortos aislada por workspace.
+- Reproducing the full historical design: durable outbox, Edge/Logpush reconciliation, custom domains, QR codes, abuse automation, or extreme SLO/capacity targets.
+- Deciding retention, personal data, guaranteed accuracy, or measurement technology without evidence and an explicit decision.
+- Changing infrastructure, deploying, or implementing before the specification, design, and tasks are approved.
 
-### Modificadas
-- `publishing`: cambiar el comportamiento contractual de creación de posts con enlaces.
+### Capabilities
 
-## Enfoque
+- New: `publishing-shortlinks` for shortlink integration in post creation.
+- New: `workspace-shortlink-click-analytics` for workspace-isolated click queries.
+- Modified: `publishing`, changing the contractual behavior of creating posts with links.
 
-Reutilizar Core V1 como propietario de enlaces; conectar creación de publicaciones con la gestión/resolución ya existente mediante contratos de aplicación, no acoplamiento directo a adaptadores. Añadir medición y una superficie de consulta con alcance derivado del workspace autenticado. La fase de especificación debe comparar registro síncrono/persistencia existente con alternativas mínimas, definir qué cuenta como clic y resolver retención/privacidad antes de fijar contrato. No asumir que el redirect actual captura eventos ni que exista bus, outbox, analítica o retención configurada.
+### Approach
 
-## Áreas afectadas
+Reuse Core V1 as the owner of links; connect post creation to existing link management/resolution through application contracts, not direct adapter coupling. Add measurement and a query surface scoped to the authenticated workspace. During specification, compare synchronous recording/existing persistence with minimal alternatives, define what counts as a click, and resolve retention/privacy before fixing the contract. Do not assume the current redirect captures events or that a bus, outbox, analytics, or retention configuration exists.
 
-| Área | Impacto | Descripción |
+### Affected Areas
+
+| Area | Impact | Description |
 |---|---|---|
-| `.agents/sdd/specs/publishing/spec.md` | Modificada | Creación de publicaciones enlazadas y presentación del shortlink |
-| Nueva spec `publishing-shortlinks` | Nueva | Contrato de integración del acortador en publicación |
-| Nueva spec `workspace-shortlink-click-analytics` | Nueva | Registro/consulta de clics y aislamiento |
-| `server/smp/shortlinks` | Modificada | Medición/consulta; alcance sujeto a diseño |
-| `apps/web/app` publicación y analítica | Modificada | Flujo del compositor y consulta de métricas |
-| `docs/architecture/adr/0028-defer-shortlinks-beyond-core-v1.md` | Modificada | Explicitar decisión de producto que autoriza esta porción acotada antes de triggers; preservar diferimiento del resto |
+| `.agents/sdd/specs/publishing/spec.md` | Modified | Linked publication creation and shortlink presentation |
+| New `publishing-shortlinks` spec | New | Shortener integration contract for publishing |
+| New `workspace-shortlink-click-analytics` spec | New | Click recording/query and isolation |
+| `server/smp/shortlinks` | Modified | Measurement/query; scope subject to design |
+| `apps/web/app` publishing and analytics | Modified | Composer flow and metrics query |
+| `docs/architecture/adr/0028-defer-shortlinks-beyond-core-v1.md` | Modified | Explicitly authorize this bounded product slice before triggers while preserving deferral of the rest |
 
-## Riesgos
+### Risks
 
-| Riesgo | Probabilidad | Mitigación |
+| Risk | Probability | Mitigation |
 |---|---|---|
-| ADR-0028 difiere explícitamente trabajo más allá de Core V1 | Media | Actualizar el ADR mediante decisión autorizada antes de adoptar la especificación; no reinterpretar sus triggers implícitamente |
-| Conteos incompletos o duplicados / costo en redirect | Media | Comparar alternativas con evidencia y acordar semántica de conteo y garantías realistas antes de diseño |
-| Fuga entre workspaces en consultas | Media | Workspace derivado del contexto autorizado; pruebas/BDD adversariales con dos workspaces y no revelar existencia ajena |
-| Incógnitas de privacidad y retención | Media | No persistir atributos personales por defecto; obtener decisión explícita sobre retención, minimización y borrado antes de cerrar spec |
+| ADR-0028 explicitly defers work beyond Core V1 | Medium | Update the ADR through an expressly authorized decision before adopting the specification; do not implicitly reinterpret its triggers |
+| Incomplete/duplicate counts or redirect cost | Medium | Compare alternatives using evidence and agree on count semantics and realistic guarantees before design |
+| Cross-workspace query leakage | Medium | Derive workspace from authorized context; use adversarial tests/BDD with two workspaces without revealing foreign resource existence |
+| Privacy and retention unknowns | Medium | Do not persist personal attributes by default; explicitly decide retention, minimization, and deletion before closing the spec |
 
-## Reversión
+### Reversal
 
-Desactivar la integración de publicación y la consulta/medición nueva, manteniendo Core V1 y sus enlaces existentes. El diseño debe evitar que revertir UI o instrumentación invalide destinos o publicaciones ya guardadas; especificar cualquier migración o dato que requiera limpieza antes de implementar.
+Disable the publishing integration and new query/measurement while preserving Core V1 and existing links. Design must ensure reverting UI or instrumentation does not invalidate saved destinations or publications; specify any required data cleanup or migration before implementation.
 
-## Dependencias
+### Dependencies
 
-- Reconciliación del ADR-0028 como decisión expresa de producto; la elección de alcance no autoriza modificar el ADR unilateralmente.
-- Investigación en diseño de contratos Core V1, mecanismo de tracking existente y controles de autorización por workspace.
+- Explicit reconciliation of ADR-0028; scope selection does not authorize unilateral ADR changes.
+- Contract investigation for Core V1, existing tracking, and workspace authorization controls.
 
-## Criterios de éxito
+### Success Criteria
 
-- [ ] Crear una publicación con enlaces produce un resultado de acortamiento definido y visible según decisión contractual.
-- [ ] Se consultan métricas de clics solamente para enlaces cortos accesibles en el workspace actual.
-- [ ] Pruebas cubren intento de lectura cruzada sin filtrar presencia ni métricas del otro workspace.
-- [ ] Precisión, semántica de clic, retención y privacidad se especifican sin afirmar capacidades no demostradas.
-- [ ] ADR-0028 refleja de forma explícita la autorización acotada y mantiene diferidas las capacidades avanzadas restantes.
+- [ ] Creating a publication with links has a defined and visible shortening result under the contractual decision.
+- [ ] Click metrics are queried only for shortlinks accessible in the current workspace.
+- [ ] Tests cover cross-workspace access attempts without disclosing another workspace's resource or metrics.
+- [ ] Accuracy, click semantics, retention, and privacy are specified without claiming unproven capabilities.
+- [ ] ADR-0028 explicitly records the bounded authorization and keeps the remaining advanced capabilities deferred.
+
+## Usage
+
+This archived proposal is historical context; the approved specifications and current implementation own behavior.
+
+## Troubleshooting
+
+If archived scope conflicts with current product or architecture contracts, follow the current authoritative specification and ADR rather than inferring intent from this proposal.
+
+## References
+
+- `.agents/sdd/specs/publishing/spec.md`
+- `.agents/sdd/specs/publishing-shortlinks/spec.md`
+- `.agents/sdd/specs/workspace-shortlink-click-analytics/spec.md`
+- `docs/architecture/adr/0028-defer-shortlinks-beyond-core-v1.md`

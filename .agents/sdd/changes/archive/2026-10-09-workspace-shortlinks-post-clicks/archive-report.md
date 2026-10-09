@@ -28,10 +28,10 @@ Archive gate **PASSED** on 2026-10-09.
 
 | Domain | Action | Details |
 |--------|--------|---------|
-| publishing-shortlinks | Created | 1 requirement (Automatic Shortlink Replacement at Publication Creation), 7 scenarios (single, repeated dedup, multiple distinct, no-URL, best-effort failure, live preview, edit bypass). Copied verbatim delta → `.agents/sdd/specs/publishing-shortlinks/spec.md` |
+| publishing-shortlinks | Created | 1 requirement (Automatic Shortlink Replacement at Publication Creation), 7 scenarios (single, repeated dedup, multiple distinct, no-URL, best-effort failure, live preview, edit bypass). Behavior is governed by the authoritative `.agents/sdd/specs/publishing-shortlinks/spec.md`; this archived delta is historical. |
 | workspace-shortlink-click-analytics | Created | 2 requirements (Record Clicks; Isolate Resolution and Analytics), 9 scenarios (consult, zero-count, list, paginate cursor composite, cross-workspace denied x2, context required, versioned media type, public resolution). Copied verbatim delta → `.agents/sdd/specs/workspace-shortlink-click-analytics/spec.md` |
 
-No merge into existing main specs was needed (`publishing-shortlinks` and `workspace-shortlink-click-analytics` did not exist under `.agents/sdd/specs/`). Existing `.agents/sdd/specs/publishing/spec.md` was not modified — Phase 4 automatic replacement lives in the new `publishing-shortlinks` capability; no destructive merge, no other requirements touched.
+The `publishing-shortlinks` and `workspace-shortlink-click-analytics` capabilities were added under `.agents/sdd/specs/`. The existing `.agents/sdd/specs/publishing/spec.md` create-flow shortlink clauses were updated to defer to the authoritative publishing-shortlinks contract; unrelated publishing requirements remain unchanged.
 
 ### Archive Contents
 
@@ -83,4 +83,4 @@ No merge into existing main specs was needed (`publishing-shortlinks` and `works
 
 ## SDD Cycle Complete
 
-The change has been fully planned, implemented, verified, and archived. Product contracts for automatic shortlink substitution at submit (dedup, best-effort, edit bypass) and workspace-scoped click analytics (zero-inclusive, cursor pagination, isolation) are now source of truth under `.agents/sdd/specs/`. Full audit trail retained in archive. Ready for the next change.
+The change has been fully planned, implemented, verified, and archived. The authoritative `.agents/sdd/specs/publishing-shortlinks/spec.md` owns shortlink behavior; `.agents/sdd/specs/workspace-shortlink-click-analytics/spec.md` owns workspace-scoped click analytics (zero-inclusive, cursor pagination, isolation). Full audit trail retained in archive. Ready for the next change.

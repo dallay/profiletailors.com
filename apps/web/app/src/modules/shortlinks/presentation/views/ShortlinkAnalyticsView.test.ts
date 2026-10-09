@@ -11,9 +11,10 @@ vi.mock('@modules/shortlinks', () => ({
   listWorkspaceShortlinkMetrics,
 }))
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key }),
-}))
+vi.mock('vue-i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vue-i18n')>()
+  return { ...actual, useI18n: () => ({ t: (key: string) => key }) }
+})
 
 const metric = (id: string, recordedRedirects: number) => ({
   id,
@@ -28,6 +29,21 @@ const metric = (id: string, recordedRedirects: number) => ({
 })
 
 describe('ShortlinkAnalyticsView', () => {
+  it('reloads the first page when the active workspace changes', async () => {
+    const workspace = await import('@modules/workspace/infrastructure/workspace.store')
+    const { createPinia, setActivePinia } = await import('pinia')
+    setActivePinia(createPinia())
+    const store = workspace.useWorkspaceStore()
+    store.setActiveWorkspaceId('workspace-a')
+    listWorkspaceShortlinkMetrics.mockResolvedValue({ links: [], nextCursor: null })
+    const wrapper = mount(ShortlinkAnalyticsView)
+    await flushPromises()
+    store.setActiveWorkspaceId('workspace-b')
+    await flushPromises()
+    expect(listWorkspaceShortlinkMetrics.mock.calls.map(([cursor]) => cursor)).toEqual([null, null])
+    wrapper.unmount()
+  })
+
   it('renders zero and positive stored click counts', async () => {
     listWorkspaceShortlinkMetrics.mockResolvedValue({
       links: [metric('zero', 0), metric('positive', 8)],

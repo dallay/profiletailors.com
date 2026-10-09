@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Define automatic shortlink integration for creating social publications with links while preserving destination, post content, and the user-visible result of the transformation.
+This archived delta is superseded by the authoritative [publishing-shortlinks specification](../../../../specs/publishing-shortlinks/spec.md), which owns shortlink behavior.
 
 ## Requirements
 
 ### Requirement: Automatic Shortlink Replacement at Publication Creation
 
-The composer MUST automatically shorten every distinct destination URL found in the post content at the moment the user submits the publication. The composer MUST NOT require an opt-in, a manual preview, or a manual decision step (such as `Use shortlink` / `Keep original URL`); shortening is an implementation detail of the submit action. The composer MUST shorten each distinct URL exactly once and MUST replace every occurrence of that URL in the content with the same shortlink. The composer MUST submit the publication with the already-shortened content so the post persisted in the system carries the shortlinks.
+For shortlink replacement behavior, see the authoritative [publishing-shortlinks specification](../../../../specs/publishing-shortlinks/spec.md). Deduplication applies only within one post.
 
 #### Scenario: Publication with a single distinct link shortens automatically at submit
 
@@ -24,7 +24,7 @@ The composer MUST automatically shorten every distinct destination URL found in 
 - WHEN the user submits the publication
 - THEN the composer MUST shorten that URL exactly once
 - AND the composer MUST replace every occurrence of that URL in the post content with the same shortlink
-- AND the shortlinks MUST be deduplicated so the system does not store two records for the same destination
+- AND duplicate shortlinks for that destination MUST NOT be stored for this post
 
 #### Scenario: Publication with multiple distinct links shortens every distinct link
 

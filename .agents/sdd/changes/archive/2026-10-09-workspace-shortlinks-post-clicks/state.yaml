@@ -117,7 +117,7 @@ phase_3_slice_2_verification:
   quality_runner: unavailable_fallback
   remote_ci: not_run
   deployment: not_run
-  acceptance_qa: pending_sdd_qa
+  acceptance_qa_status: pending_sdd_qa
 phase_1_progress: implementation_and_independent_verification_passed
 phase_3_plan:
   status: approved_pending_implementation
@@ -212,7 +212,7 @@ remaining_design_risks:
   - Confirm management endpoint auth and versioned media-type conventions during apply
   - Confirm repository migration changelog placement and frontend publishing API/client paths during apply
   - Cursor encoding and signing format remain implementation choices; preserve opaque cursor contract and repository conventions where compatible
-acceptance_qa:
+acceptance_qa_history:
   status: pass_with_warnings
   verdict: PASS_WITH_WARNINGS
   report: qa-report.md

@@ -26,6 +26,26 @@ describe('replaceShortenedUrl', () => {
     ).toBe('Read https://pt.link/a and https://pt.link/a')
   })
 
+  it('does not replace a URL that is only a prefix of another URL', () => {
+    expect(
+      replaceShortenedUrl(
+        'https://example.com/path and https://example.com/pathology',
+        'https://example.com/path',
+        'https://pt.link/a',
+      ),
+    ).toBe('https://pt.link/a and https://example.com/pathology')
+  })
+
+  it('preserves punctuation after replacing the complete URL', () => {
+    expect(
+      replaceShortenedUrl(
+        'Read https://example.com/path, now',
+        'https://example.com/path',
+        'https://pt.link/a',
+      ),
+    ).toBe('Read https://pt.link/a, now')
+  })
+
   it('leaves the post unchanged when the selected URL is absent', () => {
     expect(
       replaceShortenedUrl('No matching link', 'https://example.com', 'https://pt.link/a'),

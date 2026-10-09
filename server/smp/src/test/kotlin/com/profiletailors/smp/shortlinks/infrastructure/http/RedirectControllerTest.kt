@@ -6,14 +6,16 @@ import com.profiletailors.smp.shortlinks.application.LinkDisabledApplicationExce
 import com.profiletailors.smp.shortlinks.application.LinkExpiredApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkNotFoundApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkQuarantinedApplicationException
-import com.profiletailors.smp.shortlinks.application.RedirectClickRecorder
 import com.profiletailors.smp.shortlinks.application.ResolveLinkQuery
 import com.profiletailors.smp.shortlinks.application.ResolveResult
+import com.profiletailors.smp.shortlinks.domain.LinkClickRepository
 import com.profiletailors.smp.shortlinks.domain.LinkId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -23,10 +25,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.server.reactive.ServerHttpRequest
 import java.net.InetSocketAddress
 import java.util.UUID
+import kotlin.test.assertFailsWith
 
 internal class RedirectControllerTest {
     private val mediator = mockk<Mediator>()
-    private val clickRecorder = mockk<RedirectClickRecorder>()
+    private val clickRecorder = mockk<LinkClickRepository>()
     private val controller = RedirectController(mediator, clickRecorder)
     private val linkId = UUID.fromString("0199b1ca-0000-7000-8000-000000000001")
     private val domainLinkId = LinkId(linkId)
@@ -80,6 +83,28 @@ internal class RedirectControllerTest {
 
         assertEquals(HttpStatus.FOUND, response.statusCode)
         assertEquals("https://example.com/path", response.headers.getFirst(HttpHeaders.LOCATION))
+    }
+
+    @Test
+    fun `click recording timeout preserves active redirect`() = runTest {
+        coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
+            ResolveResult("https://example.com/path", "ACTIVE", linkId)
+        coEvery { clickRecorder.record(domainLinkId) } coAnswers { delay(1_000) }
+
+        val response = controller.redirect("AbC123", request("go.profiletailors.com"))
+
+        assertEquals(HttpStatus.FOUND, response.statusCode)
+    }
+
+    @Test
+    fun `external cancellation propagates from click recording`() = runTest {
+        coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
+            ResolveResult("https://example.com/path", "ACTIVE", linkId)
+        coEvery { clickRecorder.record(domainLinkId) } throws CancellationException("cancelled")
+
+        assertFailsWith<CancellationException> {
+            controller.redirect("AbC123", request("go.profiletailors.com"))
+        }
     }
 
     @Test

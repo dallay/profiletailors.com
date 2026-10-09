@@ -105,10 +105,22 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
     fun `workspace metrics pages seek exclusively by descending timestamp and id`() = runTest {
         val owner = OwnerId(UUID.randomUUID())
         val createdAt = Instant.parse("2026-10-01T09:00:00Z")
-        val oldest = link(shortCode = "Page001", owner = owner).copy(createdAt = createdAt)
-        val middle = link(shortCode = "Page002", owner = owner).copy(createdAt = createdAt)
-        val newest = link(shortCode = "Page003", owner = owner).copy(createdAt = createdAt)
-        val foreign = link(shortCode = "Page004").copy(createdAt = createdAt)
+        val oldest = link(shortCode = "Page001", owner = owner).copy(
+            id = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000001")),
+            createdAt = createdAt,
+        )
+        val middle = link(shortCode = "Page002", owner = owner).copy(
+            id = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000002")),
+            createdAt = createdAt,
+        )
+        val newest = link(shortCode = "Page003", owner = owner).copy(
+            id = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000003")),
+            createdAt = createdAt,
+        )
+        val foreign = link(shortCode = "Page004").copy(
+            id = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000004")),
+            createdAt = createdAt,
+        )
         listOf(oldest, middle, newest, foreign).forEach { linkRepository.save(it) }
         clickRecorder.record(middle.id)
         clickRecorder.record(middle.id)
@@ -121,7 +133,11 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
             WorkspaceLinkCursor(boundary.link.createdAt, boundary.link.id),
             2,
         )
-        assertEquals(setOf(oldest.id, middle.id, newest.id), (first + second).map { it.link.id }.toSet())
+        assertEquals(
+            listOf(newest.id, middle.id, oldest.id),
+            (first + second).map { it.link.id },
+            "expected descending id order for links with the same timestamp",
+        )
         assertEquals(1, second.size)
         assertNotEquals(boundary.link.id, second.single().link.id)
         assertEquals(2L, (first + second).single { it.link.id == middle.id }.recordedRedirects)

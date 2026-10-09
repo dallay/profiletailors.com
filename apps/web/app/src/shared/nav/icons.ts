@@ -1,19 +1,11 @@
 import type { Component } from 'vue'
-import {
-  BarChart3,
-  CalendarDays,
-  Images,
-  LayoutGrid,
-  Lightbulb,
-  Settings,
-  Shield,
-} from '@lucide/vue'
+import { BarChart3, CalendarDays, LayoutGrid, Link, Lightbulb, Settings, Shield } from '@lucide/vue'
 
 export const navIconByName: Record<string, Component> = {
   BarChart3,
   CalendarDays,
-  Images,
   LayoutGrid,
+  Link,
   Lightbulb,
   Settings,
   Shield,

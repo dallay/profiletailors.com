@@ -219,7 +219,7 @@ Antes de cualquier acción de envío, se inspeccionó la configuración efectiva
 
 ### Pruebas en el composer (observable real)
 
-- Dashboard local `https://workspace-shortlinks-analytics-api.pt-app.localhost:1355/scheduler` responde 200; management health responde 200; backend escucha en 7638. Sesión visible como Dev Workspace OWNER.
+- Dashboard local `https://workspace-shortlinks-analytics-api.pt-app.localhost:<port>/scheduler` responde 200; management health responde 200; backend escucha en 7638. Sesión visible como Dev Workspace OWNER.
 - `NEW POST` abrió el composer con canal LinkedIn vinculado. El opt-in de shortlink inició desmarcado. Al marcarlo apareció `Create shortlink preview`.
 - Al pulsar `Create shortlink preview`, la app envió `POST /api/v1/links` con destino `https://example.com/sdd-qa-never-publish`; respuesta 201. El endpoint generó URL corta y mostró `Use shortlink` y `Keep original URL`.
 - Se pulsó `Use shortlink`. La caja `Post content` siguió mostrando el URL original, no una URL corta. Resultado observable: **FAIL** para sustitución explícita de URL. No se intentó enviar el post. El test creó un shortlink de QA bajo la sesión/workspace activa; quedó preservado, no borrado.
@@ -311,7 +311,7 @@ No se editó código fuente. Task 4.9 queda sin marcar: no se completaron los es
 
 ### Identidad y handoff de esta corrida
 
-- Fecha: 2026-10-08; ejecución actual en Chrome DevTools sobre el dashboard local ya autenticado como OWNER en `https://workspace-shortlinks-analytics-api.pt-app.localhost:1355/scheduler/calendar/month`.
+- Fecha: 2026-10-08; ejecución actual en Chrome DevTools sobre el dashboard local ya autenticado como OWNER en `https://workspace-shortlinks-analytics-api.pt-app.localhost:<port>/scheduler/calendar/month`.
 - Modo: `fallback` manual; `sdd-quality-runner`/FSM no disponible. El runner no produjo envelope; evidencia observacional del navegador recogida en vivo.
 - Artefactos rerevisados: proposal, delta specs `publishing-shortlinks` y `workspace-shortlink-click-analytics`, design, tasks, `state.yaml`, config SDD, QA previa y `verify-report-p1-shortlink-substitution.md`.
 - Handoff técnico: el verify report declara `PASS WITH WARNINGS` para corrección P1 basado en tests y type-check. Esta aceptación independiente confirma el cambio observable en la sesión actual, pero no confirma persistencia del post ni autorización de publisher.
@@ -377,7 +377,7 @@ No se editó código fuente. Task 4.9 queda sin marcar: no se completaron los es
 Sesión dev OWNER reabierta en `https://workspace-shortlinks-analytics-api.pt-app.localhost:1355/login?redirect=/shortlinks`. Credenciales del usuario de prueba provistas por el usuario explícitamente; no se guardan en este informe.
 
 1. **Vinculación de canal LinkedIn mockeado**: click en `LinkedIn + CONNECT` desde el sidebar → app llamó `POST /api/publishing/linkedin/connections/initiate` con `redirectUri` del origin actual → backend firmó state con `HmacOAuthStateSigner` y devolvió `authorizationUrl=http://localhost:33185/oauth/v2/authorization?...` → el browser siguió la URL → WireMock respondió 302 con `Location` al callback del worktree → el backend completó el intercambio con `RealLinkedInConnectionProvider` (sin necesidad de un provider real porque la URL completa del flow es contra WireMock) → canal guardado como `WireMock Dev User · LinkedIn` con id `SOACC-2824114F-3733-475E-94D3-AEC7600C4991`, estado `ACTIVE`, visible en `/settings?connected=linkedin&panel=channels&provider=linkedin`.
-2. **NEW POST habilitado** en el scheduler (`https://workspace-shortlinks-analytics-api.pt-app.localhost:1355/scheduler/calendar/week`) porque ya hay un canal vinculado.
+2. **NEW POST habilitado** en el scheduler (`https://workspace-shortlinks-analytics-api.pt-app.localhost:<port>/scheduler/calendar/week`) porque ya hay un canal vinculado.
 3. **Composer abierto** con canal `WireMock Dev User` seleccionado, contenido inicial: `Read the article https://example.com/qa-sdd-worktree-acceptance`.
 4. **Opt-in desmarcado por defecto**: confirmado en el snapshot.
 5. **Marcar opt-in y `Create shortlink preview`**: click en checkbox `Create a shortlink for a URL in this post` → click en `Create shortlink preview` → la app llamó `POST /api/v1/links` con body `{destinationUrl: "https://example.com/qa-sdd-worktree-acceptance"}` → backend respondió 201 → preview mostró `https://go.profiletailors.com/oJCmcVVs0D` con botones `Use shortlink` y `Keep original URL`.
@@ -586,7 +586,7 @@ Lectura: el backend vivo, sin reinicios ni overrides, firmó con `HmacOAuthState
 
 ### Aislamiento y entorno demostrados en esta corrida
 
-- Dashboard `https://workspace-shortlinks-analytics-api.pt-app.localhost:1355/scheduler/calendar/week` carga 200 sin redirect; sidebar muestra `Dev Workspace Dev Workspace OWNER`, `DU Dev User dev@profiletailors.com`, canal `WireMock Dev User · LinkedIn ACTIVE` (no se volvió a vincular; el canal del 2026-10-08 23:50 UTC sigue activo).
+- Dashboard `https://workspace-shortlinks-analytics-api.pt-app.localhost:<port>/scheduler/calendar/week` carga 200 sin redirect; sidebar muestra `Dev Workspace Dev Workspace OWNER`, `DU Dev User dev@profiletailors.com`, canal `WireMock Dev User · LinkedIn ACTIVE` (no se volvió a vincular; el canal del 2026-10-08 23:50 UTC sigue activo).
 - Health del backend: `/actuator/health` (management 9091) → 200 `UP`. API 7638 LISTEN. Listener Portless 1355 vivo.
 - Publisher routing (idéntico al runtime del 2026-10-09 ~07:40 UTC, sin sobrescrituras): `authorizationBaseUrl=http://localhost:33185/oauth/v2/authorization`; `tokenBaseUrl=http://localhost:33185/oauth/v2/accessToken`; `publishingApiBaseUrl=http://localhost:33185`. Worker de publicación habilitado y haciendo polling cada 30 s sin contenido con `dueAt ≤ ahora`.
 - WireMock LinkedIn: container healthy, 29 mappings activos (incluyendo `/oauth/v2/authorization`, `/oauth/v2/accessToken`, `/v2/userinfo`, `/rest/posts`, `/v1.0/refresh_access_token`, `/rest/images|videos|documents` y los mappings fail-closed `073` y `success` 010). `__admin/requests` antes de la corrida del browser: 0.

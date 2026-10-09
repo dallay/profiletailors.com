@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: shortlinks-004-order-owner-links
+      author: yuniel acosta
+      changes:
+        - createIndex:
+            tableName: links
+            indexName: idx_links_owner_created_id
+            columns:
+              - column:
+                  name: owner_id
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true

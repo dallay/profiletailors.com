@@ -20,7 +20,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import java.nio.ByteBuffer
 import java.time.Instant
+import java.util.Base64
 import java.util.UUID
 
 internal class GetLinkMetricsHandlerTest {
@@ -39,6 +41,20 @@ internal class GetLinkMetricsHandlerTest {
     }
     private val handler = GetLinkMetricsHandler(contexts, metricsRepository)
     private val listHandler = ListWorkspaceLinkMetricsHandler(contexts, metricsRepository, properties)
+
+    private fun testLink(id: String, createdAt: Instant) = Link(
+        id = LinkId(UUID.fromString(id)),
+        ownerId = ownerId,
+        domainId = DomainId.fromHost("short.example"),
+        shortCode = ShortCode("AbC123"),
+        destinationUrl = DestinationUrl("https://destination.example"),
+        status = LinkStatus.ACTIVE,
+        expiresAt = null,
+        createdAt = createdAt,
+        updatedAt = createdAt,
+        deletedAt = null,
+        version = 1,
+    )
 
     @Test
     fun `workspace metrics query uses authenticated workspace and returns zero counts`() = runBlocking {
@@ -64,6 +80,66 @@ internal class GetLinkMetricsHandlerTest {
         assertEquals(0L, page.links.single().recordedRedirects)
         assertEquals("https://short.example/AbC123", page.links.single().shortUrl)
         coVerify(exactly = 1) { metricsRepository.findWorkspaceLinksWithMetrics(ownerId, null, 21) }
+    }
+
+    @Test
+    fun `rejects a cursor with an invalid base64 encoding`() {
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { listHandler.handle(ListWorkspaceLinkMetricsQuery(cursor = "%%%")) }
+        }
+
+        assertEquals("Invalid cursor", exception.message)
+    }
+
+    @Test
+    fun `rejects cursor timestamps outside supported database range`() {
+        val outOfRangeCursor = Base64.getUrlEncoder().withoutPadding().encodeToString(
+            ByteBuffer.allocate(28)
+                .putLong(Instant.parse("+10000-01-01T00:00:00Z").epochSecond)
+                .putInt(0)
+                .putLong(linkId.mostSignificantBits)
+                .putLong(linkId.leastSignificantBits)
+                .array(),
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { listHandler.handle(ListWorkspaceLinkMetricsQuery(cursor = outOfRangeCursor)) }
+        }
+
+        assertEquals("Invalid cursor", exception.message)
+    }
+
+    @Test
+    fun `workspace metrics encode and decode cursor using the last item in the page`() = runBlocking {
+        val links = listOf(
+            testLink("0199b1ca-0000-7000-8000-000000000003", Instant.parse("2026-10-03T00:00:00Z")),
+            testLink("0199b1ca-0000-7000-8000-000000000004", Instant.parse("2026-10-02T00:00:00Z")),
+        )
+        coEvery { metricsRepository.findWorkspaceLinksWithMetrics(ownerId, null, 2) } returns
+            links.map { WorkspaceLinkClickMetrics(it, 0) }
+
+        val firstPage = listHandler.handle(ListWorkspaceLinkMetricsQuery(limit = 1))
+        val cursor = requireNotNull(firstPage.nextCursor)
+        val decoded = Base64.getUrlDecoder().decode(cursor)
+        val buffer = ByteBuffer.wrap(decoded)
+        val createdAt = Instant.ofEpochSecond(buffer.long, buffer.int.toLong())
+        val id = UUID(buffer.long, buffer.long)
+        coEvery {
+            metricsRepository.findWorkspaceLinksWithMetrics(ownerId, any(), 2)
+        } returns listOf(WorkspaceLinkClickMetrics(links[1], 0))
+
+        val secondPage = listHandler.handle(ListWorkspaceLinkMetricsQuery(limit = 1, cursor = cursor))
+
+        assertEquals(links.first().createdAt, createdAt)
+        assertEquals(links.first().id.value, id)
+        assertEquals(links[1].id.value, secondPage.links.single().id)
+        coVerify {
+            metricsRepository.findWorkspaceLinksWithMetrics(
+                ownerId,
+                match { it?.createdAt == links.first().createdAt && it.id == links.first().id },
+                2,
+            )
+        }
     }
 
     @Test

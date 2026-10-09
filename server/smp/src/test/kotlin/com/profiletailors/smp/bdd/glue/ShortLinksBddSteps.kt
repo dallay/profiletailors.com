@@ -33,6 +33,7 @@ class ShortLinksBddSteps {
     private var firstCreatedLinkId: UUID? = null
     private var workspaceMetricsCursor: String? = null
     private var firstMetricsPageIds: Set<String> = emptySet()
+    private var createdWorkspaceLinkIds: Set<String> = emptySet()
     private val workspaceId = UUID.fromString("11111111-1111-4111-8111-111111111111").toString()
     private val otherWorkspaceId = UUID.fromString("22222222-2222-4222-8222-222222222222").toString()
 
@@ -49,6 +50,7 @@ class ShortLinksBddSteps {
         firstCreatedLinkId = null
         workspaceMetricsCursor = null
         firstMetricsPageIds = emptySet()
+        createdWorkspaceLinkIds = emptySet()
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
@@ -72,6 +74,7 @@ class ShortLinksBddSteps {
         responseStatus = response.status.value()
         foreignLinkId = response.responseBody?.let(objectMapper::readTree)
             ?.path("id")?.asText()?.takeIf(String::isNotBlank)?.let(UUID::fromString)
+        createdWorkspaceLinkIds = createdWorkspaceLinkIds + requireNotNull(foreignLinkId).toString()
     }
 
     @When("the authenticated user lists workspace link metrics with limit {int}")
@@ -138,6 +141,7 @@ class ShortLinksBddSteps {
             .map { it.path("id").asText() }
         assertEquals(1, ids.size)
         assertEquals(emptySet<String>(), firstMetricsPageIds.intersect(ids.toSet()))
+        assertEquals(createdWorkspaceLinkIds, firstMetricsPageIds + ids)
     }
 
     @When("a client requests metrics without authentication")
@@ -176,6 +180,7 @@ class ShortLinksBddSteps {
             createdLinkId =
                 response.responseBody?.let(objectMapper::readTree)?.path("id")?.asText()?.let(UUID::fromString)
             if (clickedLinkId != null) unclickedLinkId = createdLinkId
+            createdLinkId?.let { createdWorkspaceLinkIds = createdWorkspaceLinkIds + it.toString() }
         }
     }
 

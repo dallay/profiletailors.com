@@ -10,6 +10,7 @@ import com.profiletailors.smp.shortlinks.domain.WorkspaceLinkClickMetrics
 import com.profiletailors.smp.shortlinks.domain.WorkspaceLinkCursor
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.nio.ByteBuffer
+import java.time.DateTimeException
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
@@ -65,18 +66,30 @@ internal class ListWorkspaceLinkMetricsHandler(
         val bytes = try {
             Base64.getUrlDecoder().decode(value)
         } catch (exception: IllegalArgumentException) {
+            throw IllegalArgumentException(INVALID_CURSOR_MESSAGE, exception)
+        }
+        require(bytes.size == CURSOR_BYTES) { INVALID_CURSOR_MESSAGE }
+        return try {
+            val buffer = ByteBuffer.wrap(bytes)
+            val epochSecond = buffer.long
+            val nano = buffer.int
+            require(nano in 0 until NANOS_PER_SECOND) { INVALID_CURSOR_MESSAGE }
+            val createdAt = Instant.ofEpochSecond(epochSecond, nano.toLong())
+            require(createdAt in MIN_CURSOR_INSTANT..MAX_CURSOR_INSTANT) { INVALID_CURSOR_MESSAGE }
+            val id = UUID(buffer.long, buffer.long)
+            WorkspaceLinkCursor(createdAt, LinkId(id))
+        } catch (exception: DateTimeException) {
             throw IllegalArgumentException("Invalid cursor", exception)
         }
-        require(bytes.size == CURSOR_BYTES) { "Invalid cursor" }
-        val buffer = ByteBuffer.wrap(bytes)
-        val createdAt = Instant.ofEpochSecond(buffer.long, buffer.int.toLong())
-        val id = UUID(buffer.long, buffer.long)
-        return WorkspaceLinkCursor(createdAt, LinkId(id))
     }
 
     private companion object {
         const val MIN_LIMIT = 1
         const val MAX_LIMIT = 100
         const val CURSOR_BYTES = 28
+        const val NANOS_PER_SECOND = 1_000_000_000
+        const val INVALID_CURSOR_MESSAGE = "Invalid cursor"
+        val MIN_CURSOR_INSTANT: Instant = Instant.parse("0001-01-01T00:00:00Z")
+        val MAX_CURSOR_INSTANT: Instant = Instant.parse("9999-12-31T23:59:59.999999Z")
     }
 }
