@@ -1,7 +1,7 @@
 # ADR-0028: Defer Shortlinks Capabilities Beyond Core V1
 
 - Status: Accepted
-- Date: 2026-10-04
+- Date: 2026-10-04 (original deferral); amended 2026-10-09
 - Decision owners: Principal Architect
 - Scope: `server/smp/shortlinks`, repository-wide documentation and OpenSpec workflow
 - Supersedes: None
@@ -63,6 +63,10 @@ analytics API surface, QR encoder dependency) without an immediate user need.
    OpenSpec cycle. Designers MAY read the archived exploration/proposal/specs
    for context, but MUST regenerate specs and design against the current
    repository state and updated product requirements.
+
+## Amendment — 2026-10-09
+
+The publishing-shortlinks and workspace click-metrics slice is authorized as a bounded exception to the original deferral. At publication submit, shortlink creation is automatic and best-effort: on shortlink creation failure, the original URL remains usable and publication submission is not blocked. The authoritative publishing contract is `.agents/sdd/specs/publishing-shortlinks/spec.md`. This amendment does not authorize the remaining advanced capabilities listed below; they remain deferred until their stated triggers are met.
 
 ## Scope and boundaries
 
@@ -155,6 +159,28 @@ analytics API surface, QR encoder dependency) without an immediate user need.
   programs MUST open a fresh OpenSpec change and reference this ADR.
 - Static-analysis debt rules in `.agents/AGENTS.md` continue to apply; this
   ADR does not authorise any suppressions or baseline entries.
+
+## Bounded follow-up decision: publication shortlinks and workspace click counts
+
+On 2026-10-06, the product decision explicitly authorizes the scoped change in
+`.agents/sdd/changes/workspace-shortlinks-post-clicks/`. This is a narrow exception to the
+original deferral, not a reversal of it: the approved scope is explicit shortlink integration
+when composing publications and workspace-isolated counts of successful shortlink redirects.
+
+The design keeps link ownership in Core V1, derives tenant identity from authenticated workspace
+context for protected analytics, and leaves public redirects free of management/analytics data.
+It excludes durable outbox delivery, Edge/Logpush reconciliation, custom domains, QR, retention
+policy, visitor identity/PII, abuse automation, and capacity/SLO guarantees. Clicks are proposed as
+non-deduplicated recorded active-link redirect attempts, without identity data or an accuracy
+promise. Tracking must not block the redirect on failure; redirect latency remains a verification
+risk and must be measured before accepting this mechanism.
+
+Post composition must make shortening explicit and present the resulting URL. The original URL and
+content remain unchanged unless the user opts in; if shortening fails, the original destination is
+preserved and publication may proceed with it or the user may retry. Link creation is proposed
+before publication submission because the existing publication handler persists/enqueues the
+submitted body. This decision is bounded to the named OpenSpec change; it does not authorize the
+larger deferred shortlinks design.
 
 ## Verification
 

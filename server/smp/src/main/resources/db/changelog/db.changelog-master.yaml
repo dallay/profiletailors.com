@@ -126,6 +126,10 @@ databaseChangeLog:
       file: db/changelog/shortlinks/001-create-links.yaml
   - include:
       file: db/changelog/shortlinks/002-create-idempotency.yaml
+  - include:
+      file: db/changelog/shortlinks/003-create-link-clicks.yaml
+  - include:
+      file: db/changelog/shortlinks/004-order-owner-links.yaml
 
   - include:
       file: db/changelog/platform-admin/008-create-user-control-idempotency.yaml
@@ -178,6 +182,8 @@ databaseChangeLog:
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml
+  - include:
+      file: db/changelog/dev/002-seed-shortlink-second-user-workspace.yaml
   # ── QA seed data (context: dev only) ───────────────────────────
   - include:
       file: db/changelog/qa/001-seed-test-data.yaml

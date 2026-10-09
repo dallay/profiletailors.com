@@ -54,6 +54,7 @@ export function getWorktreeContext() {
   const branchSlug = slug(branch.split('/').pop())
   const digest = createHash('sha256').update(root).digest('hex').slice(0, 10)
   const worktreeId = `pt-${branchSlug.slice(0, 46)}-${digest}`.slice(0, 63).replace(/-+$/, '')
+  const wiremockHostPort = String(33185 + Number.parseInt(digest.slice(0, 4), 16) % 1000)
   const label = linked && !['main', 'master'].includes(branch) ? branchSlug : ''
   const runtimeDir = resolve(root, '.worktree')
   const appName = label ? `${label}.pt-app` : 'pt-app'
@@ -69,6 +70,7 @@ export function getWorktreeContext() {
     linked,
     worktreeId,
     composeProjectName: process.env.COMPOSE_PROJECT_NAME || worktreeId,
+    wiremockHostPort: process.env.WIREMOCK_HOST_PORT || wiremockHostPort,
     portLeaseFile: resolve(tmpdir(), 'profiletailors-worktree-port-leases.json'),
     runtimeDir,
     runDir: resolve(runtimeDir, 'run'),
@@ -115,6 +117,10 @@ export function getRuntimeEnvironment(context = getWorktreeContext(), overrides 
       context.corsOrigins.join(','),
     ),
     SMP_PUBLIC_APP_URL: process.env.SMP_PUBLIC_APP_URL || context.appUrl,
+    SMP_LINKEDIN_API_BASE_URL: process.env.SMP_LINKEDIN_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
+    SMP_LINKEDIN_PUBLISHING_API_BASE_URL: process.env.SMP_LINKEDIN_PUBLISHING_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
+    SMP_LINKEDIN_AUTHORIZATION_BASE_URL: process.env.SMP_LINKEDIN_AUTHORIZATION_BASE_URL || `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`,
+    SMP_LINKEDIN_TOKEN_BASE_URL: process.env.SMP_LINKEDIN_TOKEN_BASE_URL || `http://localhost:${context.wiremockHostPort}/oauth/v2/accessToken`,
     SMP_STORAGE_LOCAL_BASE_PATH: process.env.SMP_STORAGE_LOCAL_BASE_PATH || context.storageDir,
     LOGGING_FILE_NAME: process.env.LOGGING_FILE_NAME || resolve(context.logDir, 'smp.log'),
     SMP_BACKEND_PORT: process.env.SMP_BACKEND_PORT || backendEnvironment.SMP_BACKEND_PORT,
@@ -140,12 +146,12 @@ function readActiveBackendEnvironment(context) {
 
 export function getComposeEnvironment(context = getWorktreeContext()) {
   const env = getRuntimeEnvironment(context)
+  env.WIREMOCK_HOST_PORT = context.wiremockHostPort
   for (const key of [
     'SMP_POSTGRES_PORT',
     'POSTGRES_PORT',
     'MAILPIT_SMTP_PORT',
     'MAILPIT_UI_PORT',
-    'WIREMOCK_HOST_PORT',
     'PROMETHEUS_HOST_PORT',
     'GRAFANA_HOST_PORT',
   ]) {

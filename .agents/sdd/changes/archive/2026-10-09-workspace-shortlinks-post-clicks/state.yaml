@@ -1,0 +1,316 @@
+change: workspace-shortlinks-post-clicks
+current_phase: archive
+completed: [explore, propose, spec, design, tasks, apply_phase_1, verify_phase_1, apply_phase_2, verify_phase_2, apply_phase_3_slice_1, verify_phase_3_slice_1, apply_phase_3_slice_2, verify_phase_3_slice_2, verify_p1_shortlink_substitution, apply_phase_4, verify_phase_4, sdd_qa_runtime_reevaluation_2026_10_09, sdd_qa_browser_ui_phase4_member_reread_2026_10_09_0839_utc, archive]
+next: none
+updated: 2026-10-09T10:55:00Z
+archive:
+  status: archived
+  date: 2026-10-09
+  destination: .agents/sdd/changes/archive/2026-10-09-workspace-shortlinks-post-clicks/
+  mode: openspec
+  authorization: explicit_user_archiva_2026_10_09
+  gate: pass_with_warnings_no_open_p0_p1_critical
+  specs_synced: [publishing-shortlinks_created, workspace-shortlink-click-analytics_created]
+  report: archive-report.md
+p1_shortlink_substitution_verification:
+  status: pass_with_warnings
+  report: verify-report-p1-shortlink-substitution.md
+  focused_tests: passed_67
+  type_check: passed
+  quality_runner: unavailable_fallback
+  publisher_mock_only_routing: unproven_publication_not_authorized
+  acceptance_qa_handoff: sdd_qa_rerun_required
+phase4_verification:
+  status: pass_with_warnings
+  report: verify-report-phase4.md
+  focused_tests: passed_60
+  full_app_tests: passed_169_files_1920_tests_reported_not_rerun
+  type_check: passed_reported_not_rerun
+  lint: passed_with_one_preexisting_warning_reported
+  quality_runner: unavailable_fallback
+  acceptance_qa_handoff: blocked_sdd_qa_required
+acceptance_qa:
+  status: pass_with_warnings
+  verdict: PASS_WITH_WARNINGS
+  report: qa-report.md
+  blocker: browser_ui_phase4_end_to_end_observation_not_run_no_authenticated_session_in_this_turn; member_reread_in_workspace_000006_not_testable_historical_shortlink_absent_from_current_db
+  runner: unavailable_fallback
+  reevaluation_2026_10_09:
+    scope: static_and_runtime_configuration_safety_gate_only
+    result: blocked_before_browser_interaction
+    evidence: qa-report.md#re-evaluación-de-límites-de-seguridad--2026-10-09
+    publisher_mock_exclusive: blocked_config_points_publishing_to_local_wiremock_but_effective_backend_route_not_verified
+    provider_refresh_authorization_safety: blocked_historical_mapping_not_current_exclusive_routing_proof
+    browser_interaction: not_attempted
+    publish_or_schedule_now: not_attempted
+    save_payload: not_tested
+    member_reread: not_tested
+    source_code_modified: false
+    environment_or_backup_modified: false
+    commit_push_archive: false
+  current_run:
+    date: 2026-10-08
+    scope: authenticated_owner_browser_composer_shortlink_decision_and_mock_only_publisher_safety_no_publish_no_external_send
+    technical_handoff: verify-report-p1-shortlink-substitution.md_pass_with_warnings_focused_67_tests_and_type_check
+    browser: chrome_devtools_existing_authorized_owner_session
+    composer_opt_in_default: pass_unchecked
+    preview_api: pass_post_api_v1_links_201_safe_example_destination_shortlink_visible
+    use_shortlink_visible_text: pass_textarea_and_preview_show_short_url
+    keep_original_visible_text: pass_textarea_restores_original_url
+    toggle_use_keep_use: pass_textarea_original_short_original_short
+    save_uses_visible_content: not_tested_no_save_or_schedule_action
+    publisher_mock_exclusive: blocked_prior_configuration_8089_no_listener_wiremock_33185_no_effective_routing_proof
+    provider_token_refresh_authorization_isolation: blocked_not_proven_no_provider_refresh_or_auth_attempted
+    workspace_member_reread: not_tested_no_member_session_no_relogin
+    publication_sent: false
+    external_content_sent: false
+    data_deleted: false
+    source_code_modified: false
+    commit_push_archive: false
+    runner_fallback: true
+    rerun_prerequisite: prove_effective_publisher_and_token_refresh_authorization_exclusive_mock_routing_then_nonpublishing_save_payload_validation; use_only_existing_authorized_member_session_if_reread_needed
+    backend_health_probe: mgmt_9091_http_200_status_UP_backend_api_7638_listen_after_process_restart_with_cors_env_override_only
+    backend_process_restart: SMP_CORS_ALLOWED_ORIGINS_extended_only_in_process_env_dotenv_unchanged_symlink_server_smp_dot_env_to_root_dotenv
+    dashboard_route: shortlinks_http_200_authenticated_as_owner_no_login_redirect
+    authenticated_session: owner_login_via_ui_after_backend_restart_no_credentials_in_artifacts
+    workspace_selector: pass_single_workspace_dev_workspace_OWNER_plus_add_workspace_no_second_without_relogin
+    shortlinks_route_page1: pass_table_20_rows_qa_pagination_027_to_008_with_get_200_and_next_active_prev_disabled
+    pagination_multipage_cursor: pass_27_new_links_via_api_with_X_Workspace_Id_next_page_to_8_rows_page2_then_prev_idempotent_back_to_page1_no_console_errors_transient_400_self_recovered
+    composer_opt_in_confirm: historical_member_pass_unchecked_default_create_201_use_keep_original_preserved_no_publish
+    metric_zero: pass_owner_started_at_0_for_27_new_links_historical_member_0_both_workspaces
+    metric_positive_after_redirect: pass_owner_MqyTZrZoZn_0_to_1_after_302_on_7638_other_workspace_mvU_302_only_collection_pending_member_session
+    redirect_302_evidence: both_codes_302_on_127001_7638_with_go_host_correct_Location_no_store
+    isolation: pass_owner_000002_lists_only_28_own_rows_excludes_mvU_from_000006
+    pagination_single_page: pass_prev_next_disabled_with_nav_label
+    failure_preserves_original_retry: pass_single_abort_with_glob_pattern_alert_retry_continue_original_intact_no_submit
+    i18n_spanish_live: historical_member_pass_full_es_view_no_owner_repeat
+    keyboard_a11y_bounded: historical_member_pass_no_owner_repeat_no_full_audit
+    responsive_bounded: historical_member_pass_390x844_no_owner_repeat
+    publish_substitution: fail_use_shortlink_clicked_original_url_still_visible_no_submit
+    publisher_mock: blocked_backend_base_url_8089_no_listener_wiremock_host_33185_no_routing_proof
+    publish_attempted: false
+    external_content_sent: false
+    existing_test_data_deleted: false
+    workspace_member_reread: not_tested
+    dev_owner_session: pass_linked_linkedin_visible_no_credentials_recorded
+    browser: agent-browser
+    remote_ci: not_run
+    deployment: not_run
+    created_test_links_via_api_this_run: 27_qa_pagination_001_to_027_in_workspace_000002_shortcodes_listed_in_qa_report_initial_metric_0_no_clicks
+    created_test_links_via_ui_historical: member_mvUv8p7dZd_into_000006_MqyTZrZoZn_into_000002
+    historical_superseded: prior_1344Z_no_session_run_and_sigterm_run_and_16xZ_member_run_and_1427Z_owner_run_kept_as_reference_only
+phase_3_slice_2_verification:
+  status: pass_with_warnings
+  report: verify-report-phase3-slice2.md
+  blocker: null
+  passed_focused_tests: 73
+  failed_view_tests: 0
+  view_test_command: pnpm exec vitest run src/modules/shortlinks/presentation/views/ShortlinkAnalyticsView.test.ts
+  view_test_result: passed_one_file_six_tests
+  composer_test_command: pnpm exec vitest run src/modules/publishing/presentation/components/CreatePostModal.test.ts
+  composer_test_result: passed_one_file_sixty_seven_tests
+  app_lint: passed_with_two_preexisting_warnings_in_untouched_files
+  app_test_run: passed_169_files_1922_tests
+  app_type_check: passed
+  app_build: passed
+  git_diff_check: passed
+  quality_runner: unavailable_fallback
+  remote_ci: not_run
+  deployment: not_run
+  acceptance_qa_status: pending_sdd_qa
+phase_1_progress: implementation_and_independent_verification_passed
+phase_3_plan:
+  status: approved_pending_implementation
+  delivery: single_pr_final_to_main
+  review_budget_exception:
+    status: expressly_approved_by_user
+    strategy: size_exception
+    target: main
+    estimated_changed_lines: 600-900
+    rationale: related_phases_must_integrate_to_complete_the_end_to_end_flow
+    mitigations:
+      - verify_each_phase_internally_by_slice
+      - include_slice_breakdown_and_verification_evidence_in_pr_description
+      - keep_reviewer_budget_warning_visible
+  first_slice: backend_collection_api
+  first_slice_order: [red_api_and_bdd_scenarios, implementation, bdd_postgres_openapi_cursor_documentation, verification]
+  pagination_contract: endpoint_collection_with_limit_and_opaque_composite_cursor_created_at_id
+  ordering: [created_at_desc, id_desc]
+  continuation: exclusive_composite_seek
+  stable_snapshot: false
+  frontend_slice: after_backend_api_contract_is_implemented_and_verified
+phase_2_progress: implementation_and_independent_verification_passed
+phase_2_verification:
+  status: passed
+  report: verify-report-phase2.md
+  previous_attempt: failed_before_spotless_formatting; corrected_and_reverified
+  blocker: none_for_phase_2
+  risks:
+    - isolated_pre_fix_red_run_not_preserved; non_blocking_tdd_traceability_warning
+    - awaited_click_write_latency_not_measured; explicit_design_risk_for_phase_1
+  latest_evidence:
+    backend_check: passed_9m57s_including_spotless_compile_detekt_test_postgresIntegrationTest_koverVerify
+    spotless_kotlin_check: independently_passed_7s
+    backend_bdd_fast: passed_14_shortlinks_scenarios_reported
+
+phase_verification:
+  phase: 1
+  status: passed
+  report: verify-report.md
+  follow_up: none
+phase_3_slice_1_progress:
+  status: passed_with_warnings
+  verdict: PASS_WITH_WARNINGS
+  report: verify-report-phase3-slice1.md
+  tasks: [3.1, 3.2, 3.3, 3.4, 3.5]
+  verification_task: 3.5_complete
+  verification_status: passed_with_warnings
+  next_recommended: implement_phase_3_slice_2_frontend_composer_and_metrics_ui
+  evidence:
+    backend_check:
+      final_serial_run: passed_BUILD_SUCCESSFUL_9m31s
+      initial_attempts: EOFException_and_missing_in_progress_results; recovered_by_serial_rerun
+    backend_bdd_fast:
+      final_serial_run: passed_BUILD_SUCCESSFUL_EXIT_CODE_0; corrected_collection_scenario_asserts_workspace_A_ids_and_counts_1_0_and_excludes_workspace_B
+      output: bdd-fast-collection-coverage.log
+      initial_attempts: step_text_mismatch_or_timeout_and_EOF; corrected_and_recovered_by_serial_rerun
+    postgres_integration:
+      final_serial_run: passed_BUILD_SUCCESSFUL_7m57s_33_actionable_tasks
+      xml_note: current_shortlinks_test_XML_has_10_tests_0_failures_but_timestamp_predates_final_run
+    git_diff_check: passed_during_independent_verification
+    quality_runner: unavailable_fallback_mode
+    root_cause: possible_incremental_Kotlin_storage_registration_interaction_under_concurrency_unconfirmed
+  scope_remaining: frontend_composer_and_metrics_ui
+artifact_store: openspec
+strict_tdd: true
+source_implementation_authorized: true
+scope_status: approved_workspace_scoped_shortlink_list_with_click_counts_including_zero; no_expansion_beyond_list_contract
+adr_reconciliation: explicit_product_decision_confirmed_to_allow_bounded_integration; ADR-0028_reconciled_before_apply
+external_evidence: not_run
+delivery_strategy: size-exception
+review_workload_forecast:
+  estimated_changed_lines: 600-900
+  budget_risk: High
+  chained_prs_recommended: false
+  decision_needed_before_apply: false
+  chain_strategy: size-exception
+  user_decision: size_exception_expressly_approved_by_user
+design_decisions:
+  post_creation: explicit_opt_in_create_before_publication_submit_preserve_original_on_failure
+  clicks: successful_active_redirect_attempt_non_deduplicated_without_visitor_identity
+  recording: best_effort_awaited_insert_before_response; latency_must_be_measured
+  tenant_isolation: workspace_derived_from_authenticated_context_and_database_owner_filter
+  metric_scope: all_stored_click_records_without_retention_or_precision_promise
+  metrics_collection: authenticated_workspace_scoped_link_list_with_counts_including_zero
+  metrics_list_pagination: limit_and_opaque_composite_cursor_created_at_id
+  metrics_list_ordering: created_at_DESC_then_id_DESC
+  metrics_list_continuation: exclusive
+  metrics_list_snapshot: none
+phase_3_sequence: backend_red_then_collection_implementation_bdd_postgres_openapi_cursor_docs_and_verification_before_frontend_composer_or_ui
+remaining_design_risks:
+  - Confirm click write latency; redesign as separately approved durable async mechanism if unacceptable
+  - Confirm management endpoint auth and versioned media-type conventions during apply
+  - Confirm repository migration changelog placement and frontend publishing API/client paths during apply
+  - Cursor encoding and signing format remain implementation choices; preserve opaque cursor contract and repository conventions where compatible
+acceptance_qa_history:
+  status: pass_with_warnings
+  verdict: PASS_WITH_WARNINGS
+  report: qa-report.md
+  blocker: historic_p2_workspace_id_omission_and_stale_list_after_workspace_switch_documented_as_informational_not_acceptance_blocking
+  runner: unavailable_fallback
+  browser_ui_phase4_rerun_2026_10_09_0839_utc:
+    date: 2026-10-09T08:39:00Z
+    scope: authenticated_owner_browser_composer_phase4_end_to_end_plus_member_reread_in_workspace_000006_mock_only_publisher
+    technical_handoff: verify-report-phase4.md_pass_with_warnings_focused_composer_suite_60_tests_type_check_passed_lint_passed_with_one_preexisting_warning
+    browser: chrome_devtools_mcp_existing_authorized_owner_session_preserved
+    backend_health: mgmt_9091_http_200_status_UP_groups_liveness_readiness_process_PID_16285_listen_7638_9091_no_restart
+    publisher_mock_exclusive: pass_authorizationUrl_uses_localhost_33185_state_signed_journal_empty_after_run_no_traffic_to_linkedin_real
+    wiremock_state: 29_mappings_present_journal_0_after_run_no_provider_call
+    composer_dom_contract: pass_no_opt_in_use_keep_keep_original_checkbox_or_buttons_present_no_shortlink_preview_step
+    composer_distinct_url_dedup: pass_2_post_v1_links_for_2_distinct_destinations_although_3_occurrences_in_text
+    composer_publication_payload: pass_post_api_publishing_publications_200_bodyText_contains_only_shortcodes_reusing_same_for_repeated_url_scheduleMode_SCHEDULED_AT_dueAt_2030_01_15T09_37_00Z
+    shortlinks_persisted: 2_new_EktNZ6C4pF_and_tBnEGjZ89o_in_workspace_000002_destination_example_com_redirect_302_verified
+    member_seed_and_reread: pass_member_jwt_hs256_principal_id_0004_seeded_lgrvRHnLVZ_in_workspace_000006_reread_authenticated_redirect_302_with_correct_location_recordedRedirects_0_to_1_without_relogin
+    isolation: pass_owner_workspace_000002_list_does_not_include_lgrvRHnLVZ_or_other_workspace_data_cross_workspace_no_leak
+    no_op_destructive_actions: no_publish no_schedule_now no_oauth_exchange no_refresh no_external_send no_destructive_delete no_env_change no_backup_change no_commit_no_push_no_archive
+    artifacts_created_in_this_run:
+      - shortlink_EktNZ6C4pF_workspace_000002_destination_example_com_destination_QA_qa-phase4-distinctA_recordedRedirects_1
+      - shortlink_tBnEGjZ89o_workspace_000002_destination_example_com_destination_QA_qa-phase4-distinctB_recordedRedirects_1
+      - publication_pub-2026-10-09_in_workspace_000002_scheduleMode_SCHEDULED_AT_dueAt_2030-01-15T09-37-00Z_queuing_only_no_worker_pickup_during_run
+      - shortlink_lgrvRHnLVZ_workspace_000006_destination_example_com_destination_QA_qa-member-reread-2026-10-09_recordedRedirects_1
+    artifacts_preserved:
+      - po3AsYHHHg_workspace_000002_destination_qa-sdd-worktree-acceptance-rerun_2026-10-09_recordedRedirects_4
+      - oJCmcVVs0D_workspace_000002_destination_qa-sdd-worktree-acceptance_recordedRedirects_0
+    safety_decisions:
+      - chose_SCHEDULED_AT_with_far_future_dueAt_2030-01-15T09-37-00Z_to_avoid_worker_pickup_during_run
+      - used_chrome_devtools_list_network_requests_and_get_network_request_to_capture_request_bodies_without_modifying_response_path
+      - did_not_open_authorization_oauth_refresh_or_schedule_now_in_browser
+    matrix_summary_path: qa-report.md#matriz-actualizada-escenario-del-rerun-2026-10-09-0839-utc
+    verdict: PASS_WITH_WARNINGS_browser_ui_phase4_end_to_end_and_member_reread_evidenced_artifact_created_in_workspace_000006
+  runtime_reevaluation_2026_10_09_0740_utc:
+    scope: runtime_publisher_mock_routing_and_shortlink_exercise_only
+    result: safety_gate_pass_with_warnings_browser_ui_not_tested
+    evidence: qa-report.md#re-evaluación-de-aceptación-con-evidencia-runtime--2026-10-09-segundo-turno-del-día
+    publisher_mock_exclusive: pass_authorizationUrl_initiate_response_uses_localhost_33185_state_signed
+    provider_token_refresh_authorization_isolation: pass_tokenBaseUrl_and_authorizationBaseUrl_resolve_to_localhost_33185_and_wiremock_journal_empty
+    wiremock_state: 29_mappings_present_including_oauth_v2_authorization_accessToken_v2_userinfo_rest_posts_refresh_access_token
+    shortlink_controlled_exercise: pass_create_201_shortCode_po3AsYHHHg_redirect_302_x4_to_example_com_recordedRedirects_4
+    workspace_isolation: pass_owner_000002_2_links_member_000006_0_links_cross_workspace_no_leak
+    save_payload_runtime: not_tested_no_publication_submit_authorized
+    member_reread: not_tested_shortlink_mvUv8p7dZd_absent_in_current_db_workspace_000006_empty
+    browser_ui_phase4_end_to_end: not_tested_no_authenticated_browser_session_in_this_turn
+    publish_or_schedule_now: not_attempted
+    provider_refresh_or_authorization: not_attempted
+    source_code_modified: false
+    environment_or_backup_modified: false
+    commit_push_archive: false
+    rerun_prerequisite: authenticated_browser_session_to_observe_phase4_composer_end_to_end_without_clicking_schedule_now; seed_shortlink_in_workspace_000006_for_member_reread_evidence
+    backend_health: mgmt_9091_http_200_status_UP_groups_liveness_readiness
+    backend_process: PID_65244_dev_profile_active_listen_7638_9091_no_restart
+    actuator_env_blocked: 401_unauthorized_evidence_via_api_response_instead
+    focused_tests:
+      shortlink_post_content_domain: passed_1_file_4_tests
+      create_post_modal_focused: passed_1_file_60_tests_current_count_replaces_historical_67_from_apply_progress
+    token_issuance_for_api_evidence: jwt_hs256_signed_with_SMP_LOCAL_JWT_SECRET_sub_dev_subject_principal_id_0000000000000000000000000001
+    shortlinks_created_this_run: 1_po3AsYHHHg_workspace_000002_QA-only_destination_example_com_no_publish
+  latest_run:
+    date: 2026-10-08
+    scope: end_to_end_browser_qa_shortlink_substitution_publisher_isolated_to_wiremock_no_publish_no_external_send
+    backend_health: liveness_readiness_UP_health_global_DOWN_mail_ignored
+    backend_env: SPRING_R2DBC_URL=127.0.0.1:5432 SMP_LINKEDIN_PUBLISHING_API_BASE_URL=localhost:33185 token_auth_api_defaults_dev
+    wiremock_state: profile-tailors-linkedin-wiremock-1_built_29_mappings_073_fail_closed_070_071_072_verified_runtime
+    browser: chrome_devtools_session_dev_owner_credentials_provided_explicitly
+    channel_link: WireMock Dev User · LinkedIn SOACC-2824114F-3733-475E-94D3-AEC7600C4991 ACTIVE
+    composer_opt_in_default: pass_unchecked
+    preview_api: pass_post_api_v1_links_201_shortcode_oJCmcVVs0D
+    use_shortlink_visible_text: pass_textarea_and_preview_show_short_url
+    keep_original_visible_text: pass_textarea_and_preview_restore_original
+    toggle_use_keep_use: pass_original_short_original_short
+    persistence: pass_shortlinks_route_lists_oJCmcVVs0D_with_destination_and_zero_metric
+    publisher_mock_exclusive: pass_publisher_base_localhost_33185_no_publication_sent
+    provider_token_refresh_authorization_isolation: pass_4_cases_verified_runtime_no_traffic_to_linkedin_real
+    workspace_member_reread: not_tested_session_member_unavailable
+    health_global_mail: nota_subsistema_mail_no_impacta_aceptacion
+    publication_sent: false
+    external_content_sent: false
+    data_deleted: false
+    source_code_modified: false
+    commit_push_archive: false
+    rerun_prerequisite: workspace_member_session_for_mvUv8p7dZd_reread
+phase_4_plan:
+  status: approved_pending_implementation
+  rationale: product_owner_replaced_explicit_optin_with_automatic_replacement_at_submit
+  supersedes: phase_3_slice_2_task_3.6_and_verify_report_phase3_slice2
+  shortlink_spec_revision: replaced_explicit_choice_with_automatic_best_effort_replacement
+  delivery: extend_in_same_pr_per_size_exception_user_approved
+  expected_findings_during_apply:
+    - remove_optin_checkbox_use_keep_keep_original_panel
+    - add_pre_submit_url_replacement_best_effort
+    - dedupe_urls_per_destination
+    - skip_replacement_in_edit_mode
+    - rework_composer_regression_tests
+  dependent_artifacts:
+    - spec: specs/publishing-shortlinks/spec.md (rewritten, 7 scenarios)
+    - tasks: tasks.md (Phase 4 added, Slice 2 marked superseded)
+    - verify: verify-report-phase4.md to be produced
+    - qa: qa-report.md end-to-end re-run to be produced

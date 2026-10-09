@@ -2,7 +2,10 @@
   "priority": 20,
   "request": {
     "method": "PUT",
-    "urlPathPattern": "/.*"
+    "urlPathPattern": "/dms-uploads/mock-(image|document|video)/uploaded-\\1/[0-9]+",
+    "headers": {
+      "Content-Type": { "matches": "application/octet-stream" }
+    }
   },
   "response": {
     "status": 201,

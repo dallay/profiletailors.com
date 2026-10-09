@@ -92,7 +92,7 @@ class IdentitySecurityConfiguration {
     @Bean
     fun corsConfigurationSource(corsProperties: CorsConfigurationProperties): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = corsProperties.allowedOrigins
+        configuration.allowedOriginPatterns = corsProperties.allowedOrigins
         configuration.allowedMethods = corsProperties.allowedMethods
         val allowedHeaders = corsProperties.allowedHeaders.toMutableList()
         allowedHeaders.addAll(CorsConfigurationProperties.REQUIRED_CORS_HEADERS)
