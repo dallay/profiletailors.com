@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.3.17](https://github.com/dallay/profiletailors.com/compare/app@v0.3.16...app@v0.3.17) (2026-10-09)
+
+
+### Features
+
+* **agpl:** document strategy and source offers ([#1260](https://github.com/dallay/profiletailors.com/issues/1260)) ([ae26f8f](https://github.com/dallay/profiletailors.com/commit/ae26f8f8ea772a273fa7c4b7321535154a74bead))
+* **app:** add library search to composer media picker ([#1271](https://github.com/dallay/profiletailors.com/issues/1271)) ([dea9ab7](https://github.com/dallay/profiletailors.com/commit/dea9ab737a1a5a22e834f4dfc55004517a094c8f))
+* **shared-web:** add privacy-safe Sentry sanitizer ([#1286](https://github.com/dallay/profiletailors.com/issues/1286)) ([5c7fef0](https://github.com/dallay/profiletailors.com/commit/5c7fef0b4de416312954de56e71a3be6176fbce2))
+* **shortlinks:** workspace shortlinks with auto-replace and click metrics ([#1341](https://github.com/dallay/profiletailors.com/issues/1341)) ([6a8c847](https://github.com/dallay/profiletailors.com/commit/6a8c8477c33655f850dc91ec71c570af076c7f22))
+
+
+### Bug Fixes
+
+* **app-e2e:** use agenda view in mobile invitee journey ([#1327](https://github.com/dallay/profiletailors.com/issues/1327)) ([ed17b2c](https://github.com/dallay/profiletailors.com/commit/ed17b2ca38b57d911b759cc9eb580676b203720e))
+* **app:** align navigation, scheduler, and cross-section states ([#1265](https://github.com/dallay/profiletailors.com/issues/1265)) ([5103310](https://github.com/dallay/profiletailors.com/commit/5103310ac38f18e082c30d8dd8a76a9345f7f58c))
+* **app:** harden markdown HTML stripping against spaced end tags ([#1284](https://github.com/dallay/profiletailors.com/issues/1284)) ([506987a](https://github.com/dallay/profiletailors.com/commit/506987a91a2fa77030aad465155cc4d0de2bd3bb))
+* **app:** harden mobile scheduler interactions ([#1247](https://github.com/dallay/profiletailors.com/issues/1247)) ([fc312ea](https://github.com/dallay/profiletailors.com/commit/fc312eaf09480db3a0feaccea11db627d1c76521))
+* improve mobile post creation and scheduler UX ([#1256](https://github.com/dallay/profiletailors.com/issues/1256)) ([60afdcc](https://github.com/dallay/profiletailors.com/commit/60afdcce4c9a30c9fe2e31f2564d2f88c133e6e7))
+* **publishing:** improve mobile scheduler operational usability ([#1237](https://github.com/dallay/profiletailors.com/issues/1237)) ([280a00e](https://github.com/dallay/profiletailors.com/commit/280a00ee5cf5de13215034f38a1334f48ff173f0))
+* **quality:** remediate SonarCloud findings ([#1267](https://github.com/dallay/profiletailors.com/issues/1267)) ([6669547](https://github.com/dallay/profiletailors.com/commit/66695476839383ff90193fc12def5f87553ae98a))
+* **tests:** harden frontend test helpers flagged by CodeQL ([#1285](https://github.com/dallay/profiletailors.com/issues/1285)) ([5e75878](https://github.com/dallay/profiletailors.com/commit/5e75878c09de34ef366f03b009e892e21b26b4e1))
+
+
+### Refactoring
+
+* **publishing:** extract useSchedulerTimeline composable and update theme tokens ([#1246](https://github.com/dallay/profiletailors.com/issues/1246)) ([ccf8bd8](https://github.com/dallay/profiletailors.com/commit/ccf8bd8f5d14d497251e7b65aa938e3e8d980d8b))
+* **tests:** enhance analytics and scheduler tests with improved data handling and validation ([a75fb40](https://github.com/dallay/profiletailors.com/commit/a75fb40b181e46e9e29303fb30383f8de6bfe0e4))
+
+
+### Documentation
+
+* **audit:** close documentation gaps across docs, product and architecture ([#1266](https://github.com/dallay/profiletailors.com/issues/1266)) ([eb1149f](https://github.com/dallay/profiletailors.com/commit/eb1149f66dd65005ef0a7bbc968ef9a4da3ce2e2))
+* **specs:** reconcile business contracts with implementation ([#1296](https://github.com/dallay/profiletailors.com/issues/1296)) ([70fc7ca](https://github.com/dallay/profiletailors.com/commit/70fc7ca9fca32d4cc1ca9aee699d7704adb3747d))
+
 ## [0.3.16](https://github.com/dallay/profiletailors.com/compare/app@v0.3.15...app@v0.3.16) (2026-09-29)
 
 
