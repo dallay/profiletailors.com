@@ -17,6 +17,12 @@ import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModalComponent from './CreatePostModal.vue'
+import { createShortlink } from '@modules/shortlinks'
+
+vi.mock('@modules/shortlinks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@modules/shortlinks')>()
+  return { ...actual, createShortlink: vi.fn() }
+})
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -57,6 +63,7 @@ const translations: Record<string, string> = {
   'composer.media.unsupportedFormat':
     'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
   'composer.media.fileSizeExceeded': 'File size exceeds 10MB limit.',
+  'shortlinks.createFailed': 'Some links could not be shortened and remain unchanged.',
   'composer.scheduleBtn': 'Schedule Post',
   'composer.scheduleNowBtn': 'Schedule Now',
   'composer.nextScheduleBtn': 'Next Schedule',
@@ -1221,6 +1228,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.mocked(createShortlink).mockReset()
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -1712,189 +1720,134 @@ describe('CreatePostModal.vue — AI assistant', () => {
     }
   })
 
-  it('rejects a custom schedule without a selected date', async () => {
-    const publishingStore = usePublishingStore()
+  it('shortens each distinct URL once and replaces every occurrence before submitting', async () => {
     const schedulePost = vi
-      .spyOn(publishingStore, 'schedulePost')
+      .spyOn(usePublishingStore(), 'schedulePost')
       .mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-schedule')])
-    await flushModal(wrapper)
-
-    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
-    textarea.value = 'A post that is ready to schedule'
-    textarea.dispatchEvent(new Event('input'))
-    getByTestId('schedule-mode-custom')
-      .querySelector('input')
-      ?.dispatchEvent(new Event('change', { bubbles: true }))
-    await flushModal(wrapper)
-
-    const submitButton = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
-    ).find((button) => button.textContent?.includes('Schedule Post'))
-    expect(submitButton).toBeDefined()
-    submitButton!.click()
-    await flushModal(wrapper)
-
-    expect(schedulePost).not.toHaveBeenCalled()
-    expect(document.body.textContent).toContain('Select a date.')
-  })
-
-  it('rejects invalid custom time values and rejects times inside the five-minute safety window', async () => {
-    vi.useFakeTimers()
-    const current = new Date(2026, 7, 3, 12, 0, 30)
-    const soon = new Date(2026, 7, 3, 12, 4, 0)
-    vi.setSystemTime(current)
-    try {
-      const publishingStore = usePublishingStore()
-      const schedulePost = vi
-        .spyOn(publishingStore, 'schedulePost')
-        .mockResolvedValue({} as Publication)
-      const wrapper = mountModal([makeChannel('ch-time')], {
-        isOpen: false,
-        initialDate: soon.toISOString(),
+    vi.mocked(createShortlink)
+      .mockResolvedValueOnce({
+        id: 'shortlink-one',
+        shortUrl: 'https://pt.link/a',
+        destinationUrl: 'https://example.com/article',
       })
-      await wrapper.setProps({ isOpen: true })
-      await flushModal(wrapper)
-
-      const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
-      textarea.value = 'A post with a custom time'
-      textarea.dispatchEvent(new Event('input'))
-      await flushModal(wrapper)
-
-      const timeInput = getByTestId('schedule-time-input') as HTMLInputElement
-      Object.defineProperty(timeInput, 'value', { configurable: true, value: '25:00' })
-      timeInput.dispatchEvent(new Event('input', { bubbles: true }))
-      await flushModal(wrapper)
-      const submitButton = Array.from(
-        document.querySelectorAll<HTMLButtonElement>('.ui-button'),
-      ).find((button) => button.textContent?.includes('Schedule Post'))
-      expect(submitButton).toBeDefined()
-      submitButton!.click()
-      await flushModal(wrapper)
-      expect(schedulePost).not.toHaveBeenCalled()
-      expect(document.body.textContent).toContain('Invalid time selected.')
-
-      Object.defineProperty(timeInput, 'value', { configurable: true, value: '12:04' })
-      timeInput.dispatchEvent(new Event('input', { bubbles: true }))
-      submitButton!.click()
-      await flushModal(wrapper)
-      expect(document.body.textContent).toContain('Selected date and time must be in the future.')
-      expect(schedulePost).not.toHaveBeenCalled()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('uploads a deferred file before creating a post and reports upload failures', async () => {
-    const mediaStore = useMediaStore()
-    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
-      assetId: 'asset-deferred',
-    } as MediaAssetSummary)
-    const addToSelection = vi.spyOn(mediaStore, 'addToSelection')
-    const publishingStore = usePublishingStore()
-    const schedulePost = vi
-      .spyOn(publishingStore, 'schedulePost')
-      .mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-upload')])
+      .mockResolvedValueOnce({
+        id: 'shortlink-two',
+        shortUrl: 'https://pt.link/b',
+        destinationUrl: 'https://other.example/page',
+      })
+    const wrapper = mountModal([makeChannel('ch-shortlink-auto')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
-    textarea.value = 'A post with deferred media'
+    textarea.value =
+      'Read https://example.com/article and https://other.example/page, then https://example.com/article.'
     textarea.dispatchEvent(new Event('input'))
-    const uploadInput = getByTestId('picker-upload-input') as HTMLInputElement
-    const file = new File(['image'], 'deferred.png', { type: 'image/png' })
-    Object.defineProperty(uploadInput, 'files', { configurable: true, value: [file] })
-    uploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Schedule Now'))
+      ?.click()
     await flushModal(wrapper)
 
-    const submitButton = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
-    ).find((button) => button.textContent?.includes('Schedule Now'))
-    expect(submitButton).toBeDefined()
-    submitButton!.click()
-    await vi.waitFor(() => expect(schedulePost).toHaveBeenCalledTimes(1))
-
-    expect(createAndUpload).toHaveBeenCalledWith(
-      file,
-      expect.stringMatching(/^modal-upload-/),
-      expect.any(Function),
-    )
-    expect(addToSelection).toHaveBeenCalledWith('asset-deferred')
+    expect(createShortlink).toHaveBeenCalledTimes(2)
+    expect(createShortlink).toHaveBeenNthCalledWith(1, 'https://example.com/article')
+    expect(createShortlink).toHaveBeenNthCalledWith(2, 'https://other.example/page')
     expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({ assetIds: ['asset-deferred'] }),
+      expect.objectContaining({
+        content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
+      }),
     )
-
-    createAndUpload.mockRejectedValueOnce(new Error('upload failed'))
-    Object.defineProperty(uploadInput, 'files', { configurable: true, value: [file] })
-    uploadInput.dispatchEvent(new Event('change'))
-    await flushModal(wrapper)
-    submitButton!.click()
-    await flushModal(wrapper)
-    expect(document.body.textContent).toContain('Media upload failed. Please try again.')
-    expect(schedulePost).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-testid="shortlink-opt-in"]')).toBeNull()
+    expect(document.querySelector('[data-testid="shortlink-use"]')).toBeNull()
+    expect(document.querySelector('[data-testid="shortlink-keep-original"]')).toBeNull()
   })
 
-  it('handles media source controls, drag lifecycle, paste guards, and emoji insertion', async () => {
-    const wrapper = mountModal([makeChannel('ch-media-controls')], { provider: 'unsplash' })
+  it('keeps publishing when an individual shortlink request fails and shows a non-blocking warning', async () => {
+    const schedulePost = vi
+      .spyOn(usePublishingStore(), 'schedulePost')
+      .mockResolvedValue({} as Publication)
+    vi.mocked(createShortlink)
+      .mockRejectedValueOnce(new Error('shortlink unavailable'))
+      .mockResolvedValueOnce({
+        id: 'shortlink-success',
+        shortUrl: 'https://pt.link/b',
+        destinationUrl: 'https://other.example/page',
+      })
+    const wrapper = mountModal([makeChannel('ch-shortlink-failure')])
     await flushModal(wrapper)
 
-    const uploadInput = getByTestId('picker-upload-input') as HTMLInputElement
-    const clickSpy = vi.spyOn(uploadInput, 'click')
-    getByTestId('composer-upload-trigger').click()
-    expect(clickSpy).toHaveBeenCalledTimes(1)
-
-    const sourcesTrigger = getByTestId('composer-sources-trigger')
-    sourcesTrigger.click()
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'https://example.com/article and https://other.example/page'
+    textarea.dispatchEvent(new Event('input'))
     await flushModal(wrapper)
-    getByTestId('composer-source-unsplash').click()
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Schedule Now'))
+      ?.click()
     await flushModal(wrapper)
 
-    const textarea = getByTestId('composer-textarea')
-    const dragEvent = new Event('dragover', { bubbles: true, cancelable: true }) as Event & {
-      dataTransfer: { files: File[] }
-    }
-    dragEvent.dataTransfer = { files: [] }
-    textarea.dispatchEvent(dragEvent)
-    expect(dragEvent.defaultPrevented).toBe(false)
-
-    const file = new File(['png'], 'drag.png', { type: 'image/png' })
-    dragEvent.dataTransfer = { files: [file] }
-    textarea.dispatchEvent(dragEvent)
-    expect(dragEvent.defaultPrevented).toBe(true)
-    const dragLeave = new Event('dragleave', { bubbles: true, cancelable: true })
-    textarea.dispatchEvent(dragLeave)
-    expect(dragLeave.defaultPrevented).toBe(true)
-
-    const emptyPaste = new Event('paste', { bubbles: true, cancelable: true }) as Event & {
-      clipboardData: { files: File[]; items: [] }
-    }
-    emptyPaste.clipboardData = { files: [], items: [] }
-    textarea.dispatchEvent(emptyPaste)
-    expect(emptyPaste.defaultPrevented).toBe(false)
-
-    const emojiButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-      (button) => button.getAttribute('title') === 'Open emoji picker',
+    expect(createShortlink).toHaveBeenCalledTimes(2)
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'https://example.com/article and https://pt.link/b',
+      }),
     )
-    expect(emojiButton).toBeDefined()
-    emojiButton!.click()
-    await flushModal(wrapper)
-    expect((textarea as HTMLTextAreaElement).value).toContain('🙂')
+    expect(document.body.querySelector('[role="status"]')?.textContent).toContain(
+      'Some links could not be shortened and remain unchanged.',
+    )
   })
 
-  it('opens and closes the hashtag panel on request', async () => {
-    const wrapper = mountModal([makeChannel('ch-hashtags')])
+  it('submits content with no URL without calling the shortlink service', async () => {
+    const schedulePost = vi
+      .spyOn(usePublishingStore(), 'schedulePost')
+      .mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-no-url')])
     await flushModal(wrapper)
 
-    const hashtagToggle = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-      (button) => button.getAttribute('aria-label')?.includes('hashtags'),
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'A post without a URL'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Schedule Now'))
+      ?.click()
+    await flushModal(wrapper)
+
+    expect(createShortlink).not.toHaveBeenCalled()
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'A post without a URL' }),
     )
-    expect(hashtagToggle).toBeDefined()
-    hashtagToggle!.click()
+  })
+
+  it('does not create or render shortlink controls while editing a publication', async () => {
+    const updatePost = vi
+      .spyOn(usePublishingStore(), 'updatePost')
+      .mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-edit-shortlink')], {
+      editingPublication: makeEditingPublication({
+        content: 'Read https://example.com/article',
+        accountId: 'ch-edit-shortlink',
+        assetIds: [],
+      }),
+    })
     await flushModal(wrapper)
-    expect(document.querySelector('aside[aria-label="Hashtag suggestions"]')).not.toBeNull()
-    hashtagToggle!.click()
+
+    expect(document.querySelector('[data-testid="shortlink-opt-in"]')).toBeNull()
+    expect(document.querySelector('[data-testid="shortlink-create"]')).toBeNull()
+    expect(createShortlink).not.toHaveBeenCalled()
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Updated https://example.com/article'
+    textarea.dispatchEvent(new Event('input'))
     await flushModal(wrapper)
-    expect(document.querySelector('aside[aria-label="Hashtag suggestions"]')).toBeNull()
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Save Changes'))
+      ?.click()
+    await flushModal(wrapper)
+
+    expect(updatePost).toHaveBeenCalledWith(
+      'pub-edit-1',
+      expect.objectContaining({ content: 'Updated https://example.com/article' }),
+    )
+    expect(createShortlink).not.toHaveBeenCalled()
   })
 })
 

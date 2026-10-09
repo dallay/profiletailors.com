@@ -21,6 +21,7 @@ export function usePwaInstall() {
   function onPrompt(event: Event): void {
     event.preventDefault()
     deferred.value = event as BeforeInstallPromptEvent
+    window.removeEventListener('beforeinstallprompt', onPrompt)
   }
 
   onMounted(() => {

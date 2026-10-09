@@ -4,6 +4,7 @@ export default {
   analytics: 'Analytics',
   media: 'Media Library',
   ideas: 'Ideas',
+  shortlinks: 'Shortlinks',
   governance: 'Governance',
   loadingSection: 'Loading section',
   openNavigation: 'Open navigation',

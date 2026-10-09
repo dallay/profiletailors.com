@@ -26,8 +26,13 @@ class ShortLinksBddSteps {
     private var redirectDestination: String? = null
     private var lastResponseBody: String? = null
     private var createdLinkId: UUID? = null
+    private var clickedLinkId: UUID? = null
+    private var unclickedLinkId: UUID? = null
+    private var foreignLinkId: UUID? = null
     private var cacheMissShortCode: String? = null
     private var firstCreatedLinkId: UUID? = null
+    private var workspaceMetricsCursor: String? = null
+    private var firstMetricsPageIds: Set<String> = emptySet()
     private val workspaceId = UUID.fromString("11111111-1111-4111-8111-111111111111").toString()
     private val otherWorkspaceId = UUID.fromString("22222222-2222-4222-8222-222222222222").toString()
 
@@ -37,8 +42,13 @@ class ShortLinksBddSteps {
         redirectDestination = null
         lastResponseBody = null
         createdLinkId = null
+        clickedLinkId = null
+        unclickedLinkId = null
+        foreignLinkId = null
         cacheMissShortCode = null
         firstCreatedLinkId = null
+        workspaceMetricsCursor = null
+        firstMetricsPageIds = emptySet()
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
@@ -47,6 +57,97 @@ class ShortLinksBddSteps {
         bddDatabaseSupport.seedAuthenticatedUserWithWorkspace(workspaceId = workspaceId)
         bddDatabaseSupport.seedWorkspace(otherWorkspaceId)
         bddDatabaseSupport.seedWorkspaceMembership(BddDatabaseSupport.PRINCIPAL_ID, otherWorkspaceId)
+    }
+
+    @When("an authenticated user creates a short link in another workspace")
+    fun createForeignWorkspaceLink() {
+        val response = authenticatedRequest(otherWorkspaceId)
+            .post()
+            .uri("/api/v1/links")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"destinationUrl":"https://example.com/foreign"}""")
+            .exchange()
+            .expectBody()
+            .returnResult()
+        responseStatus = response.status.value()
+        foreignLinkId = response.responseBody?.let(objectMapper::readTree)
+            ?.path("id")?.asText()?.takeIf(String::isNotBlank)?.let(UUID::fromString)
+    }
+
+    @When("the authenticated user lists workspace link metrics with limit {int}")
+    fun listWorkspaceLinkMetrics(limit: Int) {
+        val response = authenticatedRequest().get().uri("/api/v1/links?limit=$limit")
+            .exchange().expectBody().returnResult()
+        responseStatus = response.status.value()
+        lastResponseBody = response.responseBody?.decodeToString()
+        firstMetricsPageIds = response.responseBody?.let(objectMapper::readTree)?.path("links")
+            ?.map { it.path("id").asText() }?.toSet().orEmpty()
+        workspaceMetricsCursor = response.responseBody?.let(objectMapper::readTree)
+            ?.path("nextCursor")?.takeIf { !it.isNull }?.asText()
+    }
+
+    @When("the authenticated user follows the workspace metrics cursor with limit {int}")
+    fun followWorkspaceMetricsCursor(limit: Int) {
+        val response = authenticatedRequest().get()
+            .uri("/api/v1/links?limit=$limit&cursor=${requireNotNull(workspaceMetricsCursor)}")
+            .exchange().expectBody().returnResult()
+        responseStatus = response.status.value()
+        lastResponseBody = response.responseBody?.decodeToString()
+    }
+
+    @Then("the workspace metrics page should contain exactly the created workspace link ids")
+    fun assertWorkspaceMetricsContainOnlyOwnedLinks() {
+        val links = objectMapper.readTree(requireNotNull(lastResponseBody)).path("links")
+        val actualIds = links.map { it.path("id").asText() }.toSet()
+        val expectedIds = setOf(requireNotNull(clickedLinkId), requireNotNull(unclickedLinkId))
+            .map(UUID::toString).toSet()
+        assertEquals(expectedIds, actualIds)
+        assertEquals(false, actualIds.contains(requireNotNull(foreignLinkId).toString()))
+    }
+
+    @Then("the workspace metrics page should report {int} recorded redirect for the clicked link")
+    fun assertClickedLinkRedirectCount(expected: Int) {
+        assertWorkspaceLinkRedirectCount(requireNotNull(clickedLinkId), expected)
+    }
+
+    @Then("the workspace metrics page should report {int} recorded redirects for the unclicked link")
+    fun assertUnclickedLinkRedirectCount(expected: Int) {
+        assertWorkspaceLinkRedirectCount(requireNotNull(unclickedLinkId), expected)
+    }
+
+    private fun assertWorkspaceLinkRedirectCount(linkId: UUID, expected: Int) {
+        val links = objectMapper.readTree(requireNotNull(lastResponseBody)).path("links")
+        val link = links.first { it.path("id").asText() == linkId.toString() }
+        assertEquals(expected, link.path("recordedRedirects").asInt())
+    }
+
+    @Then("the workspace metrics page should contain {int} link")
+    fun assertWorkspaceMetricsCount(expected: Int) {
+        val actual = objectMapper.readTree(requireNotNull(lastResponseBody)).path("links").size()
+        assertEquals(expected, actual)
+    }
+
+    @Then("the workspace metrics page should include a continuation cursor")
+    fun assertWorkspaceMetricsCursor() {
+        assertEquals(true, !workspaceMetricsCursor.isNullOrBlank())
+    }
+
+    @Then("the workspace metrics page should include the created link ids from both pages")
+    fun assertCreatedLinksAcrossPages() {
+        val ids = objectMapper.readTree(requireNotNull(lastResponseBody)).path("links")
+            .map { it.path("id").asText() }
+        assertEquals(1, ids.size)
+        assertEquals(emptySet<String>(), firstMetricsPageIds.intersect(ids.toSet()))
+    }
+
+    @When("a client requests metrics without authentication")
+    fun requestMetricsWithoutAuthentication() {
+        responseStatus = webTestClient.get()
+            .uri("/api/v1/links/${UUID.fromString("0199b1ca-0000-7000-8000-000000000099")}/metrics")
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .exchange()
+            .returnResult(ByteArray::class.java)
+            .status.value()
     }
 
     @When("a client creates a link without authentication")
@@ -74,6 +175,7 @@ class ShortLinksBddSteps {
         if (responseStatus == 201) {
             createdLinkId =
                 response.responseBody?.let(objectMapper::readTree)?.path("id")?.asText()?.let(UUID::fromString)
+            if (clickedLinkId != null) unclickedLinkId = createdLinkId
         }
     }
 
@@ -123,7 +225,15 @@ class ShortLinksBddSteps {
             .expectBody()
             .returnResult()
         responseStatus = response.status.value()
-        createdLinkId = response.responseBody?.let(objectMapper::readTree)?.path("id")?.asText()?.let(UUID::fromString)
+        assertEquals(201, responseStatus, response.responseBody?.decodeToString())
+        if (responseStatus == 201) {
+            createdLinkId = response.responseBody
+                ?.let(objectMapper::readTree)
+                ?.path("id")
+                ?.asText()
+                ?.takeIf(String::isNotBlank)
+                ?.let(UUID::fromString)
+        }
     }
 
     @When("a client resolves the future alias {string}")
@@ -162,6 +272,7 @@ class ShortLinksBddSteps {
 
     @When("a client resolves the created active short link")
     fun resolveCreatedShortLink() {
+        clickedLinkId = createdLinkId
         val linkResponse = authenticatedRequest()
             .get()
             .uri("/api/v1/links/${requireNotNull(createdLinkId)}")
@@ -179,6 +290,36 @@ class ShortLinksBddSteps {
             .returnResult()
         responseStatus = response.status.value()
         redirectDestination = response.responseHeaders.getFirst(HttpHeaders.LOCATION)
+    }
+
+    @When("the authenticated user requests metrics for the created short link")
+    fun getCreatedLinkMetrics() {
+        val response = authenticatedRequest()
+            .get()
+            .uri("/api/v1/links/${requireNotNull(createdLinkId)}/metrics")
+            .exchange()
+            .expectBody()
+            .returnResult()
+        responseStatus = response.status.value()
+        lastResponseBody = response.responseBody?.decodeToString()
+    }
+
+    @And("an authenticated user requests metrics for the created short link from another workspace")
+    fun getCreatedLinkMetricsFromAnotherWorkspace() {
+        responseStatus = authenticatedRequest(otherWorkspaceId)
+            .get()
+            .uri("/api/v1/links/${requireNotNull(createdLinkId)}/metrics")
+            .exchange()
+            .returnResult(ByteArray::class.java)
+            .status.value()
+    }
+
+    @Then("the recorded redirect count should be {int}")
+    fun assertRecordedRedirectCount(expected: Int) {
+        val recordedRedirects = objectMapper.readTree(requireNotNull(lastResponseBody))
+            .path("recordedRedirects")
+            .asInt()
+        assertEquals(expected, recordedRedirects)
     }
 
     @When("the authenticated user gets the created short link")

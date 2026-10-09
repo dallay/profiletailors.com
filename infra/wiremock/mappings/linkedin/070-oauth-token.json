@@ -5,7 +5,8 @@
     "urlPath": "/oauth/v2/accessToken",
     "headers": {
       "Content-Type": { "contains": "application/x-www-form-urlencoded" }
-    }
+    },
+    "bodyPatterns": [{ "matches": "(?s).*\\bgrant_type=authorization_code\\b.*" }]
   },
   "response": {
     "status": 200,

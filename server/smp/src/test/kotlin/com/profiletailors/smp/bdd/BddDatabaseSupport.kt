@@ -1185,6 +1185,7 @@ class BddDatabaseSupport(
 
     private fun shortLinksCleanupStatements(): List<String> = listOf(
         "DELETE FROM shortlink_idempotency",
+        "DELETE FROM link_clicks",
         "DELETE FROM links",
     )
 

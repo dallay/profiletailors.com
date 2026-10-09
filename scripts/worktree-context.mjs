@@ -140,12 +140,12 @@ function readActiveBackendEnvironment(context) {
 
 export function getComposeEnvironment(context = getWorktreeContext()) {
   const env = getRuntimeEnvironment(context)
+  env.WIREMOCK_HOST_PORT = process.env.WIREMOCK_HOST_PORT || '33185'
   for (const key of [
     'SMP_POSTGRES_PORT',
     'POSTGRES_PORT',
     'MAILPIT_SMTP_PORT',
     'MAILPIT_UI_PORT',
-    'WIREMOCK_HOST_PORT',
     'PROMETHEUS_HOST_PORT',
     'GRAFANA_HOST_PORT',
   ]) {

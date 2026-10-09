@@ -4,6 +4,7 @@ export default {
   analytics: 'Analítica',
   media: 'Librería de Medios',
   ideas: 'Ideas',
+  shortlinks: 'Enlaces cortos',
   governance: 'Gobernanza',
   loadingSection: 'Cargando sección',
   openNavigation: 'Abrir navegación',

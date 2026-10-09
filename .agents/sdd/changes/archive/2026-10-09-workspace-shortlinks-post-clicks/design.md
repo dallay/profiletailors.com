@@ -4,7 +4,7 @@
 
 Keep shortlink ownership in `server/smp/shortlinks`; add post-composer integration through the existing publishing UI/API boundary and a narrow workspace-scoped metric query. Core V1 already creates links with `ownerId` derived from `requireWorkspaceContext()`, and redirects resolve active links by host/code through `ResolveLinkHandler` and the cache. Do not make public resolution disclose management data or require a logged-in workspace.
 
-For publication creation, default to an explicit opt-in in the composer. Create a link before submitting `CreatePublicationCommand`, then replace the URL only in the post body on explicit user confirmation and display the resulting short URL before create. If link creation fails, retain the original body and let the user retry or proceed with the original URL; never silently substitute. Do not mutate links on edit or reschedule. The existing shortlink-management API is authenticated/workspace-context based, but is not suitable as a general frontend client contract until its versioned media-type/auth behavior is confirmed in implementation tasks.
+For publication creation, default to an explicit opt-in in the composer. Create a link before submitting `CreatePublicationCommand`, then replace the URL only in the post body on explicit user confirmation and display the resulting short URL before create. If link creation fails, retain the original body and let the user retry or proceed with the original URL; never silently substitute. Do not mutate links on edit or reschedule. The composer consumes the confirmed authenticated API contract, including the versioned media type and workspace context; document that contract before frontend wiring.
 
 ## Architecture Decisions
 
@@ -21,7 +21,9 @@ For publication creation, default to an explicit opt-in in the composer. Create 
 
 `Public GET /{shortCode} → ResolveLinkHandler (cache/repository) → active resolution → best-effort click insert → existing 302/no-store response`
 
-`Authenticated workspace request → current workspace context → analytics query filters links by owner → aggregate click count by link/time scope → response`
+`Authenticated workspace request → current workspace context → list query scoped by owner_id → links LEFT JOIN click records, grouped per link → response including zero-count links`
+
+The list read is one workspace-filtered database query, not one count query per link. Select the page of non-deleted links owned by the authenticated workspace and left-join a per-link click-count aggregate (or equivalently group the left join), so zero-click links remain present and no N+1 queries occur. Apply `owner_id = :ownerId` inside the links page relation before aggregation. Request `limit` and an opaque `cursor`; order by `created_at DESC, id DESC`. The cursor represents the composite `(created_at, id)` position. For cursor `(t, idCursor)`, seek strictly older rows with `created_at < t OR (created_at = t AND id < idCursor)`, using the database's native ID ordering for the second comparison. Fetch `limit + 1` rows to determine whether a next cursor exists; encode the last returned row's timestamp and ID for the next page. This handles timestamp ties without duplicates or omissions at the page boundary. Pagination is seek-based but has no stable snapshot: inserts/deletes between requests may change later pages. The existing finder only accepts `afterCreatedAt`, orders by timestamp alone, and therefore is insufficient for this tie-safe contract.
 
 ## File Changes
 
@@ -35,7 +37,7 @@ For publication creation, default to an explicit opt-in in the composer. Create 
 
 ## Interfaces / Contracts
 
-Metrics are a protected read endpoint within `/api/v1/links` (exact route finalized with existing controller conventions). Response contains link ID, recorded redirect count, and documented time scope; initial scope is all retained records, with no promised retention or precision. Workspace identity is derived from authenticated request context, never supplied by caller. Preserve API media-type/auth conventions after checking the controller security configuration.
+The protected workspace links list accepts `limit` and optional opaque `cursor`, and returns link fields with recorded click count plus an optional next cursor. Encode the composite cursor payload with the repository's existing `CursorEncoder`/`Base64CursorEncoder` pattern (Base64 encoding); validate/decode it at the HTTP/application boundary and reject malformed payloads as invalid cursors. This is opacity, not encryption or tamper protection. The existing shared `TimestampCursor` and `ReactiveSearchRepositoryImpl` pattern encodes only a timestamp and cannot represent the required tie-breaker, so use a shortlinks-specific composite payload rather than claiming it is directly reusable. The repository query receives the authenticated `OwnerId`, decoded timestamp/ID boundary, and bounded `limit`; workspace identity never comes from client cursor data. Response contains link ID, recorded redirect count, and documented time scope; initial scope is all retained records, with no promised retention or precision. Workspace identity is derived from authenticated request context, never supplied by caller. Preserve API media-type/auth conventions after checking the controller security configuration.
 
 ## Testing Strategy
 

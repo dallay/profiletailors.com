@@ -11,6 +11,12 @@ This document specifies the implementation of the API versioning system using **
 Versioning** via the custom `Accept` header with the format `application/vnd.api.v{version}+json`.
 This leverages the native Spring Boot 4 / WebFlux API versioning support.
 
+## Shortlink click metrics collection
+
+Authenticated workspace members can request `GET /api/v1/links?limit={limit}&cursor={cursor}` with `Accept: application/vnd.api.v1+json`. The endpoint derives workspace ownership from the authenticated request context and returns only that workspace's non-deleted links, each with `recordedRedirects`, the count of all click records currently stored for that link (including zero).
+
+`limit` defaults to 20 and is bounded to 1–100. `cursor` is an opaque URL-safe token encoding the exclusive composite `(created_at, id)` position. Items are ordered by `created_at DESC, id DESC`; the next cursor, when present, follows the final included item. Pagination does not promise a stable snapshot across requests. Malformed cursor and out-of-range limits are rejected as bad requests. The request must be authenticated and include workspace context; the workspace identifier is never accepted as a query parameter.
+
 ## Motivation
 
 ### Before (Manual with produces)

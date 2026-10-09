@@ -1,0 +1,19 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/oauth/v2/authorization",
+    "queryParameters": {
+      "redirect_uri": { "matches": "(https?://(localhost|127\\.0\\.0\\.1|pt-app\\.localhost)(:[0-9]+)?/.+|https?://[^/]+/integrations/linkedin/callback)" },
+      "state": { "matches": ".+" },
+      "response_type": { "equalTo": "code" }
+    }
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "{{{request.query.redirect_uri}}}?code=local-wiremock-authorization-code&state={{{request.query.state}}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

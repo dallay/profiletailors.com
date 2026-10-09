@@ -41,6 +41,7 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 - Analytics: publication performance metrics (planned — surface exists, data connection TBD)
 - Media Library: upload, browse, organise uploaded assets
 - Ideas: capture and organise content ideas (planned — surface exists)
+- Shortlinks: when creating and submitting a new publication, automatically shorten each distinct URL in the post content. Shortening is best-effort: failed URLs remain unchanged and the composer shows a non-blocking warning. Existing publications are not rewritten when edited. Users can review recorded redirect counts in authenticated, paginated workspace analytics.
 - Governance: content takedown request workflow
 - Settings: profile, workspace, integrations (LinkedIn and Threads OAuth), API keys
 - Auth flows: login, register, forgot-password, reset-password, verify-email, provider callback (LinkedIn, Threads)

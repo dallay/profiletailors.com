@@ -409,12 +409,14 @@ onBeforeUnmount(() => {
           <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
             {{ t('nav.loadingSection') }}
           </div>
-          <RouterView v-slot="{ Component, route: matchedRoute }">
+          <RouterView v-slot="{ Component }">
             <Suspense timeout="0">
-              <component
-                :is="Component"
-                :key="route.meta.viewKey ?? route.fullPath"
-              />
+              <div
+                :key="String(route.meta.viewKey ?? route.fullPath)"
+                :class="isSchedulerRoute() ? 'flex min-h-0 flex-1 flex-col' : ''"
+              >
+                <component :is="Component" />
+              </div>
               <template #fallback>
                 <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
                   <span class="sr-only">{{ t('nav.loadingSection') }}</span>
@@ -429,8 +431,8 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </template>
-              </Suspense>
-            </RouterView>
+            </Suspense>
+          </RouterView>
         </main>
 
         <div class="flex items-center justify-center border-t border-border-subtle px-4 py-2">

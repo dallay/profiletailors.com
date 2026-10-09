@@ -1,0 +1,105 @@
+node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+Reusing configuration cache.
+> Task :shared:bus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:lead-capture:waitlist:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:lead-capture:common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:smp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:notifications:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:observability:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:presentation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:security:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:observability:processResources NO-SOURCE
+> Task :shared:common:processResources NO-SOURCE
+> Task :shared:bus:processResources NO-SOURCE
+> Task :shared:notifications:processResources NO-SOURCE
+> Task :shared:presentation:processResources NO-SOURCE
+> Task :shared:lead-capture:common:processResources NO-SOURCE
+> Task :shared:lead-capture:waitlist:processResources NO-SOURCE
+> Task :shared:security:processResources NO-SOURCE
+> Task :shared:spring-boot-common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:shield:ratelimit:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:storage:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:storage:processResources NO-SOURCE
+> Task :shared:shield:ratelimit:processResources NO-SOURCE
+> Task :shared:common:processTestFixturesResources NO-SOURCE
+> Task :server:smp:koverFindJar UP-TO-DATE
+> Task :shared:spring-boot-common:processResources UP-TO-DATE
+> Task :server:smp:bootBuildInfo
+> Task :shared:common:compileKotlin UP-TO-DATE
+> Task :shared:lead-capture:common:compileKotlin UP-TO-DATE
+> Task :shared:observability:compileKotlin UP-TO-DATE
+> Task :shared:lead-capture:common:compileJava NO-SOURCE
+> Task :shared:lead-capture:common:classes UP-TO-DATE
+> Task :shared:observability:compileJava NO-SOURCE
+> Task :shared:common:compileJava NO-SOURCE
+> Task :shared:observability:classes UP-TO-DATE
+> Task :shared:common:classes UP-TO-DATE
+> Task :shared:observability:jar UP-TO-DATE
+> Task :shared:common:jar UP-TO-DATE
+> Task :shared:lead-capture:common:jar UP-TO-DATE
+> Task :server:smp:processResources UP-TO-DATE
+> Task :shared:lead-capture:waitlist:compileKotlin UP-TO-DATE
+> Task :shared:security:compileKotlin UP-TO-DATE
+> Task :server:smp:processTestResources
+> Task :shared:lead-capture:waitlist:compileJava NO-SOURCE
+> Task :shared:security:compileJava NO-SOURCE
+> Task :shared:lead-capture:waitlist:classes UP-TO-DATE
+> Task :shared:security:classes UP-TO-DATE
+> Task :shared:security:jar UP-TO-DATE
+> Task :shared:lead-capture:waitlist:jar UP-TO-DATE
+> Task :shared:common:compileTestFixturesKotlin UP-TO-DATE
+> Task :shared:presentation:compileKotlin UP-TO-DATE
+> Task :shared:bus:compileKotlin UP-TO-DATE
+> Task :shared:common:compileTestFixturesJava NO-SOURCE
+> Task :shared:bus:compileJava NO-SOURCE
+> Task :shared:common:testFixturesClasses UP-TO-DATE
+> Task :shared:bus:classes UP-TO-DATE
+> Task :shared:presentation:compileJava NO-SOURCE
+> Task :shared:presentation:classes UP-TO-DATE
+> Task :shared:common:testFixturesJar UP-TO-DATE
+> Task :shared:bus:jar UP-TO-DATE
+> Task :shared:presentation:jar UP-TO-DATE
+> Task :shared:notifications:compileKotlin UP-TO-DATE
+> Task :shared:notifications:compileJava NO-SOURCE
+> Task :shared:notifications:classes UP-TO-DATE
+> Task :shared:notifications:jar UP-TO-DATE
+> Task :shared:spring-boot-common:compileKotlin UP-TO-DATE
+> Task :shared:spring-boot-common:compileJava NO-SOURCE
+> Task :shared:spring-boot-common:classes UP-TO-DATE
+> Task :shared:spring-boot-common:jar UP-TO-DATE
+> Task :shared:shield:ratelimit:compileKotlin UP-TO-DATE
+> Task :shared:shield:ratelimit:compileJava NO-SOURCE
+> Task :shared:shield:ratelimit:classes UP-TO-DATE
+> Task :shared:shield:ratelimit:jar UP-TO-DATE
+> Task :shared:storage:compileKotlin UP-TO-DATE
+> Task :shared:storage:compileJava NO-SOURCE
+> Task :shared:storage:classes UP-TO-DATE
+> Task :shared:storage:jar UP-TO-DATE
+> Task :server:smp:compileKotlin UP-TO-DATE
+> Task :server:smp:compileJava NO-SOURCE
+> Task :server:smp:classes
+> Task :server:smp:jar
+> Task :server:smp:compileTestKotlin UP-TO-DATE
+> Task :server:smp:compileTestJava NO-SOURCE
+> Task :server:smp:testClasses
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by io.netty.util.internal.NativeLibraryUtil in an unnamed module (file:/Users/acosta/.gradle/caches/modules-2/files-2.1/io.netty/netty-common/4.2.18.Final/aa06ef3310c8ad1e506ec14ab3794f9e26438121/netty-common-4.2.18.Final.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+> Task :server:smp:bddFastTest
+
+2026-10-07T18:18:20.520+02:00  INFO 26271 --- [smp] [ionShutdownHook] o.s.boot.reactor.netty.GracefulShutdown  : Commencing graceful shutdown. Waiting for active requests to complete
+2026-10-07T18:18:20.992+02:00  INFO 26271 --- [smp] [ netty-shutdown] o.s.boot.reactor.netty.GracefulShutdown  : Graceful shutdown complete
+2026-10-07T18:18:20.993+02:00  INFO 26271 --- [smp] [ionShutdownHook] o.s.boot.reactor.netty.GracefulShutdown  : Commencing graceful shutdown. Waiting for active requests to complete
+2026-10-07T18:18:20.998+02:00  INFO 26271 --- [smp] [ netty-shutdown] o.s.boot.reactor.netty.GracefulShutdown  : Graceful shutdown complete
+
+BUILD SUCCESSFUL in 6m 46s
+33 actionable tasks: 4 executed, 29 up-to-date
+Configuration cache entry reused.
+
+EXIT_CODE=0

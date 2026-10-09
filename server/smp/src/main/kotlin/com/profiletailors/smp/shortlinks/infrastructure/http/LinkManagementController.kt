@@ -5,12 +5,17 @@ import com.profiletailors.smp.shortlinks.application.CreateLinkCommand
 import com.profiletailors.smp.shortlinks.application.DeleteLinkCommand
 import com.profiletailors.smp.shortlinks.application.DisableLinkCommand
 import com.profiletailors.smp.shortlinks.application.EnableLinkCommand
+import com.profiletailors.smp.shortlinks.application.GetLinkMetricsQuery
 import com.profiletailors.smp.shortlinks.application.GetLinkQuery
 import com.profiletailors.smp.shortlinks.application.LinkResult
+import com.profiletailors.smp.shortlinks.application.ListWorkspaceLinkMetricsQuery
 import com.profiletailors.smp.shortlinks.application.UpdateLinkCommand
+import com.profiletailors.smp.shortlinks.application.WorkspaceLinkMetricsPage
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
@@ -46,7 +52,24 @@ class LinkManagementController(private val mediator: Mediator) {
         ),
     )
 
-    @Operation(summary = "Get link by ID")
+    @Operation(summary = "Get recorded redirect count for a short link")
+    @GetMapping("/{linkId}/metrics", produces = ["application/vnd.api.v1+json"])
+    suspend fun getLinkMetrics(@PathVariable linkId: UUID): LinkMetricsResult =
+        LinkMetricsResult(recordedRedirects = mediator.send(GetLinkMetricsQuery(linkId)))
+
+    @Operation(
+        summary = "List workspace shortlink click metrics",
+        description =
+        "Lists links owned by the authenticated workspace and their all-stored recorded redirect counts. " +
+            "Results use created_at DESC, id DESC ordering. The opaque cursor seeks exclusively before its " +
+            "composite position; concurrent changes are not represented by a stable snapshot.",
+    )
+    @GetMapping(produces = ["application/vnd.api.v1+json"])
+    suspend fun listWorkspaceLinkMetrics(
+        @Min(1) @Max(100) @RequestParam(defaultValue = "20") limit: Int,
+        @RequestParam(required = false) cursor: String?,
+    ): WorkspaceLinkMetricsPage = mediator.send(ListWorkspaceLinkMetricsQuery(limit, cursor))
+
     @GetMapping("/{linkId}")
     suspend fun getLink(@PathVariable linkId: UUID): LinkResult = mediator.send(GetLinkQuery(linkId))
 
@@ -77,6 +100,8 @@ class LinkManagementController(private val mediator: Mediator) {
     @DeleteMapping("/{linkId}")
     suspend fun deleteLink(@PathVariable linkId: UUID): LinkResult = mediator.send(DeleteLinkCommand(linkId))
 }
+
+data class LinkMetricsResult(val recordedRedirects: Long)
 
 data class CreateLinkRequest(
     @field:NotBlank

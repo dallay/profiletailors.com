@@ -11,6 +11,7 @@ import com.profiletailors.smp.shortlinks.domain.LinkStatus
 import com.profiletailors.smp.shortlinks.domain.OwnerId
 import com.profiletailors.smp.shortlinks.domain.ShortCode
 import com.profiletailors.smp.shortlinks.domain.ShortCodeCollisionException
+import com.profiletailors.smp.shortlinks.domain.WorkspaceLinkCursor
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -18,6 +19,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -74,7 +76,59 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
     @jakarta.annotation.Resource
     private lateinit var clickRecorder: R2dbcRedirectClickRecorder
 
+    @jakarta.annotation.Resource
+    private lateinit var clickMetricsRepository: R2dbcLinkClickMetricsRepository
+
     override suspend fun seedScenario() = Unit
+
+    @Test
+    fun `metrics return zero for an owned link without clicks`() = runTest {
+        val link = link(shortCode = "Metr00")
+        linkRepository.save(link)
+
+        assertEquals(0L, clickMetricsRepository.countByLinkIdAndOwner(link.id, link.ownerId))
+    }
+
+    @Test
+    fun `metrics count clicks only for owned links and return not found for foreign or missing links`() = runTest {
+        val link = link(shortCode = "Metr01")
+        linkRepository.save(link)
+        clickRecorder.record(link.id)
+        clickRecorder.record(link.id)
+
+        assertEquals(2L, clickMetricsRepository.countByLinkIdAndOwner(link.id, link.ownerId))
+        assertNull(clickMetricsRepository.countByLinkIdAndOwner(link.id, OwnerId(UUID.randomUUID())))
+        assertNull(clickMetricsRepository.countByLinkIdAndOwner(LinkId.generate(), link.ownerId))
+    }
+
+    @Test
+    fun `workspace metrics pages seek exclusively by descending timestamp and id`() = runTest {
+        val owner = OwnerId(UUID.randomUUID())
+        val createdAt = Instant.parse("2026-10-01T09:00:00Z")
+        val oldest = link(shortCode = "Page001", owner = owner).copy(createdAt = createdAt)
+        val middle = link(shortCode = "Page002", owner = owner).copy(createdAt = createdAt)
+        val newest = link(shortCode = "Page003", owner = owner).copy(createdAt = createdAt)
+        val foreign = link(shortCode = "Page004").copy(createdAt = createdAt)
+        listOf(oldest, middle, newest, foreign).forEach { linkRepository.save(it) }
+        clickRecorder.record(middle.id)
+        clickRecorder.record(middle.id)
+
+        val first = clickMetricsRepository.findWorkspaceLinksWithMetrics(owner, null, 2)
+        assertEquals(2, first.size)
+        val boundary = first.last()
+        val second = clickMetricsRepository.findWorkspaceLinksWithMetrics(
+            owner,
+            WorkspaceLinkCursor(boundary.link.createdAt, boundary.link.id),
+            2,
+        )
+        assertEquals(setOf(oldest.id, middle.id, newest.id), (first + second).map { it.link.id }.toSet())
+        assertEquals(1, second.size)
+        assertNotEquals(boundary.link.id, second.single().link.id)
+        assertEquals(2L, (first + second).single { it.link.id == middle.id }.recordedRedirects)
+        (first + second)
+            .filter { it.link.id == oldest.id || it.link.id == newest.id }
+            .forEach { assertEquals(0L, it.recordedRedirects) }
+    }
 
     @Test
     fun `migration creates unique redirect key and durable owner scoped idempotency`() = runTest {
@@ -216,11 +270,11 @@ internal class R2dbcShortLinksPostgresIntegrationTest : PostgresIntegrationTestB
         assertTrue(thrown)
     }
 
-    private fun link(shortCode: String): Link {
+    private fun link(shortCode: String, owner: OwnerId = OwnerId(UUID.randomUUID())): Link {
         val now = Instant.parse("2026-01-01T00:00:00Z")
         return Link(
             id = LinkId.generate(),
-            ownerId = OwnerId(UUID.randomUUID()),
+            ownerId = owner,
             domainId = DomainId.fromHost("short.example"),
             shortCode = ShortCode(shortCode),
             destinationUrl = DestinationUrl("https://destination.example/path"),
