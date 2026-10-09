@@ -31,10 +31,12 @@ class RedirectController(private val mediator: Mediator, private val clickRecord
                 clickRecorder.record(linkId)
                 true
             }
-            if (recorded == null) logger.warn("Timed out recording click for link {}", linkId.value)
+            if (recorded == null) logger.warn(CLICK_RECORD_TIMEOUT, linkId.value)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: DataAccessException) {
+            logger.warn(CLICK_RECORD_FAILURE, linkId.value, exception)
+        } catch (exception: IllegalStateException) {
             logger.warn("Failed to record click for link {}", linkId.value, exception)
         }
     }
@@ -66,5 +68,7 @@ class RedirectController(private val mediator: Mediator, private val clickRecord
 
     private companion object {
         const val CLICK_RECORD_TIMEOUT_MILLIS = 250L
+        const val CLICK_RECORD_FAILURE = "Failed to record click for link {}"
+        const val CLICK_RECORD_TIMEOUT = "Timed out recording click for link {}"
     }
 }

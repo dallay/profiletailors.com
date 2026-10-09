@@ -86,6 +86,18 @@ internal class RedirectControllerTest {
     }
 
     @Test
+    fun `runtime tracking failure preserves active redirect`() = runTest {
+        coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
+            ResolveResult("https://example.com/path", "ACTIVE", linkId)
+        coEvery { clickRecorder.record(domainLinkId) } throws IllegalStateException("recorder unavailable")
+
+        val response = controller.redirect("AbC123", request("go.profiletailors.com"))
+
+        assertEquals(HttpStatus.FOUND, response.statusCode)
+        assertEquals("https://example.com/path", response.headers.getFirst(HttpHeaders.LOCATION))
+    }
+
+    @Test
     fun `click recording timeout preserves active redirect`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)

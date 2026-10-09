@@ -1,33 +1,33 @@
-# Informe de aceptación QA — Shortlinks y métricas de clics por workspace
+# QA Acceptance Report — Shortlinks and Workspace Click Analytics
 
-## Identidad
+## Identity
 
-- Cambio: `workspace-shortlinks-post-clicks`
-- Modo: aceptación OpenSpec; fallback manual porque el runner/FSM de QA no está disponible.
-- Fase: re-evaluación de seguridad de QA Phase 4, solo inspección estática/configuración; flujo de navegador no iniciado.
-- Fecha: 2026-10-09.
-- Idioma del informe: español (histórico preservado).
-- Veredicto: **PASS WITH WARNINGS** (passos previos previos como BLOCKED quedan revaluados abajo; rerun 2026-10-09 ~08:39 UTC documenta PASS para los dos escenarios que se pidieron reabrir).
+- Change: `workspace-shortlinks-post-clicks`
+- Mode: OpenSpec acceptance; manual fallback because the QA runner/FSM is unavailable.
+- Phase: QA Phase 4 security reevaluation, static/configuration inspection only; browser flow not started.
+- Date: 2026-10-09.
+- Report language: Spanish (historical record preserved).
+- Verdict: **PASS WITH WARNINGS** (previously BLOCKED steps are reevaluated below; the 2026-10-09 ~08:39 UTC rerun documents PASS for the two scenarios requested for reopening).
 
-## Artefactos fuente y handoff técnico
+## Source Artifacts and Technical Handoff
 
-Revisados en esta reevaluación: `proposal.md`, las dos especificaciones delta (`publishing-shortlinks`, `workspace-shortlink-click-analytics`), `design.md`, `tasks.md`, `state.yaml`, `verify-report-phase4.md`, `application-dev.yaml`, `.env` (solo nombres/targets de configuración), procesos/listeners y contenedores relevantes.
+Reviewed in this reevaluation: `proposal.md`, both delta specifications (`publishing-shortlinks`, `workspace-shortlink-click-analytics`), `design.md`, `tasks.md`, `state.yaml`, `verify-report-phase4.md`, `application-dev.yaml`, `.env` (configuration names/targets only), relevant processes/listeners, and containers.
 
-El handoff técnico Phase 4 informa **PASS WITH WARNINGS** según `verify-report-phase4.md`; no equivale a aceptación de comportamiento de producto. CI remoto y despliegue no se ejecutaron y no se reclaman. El runner/FSM QA está unavailable; se registra `fallback` con limitación de no disponer de ejecución automatizada.
+The Phase 4 technical handoff reports **PASS WITH WARNINGS** according to `verify-report-phase4.md`; it does not constitute acceptance of product behavior. Remote CI and deployment were not run and are not claimed. The QA runner/FSM is unavailable; `fallback` is recorded with the limitation that automated execution was unavailable.
 
-## Re-evaluación de límites de seguridad — 2026-10-09
+## Security Boundary Reevaluation — 2026-10-09
 
-Se revisaron `state.yaml`, `proposal.md`, ambas especificaciones delta, `design.md`, `tasks.md`, `verify-report-phase4.md`, configuración de `application-dev.yaml`, configuración `.env` (sin registrar valores sensibles), procesos/listeners locales y contenedores Docker. La inspección no autoriza ni demuestra aislamiento suficiente para iniciar interacción con el navegador o una acción que parezca publicar.
+Reviewed `state.yaml`, `proposal.md`, both delta specifications, `design.md`, `tasks.md`, `verify-report-phase4.md`, `application-dev.yaml` configuration, `.env` configuration (without recording sensitive values), local processes/listeners, and Docker containers. This inspection neither authorizes nor demonstrates sufficient isolation to begin browser interaction or an action that could publish.
 
-- Encontrado en `application-dev.yaml`: `publishing-api-base-url` resuelve por defecto a `http://localhost:33185`.
-- Encontrado en `.env`: `SMP_LINKEDIN_PUBLISHING_API_BASE_URL` está configurado hacia `localhost:33185`; `SMP_PUBLISHING_WORKER_ENABLED=true`. No se cambió `.env` en esta corrida.
-- El puerto 33185 está escuchando a través de `gvproxy`, y `profile-tailors-linkedin-wiremock-1` está `Up 9 hours (healthy)`. Esto solo prueba que hay un WireMock disponible, no que todas las rutas de publicación y refresh de token estén interceptadas/exclusivamente mock para la sesión backend objetivo ni que una reautorización a proveedor sea imposible.
-- No hay backend local escuchando en 7638/9091 ahora. Hay un listener de Portless en 1355; no se abrió ni manipuló el navegador. El runtime previo registrado en el informe no es evidencia de la configuración efectiva actual.
-- Variables `SMP_LINKEDIN_API_BASE_URL`, `SMP_LINKEDIN_AUTHORIZATION_BASE_URL` y `SMP_LINKEDIN_TOKEN_BASE_URL` no están exportadas en el shell actual. No se verificaron env vars de procesos que pudieran pertenecer a otro usuario/sesión ni se detuvo ninguno.
-- La especificación/tasks requieren validar save payload y reread como member. El estado anterior los registra como no probados; no se ejecutaron requests mutantes en esta corrida.
-- No se intentó Schedule Now, publicar, guardar, vincular cuenta, refresh de credenciales, borrar datos ni restaurar/modificar backups o procesos.
+- Found in `application-dev.yaml`: `publishing-api-base-url` resolves by default to `http://localhost:33185`.
+- Found in `.env`: `SMP_LINKEDIN_PUBLISHING_API_BASE_URL` points to `localhost:33185`; `SMP_PUBLISHING_WORKER_ENABLED=true`. `.env` was not changed in this run.
+- Port 33185 is listening through `gvproxy`, and `profile-tailors-linkedin-wiremock-1` is `Up 9 hours (healthy)`. This only proves that a WireMock is available; it does not prove that all publishing and token-refresh routes are intercepted and exclusively mocked for the target backend session, or that provider reauthorization is impossible.
+- No local backend is listening on ports 7638/9091 now. A Portless listener is running on 1355; the browser was not opened or manipulated. The prior runtime recorded in this report is not evidence of the currently effective configuration.
+- The `SMP_LINKEDIN_API_BASE_URL`, `SMP_LINKEDIN_AUTHORIZATION_BASE_URL`, and `SMP_LINKEDIN_TOKEN_BASE_URL` variables are not exported in the current shell. Environment variables of processes that might belong to another user/session were not checked, and no processes were stopped.
+- The specification/tasks require validating the save payload and rereading as a member. The previous status records these as untested; no mutating requests were run in this pass.
+- Schedule Now, publishing, saving, account linking, credential refresh, data deletion, and backup/process restoration or modification were not attempted.
 
-**Resultado de la puerta obligatoria:** la condición “rutas de publisher exclusivamente mock” no queda probada end-to-end para la configuración/runtime que usaría el navegador. Tampoco queda probada la autorización/seguridad para provider refresh; existe un mapping WireMock y notas históricas de éxito de refresh mock, pero no hay evidencia actual y acotada que pruebe que no se dispararía autorización real. Conforme a la instrucción, se detuvo antes de cualquier browser interaction o acción tipo post.
+**Mandatory gate result:** the condition “publisher routes exclusively mocked” is not proven end-to-end for the configuration/runtime that the browser would use. Authorization/security for provider refresh is also unproven; a WireMock mapping and historical notes of successful mocked refresh exist, but there is no current, scoped evidence proving that real authorization would not be triggered. As instructed, the run stopped before any browser interaction or post-like action.
 
 ## Objetivo, entorno, permisos y limitaciones
 

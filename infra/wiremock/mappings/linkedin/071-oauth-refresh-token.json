@@ -4,13 +4,21 @@
     "method": "POST",
     "urlPath": "/oauth/v2/accessToken",
     "headers": {
-      "Content-Type": { "contains": "application/x-www-form-urlencoded" }
+      "Content-Type": {
+        "contains": "application/x-www-form-urlencoded"
+      }
     },
-    "bodyPatterns": [{ "matches": "(?s)(?:^|&)grant_type=refresh_token(?:&|$)" }]
+    "bodyPatterns": [
+      {
+        "matches": "(?s)^.*(?:^|&)grant_type=refresh_token(?:&|$).*$"
+      }
+    ]
   },
   "response": {
     "status": 200,
-    "headers": { "Content-Type": "application/json" },
+    "headers": {
+      "Content-Type": "application/json"
+    },
     "jsonBody": {
       "access_token": "mock-refreshed-access-token-local-dev",
       "expires_in": 5184000,

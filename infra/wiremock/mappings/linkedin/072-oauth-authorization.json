@@ -4,16 +4,24 @@
     "method": "GET",
     "urlPath": "/oauth/v2/authorization",
     "queryParameters": {
-      "redirect_uri": { "matches": "(https?://(localhost|127\\.0\\.0\\.1|pt-app\\.localhost)(:[0-9]+)?/.+|https?://[^/]+/integrations/linkedin/callback)" },
-      "state": { "matches": ".+" },
-      "response_type": { "equalTo": "code" }
+      "redirect_uri": {
+        "matches": "(https?://(localhost|127\\.0\\.0\\.1|pt-app\\.localhost)(:[0-9]+)?/.+|https?://[^/]+/integrations/linkedin/callback)"
+      },
+      "state": {
+        "matches": ".+"
+      },
+      "response_type": {
+        "equalTo": "code"
+      }
     }
   },
   "response": {
     "status": 302,
     "headers": {
-      "Location": "{{#assign 'separator'}}{{#if (contains request.query.redirect_uri '?')}}&{{else}}?{{/if}}{{/assign}}{{#assign 'base'}}{{#if (contains request.query.redirect_uri '#')}}{{substring request.query.redirect_uri 0 (indexOf request.query.redirect_uri '#')}}{{else}}{{request.query.redirect_uri}}{{/if}}{{/assign}}{{{base}}}{{separator}}code=local-wiremock-authorization-code&state={{{request.query.state}}}{{#if (contains request.query.redirect_uri '#')}}#{{substring request.query.redirect_uri (add (indexOf request.query.redirect_uri '#') 1)}}{{/if}}"
+      "Location": "{{#assign 'base'}}{{#if (contains request.query.redirect_uri '#')}}{{substring request.query.redirect_uri 0 (indexOf request.query.redirect_uri '#')}}{{else}}{{request.query.redirect_uri}}{{/if}}{{/assign}}{{#assign 'separator'}}{{#if (contains base '?')}}&{{else}}?{{/if}}{{/assign}}{{{base}}}{{separator}}code=local-wiremock-authorization-code&state={{{request.query.state}}}{{#if (contains request.query.redirect_uri '#')}}#{{substring request.query.redirect_uri (add (indexOf request.query.redirect_uri '#') 1)}}{{/if}}"
     },
-    "transformers": ["response-template"]
+    "transformers": [
+      "response-template"
+    ]
   }
 }

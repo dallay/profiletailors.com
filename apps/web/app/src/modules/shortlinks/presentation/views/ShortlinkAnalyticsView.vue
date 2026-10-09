@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useWorkspaceStore } from '@modules/workspace'
 import { listWorkspaceShortlinkMetrics, type WorkspaceLinkMetric } from '@modules/shortlinks'
 import { useI18n } from 'vue-i18n'
 
@@ -11,18 +11,24 @@ const cursors = ref<Array<string | null>>([null])
 const isLoading = ref(false)
 const error = ref(false)
 const workspaceStore = useWorkspaceStore()
+let requestId = 0
 
 async function loadPage(pageCursor: string | null) {
+  const currentRequestId = ++requestId
+  const requestedWorkspaceId = workspaceStore.activeWorkspaceId
   isLoading.value = true
   error.value = false
   try {
     const page = await listWorkspaceShortlinkMetrics(pageCursor)
+    if (currentRequestId !== requestId || requestedWorkspaceId !== workspaceStore.activeWorkspaceId) return
     links.value = page.links
     nextCursor.value = page.nextCursor
   } catch {
-    error.value = true
+    if (currentRequestId === requestId && requestedWorkspaceId === workspaceStore.activeWorkspaceId) {
+      error.value = true
+    }
   } finally {
-    isLoading.value = false
+    if (currentRequestId === requestId) isLoading.value = false
   }
 }
 
@@ -41,6 +47,7 @@ async function loadPreviousPage() {
 }
 
 onMounted(() => loadPage(null))
+onUnmounted(() => { requestId += 1 })
 watch(() => workspaceStore.activeWorkspaceId, () => {
   cursors.value = [null]
   nextCursor.value = null

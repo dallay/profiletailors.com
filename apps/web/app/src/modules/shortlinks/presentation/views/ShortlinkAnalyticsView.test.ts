@@ -30,7 +30,7 @@ const metric = (id: string, recordedRedirects: number) => ({
 
 describe('ShortlinkAnalyticsView', () => {
   it('reloads the first page when the active workspace changes', async () => {
-    const workspace = await import('@modules/workspace/infrastructure/workspace.store')
+    const workspace = await import('@modules/workspace')
     const { createPinia, setActivePinia } = await import('pinia')
     setActivePinia(createPinia())
     const store = workspace.useWorkspaceStore()
@@ -41,6 +41,36 @@ describe('ShortlinkAnalyticsView', () => {
     store.setActiveWorkspaceId('workspace-b')
     await flushPromises()
     expect(listWorkspaceShortlinkMetrics.mock.calls.map(([cursor]) => cursor)).toEqual([null, null])
+    wrapper.unmount()
+  })
+
+  it('ignores results from a previous workspace request', async () => {
+    const { createPinia, setActivePinia } = await import('pinia')
+    const workspace = await import('@modules/workspace')
+    setActivePinia(createPinia())
+    const store = workspace.useWorkspaceStore()
+    store.setActiveWorkspaceId('workspace-a')
+    let resolveWorkspaceA:
+      | ((value: { links: ReturnType<typeof metric>[]; nextCursor: null }) => void)
+      | undefined
+    listWorkspaceShortlinkMetrics
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveWorkspaceA = resolve
+          }),
+      )
+      .mockResolvedValueOnce({ links: [metric('workspace-b', 4)], nextCursor: null })
+
+    const wrapper = mount(ShortlinkAnalyticsView)
+    await flushPromises()
+    store.setActiveWorkspaceId('workspace-b')
+    await flushPromises()
+    resolveWorkspaceA?.({ links: [metric('workspace-a', 2)], nextCursor: null })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('workspace-b')
+    expect(wrapper.text()).not.toContain('workspace-a')
     wrapper.unmount()
   })
 

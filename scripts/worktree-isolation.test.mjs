@@ -26,20 +26,37 @@ test('derives a valid isolated worktree identity', () => {
 })
 
 test('exports worktree runtime and dynamic Compose defaults', () => {
-  const context = getWorktreeContext()
-  const runtime = getRuntimeEnvironment(context)
-  const compose = getComposeEnvironment(context)
+  const linkedinBaseUrlKeys = [
+    'SMP_LINKEDIN_API_BASE_URL',
+    'SMP_LINKEDIN_PUBLISHING_API_BASE_URL',
+    'SMP_LINKEDIN_AUTHORIZATION_BASE_URL',
+    'SMP_LINKEDIN_TOKEN_BASE_URL',
+  ]
+  const previousLinkedinBaseUrls = new Map(
+    linkedinBaseUrlKeys.map((key) => [key, process.env[key]]),
+  )
+  try {
+    for (const key of linkedinBaseUrlKeys) delete process.env[key]
+    const context = getWorktreeContext()
+    const runtime = getRuntimeEnvironment(context)
+    const compose = getComposeEnvironment(context)
 
-  assert.equal(runtime.WORKTREE_ROOT, context.root)
-  assert.equal(runtime.WORKTREE_ID, context.worktreeId)
-  assert.equal(runtime.COMPOSE_PROJECT_NAME, context.composeProjectName)
-  assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
-  assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
-  assert.equal(compose.WIREMOCK_HOST_PORT, context.wiremockHostPort)
-  assert.equal(runtime.SMP_LINKEDIN_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
-  assert.equal(runtime.SMP_LINKEDIN_PUBLISHING_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
-  assert.equal(runtime.SMP_LINKEDIN_AUTHORIZATION_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`)
-  assert.equal(runtime.SMP_LINKEDIN_TOKEN_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/accessToken`)
+    assert.equal(runtime.WORKTREE_ROOT, context.root)
+    assert.equal(runtime.WORKTREE_ID, context.worktreeId)
+    assert.equal(runtime.COMPOSE_PROJECT_NAME, context.composeProjectName)
+    assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
+    assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
+    assert.equal(compose.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+    assert.equal(runtime.SMP_LINKEDIN_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
+    assert.equal(runtime.SMP_LINKEDIN_PUBLISHING_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
+    assert.equal(runtime.SMP_LINKEDIN_AUTHORIZATION_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`)
+    assert.equal(runtime.SMP_LINKEDIN_TOKEN_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/accessToken`)
+  } finally {
+    for (const [key, value] of previousLinkedinBaseUrls) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
 })
 
 test('uses the root env CORS allow-list when the process environment omits it', () => {

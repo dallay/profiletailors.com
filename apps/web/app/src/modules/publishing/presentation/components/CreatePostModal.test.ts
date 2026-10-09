@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import type { Component } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
@@ -16,37 +16,17 @@ import {
 import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
+import { toast } from 'vue-sonner'
 import CreatePostModalComponent from './CreatePostModal.vue'
 
 const { createShortlink } = vi.hoisted(() => ({ createShortlink: vi.fn() }))
 
-vi.mock('@modules/shortlinks', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@modules/shortlinks')>()
-  return {
-    ...actual,
-    useComposerShortlinks: () => ({
-      failedUrls: [],
-      shortlinkWarning: { value: false },
-      shorten: async (content: string) => {
-        const urls = [
-          ...new Set(
-            (content.match(/https?:\/\/[^\s<>()]+/g) ?? []).map((url) =>
-              url.replace(/[.,!?;:]+$/, ''),
-            ),
-          ),
-        ]
-        let result = content
-        for (const url of urls) {
-          try {
-            const shortened = await createShortlink(url)
-            result = result.replaceAll(url, shortened.shortUrl)
-          } catch {}
-        }
-        return result
-      },
-      reset: vi.fn(),
-    }),
-  }
+vi.mock('vue-sonner', () => ({ toast: { warning: vi.fn() } }))
+
+vi.mock('@modules/shortlinks/infrastructure/shortlinks-api', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@modules/shortlinks/infrastructure/shortlinks-api')>()
+  return { ...actual, createShortlink }
 })
 
 // ---------------------------------------------------------------------------
@@ -1254,6 +1234,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     document.body.innerHTML = ''
     vi.clearAllMocks()
     vi.mocked(createShortlink).mockReset()
+    vi.mocked(toast.warning).mockReset()
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -1771,11 +1752,20 @@ describe('CreatePostModal.vue — AI assistant', () => {
     Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
       .find((button) => button.textContent?.includes('Schedule Now'))
       ?.click()
+    await flushPromises()
     await flushModal(wrapper)
 
     expect(createShortlink).toHaveBeenCalledTimes(2)
-    expect(createShortlink).toHaveBeenNthCalledWith(1, 'https://example.com/article')
-    expect(createShortlink).toHaveBeenNthCalledWith(2, 'https://other.example/page')
+    expect(createShortlink).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com/article',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(createShortlink).toHaveBeenNthCalledWith(
+      2,
+      'https://other.example/page',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
@@ -1807,6 +1797,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
       .find((button) => button.textContent?.includes('Schedule Now'))
       ?.click()
+    await flushPromises()
     await flushModal(wrapper)
 
     expect(createShortlink).toHaveBeenCalledTimes(2)
@@ -1815,8 +1806,8 @@ describe('CreatePostModal.vue — AI assistant', () => {
         content: 'https://example.com/article and https://pt.link/b',
       }),
     )
-    expect(document.body.querySelector('[role="status"]')?.textContent).toContain(
-      'Some links could not be shortened and remain unchanged.',
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Some links could not be shortened and remain unchanged. https://example.com/article',
     )
   })
 

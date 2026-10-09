@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
@@ -1197,6 +1198,9 @@ async function handleCreateSubmit(
     assetIds: [...picker.draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
+  if (failedShortlinkUrls.value.length > 0) {
+    toast.warning(`${t('shortlinks.createFailed')} ${failedShortlinkUrls.value.join(', ')}`)
+  }
   emit('created', { keepOpen: createAnother.value, publicationId: created.id })
   finalizeAfterCreate(createAnother.value)
 }

@@ -10,6 +10,12 @@ describe('extractDistinctUrls', () => {
     ).toEqual(['https://example.com', 'https://other.test'])
   })
 
+  it('keeps parentheses that are part of a destination URL', () => {
+    expect(extractDistinctUrls('Read https://example.com/a_(b).')).toEqual([
+      'https://example.com/a_(b)',
+    ])
+  })
+
   it('returns no URLs for plain text', () => {
     expect(extractDistinctUrls('No links here')).toEqual([])
   })
@@ -41,6 +47,16 @@ describe('replaceShortenedUrl', () => {
       replaceShortenedUrl(
         'Read https://example.com/path, now',
         'https://example.com/path',
+        'https://pt.link/a',
+      ),
+    ).toBe('Read https://pt.link/a, now')
+  })
+
+  it('replaces a URL containing parentheses and preserves its trailing punctuation', () => {
+    expect(
+      replaceShortenedUrl(
+        'Read https://example.com/a_(b), now',
+        'https://example.com/a_(b)',
         'https://pt.link/a',
       ),
     ).toBe('Read https://pt.link/a, now')

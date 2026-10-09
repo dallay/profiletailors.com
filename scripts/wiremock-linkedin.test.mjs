@@ -14,7 +14,7 @@ test('LinkedIn authorization-code exchange matches a whole form parameter only',
 
   assert.equal(mapping.request.method, 'POST')
   assert.equal(mapping.request.urlPath, '/oauth/v2/accessToken')
-  for (const body of ['grant_type=authorization_code', 'client_id=x&grant_type=authorization_code&code=y']) {
+  for (const body of ['grant_type=authorization_code', 'client_id=x&grant_type=authorization_code&code=y', 'code=y&grant_type=authorization_code&client_id=x']) {
     assert.match(body, pattern)
   }
   for (const body of ['xgrant_type=authorization_code', 'grant_type=authorization_codex', 'grant_type=not_authorization_code']) {
@@ -26,7 +26,7 @@ test('LinkedIn refresh exchange matches a whole refresh_token form parameter onl
   const mapping = readMapping('071-oauth-refresh-token.json')
   const pattern = javaRegex(requestBodyPattern(mapping))
 
-  for (const body of ['grant_type=refresh_token', 'client_id=x&grant_type=refresh_token&refresh_token=y']) {
+  for (const body of ['grant_type=refresh_token', 'client_id=x&grant_type=refresh_token&refresh_token=y', 'refresh_token=y&grant_type=refresh_token&client_id=x']) {
     assert.match(body, pattern)
   }
   for (const body of ['xgrant_type=refresh_token', 'grant_type=refresh_tokenx', 'grant_type=not_refresh_token']) {
@@ -71,10 +71,11 @@ test('LinkedIn browser authorization accepts the representative callback URI', (
   assert.match('http://localhost:5173/integrations/linkedin/callback', callbackMatcher)
 })
 
-test('LinkedIn authorization redirect template inserts code and state before fragments', () => {
+test('LinkedIn authorization redirect selects its separator from the fragment-free callback URL', () => {
   const mapping = readMapping('072-oauth-authorization.json')
   const location = mapping.response.headers.Location
 
+  assert.match(location, /assign 'base'[\s\S]*assign 'separator'[\s\S]*contains base '\?'[\s\S]*&[\s\S]*\?[\s\S]*\{\{\{base\}\}\}/)
   assert.match(location, /code=local-wiremock-authorization-code/)
   assert.match(location, /state=\{\{\{request\.query\.state\}\}\}/)
   assert.match(location, /#.*code=|#.*state=/)
