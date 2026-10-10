@@ -28,7 +28,7 @@
     "@profiletailors/shared-web": "workspace:*",
     "@profiletailors/vue-ui": "workspace:*",
     "@sentry/vue": "11.2.0",
-    "@tanstack/vue-table": "^9.2.4",
+    "@tanstack/vue-table": "^9.2.6",
     "@vueuse/core": "^15.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
