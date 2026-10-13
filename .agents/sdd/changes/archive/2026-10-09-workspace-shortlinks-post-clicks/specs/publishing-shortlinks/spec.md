@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This archived delta is superseded by the authoritative [publishing-shortlinks specification](../../../../specs/publishing-shortlinks/spec.md), which owns shortlink behavior.
+This archived delta is superseded by the authoritative [publishing-shortlinks specification](../../../../../specs/publishing-shortlinks/spec.md), which owns shortlink behavior.
 
 ## Requirements
 
 ### Requirement: Automatic Shortlink Replacement at Publication Creation
 
-For shortlink replacement behavior, see the authoritative [publishing-shortlinks specification](../../../../specs/publishing-shortlinks/spec.md). Deduplication applies only within one post.
+For shortlink replacement behavior, see the authoritative [publishing-shortlinks specification](../../../../../specs/publishing-shortlinks/spec.md). Deduplication applies only within one post.
 
 #### Scenario: Publication with a single distinct link shortens automatically at submit
 
