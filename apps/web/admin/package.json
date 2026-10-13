@@ -40,7 +40,7 @@
     "vee-validate": "^4.15.1",
     "vue": "3.5.43",
     "vue-i18n": "11.4.13",
-    "vue-router": "5.3.1",
+    "vue-router": "5.4.0",
     "vue-sonner": "^2.0.9",
     "zod": "4.6.5"
   },
@@ -57,6 +57,6 @@
     "typescript": "~6.0.3",
     "vite": "8.3.2",
     "vitest": "^5.0.3",
-    "vue-tsc": "3.3.11"
+    "vue-tsc": "3.3.12"
   }
 }
