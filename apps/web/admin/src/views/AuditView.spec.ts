@@ -137,6 +137,8 @@ describe('AuditView', () => {
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledTimes(2)
-    expect(mockRequest.mock.calls[1][0]).toContain('action=USER_DISABLE')
+    const secondCall = mockRequest.mock.calls[1]
+    expect(secondCall).toBeDefined()
+    expect(secondCall?.[0]).toContain('action=USER_DISABLE')
   })
 })

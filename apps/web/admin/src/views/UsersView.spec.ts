@@ -169,7 +169,9 @@ describe('UsersView', () => {
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledTimes(2)
-    expect(mockRequest.mock.calls[1][0]).toContain('email=john')
+    const secondCall = mockRequest.mock.calls[1]
+    expect(secondCall).toBeDefined()
+    expect(secondCall?.[0]).toContain('email=john')
   })
 
   it('supports pagination next and previous triggers', async () => {
@@ -193,6 +195,8 @@ describe('UsersView', () => {
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledTimes(2)
-    expect(mockRequest.mock.calls[1][0]).toContain('page=1')
+    const secondCall = mockRequest.mock.calls[1]
+    expect(secondCall).toBeDefined()
+    expect(secondCall?.[0]).toContain('page=1')
   })
 })
