@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: shortlinks-003-create-link-clicks
+      author: yuniel acosta
+      changes:
+        - createTable:
+            tableName: link_clicks
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: link_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_link_clicks_link
+                    references: links(id)
+              - column:
+                  name: recorded_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: link_clicks
+            indexName: idx_link_clicks_link_id
+            columns:
+              - column:
+                  name: link_id

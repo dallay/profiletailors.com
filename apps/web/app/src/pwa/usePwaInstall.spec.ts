@@ -35,4 +35,25 @@ describe('usePwaInstall', () => {
     expect(wrapper.vm.showIosGuide).toBe(true)
     wrapper.unmount()
   })
+
+  it('removes the browser listener once the deferred prompt is captured', () => {
+    const removeSpy = vi.spyOn(window, 'removeEventListener')
+    const HarnessWithInstall = defineComponent({
+      setup() {
+        const { canInstall } = usePwaInstall()
+        return { canInstall }
+      },
+      template: '<button data-testid="install" @click="$attrs.onClick" />',
+    })
+    const harness = mount(HarnessWithInstall)
+    class StubEvent extends Event {
+      prompt = vi.fn()
+      userChoice = Promise.resolve({ outcome: 'accepted' as const })
+    }
+    removeSpy.mockClear()
+    window.dispatchEvent(new StubEvent('beforeinstallprompt'))
+    expect(harness.vm.canInstall).toBe(true)
+    expect(removeSpy).toHaveBeenCalledWith('beforeinstallprompt', expect.any(Function))
+    harness.unmount()
+  })
 })

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Images,
   LayoutGrid,
+  Link,
   Lightbulb,
   Settings,
   Shield,
@@ -12,8 +13,9 @@ import {
 export const navIconByName: Record<string, Component> = {
   BarChart3,
   CalendarDays,
-  Images,
   LayoutGrid,
+  Link,
+  Images,
   Lightbulb,
   Settings,
   Shield,

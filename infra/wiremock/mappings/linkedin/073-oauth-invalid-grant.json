@@ -1,0 +1,18 @@
+{
+  "priority": 11,
+  "request": {
+    "method": "POST",
+    "urlPath": "/oauth/v2/accessToken",
+    "headers": {
+      "Content-Type": { "contains": "application/x-www-form-urlencoded" }
+    },
+    "bodyPatterns": [{ "matches": "^(?!.*(?:^|&)grant_type=(?:authorization_code|refresh_token)(?:&|$)).*$" }]
+  },
+  "response": {
+    "status": 400,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "error": "unsupported_grant_type"
+    }
+  }
+}

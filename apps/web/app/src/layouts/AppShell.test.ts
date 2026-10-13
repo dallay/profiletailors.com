@@ -298,6 +298,7 @@ vi.mock('@lucide/vue', () => ({
   BarChart3: { template: '<svg />' },
   CalendarDays: { template: '<svg />' },
   Images: { template: '<svg />' },
+  Link: { template: '<svg />' },
   Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
   Settings: { template: '<svg />' },
@@ -354,6 +355,24 @@ describe('AppShell scheduler sidebar navigation', () => {
       wrapper.unmount()
     },
   )
+
+  it('keeps the scheduler route from scrolling outside its calendar viewport', async () => {
+    routeState.path = '/scheduler/calendar/week'
+    routeState.name = 'scheduler-calendar-week'
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    await flushPromises()
+
+    const mainContent = wrapper.get('#main-content')
+
+    expect(mainContent.classes()).toContain('overflow-hidden')
+    expect(mainContent.classes()).not.toContain('overflow-y-auto')
+
+    wrapper.unmount()
+  })
 
   it('clears abandoned loading on duplicate navigation while the import remains unresolved', async () => {
     const page = defineComponent({ template: '<div>Page</div>' })

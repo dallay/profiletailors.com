@@ -4,6 +4,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
@@ -20,10 +21,9 @@ class RefreshSessionOriginValidationWebFilter(
     private val refreshSessionProperties: RefreshSessionProperties,
 ) : WebFilter {
 
-    private val allowedOrigins: Set<String>
-        get() = corsProperties.allowedOrigins.asSequence()
-            .mapNotNull(::normalizeOrigin)
-            .toSet()
+    private val allowedOrigins = CorsConfiguration().apply {
+        allowedOriginPatterns = corsProperties.allowedOrigins
+    }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request = exchange.request
@@ -66,7 +66,7 @@ class RefreshSessionOriginValidationWebFilter(
     private fun isTrustedOrigin(origin: String, exchange: ServerWebExchange): Boolean {
         val requestOrigin = requestOrigin(exchange)
         if (requestOrigin != null && origin == requestOrigin) return true
-        return allowedOrigins.contains(origin)
+        return allowedOrigins.checkOrigin(origin) != null
     }
 
     private fun requestOrigin(exchange: ServerWebExchange): String? {

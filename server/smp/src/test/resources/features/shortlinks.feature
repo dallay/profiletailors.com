@@ -28,6 +28,46 @@ Feature: Short link management
     And an authenticated user requests the created short link from another workspace
     Then the short links response status should be 404
 
+  Scenario: Workspace member reads recorded metrics for an owned link
+    Given the short links workspace is prepared
+    When an authenticated user creates a short link
+    And the authenticated user requests metrics for the created short link
+    Then the short links response status should be 200
+    And the recorded redirect count should be 0
+
+  Scenario: Workspace shortlink metrics collection includes owned links and click counts
+    Given the short links workspace is prepared
+    When an authenticated user creates a short link
+    And a client resolves the created active short link
+    And an authenticated user creates a short link
+    And an authenticated user creates a short link in another workspace
+    And the authenticated user lists workspace link metrics with limit 10
+    Then the short links response status should be 200
+    And the workspace metrics page should contain exactly the created workspace link ids
+    And the workspace metrics page should report 1 recorded redirect for the clicked link
+    And the workspace metrics page should report 0 recorded redirects for the unclicked link
+
+  Scenario: Workspace metrics cursor returns the next link without duplicates
+    Given the short links workspace is prepared
+    When an authenticated user creates a short link
+    And an authenticated user creates a short link
+    And the authenticated user lists workspace link metrics with limit 1
+    Then the workspace metrics page should include a continuation cursor
+    When the authenticated user follows the workspace metrics cursor with limit 1
+    Then the short links response status should be 200
+    And the workspace metrics page should contain 1 link
+    And the workspace metrics page should include the created link ids from both pages
+
+  Scenario: Reject unauthenticated metrics request
+    When a client requests metrics without authentication
+    Then the short links response status should be 401
+
+  Scenario: A user cannot read metrics for a link owned by another workspace
+    Given the short links workspace is prepared
+    When an authenticated user creates a short link
+    And an authenticated user requests metrics for the created short link from another workspace
+    Then the short links response status should be 404
+
   Scenario: Unknown public short codes do not redirect
     When a client resolves an unknown public short code
     Then the short links response status should be 404

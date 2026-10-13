@@ -45,6 +45,64 @@ class RefreshSessionOriginValidationWebFilterTest {
     }
 
     @Test
+    fun `allows refresh request from localhost origin pattern with arbitrary port`() {
+        val filterWithLocalhostPattern = RefreshSessionOriginValidationWebFilter(
+            corsProperties = CorsConfigurationProperties(
+                allowedOrigins = listOf("https://*.localhost:[*]"),
+            ),
+            refreshSessionProperties = RefreshSessionProperties(
+                cookieName = "pt_refresh",
+                cookiePath = "/api/auth",
+                sameSite = "Lax",
+                secure = true,
+                ttlSeconds = 604_800,
+            ),
+        )
+        val exchange = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/auth/refresh")
+                .header(HttpHeaders.ORIGIN, "https://workspace.pt-app.localhost:1355")
+                .header(HttpHeaders.COOKIE, "pt_refresh=lookup.secret")
+                .build(),
+        )
+        var chainCalled = false
+
+        filterWithLocalhostPattern.filter(
+            exchange,
+            WebFilterChain {
+                chainCalled = true
+                Mono.empty()
+            },
+        ).block()
+
+        chainCalled shouldBe true
+    }
+
+    @Test
+    fun `cors allows localhost origin pattern with credentials`() {
+        val corsConfigurationSource = IdentitySecurityConfiguration().corsConfigurationSource(
+            CorsConfigurationProperties(
+                allowedOrigins = listOf(
+                    "https://*.localhost:[*]",
+                    "http://*.localhost:[*]",
+                    "http://localhost:[*]",
+                ),
+                allowCredentials = true,
+            ),
+        )
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
+
+        listOf(
+            "https://pt-app.localhost",
+            "https://workspace.pt-app.localhost:1355",
+            "http://workspace.pt-app.localhost:5174",
+            "http://localhost:5173",
+        ).forEach { origin ->
+            corsConfigurationSource.getCorsConfiguration(exchange)?.checkOrigin(origin) shouldBe origin
+        }
+        corsConfigurationSource.getCorsConfiguration(exchange)?.allowCredentials shouldBe true
+    }
+
+    @Test
     fun `rejects logout request with cookie and no origin metadata`() {
         val exchange = MockServerWebExchange.from(
             MockServerHttpRequest.post("/api/auth/logout")

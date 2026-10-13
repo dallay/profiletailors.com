@@ -4,6 +4,7 @@ import { usePwaInstall } from './usePwaInstall'
 
 const { t } = useI18n()
 const { canInstall, install, showIosGuide } = usePwaInstall()
+
 </script>
 
 <template>

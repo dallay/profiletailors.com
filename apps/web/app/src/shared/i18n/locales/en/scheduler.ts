@@ -61,4 +61,5 @@ export default {
   productTour: 'Product tour',
   previousPeriod: 'Previous period',
   nextPeriod: 'Next period',
+  now: 'Now',
 }

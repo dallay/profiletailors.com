@@ -5,9 +5,13 @@ import com.profiletailors.smp.shortlinks.application.CreateLinkCommand
 import com.profiletailors.smp.shortlinks.application.DeleteLinkCommand
 import com.profiletailors.smp.shortlinks.application.DisableLinkCommand
 import com.profiletailors.smp.shortlinks.application.EnableLinkCommand
+import com.profiletailors.smp.shortlinks.application.GetLinkMetricsQuery
 import com.profiletailors.smp.shortlinks.application.GetLinkQuery
 import com.profiletailors.smp.shortlinks.application.LinkResult
+import com.profiletailors.smp.shortlinks.application.ListWorkspaceLinkMetricsQuery
 import com.profiletailors.smp.shortlinks.application.UpdateLinkCommand
+import com.profiletailors.smp.shortlinks.application.WorkspaceLinkMetricResult
+import com.profiletailors.smp.shortlinks.application.WorkspaceLinkMetricsPage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -30,6 +34,10 @@ internal class LinkManagementControllerTest {
         createdAt = Instant.parse("2026-10-01T09:00:00Z"),
         expiresAt = null,
         version = 1,
+    )
+
+    private fun LinkResult.toWorkspaceMetric(recordedRedirects: Long) = WorkspaceLinkMetricResult(
+        id, shortCode, shortUrl, destinationUrl, status, createdAt, expiresAt, version, recordedRedirects,
     )
 
     @Test
@@ -59,6 +67,44 @@ internal class LinkManagementControllerTest {
 
         assertEquals(result, controller.getLink(linkId))
         coVerify(exactly = 1) { mediator.send(GetLinkQuery(linkId)) }
+    }
+
+    @Test
+    fun `metrics requires the versioned response media type`() {
+        val mapping = LinkManagementController::class.java.declaredMethods
+            .single { it.name == "getLinkMetrics" }
+            .getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
+
+        assertEquals(listOf("application/vnd.api.v1+json"), mapping.produces.toList())
+    }
+
+    @Test
+    fun `metrics delegates and returns recorded redirects`() = runTest {
+        coEvery { mediator.send(any<GetLinkMetricsQuery>()) } returns 3L
+
+        assertEquals(LinkMetricsResult(3L), controller.getLinkMetrics(linkId))
+        coVerify(exactly = 1) { mediator.send(any<GetLinkMetricsQuery>()) }
+    }
+
+    @Test
+    fun `workspace metrics collection forwards opaque cursor and limit`() = runTest {
+        val page = WorkspaceLinkMetricsPage(
+            links = listOf(
+                result.toWorkspaceMetric(0),
+                result.copy(id = UUID.randomUUID()).toWorkspaceMetric(4),
+            ),
+            nextCursor = "opaque-cursor",
+        )
+        coEvery { mediator.send(any<ListWorkspaceLinkMetricsQuery>()) } returns page
+
+        assertEquals(page, controller.listWorkspaceLinkMetrics(limit = 2, cursor = "opaque-cursor"))
+        coVerify(exactly = 1) {
+            mediator.send(
+                match<ListWorkspaceLinkMetricsQuery> {
+                    it.limit == 2 && it.cursor == "opaque-cursor"
+                },
+            )
+        }
     }
 
     @Test

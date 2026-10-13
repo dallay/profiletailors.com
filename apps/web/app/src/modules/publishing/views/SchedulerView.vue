@@ -567,7 +567,12 @@ async function moveSlotFocus(event: KeyboardEvent, date: Date, hour: number): Pr
   if (!nextDay || nextHour < 0 || nextHour > 23 || isPastSlot(nextDay, nextHour)) return
   focusedSlotKey.value = slotKey(nextDay, nextHour)
   await nextTick()
-  document.querySelector<HTMLElement>(`[data-calendar-slot="${dateKey(nextDay)}-${nextHour}"]`)?.focus()
+  const target = document.querySelector<HTMLElement>(
+    `[data-calendar-slot="${dateKey(nextDay)}-${nextHour}"]`,
+  )
+  if (target && document.contains(target)) {
+    target.focus()
+  }
 }
 
 
@@ -863,7 +868,7 @@ watch(
 
     <div v-if="!isMobile" data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <div v-if="url.state.value.surface !== 'list'" data-testid="calendar-mode" class="flex min-h-0 flex-1 flex-col gap-4">
-          <div v-if="calendarView === 'month'" class="flex h-full min-h-0 flex-col">
+          <div v-if="calendarView === 'month'" data-testid="month-calendar-view" class="flex min-h-0 flex-1 flex-col">
             <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden flex min-h-0 flex-1 flex-col">
               <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary shrink-0">
                 <div

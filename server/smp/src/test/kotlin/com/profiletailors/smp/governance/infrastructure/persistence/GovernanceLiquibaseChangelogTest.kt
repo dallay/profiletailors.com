@@ -2,6 +2,7 @@ package com.profiletailors.smp.governance.infrastructure.persistence
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import kotlin.io.path.readText
 import kotlin.test.Test
 
@@ -40,6 +41,22 @@ class GovernanceLiquibaseChangelogTest {
         seed shouldContain "ctrl-dpa"
         seed shouldContain "ctrl-subprocessor"
         seed shouldContain "ctrl-accessibility"
+    }
+
+    @Test
+    fun `dev seed includes a second user workspace only in dev context`() {
+        val master = changelog("db.changelog-master.yaml")
+        val seed = changelog("dev/002-seed-shortlink-second-user-workspace.yaml")
+
+        master shouldContain "db/changelog/dev/002-seed-shortlink-second-user-workspace.yaml"
+        seed shouldContain "context: \"@dev\""
+        seed shouldContain "id: dev-002-seed-shortlink-second-user-workspace"
+        seed shouldContain "00000000-0000-0000-0000-000000000004"
+        seed shouldContain "00000000-0000-0000-0000-000000000006"
+        seed shouldContain "tableExists:"
+        seed shouldContain "sqlCheck:"
+        seed shouldContain "principals WHERE id = '00000000-0000-0000-0000-000000000004'"
+        seed shouldNotContain "tableName: links"
     }
 
     @Test

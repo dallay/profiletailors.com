@@ -95,6 +95,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/shortlinks',
+      name: 'shortlinks',
+      component: () => import('@modules/shortlinks/presentation/views/ShortlinkAnalyticsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/media',
       name: 'media',
       component: () => import('@modules/media/presentation/views/MediaLibraryView.vue'),

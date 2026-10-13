@@ -38,6 +38,25 @@ data class DeleteLinkCommand(val linkId: UUID) : CommandWithResult<LinkResult>
 
 data class GetLinkQuery(val linkId: UUID) : Query<LinkResult>
 
+data class GetLinkMetricsQuery(val linkId: UUID) : Query<Long>
+
+data class ListWorkspaceLinkMetricsQuery(val limit: Int = 20, val cursor: String? = null) :
+    Query<WorkspaceLinkMetricsPage>
+
+data class WorkspaceLinkMetricResult(
+    val id: UUID,
+    val shortCode: String,
+    val shortUrl: String,
+    val destinationUrl: String,
+    val status: String,
+    val createdAt: Instant,
+    val expiresAt: Instant?,
+    val version: Long,
+    val recordedRedirects: Long,
+)
+
+data class WorkspaceLinkMetricsPage(val links: List<WorkspaceLinkMetricResult>, val nextCursor: String?)
+
 data class ListLinksQuery(val limit: Int = 20, val afterCreatedAt: Instant? = null) : Query<ListLinksResponse>
 
 data class ListLinksResponse(val links: List<LinkResult>)

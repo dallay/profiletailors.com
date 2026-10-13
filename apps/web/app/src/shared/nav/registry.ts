@@ -40,6 +40,13 @@ export const NAV_REGISTRY: readonly NavEntry[] = [
     group: 'primary',
   },
   {
+    key: 'shortlinks',
+    to: '/shortlinks',
+    labelKey: 'nav.shortlinks',
+    icon: 'Link',
+    group: 'primary',
+  },
+  {
     key: 'ideas',
     to: '/ideas',
     labelKey: 'nav.ideas',

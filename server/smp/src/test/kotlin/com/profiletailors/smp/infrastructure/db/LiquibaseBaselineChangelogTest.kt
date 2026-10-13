@@ -2,6 +2,7 @@ package com.profiletailors.smp.infrastructure.db
 
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 
 class LiquibaseBaselineChangelogTest {
@@ -21,10 +22,19 @@ class LiquibaseBaselineChangelogTest {
         val application = resourceText("application.yaml")
         val development = resourceText("application-dev.yaml")
         val developmentSeed = resourceText("db/changelog/dev/001-seed-test-data.yaml")
+        val shortlinksDevelopmentSeed = resourceText(
+            "db/changelog/dev/002-seed-shortlink-second-user-workspace.yaml",
+        )
+        val master = resourceText("db/changelog/db.changelog-master.yaml")
 
         application shouldContain "contexts: \${SMP_LIQUIBASE_CONTEXTS:prod}"
         development shouldContain "contexts: \${SMP_LIQUIBASE_CONTEXTS:dev}"
         developmentSeed shouldContain "context: \"@dev\""
+        shortlinksDevelopmentSeed shouldContain "context: \"@dev\""
+        shortlinksDevelopmentSeed shouldContain "member principal must exist"
+        shortlinksDevelopmentSeed shouldContain "00000000-0000-0000-0000-000000000006"
+        shortlinksDevelopmentSeed shouldNotContain "tableName: links"
+        master shouldContain "db/changelog/dev/002-seed-shortlink-second-user-workspace.yaml"
     }
 
     @Test

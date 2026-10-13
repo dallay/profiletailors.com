@@ -417,6 +417,22 @@ describe('SchedulerView', () => {
     expect(calendarMode.classes()).not.toContain('h-full')
   })
 
+  it('gives the month grid its own vertical scroll viewport', async () => {
+    const wrapper = mountView({ surface: 'calendar-month', view: 'month' })
+    await flushPromises()
+
+    const monthView = wrapper.find('[data-testid="month-calendar-view"]')
+    const monthScrollport = wrapper.find('.thin-scrollbar.overflow-y-auto')
+
+    expect(monthView.exists()).toBe(true)
+    expect(monthView.classes()).toContain('flex-1')
+    expect(monthView.classes()).not.toContain('h-full')
+    expect(monthScrollport.exists()).toBe(true)
+    expect(monthScrollport.classes()).toContain('min-h-0')
+
+    wrapper.unmount()
+  })
+
   it('uses a flex column workspace container so the calendar can shrink', async () => {
     const wrapper = mountView({ surface: 'calendar-week' })
     await flushPromises()

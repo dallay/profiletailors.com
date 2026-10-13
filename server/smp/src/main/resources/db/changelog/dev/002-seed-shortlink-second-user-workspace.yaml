@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: dev-002-seed-shortlink-second-user-workspace
+      author: yuniel acosta
+      context: "@dev"
+      preConditions:
+        - onFail: HALT
+        - onFailMessage: Seeded member principal must exist and the workspace fixture must be absent.
+        - onError: HALT
+        - tableExists:
+            tableName: workspace_memberships
+        - tableExists:
+            tableName: workspace_ownerships
+        - sqlCheck:
+            expectedResult: "1"
+            sql: SELECT COUNT(*) FROM principals WHERE id = '00000000-0000-0000-0000-000000000004'
+        - sqlCheck:
+            expectedResult: "0"
+            sql: SELECT COUNT(*) FROM workspaces WHERE id = '00000000-0000-0000-0000-000000000006'
+      changes:
+        - insert:
+            tableName: workspaces
+            columns:
+              - column:
+                  name: id
+                  value: 00000000-0000-0000-0000-000000000006
+              - column:
+                  name: name
+                  value: Shortlinks Member Workspace
+              - column:
+                  name: status
+                  value: ACTIVE
+              - column:
+                  name: icon
+                  value: link
+              - column:
+                  name: created_at
+                  value: 2026-01-01T00:00:00Z
+        - insert:
+            tableName: workspace_ownerships
+            columns:
+              - column:
+                  name: workspace_id
+                  value: 00000000-0000-0000-0000-000000000006
+              - column:
+                  name: owner_principal_id
+                  value: 00000000-0000-0000-0000-000000000004
+              - column:
+                  name: owner_principal_type
+                  value: USER
+              - column:
+                  name: created_by
+                  value: 00000000-0000-0000-0000-000000000004
+              - column:
+                  name: created_at
+                  value: 2026-01-01T00:00:00Z
+        - insert:
+            tableName: workspace_memberships
+            columns:
+              - column:
+                  name: id
+                  value: 00000000-0000-0000-0000-000000000007
+              - column:
+                  name: workspace_id
+                  value: 00000000-0000-0000-0000-000000000006
+              - column:
+                  name: principal_id
+                  value: 00000000-0000-0000-0000-000000000004
+              - column:
+                  name: principal_type
+                  value: USER
+              - column:
+                  name: status
+                  value: ACTIVE
+              - column:
+                  name: created_at
+                  value: 2026-01-01T00:00:00Z

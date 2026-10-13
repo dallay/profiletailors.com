@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
@@ -25,6 +26,7 @@ import {
 } from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
+import { useComposerShortlinks } from '@modules/shortlinks'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import HashtagSuggestionPanel from '@modules/publishing/presentation/components/composer/HashtagSuggestionPanel.vue'
 import { useHashtagSuggestions } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
@@ -125,6 +127,12 @@ const picker = useComposerMediaPicker({
   },
 })
 const submitError = ref('')
+const {
+  failedUrls: failedShortlinkUrls,
+  shortlinkWarning,
+  shorten: shortenComposerUrls,
+  reset: resetShortlinks,
+} = useComposerShortlinks()
 const firstComment = ref('')
 const createAnother = ref(false)
 const priorityMode = ref(false)
@@ -265,6 +273,7 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
 function initCreateMode() {
   const hasPrefill = typeof props.initialContent === 'string' && props.initialContent.trim().length > 0
   postText.value = hasPrefill ? props.initialContent?.trim() : ''
+  resetShortlinks()
   firstComment.value = ''
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'
@@ -1091,6 +1100,7 @@ async function uploadDeferredFile(): Promise<boolean> {
 
 function resetPostForm() {
   postText.value = ''
+  resetShortlinks()
   mediaError.value = null
   removeFile()
   firstComment.value = ''
@@ -1110,6 +1120,10 @@ function finalizeAfterCreate(shouldCreateAnother: boolean) {
   }
 }
 
+async function shortenPostUrls(content: string): Promise<string> {
+  return shortenComposerUrls(content, isEditMode.value)
+}
+
 async function handleSchedule() {
   if (!canSubmit.value) return
 
@@ -1127,13 +1141,13 @@ async function handleSchedule() {
       : true
     if (!uploadOk) return
 
-    const normalizedPostText = normalizedText.value
     const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {
-      await handleEditSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
+      await handleEditSubmit(normalizedText.value, scheduledDate, backendScheduleMode)
     } else {
-      await handleCreateSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
+      const content = await shortenPostUrls(normalizedText.value)
+      await handleCreateSubmit(content, scheduledDate, backendScheduleMode)
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
@@ -1184,6 +1198,9 @@ async function handleCreateSubmit(
     assetIds: [...picker.draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
+  if (failedShortlinkUrls.value.length > 0) {
+    toast.warning(`${t('shortlinks.createFailed')} ${failedShortlinkUrls.value.join(', ')}`)
+  }
   emit('created', { keepOpen: createAnother.value, publicationId: created.id })
   finalizeAfterCreate(createAnother.value)
 }
@@ -1282,6 +1299,9 @@ async function handleCreateSubmit(
               @paste="handleComposerSurfacePaste"
               @keydown="markdownEditor.handleKeyDown"
             ></textarea>
+            <p v-if="shortlinkWarning && !isEditMode" role="status" class="border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">
+              {{ t('shortlinks.createFailed') }} {{ failedShortlinkUrls.join(', ') }}
+            </p>
 
             <div class="border-t border-border-subtle/70 px-4 py-4">
               <div class="flex flex-wrap items-center gap-3">

@@ -21,6 +21,7 @@ import { governance } from './governance'
 import { consent } from './consent'
 import tour from './tour'
 import pwa from './pwa'
+import shortlinks from './shortlinks'
 
 export default {
   common,
@@ -46,4 +47,5 @@ export default {
   consent,
   tour,
   pwa,
+  shortlinks,
 }
