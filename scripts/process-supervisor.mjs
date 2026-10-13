@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -70,3 +70,52 @@ export function terminateProcessRecord(path) {
   if (existsSync(path)) unlinkSync(path)
   return true
 }
+
+export function runManagedChild({
+  name,
+  command,
+  args,
+  context = getWorktreeContext(),
+  spawnOptions = {},
+  role = 'supervisor',
+  metadata = {},
+}) {
+  const child = spawn(command, args, {
+    ...spawnOptions,
+    detached: !isWin,
+  })
+  writeProcessRecord(
+    name,
+    [
+      { pid: process.pid, detached: false },
+      { pid: child.pid, detached: !isWin },
+    ],
+    context,
+    metadata,
+  )
+
+  let shuttingDown = false
+  const shutdown = (code = 0) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    if (child.pid) {
+      try {
+        if (isWin) child.kill('SIGTERM')
+        else process.kill(-child.pid, 'SIGTERM')
+      } catch {}
+    }
+    removeProcessRecord(name, context)
+    process.exit(code)
+  }
+
+  process.on('SIGINT', () => shutdown())
+  process.on('SIGTERM', () => shutdown())
+  child.on('error', () => shutdown(1))
+  child.on('exit', (code) => {
+    if (role === 'supervisor') shutdown(code ?? 1)
+    else if (!shuttingDown) shutdown(code ?? 1)
+  })
+
+  return { child, shutdown }
+}
+

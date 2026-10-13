@@ -31,6 +31,7 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
     'SMP_LINKEDIN_PUBLISHING_API_BASE_URL',
     'SMP_LINKEDIN_AUTHORIZATION_BASE_URL',
     'SMP_LINKEDIN_TOKEN_BASE_URL',
+    'SMP_THREADS_API_BASE_URL',
   ]
   const previousLinkedinBaseUrls = new Map(
     linkedinBaseUrlKeys.map((key) => [key, process.env[key]]),
@@ -47,6 +48,9 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
     assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
     assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
     assert.equal(compose.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+    assert.equal(context.wiremockHostPort, process.env.WIREMOCK_HOST_PORT || '8089')
+    assert.equal(runtime.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+    assert.equal(runtime.SMP_THREADS_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_PUBLISHING_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_AUTHORIZATION_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`)

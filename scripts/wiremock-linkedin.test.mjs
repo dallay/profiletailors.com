@@ -75,10 +75,11 @@ test('LinkedIn authorization redirect selects its separator from the fragment-fr
   const mapping = readMapping('072-oauth-authorization.json')
   const location = mapping.response.headers.Location
 
-  assert.match(location, /assign 'base'[\s\S]*assign 'separator'[\s\S]*contains base '\?'[\s\S]*&[\s\S]*\?[\s\S]*\{\{\{base\}\}\}/)
+  assert.doesNotMatch(location, /indexOf/)
+  assert.match(location, /assign 'separator'[\s\S]*contains request\.query\.redirect_uri '\?'[\s\S]*&[\s\S]*\?[\s\S]*\{\{\{request\.query\.redirect_uri\}\}\}/)
   assert.match(location, /code=local-wiremock-authorization-code/)
   assert.match(location, /state=\{\{\{request\.query\.state\}\}\}/)
-  assert.match(location, /#.*code=|#.*state=/)
+  assert.match(location, /code=local-wiremock-authorization-code&state=/)
 })
 
 test('LinkedIn mock upload accepts only the local upload paths returned by mappings', () => {
@@ -93,7 +94,7 @@ test('LinkedIn mock upload accepts only the local upload paths returned by mappi
 test('development LinkedIn endpoints use worktree WireMock runtime configuration', () => {
   const contextModule = readFileSync(new URL('./worktree-context.mjs', import.meta.url), 'utf8')
 
-  assert.match(contextModule, /WIREMOCK_HOST_PORT = context\.wiremockHostPort/)
+  assert.match(contextModule, /WIREMOCK_HOST_PORT: context\.wiremockHostPort/)
   assert.match(contextModule, /SMP_LINKEDIN_API_BASE_URL: process\.env\.SMP_LINKEDIN_API_BASE_URL \|\| `http:\/\/localhost:\$\{context\.wiremockHostPort\}`/)
   assert.match(contextModule, /SMP_LINKEDIN_PUBLISHING_API_BASE_URL: process\.env\.SMP_LINKEDIN_PUBLISHING_API_BASE_URL \|\| `http:\/\/localhost:\$\{context\.wiremockHostPort\}`/)
   assert.match(contextModule, /SMP_LINKEDIN_AUTHORIZATION_BASE_URL: process\.env\.SMP_LINKEDIN_AUTHORIZATION_BASE_URL/)
