@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import UsersView from './UsersView.vue'
@@ -110,6 +110,10 @@ describe('UsersView', () => {
     vi.useFakeTimers()
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('renders user list successfully', async () => {
     mockRequest.mockResolvedValueOnce({
       ok: true,
@@ -185,7 +189,12 @@ describe('UsersView', () => {
 
     mockRequest
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(paginatedResult) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...paginatedResult, page: 1, hasPrevious: true, hasNext: false }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({ ...paginatedResult, page: 1, hasPrevious: true, hasNext: false }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(paginatedResult) })
 
     const { wrapper } = await createView()
     await flushPromises()
@@ -198,5 +207,13 @@ describe('UsersView', () => {
     const secondCall = mockRequest.mock.calls[1]
     expect(secondCall).toBeDefined()
     expect(secondCall?.[0]).toContain('page=1')
+
+    await wrapper.find('button.prev').trigger('click')
+    await flushPromises()
+
+    expect(mockRequest).toHaveBeenCalledTimes(3)
+    const thirdCall = mockRequest.mock.calls[2]
+    expect(thirdCall).toBeDefined()
+    expect(thirdCall?.[0]).toContain('page=0')
   })
 })

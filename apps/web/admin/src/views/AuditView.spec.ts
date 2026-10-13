@@ -123,7 +123,7 @@ describe('AuditView', () => {
     expect(wrapper.find('[role="alert"]').text()).toBe('An error occurred')
   })
 
-  it('filters audit logs by action and result', async () => {
+  it('sends the action filter when the action input changes', async () => {
     mockRequest
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockAuditLogsResult) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockAuditLogsResult) })
@@ -139,6 +139,12 @@ describe('AuditView', () => {
     expect(mockRequest).toHaveBeenCalledTimes(2)
     const secondCall = mockRequest.mock.calls[1]
     expect(secondCall).toBeDefined()
-    expect(secondCall?.[0]).toContain('action=USER_DISABLE')
+    const requestUrl = secondCall?.[0]
+    if (typeof requestUrl !== 'string') throw new Error('Expected an audit request URL')
+    const params = new URL(requestUrl, 'http://localhost').searchParams
+    expect(params.get('action')).toBe('USER_DISABLE')
+    expect(params.get('page')).toBe('0')
+    expect(params.get('size')).toBe('25')
+    expect(params.has('result')).toBe(false)
   })
 })

@@ -1,8 +1,16 @@
 import { createApp, defineComponent, h, ref, nextTick } from 'vue'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { useWaitlistForm, normalizeWaitlistApiBase } from './useWaitlistForm'
 
+function requireElement<T extends Element>(root: ParentNode, selector: string): T {
+  const element = root.querySelector<T>(selector)
+  if (!element) throw new Error(`Missing test element: ${selector}`)
+  return element
+}
+
 describe('useWaitlistForm', () => {
+  const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location')
   let rootEl: HTMLElement
   let formEl: HTMLFormElement
   let emailInput: HTMLInputElement
@@ -40,15 +48,18 @@ describe('useWaitlistForm', () => {
     `
     document.body.appendChild(rootEl)
 
-    formEl = rootEl.querySelector<HTMLFormElement>('[data-waitlist-form]')!
-    emailInput = rootEl.querySelector<HTMLInputElement>('[data-waitlist-email]')!
-    marketingConsent = rootEl.querySelector<HTMLInputElement>('[data-waitlist-consent-marketing]')!
-    errorEl = rootEl.querySelector<HTMLElement>('[data-waitlist-error]')!
-    successEl = rootEl.querySelector<HTMLElement>('[data-waitlist-success]')!
-    submitBtn = rootEl.querySelector<HTMLButtonElement>('[data-waitlist-submit]')!
+    formEl = requireElement<HTMLFormElement>(rootEl, '[data-waitlist-form]')
+    emailInput = requireElement<HTMLInputElement>(rootEl, '[data-waitlist-email]')
+    marketingConsent = requireElement<HTMLInputElement>(rootEl, '[data-waitlist-consent-marketing]')
+    errorEl = requireElement<HTMLElement>(rootEl, '[data-waitlist-error]')
+    successEl = requireElement<HTMLElement>(rootEl, '[data-waitlist-success]')
+    submitBtn = requireElement<HTMLButtonElement>(rootEl, '[data-waitlist-submit]')
   })
 
   afterEach(() => {
+    if (originalLocationDescriptor) {
+      Object.defineProperty(window, 'location', originalLocationDescriptor)
+    }
     document.body.innerHTML = ''
     vi.restoreAllMocks()
   })
@@ -99,7 +110,7 @@ describe('useWaitlistForm', () => {
       emptyRoot.innerHTML = '<form data-waitlist-form></form>'
 
       const { unmount } = mountComposable(emptyRoot)
-      const emptyForm = emptyRoot.querySelector('form')!
+      const emptyForm = requireElement<HTMLFormElement>(emptyRoot, 'form')
       expect(emptyForm.dataset.waitlistReady).toBeUndefined()
 
       unmount()
@@ -147,6 +158,7 @@ describe('useWaitlistForm', () => {
           pathname: '/es/waitlist',
         },
         writable: true,
+        configurable: true,
       })
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -160,7 +172,7 @@ describe('useWaitlistForm', () => {
 
       formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 
-      await nextTick()
+      await flushPromises()
 
       expect(emailInput.hasAttribute('aria-invalid')).toBe(false)
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -171,7 +183,9 @@ describe('useWaitlistForm', () => {
         })
       )
 
-      const requestBody = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string)
+      const body = fetchSpy.mock.calls[0]?.[1]?.body
+      if (typeof body !== 'string') throw new Error('Expected a JSON string request body')
+      const requestBody: unknown = JSON.parse(body)
       expect(requestBody).toMatchObject({
         email: 'test@example.com',
         source: 'hero-section',
@@ -207,7 +221,7 @@ describe('useWaitlistForm', () => {
       emailInput.value = 'test@example.com'
       formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 
-      await nextTick()
+      await flushPromises()
 
       expect(fetchSpy).toHaveBeenCalledWith(
         '/api/waitlists/pt-early/entries',
@@ -227,7 +241,7 @@ describe('useWaitlistForm', () => {
       emailInput.value = 'test@example.com'
       formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 
-      await nextTick()
+      await flushPromises()
 
       expect(errorEl.textContent).toBe('Demasiadas peticiones')
       expect(errorEl.classList.contains('hidden')).toBe(false)
@@ -246,7 +260,7 @@ describe('useWaitlistForm', () => {
       emailInput.value = 'test@example.com'
       formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 
-      await nextTick()
+      await flushPromises()
 
       expect(errorEl.textContent).toBe('Error al registrar')
       expect(errorEl.classList.contains('hidden')).toBe(false)
@@ -263,7 +277,7 @@ describe('useWaitlistForm', () => {
       emailInput.value = 'test@example.com'
       formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 
-      await nextTick()
+      await flushPromises()
 
       expect(errorEl.textContent).toBe('Error al registrar')
       expect(errorEl.classList.contains('hidden')).toBe(false)
