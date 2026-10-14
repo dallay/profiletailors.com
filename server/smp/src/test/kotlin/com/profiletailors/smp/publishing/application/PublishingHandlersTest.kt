@@ -41,6 +41,7 @@ import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
@@ -847,6 +848,71 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `edit threads publication uses registry validator`() = runTest {
+        val threadsPublication = PublicationDraft(
+            id = "pub-threads-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.THREADS,
+            socialAccountId = "account-threads-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Old threads text",
+        )
+        val publicationRepository = InMemoryPublicationRepository(threadsPublication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-threads-1",
+                    socialConnectionId = "connection-threads-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.THREADS,
+                    providerAccountId = "threads-user-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "WireMock Threads User",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val linkedInOnlyValidator = object : ProviderCapabilityValidator {
+            override fun validate(input: ProviderCapabilityValidationInput) {
+                require(input.provider == SocialProvider.LINKEDIN) {
+                    "LinkedIn capability validator only supports LINKEDIN."
+                }
+            }
+        }
+        val threadsValidator = AcceptingCapabilityValidator()
+        val registry = ProviderCapabilityRegistry.fromValidators(
+            SocialProvider.THREADS to threadsValidator,
+        )
+        val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+            publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
+            providerCapabilityValidator = linkedInOnlyValidator,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+            providerCapabilityRegistry = registry,
+        )
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-threads-1",
+                bodyText = "Updated threads text",
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+        result.bodyText shouldBe "Updated threads text"
     }
 
     @Test

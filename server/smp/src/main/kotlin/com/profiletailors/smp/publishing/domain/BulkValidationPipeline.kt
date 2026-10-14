@@ -23,6 +23,7 @@ class BulkValidationPipeline(
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val clock: Clock = Clock.systemUTC(),
     private val socialAccountRepository: SocialAccountRepository? = null,
+    private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) {
 
     private val allowedMediaHosts = setOf(
@@ -202,7 +203,9 @@ class BulkValidationPipeline(
             scheduledFor = scheduledFor,
         )
         return try {
-            providerCapabilityValidator.validate(
+            val validator = providerCapabilityRegistry?.validator(validationAccount.provider)
+                ?: providerCapabilityValidator
+            validator.validate(
                 ProviderCapabilityValidationInput(
                     provider = validationAccount.provider,
                     socialAccount = validationAccount,
