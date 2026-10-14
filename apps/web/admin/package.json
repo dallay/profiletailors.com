@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@sentry/vite-plugin": "5.4.0",
+    "@sentry/vite-plugin": "5.4.1",
     "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.5",
     "@types/node": "^26.6.4",
