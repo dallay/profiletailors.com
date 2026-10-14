@@ -7,11 +7,11 @@
       "Content-Type": { "contains": "application/x-www-form-urlencoded" }
     },
     "bodyPatterns": [
-      { "matchesJsonPath": "$.client_id" },
-      { "matchesJsonPath": "$.client_secret" },
-      { "matchesJsonPath": "$.code" },
-      { "matchesJsonPath": "$.grant_type" },
-      { "matchesJsonPath": "$.redirect_uri" }
+      { "matches": ".*client_id=.+.*" },
+      { "matches": ".*client_secret=.+.*" },
+      { "matches": ".*code=.+.*" },
+      { "matches": ".*grant_type=authorization_code.*" },
+      { "matches": ".*redirect_uri=.+.*" }
     ]
   },
   "response": {

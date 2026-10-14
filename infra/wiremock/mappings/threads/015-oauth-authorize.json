@@ -1,0 +1,21 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/v1.0/oauth/authorize",
+    "queryParameters": {
+      "response_type": {
+        "equalTo": "code"
+      }
+    }
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "https://pt-app.localhost/integrations/threads/callback?code=local-wiremock-threads-auth-code&state={{{request.query.state}}}"
+    },
+    "transformers": [
+      "response-template"
+    ]
+  }
+}

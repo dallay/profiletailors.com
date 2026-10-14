@@ -12,6 +12,7 @@ import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.linkedin.CONTENT_TYPE
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import kotlinx.coroutines.delay
@@ -44,6 +45,7 @@ class ThreadsPublishingAdapter(
                     accessToken = accessToken,
                     mediaUrl = url.url,
                     mediaType = asset.mediaType,
+                    isCarouselItem = true,
                 ).also { awaitFinished(it, accessToken) }
             }
         } else {
@@ -70,25 +72,31 @@ class ThreadsPublishingAdapter(
         mediaUrl: String?,
         mediaType: String?,
         children: List<String> = emptyList(),
+        isCarouselItem: Boolean = false,
     ): String {
-        val body = linkedMapOf<String, Any>(
-            "access_token" to accessToken,
-            "text" to command.publication.bodyText.orEmpty(),
-        )
-        if (children.isNotEmpty()) {
-            body[MEDIA_TYPE] = "CAROUSEL"
-            body["children"] = children
-        } else if (mediaUrl != null && mediaType != null) {
-            body[MEDIA_TYPE] = if (mediaType.startsWith("video/", ignoreCase = true)) "VIDEO" else "IMAGE"
-            mediaUrl.takeIf { body[MEDIA_TYPE] == "IMAGE" }?.let { body["image_url"] = it }
-            mediaUrl.takeIf { body[MEDIA_TYPE] == "VIDEO" }?.let { body["video_url"] = it }
+        val body = mutableListOf("access_token" to accessToken)
+        if (!isCarouselItem) {
+            body += "text" to command.publication.bodyText.orEmpty()
         }
-        val response = send(
-            request = HttpRequest.newBuilder(endpoint("${command.socialAccount.providerAccountId}/threads"))
-                .header(CONTENT_TYPE, "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+        if (isCarouselItem) {
+            body += "is_carousel_item" to "true"
+        }
+        if (children.isNotEmpty()) {
+            body += MEDIA_TYPE to "CAROUSEL"
+            body += "children" to children.joinToString(",")
+        } else if (mediaUrl != null && mediaType != null) {
+            val providerMediaType = if (mediaType.startsWith("video/", ignoreCase = true)) "VIDEO" else "IMAGE"
+            body += MEDIA_TYPE to providerMediaType
+            body += (if (providerMediaType == "IMAGE") "image_url" else "video_url") to mediaUrl
+        } else {
+            body += MEDIA_TYPE to "TEXT"
+        }
+        val response = httpTransport.send(
+            HttpRequest.newBuilder(endpoint("${command.socialAccount.providerAccountId}/threads"))
+                .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+                .header("Authorization", "Bearer $accessToken")
+                .POST(HttpRequest.BodyPublishers.ofString(formUrlEncoded(*body.toTypedArray())))
                 .build(),
-            accessToken = accessToken,
         )
         ensureSuccess(response)
         return checkNotNull(decode<ThreadsIdResponse>(response, "Threads container create").id)
@@ -97,9 +105,15 @@ class ThreadsPublishingAdapter(
     private suspend fun awaitFinished(containerId: String, accessToken: String) {
         var attempts = 0
         while (attempts < properties.containerPollMaxAttempts) {
-            val response = send(
-                request = HttpRequest.newBuilder(endpoint(containerId)).GET().build(),
-                accessToken = accessToken,
+            val response = httpTransport.send(
+                HttpRequest.newBuilder(
+                    endpoint(
+                        "$containerId?${formUrlEncoded("fields" to "status", "access_token" to accessToken)}",
+                    ),
+                )
+                    .header("Authorization", "Bearer $accessToken")
+                    .GET()
+                    .build(),
             )
             ensureSuccess(response)
             val status = decode<ThreadsContainerStatusResponse>(response, "Threads container status").status
@@ -119,31 +133,20 @@ class ThreadsPublishingAdapter(
 
     private suspend fun finalize(containerId: String, accessToken: String, accountId: String): String {
         val request = HttpRequest.newBuilder(endpoint("$accountId/threads_publish"))
-            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .header("Authorization", "Bearer $accessToken")
             .POST(
                 HttpRequest.BodyPublishers.ofString(
-                    objectMapper.writeValueAsString(
-                        mapOf("creation_id" to containerId, "access_token" to accessToken),
-                    ),
+                    formUrlEncoded("creation_id" to containerId, "access_token" to accessToken),
                 ),
             )
             .build()
-        val response = send(request, accessToken)
+        val response = httpTransport.send(request)
         ensureSuccess(response)
         return checkNotNull(decode<ThreadsIdResponse>(response, "Threads publication finalize").id)
     }
 
     private fun endpoint(path: String): URI = URI.create("${properties.apiBaseUrl}/${properties.apiVersion}/$path")
-
-    private suspend fun send(request: HttpRequest, accessToken: String): LinkedInHttpResponse = httpTransport.send(
-        HttpRequest.newBuilder(request.uri())
-            .method(
-                request.method(),
-                request.bodyPublisher().orElse(HttpRequest.BodyPublishers.noBody()),
-            )
-            .header("Authorization", "Bearer $accessToken")
-            .build(),
-    )
 
     private fun ensureSuccess(response: LinkedInHttpResponse) {
         if (response.statusCode in HTTP_SUCCESS_RANGE) return
