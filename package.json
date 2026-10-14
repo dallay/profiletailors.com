@@ -16,9 +16,9 @@
   ],
   "engines": {
     "node": ">=24.21.0",
-    "pnpm": ">=11.26.0"
+    "pnpm": ">=12.11.2"
   },
-  "packageManager": "pnpm@12.9.1",
+  "packageManager": "pnpm@12.11.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/dallay/profiletailors.com.git"
@@ -53,7 +53,7 @@
     "@biomejs/biome": "2.5.15",
     "markdownlint-cli2": "0.23.3",
     "portless": "0.15.7",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.147.0"
   },
   "overrides": {
     "undici": ">=8.10.2",
