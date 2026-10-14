@@ -29,7 +29,7 @@ function mountSelector(propsOverride: Record<string, unknown> = {}) {
   return mount(ComposerChannelSelector, {
     props: {
       channels: [] as Channel[],
-      selectedChannelId: null as string | null,
+      selectedChannelIds: [] as string[],
       isEditMode: false,
       ...propsOverride,
     },
@@ -78,42 +78,51 @@ describe('ComposerChannelSelector.vue', () => {
 
   it('shows a checkmark icon on the selected channel', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
     const checkIcon = wrapper.find('[data-testid="channel-selected-icon"]')
     expect(checkIcon.exists()).toBe(true)
   })
 
+  it('marks every selected id with the selected icon', (): void => {
+    const channels = [
+      makeChannel({ id: 'ch-1', name: 'LinkedIn' }),
+      makeChannel({ id: 'ch-2', name: 'Threads', provider: 'threads' }),
+    ]
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1', 'ch-2'] })
+    expect(wrapper.findAll('[data-testid="channel-selected-icon"]')).toHaveLength(2)
+  })
+
   it('shows an X icon on non-selected channels', (): void => {
     const channels = [makeChannel({ id: 'ch-1' }), makeChannel({ id: 'ch-2' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
     const deselectIcons = wrapper.findAll('[data-testid="channel-deselected-icon"]')
     expect(deselectIcons).toHaveLength(1)
   })
 
-  it('emits select with the channel id when a non-selected channel button is clicked', async (): Promise<void> => {
+  it('emits toggle with the channel id when a non-selected channel button is clicked', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: null })
+    const wrapper = mountSelector({ channels, selectedChannelIds: [] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
-    const emissions = wrapper.emitted('select') ?? []
+    const emissions = wrapper.emitted('toggle') ?? []
     expect(emissions).toHaveLength(1)
     expect(emissions[0]).toEqual(['ch-1'])
   })
 
-  it('does not emit select when a selected channel button is clicked', async (): Promise<void> => {
+  it('emits toggle when a selected channel button is clicked to deselect it', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
-    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('toggle')).toEqual([['ch-1']])
   })
 
-  it('does not emit select when in edit mode', async (): Promise<void> => {
+  it('does not emit toggle when in edit mode', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: null, isEditMode: true })
+    const wrapper = mountSelector({ channels, selectedChannelIds: [], isEditMode: true })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
-    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('toggle')).toBeUndefined()
   })
 
   it('disables channel buttons in edit mode', (): void => {
@@ -178,7 +187,7 @@ describe('ComposerChannelSelector.vue', () => {
 
   it('applies bold and selected styling to the selected channel', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-text-display')
     expect(button.classes()).toContain('bg-bg-primary')
@@ -188,7 +197,7 @@ describe('ComposerChannelSelector.vue', () => {
 
   it('applies unselected styling to non-selected channels', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
-    const wrapper = mountSelector({ channels, selectedChannelId: 'ch-2' })
+    const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-2'] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-border-visible')
     expect(button.classes()).toContain('text-text-secondary')

@@ -95,6 +95,44 @@ data class CreatePublicationCommand(
     }
 }
 
+data class BatchPublicationTarget(
+    val socialAccountId: String,
+    val bodyText: String? = null,
+    val assetIds: List<String> = emptyList(),
+)
+
+data class CreatePublicationBatchCommand(
+    val title: String? = null,
+    val bodyText: String? = null,
+    val targets: List<BatchPublicationTarget>,
+    val scheduleMode: ScheduleMode,
+    val scheduledFor: Instant? = null,
+    val nextSlotAfter: Instant? = null,
+    val priority: Boolean = false,
+) : CommandWithResult<CreatePublicationBatchResult>
+
+enum class BatchPublicationStatus { ALL_CREATED, PARTIAL, ALL_FAILED }
+
+internal fun BatchPublicationStatus.wireName(): String = when (this) {
+    BatchPublicationStatus.ALL_CREATED -> "ALL_CREATED"
+    BatchPublicationStatus.PARTIAL -> "PARTIAL"
+    BatchPublicationStatus.ALL_FAILED -> "ALL_FAILED"
+}
+
+data class BatchPublicationTargetResult(
+    val socialAccountId: String,
+    val publicationId: String? = null,
+    val groupId: String? = null,
+    val status: String,
+    val errorCode: String? = null,
+    val errorMessage: String? = null,
+)
+
+data class CreatePublicationBatchResult(
+    val status: BatchPublicationStatus,
+    val results: List<BatchPublicationTargetResult>,
+)
+
 data class EditPublicationCommand(
     val publicationId: String,
     val title: String? = null,
@@ -214,6 +252,7 @@ data class CalendarPublicationResult(
     val previewUrl: String? = null,
     val blockedReason: String? = null,
     val errorCode: String? = null,
+    val groupId: String? = null,
 )
 
 data class ConflictEntry(

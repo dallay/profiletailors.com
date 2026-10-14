@@ -74,6 +74,12 @@ const translations: Record<string, string> = {
   'composer.nextScheduleBtn': 'Next Schedule',
   'composer.saveChanges': 'Save Changes',
   'composer.cancelBtn': 'Cancel',
+  'composer.threadsPreview': 'Threads Preview',
+  'composer.customizePerNetwork': 'Customize per network',
+  'composer.customizeBase': 'Base',
+  'composer.customizeReset': 'Reset to base',
+  'composer.channelLimitExceeded': '{name} exceeds {limit} characters',
+  'composer.channelEmptyText': '{name} text is empty',
   'composer.markdown.bold': 'Bold',
   'composer.markdown.italic': 'Italic',
   'composer.markdown.strikethrough': 'Strikethrough',
@@ -231,6 +237,7 @@ vi.mock('@lucide/vue', () => {
     Search: stub,
     Info: stub,
     Globe: stub,
+    Heart: stub,
     ThumbsUp: stub,
     MessageCircle: stub,
     Repeat2: stub,
@@ -255,7 +262,7 @@ interface TestChannel {
   id: string
   accountId: string
   name: string
-  provider: 'linkedin' | 'twitter'
+  provider: 'linkedin' | 'twitter' | 'threads'
   avatar: string
   avatarUrl?: string
   handle: string
@@ -287,15 +294,17 @@ function mountModal(
   const workspaceStore = useWorkspaceStore()
   workspaceStore.setActiveWorkspaceId('ws-1')
 
+  const { isOpen = true, ...restProps } = props
   const wrapper = mount(CreatePostModalComponent, {
     attachTo: document.body,
-    props: { isOpen: true, ...props },
+    props: { isOpen: false, ...restProps },
     global: {
       mocks: { $t: mockT },
       stubs,
     },
   })
   mountedWrappers.push(wrapper)
+  void wrapper.setProps({ isOpen })
   return wrapper
 }
 
@@ -1062,7 +1071,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('enforces effectiveAttachmentLimit of the selected channel and blocks apply above it', async () => {
+  it('enforces the strictest attachment limit across selected channels and blocks apply above it', async () => {
     const mediaStore = useMediaStore()
     for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
       mediaStore.assetsById[id] = {
@@ -1088,13 +1097,6 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
     const wrapper = mountModal(channels)
     await flushModal(wrapper)
-    await flushModal(wrapper)
-
-    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Twitter'),
-    )
-    expect(twitterButton).toBeDefined()
-    twitterButton!.click()
     await flushModal(wrapper)
 
     getByTestId('add-media-button').click()
@@ -1233,6 +1235,10 @@ describe('CreatePostModal.vue — AI assistant', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'default', publicationId: 'pub-default', status: 'CREATED' }],
+    })
     vi.mocked(createShortlink).mockReset()
     vi.mocked(toast.warning).mockReset()
     vi.stubGlobal('URL', {
@@ -1524,7 +1530,10 @@ describe('CreatePostModal.vue — AI assistant', () => {
 
   it('emits create-another, clears the draft, and unchecks create-another after creation', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'ch-ai', publicationId: 'pub-ai', status: 'CREATED' }],
+    })
     const wrapper = mountModal([makeChannel('ch-ai')])
     await flushModal(wrapper)
 
@@ -1549,9 +1558,11 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await flushModal(wrapper)
 
     expect(scheduleSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'First post content' }),
+      expect.objectContaining({
+        targets: [expect.objectContaining({ content: 'First post content' })],
+      }),
     )
-    expect(wrapper.emitted('created')).toEqual([[{ keepOpen: true }]])
+    expect(wrapper.emitted('created')).toEqual([[{ keepOpen: true, publicationId: 'pub-ai' }]])
     expect(composerTextarea.value).toBe('')
     expect(createAnotherInput!.checked).toBe(false)
   })
@@ -1641,16 +1652,9 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await wrapper.unmount()
   })
 
-  it('selects the first active channel when the current channel becomes inactive', async () => {
+  it('prunes inactive channels and defaults to the remaining active channel', async () => {
     const channels = [makeChannel('ch-first'), makeChannel('ch-second')]
     const wrapper = mountModal(channels)
-    await flushModal(wrapper)
-
-    const channelButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-      (button) => button.textContent?.includes('Channel ch-second'),
-    )
-    expect(channelButton).toBeDefined()
-    channelButton!.click()
     await flushModal(wrapper)
 
     const publishingStore = usePublishingStore()
@@ -1660,12 +1664,11 @@ describe('CreatePostModal.vue — AI assistant', () => {
     ]
     await flushModal(wrapper)
 
-    const selectedChannelButton = Array.from(
+    const buttons = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
-    ).find((button) => button.textContent?.includes('Channel ch-third'))
-    expect(
-      selectedChannelButton?.querySelector('[data-testid="channel-selected-icon"]'),
-    ).not.toBeNull()
+    )
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]?.querySelector('[data-testid="channel-selected-icon"]')).not.toBeNull()
   })
 
   it('updates an edited publication without assetIds until attachments are changed', async () => {
@@ -1727,9 +1730,12 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('shortens each distinct URL once and replaces every occurrence before submitting', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        { socialAccountId: 'ch-shortlink-auto', publicationId: 'pub-shortlink', status: 'CREATED' },
+      ],
+    })
     vi.mocked(createShortlink)
       .mockResolvedValueOnce({
         id: 'shortlink-one',
@@ -1768,7 +1774,11 @@ describe('CreatePostModal.vue — AI assistant', () => {
     )
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
+        targets: [
+          expect.objectContaining({
+            content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
+          }),
+        ],
       }),
     )
     expect(document.querySelector('[data-testid="shortlink-opt-in"]')).toBeNull()
@@ -1777,9 +1787,16 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('keeps publishing when an individual shortlink request fails and shows a non-blocking warning', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'ch-shortlink-failure',
+          publicationId: 'pub-shortlink',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.mocked(createShortlink)
       .mockRejectedValueOnce(new Error('shortlink unavailable'))
       .mockResolvedValueOnce({
@@ -1803,7 +1820,9 @@ describe('CreatePostModal.vue — AI assistant', () => {
     expect(createShortlink).toHaveBeenCalledTimes(2)
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: 'https://example.com/article and https://pt.link/b',
+        targets: [
+          expect.objectContaining({ content: 'https://example.com/article and https://pt.link/b' }),
+        ],
       }),
     )
     expect(toast.warning).toHaveBeenCalledWith(
@@ -1812,9 +1831,10 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('submits content with no URL without calling the shortlink service', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'ch-no-url', publicationId: 'pub-no-url', status: 'CREATED' }],
+    })
     const wrapper = mountModal([makeChannel('ch-no-url')])
     await flushModal(wrapper)
 
@@ -1825,11 +1845,14 @@ describe('CreatePostModal.vue — AI assistant', () => {
     Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
       .find((button) => button.textContent?.includes('Schedule Now'))
       ?.click()
+    await flushPromises()
     await flushModal(wrapper)
 
     expect(createShortlink).not.toHaveBeenCalled()
     expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'A post without a URL' }),
+      expect.objectContaining({
+        targets: [expect.objectContaining({ content: 'A post without a URL' })],
+      }),
     )
   })
 
@@ -1872,6 +1895,10 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'default', publicationId: 'pub-default', status: 'CREATED' }],
+    })
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -2030,9 +2057,52 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     )
   })
 
+  it('keeps the draft when every destination rejects the publication', async () => {
+    const wrapper = mountModal([makeChannel('ch-linkedin')])
+    await flushModal(wrapper)
+    const input = getByTestId('composer-textarea') as HTMLTextAreaElement
+    input.value = 'Keep this draft'
+    input.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    const createAnotherLabel = Array.from(document.querySelectorAll('label')).find((label) =>
+      label.textContent?.includes('Create Another'),
+    )
+    const createAnotherInput =
+      createAnotherLabel?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+    expect(createAnotherInput).toBeTruthy()
+    createAnotherInput!.checked = true
+    createAnotherInput!.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushModal(wrapper)
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_FAILED',
+      results: [
+        {
+          socialAccountId: 'ch-linkedin',
+          status: 'BAD_REQUEST',
+          errorMessage: 'Rejected by destination',
+        },
+      ],
+    })
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(scheduleButton).toBeDefined()
+    scheduleButton!.click()
+    await vi.waitFor(() => expect(scheduleSpy).toHaveBeenCalledOnce())
+    await flushModal(wrapper)
+
+    expect(input.value).toBe('Keep this draft')
+    expect(wrapper.emitted('created')).toBeUndefined()
+    expect(createAnotherInput.checked).toBe(true)
+  })
+
   it('clears a prior file-rejection alert when publishing with createAnother', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'ch-inline', publicationId: 'pub-inline', status: 'CREATED' }],
+    })
     const wrapper = mountModal([makeChannel('ch-inline')])
     await flushModal(wrapper)
 
@@ -2082,6 +2152,10 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'default', publicationId: 'pub-default', status: 'CREATED' }],
+    })
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -2114,7 +2188,10 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
   it('submits plain text (stripped of markdown) to the store on schedule', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'ch-md', publicationId: 'pub-md', status: 'CREATED' }],
+    })
     const wrapper = mountModal([makeChannel('ch-md')])
     await flushModal(wrapper)
 
@@ -2133,7 +2210,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
       expect(scheduleSpy).toHaveBeenCalledTimes(1)
     })
 
-    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.targets[0]?.content
     expect(submittedContent).toBe('Bold and italic post')
   })
 
@@ -2302,7 +2379,10 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
   it('normalizes hashtags in submitted content', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'ch-md', publicationId: 'pub-md', status: 'CREATED' }],
+    })
     const wrapper = mountModal([makeChannel('ch-md')])
     await flushModal(wrapper)
 
@@ -2320,7 +2400,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
       expect(scheduleSpy).toHaveBeenCalledTimes(1)
     })
 
-    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.targets[0]?.content
     expect(submittedContent).toBe('Check this out #awesome #coolstuff')
   })
 
@@ -2355,6 +2435,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
       editingPublication: makeEditingPublication({
         content: '**Bold** content',
         accountId: 'ch-edit-1',
+        assetIds: [],
       }),
     })
     await flushModal(wrapper)
@@ -2375,5 +2456,309 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
     const submittedContent = updateSpy.mock.calls[0]?.[1]?.content
     expect(submittedContent).toBe('Bold content')
+  })
+})
+
+describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    document.body.innerHTML = ''
+  })
+
+  function twoChannels() {
+    return [
+      makeChannel('ch-li', { accountId: 'acc-li', provider: 'linkedin', name: 'LinkedIn' }),
+      makeChannel('ch-th', { accountId: 'acc-th', provider: 'threads', name: 'Threads' }),
+    ]
+  }
+
+  function fillText(text: string) {
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = text
+    textarea.dispatchEvent(new Event('input'))
+  }
+
+  function scheduleNowButton(): HTMLButtonElement {
+    const button = Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button')).find(
+      (entry) => entry.textContent?.includes('Schedule Now'),
+    )
+    if (!button) {
+      throw new Error('Expected Schedule Now button to exist')
+    }
+    return button
+  }
+
+  it('selects every active channel by default on open', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const selected = document.querySelectorAll('[data-testid="channel-selected-icon"]')
+    expect(selected).toHaveLength(2)
+  })
+
+  it('deselects a channel when its chip is clicked again', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const linkedInChip = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
+    ).find((button) => button.textContent?.includes('LinkedIn'))
+    expect(linkedInChip).toBeDefined()
+    linkedInChip!.click()
+    await flushModal(wrapper)
+
+    expect(document.querySelectorAll('[data-testid="channel-selected-icon"]')).toHaveLength(1)
+    expect(document.body.innerHTML).toContain('Threads')
+  })
+
+  it('blocks submit and names Threads when text exceeds the Threads limit only', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillText('x'.repeat(600))
+    await flushModal(wrapper)
+
+    expect(scheduleNowButton().disabled).toBe(true)
+    const errors = getByTestId('composer-channel-limit-errors')
+    expect(errors.textContent).toContain('Threads')
+    expect(errors.textContent).toContain('500')
+  })
+
+  it('submits one batch request with every selected account', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        { socialAccountId: 'acc-li', publicationId: 'pub-li', status: 'CREATED' },
+        { socialAccountId: 'acc-th', publicationId: 'pub-th', status: 'CREATED' },
+      ],
+    })
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillText('Hello every network')
+    await flushModal(wrapper)
+
+    scheduleNowButton().click()
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submitted = scheduleSpy.mock.calls[0]?.[0]
+    expect(submitted?.targets.map((target) => target.socialAccountId).sort()).toEqual([
+      'acc-li',
+      'acc-th',
+    ])
+  })
+})
+
+describe('CreatePostModal.vue — per-network customization', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [{ socialAccountId: 'default', publicationId: 'pub-default', status: 'CREATED' }],
+    })
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    document.body.innerHTML = ''
+  })
+
+  function baseChannels() {
+    return [
+      makeChannel('ch-li', { accountId: 'acc-li', provider: 'linkedin', name: 'LinkedIn' }),
+      makeChannel('ch-th', { accountId: 'acc-th', provider: 'threads', name: 'Threads' }),
+    ]
+  }
+
+  function fillComposer(text: string) {
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = text
+    textarea.dispatchEvent(new Event('input'))
+  }
+
+  function customizeTabs(): HTMLButtonElement[] {
+    return Array.from(document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'))
+  }
+
+  function openCustomizing() {
+    getByTestId('customize-toggle').click()
+  }
+
+  it('hides channel tabs until customize mode is enabled', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(getByTestId('customize-toggle')).toBeDefined()
+    expect(document.querySelector('[data-testid="customize-tabs"]')).toBeNull()
+  })
+
+  it('reveals one tab per selected channel with per-network counters', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    openCustomizing()
+    await flushModal(wrapper)
+
+    const tabs = customizeTabs()
+    expect(tabs.map((tab) => tab.textContent)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Base'),
+        expect.stringContaining('LinkedIn'),
+        expect.stringContaining('Threads'),
+      ]),
+    )
+    const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
+    expect(threadsTab?.textContent).toContain('500')
+  })
+
+  it('submits distinct bodyText per account in one batch request', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        { socialAccountId: 'acc-li', publicationId: 'pub-li', status: 'CREATED' },
+        { socialAccountId: 'acc-th', publicationId: 'pub-th', status: 'CREATED' },
+      ],
+    })
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Schedule Now'))!
+      .click()
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submittedTargets = scheduleSpy.mock.calls[0]?.[0].targets
+    const byAccount = Object.fromEntries(
+      submittedTargets.map((target) => [target.socialAccountId, target.content]),
+    )
+    expect(byAccount['acc-li']).toBe('Hello every network')
+    expect(byAccount['acc-th']).toBe('Short for threads')
+  })
+
+  it('removes the override mark when tab text matches base again', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+    expect(document.querySelector('[data-testid="customize-dot"]')).not.toBeNull()
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    expect(document.querySelector('[data-testid="customize-dot"]')).toBeNull()
+  })
+
+  it('unblocks submit when a short override replaces an over-limit base for Threads', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('x'.repeat(600))
+    await flushModal(wrapper)
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))!
+    expect(scheduleButton.disabled).toBe(true)
+
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('y'.repeat(100))
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(scheduleButton.disabled).toBe(false)
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+  })
+
+  it('reset button clears the override back to base text', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    getByTestId('customize-reset').click()
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toBe('Hello every network')
+    expect(document.querySelector('[data-testid="customize-dot"]')).toBeNull()
+  })
+
+  it('renders the Threads preview with the override text for the active tab', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="threads-preview"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="threads-preview-text"]')?.textContent).toBe(
+      'Short for threads',
+    )
   })
 })

@@ -6,12 +6,12 @@ import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
 const props = defineProps<{
   channels: Channel[]
-  selectedChannelId: string | null
+  selectedChannelIds: string[]
   isEditMode: boolean
 }>()
 
 const emit = defineEmits<{
-  select: [channelId: string]
+  toggle: [channelId: string]
 }>()
 
 const avatarLoadFailed = ref<Record<string, boolean>>({})
@@ -28,10 +28,9 @@ function shouldShowAvatar(channelId: string, avatarUrl?: string | null): boolean
   return !!(avatarUrl && !avatarLoadFailed.value[channelId])
 }
 
-function handleSelect(channelId: string) {
+function handleToggle(channelId: string) {
   if (props.isEditMode) return
-  if (channelId === props.selectedChannelId) return
-  emit('select', channelId)
+  emit('toggle', channelId)
 }
 </script>
 
@@ -52,13 +51,13 @@ function handleSelect(channelId: string) {
         :disabled="isEditMode"
         class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
         :class="[
-          selectedChannelId === ch.id
+          selectedChannelIds.includes(ch.id)
             ? 'border-text-display bg-bg-primary text-text-display font-bold'
             : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50',
           isEditMode ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
         ]"
         :data-edit-disabled="isEditMode ? 'true' : 'false'"
-        @click="handleSelect(ch.id)"
+        @click="handleToggle(ch.id)"
       >
         <img
           v-if="shouldShowAvatar(ch.id, ch.avatarUrl)"
@@ -77,11 +76,11 @@ function handleSelect(channelId: string) {
         <span class="max-w-[120px] truncate">{{ ch.name }}</span>
         <span
           class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
-          :class="selectedChannelId === ch.id ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
+          :class="selectedChannelIds.includes(ch.id) ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
         >
           <component
-            :is="selectedChannelId === ch.id ? Check : X"
-            :data-testid="selectedChannelId === ch.id ? 'channel-selected-icon' : 'channel-deselected-icon'"
+            :is="selectedChannelIds.includes(ch.id) ? Check : X"
+            :data-testid="selectedChannelIds.includes(ch.id) ? 'channel-selected-icon' : 'channel-deselected-icon'"
             class="size-2"
           />
         </span>

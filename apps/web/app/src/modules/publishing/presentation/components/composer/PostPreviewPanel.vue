@@ -4,22 +4,27 @@ import { useI18n } from 'vue-i18n'
 import { Info } from '@lucide/vue'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
-import type { LinkedInPreviewModel, PreviewProvider } from './post-preview.types'
+import ThreadsPostPreview from './ThreadsPostPreview.vue'
+import type {
+  LinkedInPreviewModel,
+  PreviewProvider,
+  ThreadsPreviewModel,
+} from './post-preview.types'
 
 const props = defineProps<{
   provider: PreviewProvider
   title: string
-  linkedinPreview: LinkedInPreviewModel
+  preview: LinkedInPreviewModel | ThreadsPreviewModel
 }>()
 
 const { t } = useI18n()
 
 const activePreviewComponent = computed(() => {
-  return LinkedInPostPreview
+  return props.provider === 'threads' ? ThreadsPostPreview : LinkedInPostPreview
 })
 
 const activePreviewProps = computed(() => {
-  return { preview: props.linkedinPreview }
+  return { preview: props.preview }
 })
 </script>
 

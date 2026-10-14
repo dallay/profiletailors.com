@@ -45,7 +45,7 @@ describe('isSocialProvider', () => {
 function makeChannelForStore(
   accountId: string,
   overrides: Partial<{
-    provider: 'linkedin' | 'twitter' | 'instagram' | 'facebook'
+    provider: 'linkedin' | 'twitter' | 'instagram' | 'facebook' | 'threads'
     maxAttachments: number
   }> = {},
 ) {
@@ -1078,6 +1078,168 @@ describe('publishing store', () => {
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
       expect(body.bodyText).toBe('Line one\nLine two')
+    })
+  })
+
+  describe('scheduleMultiChannel', () => {
+    it('maps calendar group ids onto publications', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publications: [
+          {
+            id: 'pub-calendar',
+            workspaceId: 'workspace-1',
+            socialAccountId: 'soc-li',
+            provider: 'LINKEDIN',
+            status: 'QUEUED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: 'Calendar publication',
+            assetIds: [],
+            scheduledFor: '2026-06-20T14:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            groupId: 'batch-calendar',
+          },
+        ],
+        conflicts: [],
+        activity: [],
+      })
+
+      await store.fetchCalendar('2026-06-20', '2026-06-20')
+
+      expect(store.publications.find((item) => item.id === 'pub-calendar')?.groupId).toBe(
+        'batch-calendar',
+      )
+    })
+
+    it('sends one batch request with account-specific content and inserts successful publications', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        makeChannelForStore('soc-li'),
+        makeChannelForStore('soc-th', { provider: 'threads' }),
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        status: 'ALL_CREATED',
+        results: [
+          {
+            socialAccountId: 'soc-li',
+            publicationId: 'pub-li',
+            groupId: 'batch-1',
+            status: 'CREATED',
+          },
+          {
+            socialAccountId: 'soc-th',
+            publicationId: 'pub-th',
+            groupId: 'batch-1',
+            status: 'CREATED',
+          },
+        ],
+      })
+
+      const result = await store.scheduleMultiChannel({
+        title: 'Post from App',
+        scheduleMode: 'NOW',
+        priority: false,
+        assetIds: ['asset-1'],
+        targets: [
+          { socialAccountId: 'soc-li', provider: 'linkedin', content: 'LinkedIn copy' },
+          { socialAccountId: 'soc-th', provider: 'threads', content: 'Threads copy' },
+        ],
+      })
+
+      expect(apiFetch).toHaveBeenCalledTimes(1)
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/publishing/publications/batch',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('LinkedIn copy'),
+        }),
+      )
+      expect(result.results).toHaveLength(2)
+      expect(
+        store.publications.filter((item) => ['pub-li', 'pub-th'].includes(item.id)),
+      ).toHaveLength(2)
+      expect(
+        store.publications
+          .filter((item) => ['pub-li', 'pub-th'].includes(item.id))
+          .map((item) => item.groupId),
+      ).toEqual(['batch-1', 'batch-1'])
+    })
+
+    it('preserves per-target failures when every target fails with the endpoint 400 response', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [makeChannelForStore('soc-li')]
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(
+        Object.assign(new Error('Batch failed'), {
+          status: 400,
+          results: [
+            {
+              socialAccountId: 'soc-li',
+              status: 'FAILED',
+              errorCode: 'INVALID_CONTENT',
+              errorMessage: 'Rejected',
+            },
+          ],
+        }),
+      )
+
+      const result = await store.scheduleMultiChannel({
+        scheduleMode: 'NOW',
+        priority: false,
+        targets: [{ socialAccountId: 'soc-li', provider: 'linkedin', content: 'Rejected content' }],
+      })
+
+      expect(result).toEqual({
+        status: 'ALL_FAILED',
+        results: [
+          {
+            socialAccountId: 'soc-li',
+            status: 'FAILED',
+            errorCode: 'INVALID_CONTENT',
+            errorMessage: 'Rejected',
+          },
+        ],
+      })
+      expect(store.publications.some((item) => item.accountId === 'soc-li')).toBe(false)
+    })
+
+    it('inserts successful targets and preserves per-target failures on partial response', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        makeChannelForStore('soc-li'),
+        makeChannelForStore('soc-th', { provider: 'threads' }),
+      ]
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        status: 'PARTIAL',
+        results: [
+          { socialAccountId: 'soc-li', publicationId: 'pub-li', status: 'CREATED' },
+          { socialAccountId: 'soc-th', status: 'BAD_REQUEST', errorCode: 'CAPABILITY_VIOLATION' },
+        ],
+      })
+
+      const result = await store.scheduleMultiChannel({
+        scheduleMode: 'NOW',
+        priority: false,
+        targets: [
+          { socialAccountId: 'soc-li', provider: 'linkedin', content: 'LinkedIn copy' },
+          { socialAccountId: 'soc-th', provider: 'threads', content: 'Threads copy' },
+        ],
+      })
+
+      expect(result.status).toBe('PARTIAL')
+      expect(result.results[1]?.errorCode).toBe('CAPABILITY_VIOLATION')
+      expect(store.publications.some((item) => item.id === 'pub-li')).toBe(true)
+      expect(store.publications.some((item) => item.accountId === 'soc-th')).toBe(false)
     })
   })
 

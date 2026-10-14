@@ -10,7 +10,13 @@ export default {
   scheduleSuccessToast: 'Post scheduled successfully',
   preview: 'Preview',
   linkedinPreview: 'LinkedIn Preview',
+  threadsPreview: 'Threads Preview',
   seePreviewHere: "See your post's preview here",
+  customizePerNetwork: 'Customize per network',
+  customizeBase: 'Base',
+  customizeReset: 'Reset to base',
+  channelLimitExceeded: '{name} exceeds {limit} characters',
+  channelEmptyText: '{name} text is empty',
   previewMeta: {
     connectionDegree: '1st',
     justNow: 'Just now',

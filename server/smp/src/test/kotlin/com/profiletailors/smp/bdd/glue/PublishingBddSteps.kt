@@ -34,6 +34,8 @@ class PublishingBddSteps {
     private var currentSocialConnectionId: String? = null
     private var currentSocialAccountId: String? = null
     private var currentPublicationId: String? = null
+    private var batchPublicationIds: List<String> = emptyList()
+    private var batchGroupId: String? = null
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Before
@@ -43,6 +45,8 @@ class PublishingBddSteps {
         currentSocialConnectionId = null
         currentSocialAccountId = null
         currentPublicationId = null
+        batchPublicationIds = emptyList()
+        batchGroupId = null
         providerCatalogPolicyControl.reset()
     }
 
@@ -150,6 +154,57 @@ class PublishingBddSteps {
         val json = objectMapper.writeValueAsString(bodyMap)
         latestPublishingResponse = webTestClient.post()
             .uri(bddDatabaseSupport.publishingPublicationsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client batch-creates publications for valid targets")
+    fun whenClientBatchCreatesPublicationsForValidTargets() = runBlocking {
+        val json = objectMapper.writeValueAsString(
+            mapOf(
+                "title" to "Batch publication",
+                "scheduleMode" to "NOW",
+                "targets" to listOf(
+                    mapOf("socialAccountId" to currentSocialAccountId, "bodyText" to "First target"),
+                    mapOf("socialAccountId" to currentSocialAccountId, "bodyText" to "Second target"),
+                ),
+            ),
+        )
+        latestPublishingResponse = webTestClient.post()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/batch")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+        val results: List<Map<String, Any?>> = parsePublishingResponseField("results")
+        batchPublicationIds = results.mapNotNull { it["publicationId"] as? String }
+        batchGroupId = results.firstOrNull()?.get("groupId") as? String
+    }
+
+    @When("the client batch-creates publications with one valid and one invalid target")
+    fun whenClientBatchCreatesPublicationsWithOneInvalidTarget() = runBlocking {
+        val json = objectMapper.writeValueAsString(
+            mapOf(
+                "title" to "Batch publication",
+                "scheduleMode" to "NOW",
+                "targets" to listOf(
+                    mapOf("socialAccountId" to currentSocialAccountId, "bodyText" to "Valid target"),
+                    mapOf("socialAccountId" to "missing-account", "bodyText" to "Invalid target"),
+                ),
+            ),
+        )
+        latestPublishingResponse = webTestClient.post()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/batch")
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
@@ -427,6 +482,66 @@ class PublishingBddSteps {
         assertEquals(status, actualStatus) {
             "Expected status $status but got $actualStatus. Response body: $body"
         }
+    }
+
+    @Then("the batch publication response status should be {int}")
+    fun thenBatchPublicationResponseStatusShouldBe(status: Int) {
+        val response = latestPublishingResponse ?: error("No publishing response captured")
+        val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+        assertEquals(status, response.status.value()) {
+            "Expected status $status but got ${response.status.value()}. Response body: $body"
+        }
+    }
+
+    @When("the client requests the calendar for the batch publications around now")
+    fun whenClientRequestsCalendarForBatchPublicationsAroundNow() {
+        val from = Instant.now().minusSeconds(60)
+        val to = Instant.now().plusSeconds(3600)
+        latestPublishingResponse = webTestClient.get()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/calendar?from=$from&to=$to")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @Then("the calendar should return the batch publications with the same non-empty groupId")
+    fun thenCalendarShouldReturnBatchPublicationsWithSameNonEmptyGroupId() {
+        val publications: List<Map<String, Any?>> = parsePublishingResponseField("publications")
+        val batchPublications = publications.filter { it["id"] in batchPublicationIds }
+        val groupIds = batchPublications.mapNotNull { it["groupId"] as? String }.toSet()
+        assertEquals(batchPublicationIds.size, batchPublications.size)
+        assertTrue(batchGroupId?.isNotBlank() == true)
+        assertEquals(setOf(batchGroupId), groupIds)
+    }
+
+    @Then("the batch publication status should be {string}")
+    fun thenBatchPublicationStatusShouldBe(expectedStatus: String) {
+        assertEquals(expectedStatus, parsePublishingResponseField<String>("status"))
+    }
+
+    @Then("the batch response should contain {int} created targets")
+    fun thenBatchResponseShouldContainCreatedTargets(expectedCount: Int) {
+        val results: List<Map<String, Any?>> = parsePublishingResponseField("results")
+        assertEquals(expectedCount, results.count { it["status"] == "CREATED" })
+        assertTrue(results.all { it["publicationId"] is String })
+    }
+
+    @Then("the batch response should contain one created and one failed target")
+    fun thenBatchResponseShouldContainOneCreatedAndOneFailedTarget() {
+        val results: List<Map<String, Any?>> = parsePublishingResponseField("results")
+        assertEquals(1, results.count { it["status"] == "CREATED" })
+        assertEquals(1, results.count { it["status"] == "BAD_REQUEST" })
+    }
+
+    @Then("the batch publication response should not contain provider data")
+    fun thenBatchPublicationResponseShouldNotContainProviderData() {
+        val body = publishingResponseBodyText()
+        assertTrue(!body.contains("accessToken"), body)
+        assertTrue(!body.contains("refreshToken"), body)
+        assertTrue(!body.contains("clientSecret"), body)
     }
 
     @Then("the response should contain a publicationId")

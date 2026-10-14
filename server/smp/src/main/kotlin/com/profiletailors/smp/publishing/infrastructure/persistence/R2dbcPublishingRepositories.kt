@@ -54,6 +54,7 @@ private const val PUBLICATION_UPDATE_COLUMNS = """
     published_at = :publishedAt,
     failed_at = :failedAt,
     external_publication_id = :externalPublicationId,
+    group_id = :groupId,
     last_error_code = :lastErrorCode,
     last_error_message = :lastErrorMessage,
     updated_at = :updatedAt
@@ -63,14 +64,14 @@ private const val PUBLICATION_INSERT_COLUMNS = """
     id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
     title, body_text, public_url, blocked_at, blocked_reason, retry_count,
     scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-    last_error_code, last_error_message, created_at, updated_at
+    last_error_code, last_error_message, created_at, updated_at, group_id
 """
 
 private const val PUBLICATION_INSERT_VALUES = """
     :id, :workspaceId, :authorPrincipalId, :provider, :socialAccountId, :status, :scheduleMode, :priority,
     :title, :bodyText, :publicUrl, :blockedAt, :blockedReason, :retryCount,
     :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
-    :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
+    :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt, :groupId
 """
 
 private const val PUBLICATION_ID_COLUMN = "publication_id"
@@ -95,7 +96,7 @@ class R2dbcPublicationRepository(
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
                    title, body_text, public_url, blocked_at, blocked_reason, retry_count,
                    scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-                   last_error_code, last_error_message, created_at, updated_at
+                   last_error_code, last_error_message, created_at, updated_at, group_id
             FROM publications
             WHERE workspace_id = :workspaceId AND id = :id
             """.trimIndent(),
@@ -127,6 +128,7 @@ class R2dbcPublicationRepository(
                     lastErrorCode = row.get("last_error_code", String::class.java),
                     lastErrorMessage = row.get("last_error_message", String::class.java),
                     createdAt = row.get("created_at", OffsetDateTime::class.java)?.toInstant(),
+                    groupId = row.get("group_id", String::class.java),
                     updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
                 )
             }
@@ -187,7 +189,7 @@ class R2dbcPublicationRepository(
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
                    title, body_text, public_url, blocked_at, blocked_reason, retry_count,
                    scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-                   last_error_code, last_error_message, created_at, updated_at
+                   last_error_code, last_error_message, created_at, updated_at, group_id
             FROM publications
             WHERE ${conditions.joinToString(" AND ")}
             ORDER BY scheduled_for ASC
@@ -436,7 +438,7 @@ class R2dbcPublicationRepository(
             SELECT p.id, p.workspace_id, p.author_principal_id, p.provider, p.social_account_id, p.status, p.schedule_mode, p.priority,
                    p.title, p.body_text, p.public_url, p.blocked_at, p.blocked_reason, p.retry_count,
                    p.scheduled_for, p.next_slot_after, p.published_at, p.failed_at, p.external_publication_id,
-                   p.last_error_code, p.last_error_message, p.created_at, p.updated_at
+                   p.last_error_code, p.last_error_message, p.created_at, p.updated_at, p.group_id
             FROM publications p
             JOIN social_accounts a
               ON a.id = p.social_account_id
@@ -572,6 +574,7 @@ class R2dbcPublicationRepository(
         .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
         .bindNullable("failedAt", draft.failedAt, Instant::class.java)
         .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
+        .bindNullable("groupId", draft.groupId, String::class.java)
         .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
         .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
         .bind("updatedAt", updatedAt)
@@ -583,6 +586,7 @@ class R2dbcPublicationRepository(
     ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
         bindPublicationUpdateWriteParams(draft, updatedAt)
             .bind("createdAt", createdAt)
+            .bindNullable("groupId", draft.groupId, String::class.java)
 
     private suspend fun replaceAssetLinks(draft: PublicationDraft) {
         databaseClient.sql(
@@ -1190,5 +1194,6 @@ private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
     lastErrorCode = get("last_error_code", String::class.java),
     lastErrorMessage = get("last_error_message", String::class.java),
     createdAt = get("created_at", OffsetDateTime::class.java)?.toInstant(),
+    groupId = get("group_id", String::class.java),
     updatedAt = get("updated_at", OffsetDateTime::class.java)?.toInstant(),
 )

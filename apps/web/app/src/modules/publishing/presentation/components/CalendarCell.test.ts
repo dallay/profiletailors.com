@@ -3,6 +3,8 @@ import { mount } from '@vue/test-utils'
 import CalendarCell from './CalendarCell.vue'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
+
 vi.mock('@lucide/vue', () => ({
   Plus: { template: '<svg />' },
 }))
@@ -45,6 +47,21 @@ describe('CalendarCell', () => {
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
     expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-1' })
+  })
+
+  it('marks publications with a related batch group', () => {
+    const wrapper = mount(CalendarCell, {
+      props: {
+        date: new Date('2026-06-15T00:00:00.000Z'),
+        isCurrentMonth: true,
+        isToday: false,
+        publications: [makePublication({ groupId: 'batch-1' })],
+      },
+    })
+
+    expect(wrapper.get('[data-testid="related-publication-badge"]').text()).toBe(
+      'scheduler.relatedPublication',
+    )
   })
 
   it('does not emit click-day when a publication chip is clicked', async () => {

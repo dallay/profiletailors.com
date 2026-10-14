@@ -3,11 +3,14 @@ package com.profiletailors.smp.publishing.infrastructure.http
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.publishing.application.BatchPublicationStatus
+import com.profiletailors.smp.publishing.application.BatchPublicationTarget
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
+import com.profiletailors.smp.publishing.application.CreatePublicationBatchCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
@@ -65,9 +68,11 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotEmpty
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -86,6 +91,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+import com.profiletailors.smp.publishing.application.wireName as batchStatusWireName
 
 private const val SSE_HEARTBEAT_INTERVAL_SECONDS = 20L
 
@@ -373,6 +379,48 @@ class PublishingPublicationController(private val mediator: Mediator) {
             ),
         )
 
+    @Operation(summary = "Create publications across multiple social accounts in one call")
+    @PostMapping(value = ["/batch"], consumes = ["application/json"], version = "1")
+    suspend fun createPublicationBatch(
+        @Valid @RequestBody request: PublicationBatchCreateRequest,
+    ): ResponseEntity<PublicationBatchCreateResponse> {
+        val command = CreatePublicationBatchCommand(
+            title = request.title,
+            bodyText = request.bodyText,
+            targets = request.targets.map { target ->
+                BatchPublicationTarget(
+                    socialAccountId = target.socialAccountId,
+                    bodyText = target.bodyText,
+                    assetIds = target.assetIds,
+                )
+            },
+            scheduleMode = request.toScheduleMode(),
+            scheduledFor = request.scheduledFor,
+            nextSlotAfter = request.nextSlotAfter,
+            priority = request.priority,
+        )
+        val result = mediator.send(command)
+        val response = PublicationBatchCreateResponse(
+            status = result.status.batchStatusWireName(),
+            results = result.results.map { item ->
+                PublicationBatchTargetResultResponse(
+                    socialAccountId = item.socialAccountId,
+                    publicationId = item.publicationId,
+                    groupId = item.groupId,
+                    status = item.status,
+                    errorCode = item.errorCode,
+                    errorMessage = item.errorMessage,
+                )
+            },
+        )
+        val status = when (result.status) {
+            BatchPublicationStatus.ALL_CREATED -> HttpStatus.CREATED
+            BatchPublicationStatus.PARTIAL -> HttpStatus.MULTI_STATUS
+            BatchPublicationStatus.ALL_FAILED -> HttpStatus.BAD_REQUEST
+        }
+        return ResponseEntity.status(status).body(response)
+    }
+
     @Operation(summary = "Edit a publication before delivery")
     @PatchMapping("/{publicationId}", consumes = ["application/json"], version = "1")
     suspend fun editPublication(
@@ -542,6 +590,44 @@ data class PublicationUpsertRequest(
 ) {
     fun toScheduleMode(): ScheduleMode = ScheduleMode.valueOf(scheduleMode)
 }
+
+@Schema(description = "Per-target body of a multi-channel publication request")
+data class PublicationBatchTargetRequest(
+    @field:NotBlank
+    val socialAccountId: String,
+    val bodyText: String? = null,
+    val assetIds: List<String> = emptyList(),
+)
+
+@Schema(description = "Multi-channel publication create request")
+data class PublicationBatchCreateRequest(
+    val title: String? = null,
+    val bodyText: String? = null,
+    @field:Valid
+    @field:NotEmpty
+    val targets: List<PublicationBatchTargetRequest>,
+    val scheduleMode: String,
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    val scheduledFor: Instant? = null,
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    val nextSlotAfter: Instant? = null,
+    val priority: Boolean = false,
+) {
+    fun toScheduleMode(): ScheduleMode = ScheduleMode.valueOf(scheduleMode)
+}
+
+@Schema(description = "Per-target outcome of a multi-channel create")
+data class PublicationBatchTargetResultResponse(
+    val socialAccountId: String,
+    val publicationId: String? = null,
+    val groupId: String? = null,
+    val status: String,
+    val errorCode: String? = null,
+    val errorMessage: String? = null,
+)
+
+@Schema(description = "Multi-channel create response")
+data class PublicationBatchCreateResponse(val status: String, val results: List<PublicationBatchTargetResultResponse>)
 
 @Schema(description = "Quick-create publication request (scheduled with empty assets)")
 data class QuickCreateRequest(
