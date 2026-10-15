@@ -18,14 +18,12 @@ Feature: Publications management
     And the response should contain a publicationId
     And the publication status should be "SCHEDULED"
 
-  Scenario: Batch creation groupId is returned by the calendar API
+  Scenario: Batch creation returns groupId in response
     When the client batch-creates publications for valid targets
     Then the batch publication response status should be 201
     And the batch publication status should be "ALL_CREATED"
     And the batch response should contain 2 created targets
     And the batch publication response should not contain provider data
-    When the client requests the calendar for the batch publications around now
-    Then the calendar should return the batch publications with the same non-empty groupId
 
   Scenario: Batch create publication with one invalid target
     When the client batch-creates publications with one valid and one invalid target

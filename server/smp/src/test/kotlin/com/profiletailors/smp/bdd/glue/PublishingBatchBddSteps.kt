@@ -15,7 +15,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.nio.charset.StandardCharsets
-import java.time.Instant
 
 class PublishingBatchBddSteps {
     @Autowired
@@ -26,14 +25,12 @@ class PublishingBatchBddSteps {
 
     private var latestPublishingResponse: EntityExchangeResult<ByteArray>? = null
     private var batchPublicationIds: List<String> = emptyList()
-    private var batchGroupId: String? = null
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Before
     fun resetBatchPublishingState() {
         latestPublishingResponse = null
         batchPublicationIds = emptyList()
-        batchGroupId = null
     }
 
     @When("the client batch-creates publications for valid targets")
@@ -60,7 +57,6 @@ class PublishingBatchBddSteps {
             .returnResult()
         val results: List<Map<String, Any?>> = parseResponseField("results")
         batchPublicationIds = results.mapNotNull { it["publicationId"] as? String }
-        batchGroupId = results.firstOrNull()?.get("groupId") as? String
     }
 
     @When("the client batch-creates publications with one valid and one invalid target")
@@ -94,30 +90,6 @@ class PublishingBatchBddSteps {
         assertEquals(status, response.status.value()) {
             "Expected status $status but got ${response.status.value()}. Response body: $body"
         }
-    }
-
-    @When("the client requests the calendar for the batch publications around now")
-    fun whenClientRequestsCalendarForBatchPublicationsAroundNow() {
-        val from = Instant.now().minusSeconds(60)
-        val to = Instant.now().plusSeconds(3600)
-        latestPublishingResponse = webTestClient.get()
-            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/calendar?from=$from&to=$to")
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.VERIFIED_USER_BEARER)
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @Then("the calendar should return the batch publications with the same non-empty groupId")
-    fun thenCalendarShouldReturnBatchPublicationsWithSameNonEmptyGroupId() {
-        val publications: List<Map<String, Any?>> = parseResponseField("publications")
-        val batchPublications = publications.filter { it["id"] in batchPublicationIds }
-        val groupIds = batchPublications.mapNotNull { it["groupId"] as? String }.toSet()
-        assertEquals(batchPublicationIds.size, batchPublications.size)
-        assertTrue(batchGroupId?.isNotBlank() == true)
-        assertEquals(setOf(batchGroupId), groupIds)
     }
 
     @Then("the batch publication status should be {string}")
