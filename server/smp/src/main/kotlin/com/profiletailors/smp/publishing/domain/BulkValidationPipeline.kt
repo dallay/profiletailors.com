@@ -203,8 +203,10 @@ class BulkValidationPipeline(
             scheduledFor = scheduledFor,
         )
         return try {
-            val validator = providerCapabilityRegistry?.validator(validationAccount.provider)
-                ?: providerCapabilityValidator
+            val validator = providerCapabilityRegistry?.validatorOr(
+                validationAccount.provider,
+                providerCapabilityValidator,
+            ) ?: providerCapabilityValidator
             validator.validate(
                 ProviderCapabilityValidationInput(
                     provider = validationAccount.provider,

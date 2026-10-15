@@ -75,6 +75,8 @@ const translations: Record<string, string> = {
   'composer.saveChanges': 'Save Changes',
   'composer.cancelBtn': 'Cancel',
   'composer.threadsPreview': 'Threads Preview',
+  'composer.linkedinAuthorFallback': 'LinkedIn Member',
+  'composer.threadsAuthorFallback': 'Threads user',
   'composer.customizePerNetwork': 'Customize per network',
   'composer.customizeBase': 'Base',
   'composer.customizeReset': 'Reset to base',
@@ -1830,6 +1832,70 @@ describe('CreatePostModal.vue — AI assistant', () => {
     )
   })
 
+  it('keeps the modal open and preserves the draft when some targets fail', async () => {
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'PARTIAL',
+      results: [
+        { socialAccountId: 'acc-li', publicationId: 'pub-li', status: 'CREATED' },
+        { socialAccountId: 'acc-th', errorMessage: 'Threads failed', status: 'FAILED' },
+      ],
+    })
+    const wrapper = mountModal([
+      makeChannel('ch-partial-li', { accountId: 'acc-li', name: 'LinkedIn' }),
+      makeChannel('ch-partial-th', { accountId: 'acc-th', provider: 'threads', name: 'Threads' }),
+    ])
+    await flushModal(wrapper)
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Retryable draft'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('customize-toggle').click()
+    await flushModal(wrapper)
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'))
+      .find((tab) => tab.textContent?.includes('LinkedIn'))
+      ?.click()
+    await flushModal(wrapper)
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    scheduleButton?.click()
+    await flushPromises()
+    await flushModal(wrapper)
+
+    expect(wrapper.emitted('created')).toEqual([[{ keepOpen: true, publicationId: 'pub-li' }]])
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Retryable draft')
+    expect(document.body.textContent).toContain('Threads: Threads failed')
+    const channelButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
+    )
+    expect(
+      channelButtons.find((button) => button.textContent?.includes('Threads'))?.className,
+    ).toContain('font-bold')
+    expect(
+      channelButtons.find((button) => button.textContent?.includes('LinkedIn'))?.className,
+    ).not.toContain('font-bold')
+    const customizeTabs = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'),
+    )
+    expect(
+      customizeTabs.find((tab) => tab.textContent?.includes('Base'))?.getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(customizeTabs.some((tab) => tab.textContent?.includes('LinkedIn'))).toBe(false)
+    expect(
+      customizeTabs
+        .find((tab) => tab.textContent?.includes('Threads'))
+        ?.getAttribute('aria-selected'),
+    ).toBe('false')
+
+    scheduleButton?.click()
+    await flushPromises()
+    await flushModal(wrapper)
+
+    const retryPayload = vi.mocked(usePublishingStore().scheduleMultiChannel).mock.calls.at(-1)?.[0]
+    expect(retryPayload?.targets.map((target) => target.socialAccountId)).toEqual(['acc-th'])
+  })
+
   it('submits content with no URL without calling the shortlink service', async () => {
     const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
       status: 'ALL_CREATED',
@@ -2599,6 +2665,29 @@ describe('CreatePostModal.vue — per-network customization', () => {
     getByTestId('customize-toggle').click()
   }
 
+  it('adds emoji to the active channel override without changing the base draft', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    fillComposer('Base draft')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    const threadsTab = customizeTabs().find((tab) => tab.textContent?.includes('Threads'))
+    expect(threadsTab).toBeDefined()
+    threadsTab?.click()
+    await flushModal(wrapper)
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Open emoji picker"]')?.click()
+    await flushModal(wrapper)
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Base draft 🙂')
+
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Base'))!
+      .click()
+    await flushModal(wrapper)
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Base draft')
+  })
+
   it('hides channel tabs until customize mode is enabled', async () => {
     const wrapper = mountModal(baseChannels())
     await flushModal(wrapper)
@@ -2738,6 +2827,49 @@ describe('CreatePostModal.vue — per-network customization', () => {
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
     expect(textarea.value).toBe('Hello every network')
     expect(document.querySelector('[data-testid="customize-dot"]')).toBeNull()
+  })
+
+  it('uses provider-specific author fallbacks while preserving a channel handle', async () => {
+    const wrapper = mountModal([
+      makeChannel('ch-li', {
+        accountId: 'acc-li',
+        provider: 'linkedin',
+        name: 'LinkedIn',
+        handle: '',
+      }),
+      makeChannel('ch-th', {
+        accountId: 'acc-th',
+        provider: 'threads',
+        name: 'Threads',
+        handle: '',
+      }),
+    ])
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+
+    const handleText = (value: string) =>
+      Array.from(document.querySelectorAll('p')).find(
+        (paragraph) => paragraph.textContent?.trim() === value,
+      )
+
+    expect(handleText('LinkedIn Member')).toBeDefined()
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    expect(handleText('Threads user')).toBeDefined()
+
+    const linkedinWithHandle = mountModal([
+      makeChannel('ch-li-handle', {
+        accountId: 'acc-li-handle',
+        provider: 'linkedin',
+        handle: '@linkedin',
+      }),
+    ])
+    await flushModal(linkedinWithHandle)
+    expect(handleText('@linkedin')).toBeDefined()
   })
 
   it('renders the Threads preview with the override text for the active tab', async () => {

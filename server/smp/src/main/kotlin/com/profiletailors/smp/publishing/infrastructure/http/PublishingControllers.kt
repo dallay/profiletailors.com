@@ -384,6 +384,9 @@ class PublishingPublicationController(private val mediator: Mediator) {
     suspend fun createPublicationBatch(
         @Valid @RequestBody request: PublicationBatchCreateRequest,
     ): ResponseEntity<PublicationBatchCreateResponse> {
+        if (request.targets.map { it.socialAccountId }.toSet().size != request.targets.size) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate socialAccountId values are not allowed.")
+        }
         val command = CreatePublicationBatchCommand(
             title = request.title,
             bodyText = request.bodyText,

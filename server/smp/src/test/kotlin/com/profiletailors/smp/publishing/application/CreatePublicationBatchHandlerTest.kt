@@ -7,6 +7,8 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -53,6 +55,7 @@ class CreatePublicationBatchHandlerTest {
     private val mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = false)
     private val fixedInstant = Instant.parse("2026-01-01T12:00:00Z")
     private val clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
+    private val membershipGate = mockk<WorkspaceMembershipGate>(relaxed = true)
 
     private val handler = CreatePublicationBatchHandler(
         principalContextProvider,
@@ -67,6 +70,7 @@ class CreatePublicationBatchHandlerTest {
         mediaAssetResolver,
         mediaIntegrationSettings,
         clock,
+        membershipGate = membershipGate,
     )
 
     private fun linkedInAccount(workspaceId: String) = SocialAccount(
@@ -90,6 +94,60 @@ class CreatePublicationBatchHandlerTest {
         displayName = "WireMock Threads User",
         status = SocialConnectionStatus.ACTIVE,
     )
+
+    @Test
+    fun `requires active membership before accessing accounts or assets`() = runTest {
+        val workspaceId = "ws-denied"
+        coEvery { principalContextProvider.require() } returns
+            PrincipalContext("u-denied", PrincipalType.USER, "u-denied")
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { membershipGate.requireActiveMember(workspaceId) } throws AuthorizationDeniedException(
+            "Active workspace membership is required.",
+        )
+
+        val result = runCatching {
+            handler.handle(
+                CreatePublicationBatchCommand(
+                    bodyText = "Denied content",
+                    targets = listOf(BatchPublicationTarget(socialAccountId = "acc-li", assetIds = listOf("asset-1"))),
+                    scheduleMode = ScheduleMode.NOW,
+                ),
+            )
+        }
+
+        (result.exceptionOrNull() is AuthorizationDeniedException) shouldBe true
+        coVerify(exactly = 1) { membershipGate.requireActiveMember(workspaceId) }
+        coVerify(exactly = 0) { socialAccountRepository.findByWorkspaceAndId(any(), any()) }
+        coVerify(exactly = 0) { publicationAssetRepository.findByWorkspaceAndIds(any(), any()) }
+    }
+
+    @Test
+    fun `should preserve next slot earliest time when creating batch target`() = runTest {
+        val workspaceId = "ws-next-slot"
+        val principalId = "u-next-slot"
+        val nextSlotAfter = Instant.parse("2026-01-02T12:00:00Z")
+        val createdDrafts = mutableListOf<PublicationDraft>()
+        coEvery { principalContextProvider.require() } returns
+            PrincipalContext(principalId, PrincipalType.USER, principalId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, "acc-li") } returns
+            linkedInAccount(workspaceId)
+        coEvery { publicationRepository.createDraft(any<PublicationDraft>()) } answers {
+            firstArg<PublicationDraft>().also(createdDrafts::add)
+        }
+        val command = CreatePublicationBatchCommand(
+            bodyText = "Next slot content",
+            targets = listOf(BatchPublicationTarget(socialAccountId = "acc-li")),
+            scheduleMode = ScheduleMode.NEXT_SLOT,
+            nextSlotAfter = nextSlotAfter,
+        )
+
+        handler.handle(command)
+
+        createdDrafts.single().nextSlotAfter shouldBe nextSlotAfter
+    }
 
     @Test
     fun `creates every target when all validators pass`() = runTest {

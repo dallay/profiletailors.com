@@ -77,7 +77,6 @@ export function runManagedChild({
   args,
   context = getWorktreeContext(),
   spawnOptions = {},
-  role = 'supervisor',
   metadata = {},
 }) {
   const child = spawn(command, args, {
@@ -95,26 +94,40 @@ export function runManagedChild({
   )
 
   let shuttingDown = false
-  const shutdown = (code = 0) => {
+  const shutdown = async (code = 0) => {
     if (shuttingDown) return
     shuttingDown = true
-    if (child.pid) {
-      try {
-        if (isWin) child.kill('SIGTERM')
-        else process.kill(-child.pid, 'SIGTERM')
-      } catch {}
+    if (child.exitCode === null && child.signalCode === null && child.pid) {
+      terminatePid(child.pid, true)
+      let timeout
+      const exited = await Promise.race([
+        new Promise((resolveExit) => child.once('exit', () => resolveExit(true))),
+        new Promise((resolveTimeout) => {
+          timeout = setTimeout(() => resolveTimeout(false), 5000)
+        }),
+      ])
+      clearTimeout(timeout)
+      if (!exited && child.exitCode === null && child.signalCode === null) {
+        if (isWin) {
+          try {
+            execFileSync('taskkill', ['/F', '/T', '/PID', String(child.pid)], { stdio: 'ignore' })
+          } catch {}
+        } else {
+          terminatePid(child.pid, true)
+          try {
+            process.kill(-child.pid, 'SIGKILL')
+          } catch {}
+        }
+      }
     }
     removeProcessRecord(name, context)
     process.exit(code)
   }
 
-  process.on('SIGINT', () => shutdown())
-  process.on('SIGTERM', () => shutdown())
-  child.on('error', () => shutdown(1))
-  child.on('exit', (code) => {
-    if (role === 'supervisor') shutdown(code ?? 1)
-    else if (!shuttingDown) shutdown(code ?? 1)
-  })
+  process.on('SIGINT', () => void shutdown())
+  process.on('SIGTERM', () => void shutdown())
+  child.on('error', () => void shutdown(1))
+  child.on('exit', (code) => void shutdown(code ?? 1))
 
   return { child, shutdown }
 }

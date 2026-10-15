@@ -6,7 +6,13 @@ Use the repository's `social-api-wiremock` service to exercise the Threads conne
 
 The mock is development-only. Its fixed authorization code, user identity, and tokens are not credentials and must never be used outside local testing.
 
-## Prerequisites
+## Changes
+
+This guide covers the local WireMock-backed Threads OAuth setup, including the mock endpoints, local API URL, and JVM trust required for Portless TLS.
+
+## Usage
+
+### Prerequisites
 
 - Docker and the repository dependencies are available.
 - Portless is installed and its HTTPS proxy is running; see [Portless setup](./portless-setup.md).
@@ -15,7 +21,7 @@ The mock is development-only. Its fixed authorization code, user identity, and t
 
 The `.env.example` describes the Threads settings. Keep local values in the ignored `.env`; do not commit them.
 
-## Start the mock
+### Start the mock
 
 The root `compose.yaml` owns the `social-api-wiremock` service and publishes it on host port `8089` by default. Start repository infrastructure and register the local HTTPS alias:
 
@@ -32,7 +38,7 @@ pnpm exec portless list
 
 The Threads mappings live in `infra/wiremock/mappings/threads/`:
 
-- `015-oauth-authorize.json` returns a redirect to the app callback with a mock authorization code and the incoming OAuth `state`.
+- `015-oauth-authorize.json` returns a redirect to the app callback with a mock authorization code and the incoming OAuth `state`. The callback uses the supplied `redirect_uri` or falls back to `https://pt-app.localhost/integrations/threads/callback`.
 - `070-oauth-token.json` accepts the form-urlencoded authorization-code exchange.
 - `072-oauth-refresh-token.json` returns a mock refreshed token.
 - `073-user-profile.json` returns a stable mock profile.
@@ -43,7 +49,7 @@ WireMock loads these mappings through the root Compose service. Rebuild that ser
 docker compose up -d --build social-api-wiremock
 ```
 
-## Configure the local backend
+### Configure the local backend
 
 Set the local Threads API base URL in `.env`:
 
@@ -104,7 +110,7 @@ EOF
 
 A `status=200` confirms that this JDK process trusts the Portless certificate and can reach WireMock. It does not by itself prove that the SMP process inherited the same settings; restart SMP with the environment above.
 
-## Exercise the OAuth flow
+### Exercise the OAuth flow
 
 1. Open `https://pt-app.localhost` and sign in with the local account.
 2. Start a **new** Threads connection from the dashboard. Do not reuse an old callback URL: OAuth `state` is short-lived and each attempt must begin with a fresh authorization request.

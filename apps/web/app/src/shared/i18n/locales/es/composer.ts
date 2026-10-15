@@ -11,6 +11,8 @@ export default {
   preview: 'Vista Previa',
   linkedinPreview: 'Vista previa de LinkedIn',
   threadsPreview: 'Vista previa de Threads',
+  linkedinAuthorFallback: 'Miembro de LinkedIn',
+  threadsAuthorFallback: 'Usuario de Threads',
   seePreviewHere: 'Ver vista previa aquí',
   customizePerNetwork: 'Personalizar por red',
   customizeBase: 'Base',

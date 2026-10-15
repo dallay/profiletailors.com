@@ -780,7 +780,11 @@ function previewModelFor(channelId: string | null): LinkedInPreviewModel {
     : (selectedChannels.value[0] ?? null)
   return {
     authorName: channel?.name || auth.user?.username || 'Profile Tailors',
-    authorHandle: channel?.handle || 'LinkedIn Member',
+    authorHandle:
+      channel?.handle ||
+      (previewProvider.value === 'threads'
+        ? t('composer.threadsAuthorFallback')
+        : t('composer.linkedinAuthorFallback')),
     authorAvatarUrl: channel?.avatarUrl ?? null,
     authorInitials: channelInitials(channel?.name),
     text: markdownEditor.stripMarkdown(channelId ? effectiveRawFor(channelId) : postText.value),
@@ -983,7 +987,7 @@ async function handleDeleteSet(setId: string): Promise<void> {
 }
 
 function handleEmojiPicker() {
-  postText.value = `${activeText.value}${activeText.value ? ' ' : ''}🙂`
+  activeText.value = `${activeText.value}${activeText.value ? ' ' : ''}🙂`
 }
 
 function openAiAssistant(): void {
@@ -1362,13 +1366,24 @@ async function handleCreateSubmit(
     submitError.value = failedTargets
       .map((item) => `${selectedChannels.value.find((channel) => channel.accountId === item.socialAccountId)?.name ?? item.socialAccountId}: ${item.errorMessage ?? 'Unable to schedule post.'}`)
       .join('\n')
+    const failedAccountIds = new Set(failedTargets.map((target) => target.socialAccountId))
+    selectedChannelIds.value = selectedChannels.value
+      .filter((channel) => failedAccountIds.has(channel.accountId))
+      .map((channel) => channel.id)
+    if (activeTabId.value && !selectedChannelIds.value.includes(activeTabId.value)) {
+      activeTabId.value = null
+    }
   }
   const firstCreated = result.results.find((item) => item.publicationId)?.publicationId
   if (!firstCreated) return
   if (failedShortlinkUrls.value.length > 0) {
     toast.warning(`${t('shortlinks.createFailed')} ${failedShortlinkUrls.value.join(', ')}`)
   }
-  emit('created', { keepOpen: createAnother.value, publicationId: firstCreated })
+  emit('created', {
+    keepOpen: createAnother.value || failedTargets.length > 0,
+    publicationId: firstCreated,
+  })
+  if (failedTargets.length > 0) return
   finalizeAfterCreate(createAnother.value)
 }
 </script>

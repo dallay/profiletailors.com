@@ -1402,7 +1402,7 @@ export const usePublishingStore = defineStore('publishing', () => {
             ? (input.nextSlotAfter ?? new Date().toISOString())
             : (input.scheduledAt ?? new Date().toISOString()),
         scheduleMode: input.scheduleMode,
-        status: input.scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
+        status: input.scheduleMode === 'NOW' ? 'QUEUED' : 'SCHEDULED',
         priority: input.priority,
         assetIds: input.assetIds ?? [],
         accountId: target.socialAccountId,

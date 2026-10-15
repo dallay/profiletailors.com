@@ -2,8 +2,9 @@
 set -euo pipefail
 
 NAME="threads-mock"
-PORT="${WIREMOCK_PORT:-8089}"
-CONTAINER="pt-main-0c6a3a6b87-social-api-wiremock-1"
+CONFIGURED_PORT="${WIREMOCK_HOST_PORT:-${HOST_PORT:-}}"
+PORT="8089"
+SERVICE="social-api-wiremock"
 
 cd "$(dirname "$0")/.."
 
@@ -12,20 +13,22 @@ if ! command -v portless >/dev/null 2>&1 && ! pnpm exec portless --version >/dev
   exit 1
 fi
 
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -qE "${CONTAINER}|wiremock"; then
-  echo "ERROR: wiremock container is not running. Start it with: just infra-up" >&2
+CONTAINER_ID=$(node scripts/compose-run.mjs ps -q "${SERVICE}" 2>/dev/null | head -1)
+if [ -z "${CONTAINER_ID}" ]; then
+  echo "ERROR: worktree WireMock container is not running. Start it with: just infra-up" >&2
   exit 1
 fi
 
-echo "Registering portless alias: https://${NAME}.localhost -> 127.0.0.1:${PORT}"
-pnpm exec portless alias "${NAME}" "${PORT}"
-
 HOST_PORT=$(node scripts/compose-run.mjs ports 2>/dev/null \
-  | awk -v svc="social-api-wiremock" '$1 ~ svc {print $3}' \
+  | awk -v svc="${SERVICE}" '$1 ~ svc {print $3}' \
   | head -1 \
   | awk -F: '{print $NF}')
-
 if [ -z "${HOST_PORT}" ]; then HOST_PORT="${PORT}"; fi
+
+PORT="${CONFIGURED_PORT:-${HOST_PORT:-${PORT}}}"
+
+echo "Registering portless alias: https://${NAME}.localhost -> 127.0.0.1:${PORT}"
+pnpm exec portless alias "${NAME}" "${PORT}"
 
 echo
 echo "Verifying stub: GET https://${NAME}.localhost/v1.0/me?fields=id"

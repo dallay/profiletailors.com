@@ -45,9 +45,10 @@ just infra-up
 ```
 
 The local social API WireMock uses the provider-neutral `social-api-wiremock` service and publishes
-port `8089` by default at `http://localhost:8089`. Both LinkedIn and Threads API base URLs default to
-this endpoint when the development runtime starts. Set `WIREMOCK_HOST_PORT` to override the port and
-keep provider base URLs aligned if you use a non-default port. LinkedIn WireMock returns a local
+port `8089` by default at `http://localhost:8089`. The SMP provider API base URLs retain their
+provider defaults: `https://api.linkedin.com` for LinkedIn and `https://graph.threads.net` for
+Threads. Set the provider API base-URL variables explicitly to use WireMock. `WIREMOCK_HOST_PORT`
+only overrides WireMock's published host port. LinkedIn WireMock returns a local
 authorization code and mock access/refresh tokens; this exercises the application's
 authorization-code and refresh exchanges, not every LinkedIn OAuth API behavior. The browser
 authorization stub accepts only localhost callbacks. Do not override the development LinkedIn

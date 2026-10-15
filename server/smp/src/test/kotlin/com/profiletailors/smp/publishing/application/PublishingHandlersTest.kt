@@ -851,7 +851,7 @@ class PublishingHandlersTest {
     }
 
     @Test
-    fun `edit threads publication uses registry validator`() = runTest {
+    fun `should validate with registry validator when editing threads publication`() = runTest {
         val threadsPublication = PublicationDraft(
             id = "pub-threads-1",
             workspaceId = "workspace-1",

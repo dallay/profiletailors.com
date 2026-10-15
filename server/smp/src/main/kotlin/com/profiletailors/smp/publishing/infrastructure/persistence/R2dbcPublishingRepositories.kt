@@ -586,7 +586,6 @@ class R2dbcPublicationRepository(
     ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
         bindPublicationUpdateWriteParams(draft, updatedAt)
             .bind("createdAt", createdAt)
-            .bindNullable("groupId", draft.groupId, String::class.java)
 
     private suspend fun replaceAssetLinks(draft: PublicationDraft) {
         databaseClient.sql(

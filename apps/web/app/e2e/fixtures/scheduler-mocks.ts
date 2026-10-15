@@ -187,6 +187,50 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
 
     if (method === 'POST') {
       const body = route.request().postDataJSON()
+      if (route.request().url().endsWith('/batch')) {
+        const targets: Array<{ socialAccountId?: string; bodyText?: string }> = Array.isArray(
+          body?.targets,
+        )
+          ? body.targets
+          : []
+        const results = targets.map((target, index) => {
+          const publicationId = `backend-publication-${Date.now()}-${index}`
+          publications.push({
+            id: publicationId,
+            workspaceId: MOCK_WORKSPACE_ID,
+            socialAccountId: target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
+            provider: 'linkedin',
+            status: body?.scheduleMode === 'NOW' ? 'QUEUED' : 'SCHEDULED',
+            scheduleMode: body?.scheduleMode ?? 'NOW',
+            priority: body?.priority ?? false,
+            title: body?.title ?? 'Post from App',
+            bodyText: target.bodyText ?? body?.bodyText ?? '',
+            scheduledFor: body?.scheduledFor ?? body?.nextSlotAfter ?? new Date().toISOString(),
+            nextSlotAfter: body?.nextSlotAfter ?? null,
+            assetIds: Array.isArray(body?.assetIds) ? body.assetIds : [],
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          })
+          return {
+            socialAccountId: target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
+            publicationId,
+            groupId: null,
+            status: 'CREATED',
+            errorCode: null,
+            errorMessage: null,
+          }
+        })
+        route.fulfill(
+          json(
+            {
+              status: 'ALL_CREATED',
+              results,
+            },
+            201,
+          ),
+        )
+        return
+      }
       const pub: MockPublication = {
         id: `backend-publication-${Date.now()}`,
         workspaceId: MOCK_WORKSPACE_ID,

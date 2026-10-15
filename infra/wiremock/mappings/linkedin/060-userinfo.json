@@ -15,7 +15,8 @@
       "name": "WireMock Dev User",
       "given_name": "Dev",
       "family_name": "User",
-      "email": "dev@wiremock.local"
+      "email": "dev@wiremock.local",
+      "picture": "https://media.licdn.com/dms/image/v2/example.jpg"
     }
   }
 }

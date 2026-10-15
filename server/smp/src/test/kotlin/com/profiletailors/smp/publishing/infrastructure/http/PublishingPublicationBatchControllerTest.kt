@@ -6,13 +6,45 @@ import com.profiletailors.smp.publishing.application.BatchPublicationTargetResul
 import com.profiletailors.smp.publishing.application.CreatePublicationBatchCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationBatchResult
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.WebTestClient
 
 class PublishingPublicationBatchControllerTest {
+    @Test
+    fun `rejects duplicate social accounts before mediator dispatch`() {
+        val mediator = mockk<Mediator>()
+        val client = WebTestClient
+            .bindToController(PublishingPublicationController(mediator))
+            .controllerAdvice(PublishingProblemDetailsHandler())
+            .apiVersioning {
+                it.useVersionResolver(
+                    com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration.MediaTypeVersionResolver(),
+                )
+            }
+            .build()
+
+        client.post()
+            .uri("/api/publishing/publications/batch")
+            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {"targets":[{"socialAccountId":"account-1"},{"socialAccountId":"account-1"}],"scheduleMode":"NOW"}
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+
+        coVerify(exactly = 0) { mediator.send(any<CreatePublicationBatchCommand>()) }
+    }
+
     @Test
     fun `returns per-target failures with all-failed batch status`() = runTest {
         val mediator = mockk<Mediator>()

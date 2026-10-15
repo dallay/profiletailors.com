@@ -859,6 +859,36 @@ export async function registerMediaMocks(
     )
   })
 
+  await context.route('**/api/publishing/publications/batch', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    state.publicationPostCount += 1
+    const body = parsePostData(request)
+    const targets = Array.isArray(body.targets)
+      ? body.targets.filter(
+          (target): target is Record<string, unknown> =>
+            typeof target === 'object' && target !== null,
+        )
+      : []
+    await route.fulfill(
+      json(201, {
+        status: 'ALL_CREATED',
+        results: targets.map((target, index) => ({
+          socialAccountId:
+            typeof target.socialAccountId === 'string' ? target.socialAccountId : 'sa-linkedin-001',
+          publicationId: `mock-publication-${Date.now()}-${index}`,
+          groupId: null,
+          status: 'CREATED',
+          errorCode: null,
+          errorMessage: null,
+        })),
+      }),
+    )
+  })
+
   // PR 2 — composer publication POST. The composer lane submits here on
   // happy-path scheduling. Without a route the request falls through to the
   // Vite proxy and ECONNREFUSEs because no backend is running in this config.

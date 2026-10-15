@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -59,6 +60,7 @@ internal class CreatePublicationBatchHandler(
         permissiveEmailVerificationPolicy,
     private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
     private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
+    private val membershipGate: WorkspaceMembershipGate,
 ) : CommandWithResultHandler<CreatePublicationBatchCommand, CreatePublicationBatchResult> {
 
     override suspend fun handle(command: CreatePublicationBatchCommand): CreatePublicationBatchResult {
@@ -79,6 +81,7 @@ internal class CreatePublicationBatchHandler(
         }
         val resourceContext = resourceContextProvider.require()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
+        membershipGate.requireActiveMember(workspaceId)
 
         if (command.targets.isEmpty()) {
             throw PublicationValidationException("At least one target is required.")
@@ -191,6 +194,7 @@ internal class CreatePublicationBatchHandler(
         assetIds = target.assetIds,
         groupId = groupId,
         scheduledFor = command.scheduledFor,
+        nextSlotAfter = command.nextSlotAfter,
         createdAt = now,
         updatedAt = now,
     )

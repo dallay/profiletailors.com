@@ -117,7 +117,7 @@ export function getRuntimeEnvironment(context = getWorktreeContext(), overrides 
     ),
     SMP_PUBLIC_APP_URL: process.env.SMP_PUBLIC_APP_URL || context.appUrl,
     WIREMOCK_HOST_PORT: context.wiremockHostPort,
-    SMP_THREADS_API_BASE_URL: process.env.SMP_THREADS_API_BASE_URL || envFileValue(context.root, 'SMP_THREADS_API_BASE_URL', `http://localhost:${context.wiremockHostPort}`),
+    SMP_THREADS_API_BASE_URL: envFileValue(context.root, 'SMP_THREADS_API_BASE_URL', `http://localhost:${context.wiremockHostPort}`),
     SMP_LINKEDIN_API_BASE_URL: process.env.SMP_LINKEDIN_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
     SMP_LINKEDIN_PUBLISHING_API_BASE_URL: process.env.SMP_LINKEDIN_PUBLISHING_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
     SMP_LINKEDIN_AUTHORIZATION_BASE_URL: process.env.SMP_LINKEDIN_AUTHORIZATION_BASE_URL || `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`,

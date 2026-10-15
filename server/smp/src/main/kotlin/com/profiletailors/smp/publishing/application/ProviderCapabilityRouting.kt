@@ -8,4 +8,4 @@ internal fun resolveCapabilityValidator(
     provider: SocialProvider,
     registry: ProviderCapabilityRegistry?,
     fallback: ProviderCapabilityValidator,
-): ProviderCapabilityValidator = registry?.validator(provider) ?: fallback
+): ProviderCapabilityValidator = registry?.validatorOr(provider, fallback) ?: fallback

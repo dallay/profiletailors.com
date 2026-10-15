@@ -129,7 +129,7 @@ help list:
 	@echo "  --- DOCS, CI & CLEANUP ---"
 	@echo "  docs-links                   Check Markdown links with lychee"
 	@echo "  docs-lint                    Lint Markdown with markdownlint-cli2"
-	@echo "  licence-check                Scan dependency licences for AGPL-3.0 compatibility"
+	@echo "  licence-check                Generate dependency licence inventories for review"
 	@echo "  ci-local                     Fast CI checks (lint, unit tests, builds)"
 	@echo "  ci-full                      CI checks including Postgres integration + BDD"
 	@echo "  ci                           Full CI pipeline (sequential fail-fast checks)"
@@ -421,7 +421,7 @@ ci-local:
 	@echo "▸ Markdown lint..."
 	$(MAKE) docs-lint
 	@echo ""
-	@echo "▸ Dependency licence scan..."
+	@echo "▸ Dependency licence inventory generation..."
 	$(MAKE) licence-check
 	@echo ""
 	@echo "▸ Marketing: Biome lint..."

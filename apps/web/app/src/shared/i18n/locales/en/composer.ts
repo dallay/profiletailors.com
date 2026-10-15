@@ -11,6 +11,8 @@ export default {
   preview: 'Preview',
   linkedinPreview: 'LinkedIn Preview',
   threadsPreview: 'Threads Preview',
+  linkedinAuthorFallback: 'LinkedIn Member',
+  threadsAuthorFallback: 'Threads user',
   seePreviewHere: "See your post's preview here",
   customizePerNetwork: 'Customize per network',
   customizeBase: 'Base',

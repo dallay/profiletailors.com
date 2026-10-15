@@ -237,10 +237,7 @@ test.describe('Scheduler — Threads provider @threads', () => {
     await composeModal.switchToNow()
     await composeModal.clickScheduleNow()
 
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
-    })
+    await composeModal.expectHidden()
 
     expect(payloads['sa-linkedin-001']).toContain(baseText)
     expect(payloads['sa-threads-001']).toContain(threadsText)

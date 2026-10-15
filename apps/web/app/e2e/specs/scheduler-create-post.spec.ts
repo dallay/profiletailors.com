@@ -112,24 +112,23 @@ test.describe('Scheduler — Create Post', () => {
       }
       route.fallback()
     })
-    await page.route('**/api/publishing/publications', async (route) => {
+    await page.route('**/api/publishing/publications/batch', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback()
-      const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          publicationId: backendId,
-          workspaceId: 'workspace-001',
-          socialAccountId: 'sa-linkedin-001',
-          status: 'QUEUED',
-          scheduleMode: 'NOW',
-          priority: false,
-          title: 'Post from App',
-          bodyText: body.bodyText,
-          assetIds: [assetId],
-          scheduledFor: null,
-          nextSlotAfter: null,
+          status: 'ALL_CREATED',
+          results: [
+            {
+              socialAccountId: 'sa-linkedin-001',
+              publicationId: backendId,
+              groupId: null,
+              status: 'CREATED',
+              errorCode: null,
+              errorMessage: null,
+            },
+          ],
         }),
       })
     })
@@ -253,24 +252,23 @@ test.describe('Scheduler — Create Post', () => {
       }
       route.fallback()
     })
-    await page.route('**/api/publishing/publications', async (route) => {
+    await page.route('**/api/publishing/publications/batch', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback()
-      const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          publicationId: backendId,
-          workspaceId: 'workspace-001',
-          socialAccountId: 'sa-linkedin-001',
-          status: 'QUEUED',
-          scheduleMode: body.scheduleMode ?? 'NOW',
-          priority: false,
-          title: 'Post from App',
-          bodyText: body.bodyText,
-          assetIds: [assetId],
-          scheduledFor: null,
-          nextSlotAfter: null,
+          status: 'ALL_CREATED',
+          results: [
+            {
+              socialAccountId: 'sa-linkedin-001',
+              publicationId: backendId,
+              groupId: null,
+              status: 'CREATED',
+              errorCode: null,
+              errorMessage: null,
+            },
+          ],
         }),
       })
     })
