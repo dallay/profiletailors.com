@@ -61,12 +61,6 @@ internal class CreatePublicationBatchHandler(
     private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) : CommandWithResultHandler<CreatePublicationBatchCommand, CreatePublicationBatchResult> {
 
-    /**
-     * Validates and queues each target independently and reports per-target results.
-     * The workspace context and email verification are required exactly once up front.
-     * Per-target validation or persistence failures do not roll back the others.
-     * Returns ALL_CREATED, PARTIAL, or ALL_FAILED depending on how many targets succeeded.
-     */
     override suspend fun handle(command: CreatePublicationBatchCommand): CreatePublicationBatchResult {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
@@ -91,8 +85,24 @@ internal class CreatePublicationBatchHandler(
         }
 
         val groupId = "pub-group-${UUID.randomUUID()}"
-        val results = command.targets.map { target ->
-            createOne(workspaceId, principalCtx.principalId, command, target, groupId)
+        val preparedTargets = command.targets.mapIndexed { index, target ->
+            prepareOne(index, workspaceId, principalCtx.principalId, command, target, groupId)
+        }
+        val createdTargets = transactionRunner.runAtomically {
+            preparedTargets.mapNotNull { prepared ->
+                when (prepared) {
+                    is PreparedTargetResult.Invalid -> null
+                    is PreparedTargetResult.Valid -> prepared.index to persistPrepared(prepared)
+                }
+            }
+        }
+        createdTargets.forEach { (_, created) -> emitCreated(workspaceId, created.draft) }
+        val createdByIndex = createdTargets.toMap()
+        val results = preparedTargets.map { prepared ->
+            when (prepared) {
+                is PreparedTargetResult.Invalid -> prepared.result
+                is PreparedTargetResult.Valid -> createdByIndex.getValue(prepared.index).result
+            }
         }
         val successCount = results.count { it.publicationId != null }
         val status = when {
@@ -103,43 +113,53 @@ internal class CreatePublicationBatchHandler(
         return CreatePublicationBatchResult(status = status, results = results)
     }
 
-    private suspend fun createOne(
+    private suspend fun prepareOne(
+        index: Int,
         workspaceId: String,
         authorPrincipalId: String,
         command: CreatePublicationBatchCommand,
         target: BatchPublicationTarget,
         groupId: String,
-    ): BatchPublicationTargetResult {
+    ): PreparedTargetResult {
         val account = when (
             val result = validateTarget { requireSocialAccount(workspaceId, target.socialAccountId) }
         ) {
             is TargetValidation.Valid -> result.value
-            is TargetValidation.Invalid -> return accountNotFound(target.socialAccountId, groupId, result.cause)
+            is TargetValidation.Invalid -> return PreparedTargetResult.Invalid(
+                accountNotFound(target.socialAccountId, groupId, result.cause),
+            )
         }
         val assets = when (
             val result = validateTarget { resolveAssets(workspaceId, target.assetIds) }
         ) {
             is TargetValidation.Valid -> result.value
-            is TargetValidation.Invalid -> return assetResolutionFailure(target.socialAccountId, groupId, result.cause)
+            is TargetValidation.Invalid -> return PreparedTargetResult.Invalid(
+                assetResolutionFailure(target.socialAccountId, groupId, result.cause),
+            )
         }
         val now = clock.instant()
         val draft = buildDraft(workspaceId, authorPrincipalId, command, target, groupId, account, now)
         when (val validation = validateProvider(draft, account, assets, now)) {
             is TargetValidation.Valid -> Unit
-            is TargetValidation.Invalid -> return capabilityViolation(target.socialAccountId, groupId, validation.cause)
+            is TargetValidation.Invalid -> return PreparedTargetResult.Invalid(
+                capabilityViolation(target.socialAccountId, groupId, validation.cause),
+            )
         }
         val queued = PublicationLifecyclePolicy.queue(draft, schedulingPolicy.resolveDueAt(draft, now))
-        val persisted = transactionRunner.runAtomically {
-            val created = publicationRepository.createDraft(queued)
-            publicationJobRepository.enqueue(newJobFor(created, now))
-            created
-        }
-        emitCreated(workspaceId, persisted)
-        return BatchPublicationTargetResult(
-            socialAccountId = target.socialAccountId,
-            publicationId = persisted.id,
-            groupId = groupId,
-            status = CREATED_STATUS,
+        return PreparedTargetResult.Valid(index, target, queued, now)
+    }
+
+    private suspend fun persistPrepared(prepared: PreparedTargetResult.Valid): PersistedTarget {
+        val created = publicationRepository.createDraft(prepared.draft)
+        publicationJobRepository.enqueue(newJobFor(created, prepared.createdAt))
+        return PersistedTarget(
+            draft = created,
+            result = BatchPublicationTargetResult(
+                socialAccountId = prepared.target.socialAccountId,
+                publicationId = created.id,
+                groupId = created.groupId,
+                status = CREATED_STATUS,
+            ),
         )
     }
 
@@ -270,6 +290,19 @@ internal class CreatePublicationBatchHandler(
         schedulingPolicy,
         now,
     )
+
+    private sealed interface PreparedTargetResult {
+        data class Invalid(val result: BatchPublicationTargetResult) : PreparedTargetResult
+
+        data class Valid(
+            val index: Int,
+            val target: BatchPublicationTarget,
+            val draft: PublicationDraft,
+            val createdAt: Instant,
+        ) : PreparedTargetResult
+    }
+
+    private data class PersistedTarget(val draft: PublicationDraft, val result: BatchPublicationTargetResult)
 
     private sealed interface TargetValidation<out T> {
         data class Valid<T>(val value: T) : TargetValidation<T>

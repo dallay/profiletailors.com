@@ -25,6 +25,7 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -39,8 +40,12 @@ class CreatePublicationBatchHandlerTest {
     private val publicationRepository = mockk<PublicationRepository>(relaxed = true)
     private val publicationAssetRepository = mockk<PublicationAssetRepository>(relaxed = true)
     private val publicationJobRepository = mockk<PublicationJobRepository>(relaxed = true)
+    private var transactionCount = 0
     private val transactionRunner = object : AtomicTransactionRunner {
-        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            transactionCount += 1
+            return block()
+        }
     }
     private val providerCapabilityValidator = mockk<ProviderCapabilityValidator>(relaxed = true)
     private val schedulingPolicy = PublicationSchedulingPolicy()
@@ -121,6 +126,7 @@ class CreatePublicationBatchHandlerTest {
         result.results.map { it.socialAccountId } shouldBe listOf("acc-li", "acc-th")
         result.results.all { it.publicationId != null } shouldBe true
         createdDrafts.map { it.groupId }.distinct().size shouldBe 1
+        transactionCount shouldBe 1
         createdDrafts.all { it.groupId != null } shouldBe true
         result.results.map { it.groupId }.distinct().size shouldBe 1
         result.results.all { it.groupId == createdDrafts.first().groupId } shouldBe true
@@ -192,6 +198,46 @@ class CreatePublicationBatchHandlerTest {
         }.exceptionOrNull()
 
         thrown shouldBe failure
+        transactionCount shouldBe 1
+    }
+
+    @Test
+    fun `does not persist valid targets when validation of a later target fails technically`() = runTest {
+        val workspaceId = "ws-1"
+        val principalId = "u-1"
+        val failure = IllegalStateException("provider service unavailable")
+        coEvery { principalContextProvider.require() } returns
+            PrincipalContext(principalId, PrincipalType.USER, principalId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, "acc-li") } returns
+            linkedInAccount(workspaceId)
+        coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, "acc-th") } returns
+            threadsAccount(workspaceId)
+        every { providerCapabilityValidator.validate(any()) } answers {
+            when (val input = invocation.args[0]) {
+                is ProviderCapabilityValidationInput ->
+                    if (input.provider == SocialProvider.THREADS) throw failure else Unit
+                else -> error("Unexpected provider capability input: $input")
+            }
+        }
+
+        val thrown = runCatching {
+            handler.handle(
+                CreatePublicationBatchCommand(
+                    bodyText = "Hi",
+                    targets = listOf(
+                        BatchPublicationTarget(socialAccountId = "acc-li"),
+                        BatchPublicationTarget(socialAccountId = "acc-th"),
+                    ),
+                    scheduleMode = ScheduleMode.NOW,
+                ),
+            )
+        }.exceptionOrNull()
+
+        thrown shouldBe failure
+        coVerify(exactly = 0) { publicationRepository.createDraft(any<PublicationDraft>()) }
+        coVerify(exactly = 0) { publicationJobRepository.enqueue(any()) }
     }
 
     @Test
