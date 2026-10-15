@@ -330,6 +330,13 @@ function initCreateMode() {
   scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
 }
 
+function toggleCustomizing() {
+  customizing.value = !customizing.value
+  if (!customizing.value) {
+    activeTabId.value = null
+  }
+}
+
 function requestChannelConnection() {
   emit('close')
   emit('connectChannels')
@@ -1450,7 +1457,7 @@ async function handleCreateSubmit(
               data-testid="customize-toggle"
               class="rounded-full border border-border-visible px-3 py-1.5 font-mono text-[10px] tracking-wide text-text-secondary transition-all hover:text-text-display"
               :aria-pressed="customizing ? 'true' : 'false'"
-              @click="customizing = !customizing"
+              @click="toggleCustomizing"
             >
               {{ t('composer.customizePerNetwork') }}
             </button>

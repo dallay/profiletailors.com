@@ -35,13 +35,22 @@ class PublishingBatchBddSteps {
 
     @When("the client batch-creates publications for valid targets")
     fun whenClientBatchCreatesPublicationsForValidTargets() = runBlocking {
+        bddDatabaseSupport.seedSocialConnection("social-conn-2", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialAccount(
+            accountId = "social-acc-2",
+            connectionId = "social-conn-2",
+            provider = "LINKEDIN",
+            providerAccountId = "linkedin-profile-2",
+            accountKind = "PERSONAL_PROFILE",
+            displayName = "Test Account 2",
+        )
         val json = objectMapper.writeValueAsString(
             mapOf(
                 "title" to "Batch publication",
                 "scheduleMode" to "NOW",
                 "targets" to listOf(
                     mapOf("socialAccountId" to "social-acc-1", "bodyText" to "First target"),
-                    mapOf("socialAccountId" to "social-acc-1", "bodyText" to "Second target"),
+                    mapOf("socialAccountId" to "social-acc-2", "bodyText" to "Second target"),
                 ),
             ),
         )
