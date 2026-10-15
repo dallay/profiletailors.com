@@ -46,7 +46,7 @@ The Threads mappings live in `infra/wiremock/mappings/threads/`:
 WireMock loads these mappings through the root Compose service. Rebuild that service after changing a mapping:
 
 ```bash
-docker compose up -d --build social-api-wiremock
+node scripts/compose-run.mjs up -d --build social-api-wiremock
 ```
 
 ### Configure the local backend

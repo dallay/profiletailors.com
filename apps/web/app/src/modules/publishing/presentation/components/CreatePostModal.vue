@@ -468,7 +468,7 @@ const channelStatuses = computed(() =>
       length,
       remaining: limit - length,
       tooLong: length > limit,
-      empty: baseSubmitLength.value > 0 && length === 0,
+      empty: length === 0,
     }
   }),
 )

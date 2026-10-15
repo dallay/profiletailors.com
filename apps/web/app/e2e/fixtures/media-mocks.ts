@@ -866,6 +866,19 @@ export async function registerMediaMocks(
       return
     }
     state.publicationPostCount += 1
+    const status = state.publicationPostStatus
+    if (status !== 201) {
+      await route.fulfill(
+        json(
+          status,
+          state.publicationPostFailureBody ?? {
+            title: 'Publication rejected',
+            detail: 'Mocked failure.',
+          },
+        ),
+      )
+      return
+    }
     const body = parsePostData(request)
     const targets = Array.isArray(body.targets)
       ? body.targets.filter(

@@ -397,7 +397,7 @@ docs-lint:
 licence-check:
 	@echo "▸ Frontend: dependency licence inventory..."
 	mkdir -p server/smp/build/reports/dependency-licence
-	pnpm licenses list --json > server/smp/build/reports/dependency-licence/frontend-dependency-licences.json
+	pnpm --filter app licenses list --json > server/smp/build/reports/dependency-licence/frontend-dependency-licences.json
 	@echo "  Report: server/smp/build/reports/dependency-licence/frontend-dependency-licences.json"
 	@echo "▸ Backend: dependency licence report..."
 	$(GRADLE_ROOT) :server:smp:generateLicenseReport --no-daemon

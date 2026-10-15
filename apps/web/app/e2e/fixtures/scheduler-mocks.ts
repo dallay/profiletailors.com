@@ -193,13 +193,18 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
         )
           ? body.targets
           : []
+        const channelByAccountId = Object.fromEntries(
+          mockChannels.channels.map((ch) => [ch.socialAccountId, ch]),
+        )
         const results = targets.map((target, index) => {
+          const accountId = target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID
+          const channel = channelByAccountId[accountId]
           const publicationId = `backend-publication-${Date.now()}-${index}`
           publications.push({
             id: publicationId,
             workspaceId: MOCK_WORKSPACE_ID,
-            socialAccountId: target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
-            provider: 'linkedin',
+            socialAccountId: accountId,
+            provider: channel?.provider ?? 'linkedin',
             status: body?.scheduleMode === 'NOW' ? 'QUEUED' : 'SCHEDULED',
             scheduleMode: body?.scheduleMode ?? 'NOW',
             priority: body?.priority ?? false,
@@ -207,12 +212,12 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
             bodyText: target.bodyText ?? body?.bodyText ?? '',
             scheduledFor: body?.scheduledFor ?? body?.nextSlotAfter ?? new Date().toISOString(),
             nextSlotAfter: body?.nextSlotAfter ?? null,
-            assetIds: Array.isArray(body?.assetIds) ? body.assetIds : [],
+            assetIds: Array.isArray(target.assetIds) ? target.assetIds : [],
             hasConflict: false,
             conflictingPublicationIds: [],
           })
           return {
-            socialAccountId: target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
+            socialAccountId: accountId,
             publicationId,
             groupId: null,
             status: 'CREATED',

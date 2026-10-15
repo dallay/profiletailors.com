@@ -18,7 +18,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 class PublishingPublicationBatchControllerTest {
     @Test
-    fun `rejects duplicate social accounts before mediator dispatch`() {
+    fun `should reject duplicate social accounts when request contains them`() {
         val mediator = mockk<Mediator>()
         val client = WebTestClient
             .bindToController(PublishingPublicationController(mediator))
@@ -46,7 +46,7 @@ class PublishingPublicationBatchControllerTest {
     }
 
     @Test
-    fun `returns per-target failures with all-failed batch status`() = runTest {
+    fun `should return per-target failures when mediator reports all targets failed`() = runTest {
         val mediator = mockk<Mediator>()
         coEvery { mediator.send(any<CreatePublicationBatchCommand>()) } returns CreatePublicationBatchResult(
             status = BatchPublicationStatus.ALL_FAILED,
