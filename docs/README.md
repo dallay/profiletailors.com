@@ -91,7 +91,8 @@
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
   `just setup`
-- [Portless — Local Development URLs](./portless-setup.md) - Named `.localhost` HTTPS URLs
+- [Portless — Local Development URLs](./portless-setup.md) - Named `.localhost` HTTPS URLs and local JVM trust
+- [Local Threads OAuth with WireMock](./local-threads-oauth.md) - End-to-end local Threads connection testing
 - [Gradle Build System & Conventions](./gradle-build-system.md) - Centralized composite
   build-logic & convention plugins
 - [Code Coverage Setup](./codecov-setup.md) - JaCoCo and Codecov integration

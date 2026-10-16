@@ -173,6 +173,7 @@ data class PublicationDraft(
     val lastErrorMessage: String? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
+    val groupId: String? = null,
 ) {
     fun queueableStatus(): PublicationStatus = when (scheduleMode) {
         ScheduleMode.NOW -> PublicationStatus.QUEUED

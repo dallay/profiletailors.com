@@ -7,10 +7,18 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.authorization.application.WorkspaceMembershipGate
+import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.integration.support.countPublicationJobs
+import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
+import com.profiletailors.smp.publishing.application.BatchPublicationTarget
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionHandler
+import com.profiletailors.smp.publishing.application.CreatePublicationBatchCommand
+import com.profiletailors.smp.publishing.application.CreatePublicationBatchHandler
+import com.profiletailors.smp.publishing.application.PublishingMediaIntegrationSettings
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
@@ -21,11 +29,15 @@ import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
+import com.profiletailors.smp.publishing.domain.PublicationAsset
+import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
+import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -39,6 +51,7 @@ import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublica
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
+import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.test.TestStorageConfiguration
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.async
@@ -67,6 +80,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
@@ -112,6 +126,91 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
         transactionRunner = R2dbcAtomicTransactionRunner(TransactionalOperator.create(transactionManager))
+    }
+
+    @Test
+    fun `batch creation rolls back earlier publication and job when a later target persist fails`() = runTest {
+        var createCount = 0
+        val failingPublicationRepository = object : PublicationRepository by publicationRepository {
+            override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
+                createCount += 1
+                if (createCount == 2) throw InjectedPublicationFailure()
+                return publicationRepository.createDraft(draft)
+            }
+        }
+        val batchHandler = CreatePublicationBatchHandler(
+            principalContextProvider = FixedPrincipalContextProvider(),
+            resourceContextProvider = FixedResourceContextProvider(),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = failingPublicationRepository,
+            publicationAssetRepository = object : PublicationAssetRepository {
+                override suspend fun findByWorkspaceAndIds(
+                    workspaceId: String,
+                    assetIds: Collection<String>,
+                ): List<PublicationAsset> = emptyList()
+
+                override suspend fun create(asset: PublicationAsset): PublicationAsset = asset
+
+                override suspend fun updateStatus(
+                    assetId: String,
+                    status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus,
+                ) = Unit
+
+                override suspend fun updateProviderAssetRef(
+                    assetId: String,
+                    providerAssetRef: com.profiletailors.smp.publishing.domain.ProviderAssetRef,
+                ) = Unit
+            },
+            publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
+            providerCapabilityValidator = ProviderCapabilityValidator { },
+            schedulingPolicy = schedulingPolicy,
+            mediaAssetResolver = MediaAssetResolver { _, _ -> emptyList() },
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = false),
+            clock = Clock.fixed(now, java.time.ZoneOffset.UTC),
+            principalIdentityLookup = NoOpPrincipalIdentityLookup(),
+            membershipGate = WorkspaceMembershipGate(
+                FixedPrincipalContextProvider(),
+                object : com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver {
+                    override suspend fun resolve(
+                        principalContext: PrincipalContext,
+                        resourceContext: ResourceContext,
+                    ) = WorkspaceMembership(
+                        workspaceId = requireNotNull(resourceContext.workspaceId),
+                        principalId = principalContext.principalId,
+                        principalType = principalContext.principalType,
+                        status = WorkspaceMembershipStatus.ACTIVE,
+                    )
+                },
+            ),
+        )
+
+        assertThrows(InjectedPublicationFailure::class.java) {
+            kotlinx.coroutines.runBlocking {
+                batchHandler.handle(
+                    CreatePublicationBatchCommand(
+                        targets = listOf(
+                            BatchPublicationTarget("account-1", "first", emptyList()),
+                            BatchPublicationTarget("account-1", "second", emptyList()),
+                        ),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        val publicationCount = databaseClient.sql("SELECT COUNT(*) AS count FROM publications WHERE id LIKE 'pub-%'")
+            .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+        assertEquals(0L, publicationCount)
+        val jobCount = databaseClient.sql(
+            "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id LIKE 'pub-%'",
+        )
+            .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+        assertEquals(0L, jobCount)
     }
 
     @Test
@@ -656,6 +755,8 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
                 .awaitSingle()
         }
     }
+
+    private class InjectedPublicationFailure : RuntimeException("Injected publication repository failure")
 
     private class InjectedSocialAccountFailure : RuntimeException("Injected social account repository failure")
 

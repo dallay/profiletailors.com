@@ -15,6 +15,7 @@ import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -63,6 +64,7 @@ internal class CreatePublicationHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
     private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
+    private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     /**
      * Validates and queues a publication in the current workspace, atomically saving its job.
@@ -113,7 +115,11 @@ internal class CreatePublicationHandler(
             nextSlotAfter = command.nextSlotAfter,
         )
         PublicationLifecyclePolicy.validateForCreation(draft, now)
-        providerCapabilityValidator.validate(
+        resolveCapabilityValidator(
+            socialAccount.provider,
+            providerCapabilityRegistry,
+            providerCapabilityValidator,
+        ).validate(
             ProviderCapabilityValidationInput(
                 provider = socialAccount.provider,
                 socialAccount = socialAccount,

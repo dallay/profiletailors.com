@@ -54,7 +54,6 @@ export function getWorktreeContext() {
   const branchSlug = slug(branch.split('/').pop())
   const digest = createHash('sha256').update(root).digest('hex').slice(0, 10)
   const worktreeId = `pt-${branchSlug.slice(0, 46)}-${digest}`.slice(0, 63).replace(/-+$/, '')
-  const wiremockHostPort = String(33185 + Number.parseInt(digest.slice(0, 4), 16) % 1000)
   const label = linked && !['main', 'master'].includes(branch) ? branchSlug : ''
   const runtimeDir = resolve(root, '.worktree')
   const appName = label ? `${label}.pt-app` : 'pt-app'
@@ -70,7 +69,7 @@ export function getWorktreeContext() {
     linked,
     worktreeId,
     composeProjectName: process.env.COMPOSE_PROJECT_NAME || worktreeId,
-    wiremockHostPort: process.env.WIREMOCK_HOST_PORT || wiremockHostPort,
+    wiremockHostPort: process.env.WIREMOCK_HOST_PORT || envFileValue(root, 'WIREMOCK_HOST_PORT', '8089'),
     portLeaseFile: resolve(tmpdir(), 'profiletailors-worktree-port-leases.json'),
     runtimeDir,
     runDir: resolve(runtimeDir, 'run'),
@@ -117,6 +116,8 @@ export function getRuntimeEnvironment(context = getWorktreeContext(), overrides 
       context.corsOrigins.join(','),
     ),
     SMP_PUBLIC_APP_URL: process.env.SMP_PUBLIC_APP_URL || context.appUrl,
+    WIREMOCK_HOST_PORT: context.wiremockHostPort,
+    SMP_THREADS_API_BASE_URL: envFileValue(context.root, 'SMP_THREADS_API_BASE_URL', `http://localhost:${context.wiremockHostPort}`),
     SMP_LINKEDIN_API_BASE_URL: process.env.SMP_LINKEDIN_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
     SMP_LINKEDIN_PUBLISHING_API_BASE_URL: process.env.SMP_LINKEDIN_PUBLISHING_API_BASE_URL || `http://localhost:${context.wiremockHostPort}`,
     SMP_LINKEDIN_AUTHORIZATION_BASE_URL: process.env.SMP_LINKEDIN_AUTHORIZATION_BASE_URL || `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`,
@@ -379,7 +380,7 @@ export async function prepareBackendEnvironment(context = getWorktreeContext()) 
 
     const postgresPort = mappedPort('postgresql', 5432)
     const smtpPort = mappedPort('mailpit', 1025)
-    const wiremockPort = mappedPort('linkedin-wiremock', 8080)
+    const wiremockPort = mappedPort('social-api-wiremock', 8080)
     const databaseName = envFileValue(context.root, 'SMP_POSTGRES_DB', 'profiletailors_smp')
     environment.SMP_POSTGRES_PORT = postgresPort
     environment.SMP_SMTP_HOST = '127.0.0.1'

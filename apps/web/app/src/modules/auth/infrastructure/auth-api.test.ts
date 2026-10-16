@@ -460,6 +460,33 @@ describe('createApiFetch', () => {
     expect(result).toEqual({ id: 'post-1', text: 'Hello' })
   })
 
+  it('includes batch target outcomes in errors from all-failed responses', async () => {
+    const outcomes = [{ socialAccountId: 'soc-li', status: 'FAILED', errorCode: 'INVALID_CONTENT' }]
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          title: 'Batch failed',
+          detail: 'Every target failed.',
+          results: outcomes,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    const apiFetch = createApiFetch({
+      getToken: () => 'access-token',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await expect(apiFetch('/api/publishing/publications/batch')).rejects.toMatchObject({
+      status: 400,
+      results: outcomes,
+    })
+  })
+
   it('retries once after successful token refresh on 401', async () => {
     let callCount = 0
     const fetchMock = vi.fn(() => {

@@ -20,6 +20,7 @@ export default {
   moreChannels: 'Más canales',
   list: 'Lista',
   calendar: 'Calendario',
+  relatedPublication: 'Relacionado',
   weekView: 'Semana',
   today: 'Hoy',
   addPost: 'Agregar publicación',

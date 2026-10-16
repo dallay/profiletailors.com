@@ -98,6 +98,7 @@ internal fun PublicationDraft.toCalendarResult(
     previewUrl = previewUrl,
     blockedReason = blockedReason,
     errorCode = lastErrorCode,
+    groupId = groupId,
 )
 
 internal fun PublicationDraft.toListItem(): ListPublicationItem = ListPublicationItem(

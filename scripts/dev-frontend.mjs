@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 
 import { getRuntimeEnvironment, getWorktreeContext } from './worktree-context.mjs'
-import { removeProcessRecord, writeProcessRecord } from './process-supervisor.mjs'
+import { runManagedChild } from './process-supervisor.mjs'
 
 const force = process.argv[2] || ''
 const isWin = process.platform === 'win32'
@@ -23,30 +23,16 @@ if (force === '--force') {
 }
 
 console.log(`Starting frontend dev servers for ${context.appUrl} and ${context.marketingUrl}...`)
-const child = spawn('pnpm', ['--parallel', '--filter', 'marketing', '--filter', 'app', 'dev'], {
-  stdio: 'inherit',
-  shell: isWin,
-  cwd: context.root,
-  env: getRuntimeEnvironment(context),
-  detached: !isWin,
+
+runManagedChild({
+  name: 'frontend',
+  command: 'pnpm',
+  args: ['--parallel', '--filter', 'marketing', '--filter', 'app', 'dev'],
+  context,
+  spawnOptions: {
+    stdio: 'inherit',
+    shell: isWin,
+    cwd: context.root,
+    env: getRuntimeEnvironment(context),
+  },
 })
-
-writeProcessRecord('frontend', [{ pid: child.pid, detached: !isWin }], context)
-
-let shuttingDown = false
-const shutdown = (code = 0) => {
-  if (shuttingDown) return
-  shuttingDown = true
-  if (child.pid) {
-    try {
-      if (isWin) child.kill('SIGTERM')
-      else process.kill(-child.pid, 'SIGTERM')
-    } catch {}
-  }
-  removeProcessRecord('frontend', context)
-  process.exit(code)
-}
-
-process.on('SIGINT', () => shutdown())
-process.on('SIGTERM', () => shutdown())
-child.on('exit', (code) => shutdown(code ?? 1))

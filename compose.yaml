@@ -9,12 +9,12 @@ services:
       service: mailpit
       file: ./infra/mailpit/compose.yaml
 
-  linkedin-wiremock:
+  social-api-wiremock:
     build:
       context: ./infra/wiremock
       dockerfile: Dockerfile
     ports:
-      - "${WIREMOCK_HOST_PORT:-0}:8080"
+      - "${WIREMOCK_HOST_PORT:-8089}:8080"
     command:
       - --global-response-templating
       - --verbose

@@ -1,5 +1,6 @@
 export const PREVIEW_PROVIDERS = {
   LINKEDIN: 'linkedin',
+  THREADS: 'threads',
 } as const
 
 export type PreviewProvider = (typeof PREVIEW_PROVIDERS)[keyof typeof PREVIEW_PROVIDERS]
@@ -20,3 +21,5 @@ export type LinkedInPreviewModel = {
   placeholderText: string
   media?: PostPreviewMedia | null
 }
+
+export type ThreadsPreviewModel = LinkedInPreviewModel

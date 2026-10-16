@@ -15,6 +15,7 @@ import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.NoOpPublicationEventPublisher
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -57,6 +58,7 @@ internal class EditPublicationHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val publicationEventPublisher: PublicationEventPublisher = NoOpPublicationEventPublisher,
+    private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     /**
      * Validates edits in the current workspace, preserving assets when assetIds is null,
@@ -94,7 +96,11 @@ internal class EditPublicationHandler(
             priority = command.priority,
         )
         PublicationLifecyclePolicy.validateForCreation(updatedDraft.copy(status = PublicationStatus.DRAFT), now)
-        providerCapabilityValidator.validate(
+        resolveCapabilityValidator(
+            account.provider,
+            providerCapabilityRegistry,
+            providerCapabilityValidator,
+        ).validate(
             ProviderCapabilityValidationInput(
                 provider = account.provider,
                 socialAccount = account,

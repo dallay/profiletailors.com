@@ -8,6 +8,8 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
@@ -23,6 +25,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -70,15 +73,7 @@ class CreatePublicationHandlerTest {
         val principalId = "u-1"
         val accountId = "acc-1"
 
-        val principalCtx = PrincipalContext(principalId, PrincipalType.USER, principalId)
-        coEvery { principalContextProvider.require() } returns principalCtx
-
-        val resourceCtx = ResourceContext(
-            type = ResourceContextType.WORKSPACE,
-            workspaceId = workspaceId,
-        )
-        every { resourceContextProvider.require() } returns resourceCtx
-
+        stubWorkspaceContext(workspaceId, principalId)
         coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, accountId) } returns
             SocialAccount(
                 id = accountId,
@@ -90,9 +85,7 @@ class CreatePublicationHandlerTest {
                 displayName = "Account",
                 status = SocialConnectionStatus.ACTIVE,
             )
-        coEvery {
-            publicationRepository.createDraft(any<PublicationDraft>())
-        } answers { it.invocation.args[0] as PublicationDraft }
+        stubRepositoryWiring()
 
         val command = CreatePublicationCommand(
             socialAccountId = accountId,
@@ -106,5 +99,80 @@ class CreatePublicationHandlerTest {
         result.title shouldBe "Title"
         result.workspaceId shouldBe workspaceId
         result.status shouldBe PublicationStatus.QUEUED
+    }
+
+    @Test
+    fun `should create publication with registry validator when provider is Threads`() = runTest {
+        val workspaceId = "ws-threads"
+        val principalId = "u-1"
+        val accountId = "soacc-threads-1"
+        stubWorkspaceContext(workspaceId, principalId)
+        stubThreadsSocialAccount(workspaceId, accountId)
+        stubRepositoryWiring()
+        val threadsValidator = mockk<ProviderCapabilityValidator>(relaxed = true)
+        val registry = ProviderCapabilityRegistry.fromValidators(
+            SocialProvider.THREADS to threadsValidator,
+        )
+        coEvery { providerCapabilityValidator.validate(any<ProviderCapabilityValidationInput>()) } answers {
+            val input = it.invocation.args[0] as ProviderCapabilityValidationInput
+            if (input.provider == SocialProvider.THREADS) {
+                throw IllegalArgumentException("LinkedIn capability validator only supports LINKEDIN.")
+            }
+        }
+        val threadsHandler = CreatePublicationHandler(
+            principalContextProvider,
+            resourceContextProvider,
+            socialAccountRepository,
+            publicationRepository,
+            publicationAssetRepository,
+            publicationJobRepository,
+            transactionRunner,
+            providerCapabilityValidator,
+            schedulingPolicy,
+            mediaAssetResolver,
+            mediaIntegrationSettings,
+            clock,
+            providerCapabilityRegistry = registry,
+        )
+        val command = CreatePublicationCommand(
+            socialAccountId = accountId,
+            title = "Threads Post",
+            bodyText = "Hello from Threads",
+            scheduleMode = ScheduleMode.NOW,
+        )
+        val result = threadsHandler.handle(command)
+        result.socialAccountId shouldBe accountId
+        result.status shouldBe PublicationStatus.QUEUED
+        coVerify { threadsValidator.validate(any()) }
+    }
+
+    private fun stubWorkspaceContext(workspaceId: String, principalId: String) {
+        val principalCtx = PrincipalContext(principalId, PrincipalType.USER, principalId)
+        coEvery { principalContextProvider.require() } returns principalCtx
+        every { resourceContextProvider.require() } returns
+            ResourceContext(
+                type = ResourceContextType.WORKSPACE,
+                workspaceId = workspaceId,
+            )
+    }
+
+    private fun stubThreadsSocialAccount(workspaceId: String, accountId: String) {
+        coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, accountId) } returns
+            SocialAccount(
+                id = accountId,
+                socialConnectionId = "conn-threads-1",
+                workspaceId = workspaceId,
+                provider = SocialProvider.THREADS,
+                providerAccountId = "threads-user-1",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "WireMock Threads User",
+                status = SocialConnectionStatus.ACTIVE,
+            )
+    }
+
+    private fun stubRepositoryWiring() {
+        coEvery {
+            publicationRepository.createDraft(any<PublicationDraft>())
+        } answers { it.invocation.args[0] as PublicationDraft }
     }
 }

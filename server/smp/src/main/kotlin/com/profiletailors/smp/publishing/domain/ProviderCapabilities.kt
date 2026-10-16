@@ -31,6 +31,8 @@ class ProviderCapabilityRegistry private constructor(
 ) {
     fun capabilities(provider: SocialProvider): ProviderCapabilitySet? = capabilitiesByProvider[provider]
     fun validator(provider: SocialProvider): ProviderCapabilityValidator? = validatorsByProvider[provider]
+    fun validatorOr(provider: SocialProvider, fallback: ProviderCapabilityValidator): ProviderCapabilityValidator =
+        validator(provider) ?: fallback
 
     companion object {
         fun from(vararg entries: Pair<SocialProvider, ProviderCapabilitySet>): ProviderCapabilityRegistry =

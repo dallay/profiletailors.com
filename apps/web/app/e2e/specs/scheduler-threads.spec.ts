@@ -128,7 +128,7 @@ test.describe('Scheduler — Threads provider @threads', () => {
     ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('TH-03: Threads channel is selectable and a scheduled post is queued @integration @scheduler', async ({
+  test('TH-03: all channels are selected by default and a post is queued per channel @integration @scheduler', async ({
     page,
   }) => {
     const scheduler = new SchedulerPage(page)
@@ -141,14 +141,37 @@ test.describe('Scheduler — Threads provider @threads', () => {
 
     const threadsChip = page.getByTestId('channel-button').filter({ hasText: 'Threads Dev' })
     await expect(threadsChip).toBeVisible({ timeout: 10_000 })
-    await threadsChip.first().click()
+    const linkedInChip = page.getByTestId('channel-button').filter({ hasText: 'Dev User' })
+    await expect(linkedInChip).toBeVisible({ timeout: 10_000 })
+    await expect(threadsChip.first().locator('[data-testid="channel-selected-icon"]')).toBeVisible()
+    await expect(
+      linkedInChip.first().locator('[data-testid="channel-selected-icon"]'),
+    ).toBeVisible()
 
-    let postedAccountId: unknown = null
-    await page.route('**/api/publishing/publications', (route) => {
-      if (route.request().method() === 'POST') {
-        postedAccountId = route.request().postDataJSON()?.socialAccountId ?? null
+    const postedAccountIds: unknown[] = []
+    await page.route('**/api/publishing/publications/batch', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback()
+        return
       }
-      route.fallback()
+      const body = route.request().postDataJSON()
+      const targets = Array.isArray(body?.targets) ? body.targets : []
+      postedAccountIds.push(
+        ...targets.map((target: { socialAccountId: string }) => target.socialAccountId),
+      )
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'ALL_CREATED',
+          results: targets.map((target: { socialAccountId: string }, index: number) => ({
+            socialAccountId: target.socialAccountId,
+            publicationId: `publication-${index}`,
+            groupId: 'group-e2e',
+            status: 'CREATED',
+          })),
+        }),
+      })
     })
 
     const testText = `Threads E2E post ${Date.now()}`
@@ -156,14 +179,67 @@ test.describe('Scheduler — Threads provider @threads', () => {
     await composeModal.fillText(testText)
     await composeModal.clickScheduleNow()
 
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
+    await composeModal.expectHidden()
+
+    expect([...postedAccountIds].sort()).toEqual(['sa-linkedin-001', 'sa-threads-001'])
+    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('TH-05: per-network override submits distinct bodyText per account @integration @scheduler', async ({
+    page,
+  }) => {
+    const scheduler = new SchedulerPage(page)
+    const composeModal = new ComposeModalPage(page)
+    await scheduler.goto()
+    await scheduler.expectVisible()
+
+    await scheduler.clickNewPost()
+    await composeModal.expectVisible()
+
+    const stamp = Date.now()
+    const baseText = `Base E2E post ${stamp}`
+    const threadsText = `Threads-only E2E post ${stamp}`
+
+    await composeModal.fillText(baseText)
+    await page.getByTestId('customize-toggle').click()
+    await page.getByTestId('customize-tab').filter({ hasText: 'Threads Dev' }).click()
+    await composeModal.fillText(threadsText)
+
+    await expect(page.getByTestId('threads-preview')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('threads-preview-text')).toContainText(threadsText)
+
+    const payloads: Record<string, unknown> = {}
+    await page.route('**/api/publishing/publications**', async (route) => {
+      if (route.request().method() === 'POST' && route.request().url().endsWith('/batch')) {
+        const body = route.request().postDataJSON()
+        const targets = Array.isArray(body?.targets) ? body.targets : []
+        for (const target of targets) {
+          payloads[target.socialAccountId] = target.bodyText ?? body.bodyText ?? null
+        }
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            status: 'ALL_CREATED',
+            results: targets.map((target: { socialAccountId: string }, index: number) => ({
+              socialAccountId: target.socialAccountId,
+              publicationId: `publication-${index}`,
+              groupId: 'group-override-e2e',
+              status: 'CREATED',
+            })),
+          }),
+        })
+        return
+      }
+      await route.fallback()
     })
 
-    expect(postedAccountId).toBe('sa-threads-001')
+    await composeModal.switchToNow()
+    await composeModal.clickScheduleNow()
 
-    await scheduler.switchToList()
-    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
+    await composeModal.expectHidden()
+
+    expect(payloads['sa-linkedin-001']).toContain(baseText)
+    expect(payloads['sa-threads-001']).toContain(threadsText)
   })
 })

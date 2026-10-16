@@ -515,7 +515,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     const publicationResponse = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' &&
-        new URL(response.url()).pathname === '/api/publishing/publications',
+        new URL(response.url()).pathname === '/api/publishing/publications/batch',
       { timeout: 20_000 },
     )
     await composePage.clickScheduleNow()
@@ -523,7 +523,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     expect(response.ok()).toBe(true)
     expect(response.request().postDataJSON()).toMatchObject({
       bodyText: 'Post with an Unsplash image',
-      assetIds: ['unsplash-remote-work'],
+      targets: [{ bodyText: 'Post with an Unsplash image', assetIds: ['unsplash-remote-work'] }],
     })
     expect(mockState.unsplashImportCount).toBe(1)
     expect(mockState.publicationPostCount).toBe(1)

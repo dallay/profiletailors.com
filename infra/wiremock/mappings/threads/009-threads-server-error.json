@@ -6,7 +6,10 @@
     "headers": {
       "Authorization": { "matches": "Bearer mock-threads-.+" }
     },
-    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.text =~ /.*THREADS_SERVER_ERROR_TEST.*/)]" }]
+    "bodyPatterns": [
+      { "matches": ".*access_token=mock-threads-.+.*" },
+      { "matches": ".*text=.*THREADS_SERVER_ERROR_TEST.*" }
+    ]
   },
   "response": {
     "status": 500,
