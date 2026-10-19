@@ -508,7 +508,10 @@ function buildChannelErrors(statuses: typeof channelStatuses.value, includeEmpty
 }
 const channelLimitErrors = computed(() => buildChannelErrors(channelStatuses.value, true))
 const visibleChannelLimitErrors = computed(() => {
-  if (submitAttempted.value) return channelLimitErrors.value
+  if (submitAttempted.value) {
+    if (selectedChannels.value.length === 0) return [t('composer.noChannelsSelected')]
+    return channelLimitErrors.value
+  }
   const touched = touchedTabs.value
   return [
     ...channelStatuses.value

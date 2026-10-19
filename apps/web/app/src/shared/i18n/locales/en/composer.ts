@@ -24,6 +24,7 @@ export default {
   channelAdd: 'Connect another channel',
   channelLimitExceeded: '{name} exceeds {limit} characters',
   channelEmptyText: '{name} text is empty',
+  noChannelsSelected: 'No channels selected',
   previewMeta: {
     connectionDegree: '1st',
     justNow: 'Just now',
