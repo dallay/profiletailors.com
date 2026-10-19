@@ -1224,7 +1224,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     const anyEnabledSubmit = Array.from(document.querySelectorAll('.ui-button')).find(
       (btn) => !(btn as HTMLButtonElement).hasAttribute('disabled'),
     )
-    expect(anyEnabledSubmit).toBeDefined()
+    expect(anyEnabledSubmit).toBeUndefined()
 
     await wrapper.unmount()
   })
@@ -2600,7 +2600,7 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
     fillText('x'.repeat(600))
     await flushModal(wrapper)
 
-    expect(scheduleNowButton().disabled).toBe(false)
+    expect(scheduleNowButton().disabled).toBe(true)
     const errors = getByTestId('composer-channel-limit-errors')
     expect(errors.textContent).toContain('Threads')
     expect(errors.textContent).toContain('500')
@@ -2624,9 +2624,13 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
     await flushModal(wrapper)
     await flushModal(wrapper)
 
-    expect(scheduleNowButton().disabled).toBe(false)
-
+    expect(scheduleNowButton().disabled).toBe(true)
     scheduleNowButton().click()
+    await flushModal(wrapper)
+    expect(scheduleSpy).not.toHaveBeenCalled()
+
+    const vm = wrapper.vm as Record<string, unknown>
+    ;(vm as Record<string, boolean>).submitAttempted = true
     await flushModal(wrapper)
 
     const errors = getByTestId('composer-channel-limit-errors')
@@ -2864,7 +2868,7 @@ describe('CreatePostModal.vue — per-network customization', () => {
     const scheduleButton = Array.from(
       document.querySelectorAll<HTMLButtonElement>('.ui-button'),
     ).find((button) => button.textContent?.includes('Schedule Now'))!
-    expect(scheduleButton.disabled).toBe(false)
+    expect(scheduleButton.disabled).toBe(true)
 
     openCustomizing()
     await flushModal(wrapper)
