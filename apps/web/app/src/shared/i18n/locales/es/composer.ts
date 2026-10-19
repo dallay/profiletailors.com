@@ -17,6 +17,10 @@ export default {
   customizePerNetwork: 'Personalizar por red',
   customizeBase: 'Base',
   customizeReset: 'Volver a la base',
+  customizeUsingBase:
+    'Usa el contenido base. La primera edición crea una versión solo para esta cuenta.',
+  customizeCustomized: 'Personalizada. Los cambios en Base ya no modifican esta cuenta.',
+  customizeBaseStatus: 'El contenido base alimenta a {count} cuenta(s) que usan el contenido base.',
   channelLimitExceeded: '{name} supera los {limit} caracteres',
   channelEmptyText: '{name} no tiene texto',
   previewMeta: {

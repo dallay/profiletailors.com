@@ -139,14 +139,14 @@ test.describe('Scheduler — Threads provider @threads', () => {
     await scheduler.clickNewPost()
     await composeModal.expectVisible()
 
-    const threadsChip = page.getByTestId('channel-button').filter({ hasText: 'Threads Dev' })
+    const threadsChip = page.locator('[data-testid="channel-button"][data-channel-name*="Threads Dev"]')
     await expect(threadsChip).toBeVisible({ timeout: 10_000 })
-    const linkedInChip = page.getByTestId('channel-button').filter({ hasText: 'Dev User' })
+    const linkedInChip = page.locator('[data-testid="channel-button"][data-channel-name*="Dev User"]')
     await expect(linkedInChip).toBeVisible({ timeout: 10_000 })
-    await expect(threadsChip.first().locator('[data-testid="channel-selected-icon"]')).toBeVisible()
+    await expect(threadsChip.first().getAttribute('aria-pressed')).resolves.toBe('true')
     await expect(
-      linkedInChip.first().locator('[data-testid="channel-selected-icon"]'),
-    ).toBeVisible()
+      linkedInChip.first().getAttribute('aria-pressed'),
+    ).resolves.toBe('true')
 
     const postedAccountIds: unknown[] = []
     await page.route('**/api/publishing/publications/batch', async (route) => {

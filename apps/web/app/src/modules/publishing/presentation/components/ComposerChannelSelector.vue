@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Check, X } from '@lucide/vue'
 import type { Channel } from '@modules/publishing/domain/channel'
+import { channelInitials } from '@modules/publishing/application/channel-initials'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
 const props = defineProps<{
@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggle: [channelId: string]
+  add: []
 }>()
 
 const avatarLoadFailed = ref<Record<string, boolean>>({})
@@ -32,6 +33,11 @@ function handleToggle(channelId: string) {
   if (props.isEditMode) return
   emit('toggle', channelId)
 }
+
+function handleAdd() {
+  if (props.isEditMode) return
+  emit('add')
+}
 </script>
 
 <template>
@@ -42,57 +48,62 @@ function handleToggle(channelId: string) {
     >
       {{ $t('dashboard.selectChannels') }}
     </span>
-    <div class="flex flex-wrap gap-2 items-center">
+    <div class="flex flex-wrap items-center gap-2">
       <button
         v-for="ch in activeChannels"
         :key="ch.id"
         type="button"
         data-testid="channel-button"
         :disabled="isEditMode"
-        class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
+        :title="ch.name"
+        class="relative flex size-11 shrink-0 items-center justify-center rounded-xl border transition-all"
         :class="[
           selectedChannelIds.includes(ch.id)
-            ? 'border-text-display bg-bg-primary text-text-display font-bold'
-            : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50',
+            ? 'border-text-display'
+            : 'border-border-visible hover:border-text-display/50',
           isEditMode ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
         ]"
         :data-edit-disabled="isEditMode ? 'true' : 'false'"
+        :data-channel-id="ch.id"
+        :data-channel-name="ch.name"
+        :data-channel-provider="ch.provider"
+        :aria-label="ch.name"
+        :aria-pressed="selectedChannelIds.includes(ch.id)"
         @click="handleToggle(ch.id)"
       >
         <img
           v-if="shouldShowAvatar(ch.id, ch.avatarUrl)"
           :src="ch.avatarUrl"
           :alt="ch.name ? `${ch.name} avatar` : 'Channel avatar'"
-          class="size-4.5 rounded-full object-cover border border-border-subtle"
+          class="size-11 rounded-xl object-cover"
           @error="onAvatarError(ch.id)"
         />
         <span
           v-else
           data-testid="channel-avatar-fallback"
-          class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
+          class="flex size-11 items-center justify-center rounded-xl bg-bg-primary font-mono text-[12px] font-bold uppercase text-text-display"
+        >
+          {{ channelInitials(ch.name) }}
+        </span>
+        <span
+          data-testid="channel-provider-badge"
+          aria-hidden="true"
+          class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border-subtle bg-bg-surface p-[2px] text-text-display"
         >
           <SocialProviderIcon :provider="ch.provider" />
-        </span>
-        <span class="max-w-[120px] truncate">{{ ch.name }}</span>
-        <span
-          class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
-          :class="selectedChannelIds.includes(ch.id) ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
-        >
-          <component
-            :is="selectedChannelIds.includes(ch.id) ? Check : X"
-            :data-testid="selectedChannelIds.includes(ch.id) ? 'channel-selected-icon' : 'channel-deselected-icon'"
-            class="size-2"
-          />
         </span>
       </button>
 
       <button
         type="button"
-        class="flex size-8 items-center justify-center rounded-full border border-dashed border-border-visible text-text-secondary hover:text-text-display hover:border-text-display bg-transparent transition-colors cursor-pointer"
+        data-testid="channel-add"
         title="Connect another channel"
+        class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-border-visible text-text-secondary transition-colors hover:border-text-display hover:text-text-display"
+        @click="handleAdd"
       >
-        <span class="text-base font-light">+</span>
+        <span class="text-lg font-light leading-none">+</span>
       </button>
     </div>
   </div>
 </template>
+
