@@ -1221,13 +1221,10 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(warning).not.toBeNull()
     expect(warning?.textContent ?? '').toContain('Too many attachments')
 
-    // The submit button stays enabled so the attempt itself surfaces the
-    // blocking errors. The action is gated inside handleSchedule instead.
-    const actionButtons = document.querySelectorAll('.ui-button')
-    const enabledSubmit = Array.from(actionButtons).find(
+    const anyEnabledSubmit = Array.from(document.querySelectorAll('.ui-button')).find(
       (btn) => !(btn as HTMLButtonElement).hasAttribute('disabled'),
     )
-    expect(enabledSubmit).toBeDefined()
+    expect(anyEnabledSubmit).toBeDefined()
 
     await wrapper.unmount()
   })

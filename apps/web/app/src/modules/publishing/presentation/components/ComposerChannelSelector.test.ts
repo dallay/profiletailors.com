@@ -287,4 +287,13 @@ describe('ComposerChannelSelector.vue', () => {
     expect(add.attributes('aria-label')).toBe('composer.channelAdd')
     expect(add.attributes('title')).toBe('composer.channelAdd')
   })
+
+  it('emits add when the channel-add button is clicked', (): void => {
+    const channels = [makeChannel({ id: 'ch-1' })]
+    const wrapper = mountSelector({ channels })
+    const add = wrapper.find('[data-testid="channel-add"]')
+    add.trigger('click')
+    const emitted = wrapper.emitted<[]>().add
+    expect(emitted).toHaveLength(1)
+  })
 })
