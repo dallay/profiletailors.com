@@ -510,7 +510,17 @@ const channelLimitErrors = computed(() => buildChannelErrors(channelStatuses.val
 const visibleChannelLimitErrors = computed(() => {
   if (submitAttempted.value) return channelLimitErrors.value
   const touched = touchedTabs.value
-  return buildChannelErrors(channelStatuses.value, Boolean(touched.base))
+  return [
+    ...channelStatuses.value
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...channelStatuses.value
+      .filter(
+        (status) =>
+          status.empty && (touched[status.channelId] || touched.base === true),
+      )
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
 })
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
@@ -1282,6 +1292,9 @@ function resetPostForm() {
   overrides.value = {}
   activeTabId.value = null
   customizing.value = false
+  submitAttempted.value = false
+  touchedTabs.value = {}
+  hasEdited.value = false
   resetShortlinks()
   mediaError.value = null
   removeFile()
