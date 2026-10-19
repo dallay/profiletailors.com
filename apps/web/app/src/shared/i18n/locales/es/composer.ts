@@ -21,7 +21,7 @@ export default {
     'Usa el contenido base. La primera edición crea una versión solo para esta cuenta.',
   customizeCustomized: 'Personalizada. Los cambios en Base ya no modifican esta cuenta.',
   customizeBaseStatus:
-    'El contenido base alimenta a {count} cuenta(s) que usa(n) el contenido base.',
+    'El contenido base alimenta a {count} cuenta que usa el contenido base. | El contenido base alimenta a {count} cuentas que usan el contenido base.',
   channelAdd: 'Conectar otro canal',
   channelLimitExceeded: '{name} supera los {limit} caracteres',
   channelEmptyText: '{name} no tiene texto',
