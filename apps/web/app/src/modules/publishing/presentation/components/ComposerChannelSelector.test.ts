@@ -47,7 +47,7 @@ describe('ComposerChannelSelector.vue', () => {
     const allButtons = wrapper.findAll('button')
     // Only the "Connect another channel" button is shown when there are no channels
     expect(allButtons).toHaveLength(1)
-    expect(wrapper.find('[title="Connect another channel"]').exists()).toBe(true)
+    expect(wrapper.find('[title="composer.channelAdd"]').exists()).toBe(true)
   })
 
   it('renders one channel button per active channel', (): void => {
@@ -158,7 +158,7 @@ describe('ComposerChannelSelector.vue', () => {
     ]
     const wrapper = mountSelector({ channels })
 
-    expect(wrapper.get('img').attributes('alt')).toBe('Profile Tailors LinkedIn avatar')
+    expect(wrapper.get('img').attributes('alt')).toBe('')
   })
 
   it('uses generic alternative text when an avatar has no channel name', (): void => {
@@ -167,7 +167,7 @@ describe('ComposerChannelSelector.vue', () => {
     ]
     const wrapper = mountSelector({ channels })
 
-    expect(wrapper.get('img').attributes('alt')).toBe('Channel avatar')
+    expect(wrapper.get('img').attributes('alt')).toBe('')
   })
 
   it('renders initials with a provider badge when avatarUrl is missing', (): void => {
@@ -255,5 +255,36 @@ describe('ComposerChannelSelector.vue', () => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels })
     expect(wrapper.find('[data-testid="channel-selector"]').exists()).toBe(true)
+  })
+
+  it('includes the provider in the channel button accessible name', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', name: 'My Profile', provider: 'linkedin' })]
+    const wrapper = mountSelector({ channels })
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
+    expect(button.attributes('aria-label')).toContain('My Profile')
+    expect(button.attributes('aria-label')).toContain('linkedin')
+  })
+
+  it('uses the channel name as accessible name when provider is absent', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', name: 'My Profile', provider: undefined })]
+    const wrapper = mountSelector({ channels })
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
+    expect(button.attributes('aria-label')).toBe('My Profile')
+  })
+
+  it('sets the avatar image alt to empty to avoid duplication', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', avatarUrl: 'https://example.com/avatar.jpg' })]
+    const wrapper = mountSelector({ channels })
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('alt')).toBe('')
+  })
+
+  it('sets i18n accessible name on the add-channel button', (): void => {
+    const channels = [makeChannel({ id: 'ch-1' })]
+    const wrapper = mountSelector({ channels })
+    const add = wrapper.find('[data-testid="channel-add"]')
+    expect(add.attributes('aria-label')).toBe('composer.channelAdd')
+    expect(add.attributes('title')).toBe('composer.channelAdd')
   })
 })

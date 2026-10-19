@@ -159,9 +159,13 @@ const picker = useComposerMediaPicker({
 const submitError = ref('')
 const submitAttempted = ref(false)
 const touchedTabs = ref<Record<string, boolean>>({})
+const hasEdited = ref(false)
 
 function markComposerTouched() {
-  touchedTabs.value[activeTabId.value ?? 'base'] = true
+  if (hasEdited.value) {
+    touchedTabs.value[activeTabId.value ?? 'base'] = true
+  }
+  hasEdited.value = false
 }
 const {
   failedUrls: failedShortlinkUrls,
@@ -492,25 +496,21 @@ const allChannelsValid = computed(() =>
   channelStatuses.value.length > 0
   && channelStatuses.value.every((status) => !status.tooLong && !status.empty),
 )
-const channelLimitErrors = computed(() => [
-  ...channelStatuses.value
-    .filter((status) => status.tooLong)
-    .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
-  ...channelStatuses.value
-    .filter((status) => status.empty)
-    .map((status) => t('composer.channelEmptyText', { name: status.name })),
-])
+function buildChannelErrors(statuses: typeof channelStatuses.value, includeEmpty: boolean) {
+  return [
+    ...statuses
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...statuses
+      .filter((status) => status.empty && includeEmpty)
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
+}
+const channelLimitErrors = computed(() => buildChannelErrors(channelStatuses.value, true))
 const visibleChannelLimitErrors = computed(() => {
   if (submitAttempted.value) return channelLimitErrors.value
   const touched = touchedTabs.value
-  return [
-    ...channelStatuses.value
-      .filter((status) => status.tooLong)
-      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
-    ...channelStatuses.value
-      .filter((status) => status.empty && (touched[status.channelId] || touched.base))
-      .map((status) => t('composer.channelEmptyText', { name: status.name })),
-  ]
+  return buildChannelErrors(channelStatuses.value, Boolean(touched.base))
 })
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
@@ -530,8 +530,10 @@ const scheduleHelperText = computed(() => {
 })
 
 const canSubmit = computed(() => {
+  const allHaveOverrides = selectedChannels.value.every((ch) => overrides.value[ch.id] !== undefined)
+  const baseValid = baseSubmitLength.value > 0 || allHaveOverrides
   return (
-    baseSubmitLength.value > 0 &&
+    baseValid &&
     allChannelsValid.value &&
     !isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
@@ -1464,6 +1466,7 @@ async function handleCreateSubmit(
 
           <ul
             v-if="visibleChannelLimitErrors.length > 0"
+            role="alert"
             data-testid="composer-channel-limit-errors"
             class="space-y-1 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
           >
@@ -1575,6 +1578,7 @@ async function handleCreateSubmit(
               @drop="handleComposerSurfaceDrop"
               @paste="handleComposerSurfacePaste"
               @keydown="markdownEditor.handleKeyDown"
+              @input="hasEdited = true"
               @blur="markComposerTouched"
             ></textarea>
             <p v-if="shortlinkWarning && !isEditMode" role="status" class="border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">

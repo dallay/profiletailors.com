@@ -2638,7 +2638,7 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
     expect(scheduleSpy).not.toHaveBeenCalled()
   })
 
-  it('reveals empty-text errors after leaving a touched composer without typing', async () => {
+  it('does not reveal empty-text errors when the composer is blurred without editing', async () => {
     const wrapper = mountModal(twoChannels())
     await flushModal(wrapper)
     await flushModal(wrapper)
@@ -2647,12 +2647,10 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
     textarea.focus()
-    textarea.dispatchEvent(new Event('blur'))
+    textarea.blur()
     await flushModal(wrapper)
 
-    const errors = getByTestId('composer-channel-limit-errors')
-    expect(errors.textContent).toContain('LinkedIn')
-    expect(errors.textContent).toContain('Threads')
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
   })
 
   it('submits one batch request with every selected account', async () => {
@@ -2972,5 +2970,26 @@ describe('CreatePostModal.vue — per-network customization', () => {
     expect(document.querySelector('[data-testid="threads-preview-text"]')?.textContent).toBe(
       'Short for threads',
     )
+  })
+
+  it('does not reveal errors when merely tabbing through without editing', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+
+    openCustomizing()
+    await flushModal(wrapper)
+    const tabs = customizeTabs()
+    const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
+    threadsTab?.click()
+    await flushModal(wrapper)
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.blur()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
   })
 })

@@ -17,4 +17,8 @@ describe('channelInitials', () => {
     expect(channelInitials('Profile Tailors LinkedIn')).toBe('PT')
     expect(channelInitials('WireMock Dev User')).toBe('WD')
   })
+
+  it('returns PT when the single word resolves to empty after trim', () => {
+    expect(channelInitials('  ')).toBe('PT')
+  })
 })

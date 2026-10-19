@@ -38,10 +38,10 @@
     #stage-hint { font-size: 13px; }
     .accounts { min-height: 48px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .chip { padding: 6px 12px 6px 6px; display: inline-flex; gap: 8px; align-items: center; font-size: 10px; min-height: 44px; }
-    .chip[aria-pressed="true"] { border-color: var(--text); font-weight: 700; }
+    .chip { border-color: var(--text); font-weight: 700; }
     .avatar { border-radius: 999px; background: var(--subtle); border: 1px solid var(--border); width: 28px; height: 28px; display: inline-grid; place-items: center; flex-shrink: 0; font-size: 10px; font-weight: 700; }
     .sdot { width: 14px; height: 14px; border-radius: 999px; border: 1px solid var(--secondary); flex-shrink: 0; }
-    .chip[aria-pressed="true"] .sdot { background: var(--text); border-color: var(--text); }
+    .chip .sdot { background: var(--text); border-color: var(--text); }
     .plus { width: 44px; height: 44px; padding: 0; border-style: dashed; font-size: 18px; color: var(--secondary); }
     .limit-errors { margin: 0; padding: 10px 14px; border: 1px solid var(--error); border-radius: 12px; font-size: 12px; }
     .limit-errors li { margin-bottom: 4px; }
@@ -440,7 +440,6 @@
     for (const account of chosen()) {
       const chip = element('button', undefined, 'chip')
       chip.type = 'button'
-      chip.setAttribute('aria-pressed', String(selected.includes(account.id)))
       chip.setAttribute('aria-label', 'Gestionar ' + nameOf(account))
       chip.append(element('span', account.initials, 'avatar'), element('span', account.name), element('span', '', 'sdot'))
       chip.addEventListener('click', openAccounts)

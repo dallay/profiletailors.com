@@ -67,14 +67,14 @@ function handleAdd() {
         :data-channel-id="ch.id"
         :data-channel-name="ch.name"
         :data-channel-provider="ch.provider"
-        :aria-label="ch.name"
+        :aria-label="ch.provider ? `${ch.name} (${ch.provider})` : ch.name"
         :aria-pressed="selectedChannelIds.includes(ch.id)"
         @click="handleToggle(ch.id)"
       >
         <img
           v-if="shouldShowAvatar(ch.id, ch.avatarUrl)"
           :src="ch.avatarUrl"
-          :alt="ch.name ? `${ch.name} avatar` : 'Channel avatar'"
+          alt=""
           class="size-11 rounded-xl object-cover"
           @error="onAvatarError(ch.id)"
         />
@@ -97,7 +97,8 @@ function handleAdd() {
       <button
         type="button"
         data-testid="channel-add"
-        title="Connect another channel"
+        :title="$t('composer.channelAdd')"
+        :aria-label="$t('composer.channelAdd')"
         class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-border-visible text-text-secondary transition-colors hover:border-text-display hover:text-text-display"
         @click="handleAdd"
       >

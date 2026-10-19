@@ -19,7 +19,11 @@ export default {
   customizeReset: 'Reset to base',
   customizeUsingBase: 'Uses base content. First edit creates a version only for this account.',
   customizeCustomized: 'Customized. Base edits no longer change this account.',
-  customizeBaseStatus: 'Base content feeds {count} account(s) using base content.',
+  customizeBaseStatus: {
+    one: 'Base content feeds {count} account using base content.',
+    other: 'Base content feeds {count} accounts using base content.',
+  },
+  channelAdd: 'Connect another channel',
   channelLimitExceeded: '{name} exceeds {limit} characters',
   channelEmptyText: '{name} text is empty',
   previewMeta: {
