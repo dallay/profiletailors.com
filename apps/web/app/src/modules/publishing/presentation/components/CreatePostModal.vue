@@ -540,7 +540,9 @@ const scheduleHelperText = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  const allHaveOverrides = selectedChannels.value.every((ch) => overrides.value[ch.id] !== undefined)
+  const allHaveOverrides = selectedChannels.value.every(
+    (ch) => Boolean(overrides.value[ch.id]?.trim()),
+  )
   const baseValid = baseSubmitLength.value > 0 || allHaveOverrides
   return (
     baseValid &&
@@ -2132,7 +2134,7 @@ async function handleCreateSubmit(
 
                 <Button
                   @click="handleSchedule"
-                  :disabled="isSubmitting"
+                  :disabled="!canSubmit"
                   class="col-span-2 justify-center py-2.5 font-bold"
                 >
                   {{ submitButtonLabel }}
