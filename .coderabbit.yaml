@@ -295,6 +295,8 @@ reviews:
       - 'renovate[bot]'
       - 'github-actions[bot]'
       - 'coderabbitai'
+      - 'dallay-bot'
+      - 'release-please[bot]'
 
   # =========================================================================
   # SLOP DETECTION (Pro+ for private repos)
