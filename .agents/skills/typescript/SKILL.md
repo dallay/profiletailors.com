@@ -1,6 +1,9 @@
 ---
 name: typescript
-description: Use when writing TypeScript code with types, interfaces, or generics.
+description: >-
+  Design, implement, or review TypeScript types and runtime boundaries in Profile Tailors Vue and
+  Astro apps. Use for unions, generics, API payloads, schema validation, and typed component or
+  composable contracts; pair with vue or astrolicious-astro for framework-specific work.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 metadata:
   category: languages-typing
@@ -9,162 +12,57 @@ metadata:
   version: 2026-09-28
 ---
 
-# TypeScript Best Practices
+# TypeScript
 
-This document outlines best practices for using TypeScript in Astro and Vue projects, focusing on
-types, interfaces, generics, and utility types.
+Use TypeScript to make valid states clear and external data safe. Follow the package's effective
+`tsconfig`, Biome rules, and nearby code before introducing a new convention. Pair with `zod-4`
+when the change uses Zod schemas.
 
-## Const Types Pattern (preferred — justify deviation in PR description)
+## Type design
 
-```typescript
-// ✅ Preferred: Create const object first, then extract type
-const STATUS = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  PENDING: "pending",
-} as const;
+- Use a literal union when only the type-level set of values is needed: `type Status = 'active' | 'inactive'`.
+- Use an `as const` object when the same values are needed at runtime as well as in types, such as
+  for options, lookup tables, or iteration.
+- Extract a nested object into a named type when it has meaning, is reused, or has its own behavior.
+  Keep a small one-off shape inline when naming it adds no clarity.
+- Derive types with `Pick`, `Omit`, `Parameters`, or `ReturnType` when that removes real duplication
+  and preserves the intended contract. Avoid opaque chains of derived types.
+- Use discriminated unions for values with distinct states or payloads. Handle each variant
+  exhaustively where correctness depends on all cases.
+- Prefer `unknown` for untrusted or untyped values, then narrow it with runtime checks or a schema.
+  Do not use `any`, broad assertions, or non-null assertions to bypass a mismatch.
 
-type Status = (typeof STATUS)[keyof typeof STATUS];
+## Runtime boundaries
 
-// ❌ Discouraged: Direct union types
-type Status = "active" | "inactive" | "pending";
+- Type annotations do not validate network responses, browser storage, URL input, or other runtime
+  data. Validate external values at the boundary with the schema or parser already used by that
+  package.
+- Keep API transport types separate from UI/domain types when they differ in meaning or lifecycle;
+  add a mapping where it clarifies the boundary.
+- Do not assert an API response into the desired type. Reconcile the API contract or validate and
+  map the received value.
+- Prefer type predicates and exhaustive narrowing over casts. A cast is acceptable only when a
+  checked invariant cannot be represented to TypeScript and the local pattern documents that fact.
+
+## Examples
+
+```ts
+type LoadState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; message: string }
+
+const POST_STATUSES = ['draft', 'scheduled', 'published'] as const
+type PostStatus = (typeof POST_STATUSES)[number]
 ```
 
-**Why this is preferred, not required.** Single source of truth, runtime
-values, autocomplete, easier refactoring. Direct unions are still
-acceptable when the values cross an untyped boundary and the source of
-truth cannot live in the same file (document the origin in that case).
+Use `LoadState<T>` when consumers need to distinguish the lifecycle states. Use `POST_STATUSES`
+when runtime code also needs to enumerate or display the values; otherwise a direct union is enough.
 
-## Flat Interfaces (preferred — justify deviation in PR description)
+## Related skills
 
-```typescript
-// ✅ Preferred: One level depth, nested objects → dedicated interface
-interface UserAddress {
-  street: string;
-  city: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  address: UserAddress;  // Reference, not inline
-}
-
-interface Admin extends User {
-  permissions: string[];
-}
-
-// ❌ Discouraged: Inline nested objects
-interface User {
-  address: { street: string; city: string };  // Avoid when extraction has no cost
-}
-```
-
-## Never Use `any`
-
-```typescript
-// ✅ Use unknown for truly unknown types
-function parse(input: unknown): User {
-  if (isUser(input)) return input;
-  throw new Error("Invalid input");
-}
-
-// ✅ Use generics for flexible types
-function first<T>(arr: T[]): T | undefined {
-  return arr[0];
-}
-
-// ❌ NEVER
-function parse(input: any): any {
-}
-```
-
-## Utility Types
-
-```typescript
-Pick<User, "id" | "name">     // Select fields
-Omit<User, "id">              // Exclude fields
-Partial<User>                 // All optional
-Required<User>                // All required
-Readonly<User>                // All readonly
-Record<string, User>          // Object type
-Extract<Union, "a" | "b">     // Extract from union
-Exclude<Union, "a">           // Exclude from union
-NonNullable<T | null>         // Remove null/undefined
-ReturnType<typeof fn>         // Function return type
-Parameters<typeof fn>         // Function params tuple
-```
-
-### Examples
-
-```typescript
-// Pick: select only specific fields (e.g. for form payloads, previews)
-type UserPreview = Pick<User, "id" | "name">;
-// { id: string; name: string }
-
-// Omit: remove fields (e.g. hide sensitive data for public types)
-type PublicUser = Omit<User, "password">;
-// { id: string; name: string; ... }
-
-// Partial: make all fields optional (e.g. update forms, patch payloads)
-type UserUpdate = Partial<User>;
-// { id?: string; name?: string; ... }
-
-// Required: make all fields required (e.g. validation, strict objects)
-type StrictUser = Required<User>;
-// { id: string; name: string; ... }
-
-// Readonly: prevent mutation (e.g. config, constants)
-type ImmutableUser = Readonly<User>;
-// { readonly id: string; ... }
-
-// Record: dictionary/map with known value type (e.g. id → user lookup)
-type UserMap = Record<string, User>;
-// { [id: string]: User }
-
-// Extract: filter union to allowed members (e.g. only certain values)
-type Allowed = Extract<"a" | "b" | "c", "a" | "b">;
-// "a" | "b"
-
-// Exclude: remove members from union (e.g. blacklist values)
-type NotA = Exclude<"a" | "b" | "c", "a">;
-// "b" | "c"
-
-// NonNullable: remove null/undefined (e.g. for strict values)
-type Name = NonNullable<string | null | undefined>;
-// string
-
-// ReturnType: get function return type (e.g. for API responses)
-function getUser(): Promise<User> { /* ... */
-}
-
-type UserPromise = ReturnType<typeof getUser>;
-// Promise<User>
-
-// Parameters: get function parameter tuple (e.g. for wrappers)
-function setUser(id: string, user: User) {
-}
-
-type SetUserParams = Parameters<typeof setUser>;
-// [id: string, user: User]
-```
-
-## Type Guards
-
-```typescript
-function isUser(value: unknown): value is User {
-  return (
-      typeof value === "object" &&
-      value !== null &&
-      "id" in value &&
-      "name" in value
-  );
-}
-```
-
-## Import Types
-
-```typescript
-import type {User} from "./types";
-import {createUser, type Config} from "./utils";
-```
+- `vue` for Vue components, composables, and Pinia.
+- `astrolicious-astro` for Astro pages and islands.
+- `zod-4` for Zod schema design and parsing.
+- `.agents/AGENTS.md` for TypeScript, Biome, and suppression policy.

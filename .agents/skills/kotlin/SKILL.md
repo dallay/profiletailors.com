@@ -72,6 +72,12 @@ fun displayName(name: String?): String = name ?: "Unknown"
   of the contract.
 - Preserve structured concurrency and cancellation. Avoid `GlobalScope` and unowned coroutine
   scopes.
+- Do not catch `CancellationException` as an ordinary failure or convert cancellation into a
+  success/fallback result. If cleanup needs a `finally` block, let cancellation propagate after
+  cleanup.
+- Put timeouts at the boundary that owns the latency budget and use the timeout/cancellation
+  conventions already present in that module. Do not add arbitrary nested timeouts to repository
+  calls or turn a timeout into a domain error without an explicit contract.
 - R2DBC and WebFlux work is already non-blocking. Do not wrap repositories in
   `withContext(Dispatchers.IO)` or use `flowOn(Dispatchers.IO)` as a generic rule.
 - If an unavoidable third-party API performs blocking I/O, isolate that boundary and use an
@@ -79,6 +85,9 @@ fun displayName(name: String?): String = name ?: "Unknown"
 - Prefer repository-defined exception and result contracts. Use `Result<T>` only when it makes an
   expected failure part of the function contract; do not wrap domain exceptions merely to avoid
   throwing them.
+- Keep transaction boundaries outside domain logic. For R2DBC, follow the existing infrastructure
+  transaction runner and keep the transaction open only around the work that must be atomic; do
+  not hold it across unrelated remote calls.
 
 ### Tests
 
