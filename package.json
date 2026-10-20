@@ -52,7 +52,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "markdownlint-cli2": "0.23.3",
-    "portless": "0.15.7",
+    "portless": "0.15.8",
     "wrangler": "^4.147.0"
   },
   "overrides": {
