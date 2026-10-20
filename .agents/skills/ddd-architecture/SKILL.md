@@ -31,6 +31,26 @@ Do not apply this Kotlin guidance to Vue, TypeScript, Astro, or `shared/web`; us
 - Diagnosing source-shape drift that layer or module checks cannot express.
 - Planning a replacement of one DDD check (first prove equivalent failure evidence).
 
+## Choose the model deliberately
+
+- Model an **aggregate** when a set of state changes must preserve invariants as one consistency
+  boundary. Keep it small enough to load and change as a unit; do not make every table or entity an
+  aggregate by default.
+- Use a **value object** for a domain concept whose meaning comes from its value and whose
+  construction or operations must preserve a rule, such as a validated identifier or bounded
+  amount. A wrapper around a primitive with no domain meaning may add ceremony without protection.
+- Use a simple CRUD-shaped application model when the behavior is mostly storage and presentation
+  and there are no meaningful invariants or lifecycle rules. Do not add aggregates, domain events,
+  or repositories solely to make a feature look DDD-shaped.
+- Keep cross-aggregate references identity-based as required by `ARCH-004`. Introduce policies or
+  domain services only when a rule genuinely spans multiple domain concepts and belongs in neither
+  one entity nor an application use case.
+
+The architecture tests verify marked source structure and selected rules. They do not prove every
+business invariant or every value object's full semantics. Add behavior tests for important
+invariants and invalid construction cases; describe a static check only as evidence for the exact
+shape it inspects.
+
 ## Repository Contracts
 
 | Contract   | Invariant                                                                                                                                                 | Owner                                               | Scope                                                                           | ADR      |

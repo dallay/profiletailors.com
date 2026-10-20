@@ -26,6 +26,25 @@ every agent unless a more specific nested instruction is present:
 6. Report what was actually verified. Distinguish local results from GitHub Actions, remote, or
    deployed evidence; never describe an unrun check as passing.
 
+## Skill Selection and Authority
+
+- These repository instructions, applicable nested `AGENTS.md` files, approved ADRs, executable
+  architecture checks, product contracts, and design guidance define project requirements. Skills
+  provide task-specific methods and context; they do not override those sources.
+- Select skills from their descriptions. Use the narrowest skill that owns the task, and combine
+  skills only when the change crosses their stated responsibilities.
+- `architecture-governance` routes architecture questions to the owning contract. For backend work,
+  `hexagonal-architecture` owns layer direction, `ddd-architecture` owns marked domain contracts,
+  and the relevant Spring Boot specialization owns framework details. For frontend work,
+  `frontend-architecture` owns surface boundaries; framework, design, accessibility, and language
+  skills supplement it.
+- Apply a GoF pattern skill only when the user requests that pattern or the design problem clearly
+  benefits from its specific tradeoffs. Do not introduce a pattern merely because a matching skill
+  exists.
+- OpenCode-specific `metadata.opencode/autoinvoke: "false"` hides a skill from automatic
+  selection there but keeps it explicitly loadable. It is a discovery hint, not a project rule or a
+  permission boundary. Effective tool permissions come from the agent/client configuration.
+
 ## Fix Simplicity and Zero-Comment Policy
 
 Fixes should make the system simpler, not more complex.

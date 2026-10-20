@@ -7,6 +7,7 @@ metadata:
   family: spring-boot
   source: local
   version: 2026-09-28
+  opencode/autoinvoke: "false"
 ---
 
 # Spring Data Neo4j Integration Patterns

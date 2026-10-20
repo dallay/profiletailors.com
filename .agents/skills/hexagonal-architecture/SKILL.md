@@ -1,6 +1,9 @@
 ---
 name: hexagonal-architecture
-description: Use when creating features, domain models, use cases, or organizing backend code with Hexagonal Architecture (Ports and Adapters) and CQRS.
+description: >-
+  Place Kotlin backend behavior across domain, application, and infrastructure boundaries in
+  Profile Tailors. Use when adding or changing a bounded context, use case, port, adapter, or
+  dependency direction; pair with ddd-architecture for aggregate and value-object decisions.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   category: backend-platform
@@ -9,673 +12,83 @@ metadata:
   version: 2026-09-28
 ---
 
-# Hexagonal Architecture Skill
+# Hexagonal Architecture
 
-Patterns for implementing Hexagonal Architecture (Ports and Adapters) with CQRS in Kotlin/Spring
-Boot.
+Keep the dependency rule clear while matching the existing bounded context. The architecture
+defines boundaries and dependency direction; it does not require every operation to have the same
+classes, folders, or CQRS ceremony.
 
-## When to Use
+## Source of truth
 
-- Creating new features or bounded contexts
-- Designing domain models and value objects
-- Implementing use cases (commands/queries)
-- Organizing code within a feature
-- Deciding where code belongs (domain vs application vs infrastructure)
+- Read `.agents/AGENTS.md`, the relevant ADRs, and the existing feature before changing backend
+  structure.
+- `ARCH-001` and `HexagonalArchTest.kt` own layer and dependency rules. Follow the executable
+  checks and preserve their failure messages; do not duplicate or weaken them.
+- Use `ddd-architecture` for `ARCH-003` through `ARCH-005`, aggregates, identity references, and
+  value-object invariants. Spring Modulith and `ARCH-002` own module isolation.
+- Use `spring-boot` for framework, WebFlux, R2DBC, transaction, and HTTP adapter details.
 
-## Critical Concepts
+## Dependency rule
 
-| Concept            | Description                                                 |
-|--------------------|-------------------------------------------------------------|
-| **Domain**         | Pure business logic, NO framework or library dependencies   |
-| **Application**    | Use cases orchestrating domain operations                   |
-| **Infrastructure** | Framework integration (Spring, R2DBC, HTTP)                 |
-| **Ports**          | Interfaces defined by domain, implemented by infrastructure |
-| **Adapters**       | Infrastructure implementations of ports                     |
-
-## Feature Structure
-
-**EVERY feature follows this structure**:
-
-```markdown
-📁 {feature}/
-├── 📁 domain/ # Pure Kotlin, NO Spring annotations
-├── 📁 application/ # Use cases, CQRS handlers
-└── 📁 infrastructure/ # Spring Boot, R2DBC, HTTP
+```text
+domain <- application <- infrastructure
 ```
 
-### Dependency Flow (CRITICAL)
-
-```markdown
-domain ← application ← infrastructure
-↑ ↑ ↑
-NOTHING domain domain + application
-```
-
-| Layer              | Can Depend On        | NEVER Depends On                    |
-|--------------------|----------------------|-------------------------------------|
-| **Domain**         | Nothing (pure)       | Application, Infrastructure, Spring |
-| **Application**    | Domain only          | Infrastructure, Spring              |
-| **Infrastructure** | Domain + Application | -                                   |
-
----
-
-## 1. Domain Layer (`domain/`)
-
-**Pure Kotlin. NO framework dependencies. NO Spring annotations.**
-
-### What Belongs Here
-
-| Element                   | Purpose                             | Example                         |
-|---------------------------|-------------------------------------|---------------------------------|
-| **Entities**              | Core business objects with identity | `Workspace.kt`                  |
-| **Value Objects**         | Immutable domain concepts           | `WorkspaceId.kt`, `Email.kt`    |
-| **Repository Interfaces** | Contracts for persistence (PORTS)   | `WorkspaceRepository.kt`        |
-| **Domain Events**         | Facts that happened in the domain   | `WorkspaceCreatedEvent.kt`      |
-| **Domain Exceptions**     | Business rule violations            | `WorkspaceNotFoundException.kt` |
-
-### Entity Example
-
-```kotlin
-// domain/Workspace.kt
-data class Workspace(
-    val id: WorkspaceId,
-    val name: WorkspaceName,
-    val ownerId: UserId,
-    val members: List<WorkspaceMember> = emptyList(),
-    val createdAt: Instant = Instant.now(),
-) {
-    // Business logic INSIDE the entity
-    fun addMember(userId: UserId, role: WorkspaceRole): Workspace {
-        require(!hasMember(userId)) { "User is already a member" }
-        return copy(
-            members = members + WorkspaceMember(userId, role),
-        )
-    }
-
-    fun hasMember(userId: UserId): Boolean =
-        members.any { it.userId == userId }
-
-    fun isOwner(userId: UserId): Boolean = ownerId == userId
-}
-```
-
-### Value Object Example
-
-```kotlin
-// domain/WorkspaceId.kt
-@JvmInline
-value class WorkspaceId(val value: UUID) {
-    companion object {
-        fun generate(): WorkspaceId = WorkspaceId(UUID.randomUUID())
-    }
-}
-
-// domain/WorkspaceName.kt
-@JvmInline
-value class WorkspaceName(val value: String) {
-    init {
-        require(value.isNotBlank()) { "Workspace name cannot be blank" }
-        require(value.length <= 100) { "Workspace name too long" }
-    }
-}
-
-// domain/Email.kt
-@JvmInline
-value class Email(val value: String) {
-    init {
-        require(value.contains("@")) { "Invalid email format" }
-    }
-
-    fun domain(): String = value.substringAfter("@")
-}
-```
-
-### Repository Interface (PORT)
-
-```kotlin
-// domain/WorkspaceRepository.kt
-interface WorkspaceRepository {
-    suspend fun save(workspace: Workspace): Workspace
-    suspend fun findById(id: WorkspaceId): Workspace?
-    suspend fun delete(id: WorkspaceId)
-}
-
-// domain/WorkspaceFinderRepository.kt (read-only queries)
-interface WorkspaceFinderRepository {
-    suspend fun findByOwnerId(ownerId: UserId): List<Workspace>
-    suspend fun findByMemberId(memberId: UserId): List<Workspace>
-    suspend fun existsByName(name: WorkspaceName): Boolean
-}
-```
-
-### Domain Exception
-
-```kotlin
-// domain/WorkspaceException.kt
-sealed class WorkspaceException(message: String) : RuntimeException(message)
-
-class WorkspaceNotFoundException(id: WorkspaceId) :
-    WorkspaceException("Workspace not found: ${id.value}")
-
-class WorkspaceAlreadyExistsException(name: WorkspaceName) :
-    WorkspaceException("Workspace already exists: ${name.value}")
-
-class WorkspaceMemberAlreadyExistsException(userId: UserId) :
-    WorkspaceException("User is already a member: ${userId.value}")
-```
-
-### Domain Event
-
-```kotlin
-// domain/event/WorkspaceCreatedEvent.kt
-data class WorkspaceCreatedEvent(
-    val workspaceId: WorkspaceId,
-    val ownerId: UserId,
-    val name: WorkspaceName,
-    val occurredAt: Instant = Instant.now(),
-) : DomainEvent
-```
-
-### Domain Structure
-
-```markdown
-📁 domain/
-├── Workspace.kt # Entity
-├── WorkspaceMember.kt # Entity
-├── WorkspaceId.kt # Value Object
-├── WorkspaceName.kt # Value Object
-├── WorkspaceRole.kt # Value Object (enum)
-├── WorkspaceRepository.kt # Repository interface (write)
-├── WorkspaceFinderRepository.kt # Repository interface (read)
-├── WorkspaceException.kt # Domain exceptions
-└── 📁 event/
-└── WorkspaceCreatedEvent.kt # Domain event
-```
-
----
-
-## 2. Application Layer (`application/`)
-
-**Use cases organized by CQRS. Framework-agnostic.**
-
-### CQRS Organization
-
-```markdown
-📁 application/
-├── 📁 create/ # Command: Create workspace
-│ ├── CreateWorkspaceCommand.kt
-│ ├── CreateWorkspaceCommandHandler.kt
-│ └── WorkspaceCreator.kt
-├── 📁 find/ # Query: Find workspaces
-│ ├── FindWorkspaceQuery.kt
-│ ├── FindWorkspaceQueryHandler.kt
-│ └── WorkspaceFinder.kt
-├── 📁 update/ # Command: Update workspace
-└── 📁 delete/ # Command: Delete workspace
-```
-
-### Command Pattern (Writes)
-
-```kotlin
-// application/create/CreateWorkspaceCommand.kt
-data class CreateWorkspaceCommand(
-    val name: String,
-    val ownerId: UUID,
-)
-
-// application/create/CreateWorkspaceCommandHandler.kt
-class CreateWorkspaceCommandHandler(
-    private val creator: WorkspaceCreator,
-) {
-    suspend fun handle(command: CreateWorkspaceCommand): WorkspaceId {
-        return creator.create(
-            name = WorkspaceName(command.name),
-            ownerId = UserId(command.ownerId),
-        )
-    }
-}
-
-// application/create/WorkspaceCreator.kt
-class WorkspaceCreator(
-    private val repository: WorkspaceRepository,
-    private val finderRepository: WorkspaceFinderRepository,
-    private val eventPublisher: DomainEventPublisher,
-    private val auditLogger: WorkspaceAuditPort, // infrastructure adapter implements this
-) {
-    suspend fun create(name: WorkspaceName, ownerId: UserId): WorkspaceId {
-        auditLogger.creating(name, ownerId)
-
-        // Business rule: unique name
-        if (finderRepository.existsByName(name)) {
-            throw WorkspaceAlreadyExistsException(name)
-        }
-
-        val workspace = Workspace(
-            id = WorkspaceId.generate(),
-            name = name,
-            ownerId = ownerId,
-        )
-
-        repository.save(workspace)
-
-        eventPublisher.publish(
-            WorkspaceCreatedEvent(
-                workspaceId = workspace.id,
-                ownerId = ownerId,
-                name = name,
-            ),
-        )
-
-        auditLogger.created(workspace.id)
-        return workspace.id
-    }
-}
-```
-
-### Query Pattern (Reads)
-
-```kotlin
-// application/find/FindWorkspaceQuery.kt
-data class FindWorkspaceQuery(
-    val workspaceId: UUID,
-)
-
-// application/find/FindWorkspaceQueryHandler.kt
-class FindWorkspaceQueryHandler(
-    private val finder: WorkspaceFinder,
-) {
-    suspend fun handle(query: FindWorkspaceQuery): Workspace {
-        return finder.findById(WorkspaceId(query.workspaceId))
-    }
-}
-
-// application/find/WorkspaceFinder.kt
-class WorkspaceFinder(
-    private val repository: WorkspaceFinderRepository,
-) {
-    suspend fun findById(id: WorkspaceId): Workspace {
-        return repository.findById(id)
-            ?: throw WorkspaceNotFoundException(id)
-    }
-
-    suspend fun findByMember(memberId: UserId): List<Workspace> {
-        return repository.findByMemberId(memberId)
-    }
-}
-```
-
-### Key Principles
-
-- **Handlers are thin**: Receive command/query → delegate to service → return
-- **Services contain logic**: Validation, orchestration, event publishing
-- **NO Spring annotations**: Application layer is framework-agnostic
-- **Return domain objects**: Not DTOs (mapping happens in infrastructure)
-
----
-
-## 3. Infrastructure Layer (`infrastructure/`)
-
-**Spring Boot integration. Implements domain ports.**
-
-### Structure
-
-```markdown
-📁 infrastructure/
-├── 📁 http/ # REST controllers
-│ ├── CreateWorkspaceController.kt
-│ ├── FindWorkspaceController.kt
-│ └── 📁 request/
-│ └── CreateWorkspaceRequest.kt
-│ └── 📁 response/
-│ └── WorkspaceResponse.kt
-├── 📁 persistence/ # Database (R2DBC)
-│ ├── WorkspaceStoreR2DbcRepository.kt # Implements WorkspaceRepository
-│ ├── 📁 entity/
-│ │ └── WorkspaceEntity.kt
-│ ├── 📁 mapper/
-│ │ └── WorkspaceMapper.kt
-│ └── 📁 repository/
-│ └── WorkspaceR2DbcRepository.kt # Spring Data interface
-├── 📁 event/
-│ └── WorkspaceEventPublisher.kt
-└── 📁 configuration/
-└── WorkspaceConfiguration.kt # Bean definitions
-```
-
-### Controller (HTTP Adapter)
-
-```kotlin
-// infrastructure/http/CreateWorkspaceController.kt
-@RestController
-@RequestMapping("/api/workspaces")
-class CreateWorkspaceController(
-    private val commandHandler: CreateWorkspaceCommandHandler,
-) {
-    @PostMapping
-    suspend fun create(
-        @Valid @RequestBody request: CreateWorkspaceRequest,
-    ): ResponseEntity<WorkspaceIdResponse> {
-        val command = CreateWorkspaceCommand(
-            name = request.name,
-            ownerId = request.ownerId,
-        )
-
-        val workspaceId = commandHandler.handle(command)
-
-        return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(WorkspaceIdResponse(workspaceId.value))
-    }
-}
-
-// infrastructure/http/request/CreateWorkspaceRequest.kt
-data class CreateWorkspaceRequest(
-    @field:NotBlank
-    val name: String,
-    @field:NotNull
-    val ownerId: UUID,
-)
-
-// infrastructure/http/response/WorkspaceResponse.kt
-data class WorkspaceResponse(
-    val id: UUID,
-    val name: String,
-    val ownerId: UUID,
-    val memberCount: Int,
-    val createdAt: Instant,
-)
-
-fun Workspace.toResponse() = WorkspaceResponse(
-    id = id.value,
-    name = name.value,
-    ownerId = ownerId.value,
-    memberCount = members.size,
-    createdAt = createdAt,
-)
-```
-
-### Persistence (Repository Adapter)
-
-```kotlin
-// infrastructure/persistence/WorkspaceStoreR2DbcRepository.kt
-@Repository
-class WorkspaceStoreR2DbcRepository(
-    private val r2dbcRepository: WorkspaceR2DbcRepository,
-    private val mapper: WorkspaceMapper,
-) : WorkspaceRepository {
-
-    override suspend fun save(workspace: Workspace): Workspace {
-        val entity = mapper.toEntity(workspace)
-        val saved = r2dbcRepository.save(entity).awaitSingle()
-        return mapper.toDomain(saved)
-    }
-
-    override suspend fun findById(id: WorkspaceId): Workspace? {
-        return r2dbcRepository.findById(id.value).awaitSingleOrNull()
-            ?.let { mapper.toDomain(it) }
-    }
-
-    override suspend fun delete(id: WorkspaceId) {
-        r2dbcRepository.deleteById(id.value).awaitSingleOrNull()
-    }
-}
-
-// infrastructure/persistence/repository/WorkspaceR2DbcRepository.kt
-interface WorkspaceR2DbcRepository : ReactiveCrudRepository<WorkspaceEntity, UUID> {
-    fun findByOwnerId(ownerId: UUID): Flux<WorkspaceEntity>
-}
-
-// infrastructure/persistence/entity/WorkspaceEntity.kt
-@Table("workspaces")
-data class WorkspaceEntity(
-    @Id val id: UUID? = null,
-    val name: String,
-    val ownerId: UUID,
-    val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now(),
-)
-
-// infrastructure/persistence/mapper/WorkspaceMapper.kt
-@Component
-class WorkspaceMapper {
-    fun toDomain(entity: WorkspaceEntity): Workspace = Workspace(
-        id = WorkspaceId(requireNotNull(entity.id)),
-        name = WorkspaceName(entity.name),
-        ownerId = UserId(entity.ownerId),
-        createdAt = entity.createdAt,
-    )
-
-    fun toEntity(domain: Workspace): WorkspaceEntity = WorkspaceEntity(
-        id = domain.id.value,
-        name = domain.name.value,
-        ownerId = domain.ownerId.value,
-        createdAt = domain.createdAt,
-    )
-}
-```
-
-### Configuration (Wire Everything)
-
-```kotlin
-// infrastructure/configuration/WorkspaceConfiguration.kt
-@Configuration
-class WorkspaceConfiguration {
-
-    @Bean
-    fun workspaceCreator(
-        repository: WorkspaceRepository,
-        finderRepository: WorkspaceFinderRepository,
-        eventPublisher: DomainEventPublisher,
-    ) = WorkspaceCreator(repository, finderRepository, eventPublisher)
-
-    @Bean
-    fun createWorkspaceCommandHandler(
-        creator: WorkspaceCreator,
-    ) = CreateWorkspaceCommandHandler(creator)
-
-    @Bean
-    fun workspaceFinder(
-        repository: WorkspaceFinderRepository,
-    ) = WorkspaceFinder(repository)
-
-    @Bean
-    fun findWorkspaceQueryHandler(
-        finder: WorkspaceFinder,
-    ) = FindWorkspaceQueryHandler(finder)
-}
-```
-
----
-
-## Decision Tree: Where Does This Code Belong?
-
-```markdown
-Is it business logic with NO framework dependencies?
-├── YES → DOMAIN
-│ ├── Has identity? → Entity
-│ ├── Immutable concept? → Value Object
-│ ├── Data access contract? → Repository Interface
-│ └── Business event? → Domain Event
-│
-└── NO → Does it orchestrate domain operations?
-├── YES → APPLICATION
-│ ├── Writes data? → Command + Handler + Service
-│ └── Reads data? → Query + Handler + Service
-│
-└── NO → INFRASTRUCTURE
-├── HTTP? → Controller + Request/Response DTOs
-├── Database? → Repository Implementation + Entity + Mapper
-└── External service? → Adapter
-```
-
-## Anti-Patterns
-
-❌ **Spring annotations in Domain** - Domain must be pure Kotlin
-❌ **Business logic in Controllers** - Controllers only handle HTTP
-❌ **Business logic in Repository implementations** - Logic belongs in Domain/Application
-❌ **Exposing database entities** - Always map to domain, then to DTOs
-❌ **Application depending on Infrastructure** - Only Infrastructure depends down
-❌ **Fat handlers** - Handlers should be thin, delegate to services
-❌ **Anemic domain models** - Put behavior IN the entities
-
-## Error Handling Across Layers
-
-Error propagation follows the hexagonal boundaries:
-
-| Layer              | Error Type                | Responsibility                                               |
-|--------------------|---------------------------|--------------------------------------------------------------|
-| **Domain**         | Domain exceptions         | Pure business errors (e.g., `InsufficientFundsException`)    |
-| **Application**    | Domain/application errors | Orchestrate use cases without introducing transport concerns |
-| **Infrastructure** | HTTP-friendly responses   | Map exceptions to status codes and `ProblemDetail`           |
-
-**Rules:**
-
-1. **Domain errors bubble as domain exceptions** – Keep domain exceptions pure Kotlin, no framework
-   dependencies.
-2. **Application coordinates use cases, not HTTP semantics** – Do not translate business failures
-   into transport-specific concepts inside handlers or services.
-3. **Infrastructure maps to HTTP** – Use `@ControllerAdvice` / `@RestControllerAdvice` to convert
-   domain/application exceptions into `ProblemDetail` or another explicit API error contract.
-4. **`Result<T>` is optional, not the default contract** – If used, standardize it deliberately at
-   the application boundary. Do not mix ad-hoc `Result` usage with exception-based flows in the same
-   feature.
-
-```kotlin
-// Domain layer - pure business exception
-class UserAlreadyExistsException(val email: Email) :
-    DomainException("User with email ${email.value} already exists")
-
-// Application layer - framework-agnostic orchestration
-class CreateUserHandler(private val userRepository: UserRepository) {
-    suspend fun handle(command: CreateUserCommand): UserId {
-        userRepository.findByEmail(command.email)?.let {
-            throw UserAlreadyExistsException(command.email)
-        }
-        // ...
-        return UserId.generate()
-    }
-}
-
-// Infrastructure layer - maps to HTTP
-@RestControllerAdvice
-class DomainExceptionHandler {
-    @ExceptionHandler(UserAlreadyExistsException::class)
-    fun handleConflict(ex: UserAlreadyExistsException) =
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.message))
-}
-```
-
-## Testing Strategy by Layer
-
-Each layer has specific testing requirements (see
-also: [Decision Tree](#decision-tree-where-does-this-code-belong)
-and [Architecture Tests](#architecture-tests-archunit)):
-
-| Layer              | Test Type                          | Strategy                                                               |
-|--------------------|------------------------------------|------------------------------------------------------------------------|
-| **Domain**         | Pure unit tests                    | Pure logic, no Spring, no mocks needed for value objects/entities      |
-| **Application**    | Plain unit / component-style tests | Mock or fake ports, verify orchestration without starting Spring       |
-| **Infrastructure** | Focused integration tests          | Real DB, HTTP, broker, or container only where adapter realism matters |
-
-```kotlin
-// Domain - pure unit test (no mocking)
-@UnitTest
-class EmailTest {
-    @Test
-    fun `should reject invalid email format`() {
-        shouldThrow<IllegalArgumentException> {
-            Email("invalid")
-        }
-    }
-}
-
-// Application - plain unit test with mocked ports
-@UnitTest
-class CreateUserHandlerTest {
-    private val userRepository = mockk<UserRepository>()
-    private val handler = CreateUserHandler(userRepository)
-
-    @Test
-    fun `should create user when email is unique`() = runTest {
-        coEvery { userRepository.findByEmail(any()) } returns null
-        coEvery { userRepository.save(any()) } returns testUser
-
-        val result = handler.handle(CreateUserCommand(email, name))
-
-        result shouldBe expectedUserId
-    }
-}
-
-// Infrastructure - focused integration test with Testcontainers
-@IntegrationTest
-class UserControllerIntegrationTest {
-    @Test
-    fun `POST users should create user and return 201`() {
-        webTestClient.post().uri("/api/users")
-            .bodyValue(CreateUserRequest(email, name))
-            .exchange()
-            .expectStatus().isCreated
-            .expectBody<UserIdResponse>()
-    }
-}
-```
-
-## Commands
-
-```bash
-# Create new feature structure
-FEATURE="new-feature"; mkdir -p "server/smp/src/main/kotlin/com/profiletailors/smp/${FEATURE}/{domain,application,infrastructure}"
-
-# Verify architecture (check imports)
-rg "import org.springframework" server/smp/src/main/kotlin/com/profiletailors/smp/*/domain/
-
-# Should return NOTHING - domain must be pure
-```
-
-## Architecture Tests (ArchUnit)
-
-Layer boundaries are enforced by ArchUnit in the smp module. Every new bounded context must be
-added to the `boundedContexts` list so rules run for it.
-
-- File: `server/smp/src/test/kotlin/com/profiletailors/smp/HexagonalArchTest.kt`
-- Component-scan rules: `server/smp/src/test/kotlin/com/profiletailors/smp/ComponentScanArchTest.kt`
-- Update the `boundedContexts` list to include the new context name (matches
-  `com.profiletailors.smp.{context}`):
-
-```kotlin
-private val boundedContexts = listOf(
-    "authorization",
-    "credentials",
-    "governance",
-    "identity",
-    "platform",
-    "publishing",
-    "tenancy",
-    "audit",
-    "observability",
-    // ➕ add your new context here, e.g. "billing"
-)
-```
-
-Run tests to verify rules apply to your feature:
-
-```bash
-./gradlew :server:smp:test --tests com.profiletailors.smp.HexagonalArchTest
-```
-
-## Resources
-
-- [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
-- [spring-boot skill](../spring-boot/SKILL.md) - Framework patterns for Infrastructure
-  layer
-- [kotlin skill](../kotlin/SKILL.md) - Kotlin conventions for all layers
-- [ddd-architecture skill](../ddd-architecture/SKILL.md) - DDD conformance inside the domain:
-  aggregate boundaries, identity-only inter-aggregate references, value-object immutability,
-  bounded-context isolation, ADR-backed decision enforcement. Complements this skill — that one
-  validates *intra-domain* references, this one validates *inter-layer* imports.
-
-## References
-
-- references/kotlin-clean-architecture.md - Kotlin-specific patterns (records, sealed classes,
-  strongly-typed IDs)
+- **Domain** owns business invariants and domain concepts. Keep it independent of Spring, transport,
+  persistence, and provider SDKs.
+- **Application** coordinates use cases through domain concepts and ports. Keep Spring and transport
+  types out of application contracts.
+- **Infrastructure** connects the application to HTTP, persistence, messaging, and external
+  providers. It implements ports and maps between external representations and internal contracts.
+- A dependency may point inward at a boundary, but domain and application code must not depend on
+  infrastructure implementations.
+
+## Choose the smallest useful shape
+
+For each behavior, decide what needs to be isolated or substituted:
+
+1. Put a business invariant in a domain type or policy when it belongs to the model.
+2. Put orchestration in an application use case. A focused function or class is enough when it has
+   one clear responsibility.
+3. Define a port where the inner layer needs an external capability or a boundary improves
+   isolation. Keep the port near the policy that uses it.
+4. Add an adapter only for a real external boundary, such as persistence, HTTP, or a provider.
+5. Add a command/query pair or separate handler and service only when the distinction improves
+   independent behavior, reuse, transaction boundaries, or testing. Do not create wrappers that
+   only forward arguments.
+
+The three architectural layers apply to the bounded context, not mechanically to every feature or
+operation. Follow the package and class shape already used by nearby code unless the task calls for
+a boundary change.
+
+## Repository conventions
+
+- Backend code lives under `server/smp/src/main/kotlin/com/profiletailors/smp/<context>/`.
+- Keep a bounded context's domain, application, and infrastructure concerns within its existing
+  module/package boundaries. Do not add empty layers just to make a tree look uniform.
+- Application services use `com.profiletailors.common.domain.Service` where component discovery
+  requires it. Do not substitute Spring stereotypes in domain or application code.
+- Prefer explicit, local interfaces over generic repository abstractions. Add a port when it
+  represents a boundary or policy, not solely to mirror each concrete class.
+- Keep transport DTOs and persistence records at their adapters. Map explicitly when the models
+  differ in responsibility or lifecycle.
+- Keep transaction setup in infrastructure according to the established R2DBC policy. Use
+  `spring-boot` before changing transaction or coroutine integration.
+
+## Review questions
+
+- Does each dependency point toward policy rather than implementation?
+- Is there a real boundary behind every new port, adapter, handler, or service?
+- Can a simpler use case meet the same isolation and testability needs?
+- Are persistence, HTTP, or provider types leaking inward?
+- Do existing architecture tests cover the intended contract? Is a behavioral test needed for a
+  semantic invariant that a structural test cannot prove?
+
+## Related guidance
+
+- `.agents/AGENTS.md`
+- `.agents/skills/architecture-governance/SKILL.md`
+- `.agents/skills/ddd-architecture/SKILL.md`
+- `.agents/skills/spring-boot/SKILL.md`
+- `docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/HexagonalArchTest.kt`

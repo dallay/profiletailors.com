@@ -46,6 +46,16 @@ feature boundaries or changes shared UI.
   a global rule.
 - Prefer Vue and project abstractions over manual DOM access. Clean up subscriptions, timers, and
   other effects when their owner is disposed.
+- Keep loading, success, empty, and error states explicit when a screen depends on asynchronous
+  work. Preserve useful existing data during refresh when the product behavior calls for it, and
+  prevent stale requests from overwriting newer state.
+- Keep labels, validation messages, and user-facing status text in the surface's localization
+  system. Do not add hard-coded copy when the feature already uses i18n.
+- For dialogs and modals, follow the existing primitive and verify accessible naming, focus entry,
+  focus return, Escape behavior, and keyboard operation. Prefer native or shared UI primitives
+  over custom overlays.
+- Give state one clear owner: local component state for view-only state, a composable for reusable
+  behavior, and Pinia only for state shared across a workflow or route boundary.
 
 ## Usage
 
