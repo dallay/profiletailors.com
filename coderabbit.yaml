@@ -1,0 +1,29 @@
+language: en-US
+tone_instructions: Direct, constructive, educational. Focus on architecture, security, maintainability. Flag Hexagonal/Clean Arch violations assertively.
+early_access: true
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 3
+    ignore_title_keywords:
+      - WIP
+      - DO NOT MERGE
+      - '[skip review]'
+      - DRAFT
+      - 'ci: cache'
+      - 'chore: bump'
+    labels:
+      - '!do-not-review'
+    drafts: false
+    base_branches:
+      - .*
+    ignore_usernames:
+      - dependabot[bot]
+      - renovate[bot]
+      - github-actions[bot]
+      - coderabbitai
+      - dallay-bot
+      - release-please[bot]
