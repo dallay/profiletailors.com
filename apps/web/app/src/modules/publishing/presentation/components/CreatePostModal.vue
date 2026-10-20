@@ -10,6 +10,7 @@ import { ImageIcon, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useMarkdownEditor } from '@modules/publishing/application/useMarkdownEditor'
 import { channelCharLimit, DEFAULT_CHAR_LIMIT } from '@modules/publishing/application/channel-limits'
+import { channelInitials } from '@modules/publishing/application/channel-initials'
 import { normalizeForSubmission } from '@modules/publishing/application/markdown'
 import {
   generateAiPostContent,
@@ -156,6 +157,16 @@ const picker = useComposerMediaPicker({
   },
 })
 const submitError = ref('')
+const submitAttempted = ref(false)
+const touchedTabs = ref<Record<string, boolean>>({})
+const hasEdited = ref(false)
+
+function markComposerTouched() {
+  if (hasEdited.value) {
+    touchedTabs.value[activeTabId.value ?? 'base'] = true
+  }
+  hasEdited.value = false
+}
 const {
   failedUrls: failedShortlinkUrls,
   shortlinkWarning,
@@ -344,6 +355,8 @@ function requestChannelConnection() {
 
 async function initializeComposerForOpen() {
   submitError.value = ''
+  submitAttempted.value = false
+  touchedTabs.value = {}
   mediaError.value = null
   isDatePickerOpen.value = false
   resetAiAssistantState()
@@ -483,30 +496,35 @@ const allChannelsValid = computed(() =>
   channelStatuses.value.length > 0
   && channelStatuses.value.every((status) => !status.tooLong && !status.empty),
 )
-const channelLimitErrors = computed(() => [
-  ...channelStatuses.value
-    .filter((status) => status.tooLong)
-    .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
-  ...channelStatuses.value
-    .filter((status) => status.empty)
-    .map((status) => t('composer.channelEmptyText', { name: status.name })),
-])
-function channelInitials(name: string | null | undefined): string {
-  const trimmed = name?.trim()
-  if (!trimmed) return 'PT'
-
-  const parts = trimmed.split(/\s+/).filter(Boolean)
-  if (parts.length === 1) {
-    return (parts[0]?.slice(0, 2) ?? 'PT').toUpperCase()
-  }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
+function buildChannelErrors(statuses: typeof channelStatuses.value, includeEmpty: boolean) {
+  return [
+    ...statuses
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...statuses
+      .filter((status) => status.empty && includeEmpty)
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
 }
-
+const channelLimitErrors = computed(() => buildChannelErrors(channelStatuses.value, true))
+const visibleChannelLimitErrors = computed(() => {
+  if (submitAttempted.value) {
+    if (selectedChannels.value.length === 0) return [t('composer.noChannelsSelected')]
+    return channelLimitErrors.value
+  }
+  const touched = touchedTabs.value
+  return [
+    ...channelStatuses.value
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...channelStatuses.value
+      .filter(
+        (status) =>
+          status.empty && (touched[status.channelId] || touched.base === true),
+      )
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
+})
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
   const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
@@ -525,8 +543,12 @@ const scheduleHelperText = computed(() => {
 })
 
 const canSubmit = computed(() => {
+  const allHaveOverrides = selectedChannels.value.every(
+    (ch) => Boolean(overrides.value[ch.id]?.trim()),
+  )
+  const baseValid = baseSubmitLength.value > 0 || allHaveOverrides
   return (
-    baseSubmitLength.value > 0 &&
+    baseValid &&
     allChannelsValid.value &&
     !isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
@@ -826,6 +848,18 @@ const customizeTabs = computed(() => {
     }
   })
   return [baseTab, ...channelTabs]
+})
+
+const customizeStatusText = computed(() => {
+  if (activeTabId.value === null) {
+    const inheriting = selectedChannels.value.filter(
+      (channel) => overrides.value[channel.id] === undefined,
+    ).length
+    return t('composer.customizeBaseStatus', { count: inheriting })
+  }
+  return overrides.value[activeTabId.value] === undefined
+    ? t('composer.customizeUsingBase')
+    : t('composer.customizeCustomized')
 })
 
 /**
@@ -1263,6 +1297,9 @@ function resetPostForm() {
   overrides.value = {}
   activeTabId.value = null
   customizing.value = false
+  submitAttempted.value = false
+  touchedTabs.value = {}
+  hasEdited.value = false
   resetShortlinks()
   mediaError.value = null
   removeFile()
@@ -1288,7 +1325,10 @@ async function shortenPostUrls(content: string): Promise<string> {
 }
 
 async function handleSchedule() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value) {
+    submitAttempted.value = true
+    return
+  }
 
   isSubmitting.value = true
   submitError.value = ''
@@ -1420,7 +1460,7 @@ async function handleCreateSubmit(
           <X class="size-4" />
         </button>
 
-        <div class="flex flex-col space-y-6 border-b border-border-subtle p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r lg:overflow-hidden">
+        <div class="flex flex-col space-y-6 border-b border-border-subtle p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r lg:overflow-y-auto">
           <div class="flex items-center justify-between">
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
@@ -1439,14 +1479,16 @@ async function handleCreateSubmit(
             :selected-channel-ids="selectedChannelIds"
             :is-edit-mode="isEditMode"
             @toggle="toggleChannel"
+            @add="requestChannelConnection"
           />
 
           <ul
-            v-if="channelLimitErrors.length > 0"
+            v-if="visibleChannelLimitErrors.length > 0"
+            role="alert"
             data-testid="composer-channel-limit-errors"
             class="space-y-1 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
           >
-            <li v-for="error in channelLimitErrors" :key="error">
+            <li v-for="error in visibleChannelLimitErrors" :key="error">
               {{ error }}
             </li>
           </ul>
@@ -1499,6 +1541,13 @@ async function handleCreateSubmit(
             >
               {{ t('composer.customizeReset') }}
             </button>
+            <p
+              data-testid="customize-status"
+              role="status"
+              class="w-full font-mono text-[10px] tracking-wide text-text-secondary"
+            >
+              {{ customizeStatusText }}
+            </p>
           </div>
 
           <div
@@ -1519,7 +1568,7 @@ async function handleCreateSubmit(
             </Button>
           </div>
 
-          <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
+          <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 w-full shrink-0 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
             <div class="border-b border-border-subtle/70 px-3 py-2">
               <MarkdownToolbar
                 :disabled="isSubmitting"
@@ -1547,6 +1596,8 @@ async function handleCreateSubmit(
               @drop="handleComposerSurfaceDrop"
               @paste="handleComposerSurfacePaste"
               @keydown="markdownEditor.handleKeyDown"
+              @input="hasEdited = true"
+              @blur="markComposerTouched"
             ></textarea>
             <p v-if="shortlinkWarning && !isEditMode" role="status" class="border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">
               {{ t('shortlinks.createFailed') }} {{ failedShortlinkUrls.join(', ') }}

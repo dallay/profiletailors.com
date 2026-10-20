@@ -80,6 +80,10 @@ const translations: Record<string, string> = {
   'composer.customizePerNetwork': 'Customize per network',
   'composer.customizeBase': 'Base',
   'composer.customizeReset': 'Reset to base',
+  'composer.customizeUsingBase':
+    'Uses base content. First edit creates a version only for this account.',
+  'composer.customizeCustomized': 'Customized. Base edits no longer change this account.',
+  'composer.customizeBaseStatus': 'Base content feeds {count} account(s) using base content.',
   'composer.channelLimitExceeded': '{name} exceeds {limit} characters',
   'composer.channelEmptyText': '{name} text is empty',
   'composer.markdown.bold': 'Bold',
@@ -1162,9 +1166,9 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(document.body.innerHTML).toContain('asset-3.png')
 
     // Switch to the lower-limit Twitter channel
-    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Twitter'),
-    )
+    const twitterButton = Array.from(
+      document.querySelectorAll('[data-channel-provider="twitter"]'),
+    )[0]
     expect(twitterButton).toBeDefined()
     twitterButton!.click()
     await flushModal(editWrapper)
@@ -1217,16 +1221,10 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(warning).not.toBeNull()
     expect(warning?.textContent ?? '').toContain('Too many attachments')
 
-    // The submit button MUST be disabled. Because the mock returns i18n keys,
-    // we look at the last <button> inside the grid action container — that's
-    // the disabled primary action in the modal footer.
-    const actionButtons = document.querySelectorAll(
-      '.ui-button, button[disabled], button:not([data-testid])',
+    const anyEnabledSubmit = Array.from(document.querySelectorAll('.ui-button')).find(
+      (btn) => !(btn as HTMLButtonElement).hasAttribute('disabled'),
     )
-    const disabledSubmit = Array.from(actionButtons).find((btn) =>
-      (btn as HTMLButtonElement).hasAttribute('disabled'),
-    )
-    expect(disabledSubmit).toBeDefined()
+    expect(anyEnabledSubmit).toBeUndefined()
 
     await wrapper.unmount()
   })
@@ -1670,7 +1668,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
       document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
     )
     expect(buttons).toHaveLength(1)
-    expect(buttons[0]?.querySelector('[data-testid="channel-selected-icon"]')).not.toBeNull()
+    expect(buttons[0]?.getAttribute('aria-pressed')).toBe('true')
   })
 
   it('updates an edited publication without assetIds until attachments are changed', async () => {
@@ -1870,11 +1868,15 @@ describe('CreatePostModal.vue — AI assistant', () => {
       document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
     )
     expect(
-      channelButtons.find((button) => button.textContent?.includes('Threads'))?.className,
-    ).toContain('font-bold')
+      channelButtons
+        .find((button) => button.getAttribute('data-channel-provider') === 'threads')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true')
     expect(
-      channelButtons.find((button) => button.textContent?.includes('LinkedIn'))?.className,
-    ).not.toContain('font-bold')
+      channelButtons
+        .find((button) => button.getAttribute('data-channel-provider') === 'linkedin')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('false')
     const customizeTabs = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'),
     )
@@ -2565,7 +2567,9 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
     await flushModal(wrapper)
     await flushModal(wrapper)
 
-    const selected = document.querySelectorAll('[data-testid="channel-selected-icon"]')
+    const selected = document.querySelectorAll(
+      '[data-testid="channel-button"][aria-pressed="true"]',
+    )
     expect(selected).toHaveLength(2)
   })
 
@@ -2576,16 +2580,19 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
 
     const linkedInChip = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
-    ).find((button) => button.textContent?.includes('LinkedIn'))
+    ).find((button) => button.getAttribute('data-channel-provider') === 'linkedin')
     expect(linkedInChip).toBeDefined()
     linkedInChip!.click()
     await flushModal(wrapper)
 
-    expect(document.querySelectorAll('[data-testid="channel-selected-icon"]')).toHaveLength(1)
-    expect(document.body.innerHTML).toContain('Threads')
+    expect(
+      document.querySelectorAll('[data-testid="channel-button"][aria-pressed="true"]'),
+    ).toHaveLength(1)
+    expect(document.querySelectorAll('[data-channel-provider="threads"]')).toHaveLength(1)
   })
 
-  it('blocks submit and names Threads when text exceeds the Threads limit only', async () => {
+  it('shows over-limit errors live and blocks submit without calling the API', async () => {
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel')
     const wrapper = mountModal(twoChannels())
     await flushModal(wrapper)
     await flushModal(wrapper)
@@ -2597,6 +2604,54 @@ describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
     const errors = getByTestId('composer-channel-limit-errors')
     expect(errors.textContent).toContain('Threads')
     expect(errors.textContent).toContain('500')
+
+    scheduleNowButton().click()
+    await flushModal(wrapper)
+    expect(scheduleSpy).not.toHaveBeenCalled()
+  })
+
+  it('hides channel errors on open until the composer is attempted or touched', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+  })
+
+  it('reveals empty-text errors only after a submit attempt, without calling the API', async () => {
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel')
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(scheduleNowButton().disabled).toBe(true)
+    scheduleNowButton().click()
+    await flushModal(wrapper)
+    expect(scheduleSpy).not.toHaveBeenCalled()
+
+    const vm = wrapper.vm as Record<string, unknown>
+    ;(vm as Record<string, boolean>).submitAttempted = true
+    await flushModal(wrapper)
+
+    const errors = getByTestId('composer-channel-limit-errors')
+    expect(errors.textContent).toContain('LinkedIn')
+    expect(errors.textContent).toContain('Threads')
+    expect(scheduleSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not reveal empty-text errors when the composer is blurred without editing', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.blur()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
   })
 
   it('submits one batch request with every selected account', async () => {
@@ -2715,6 +2770,30 @@ describe('CreatePostModal.vue — per-network customization', () => {
     )
     const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
     expect(threadsTab?.textContent).toContain('500')
+  })
+
+  it('states the inheritance status of the active tab in words', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="customize-status"]')).not.toBeNull()
+    expect(getByTestId('customize-status').textContent).toContain('feeds 2 account(s)')
+
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    expect(getByTestId('customize-status').textContent).toContain('Uses base content')
+
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+    expect(getByTestId('customize-status').textContent).toContain('Customized')
   })
 
   it('submits distinct bodyText per account in one batch request', async () => {
@@ -2892,5 +2971,26 @@ describe('CreatePostModal.vue — per-network customization', () => {
     expect(document.querySelector('[data-testid="threads-preview-text"]')?.textContent).toBe(
       'Short for threads',
     )
+  })
+
+  it('does not reveal errors when merely tabbing through without editing', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+
+    openCustomizing()
+    await flushModal(wrapper)
+    const tabs = customizeTabs()
+    const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
+    threadsTab?.click()
+    await flushModal(wrapper)
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.blur()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
   })
 })

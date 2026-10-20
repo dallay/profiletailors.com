@@ -152,8 +152,10 @@ test.describe('Scheduler — Mobile shell', () => {
       })
       .toBe(beforeDate)
     await scheduler.todayPeriodButton.click()
-    const today = new Date()
-    const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const expectedToday = await page.evaluate(() => {
+      const today = new Date()
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    })
     await expect
       .poll(
         () => {

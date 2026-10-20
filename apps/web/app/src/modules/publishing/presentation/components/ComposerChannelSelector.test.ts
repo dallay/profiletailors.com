@@ -47,7 +47,7 @@ describe('ComposerChannelSelector.vue', () => {
     const allButtons = wrapper.findAll('button')
     // Only the "Connect another channel" button is shown when there are no channels
     expect(allButtons).toHaveLength(1)
-    expect(wrapper.find('[title="Connect another channel"]').exists()).toBe(true)
+    expect(wrapper.find('[title="composer.channelAdd"]').exists()).toBe(true)
   })
 
   it('renders one channel button per active channel', (): void => {
@@ -60,10 +60,10 @@ describe('ComposerChannelSelector.vue', () => {
     expect(buttons).toHaveLength(2)
   })
 
-  it('shows the channel name in the button', (): void => {
+  it('hides the channel name in the chip; the preview header shows it', (): void => {
     const channels = [makeChannel({ id: 'ch-1', name: 'My LinkedIn Profile' })]
     const wrapper = mountSelector({ channels })
-    expect(wrapper.text()).toContain('My LinkedIn Profile')
+    expect(wrapper.text()).not.toContain('My LinkedIn Profile')
   })
 
   it('renders the Threads provider icon for a connected Threads channel', (): void => {
@@ -76,27 +76,28 @@ describe('ComposerChannelSelector.vue', () => {
     expect(wrapper.text()).not.toContain('Threads profilet')
   })
 
-  it('shows a checkmark icon on the selected channel', (): void => {
+  it('marks the selected channel with the accent border, not a check icon', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
-    const checkIcon = wrapper.find('[data-testid="channel-selected-icon"]')
-    expect(checkIcon.exists()).toBe(true)
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
+    expect(button.classes()).toContain('border-text-display')
+    expect(wrapper.find('[data-testid="channel-selected-icon"]').exists()).toBe(false)
   })
 
-  it('marks every selected id with the selected icon', (): void => {
+  it('marks every selected id with the accent border', (): void => {
     const channels = [
       makeChannel({ id: 'ch-1', name: 'LinkedIn' }),
       makeChannel({ id: 'ch-2', name: 'Threads', provider: 'threads' }),
     ]
     const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1', 'ch-2'] })
-    expect(wrapper.findAll('[data-testid="channel-selected-icon"]')).toHaveLength(2)
+    const buttons = wrapper.findAll('[data-testid="channel-button"]')
+    expect(buttons.filter((b) => b.classes().includes('border-text-display'))).toHaveLength(2)
   })
 
-  it('shows an X icon on non-selected channels', (): void => {
+  it('does not render an X icon on non-selected channels', (): void => {
     const channels = [makeChannel({ id: 'ch-1' }), makeChannel({ id: 'ch-2' })]
     const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
-    const deselectIcons = wrapper.findAll('[data-testid="channel-deselected-icon"]')
-    expect(deselectIcons).toHaveLength(1)
+    expect(wrapper.find('[data-testid="channel-deselected-icon"]').exists()).toBe(false)
   })
 
   it('emits toggle with the channel id when a non-selected channel button is clicked', async (): Promise<void> => {
@@ -157,7 +158,7 @@ describe('ComposerChannelSelector.vue', () => {
     ]
     const wrapper = mountSelector({ channels })
 
-    expect(wrapper.get('img').attributes('alt')).toBe('Profile Tailors LinkedIn avatar')
+    expect(wrapper.get('img').attributes('alt')).toBe('')
   })
 
   it('uses generic alternative text when an avatar has no channel name', (): void => {
@@ -166,41 +167,71 @@ describe('ComposerChannelSelector.vue', () => {
     ]
     const wrapper = mountSelector({ channels })
 
-    expect(wrapper.get('img').attributes('alt')).toBe('Channel avatar')
+    expect(wrapper.get('img').attributes('alt')).toBe('')
   })
 
-  it('renders a provider fallback when avatarUrl is missing', (): void => {
-    const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'linkedin' })]
+  it('renders initials with a provider badge when avatarUrl is missing', (): void => {
+    const channels = [
+      makeChannel({ id: 'ch-1', name: 'My Profile', avatarUrl: undefined, provider: 'linkedin' }),
+    ]
     const wrapper = mountSelector({ channels })
     const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
     expect(fallbacks).toHaveLength(1)
-    expect(fallbacks[0]!.find('svg').exists()).toBe(true)
+    expect(fallbacks[0]!.text()).toBe('MP')
+    const badge = wrapper.find('[data-testid="channel-provider-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.find('svg').exists()).toBe(true)
+  })
+
+  it('renders a Buffer-style chip with the user photo as the primary element and a small provider badge', (): void => {
+    const channels = [
+      makeChannel({
+        id: 'ch-1',
+        name: 'WireMock Threads User',
+        avatarUrl: 'https://example.com/avatar.jpg',
+        provider: 'threads',
+      }),
+    ]
+    const wrapper = mountSelector({ channels })
+    const img = wrapper.get('img')
+    expect(img.classes()).toContain('size-11')
+    expect(img.classes()).toContain('rounded-xl')
+    const badge = wrapper.find('[data-testid="channel-provider-badge"]')
+    expect(badge.classes()).toContain('size-5')
+  })
+
+  it('falls back to initials with a small provider badge when avatarUrl is missing', (): void => {
+    const channels = [
+      makeChannel({ id: 'ch-1', name: 'My Profile', avatarUrl: undefined, provider: 'linkedin' }),
+    ]
+    const wrapper = mountSelector({ channels })
+    const fallback = wrapper.find('[data-testid="channel-avatar-fallback"]')
+    expect(fallback.exists()).toBe(true)
+    expect(fallback.text()).toBe('MP')
+    expect(fallback.classes()).toContain('rounded-xl')
+    const badge = wrapper.find('[data-testid="channel-provider-badge"]')
+    expect(badge.exists()).toBe(true)
   })
 
   it('renders the centralized provider badge for Twitter', (): void => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'twitter' })]
     const wrapper = mountSelector({ channels })
-    const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
-    expect(fallbacks).toHaveLength(1)
-    expect(fallbacks[0]!.text()).toBe('𝕏')
+    expect(wrapper.find('[data-testid="channel-provider-badge"]').text()).toBe('𝕏')
   })
 
-  it('applies bold and selected styling to the selected channel', (): void => {
+  it('applies the accent border and selected styling to the selected channel', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-1'] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-text-display')
-    expect(button.classes()).toContain('bg-bg-primary')
-    expect(button.classes()).toContain('text-text-display')
-    expect(button.classes()).toContain('font-bold')
   })
 
-  it('applies unselected styling to non-selected channels', (): void => {
+  it('applies unselected border to non-selected channels', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelIds: ['ch-2'] })
     const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-border-visible')
-    expect(button.classes()).toContain('text-text-secondary')
+    expect(button.classes()).not.toContain('border-text-display')
   })
 
   it('applies disabled opacity style when in edit mode', (): void => {
@@ -211,15 +242,58 @@ describe('ComposerChannelSelector.vue', () => {
     expect(button.classes()).toContain('cursor-not-allowed')
   })
 
-  it('includes a connect-more button', (): void => {
+  it('includes a connect-more button that matches the avatar size and shape', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels })
-    expect(wrapper.find('[title="Connect another channel"]').exists()).toBe(true)
+    const add = wrapper.find('[data-testid="channel-add"]')
+    expect(add.exists()).toBe(true)
+    expect(add.classes()).toContain('size-11')
+    expect(add.classes()).toContain('rounded-xl')
   })
 
   it('has a select-channels label for accessibility', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels })
     expect(wrapper.find('[data-testid="channel-selector"]').exists()).toBe(true)
+  })
+
+  it('includes the provider in the channel button accessible name', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', name: 'My Profile', provider: 'linkedin' })]
+    const wrapper = mountSelector({ channels })
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
+    expect(button.attributes('aria-label')).toContain('My Profile')
+    expect(button.attributes('aria-label')).toContain('linkedin')
+  })
+
+  it('uses the channel name as accessible name when provider is absent', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', name: 'My Profile', provider: undefined })]
+    const wrapper = mountSelector({ channels })
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
+    expect(button.attributes('aria-label')).toBe('My Profile')
+  })
+
+  it('sets the avatar image alt to empty to avoid duplication', (): void => {
+    const channels = [makeChannel({ id: 'ch-1', avatarUrl: 'https://example.com/avatar.jpg' })]
+    const wrapper = mountSelector({ channels })
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('alt')).toBe('')
+  })
+
+  it('sets i18n accessible name on the add-channel button', (): void => {
+    const channels = [makeChannel({ id: 'ch-1' })]
+    const wrapper = mountSelector({ channels })
+    const add = wrapper.find('[data-testid="channel-add"]')
+    expect(add.attributes('aria-label')).toBe('composer.channelAdd')
+    expect(add.attributes('title')).toBe('composer.channelAdd')
+  })
+
+  it('emits add when the channel-add button is clicked', (): void => {
+    const channels = [makeChannel({ id: 'ch-1' })]
+    const wrapper = mountSelector({ channels })
+    const add = wrapper.find('[data-testid="channel-add"]')
+    add.trigger('click')
+    const emitted = wrapper.emitted<[]>().add
+    expect(emitted).toHaveLength(1)
   })
 })

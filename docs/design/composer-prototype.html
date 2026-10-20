@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compositor · Prototipo · Profile Tailors</title>
+  <style>
+    @font-face { font-family: 'Space Grotesk'; src: url('../../apps/web/marketing/src/assets/fonts/space-grotesk-latin.woff2') format('woff2'); font-weight: 300 700; font-display: swap; }
+    @font-face { font-family: 'Space Mono'; src: url('../../apps/web/marketing/src/assets/fonts/space-mono-400-latin.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+    :root { color-scheme: dark; --bg: #0a0a0a; --subtle: #111111; --surface: #1a1a1a; --text: #e5e5e5; --secondary: #a3a3a3; --border: #333333; --focus: #ffffff; --error: #D71921; }
+    :root.light { color-scheme: light; --bg: #F5F5F0; --subtle: #ECECE6; --surface: #E0E0DA; --text: #1a1a1a; --secondary: #525252; --border: #D4D4CE; --focus: #000000; --error: #D71921; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; min-height: 100dvh; background: rgba(0, 0, 0, 0.8); color: var(--text); font: 16px/1.5 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; }
+    :root.light body { background: rgba(0, 0, 0, 0.35); }
+    button, select, input, textarea { font: inherit; color: inherit; }
+    button, select, input { min-height: 44px; }
+    button { cursor: pointer; background: transparent; border: 1px solid var(--border); border-radius: 999px; padding: 10px 20px; }
+    button:hover { background: var(--subtle); }
+    button:active { border-color: var(--text); }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+    button:disabled { color: var(--secondary); cursor: not-allowed; }
+    .proto-bar { width: min(1024px, 100%); display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--secondary); font-size: 12px; }
+    .modal { width: min(1024px, 100%); max-height: calc(100dvh - 110px); min-height: 560px; display: flex; overflow: hidden; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); }
+    .composer { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .side { width: 420px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+    .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    h1 { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
+    .title-actions { display: flex; gap: 8px; align-items: center; }
+    .ghost { border-color: transparent; color: var(--secondary); }
+    .mono, .label, button, summary { font-family: 'Space Mono', monospace; font-size: 12px; }
+    button { font-size: 12px; letter-spacing: 0.04em; }
+    .label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: var(--secondary); }
+    .muted { color: var(--secondary); }
+    p { margin: 0 0 12px; }
+    .steps { display: flex; gap: 8px; flex-wrap: wrap; }
+    .steps button[aria-current="step"] { border-color: var(--text); color: var(--text); background: var(--subtle); }
+    #stage-hint { font-size: 13px; }
+    .accounts { min-height: 48px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .chip { padding: 6px 12px 6px 6px; display: inline-flex; gap: 8px; align-items: center; font-size: 10px; min-height: 44px; }
+    .chip { border-color: var(--text); font-weight: 700; }
+    .avatar { border-radius: 999px; background: var(--subtle); border: 1px solid var(--border); width: 28px; height: 28px; display: inline-grid; place-items: center; flex-shrink: 0; font-size: 10px; font-weight: 700; }
+    .sdot { width: 14px; height: 14px; border-radius: 999px; border: 1px solid var(--secondary); flex-shrink: 0; }
+    .chip .sdot { background: var(--text); border-color: var(--text); }
+    .plus { width: 44px; height: 44px; padding: 0; border-style: dashed; font-size: 18px; color: var(--secondary); }
+    .limit-errors { margin: 0; padding: 10px 14px; border: 1px solid var(--error); border-radius: 12px; font-size: 12px; }
+    .limit-errors li { margin-bottom: 4px; }
+    .tab-slot { min-height: 68px; }
+    .slot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+    .slot-row > p { margin: 0; font-size: 12px; }
+    [role="tablist"] { display: flex; width: max-content; min-width: 100%; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    [role="tab"] { border-radius: 999px; display: inline-flex; gap: 8px; align-items: center; font-size: 10px; white-space: nowrap; }
+    [role="tab"][aria-selected="true"] { border-color: var(--text); font-weight: 700; background: var(--subtle); }
+    [role="tab"] .tnum { color: var(--secondary); }
+    [role="tab"] .cdot { width: 6px; height: 6px; border-radius: 999px; background: var(--text); }
+    .rel { border: 1px solid var(--border); border-radius: 12px; background: var(--subtle); overflow: hidden; display: flex; flex-direction: column; }
+    .rel-top { padding: 12px 16px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 56px; }
+    .toolbar { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .toolbar button { border: 0; border-radius: 8px; padding: 8px 10px; min-height: 40px; font-size: 11px; color: var(--secondary); }
+    .toolbar button:hover { color: var(--text); background: var(--surface); }
+    textarea#editor { width: 100%; min-height: 150px; resize: none; padding: 16px; border: 0; background: transparent; line-height: 1.65; }
+    textarea#editor::placeholder { color: var(--secondary); opacity: 1; }
+    textarea#editor:focus-visible { outline-offset: -4px; }
+    .rel.invalid textarea#editor { border-bottom: 1px solid var(--error); }
+    .attach { border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .attach img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); }
+    .dropzone { border-style: dashed; font-size: 11px; }
+    #image-status { font-size: 12px; width: 100%; }
+    .rel-bottom { border-top: 1px solid var(--border); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .rel-bottom .tools { display: flex; gap: 8px; align-items: center; }
+    #emoji-btn { border-radius: 8px; padding: 8px 12px; min-height: 40px; font-size: 11px; }
+    #counter { font-size: 10px; }
+    #counter.over { color: var(--error); font-weight: 700; }
+    #editor-error { margin: 8px 16px 12px; font-size: 12px; text-decoration: underline; text-decoration-color: var(--error); text-underline-offset: 4px; }
+    #inheritance { font-size: 12px; min-height: 20px; margin: 0; }
+    .field label { display: block; margin-bottom: 8px; }
+    .field input[type="text"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; font-size: 13px; }
+    #review-summary { font-size: 13px; }
+    .review-item { border-top: 1px solid var(--border); padding: 16px 0; }
+    .review-item .row { justify-content: space-between; margin-bottom: 8px; }
+    .review-item h2 { font-size: 15px; font-weight: 500; margin: 0; }
+    .review-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+    .review-item img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; margin-top: 12px; border: 1px solid var(--border); }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .side-head .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .side-head h2 { font-size: 14px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pdot { width: 16px; height: 16px; border-radius: 999px; background: var(--text); flex-shrink: 0; }
+    .pdot.threads { border-radius: 4px; }
+    .card { width: 100%; max-width: 360px; margin: 0 auto; flex-shrink: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; }
+    .card-top { display: flex; gap: 12px; padding: 14px; }
+    .card-top .avatar { width: 40px; height: 40px; font-size: 11px; }
+    .card-top strong { display: block; font-size: 13px; }
+    .card-top small { display: block; color: var(--secondary); font-size: 11px; }
+    .card-text { padding: 0 14px 14px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+    .card-text .ph { color: var(--secondary); font-style: italic; }
+    .card img.media { width: 100%; max-height: 220px; object-fit: contain; border-top: 1px solid var(--border); background: var(--bg); }
+    .card-static { border-top: 1px solid var(--border); padding: 10px 14px; color: var(--secondary); font-size: 11px; }
+    .preview-note { font-size: 12px; }
+    select#preview-account, input[type="date"], input[type="time"] { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; width: 100%; font-size: 13px; }
+    .sched { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px; }
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--bg); border-radius: 8px; padding: 4px; margin: 8px 0; }
+    .seg label { display: block; text-align: center; border-radius: 6px; padding: 8px 4px; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--secondary); cursor: pointer; min-height: 44px; }
+    .seg label:has(input:checked) { background: var(--text); color: var(--bg); }
+    .seg input { position: absolute; opacity: 0; pointer-events: none; }
+    #sched-helper, #zone { font-size: 11px; }
+    #date-field { display: grid; grid-template-columns: 1fr 112px; gap: 8px; margin-top: 8px; }
+    .flags { display: flex; justify-content: space-between; gap: 12px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--secondary); }
+    .flags label { display: flex; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--text); }
+    #submit-error, #sched-error { font-size: 12px; text-decoration: underline; text-decoration-color: var(--error); text-underline-offset: 4px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .actions .primary { background: #ffffff; color: #0a0a0a; border-color: #ffffff; font-weight: 700; flex: 1; }
+    .actions .primary:hover { background: #e5e5e5; }
+    #notice { font-size: 12px; min-height: 18px; }
+    dialog { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: min(520px, calc(100% - 32px)); max-height: 85dvh; overflow: auto; }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.8); }
+    dialog label { display: flex; gap: 12px; align-items: center; min-height: 56px; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
+    dialog .row { justify-content: flex-end; margin-top: 16px; }
+    dialog h2 { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
+    @media (max-width: 900px) {
+      body { padding: 8px; }
+      .modal { flex-direction: column; overflow-y: auto; max-height: none; min-height: 0; }
+      .composer { overflow: visible; padding: 16px; }
+      .side { width: auto; border-left: 0; border-top: 1px solid var(--border); overflow: visible; padding: 16px; }
+      #date-field { grid-template-columns: 1fr; }
+      .actions button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<header class="proto-bar">
+  <span role="region" aria-label="Alcance del prototipo">Prototipo · Datos de ejemplo · No publica ni guarda</span>
+  <button type="button" id="theme" class="ghost" aria-pressed="false">Modo claro</button>
+</header>
+<div class="modal">
+  <main class="composer" aria-labelledby="page-title">
+    <div class="title-row">
+      <h1 id="page-title" tabindex="-1">Crear publicación</h1>
+      <div class="title-actions">
+        <button type="button" class="ghost" id="example">Empezar vacío</button>
+        <button type="button" class="ghost" id="close-sim" aria-label="Cerrar (simulado)">Cerrar</button>
+      </div>
+    </div>
+    <nav aria-label="Pasos del compositor" class="steps">
+      <button type="button" class="ghost" id="step-compose">Redactar</button>
+      <button type="button" class="ghost" id="step-customize">Personalizar · opcional</button>
+      <button type="button" class="ghost" id="step-review">Revisar</button>
+    </nav>
+    <p id="stage-hint" class="muted">Escribe una base. Adáptala solo donde haga falta.</p>
+    <section aria-label="Cuentas de ejemplo">
+      <span class="label" id="accounts-label">Publicar en · cuentas de ejemplo</span>
+      <div class="accounts" id="accounts" role="group" aria-labelledby="accounts-label"></div>
+    </section>
+    <ul id="limit-errors" class="limit-errors" hidden></ul>
+    <div class="tab-slot">
+      <div class="slot-row" id="compose-tools">
+        <p id="base-hint" class="muted">Una misma base para tus cuentas seleccionadas.</p>
+        <div id="customize-wrap">
+          <button type="button" id="customize" aria-pressed="false">Personalizar por cuenta</button>
+        </div>
+      </div>
+      <div id="tabs" role="tablist" aria-label="Contenido por cuenta" hidden></div>
+    </div>
+    <div id="compose">
+      <div id="editor-panel" role="tabpanel" aria-labelledby="editor-label" class="rel">
+        <div class="rel-top">
+          <label id="editor-label" for="editor" class="label">Texto base</label>
+          <button type="button" class="ghost" id="reset" hidden>Volver a Base</button>
+        </div>
+        <div class="toolbar" role="toolbar" aria-label="Formato de texto">
+          <button type="button" data-md="bold">Negrita</button>
+          <button type="button" data-md="italic">Cursiva</button>
+          <button type="button" data-md="strike">Tachado</button>
+          <button type="button" data-md="heading">Título</button>
+          <button type="button" data-md="ul">Lista</button>
+          <button type="button" data-md="quote">Cita</button>
+          <button type="button" data-md="code">Código</button>
+          <button type="button" data-md="link">Enlace</button>
+        </div>
+        <label for="editor" class="label" hidden>Contenido de la publicación</label>
+        <textarea id="editor" placeholder="¿Qué merece la pena compartir hoy?" aria-describedby="counter inheritance editor-error"></textarea>
+        <div class="attach">
+          <img id="thumb" alt="Miniatura de la imagen local elegida" hidden>
+          <button type="button" class="dropzone" id="dropzone">Añadir imagen · PNG, JPG o WebP hasta 10 MB</button>
+          <button type="button" id="remove-image" class="ghost" hidden>Quitar imagen</button>
+          <input id="image" type="file" accept="image/png,image/jpeg,image/webp" hidden aria-label="Elegir imagen local compartida">
+          <p id="image-status" role="status"></p>
+        </div>
+        <div class="rel-bottom">
+          <div class="tools">
+            <button type="button" id="emoji-btn" aria-label="Insertar emoji">Emoji 🙂</button>
+          </div>
+          <div id="counter" class="mono" role="status"></div>
+        </div>
+        <p id="editor-error" hidden></p>
+      </div>
+      <p id="inheritance"></p>
+      <div class="field">
+        <label for="first-comment" class="label">Primer comentario · opcional</label>
+        <input id="first-comment" type="text" placeholder="Añade contexto o un enlace para el primer comentario" autocomplete="off">
+      </div>
+    </div>
+    <section id="review" aria-label="Revisión simulada" hidden>
+      <p id="review-summary" role="status"></p>
+      <div id="review-items"></div>
+    </section>
+    <p id="notice" role="status" aria-live="polite"></p>
+  </main>
+  <aside class="side" aria-label="Vista previa y programación">
+    <div class="side-head">
+      <div class="who">
+        <span class="pdot" id="preview-dot" aria-hidden="true"></span>
+        <h2 id="preview-title">Vista previa</h2>
+      </div>
+      <span class="muted mono">Ejemplo</span>
+    </div>
+    <div>
+      <label for="preview-account" class="label">Ver como · no cambia el editor</label>
+      <select id="preview-account"></select>
+    </div>
+    <article class="card" aria-label="Previsualización de la publicación">
+      <div class="card-top">
+        <span class="avatar" id="card-avatar" aria-hidden="true">PT</span>
+        <div>
+          <strong id="card-name">Elige una cuenta</strong>
+          <small id="card-handle">Cuentas ilustrativas</small>
+          <small id="card-meta">ahora mismo</small>
+        </div>
+      </div>
+      <p class="card-text" id="card-text"></p>
+      <img class="media" id="card-image" alt="Imagen local de ejemplo para la publicación" hidden>
+      <p class="card-static">Vista estática · sin métricas ni interacciones</p>
+    </article>
+    <p id="preview-source" class="preview-note muted"></p>
+    <p class="preview-note muted">Al editar una cuenta verás su vista previa. En Base se conserva la última cuenta visualizada. La apariencia final de cada red puede variar.</p>
+    <section class="sched" aria-label="Cuándo publicar · simulación">
+      <span class="label">Cuándo publicar · simulación</span>
+      <div class="seg" role="radiogroup" aria-label="Modo de publicación">
+        <label><input type="radio" name="schedule" value="now" checked>Ahora</label>
+        <label><input type="radio" name="schedule" value="next">Próximo hueco</label>
+        <label><input type="radio" name="schedule" value="custom">Elegir fecha</label>
+      </div>
+      <p id="sched-helper" class="muted">Se publicaría con la fecha y hora de creación.</p>
+      <div id="date-field" hidden>
+        <input type="date" id="sched-date" aria-label="Fecha de publicación">
+        <input type="time" id="sched-time" value="10:00" aria-label="Hora de publicación">
+      </div>
+      <p id="zone" class="muted mono"></p>
+      <p id="sched-error" role="status" hidden></p>
+      <div class="flags">
+        <label><input type="checkbox" id="flag-priority">Cola prioritaria</label>
+        <label><input type="checkbox" id="flag-another">Crear otra después</label>
+      </div>
+      <p class="muted">No consulta disponibilidad ni crea una programación real.</p>
+    </section>
+    <p id="submit-error" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" id="cancel" class="ghost">Cancelar</button>
+      <button type="button" id="back" class="ghost" hidden>Volver a editar</button>
+      <button type="button" id="to-customize">Personalizar por cuenta</button>
+      <button type="button" id="primary" class="primary">Revisar publicación</button>
+    </div>
+  </aside>
+</div>
+<dialog id="account-dialog" aria-labelledby="account-title">
+  <h2 id="account-title">Elegir cuentas</h2>
+  <p class="muted">Cuentas ilustrativas. Cada cuenta puede tener su propio texto, aunque comparta red.</p>
+  <div id="account-options"></div>
+  <div class="row"><button type="button" id="close-accounts">Listo</button></div>
+</dialog>
+<dialog id="confirmed" aria-labelledby="confirmed-title">
+  <h2 id="confirmed-title">Simulación completada</h2>
+  <p id="confirmed-body">No se envió nada.</p>
+  <p class="muted">No se publicó, programó ni guardó ninguna publicación. Tu contenido sigue aquí mientras mantengas esta página abierta.</p>
+  <div class="row"><button type="button" id="close-confirmed" class="primary">Volver al prototipo</button></div>
+</dialog>
+<script>
+  const $ = (id) => document.getElementById(id)
+  const example = 'Publicar más no siempre significa comunicar mejor. Esta semana estamos dejando espacio para una sola idea: compartir lo que aprendemos mientras trabajamos. Menos ruido, más intención. ¿Qué conversación quieres abrir tú?'
+  const accounts = [
+    { id: 'ana-threads', name: 'Ana', network: 'Threads', handle: '@ana', initials: 'A', limit: 500 },
+    { id: 'ana-linkedin', name: 'Ana', network: 'LinkedIn', handle: 'Ana Gómez', degree: '1er contacto', initials: 'AG', limit: 3000 },
+    { id: 'estudio-linkedin', name: 'Estudio Norte', network: 'LinkedIn', handle: 'Estudio Norte', degree: 'Empresa', initials: 'EN', limit: 3000 }
+  ]
+  let selected = accounts.slice(0, 2).map((account) => account.id)
+  let base = example
+  const overrides = new Map()
+  const positions = new Map()
+  const touched = new Set()
+  let active = 'base'
+  let stage = 'compose'
+  let previousStage = 'compose'
+  let attempted = false
+  let mediaUrl = ''
+  let schedMode = 'now'
+  const editor = $('editor')
+  const nameOf = (account) => account.name + ' · ' + account.network
+  const chosen = () => accounts.filter((account) => selected.includes(account.id))
+  const effective = (id) => overrides.has(id) ? overrides.get(id) : base
+  const lengthOf = (text) => Array.from(text).length
+  function stripMarkdown(text) {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/(^|\W)\*([^*]+)\*/g, '$1$2')
+      .replace(/(^|\W)_([^_]+)_/g, '$1$2')
+      .replace(/~~([^~]+)~~/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^[#>]\s?/gm, '')
+      .replace(/^[-*]\s/gm, '')
+  }
+  const issue = (account) => {
+    const text = effective(account.id)
+    if (!text.trim()) return 'Falta texto. Escribe el contenido de esta cuenta.'
+    if (lengthOf(text) > account.limit) return 'Sobran ' + (lengthOf(text) - account.limit) + ' caracteres. Reduce el texto o personaliza esta cuenta.'
+    return ''
+  }
+  const remainingFor = (id) => {
+    if (id === 'base') {
+      const rest = chosen().map((item) => item.limit - lengthOf(base))
+      return rest.length ? Math.min.apply(null, rest) : 0
+    }
+    const account = accounts.find((item) => item.id === id)
+    return account.limit - lengthOf(effective(id))
+  }
+  const minLimit = () => {
+    const limits = chosen().map((item) => item.limit)
+    return limits.length ? Math.min.apply(null, limits) : 3000
+  }
+  function element(tag, text, className) {
+    const node = document.createElement(tag)
+    if (text !== undefined) node.textContent = text
+    if (className) node.className = className
+    return node
+  }
+  function markDirty() { $('notice').textContent = '' }
+  function savePosition() { positions.set(active, { start: editor.selectionStart, end: editor.selectionEnd, scroll: editor.scrollTop }) }
+  function loadEditor(focus) {
+    editor.value = active === 'base' ? base : effective(active)
+    if (active !== 'base') $('preview-account').value = active
+    updatePreview()
+    const position = positions.get(active)
+    if (focus) editor.focus({ preventScroll: true })
+    editor.setSelectionRange(position ? position.start : 0, position ? position.end : 0)
+    editor.scrollTop = position ? position.scroll : 0
+    updateEditorState()
+  }
+  function updateEditorState() {
+    const account = accounts.find((item) => item.id === active)
+    const inherited = chosen().filter((item) => overrides.has(item.id) === false)
+    $('editor-label').textContent = account ? nameOf(account) : 'Texto base'
+    $('reset').hidden = overrides.has(active) === false
+    $('inheritance').textContent = account
+      ? (overrides.has(active) ? 'Personalizada. Los cambios en Base ya no modifican el texto de esta cuenta.' : 'Usa Base. La primera edición creará una versión solo para esta cuenta.')
+      : ('Base actualiza ' + inherited.length + ' cuenta(s) heredada(s). Las cuentas personalizadas conservan su texto.')
+    const limit = account ? account.limit : minLimit()
+    const rest = limit - lengthOf(editor.value)
+    $('counter').textContent = rest + ' / ' + limit
+    $('counter').classList.toggle('over', rest < 0)
+    const affected = account ? [account] : inherited
+    const showErrors = attempted || touched.has(active)
+    const errors = showErrors ? affected.filter((item) => {
+      const text = account ? editor.value : effective(item.id)
+      return !text.trim() || lengthOf(text) > item.limit
+    }).map((item) => {
+      const text = account ? editor.value : effective(item.id)
+      return nameOf(item) + ': ' + (!text.trim() ? 'el texto está vacío.' : 'sobran ' + (lengthOf(text) - item.limit) + ' caracteres.')
+    }) : []
+    $('editor-error').textContent = errors.join(' ')
+    $('editor-error').hidden = errors.length === 0
+    $('editor-panel').classList.toggle('invalid', errors.length > 0)
+    editor.setAttribute('aria-invalid', String(errors.length > 0))
+    renderLimitErrors()
+    updateTabCounters()
+  }
+  function renderLimitErrors() {
+    const list = $('limit-errors')
+    list.replaceChildren()
+    if (attempted === false || chosen().length === 0) { list.hidden = true; return }
+    const problems = chosen().filter((item) => issue(item))
+    if (problems.length === 0) { list.hidden = true; return }
+    for (const item of problems) {
+      const row = element('li', nameOf(item) + ': ' + issue(item))
+      list.append(row)
+    }
+    list.hidden = false
+  }
+  function renderTabs() {
+    const tabs = $('tabs')
+    tabs.replaceChildren()
+    const ids = ['base'].concat(selected)
+    for (const id of ids) {
+      const account = accounts.find((item) => item.id === id)
+      const tab = element('button')
+      tab.type = 'button'
+      tab.id = 'tab-' + id
+      tab.setAttribute('role', 'tab')
+      tab.setAttribute('aria-selected', String(active === id))
+      tab.setAttribute('aria-controls', 'editor-panel')
+      tab.tabIndex = active === id ? 0 : -1
+      tab.append(element('span', account ? nameOf(account) : 'Base'))
+      tab.append(element('span', '', 'tnum'))
+      if (account && overrides.has(id)) tab.append(element('span', '', 'cdot'))
+      tab.addEventListener('click', () => { savePosition(); active = id; syncTabs(); loadEditor(); $('tab-' + id).focus() })
+      tab.addEventListener('keydown', (event) => {
+        const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End']
+        if (keys.includes(event.key) === false) return
+        event.preventDefault()
+        const index = ids.indexOf(id)
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? ids.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + ids.length) % ids.length
+        $('tab-' + ids[next]).click()
+      })
+      tabs.append(tab)
+    }
+    updateTabCounters()
+  }
+  function syncTabs() {
+    for (const tab of $('tabs').children) {
+      const id = tab.id.replace('tab-', '')
+      tab.setAttribute('aria-selected', String(active === id))
+      tab.tabIndex = active === id ? 0 : -1
+    }
+  }
+  function updateTabCounters() {
+    for (const tab of $('tabs').children) {
+      const id = tab.id.replace('tab-', '')
+      const account = accounts.find((item) => item.id === id)
+      const num = tab.querySelector('.tnum')
+      if (num) num.textContent = account ? remainingFor(id) + ' / ' + account.limit : remainingFor('base') + ''
+      const hasDot = tab.querySelector('.cdot') !== null
+      const customized = account && overrides.has(id)
+      if (customized && hasDot === false) tab.append(element('span', '', 'cdot'))
+      if (customized === false && hasDot) tab.querySelector('.cdot').remove()
+    }
+  }
+  function renderAccounts() {
+    $('accounts').replaceChildren()
+    for (const account of chosen()) {
+      const chip = element('button', undefined, 'chip')
+      chip.type = 'button'
+      chip.setAttribute('aria-label', 'Gestionar ' + nameOf(account))
+      chip.append(element('span', account.initials, 'avatar'), element('span', account.name), element('span', '', 'sdot'))
+      chip.addEventListener('click', openAccounts)
+      $('accounts').append(chip)
+    }
+    const add = element('button', '+', 'plus')
+    add.type = 'button'
+    add.setAttribute('aria-label', 'Elegir cuentas')
+    add.addEventListener('click', openAccounts)
+    $('accounts').append(add)
+    const previewId = $('preview-account').value
+    $('preview-account').replaceChildren()
+    for (const account of chosen()) {
+      const option = element('option', nameOf(account))
+      option.value = account.id
+      $('preview-account').append(option)
+    }
+    if (selected.includes(previewId)) $('preview-account').value = previewId
+    else if (selected.length > 0) $('preview-account').value = active === 'base' ? selected[0] : active
+    $('preview-account').disabled = selected.length === 0
+    renderTabs()
+    updatePreview()
+  }
+  function openAccounts() {
+    $('account-options').replaceChildren()
+    for (const account of accounts) {
+      const label = element('label')
+      const checkbox = element('input')
+      checkbox.type = 'checkbox'
+      checkbox.checked = selected.includes(account.id)
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked === false && overrides.has(account.id) && window.confirm('¿Quitar ' + nameOf(account) + '? Se perderá su texto personalizado. Cancelar conserva todos los cambios.') === false) { checkbox.checked = true; return }
+        savePosition()
+        if (checkbox.checked) selected.push(account.id)
+        else { selected = selected.filter((id) => id !== account.id); overrides.delete(account.id); positions.delete(account.id); touched.delete(account.id) }
+        if (selected.includes(active) === false) active = 'base'
+        markDirty(); renderAccounts(); loadEditor()
+      })
+      label.append(checkbox, element('span', nameOf(account) + ' · ' + (overrides.has(account.id) ? 'Personalizada' : 'Usa Base')))
+      $('account-options').append(label)
+    }
+    $('account-dialog').showModal()
+  }
+  function previewAccount() {
+    return accounts.find((item) => item.id === $('preview-account').value) || null
+  }
+  function updatePreview() {
+    const account = previewAccount()
+    $('preview-title').textContent = account ? 'Vista previa de ' + nameOf(account) : 'Vista previa · sin cuentas'
+    $('preview-dot').classList.toggle('threads', account ? account.network === 'Threads' : false)
+    $('card-avatar').textContent = account ? account.initials : 'PT'
+    $('card-name').textContent = account ? account.name : 'Elige una cuenta'
+    $('card-handle').textContent = account ? account.handle + (account.degree ? ' · ' + account.degree : '') : 'Cuentas ilustrativas'
+    const raw = account ? effective(account.id) : ''
+    const clean = stripMarkdown(raw).trim()
+    const text = $('card-text')
+    text.replaceChildren()
+    text.append(clean ? clean : 'Tu publicación aparecerá aquí cuando escribas.')
+    text.classList.toggle('ph-wrap', clean === '')
+    const first = text.firstChild
+    if (first && clean === '') {
+      const placeholder = element('span', first.textContent, 'ph')
+      text.replaceChildren(placeholder)
+    }
+    $('preview-source').textContent = account ? (overrides.has(account.id) ? 'Personalizada · No refleja los cambios del texto base.' : 'Usa Base · Refleja los cambios del texto compartido.') : ''
+    $('card-image').hidden = !mediaUrl || !account
+    if (mediaUrl) $('card-image').src = mediaUrl
+    else $('card-image').removeAttribute('src')
+  }
+  function schedText() {
+    if (schedMode === 'now') return 'Ahora'
+    if (schedMode === 'next') return 'Próximo hueco de ejemplo · mañana, 09:00'
+    const date = $('sched-date').value
+    const time = $('sched-time').value || '10:00'
+    return 'Fecha elegida · ' + (date || 'sin fecha') + ' ' + time
+  }
+  function dateInvalid() {
+    if (schedMode !== 'custom') return false
+    if ($('sched-date').value === '' || $('sched-time').value === '') return true
+    return new Date($('sched-date').value + 'T' + $('sched-time').value).getTime() <= Date.now()
+  }
+  function renderReview() {
+    const errors = chosen().filter((account) => issue(account))
+    $('review-summary').textContent = selected.length === 0
+      ? 'Selecciona al menos una cuenta. Vuelve a editar para elegirla.'
+      : errors.length > 0
+        ? errors.length + ' cuenta(s) necesitan cambios. Puedes corregir cada texto sin perder el resto.'
+        : selected.length + ' cuenta(s) listas para simular. Comprueba el texto final y el momento.'
+    $('review-items').replaceChildren()
+    for (const account of chosen()) {
+      const article = element('article', undefined, 'review-item')
+      const heading = element('div', undefined, 'row')
+      const correction = element('button', 'Corregir')
+      correction.type = 'button'
+      correction.setAttribute('aria-label', 'Corregir ' + nameOf(account))
+      correction.addEventListener('click', () => { active = account.id; navigate('customize'); loadEditor(true) })
+      heading.append(element('h2', nameOf(account)), correction)
+      article.append(heading)
+      article.append(element('p', effective(account.id).trim() === '' ? 'Sin texto' : stripMarkdown(effective(account.id)), 'review-text'))
+      if (mediaUrl) { const image = element('img'); image.src = mediaUrl; image.alt = 'Imagen local compartida'; article.append(image) }
+      article.append(element('p', (overrides.has(account.id) ? 'Personalizada' : 'Usa Base') + ' · ' + lengthOf(effective(account.id)) + ' caracteres · límite ' + account.limit, 'muted mono'))
+      article.append(element('p', issue(account) || 'Texto válido para esta simulación', issue(account) ? '' : 'muted'))
+      $('review-items').append(article)
+    }
+    const recap = element('p', 'Programación simulada: ' + schedText() + ($('flag-priority').checked ? ' · Cola prioritaria' : '') + ($('flag-another').checked ? ' · Crear otra después' : '') + ($('first-comment').value.trim() ? ' · Con primer comentario' : ''), 'muted')
+    $('review-items').append(recap)
+  }
+  function navigate(next) {
+    if (stage !== 'review') savePosition()
+    if (next === 'review') { attempted = true; if (stage !== 'review') previousStage = stage }
+    stage = next
+    if (next === 'compose') active = 'base'
+    $('compose').hidden = next === 'review'
+    $('review').hidden = next !== 'review'
+    $('compose-tools').hidden = next !== 'compose'
+    $('tabs').hidden = next !== 'customize'
+    $('example').hidden = next === 'review'
+    $('to-customize').hidden = next !== 'compose'
+    $('back').hidden = next === 'compose'
+    $('back').textContent = next === 'review' ? 'Volver a editar' : 'Volver a Redactar'
+    $('primary').textContent = next === 'review' ? 'Simular confirmación' : 'Revisar publicación'
+    $('page-title').textContent = 'Crear publicación'
+    $('stage-hint').textContent = next === 'review' ? 'Contenido final por cuenta. Nada se enviará.' : next === 'customize' ? 'Personaliza solo lo que necesita ser distinto.' : 'Escribe una base. Adáptala solo donde haga falta.'
+    for (const step of ['compose', 'customize', 'review']) {
+      if (step === next) $('step-' + step).setAttribute('aria-current', 'step')
+      else $('step-' + step).removeAttribute('aria-current')
+    }
+    renderTabs()
+    if (next === 'review') renderReview()
+    else loadEditor()
+    $('submit-error').hidden = true
+    $('notice').textContent = ''
+    $('page-title').focus({ preventScroll: true })
+  }
+  function applyText(next) {
+    if (active === 'base') base = next
+    else overrides.set(active, next)
+    markDirty(); updateEditorState(); updatePreview(); updateTabCounters()
+  }
+  editor.addEventListener('input', () => applyText(editor.value))
+  editor.addEventListener('blur', () => { touched.add(active); savePosition(); updateEditorState() })
+  function wrapSelection(before, after) {
+    const start = editor.selectionStart
+    const end = editor.selectionEnd
+    const value = editor.value
+    const picked = value.slice(start, end) || 'texto'
+    const next = value.slice(0, start) + before + picked + after + value.slice(end)
+    editor.value = next
+    applyText(next)
+    editor.focus()
+    editor.setSelectionRange(start + before.length, start + before.length + picked.length)
+    savePosition()
+  }
+  function prependLines(prefix) {
+    const start = editor.selectionStart
+    const value = editor.value
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1
+    const next = value.slice(0, lineStart) + prefix + value.slice(lineStart)
+    editor.value = next
+    applyText(next)
+    editor.focus()
+    editor.setSelectionRange(start + prefix.length, start + prefix.length)
+    savePosition()
+  }
+  const mdActions = {
+    bold: () => wrapSelection('**', '**'),
+    italic: () => wrapSelection('*', '*'),
+    strike: () => wrapSelection('~~', '~~'),
+    heading: () => prependLines('# '),
+    ul: () => prependLines('- '),
+    quote: () => prependLines('> '),
+    code: () => wrapSelection('`', '`'),
+    link: () => wrapSelection('[', '](https://ejemplo.com)')
+  }
+  for (const button of document.querySelectorAll('[data-md]')) {
+    button.addEventListener('click', () => mdActions[button.getAttribute('data-md') ]())
+  }
+  $('emoji-btn').addEventListener('click', () => {
+    const at = editor.selectionStart
+    const next = editor.value.slice(0, at) + '🙂' + editor.value.slice(editor.selectionEnd)
+    editor.value = next
+    applyText(next)
+    editor.focus()
+    editor.setSelectionRange(at + 2, at + 2)
+    savePosition()
+  })
+  $('reset').addEventListener('click', () => {
+    if (window.confirm('¿Volver a Base? Se perderá el texto personalizado de esta cuenta.') === false) return
+    overrides.delete(active); positions.delete(active); markDirty(); renderTabs(); loadEditor(true); updatePreview()
+    $('notice').textContent = 'La cuenta vuelve a usar Base'
+  })
+  $('preview-account').addEventListener('change', updatePreview)
+  $('theme').addEventListener('click', () => {
+    const light = document.documentElement.classList.toggle('light')
+    $('theme').setAttribute('aria-pressed', String(light))
+    $('theme').textContent = light ? 'Modo oscuro' : 'Modo claro'
+  })
+  $('step-compose').addEventListener('click', () => navigate('compose'))
+  $('step-customize').addEventListener('click', () => navigate('customize'))
+  $('step-review').addEventListener('click', () => navigate('review'))
+  $('customize').addEventListener('click', () => navigate('customize'))
+  $('to-customize').addEventListener('click', () => navigate('customize'))
+  $('back').addEventListener('click', () => navigate(stage === 'review' ? previousStage : 'compose'))
+  $('cancel').addEventListener('click', () => { $('notice').textContent = 'En el producto, esto cierra el compositor. El prototipo conserva tu texto.' })
+  $('close-sim').addEventListener('click', () => { $('notice').textContent = 'En el producto, esto cierra el compositor. El prototipo conserva tu texto.' })
+  $('primary').addEventListener('click', () => {
+    if (stage !== 'review') { navigate('review'); return }
+    renderReview()
+    const badDate = dateInvalid()
+    $('sched-error').hidden = !badDate
+    $('sched-error').textContent = badDate ? 'Elige una fecha y hora futuras para continuar.' : ''
+    if (selected.length === 0 || chosen().some((account) => issue(account)) || badDate) {
+      $('submit-error').hidden = false
+      $('submit-error').textContent = 'No se puede simular todavía. Revisa los errores indicados.'
+      $('notice').textContent = ''
+      if (badDate) $('sched-date').focus()
+      else $('page-title').focus()
+      return
+    }
+    $('submit-error').hidden = true
+    $('confirmed-body').textContent = 'Se simularían ' + selected.length + ' publicación(es) · ' + schedText() + '. No se envió nada.'
+    $('confirmed').showModal()
+  })
+  $('example').addEventListener('click', () => {
+    const empty = $('example').textContent === 'Empezar vacío'
+    if (window.confirm(empty ? '¿Empezar vacío? Se quitarán el texto, las variantes y la imagen locales.' : '¿Reiniciar el ejemplo? Se sustituirán el texto, las variantes y la imagen locales.') === false) return
+    base = empty ? '' : example
+    overrides.clear(); positions.clear(); touched.clear(); attempted = false; active = 'base'
+    $('first-comment').value = ''
+    clearImage(); markDirty(); renderAccounts(); loadEditor(true)
+    $('example').textContent = empty ? 'Reiniciar ejemplo' : 'Empezar vacío'
+    $('notice').textContent = empty ? 'Listo para tu primera idea. No hay contenido guardado.' : 'Ejemplo restaurado'
+  })
+  $('first-comment').addEventListener('input', markDirty)
+  function clearImage() {
+    if (mediaUrl) URL.revokeObjectURL(mediaUrl)
+    mediaUrl = ''; $('image').value = ''; $('thumb').hidden = true; $('thumb').removeAttribute('src')
+    $('remove-image').hidden = true; $('image-status').textContent = ''; updatePreview()
+  }
+  $('dropzone').addEventListener('click', () => $('image').click())
+  $('image').addEventListener('change', () => {
+    const file = $('image').files[0]
+    if (!file) return
+    if (['image/png', 'image/jpeg', 'image/webp'].includes(file.type) === false || file.size > 10 * 1024 * 1024) {
+      $('image-status').textContent = 'Elige PNG, JPG o WebP de hasta 10 MB. La imagen anterior se conserva.'; $('image').value = ''; return
+    }
+    if (mediaUrl) URL.revokeObjectURL(mediaUrl)
+    mediaUrl = URL.createObjectURL(file)
+    $('thumb').src = mediaUrl
+    $('thumb').hidden = false
+    $('remove-image').hidden = false
+    $('image-status').textContent = file.name + ' · Solo local, no se subió ningún archivo'
+    markDirty(); updatePreview()
+  })
+  $('thumb').addEventListener('error', () => { clearImage(); $('image-status').textContent = 'No se pudo leer la imagen. Elige otro archivo.' })
+  $('remove-image').addEventListener('click', () => { clearImage(); markDirty() })
+  for (const radio of document.querySelectorAll('input[name="schedule"]')) {
+    radio.addEventListener('change', () => {
+      schedMode = radio.value
+      $('date-field').hidden = schedMode !== 'custom'
+      $('sched-helper').textContent = schedMode === 'now' ? 'Se publicaría con la fecha y hora de creación.' : schedMode === 'next' ? 'Se publicaría en el próximo hueco disponible de ejemplo.' : 'Se publicaría en la fecha y hora elegidas.'
+      $('sched-error').hidden = true
+      markDirty()
+    })
+  }
+  $('sched-date').addEventListener('input', () => { $('sched-error').hidden = true; markDirty() })
+  $('sched-time').addEventListener('input', () => { $('sched-error').hidden = true; markDirty() })
+  $('zone').textContent = 'Zona horaria del dispositivo: ' + Intl.DateTimeFormat().resolvedOptions().timeZone
+  $('close-accounts').addEventListener('click', () => $('account-dialog').close())
+  $('close-confirmed').addEventListener('click', () => $('confirmed').close())
+  for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('click', (event) => {
+    const box = dialog.getBoundingClientRect()
+    if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close()
+  })
+  renderAccounts()
+  loadEditor()
+  $('step-compose').setAttribute('aria-current', 'step')
+</script>
+</body>
+</html>
