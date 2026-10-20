@@ -176,8 +176,8 @@ importers:
         specifier: 0.23.3
         version: 0.23.3(supports-color@10.2.2)
       portless:
-        specifier: 0.15.7
-        version: 0.15.7
+        specifier: 0.15.8
+        version: 0.15.8
       wrangler:
         specifier: ^4.147.0
         version: 4.147.0(@types/node@26.6.5)
@@ -6187,8 +6187,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  portless@0.15.7:
-    resolution: {integrity: sha512-fffMnzfwU/0chJmOMmeAOjFouRsZUmdJagxdqE4DATLw83ssAnHX4BzvNqOI5vBgsuvWLX5ZLg63bzs7zdVFNw==}
+  portless@0.15.8:
+    resolution: {integrity: sha512-kzGoG4xLsEytczl7O/COZaBwSAOKsWsZDxHv7/iFHKIC0X71OonpgbsQw58CGO29RklIHIx6yLM31TJMnTtPEw==}
     engines: {node: '>=24'}
     os: [darwin, linux, win32]
     hasBin: true
@@ -13735,7 +13735,7 @@ snapshots:
     dependencies:
       playwright-core: 1.63.0
 
-  portless@0.15.7: {}
+  portless@0.15.8: {}
 
   possible-typed-array-names@1.1.0: {}
 
