@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ref } from 'vue'
+import { createApp, defineComponent, ref } from 'vue'
 import { usePublicationEventReconnect } from './usePublicationEventReconnect'
 import type { PublicationInvalidation } from '../infrastructure/publishing.store'
 
@@ -177,5 +177,142 @@ describe('usePublicationEventReconnect', () => {
     sut.stop()
     await vi.advanceTimersByTimeAsync(5_000)
     expect(subscribe).toHaveBeenCalledOnce()
+  })
+  it('uses progressive delays for consecutive failures', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { sut, subscribe } = makeSut()
+    sut.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(subscribe).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(1999)
+    expect(subscribe).toHaveBeenCalledTimes(2)
+    sut.stop()
+    vi.restoreAllMocks()
+  })
+
+  it('ignores completion of an attempt from a stopped generation', async () => {
+    const { sut, subscribe } = makeSut()
+    let finish = () => {}
+    subscribe.mockImplementationOnce(
+      () =>
+        new Promise<null>((resolve) => {
+          finish = () => resolve(null)
+        }),
+    )
+    subscribe.mockImplementation(() => new Promise<null>(() => {}))
+    sut.start()
+    sut.stop()
+    sut.start()
+    finish()
+    await vi.advanceTimersByTimeAsync(30000)
+    expect(subscribe).toHaveBeenCalledTimes(2)
+    sut.stop()
+  })
+
+  it('does not duplicate attempts on repeated start and visible events', () => {
+    const { sut, subscribe } = makeSut()
+    subscribe.mockImplementation(() => new Promise<null>(() => {}))
+    sut.start()
+    sut.start()
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(subscribe).toHaveBeenCalledTimes(1)
+    sut.stop()
+  })
+  it('resets backoff only after a real connection', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { sut, subscribe, isConnected } = makeSut()
+    sut.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    let finish = () => {}
+    subscribe.mockImplementationOnce(
+      () =>
+        new Promise<null>((resolve) => {
+          isConnected.value = true
+          finish = () => {
+            isConnected.value = false
+            resolve(null)
+          }
+        }),
+    )
+    await vi.advanceTimersByTimeAsync(2000)
+    finish()
+    await vi.advanceTimersByTimeAsync(999)
+    expect(subscribe).toHaveBeenCalledTimes(3)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(subscribe).toHaveBeenCalledTimes(4)
+    sut.stop()
+    vi.restoreAllMocks()
+  })
+
+  it('stops unavailable SSE retries for this cycle but permits a new workspace cycle', async () => {
+    const subscribe = vi.fn<() => Promise<null | 'unavailable'>>().mockResolvedValue('unavailable')
+    const workspaceId = ref<string | null>('ws-1')
+    const sut = usePublicationEventReconnect({
+      subscribe,
+      workspaceId,
+      isConnected: ref(false),
+      isAuthenticated: ref(true),
+      unsubscribe: vi.fn(),
+      onVisible: vi.fn(),
+      onHidden: vi.fn(),
+    })
+    sut.start()
+    await vi.advanceTimersByTimeAsync(60000)
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(subscribe).toHaveBeenCalledTimes(1)
+    sut.stop()
+    workspaceId.value = 'ws-2'
+    sut.start()
+    await vi.advanceTimersByTimeAsync(60000)
+    expect(subscribe).toHaveBeenCalledTimes(2)
+    sut.stop()
+  })
+
+  it('removes visibility callbacks after stop and component unmount', async () => {
+    const unsubscribe = vi.fn()
+    const onVisible = vi.fn()
+    const app = createApp(
+      defineComponent({
+        setup() {
+          const sut = usePublicationEventReconnect({
+            subscribe: async () => null,
+            workspaceId: ref('ws-1'),
+            isConnected: ref(false),
+            isAuthenticated: ref(true),
+            unsubscribe,
+            onVisible,
+            onHidden: vi.fn(),
+          })
+          sut.start()
+          return () => null
+        },
+      }),
+    )
+    app.mount(document.createElement('div'))
+    await Promise.resolve()
+    app.unmount()
+    const calls = onVisible.mock.calls.length
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(onVisible).toHaveBeenCalledTimes(calls)
+    expect(unsubscribe).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+  it('caps backoff and does not bypass a pending delay when visible', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { sut, subscribe } = makeSut()
+    sut.start()
+    await Promise.resolve()
+    let calls = 1
+    for (const delay of [1000, 2000, 5000, 10000, 30000, 30000]) {
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(subscribe).toHaveBeenCalledTimes(calls)
+      await vi.advanceTimersByTimeAsync(delay - 1)
+      expect(subscribe).toHaveBeenCalledTimes(calls)
+      await vi.advanceTimersByTimeAsync(1)
+      calls += 1
+      expect(subscribe).toHaveBeenCalledTimes(calls)
+    }
+    sut.stop()
+    vi.restoreAllMocks()
   })
 })

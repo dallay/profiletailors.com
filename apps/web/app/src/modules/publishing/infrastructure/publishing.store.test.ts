@@ -821,6 +821,106 @@ describe('publishing store', () => {
       })
     }
 
+    it('preserves replacement connection when an old request completes', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      let finishOld = (_response: Response) => {}
+      const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw').mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishOld = resolve
+          }),
+      )
+      const oldSubscription = store.subscribePublicationEvents()
+      let closeNew = () => {}
+      apiFetchRaw.mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              closeNew = () => controller.close()
+            },
+          }),
+        ),
+      )
+      const newSubscription = store.subscribePublicationEvents()
+      await Promise.resolve()
+      expect(store.publicationEventsConnected).toBe(true)
+      finishOld(new Response(sseStream([])))
+      await oldSubscription
+      expect(store.publicationEventsConnected).toBe(true)
+      closeNew()
+      await newSubscription
+    })
+
+    it('ignores stale stream frames and cleanup after replacing a connected stream', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      let finishOld = () => {}
+      const onInvalidation = vi.fn()
+      const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw').mockResolvedValueOnce(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              finishOld = () => {
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    'data: {"workspaceId":"workspace-1","publicationId":"pub-1","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00Z"}\n\n',
+                  ),
+                )
+                controller.close()
+              }
+            },
+          }),
+        ),
+      )
+      const oldSubscription = store.subscribePublicationEvents(onInvalidation)
+      await Promise.resolve()
+      let closeNew = () => {}
+      apiFetchRaw.mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              closeNew = () => controller.close()
+            },
+          }),
+        ),
+      )
+      const newSubscription = store.subscribePublicationEvents()
+      await Promise.resolve()
+      const newController = store.publicationEventsAbortController
+      finishOld()
+      await oldSubscription
+      expect(onInvalidation).not.toHaveBeenCalled()
+      expect(store.publicationEventsConnected).toBe(true)
+      expect(store.publicationEventsAbortController).toBe(newController)
+      closeNew()
+      await newSubscription
+    })
+
+    it.each([404, 405])('returns unavailable for HTTP %s while preserving REST', async (status) => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetchRaw').mockRejectedValueOnce({ status })
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      expect(await store.subscribePublicationEvents()).toBe('unavailable')
+      expect(store.publicationEventsConnected).toBe(false)
+      const apiFetch = vi
+        .spyOn(auth, 'apiFetch')
+        .mockResolvedValueOnce({ publications: [], activity: [], conflicts: [] })
+      await store.fetchCalendar('2026-10-01', '2026-11-01')
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/publishing/publications/calendar?'),
+        { workspaceScoped: true },
+      )
+      expect(store.publications).toEqual([])
+    })
+
     it('opens the publications events stream and forwards matching workspace invalidations', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()

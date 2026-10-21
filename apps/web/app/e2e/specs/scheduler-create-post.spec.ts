@@ -218,6 +218,8 @@ test.describe('Scheduler — Create Post', () => {
   }) => {
     const scheduler = new SchedulerPage(page)
     const composeModal = new ComposeModalPage(page)
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
     const backendId = 'backend-publication-mvp-core'
     const assetId = 'asset-mvp-core-1'
     const longText = [
@@ -311,8 +313,15 @@ test.describe('Scheduler — Create Post', () => {
     await expect(linkedInPreviewPanel.getByText('...more')).toBeVisible()
     await expect(linkedInPreviewPanel.getByRole('img', { name: /^media preview$/i })).toBeVisible()
 
+    const publicationCreated = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith('/api/publishing/publications/batch'),
+    )
     await composeModal.clickScheduleNow()
+    expect((await publicationCreated).status()).toBe(201)
     await composeModal.expectHidden()
+    expect(pageErrors).toEqual([])
 
     await scheduler.switchToList()
     const postCard = page.getByRole('button', { name: /mvp core publishing journey/i }).first()

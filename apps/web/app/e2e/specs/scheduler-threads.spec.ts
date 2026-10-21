@@ -157,19 +157,7 @@ test.describe('Scheduler — Threads provider @threads', () => {
       postedAccountIds.push(
         ...targets.map((target: { socialAccountId: string }) => target.socialAccountId),
       )
-      await route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          status: 'ALL_CREATED',
-          results: targets.map((target: { socialAccountId: string }, index: number) => ({
-            socialAccountId: target.socialAccountId,
-            publicationId: `publication-${index}`,
-            groupId: 'group-e2e',
-            status: 'CREATED',
-          })),
-        }),
-      })
+      await route.fallback()
     })
 
     const testText = `Threads E2E post ${Date.now()}`
@@ -180,6 +168,9 @@ test.describe('Scheduler — Threads provider @threads', () => {
     await composeModal.expectHidden()
 
     expect([...postedAccountIds].sort()).toEqual(['sa-linkedin-001', 'sa-threads-001'])
+    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
+    await page.reload()
+    await scheduler.expectVisible()
     await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
   })
 

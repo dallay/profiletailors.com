@@ -153,6 +153,7 @@ jobs:
             --exclude 'http://localhost'
             --exclude 'https://localhost'
             --exclude 'https://www.ftc.gov/business-guidance/privacy-security'
+            --exclude 'https://privacy.gov.ph/data-privacy-act/'
             --exclude-path .agents/sdd
             './**/*.md'
             './**/*.mdx'
