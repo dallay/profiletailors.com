@@ -13,10 +13,10 @@ export default {
   retry: 'Reintentar',
   dismiss: 'Descartar',
   uploadProgress: {
-    uploading: 'Subiendo {count, plural, one {# archivo} other {# archivos}}',
-    uploaded: '{count, plural, one {# archivo} other {# archivos}} subido',
+    uploading: 'Subiendo {count} archivo | Subiendo {count} archivos',
+    uploaded: '{count} archivo subido | {count} archivos subidos',
     partial: '{uploaded} subidos, {failed} fallidos',
-    failed: '{count, plural, one {# archivo} other {# archivos}} fallidos',
+    failed: '{count} archivo fallido | {count} archivos fallidos',
     done: 'Listo',
     retry: 'Reintentar',
   },
