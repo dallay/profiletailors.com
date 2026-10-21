@@ -948,15 +948,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelEventsConnected.value = false
   }
 
-  /**
-   * Replaces the active stream and forwards valid invalidations for the current workspace.
-   * Resolves to null when unauthenticated or when the stream ends, fails, or is aborted.
-   * Request and read failures are swallowed; malformed frames and callback errors are ignored.
-   * Connection state is cleared when consumption ends.
-   */
   async function subscribePublicationEvents(
     onInvalidation: (event: PublicationInvalidation) => void,
-  ): Promise<null> {
+  ): Promise<null | 'unavailable'> {
     if (!auth.isAuthenticated) {
       publicationEventsConnected.value = false
       return null
@@ -973,30 +967,49 @@ export const usePublishingStore = defineStore('publishing', () => {
         workspaceScoped: true,
         signal: abortController.signal,
       })
+      if (
+        publicationEventsAbortController.value !== abortController ||
+        abortController.signal.aborted
+      ) {
+        await response.body?.cancel()
+        return null
+      }
       publicationEventsConnected.value = true
       await consumeSseStream<unknown>(response, ({ data }) => {
+        if (
+          abortController.signal.aborted ||
+          publicationEventsAbortController.value !== abortController
+        )
+          return
         const invalidation = toPublicationInvalidation(data)
         if (!invalidation) return
         if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
         onInvalidation(invalidation)
       })
     } catch (err) {
-      if (!abortController.signal.aborted) {
+      if (
+        publicationEventsAbortController.value === abortController &&
+        !abortController.signal.aborted
+      ) {
         console.warn('Publication event stream unavailable; continuing with REST calendar.', err)
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'status' in err &&
+          (err.status === 404 || err.status === 405)
+        )
+          return 'unavailable'
       }
     } finally {
       if (publicationEventsAbortController.value === abortController) {
         publicationEventsAbortController.value = null
+        publicationEventsConnected.value = false
       }
-      publicationEventsConnected.value = false
     }
 
     return null
   }
 
-  /**
-   * Aborts the current publication stream and clears its connection state.
-   */
   function unsubscribePublicationEvents(): void {
     publicationEventsAbortController.value?.abort()
     publicationEventsAbortController.value = null
