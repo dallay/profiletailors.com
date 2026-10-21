@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.18](https://github.com/dallay/profiletailors.com/compare/app@v0.3.17...app@v0.3.18) (2026-10-21)
+
+
+### Bug Fixes
+
+* **publishing:** backoff reconexion sse y correcciones e2e calendario ([#1369](https://github.com/dallay/profiletailors.com/issues/1369)) ([f3ecbd8](https://github.com/dallay/profiletailors.com/commit/f3ecbd868b69f26dc9d771087ea283512b7df9d1))
+
 ## [0.3.17](https://github.com/dallay/profiletailors.com/compare/app@v0.3.16...app@v0.3.17) (2026-10-21)
 
 
