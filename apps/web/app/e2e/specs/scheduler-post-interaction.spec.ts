@@ -108,7 +108,6 @@ test.describe('Scheduler — Post Interaction', () => {
   test('TC-13: delete post @post-delete', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
 
-    // Inject a publication directly into the store (no UI / backend needed)
     const testText = `Delete me ${Date.now()}`
     await createPublicationInStore(page, testText)
 
@@ -119,11 +118,20 @@ test.describe('Scheduler — Post Interaction', () => {
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
     const deleteButton = postCard.locator('[title="Delete publication"]')
+    const deletion = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'DELETE' &&
+        response.url().includes('/api/publishing/publications/'),
+    )
     await deleteButton.click({ force: true })
+    expect((await deletion).ok()).toBe(true)
 
     await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
       timeout: 5_000,
     })
+    await page.reload()
+    await scheduler.expectVisible()
+    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0)
   })
 
   /**

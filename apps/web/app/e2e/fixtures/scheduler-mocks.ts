@@ -257,7 +257,13 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
       return
     }
 
-    // GET — list all publications
+    if (method === 'DELETE') {
+      const id = new URL(route.request().url()).pathname.split('/publications/')[1]
+      publications = publications.filter((publication) => publication.id !== id)
+      route.fulfill(json({ success: true }))
+      return
+    }
+
     route.fulfill(json({ publications }))
   })
 
