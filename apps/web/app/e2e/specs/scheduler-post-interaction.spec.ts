@@ -129,8 +129,15 @@ test.describe('Scheduler — Post Interaction', () => {
     await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
       timeout: 5_000,
     })
+    const calendarResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        response.url().includes('/api/publishing/publications/calendar'),
+    )
     await page.reload()
+    expect((await calendarResponse).ok()).toBe(true)
     await scheduler.expectVisible()
+    await scheduler.switchToList()
     await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0)
   })
 
