@@ -15,7 +15,7 @@ class ThreadsAuthorizationUrlBuilder(private val properties: ThreadsPublishingPr
             "scope" to properties.requiredScopes.joinToString(","),
             "state" to state,
         )
-        return "${properties.apiBaseUrl}/${properties.apiVersion}/oauth/authorize?$query"
+        return "${properties.authorizationBaseUrl}?$query"
     }
 
     override fun isConfigured(): Boolean = properties.isConfigured()

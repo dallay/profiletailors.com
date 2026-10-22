@@ -72,16 +72,16 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         val token = fixture.resolver.resolve(fixture.account)
 
         assertEquals("new-access-token", token)
+        assertEquals("GET", fixture.transport.lastRequest?.method())
         assertEquals(
-            "https://graph.threads.net/v1.0/refresh_access_token",
+            "https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=old-refresh-token",
             fixture.transport.lastRequest?.uri()?.toString(),
         )
-        val body = fixture.transport.lastRequestBody
-        check(body != null)
-        check(body.contains("grant_type=th_refresh_token"))
-        check(body.contains("access_token=old-refresh-token"))
-        check(!body.contains("client_id"))
-        check(!body.contains("client_secret"))
+        val request = fixture.transport.lastRequest
+        check(request != null)
+        check(request.uri().rawQuery.contains("grant_type=th_refresh_token"))
+        check(request.uri().rawQuery.contains("access_token=old-refresh-token"))
+        check(!request.uri().rawQuery.contains("client_secret"))
         val stored = fixture.gateway.lastStored
         check(stored != null)
         assertEquals("new-access-token", stored.accessToken)
@@ -155,6 +155,12 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
             httpTransport = transport,
             objectMapper = com.fasterxml.jackson.databind.ObjectMapper(),
             clock = Clock.fixed(fixedNow, ZoneOffset.UTC),
+            threadsProperties = com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties(
+                apiBaseUrl = "https://graph.threads.net",
+                clientId = "threads-client",
+                clientSecret = "threads-secret",
+                redirectUri = "https://app.example/threads/callback",
+            ),
         )
         return ThreadsRefreshFixture(resolver, gateway, transport, account)
     }
@@ -280,9 +286,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
     private class RecordingHttpTransport(private val response: LinkedInHttpResponse) : LinkedInHttpTransport {
         var lastRequest: HttpRequest? = null
             private set
-        var lastRequestBody: String? = null
-            private set
-
         override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
             lastRequest = request
             request.bodyPublisher().ifPresent { publisher ->
@@ -301,7 +304,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
                     override fun onComplete() = latch.countDown()
                 })
                 check(latch.await(1, java.util.concurrent.TimeUnit.SECONDS))
-                lastRequestBody = sink.toString(Charsets.UTF_8)
             }
             return response
         }

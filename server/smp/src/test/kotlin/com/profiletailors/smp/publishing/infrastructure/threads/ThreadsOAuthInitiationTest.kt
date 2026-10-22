@@ -34,7 +34,11 @@ class ThreadsOAuthInitiationTest {
             state = state,
             redirectUri = properties.redirectUri,
         )
-        val query = URI.create(url).rawQuery.split('&').associate {
+        val uri = URI.create(url)
+        assertEquals("threads.com", uri.host)
+        assertEquals("/oauth/authorize", uri.path)
+        assertEquals("https", uri.scheme)
+        val query = uri.rawQuery.split('&').associate {
             it.substringBefore('=') to URLDecoder.decode(it.substringAfter('='), StandardCharsets.UTF_8)
         }
 

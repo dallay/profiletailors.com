@@ -39,8 +39,9 @@ pnpm exec portless list
 The Threads mappings live in `infra/wiremock/mappings/threads/`:
 
 - `015-oauth-authorize.json` returns a redirect to the app callback with a mock authorization code and the incoming OAuth `state`. The callback uses the supplied `redirect_uri` or falls back to `https://pt-app.localhost/integrations/threads/callback`.
-- `070-oauth-token.json` accepts the form-urlencoded authorization-code exchange.
-- `072-oauth-refresh-token.json` returns a mock refreshed token.
+- `070-oauth-token.json` accepts the form-urlencoded authorization-code exchange at `/oauth/access_token`.
+- `071-oauth-long-lived-token.json` accepts the GET request to `/access_token` that exchanges the short-lived token.
+- `072-oauth-refresh-token.json` accepts the GET request to `/refresh_access_token` and returns a mock refreshed token.
 - `073-user-profile.json` returns a stable mock profile.
 
 WireMock loads these mappings through the root Compose service. Rebuild that service after changing a mapping:
@@ -59,6 +60,9 @@ SMP_THREADS_CLIENT_ID=local-threads-client
 SMP_THREADS_CLIENT_SECRET=local-threads-secret
 SMP_THREADS_REDIRECT_URI=https://pt-app.localhost/integrations/threads/callback
 SMP_THREADS_API_BASE_URL=https://threads-mock.localhost
+SMP_THREADS_AUTHORIZATION_URL=https://threads-mock.localhost/oauth/authorize
+SMP_THREADS_TOKEN_EXCHANGE_URL=https://threads-mock.localhost/oauth/access_token
+SMP_THREADS_LONG_LIVED_TOKEN_URL=https://threads-mock.localhost/access_token
 ```
 
 Use the exact redirect URI configured for this local app. Restart SMP after changing `.env`; the running backend does not pick up changes automatically.

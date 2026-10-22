@@ -10,6 +10,7 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
+import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -28,6 +29,7 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
     private val objectMapper: ObjectMapper,
     private val clock: Clock,
     private val linkedInProperties: LinkedInPublishingProperties? = null,
+    private val threadsProperties: ThreadsPublishingProperties? = null,
     private val legacyLinkedInCredentialGateway: LinkedInCredentialGateway? = null,
 ) : RefreshAwareCredentialResolver {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -159,18 +161,21 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
     }
 
     private fun refreshRequest(refreshToken: String, provider: SocialProvider): HttpRequest {
-        val parts = when (provider) {
-            SocialProvider.LINKEDIN -> listOf(
-                "grant_type" to "refresh_token",
-                "client_id" to requireNotNull(linkedInProperties).clientId,
-                "client_secret" to requireNotNull(linkedInProperties).clientSecret,
-                "refresh_token" to refreshToken,
-            )
-            SocialProvider.THREADS -> listOf(
+        if (provider == SocialProvider.THREADS) {
+            val query = formUrlEncoded(
                 "grant_type" to "th_refresh_token",
                 "access_token" to refreshToken,
             )
+            return HttpRequest.newBuilder(URI.create("${refreshEndpoint(provider)}?$query"))
+                .GET()
+                .build()
         }
+        val parts = listOf(
+            "grant_type" to "refresh_token",
+            "client_id" to requireNotNull(linkedInProperties).clientId,
+            "client_secret" to requireNotNull(linkedInProperties).clientSecret,
+            "refresh_token" to refreshToken,
+        )
         return HttpRequest.newBuilder(URI.create(refreshEndpoint(provider)))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(formUrlEncoded(*parts.toTypedArray())))
@@ -179,7 +184,7 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
 
     private fun refreshEndpoint(provider: SocialProvider): String = when (provider) {
         SocialProvider.LINKEDIN -> requireNotNull(linkedInProperties).tokenBaseUrl
-        SocialProvider.THREADS -> "https://graph.threads.net/v1.0/refresh_access_token"
+        SocialProvider.THREADS -> "${requireNotNull(threadsProperties).apiBaseUrl}/refresh_access_token"
     }
 
     private data class RefreshResult(

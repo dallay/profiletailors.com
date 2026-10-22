@@ -69,12 +69,16 @@ class ThreadsConnectionProviderTest {
                 ),
             )
 
+        assertEquals("graph.threads.com", transport.requests[0].uri().host)
+        assertEquals("/oauth/access_token", transport.requests[0].uri().path)
+        assertEquals("graph.threads.net", transport.requests[1].uri().host)
+        assertEquals("/access_token", transport.requests[1].uri().path)
         assertEquals(SocialProvider.THREADS, result.provider)
         assertEquals("user-1", result.account.providerAccountId)
         assertEquals("Threads User", result.account.displayName)
         assertEquals("long", credentials.saved.accessToken)
         assertEquals(3, transport.requests.size)
-        assertEquals("https://graph.threads.net/v1.0/oauth/access_token", transport.requests[0].uri().toString())
+        assertEquals("https://graph.threads.com/oauth/access_token", transport.requests[0].uri().toString())
     }
 
     @Test
