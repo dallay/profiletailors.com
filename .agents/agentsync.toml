@@ -195,6 +195,11 @@ source = "AGENTS.md"
 destination = "AGENTS.md"
 type = "symlink"
 
+[agents.opencode.targets.skills]
+source = "skills"
+destination = ".opencode/skills"
+type = "symlink"
+
 # Note: intentionally singular per OpenCode convention (.opencode/command, not .opencode/commands)
 [agents.opencode.targets.commands]
 source = "commands"

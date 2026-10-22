@@ -115,6 +115,8 @@ node_modules/
 .opencode/command
 .opencode/command.bak
 .opencode/command/
+.opencode/skills
+.opencode/skills.bak
 .opencode/skills/
 .vscode/mcp.json
 /.mcp.json
