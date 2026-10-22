@@ -4,6 +4,8 @@ import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishin
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.Duration
 
 class ThreadsPublishingPropertiesTest {
@@ -35,6 +37,54 @@ class ThreadsPublishingPropertiesTest {
         properties.isConfigured() shouldBe true
         properties.isAllowedRedirectUri(properties.redirectUri) shouldBe true
         properties.isAllowedRedirectUri("https://attacker.example.test/callback") shouldBe false
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "",
+            "http://example.test/oauth",
+            "https://",
+            "/oauth/access_token",
+            "https://user:password@example.test/oauth",
+            "https://example.test/oauth#fragment",
+            "https://invalid host/oauth",
+        ],
+    )
+    fun `enabled threads requires every endpoint to be a safe HTTPS URL`(endpoint: String) {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        listOf(
+            properties.copy(apiBaseUrl = endpoint),
+            properties.copy(authorizationBaseUrl = endpoint),
+            properties.copy(tokenExchangeUrl = endpoint),
+            properties.copy(longLivedTokenUrl = endpoint),
+        ).forEach { invalidProperties ->
+            invalidProperties.isConfigured() shouldBe false
+            shouldThrow<IllegalStateException> { invalidProperties.validate() }
+        }
+    }
+
+    @Test
+    fun `enabled threads accepts safe HTTPS endpoint overrides`() {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+            apiBaseUrl = "https://threads-mock.example.test:8443",
+            authorizationBaseUrl = "https://threads-mock.example.test:8443/oauth/authorize",
+            tokenExchangeUrl = "https://threads-mock.example.test:8443/oauth/access_token",
+            longLivedTokenUrl = "https://threads-mock.example.test:8443/access_token",
+        )
+
+        properties.isConfigured() shouldBe true
+        properties.validate()
     }
 
     @Test

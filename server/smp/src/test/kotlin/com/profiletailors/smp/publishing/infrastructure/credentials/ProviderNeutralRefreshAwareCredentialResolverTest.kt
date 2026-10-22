@@ -10,10 +10,13 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
 import java.time.Clock
@@ -66,9 +69,15 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         assertEquals("threads-access-token", resolver.resolve(account))
     }
 
-    @Test
-    fun `refreshes Threads credentials through the th_refresh_token grant`() = runTest {
-        val fixture = buildThreadsRefreshFixture(responseBody = SUCCESS_REFRESH_BODY)
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            """{"access_token":"new-access-token","expires_in":3600}""",
+            """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"unused-refresh-token"}""",
+        ],
+    )
+    fun `refreshes Threads credentials through the th_refresh_token grant`(responseBody: String) = runTest {
+        val fixture = buildThreadsRefreshFixture(responseBody = responseBody)
         val token = fixture.resolver.resolve(fixture.account)
 
         assertEquals("new-access-token", token)
@@ -85,7 +94,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         val stored = fixture.gateway.lastStored
         check(stored != null)
         assertEquals("new-access-token", stored.accessToken)
-        assertEquals("new-refresh-token", stored.refreshToken)
+        stored.refreshToken shouldBe "new-access-token"
     }
 
     @Test
@@ -244,11 +253,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         displayName = "Threads User",
         status = SocialConnectionStatus.ACTIVE,
     )
-
-    companion object {
-        private const val SUCCESS_REFRESH_BODY =
-            """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"new-refresh-token"}"""
-    }
 
     private class FakeProviderCredentialGateway(private val id: UUID, private var credentials: ProviderCredentials) :
         ProviderCredentialGateway {

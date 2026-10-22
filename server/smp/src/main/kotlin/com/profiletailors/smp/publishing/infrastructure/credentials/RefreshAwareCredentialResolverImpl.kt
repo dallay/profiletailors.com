@@ -87,7 +87,11 @@ class RefreshAwareCredentialResolverImpl @Autowired constructor(
         val updated = credentials.copy(
             accessToken = refreshed.accessToken,
             expiresAtEpochSeconds = refreshed.expiresAtEpochSeconds,
-            refreshToken = refreshed.refreshToken ?: refreshToken,
+            refreshToken = if (account.provider == SocialProvider.THREADS) {
+                refreshed.accessToken
+            } else {
+                refreshed.refreshToken ?: refreshToken
+            },
             refreshTokenExpiresAtEpochSeconds = refreshed.refreshTokenExpiresAtEpochSeconds
                 ?: credentials.refreshTokenExpiresAtEpochSeconds,
             lastRefreshAttemptAtEpochSeconds = nowEpoch,

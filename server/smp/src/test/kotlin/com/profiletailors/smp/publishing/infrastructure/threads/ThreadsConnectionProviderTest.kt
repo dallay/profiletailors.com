@@ -7,8 +7,8 @@ import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCred
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentials
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import java.net.http.HttpHeaders
@@ -69,16 +69,17 @@ class ThreadsConnectionProviderTest {
                 ),
             )
 
-        assertEquals("graph.threads.com", transport.requests[0].uri().host)
-        assertEquals("/oauth/access_token", transport.requests[0].uri().path)
-        assertEquals("graph.threads.net", transport.requests[1].uri().host)
-        assertEquals("/access_token", transport.requests[1].uri().path)
-        assertEquals(SocialProvider.THREADS, result.provider)
-        assertEquals("user-1", result.account.providerAccountId)
-        assertEquals("Threads User", result.account.displayName)
-        assertEquals("long", credentials.saved.accessToken)
-        assertEquals(3, transport.requests.size)
-        assertEquals("https://graph.threads.com/oauth/access_token", transport.requests[0].uri().toString())
+        transport.requests[0].uri().host shouldBe "graph.threads.com"
+        transport.requests[0].uri().path shouldBe "/oauth/access_token"
+        transport.requests[1].uri().host shouldBe "graph.threads.net"
+        transport.requests[1].uri().path shouldBe "/access_token"
+        result.provider shouldBe SocialProvider.THREADS
+        result.account.providerAccountId shouldBe "user-1"
+        result.account.displayName shouldBe "Threads User"
+        credentials.saved.accessToken shouldBe "long"
+        credentials.saved.refreshToken shouldBe "long"
+        transport.requests.size shouldBe 3
+        transport.requests[0].uri().toString() shouldBe "https://graph.threads.com/oauth/access_token"
     }
 
     @Test
@@ -108,8 +109,8 @@ class ThreadsConnectionProviderTest {
             }
         }
 
-        assertEquals("Threads token exchange failed.", exception.message)
-        assertEquals(false, exception.message?.contains("super-secret"))
+        exception.message shouldBe "Threads token exchange failed."
+        exception.message?.contains("super-secret") shouldBe false
     }
 
     private class RecordingTransport(private vararg val responses: LinkedInHttpResponse) : LinkedInHttpTransport {

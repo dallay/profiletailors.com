@@ -27,6 +27,9 @@ data class ThreadsPublishingProperties(
         clientSecret.isNotBlank() &&
         redirectUri.isAllowedHttpsRedirect() &&
         apiBaseUrl.isAllowedHttpsBaseUrl() &&
+        authorizationBaseUrl.isAllowedHttpsBaseUrl() &&
+        tokenExchangeUrl.isAllowedHttpsBaseUrl() &&
+        longLivedTokenUrl.isAllowedHttpsBaseUrl() &&
         apiVersion.isNotBlank() &&
         requiredScopes == APPROVED_SCOPES &&
         refreshAhead.isPositive &&
