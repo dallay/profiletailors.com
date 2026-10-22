@@ -295,7 +295,7 @@ reviews:
       - 'renovate[bot]'
       - 'github-actions[bot]'
       - 'coderabbitai'
-      - 'dallay-bot'
+      - 'dallay-bot[bot]'
       - 'release-please[bot]'
 
   # =========================================================================
