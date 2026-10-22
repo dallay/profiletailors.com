@@ -68,7 +68,7 @@ useful `README.md` file detailing its role, tech stack, configuration, and devel
 
 | Requirement | Version      | Install                                                                  |
 |-------------|--------------|--------------------------------------------------------------------------|
-| Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                         |
+| Node.js     | `>= 24.22.1` | [nodejs.org](https://nodejs.org)                                         |
 | pnpm        | `>= 11.8.0`  | `npm install -g pnpm`                                                    |
 | just / make | `>= 1.30` / GNU Make `>= 3.81` | `just` runner or `make` (pre-installed on Linux/macOS) |
 
