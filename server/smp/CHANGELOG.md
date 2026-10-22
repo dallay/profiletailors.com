@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.12](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.11...smp@v0.5.12) (2026-10-22)
+
+
+### Bug Fixes
+
+* **authors:** update author names in database change logs ([50addaa](https://github.com/dallay/profiletailors.com/commit/50addaa7ac5c8937f5fa4c6597c78c3f6d69ee44))
+
 ## [0.5.11](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.10...smp@v0.5.11) (2026-10-21)
 
 
