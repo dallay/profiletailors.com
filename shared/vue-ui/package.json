@@ -24,13 +24,13 @@
     "reka-ui": "2.10.5",
     "tailwind-merge": "3.7.0",
     "vaul-vue": "^0.4.1",
-    "vue": "3.5.43",
+    "vue": "3.5.44",
     "vue-router": "5.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.10",
     "@vue/test-utils": "^2.5.1",
     "vitest": "^5.0.5",
-    "vue": "3.5.43"
+    "vue": "3.5.44"
   }
 }
