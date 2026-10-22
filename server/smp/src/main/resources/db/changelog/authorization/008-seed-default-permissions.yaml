@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-008-seed-default-permissions
-      author: yuniel acosta
+      author: yacosta738
       # No context restriction — provisioning logic depends on role-owner in ALL environments.
       # The ON CONFLICT clause makes this idempotent.
       changes:

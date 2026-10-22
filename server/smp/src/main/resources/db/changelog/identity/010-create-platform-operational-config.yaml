@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-010-create-platform-operational-config
-      author: identity
+      author: yacosta738
       changes:
         - createTable:
             tableName: platform_operational_config

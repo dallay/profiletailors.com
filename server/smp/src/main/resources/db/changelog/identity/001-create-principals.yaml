@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-001-create-principals
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: principals

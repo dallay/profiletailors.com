@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: privacy-001-create-data-subject-requests
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: data_subject_requests

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: hashtags-001-create-hashtag-saved-sets
-      author: profiletailors
+      author: yacosta738
       changes:
         - createTable:
             tableName: hashtag_saved_sets

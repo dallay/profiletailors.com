@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: media-004-distinguish-legacy-storage-reservations
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:

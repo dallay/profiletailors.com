@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-010-seed-consent-permission
-      author: sdd-apply
+      author: yacosta738
       changes:
         - sql:
             sql: >-

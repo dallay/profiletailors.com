@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-007-evidence-links-and-review-at
-      author: sdd-apply
+      author: yacosta738
       changes:
         - addColumn:
             tableName: compliance_evidences

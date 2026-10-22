@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: shortlinks-003-create-link-clicks
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: link_clicks

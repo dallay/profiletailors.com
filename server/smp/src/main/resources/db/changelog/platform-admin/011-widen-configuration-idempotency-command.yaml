@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-011-widen-configuration-idempotency-command
-      author: platform-admin
+      author: yacosta738
       changes:
         - modifyDataType:
             tableName: platform_admin_configuration_idempotency

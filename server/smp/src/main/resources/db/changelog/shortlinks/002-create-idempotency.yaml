@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: shortlinks-002-create-idempotency
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: shortlink_idempotency

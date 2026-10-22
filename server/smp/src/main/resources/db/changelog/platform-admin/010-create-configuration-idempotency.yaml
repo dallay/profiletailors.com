@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-010-create-configuration-idempotency
-      author: platform-admin
+      author: yacosta738
       changes:
         - createTable:
             tableName: platform_admin_configuration_idempotency

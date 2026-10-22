@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-011-seed-governance-permissions
-      author: sdd-apply
+      author: yacosta738
       changes:
         - sql:
             sql: >-

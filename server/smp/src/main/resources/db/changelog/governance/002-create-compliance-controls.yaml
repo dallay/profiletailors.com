@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-002-create-compliance-controls
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: compliance_controls

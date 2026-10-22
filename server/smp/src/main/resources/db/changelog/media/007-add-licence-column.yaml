@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: media-007-add-licence-column
-      author: sdd-apply
+      author: yacosta738
       changes:
         - addColumn:
             tableName: media_assets
