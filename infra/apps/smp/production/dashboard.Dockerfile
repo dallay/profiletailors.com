@@ -17,6 +17,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 COPY shared shared
 COPY apps/web/app apps/web/app
+COPY scripts scripts
 
 ARG VITE_API_BASE_URL=""
 ARG GIT_SHA=""
