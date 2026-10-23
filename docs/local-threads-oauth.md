@@ -120,8 +120,9 @@ A `status=200` confirms that this JDK process trusts the Portless certificate an
 2. Start a **new** Threads connection from the dashboard. Do not reuse an old callback URL: OAuth `state` is short-lived and each attempt must begin with a fresh authorization request.
 3. The browser should visit `threads-mock.localhost`, then return to the dashboard callback.
 4. The dashboard submits the authorization code to `POST /api/publishing/threads/connections/complete`.
-5. SMP should exchange the code at `/oauth/access_token`, exchange the short-lived token at `/access_token`, refresh it with GET `/refresh_access_token`, fetch `/v1.0/me`, and complete the connection.
-6. Confirm Threads appears as connected in the dashboard and remains connected after reloading the page.
+5. During connection completion, SMP exchanges the authorization code at `/oauth/access_token`, exchanges the short-lived token at `/access_token`, then fetches the profile from `/v1.0/me`. Connection completion does not call the refresh endpoint.
+6. Later, credential resolution may refresh the stored Threads token with GET `/refresh_access_token` when a valid access token is needed.
+7. Confirm Threads appears as connected in the dashboard and remains connected after reloading the page.
 
 The mock profile is `wiremock_threads_user` with ID `local-wiremock-threads-user-001`. The access tokens are generated mock values and are not accepted by Meta.
 
