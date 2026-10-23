@@ -12,7 +12,7 @@ Provides a single source of truth for user consent and privacy standards across 
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
+- **Runtime & Language**: Node.js (`>=24.22.1`), TypeScript 6.0
 - **Validation**: Zod 4.4
 - **Testing**: Vitest 3.2 with JSDOM environment
 
@@ -20,7 +20,7 @@ Provides a single source of truth for user consent and privacy standards across 
 
 ### Prerequisites
 
-- Node.js `>= 24.19.0`
+- Node.js `>= 24.22.1`
 - pnpm `>= 11.8.0`
 
 ### Installation
