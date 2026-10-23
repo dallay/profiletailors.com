@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.17](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.16...admin@v0.0.17) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod to v4.6.7 ([#1380](https://github.com/dallay/profiletailors.com/issues/1380)) ([b46ecb0](https://github.com/dallay/profiletailors.com/commit/b46ecb0bee0164504fe23e445ee5467baf8e24e9))
+* Update OAuth endpoints and Node.js version in configuration ([#1386](https://github.com/dallay/profiletailors.com/issues/1386)) ([e2628c9](https://github.com/dallay/profiletailors.com/commit/e2628c9ab32810906aabf79983a915378768914c))
+
 ## [0.0.16](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.15...admin@v0.0.16) (2026-10-21)
 
 
