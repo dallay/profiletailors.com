@@ -209,6 +209,9 @@ publishing:
     redirect-uri: ${SMP_THREADS_REDIRECT_URI:}
     api-base-url: ${SMP_THREADS_API_BASE_URL:https://graph.threads.net}
     api-version: ${SMP_THREADS_API_VERSION:v1.0}
+    authorization-base-url: ${SMP_THREADS_AUTHORIZATION_URL:https://threads.com/oauth/authorize}
+    token-exchange-url: ${SMP_THREADS_TOKEN_EXCHANGE_URL:https://graph.threads.com/oauth/access_token}
+    long-lived-token-url: ${SMP_THREADS_LONG_LIVED_TOKEN_URL:https://graph.threads.net/access_token}
     required-scopes: ${SMP_THREADS_REQUIRED_SCOPES:threads_basic,threads_content_publish}
     refresh-ahead: ${SMP_THREADS_REFRESH_AHEAD:PT1H}
     container-poll-interval: ${SMP_THREADS_CONTAINER_POLL_INTERVAL:PT2S}
