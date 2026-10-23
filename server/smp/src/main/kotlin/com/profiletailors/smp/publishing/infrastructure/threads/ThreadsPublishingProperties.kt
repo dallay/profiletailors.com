@@ -12,6 +12,9 @@ data class ThreadsPublishingProperties(
     val redirectUri: String = "",
     val apiBaseUrl: String = "https://graph.threads.net",
     val apiVersion: String = "v1.0",
+    val authorizationBaseUrl: String = "https://threads.com/oauth/authorize",
+    val tokenExchangeUrl: String = "https://graph.threads.com/oauth/access_token",
+    val longLivedTokenUrl: String = "https://graph.threads.net/access_token",
     val requiredScopes: Set<String> = setOf("threads_basic", "threads_content_publish"),
     val refreshAhead: Duration = Duration.ofHours(1),
     val containerPollInterval: Duration = Duration.ofSeconds(2),
@@ -24,6 +27,9 @@ data class ThreadsPublishingProperties(
         clientSecret.isNotBlank() &&
         redirectUri.isAllowedHttpsRedirect() &&
         apiBaseUrl.isAllowedHttpsBaseUrl() &&
+        authorizationBaseUrl.isAllowedHttpsOAuthEndpoint() &&
+        tokenExchangeUrl.isAllowedHttpsOAuthEndpoint() &&
+        longLivedTokenUrl.isAllowedHttpsOAuthEndpoint() &&
         apiVersion.isNotBlank() &&
         requiredScopes == APPROVED_SCOPES &&
         refreshAhead.isPositive &&
@@ -60,6 +66,9 @@ private fun String.isAllowedHttpsBaseUrl(): Boolean = runCatching {
         uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null
     }
 }.getOrDefault(false)
+
+private fun String.isAllowedHttpsOAuthEndpoint(): Boolean =
+    isAllowedHttpsBaseUrl() && runCatching { URI.create(this).rawQuery == null }.getOrDefault(false)
 
 private val Duration.isPositive: Boolean
     get() = !isZero && !isNegative

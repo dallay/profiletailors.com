@@ -10,10 +10,13 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
 import java.time.Clock
@@ -66,26 +69,32 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         assertEquals("threads-access-token", resolver.resolve(account))
     }
 
-    @Test
-    fun `refreshes Threads credentials through the th_refresh_token grant`() = runTest {
-        val fixture = buildThreadsRefreshFixture(responseBody = SUCCESS_REFRESH_BODY)
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            """{"access_token":"new-access-token","expires_in":3600}""",
+            """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"unused-refresh-token"}""",
+        ],
+    )
+    fun `should store the new access token when the Threads refresh succeeds`(responseBody: String) = runTest {
+        val fixture = buildThreadsRefreshFixture(responseBody = responseBody)
         val token = fixture.resolver.resolve(fixture.account)
 
         assertEquals("new-access-token", token)
+        assertEquals("GET", fixture.transport.lastRequest?.method())
         assertEquals(
-            "https://graph.threads.net/v1.0/refresh_access_token",
+            "https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=old-refresh-token",
             fixture.transport.lastRequest?.uri()?.toString(),
         )
-        val body = fixture.transport.lastRequestBody
-        check(body != null)
-        check(body.contains("grant_type=th_refresh_token"))
-        check(body.contains("access_token=old-refresh-token"))
-        check(!body.contains("client_id"))
-        check(!body.contains("client_secret"))
+        val request = fixture.transport.lastRequest
+        check(request != null)
+        check(request.uri().rawQuery.contains("grant_type=th_refresh_token"))
+        check(request.uri().rawQuery.contains("access_token=old-refresh-token"))
+        check(!request.uri().rawQuery.contains("client_secret"))
         val stored = fixture.gateway.lastStored
         check(stored != null)
         assertEquals("new-access-token", stored.accessToken)
-        assertEquals("new-refresh-token", stored.refreshToken)
+        stored.refreshToken shouldBe "new-access-token"
     }
 
     @Test
@@ -155,6 +164,12 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
             httpTransport = transport,
             objectMapper = com.fasterxml.jackson.databind.ObjectMapper(),
             clock = Clock.fixed(fixedNow, ZoneOffset.UTC),
+            threadsProperties = com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishingProperties(
+                apiBaseUrl = "https://graph.threads.net",
+                clientId = "threads-client",
+                clientSecret = "threads-secret",
+                redirectUri = "https://app.example/threads/callback",
+            ),
         )
         return ThreadsRefreshFixture(resolver, gateway, transport, account)
     }
@@ -239,11 +254,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         status = SocialConnectionStatus.ACTIVE,
     )
 
-    companion object {
-        private const val SUCCESS_REFRESH_BODY =
-            """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"new-refresh-token"}"""
-    }
-
     private class FakeProviderCredentialGateway(private val id: UUID, private var credentials: ProviderCredentials) :
         ProviderCredentialGateway {
         var lastStored: ProviderCredentials? = null
@@ -280,9 +290,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
     private class RecordingHttpTransport(private val response: LinkedInHttpResponse) : LinkedInHttpTransport {
         var lastRequest: HttpRequest? = null
             private set
-        var lastRequestBody: String? = null
-            private set
-
         override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
             lastRequest = request
             request.bodyPublisher().ifPresent { publisher ->
@@ -301,7 +308,6 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
                     override fun onComplete() = latch.countDown()
                 })
                 check(latch.await(1, java.util.concurrent.TimeUnit.SECONDS))
-                lastRequestBody = sink.toString(Charsets.UTF_8)
             }
             return response
         }
