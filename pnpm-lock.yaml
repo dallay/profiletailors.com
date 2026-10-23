@@ -261,8 +261,8 @@ importers:
         specifier: ^2.0.9
         version: 2.0.9
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -385,8 +385,8 @@ importers:
         specifier: ^7.4.1
         version: 7.4.1
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.13.0
@@ -559,8 +559,8 @@ importers:
   shared/web:
     dependencies:
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@vitest/ui':
         specifier: ^5.0.5
@@ -578,8 +578,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       typescript:
         specifier: ^7.0.2
