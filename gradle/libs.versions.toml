@@ -14,8 +14,8 @@ jdk = "25"
 
 # Libraries
 coroutines = "1.10.2"
-jackson = "3.2.3"
-jackson2 = "2.22.3"
+jackson = "3.2.4"
+jackson2 = "2.22.4"
 slf4j = "2.0.20"
 commonsText = "1.15.0"
 resend = "4.28.0"
