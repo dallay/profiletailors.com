@@ -35,10 +35,10 @@ assertj = "3.27.7"
 mockk = "1.14.11"
 testcontainers = "1.21.4"
 cucumber = "7.34.9"
-archunit = "1.5.0"
+archunit = "1.5.1"
 kover = "0.9.11"
-kotest = "6.2.5"
-konsist = "0.17.3"
+kotest = "6.2.6"
+konsist = "0.18.1"
 
 [libraries]
 # Kotlin
