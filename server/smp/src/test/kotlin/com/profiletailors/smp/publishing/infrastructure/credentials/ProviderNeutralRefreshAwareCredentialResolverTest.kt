@@ -67,7 +67,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
     }
 
     @Test
-    fun `refreshes Threads credentials through the th_refresh_token grant`() = runTest {
+    fun `should store the new access token when the Threads refresh succeeds`() = runTest {
         val fixture = buildThreadsRefreshFixture(responseBody = SUCCESS_REFRESH_BODY)
         val token = fixture.resolver.resolve(fixture.account)
 
@@ -85,7 +85,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
         val stored = fixture.gateway.lastStored
         check(stored != null)
         assertEquals("new-access-token", stored.accessToken)
-        assertEquals("new-refresh-token", stored.refreshToken)
+        assertEquals("new-access-token", stored.refreshToken)
     }
 
     @Test
@@ -247,7 +247,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
 
     companion object {
         private const val SUCCESS_REFRESH_BODY =
-            """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"new-refresh-token"}"""
+            """{"access_token":"new-access-token","expires_in":3600}"""
     }
 
     private class FakeProviderCredentialGateway(private val id: UUID, private var credentials: ProviderCredentials) :

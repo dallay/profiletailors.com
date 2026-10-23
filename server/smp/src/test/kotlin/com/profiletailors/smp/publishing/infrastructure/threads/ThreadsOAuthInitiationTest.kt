@@ -5,9 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.HmacOAuthStateSigner
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.net.URI
 import java.net.URLDecoder
@@ -35,20 +33,20 @@ class ThreadsOAuthInitiationTest {
             redirectUri = properties.redirectUri,
         )
         val uri = URI.create(url)
-        assertEquals("threads.com", uri.host)
-        assertEquals("/oauth/authorize", uri.path)
-        assertEquals("https", uri.scheme)
+        uri.host shouldBe "threads.com"
+        uri.path shouldBe "/oauth/authorize"
+        uri.scheme shouldBe "https"
         val query = uri.rawQuery.split('&').associate {
             it.substringBefore('=') to URLDecoder.decode(it.substringAfter('='), StandardCharsets.UTF_8)
         }
 
-        assertEquals("threads-client", query["client_id"])
-        assertEquals("code", query["response_type"])
-        assertEquals(properties.requiredScopes.joinToString(","), query["scope"])
-        assertEquals(state, query["state"])
-        assertEquals(properties.redirectUri, query["redirect_uri"])
-        assertFalse(query.containsKey("code_challenge"))
-        assertFalse(query.containsKey("code_challenge_method"))
+        query["client_id"] shouldBe "threads-client"
+        query["response_type"] shouldBe "code"
+        query["scope"] shouldBe properties.requiredScopes.joinToString(",")
+        query["state"] shouldBe state
+        query["redirect_uri"] shouldBe properties.redirectUri
+        query.containsKey("code_challenge") shouldBe false
+        query.containsKey("code_challenge_method") shouldBe false
     }
 
     @Test
@@ -66,7 +64,7 @@ class ThreadsOAuthInitiationTest {
         val signer = HmacOAuthStateSigner("unit-secret-with-enough-entropy", objectMapper, clock)
         val verified = signer.verify(signer.sign(payload))
 
-        assertEquals(payload, verified)
-        assertTrue(verified.expiresAt.isAfter(verified.issuedAt))
+        verified shouldBe payload
+        verified.expiresAt.isAfter(verified.issuedAt) shouldBe true
     }
 }

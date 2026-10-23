@@ -24,7 +24,7 @@ class ThreadsPublishingPropertiesTest {
     }
 
     @Test
-    fun `enabled threads accepts only approved scopes and safe redirect`() {
+    fun `should accept only approved scopes and safe redirects when threads is enabled`() {
         val properties = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",
@@ -38,7 +38,46 @@ class ThreadsPublishingPropertiesTest {
     }
 
     @Test
-    fun `enabled threads rejects unsupported scopes and invalid workflow budget`() {
+    fun `should reject non-https oauth endpoints when threads is enabled`() {
+        val baseProperties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        baseProperties.copy(authorizationBaseUrl = "http://threads.example/oauth/authorize").isConfigured() shouldBe
+            false
+        baseProperties.copy(tokenExchangeUrl = "http://threads.example/oauth/access_token").isConfigured() shouldBe
+            false
+        baseProperties.copy(longLivedTokenUrl = "http://threads.example/access_token").isConfigured() shouldBe false
+    }
+
+    @Test
+    fun `should reject oauth endpoints with query components when threads is enabled`() {
+        val baseProperties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        baseProperties.copy(
+            authorizationBaseUrl = "https://threads.example/oauth/authorize?mode=test",
+        ).isConfigured() shouldBe
+            false
+        baseProperties.copy(
+            tokenExchangeUrl = "https://threads.example/oauth/access_token?mode=test",
+        ).isConfigured() shouldBe
+            false
+        baseProperties.copy(
+            longLivedTokenUrl = "https://threads.example/access_token?mode=test",
+        ).isConfigured() shouldBe
+            false
+    }
+
+    @Test
+    fun `should reject unsupported scopes and invalid workflow budgets when threads is enabled`() {
         val invalidScopes = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",

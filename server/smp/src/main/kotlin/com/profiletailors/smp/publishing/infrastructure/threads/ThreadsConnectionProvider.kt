@@ -40,7 +40,7 @@ class ThreadsConnectionProvider(
         val credentials = ProviderCredentials(
             provider = SocialProvider.THREADS,
             accessToken = longLived.accessToken,
-            refreshToken = null,
+            refreshToken = longLived.accessToken,
             expiresAtEpochSeconds = longLived.expiresIn?.let { clock.instant().epochSecond + it },
             grantedScopes = properties.requiredScopes.sorted().joinToString(" "),
             scope = properties.requiredScopes.sorted().joinToString(" "),

@@ -17,7 +17,7 @@ Run `just -l` or `make help` to see all available commands.
 | Requirement | Version      | Install                                                                |
 | ----------- | ------------ | ---------------------------------------------------------------------- |
 | Java        | `>= 25`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
-| Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                       |
+| Node.js     | `>= 24.22.1` | [nodejs.org](https://nodejs.org)                                       |
 | pnpm        | `>= 11.20.0` | `npm install -g pnpm@11.20.0`                                          |
 | just / make | `>= 1.30` / GNU Make | `just` runner or GNU `make` (pre-installed on Linux/macOS)             |
 | Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
@@ -181,7 +181,7 @@ Key recipes:
 
 ### pnpm install fails with "Unsupported engine"
 
-Node.js version is too old. Upgrade to `>= 24.19.0`:
+Node.js version is too old. Upgrade to `>= 24.22.1`:
 
 ```bash
 nvm install 24
