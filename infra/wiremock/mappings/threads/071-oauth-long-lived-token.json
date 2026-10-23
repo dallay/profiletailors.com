@@ -2,7 +2,7 @@
   "priority": 10,
   "request": {
     "method": "GET",
-    "urlPath": "/v1.0/access_token",
+    "urlPath": "/access_token",
     "queryParameters": {
       "grant_type": { "equalTo": "th_exchange_token" },
       "client_secret": { "matches": ".+" },

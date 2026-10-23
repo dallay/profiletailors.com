@@ -2,11 +2,12 @@
   "priority": 10,
   "request": {
     "method": "GET",
-    "urlPath": "/v1.0/oauth/authorize",
+    "urlPath": "/oauth/authorize",
     "queryParameters": {
-      "response_type": {
-        "equalTo": "code"
-      }
+      "client_id": { "matches": ".+" },
+      "redirect_uri": { "matches": ".+" },
+      "scope": { "matches": ".+" },
+      "response_type": { "equalTo": "code" }
     }
   },
   "response": {

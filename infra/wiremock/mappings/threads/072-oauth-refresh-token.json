@@ -1,15 +1,12 @@
 {
   "priority": 10,
   "request": {
-    "method": "POST",
-    "urlPath": "/v1.0/refresh_access_token",
-    "headers": {
-      "Content-Type": { "contains": "application/x-www-form-urlencoded" }
-    },
-    "bodyPatterns": [
-      { "matchesJsonPath": "$.grant_type" },
-      { "matchesJsonPath": "$.access_token" }
-    ]
+    "method": "GET",
+    "urlPath": "/refresh_access_token",
+    "queryParameters": {
+      "grant_type": { "equalTo": "th_refresh_token" },
+      "access_token": { "matches": ".+" }
+    }
   },
   "response": {
     "status": 200,
