@@ -6,8 +6,6 @@ import com.profiletailors.smp.publishing.domain.OAuthStatePayload
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.linkedin.HmacOAuthStateSigner
 import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.net.URI
 import java.net.URLDecoder
@@ -47,8 +45,8 @@ class ThreadsOAuthInitiationTest {
         query["scope"] shouldBe properties.requiredScopes.joinToString(",")
         query["state"] shouldBe state
         query["redirect_uri"] shouldBe properties.redirectUri
-        assertFalse(query.containsKey("code_challenge"))
-        assertFalse(query.containsKey("code_challenge_method"))
+        query.containsKey("code_challenge") shouldBe false
+        query.containsKey("code_challenge_method") shouldBe false
     }
 
     @Test
@@ -67,6 +65,6 @@ class ThreadsOAuthInitiationTest {
         val verified = signer.verify(signer.sign(payload))
 
         verified shouldBe payload
-        assertTrue(verified.expiresAt.isAfter(verified.issuedAt))
+        verified.expiresAt.isAfter(verified.issuedAt) shouldBe true
     }
 }

@@ -76,7 +76,7 @@ class ProviderNeutralRefreshAwareCredentialResolverTest {
             """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"unused-refresh-token"}""",
         ],
     )
-    fun `refreshes Threads credentials through the th_refresh_token grant`(responseBody: String) = runTest {
+    fun `should store the new access token when the Threads refresh succeeds`(responseBody: String) = runTest {
         val fixture = buildThreadsRefreshFixture(responseBody = responseBody)
         val token = fixture.resolver.resolve(fixture.account)
 

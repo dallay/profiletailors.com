@@ -51,7 +51,7 @@ class ThreadsPublishingPropertiesTest {
             "https://invalid host/oauth",
         ],
     )
-    fun `enabled threads requires every endpoint to be a safe HTTPS URL`(endpoint: String) {
+    fun `should reject unsafe HTTPS URLs when threads is enabled`(endpoint: String) {
         val properties = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",
@@ -71,7 +71,26 @@ class ThreadsPublishingPropertiesTest {
     }
 
     @Test
-    fun `enabled threads accepts safe HTTPS endpoint overrides`() {
+    fun `should reject OAuth endpoint URLs with query components when threads is enabled`() {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        listOf(
+            properties.copy(authorizationBaseUrl = "https://threads.example/oauth/authorize?mode=test"),
+            properties.copy(tokenExchangeUrl = "https://threads.example/oauth/access_token?mode=test"),
+            properties.copy(longLivedTokenUrl = "https://threads.example/access_token?mode=test"),
+        ).forEach { invalidProperties ->
+            invalidProperties.isConfigured() shouldBe false
+            shouldThrow<IllegalStateException> { invalidProperties.validate() }
+        }
+    }
+
+    @Test
+    fun `should accept safe HTTPS endpoint overrides when threads is enabled`() {
         val properties = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",
@@ -88,7 +107,7 @@ class ThreadsPublishingPropertiesTest {
     }
 
     @Test
-    fun `enabled threads rejects unsupported scopes and invalid workflow budget`() {
+    fun `should reject unsupported scopes and invalid workflow budgets when threads is enabled`() {
         val invalidScopes = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",

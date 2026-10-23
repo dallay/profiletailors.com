@@ -7,9 +7,9 @@ import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCred
 import com.profiletailors.smp.publishing.infrastructure.credentials.ProviderCredentials
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
@@ -89,7 +89,7 @@ class ThreadsConnectionProviderTest {
             LinkedInHttpResponse(400, HttpHeaders.of(emptyMap()) { _, _ -> true }, body),
         )
 
-        val exception = assertThrows(IllegalStateException::class.java) {
+        val exception = shouldThrow<IllegalStateException> {
             kotlinx.coroutines.runBlocking {
                 ThreadsConnectionProvider(
                     properties,

@@ -27,9 +27,9 @@ data class ThreadsPublishingProperties(
         clientSecret.isNotBlank() &&
         redirectUri.isAllowedHttpsRedirect() &&
         apiBaseUrl.isAllowedHttpsBaseUrl() &&
-        authorizationBaseUrl.isAllowedHttpsBaseUrl() &&
-        tokenExchangeUrl.isAllowedHttpsBaseUrl() &&
-        longLivedTokenUrl.isAllowedHttpsBaseUrl() &&
+        authorizationBaseUrl.isAllowedHttpsOAuthEndpoint() &&
+        tokenExchangeUrl.isAllowedHttpsOAuthEndpoint() &&
+        longLivedTokenUrl.isAllowedHttpsOAuthEndpoint() &&
         apiVersion.isNotBlank() &&
         requiredScopes == APPROVED_SCOPES &&
         refreshAhead.isPositive &&
@@ -66,6 +66,9 @@ private fun String.isAllowedHttpsBaseUrl(): Boolean = runCatching {
         uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null
     }
 }.getOrDefault(false)
+
+private fun String.isAllowedHttpsOAuthEndpoint(): Boolean =
+    isAllowedHttpsBaseUrl() && runCatching { URI.create(this).rawQuery == null }.getOrDefault(false)
 
 private val Duration.isPositive: Boolean
     get() = !isZero && !isNegative
