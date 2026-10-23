@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.13](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.12...smp@v0.5.13) (2026-10-23)
+
+
+### Bug Fixes
+
+* **threads:** update OAuth endpoints ([#1376](https://github.com/dallay/profiletailors.com/issues/1376)) ([05be74f](https://github.com/dallay/profiletailors.com/commit/05be74f6fbb84fb6f736628577926264ceeb687b))
+
 ## [0.5.12](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.11...smp@v0.5.12) (2026-10-22)
 
 
