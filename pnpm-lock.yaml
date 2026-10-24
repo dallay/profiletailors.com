@@ -207,8 +207,8 @@ importers:
   apps/web/admin:
     dependencies:
       '@lucide/vue':
-        specifier: 1.49.0
-        version: 1.49.0(vue@3.5.43(typescript@6.0.3))
+        specifier: 1.61.0
+        version: 1.61.0(vue@3.5.43(typescript@6.0.3))
       '@profiletailors/shared-web':
         specifier: workspace:*
         version: link:../../../shared/web
@@ -219,8 +219,8 @@ importers:
         specifier: 11.2.0
         version: 11.2.0(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
       '@tanstack/vue-table':
-        specifier: ^9.2.4
-        version: 9.2.4(vue@3.5.43(typescript@6.0.3))
+        specifier: ^9.3.1
+        version: 9.3.1(vue@3.5.43(typescript@6.0.3))
       '@vueuse/core':
         specifier: ^15.0.0
         version: 15.0.0(vue@3.5.43(typescript@6.0.3))
@@ -234,8 +234,8 @@ importers:
         specifier: 4.0.3
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3))
       reka-ui:
-        specifier: 2.10.5
-        version: 2.10.5(vue@3.5.43(typescript@6.0.3))
+        specifier: 2.11.0
+        version: 2.11.0(vue@3.5.43(typescript@6.0.3))
       shadcn-vue:
         specifier: 2.8.2
         version: 2.8.2(babel-plugin-macros@3.1.0)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(magicast@0.5.5)(supports-color@10.2.2)(vue@3.5.43(typescript@6.0.3))
@@ -313,8 +313,8 @@ importers:
         specifier: 3.12.4
         version: 3.12.4
       '@lucide/vue':
-        specifier: 1.49.0
-        version: 1.49.0(vue@3.5.43(typescript@6.0.3))
+        specifier: 1.61.0
+        version: 1.61.0(vue@3.5.43(typescript@6.0.3))
       '@profiletailors/shared-web':
         specifier: workspace:*
         version: link:../../../shared/web
@@ -325,8 +325,8 @@ importers:
         specifier: 11.2.0
         version: 11.2.0(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
       '@tanstack/vue-table':
-        specifier: ^9.2.4
-        version: 9.2.4(vue@3.5.43(typescript@6.0.3))
+        specifier: ^9.3.1
+        version: 9.3.1(vue@3.5.43(typescript@6.0.3))
       '@unovis/vue':
         specifier: ^1.7.1
         version: 1.7.1(@unovis/ts@1.7.1(supports-color@10.2.2))(vue@3.5.43(typescript@6.0.3))
@@ -340,8 +340,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       driver.js:
-        specifier: ^1.8.0
-        version: 1.8.0
+        specifier: ^1.10.2
+        version: 1.10.2
       embla-carousel-vue:
         specifier: ^8.6.0
         version: 8.6.0(vue@3.5.43(typescript@6.0.3))
@@ -349,8 +349,8 @@ importers:
         specifier: 4.0.3
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3))
       reka-ui:
-        specifier: 2.10.5
-        version: 2.10.5(vue@3.5.43(typescript@6.0.3))
+        specifier: 2.11.0
+        version: 2.11.0(vue@3.5.43(typescript@6.0.3))
       shadcn-vue:
         specifier: 2.8.2
         version: 2.8.2(babel-plugin-macros@3.1.0)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(magicast@0.5.5)(supports-color@10.2.2)(vue@3.5.43(typescript@6.0.3))
@@ -362,7 +362,7 @@ importers:
         version: 1.4.0
       vaul-vue:
         specifier: ^0.4.1
-        version: 0.4.1(reka-ui@2.10.5(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
+        version: 0.4.1(reka-ui@2.11.0(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
       vee-validate:
         specifier: ^4.15.1
         version: 4.15.1(vue@3.5.43(typescript@6.0.3))
@@ -519,8 +519,8 @@ importers:
   shared/vue-ui:
     dependencies:
       '@lucide/vue':
-        specifier: 1.49.0
-        version: 1.49.0(vue@3.5.43(typescript@7.0.2))
+        specifier: 1.61.0
+        version: 1.61.0(vue@3.5.43(typescript@7.0.2))
       '@vueuse/core':
         specifier: ^15.0.0
         version: 15.0.0(vue@3.5.43(typescript@7.0.2))
@@ -531,14 +531,14 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       reka-ui:
-        specifier: 2.10.5
-        version: 2.10.5(vue@3.5.43(typescript@7.0.2))
+        specifier: 2.11.0
+        version: 2.11.0(vue@3.5.43(typescript@7.0.2))
       tailwind-merge:
         specifier: 3.7.0
         version: 3.7.0
       vaul-vue:
         specifier: ^0.4.1
-        version: 0.4.1(reka-ui@2.10.5(vue@3.5.43(typescript@7.0.2)))(vue@3.5.43(typescript@7.0.2))
+        version: 0.4.1(reka-ui@2.11.0(vue@3.5.43(typescript@7.0.2)))(vue@3.5.43(typescript@7.0.2))
       vue-router:
         specifier: 5.3.1
         version: 5.3.1(@vue/compiler-sfc@3.5.43)(esbuild@0.28.1)(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@7.0.2)(vue@3.5.43(typescript@7.0.2)))(rolldown@1.2.12)(rollup@4.63.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(stylus@0.57.0(supports-color@10.2.2))(terser@5.51.2)(yaml@2.9.1))(vue@3.5.43(typescript@7.0.2))
@@ -1819,8 +1819,10 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@floating-ui/vue@1.1.11':
-    resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
+  '@floating-ui/vue@2.0.1':
+    resolution: {integrity: sha512-043dyEKD9TDSfz080YH2vobubgg+NIo/9Fw4RAl7sEMpD8Am1DNrrSTl/GpMBjyGHoD/FbJY2QLawY+HSQsEIA==}
+    peerDependencies:
+      vue: '>=3.3.0'
 
   '@hono/node-server@2.1.3':
     resolution: {integrity: sha512-TA//nWMqPhbfdfneACk6t5a9eqbS9lABEPyKn0/xZTah3H3U2XaVg85rJFl0/Fyit0I552YDHgXGVSf3GwqbUw==}
@@ -2240,8 +2242,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lucide/vue@1.49.0':
-    resolution: {integrity: sha512-7xS5gYnLoIx0jlmlRE3Rb71fIHaNqhVBiKMpOlqrYt6nMPy3C/62HJHo5XNsV3HTK+9l3M0hXICrIA7S5v6y5Q==}
+  '@lucide/vue@1.61.0':
+    resolution: {integrity: sha512-XYclbwUQ6Mvf0UskBG9gJH91BdF3VK4Tt6Pv8PSntwPwNnf357PCQnma4TrzOEdwD49UYCtsTafpfytRIxm1cQ==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -3105,15 +3107,15 @@ packages:
   '@tanstack/store@0.11.2':
     resolution: {integrity: sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q==}
 
-  '@tanstack/table-core@9.2.4':
-    resolution: {integrity: sha512-GwdDyGGr6UXAtubF14yAwcXvdaogqfsQgIk89Suebjxob/Rjq2xvfmXsjDF1rQmKmhHsJm9TOY7myxv3i6geJw==}
+  '@tanstack/table-core@9.3.1':
+    resolution: {integrity: sha512-zQvlxSNi2qGM3L4jh85Z6hqMfdIR5qOfD9KHOU32nuKFJGN0RlJ7UvV1lsPb1fPVhpFYI0VP3jJGxLdLDpTKjQ==}
     engines: {node: '>=20'}
 
   '@tanstack/virtual-core@3.17.11':
     resolution: {integrity: sha512-+ILjvtHup6Y2hzQ6YzwMgX1Q+oQpxEGOXCEsCNaPoIP0VxMbizIBTmYTDtkerkIQS8/CbP1BRuyt8V/8BCsy1g==}
 
-  '@tanstack/vue-table@9.2.4':
-    resolution: {integrity: sha512-GSD6ZkeQvADs6u9KUyhUuiD+qYgA+Lt6hTBDSEadCBIbC8q2SaoHzseLwgDKVUnRClTIMj9+NwCEF+Gp3P7ChQ==}
+  '@tanstack/vue-table@9.3.1':
+    resolution: {integrity: sha512-7z7nS4UP91rLZ01suGxQBT611ogfBrs7/E+lsKeYS9XdHSRUAzclFvQ4B10F0bC/Q8BrzgXiNH3QzumK7b0Tow==}
     engines: {node: '>=20'}
     peerDependencies:
       vue: '>=3.2'
@@ -4542,8 +4544,8 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  driver.js@1.8.0:
-    resolution: {integrity: sha512-+8/IO7h1v14IzWh2GP60N7T3PFZweXwdn5e5POuxRSBoCYUojsBxzqawPeXh3YZIibRy7EehYNEyxe7slwwtdg==}
+  driver.js@1.10.2:
+    resolution: {integrity: sha512-L/EMTriJPAmg+5kIFmrjzt3TI+1NblhHOV/UZkfpgU/uxhSflGheynMBxk5oImDSy6seAEkIl6MzNOc0zdoKtg==}
 
   dset@3.1.4:
     resolution: {integrity: sha512-2QF/g9/zTaPDc3BjNcVTGoBbXBgYfMTTceLaYcFJ/W9kggFUkhxD/hMEeuLKbugyef9SqAx8cpgwlIP/jinUTA==}
@@ -6374,8 +6376,8 @@ packages:
     resolution: {integrity: sha512-ycwFAS14Jw4mppvmK4GR/J6u3WpWpjkEApehuHtLc/8VpPNpDMbQ4WjqwplXifGeyKOzHSFLmSPqzksDQE2Sfg==}
     hasBin: true
 
-  reka-ui@2.10.5:
-    resolution: {integrity: sha512-/8o0y9BThE0hcHKFg+3770tWcJh3qKdOEFxLOPb9HIajXeFoH/J530cZH62jUJunbqwBgpSBL9v7nB8LJ5pDXA==}
+  reka-ui@2.11.0:
+    resolution: {integrity: sha512-ilkpm4bIAol4jwzm4tpm3WVcffyGOpqksNZL1k1qO9QmIwAA+q8jroxjkUGLEn/GddfdExFfvofWfQiKZszUeQ==}
     peerDependencies:
       vue: '>= 3.4.0'
 
@@ -7746,9 +7748,6 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -9126,23 +9125,17 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@floating-ui/vue@1.1.11(vue@3.5.43(typescript@6.0.3))':
+  '@floating-ui/vue@2.0.1(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@floating-ui/utils': 0.2.12
-      vue-demi: 0.14.10(vue@3.5.43(typescript@6.0.3))
-    transitivePeerDependencies:
-      - '@vue/composition-api'
-      - vue
+      vue: 3.5.43(typescript@6.0.3)
 
-  '@floating-ui/vue@1.1.11(vue@3.5.43(typescript@7.0.2))':
+  '@floating-ui/vue@2.0.1(vue@3.5.43(typescript@7.0.2))':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@floating-ui/utils': 0.2.12
-      vue-demi: 0.14.10(vue@3.5.43(typescript@7.0.2))
-    transitivePeerDependencies:
-      - '@vue/composition-api'
-      - vue
+      vue: 3.5.43(typescript@7.0.2)
 
   '@hono/node-server@2.1.3(hono@4.13.12)':
     dependencies:
@@ -9463,11 +9456,11 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lucide/vue@1.49.0(vue@3.5.43(typescript@6.0.3))':
+  '@lucide/vue@1.61.0(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       vue: 3.5.43(typescript@6.0.3)
 
-  '@lucide/vue@1.49.0(vue@3.5.43(typescript@7.0.2))':
+  '@lucide/vue@1.61.0(vue@3.5.43(typescript@7.0.2))':
     dependencies:
       vue: 3.5.43(typescript@7.0.2)
 
@@ -10109,16 +10102,16 @@ snapshots:
 
   '@tanstack/store@0.11.2': {}
 
-  '@tanstack/table-core@9.2.4':
+  '@tanstack/table-core@9.3.1':
     dependencies:
       '@tanstack/store': 0.11.2
 
   '@tanstack/virtual-core@3.17.11': {}
 
-  '@tanstack/vue-table@9.2.4(vue@3.5.43(typescript@6.0.3))':
+  '@tanstack/vue-table@9.3.1(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       '@tanstack/store': 0.11.2
-      '@tanstack/table-core': 9.2.4
+      '@tanstack/table-core': 9.3.1
       vue: 3.5.43(typescript@6.0.3)
 
   '@tanstack/vue-virtual@3.13.39(vue@3.5.43(typescript@6.0.3))':
@@ -11846,7 +11839,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  driver.js@1.8.0: {}
+  driver.js@1.10.2: {}
 
   dset@3.1.4: {}
 
@@ -13865,10 +13858,9 @@ snapshots:
     dependencies:
       jsesc: 3.1.0
 
-  reka-ui@2.10.5(vue@3.5.43(typescript@6.0.3)):
+  reka-ui@2.11.0(vue@3.5.43(typescript@6.0.3)):
     dependencies:
-      '@floating-ui/dom': 1.8.0
-      '@floating-ui/vue': 1.1.11(vue@3.5.43(typescript@6.0.3))
+      '@floating-ui/vue': 2.0.1(vue@3.5.43(typescript@6.0.3))
       '@internationalized/date': 3.12.4
       '@internationalized/number': 3.6.8
       '@tanstack/vue-virtual': 3.13.39(vue@3.5.43(typescript@6.0.3))
@@ -13878,13 +13870,10 @@ snapshots:
       defu: 6.1.7
       ohash: 2.0.12
       vue: 3.5.43(typescript@6.0.3)
-    transitivePeerDependencies:
-      - '@vue/composition-api'
 
-  reka-ui@2.10.5(vue@3.5.43(typescript@7.0.2)):
+  reka-ui@2.11.0(vue@3.5.43(typescript@7.0.2)):
     dependencies:
-      '@floating-ui/dom': 1.8.0
-      '@floating-ui/vue': 1.1.11(vue@3.5.43(typescript@7.0.2))
+      '@floating-ui/vue': 2.0.1(vue@3.5.43(typescript@7.0.2))
       '@internationalized/date': 3.12.4
       '@internationalized/number': 3.6.8
       '@tanstack/vue-virtual': 3.13.39(vue@3.5.43(typescript@7.0.2))
@@ -13894,8 +13883,6 @@ snapshots:
       defu: 6.1.7
       ohash: 2.0.12
       vue: 3.5.43(typescript@7.0.2)
-    transitivePeerDependencies:
-      - '@vue/composition-api'
 
   request-light@0.5.8: {}
 
@@ -14174,7 +14161,7 @@ snapshots:
       postcss: 8.5.28
       postcss-selector-parser: 7.1.6
       prompts: 2.4.2
-      reka-ui: 2.10.5(vue@3.5.43(typescript@6.0.3))
+      reka-ui: 2.11.0(vue@3.5.43(typescript@6.0.3))
       semver: 7.8.5
       stringify-object: 7.0.0
       tailwindcss: 4.3.3
@@ -14188,7 +14175,6 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
-      - '@vue/composition-api'
       - babel-plugin-macros
       - eslint
       - magicast
@@ -14841,18 +14827,18 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vaul-vue@0.4.1(reka-ui@2.10.5(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3)):
+  vaul-vue@0.4.1(reka-ui@2.11.0(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3)):
     dependencies:
       '@vueuse/core': 10.11.1(vue@3.5.43(typescript@6.0.3))
-      reka-ui: 2.10.5(vue@3.5.43(typescript@6.0.3))
+      reka-ui: 2.11.0(vue@3.5.43(typescript@6.0.3))
       vue: 3.5.43(typescript@6.0.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
 
-  vaul-vue@0.4.1(reka-ui@2.10.5(vue@3.5.43(typescript@7.0.2)))(vue@3.5.43(typescript@7.0.2)):
+  vaul-vue@0.4.1(reka-ui@2.11.0(vue@3.5.43(typescript@7.0.2)))(vue@3.5.43(typescript@7.0.2)):
     dependencies:
       '@vueuse/core': 10.11.1(vue@3.5.43(typescript@7.0.2))
-      reka-ui: 2.10.5(vue@3.5.43(typescript@7.0.2))
+      reka-ui: 2.11.0(vue@3.5.43(typescript@7.0.2))
       vue: 3.5.43(typescript@7.0.2)
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -15137,10 +15123,9 @@ snapshots:
   vue-input-otp@0.4.0(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)):
     dependencies:
       '@vueuse/core': 12.8.2(typescript@6.0.3)
-      reka-ui: 2.10.5(vue@3.5.43(typescript@6.0.3))
+      reka-ui: 2.11.0(vue@3.5.43(typescript@6.0.3))
       vue: 3.5.43(typescript@6.0.3)
     transitivePeerDependencies:
-      - '@vue/composition-api'
       - typescript
 
   vue-metamorph@3.3.4(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2):
@@ -15565,8 +15550,6 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
-
-  zod@4.6.5: {}
 
   zod@4.6.7: {}
 
