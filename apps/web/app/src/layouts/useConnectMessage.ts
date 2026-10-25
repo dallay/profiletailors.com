@@ -1,4 +1,4 @@
-import { onBeforeUnmount, ref, type Ref } from 'vue'
+import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue'
 
 export interface UseConnectMessageOptions {
   defaultDurationMs?: number
@@ -44,12 +44,14 @@ export function useConnectMessage(opts: UseConnectMessageOptions = {}): UseConne
     }, durationMs)
   }
 
-  onBeforeUnmount(() => {
-    if (timer.value !== null) {
-      clearTimeout(timer.value)
-      timer.value = null
-    }
-  })
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      if (timer.value !== null) {
+        clearTimeout(timer.value)
+        timer.value = null
+      }
+    })
+  }
 
   return { message, show, clear }
 }

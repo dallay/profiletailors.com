@@ -1,4 +1,12 @@
-import { computed, nextTick, onMounted, useTemplateRef, watch, type ComputedRef } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  nextTick,
+  onMounted,
+  useTemplateRef,
+  watch,
+  type ComputedRef,
+} from 'vue'
 
 type SchedulerTimelineProps = {
   days: Date[]
@@ -38,7 +46,9 @@ export function useSchedulerTimeline(props: Readonly<SchedulerTimelineProps>): S
     () => nextTick(revealToday),
     { immediate: true },
   )
-  onMounted(revealToday)
+  if (getCurrentInstance()) {
+    onMounted(revealToday)
+  }
 
   return { nowMarkerStyle }
 }

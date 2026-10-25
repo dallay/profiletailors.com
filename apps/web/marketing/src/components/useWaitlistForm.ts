@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, type Ref } from 'vue'
+import { getCurrentInstance, onBeforeUnmount, onMounted, type Ref } from 'vue'
 import { buildWaitlistPayload, WAITLIST_KEY_DEFAULT } from './waitlist-form'
 import { isValidEmail } from './waitlist-form-validator'
 import { bindWaitlistShare, readWaitlistShareAttributes } from './waitlist-share'
@@ -138,15 +138,17 @@ function bindWaitlistForm(form: HTMLFormElement): (() => void) | undefined {
 export function useWaitlistForm(root: Readonly<Ref<HTMLElement | null>>): void {
   let unbind: (() => void) | undefined
 
-  onMounted(() => {
-    const form = root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')
-    if (form) {
-      unbind = bindWaitlistForm(form)
-      if (unbind) form.dataset.waitlistReady = 'true'
-    }
-  })
-  onBeforeUnmount(() => {
-    unbind?.()
-    root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')?.removeAttribute('data-waitlist-ready')
-  })
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      const form = root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')
+      if (form) {
+        unbind = bindWaitlistForm(form)
+        if (unbind) form.dataset.waitlistReady = 'true'
+      }
+    })
+    onBeforeUnmount(() => {
+      unbind?.()
+      root.value?.querySelector<HTMLFormElement>('[data-waitlist-form]')?.removeAttribute('data-waitlist-ready')
+    })
+  }
 }

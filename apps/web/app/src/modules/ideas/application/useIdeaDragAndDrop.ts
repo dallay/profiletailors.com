@@ -1,4 +1,4 @@
-import { ref, watch, nextTick, onBeforeUnmount, type Ref } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount, getCurrentInstance, type Ref } from 'vue'
 import {
   draggable,
   dropTargetForElements,
@@ -207,9 +207,11 @@ export function useIdeaDragAndDrop(options: UseIdeaDragAndDropOptions) {
     { immediate: true },
   )
 
-  onBeforeUnmount(() => {
-    cleanupDragAndDrop()
-  })
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      cleanupDragAndDrop()
+    })
+  }
 
   function unmount() {
     cleanupDragAndDrop()

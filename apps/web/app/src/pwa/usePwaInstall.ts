@@ -1,4 +1,4 @@
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, getCurrentInstance, onMounted, onBeforeUnmount, ref } from 'vue'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -24,13 +24,15 @@ export function usePwaInstall() {
     window.removeEventListener('beforeinstallprompt', onPrompt)
   }
 
-  onMounted(() => {
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    showIosGuide.value = isIosSafari()
-  })
-  onBeforeUnmount(() => {
-    window.removeEventListener('beforeinstallprompt', onPrompt)
-  })
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      window.addEventListener('beforeinstallprompt', onPrompt)
+      showIosGuide.value = isIosSafari()
+    })
+    onBeforeUnmount(() => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+    })
+  }
 
   const canInstall = computed(() => deferred.value !== null)
 

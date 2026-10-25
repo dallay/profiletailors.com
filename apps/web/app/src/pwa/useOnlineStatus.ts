@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { getCurrentInstance, onMounted, onUnmounted, ref, type Ref } from 'vue'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 
 export type Connectivity = 'checking' | 'online' | 'offline' | 'api-unreachable'
@@ -35,16 +35,18 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     }
   }
 
-  onMounted(() => {
-    void probe()
-    window.addEventListener('online', probe)
-    window.addEventListener('offline', probe)
-  })
-  onUnmounted(() => {
-    generation++
-    window.removeEventListener('online', probe)
-    window.removeEventListener('offline', probe)
-  })
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      void probe()
+      window.addEventListener('online', probe)
+      window.addEventListener('offline', probe)
+    })
+    onUnmounted(() => {
+      generation++
+      window.removeEventListener('online', probe)
+      window.removeEventListener('offline', probe)
+    })
+  }
 
   return { status, retry: probe }
 }

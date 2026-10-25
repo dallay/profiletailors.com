@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 
 export interface UsePopoverDismissalOptions {
   /** Ref pointing to the popover container element. */
@@ -103,16 +103,18 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
     )
   }
 
-  onMounted(() => {
-    document.addEventListener('click', handleDocumentClick)
-    document.addEventListener('keydown', handleKeydown)
-  })
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      document.addEventListener('click', handleDocumentClick)
+      document.addEventListener('keydown', handleKeydown)
+    })
 
-  onBeforeUnmount(() => {
-    document.removeEventListener('click', handleDocumentClick)
-    document.removeEventListener('keydown', handleKeydown)
-    stopRouteWatch?.()
-  })
+    onBeforeUnmount(() => {
+      document.removeEventListener('click', handleDocumentClick)
+      document.removeEventListener('keydown', handleKeydown)
+      stopRouteWatch?.()
+    })
+  }
 
   return { open, toggle, close, openIt }
 }
