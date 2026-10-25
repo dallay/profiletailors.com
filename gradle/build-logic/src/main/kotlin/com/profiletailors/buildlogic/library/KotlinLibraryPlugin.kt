@@ -21,6 +21,7 @@ class KotlinLibraryPlugin : ConventionPlugin {
         apply(plugin = "com.profiletailors.spotless")
         apply(plugin = catalogPlugin("kover").get().pluginId)
 
+        repositories.maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
         repositories.mavenCentral()
 
         val kotlinVersion = catalogVersion("kotlin")

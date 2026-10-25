@@ -110,10 +110,9 @@ internal class ComponentScanArchTest {
     @Test
     fun `should reject repository-port dependencies when HTTP infrastructure depends on them`() {
         val predicate = object : DescribedPredicate<JavaClass>(
-            "a *Repository in the application layer",
+            "a *Repository class",
         ) {
-            override fun test(input: JavaClass): Boolean = input.packageName.contains("application") &&
-                input.simpleName.endsWith("Repository")
+            override fun test(input: JavaClass): Boolean = input.simpleName.endsWith("Repository")
         }
         ArchRuleDefinition.noClasses()
             .that()

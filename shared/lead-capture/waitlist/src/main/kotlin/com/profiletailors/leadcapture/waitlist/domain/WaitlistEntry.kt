@@ -1,5 +1,6 @@
 package com.profiletailors.leadcapture.waitlist.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
@@ -7,6 +8,7 @@ import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import java.time.Instant
 
+@AggregateRoot
 class WaitlistEntry(
     val id: WaitlistEntryId,
     val waitlistId: WaitlistId,

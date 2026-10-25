@@ -1,5 +1,8 @@
 package com.profiletailors.leadcapture.waitlist.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class WaitlistStatus {
     DRAFT,
     ACTIVE,

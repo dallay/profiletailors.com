@@ -8,6 +8,7 @@ enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
 pluginManagement {
     includeBuild("gradle/build-logic")
     repositories {
+        maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
         mavenCentral()
         google()
         gradlePluginPortal()
@@ -17,6 +18,7 @@ pluginManagement {
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositories {
+        maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
         mavenCentral()
         google()
     }

@@ -1,5 +1,7 @@
 package com.profiletailors.notifications.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.util.UUID
 
@@ -10,6 +12,7 @@ import java.util.UUID
  * attempt, even if it is a retry of the same logical notification. The [idempotencyKey] is
  * what makes a retry idempotent: consumers must check it before sending to avoid duplicates.
  */
+@AggregateRoot
 data class Notification(
     val id: NotificationId,
     val idempotencyKey: IdempotencyKey,
@@ -85,6 +88,7 @@ data class Notification(
 
 /** Identifier for a persisted [Notification]. */
 @JvmInline
+@ValueObject
 value class NotificationId(val value: String) {
     init {
         require(value.isNotBlank()) { "Notification id cannot be blank" }
@@ -103,6 +107,7 @@ value class NotificationId(val value: String) {
  * repository before sending to avoid duplicates on retry.
  */
 @JvmInline
+@ValueObject
 value class IdempotencyKey(val value: String) {
     init {
         require(value.isNotBlank()) { "Idempotency key cannot be blank" }
@@ -111,6 +116,7 @@ value class IdempotencyKey(val value: String) {
 
 /** Email address or phone number the notification is addressed to. */
 @JvmInline
+@ValueObject
 value class Recipient(val value: String) {
     init {
         require(value.isNotBlank()) { "Recipient cannot be blank" }
@@ -119,6 +125,7 @@ value class Recipient(val value: String) {
 
 /** Identifier of the template used to render the notification. */
 @JvmInline
+@ValueObject
 value class TemplateId(val value: String) {
     init {
         require(value.isNotBlank()) { "Template id cannot be blank" }
@@ -129,6 +136,7 @@ value class TemplateId(val value: String) {
  * Variables used to render a notification template. Stored as a string-keyed map of
  * primitives so the persistence layer can serialise it without bespoke converters.
  */
+@ValueObject
 data class NotificationPayload(val variables: Map<String, String>) {
     init {
         variables.forEach { (key, _) ->

@@ -1,7 +1,9 @@
 package com.profiletailors.leadcapture.waitlist.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 
+@AggregateRoot
 class Waitlist(
     val id: WaitlistId,
     val key: WaitlistKey,

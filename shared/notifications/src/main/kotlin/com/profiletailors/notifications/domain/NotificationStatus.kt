@@ -1,5 +1,7 @@
 package com.profiletailors.notifications.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Delivery status of a [Notification].
  *
@@ -7,6 +9,7 @@ package com.profiletailors.notifications.domain
  * - [SENT]     the notification was successfully delivered to the channel provider.
  * - [FAILED]   the channel provider rejected the dispatch. Inspect [Notification.errorMessage] for details.
  */
+@ValueObject
 enum class NotificationStatus {
     PENDING,
     DISPATCHING,

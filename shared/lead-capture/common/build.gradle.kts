@@ -10,6 +10,8 @@ base {
 }
 
 dependencies {
+    api(project(":shared:common"))
+
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotest.assertions.core)
