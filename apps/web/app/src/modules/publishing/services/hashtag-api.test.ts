@@ -27,8 +27,8 @@ describe('hashtag API', () => {
       .spyOn(auth, 'apiFetch')
       .mockResolvedValueOnce(analysisResult)
       .mockResolvedValueOnce({
-        id: 'set-1',
-        workspaceId: 'workspace-1',
+        id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
         name: 'Engineering',
         hashtags: ['#testing', '#delivery'],
         createdAt: '2026-08-03T10:00:00Z',
@@ -58,8 +58,8 @@ describe('hashtag API', () => {
   it('returns typed response data from analysis, trending, and saved-set requests', async () => {
     const auth = useAuthStore()
     const savedSet = {
-      id: 'set-1',
-      workspaceId: 'workspace-1',
+      id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       name: 'Engineering',
       hashtags: ['#testing'],
       createdAt: '2026-08-03T10:00:00Z',
@@ -79,12 +79,15 @@ describe('hashtag API', () => {
     const auth = useAuthStore()
     const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined)
 
-    await deleteHashtagSavedSet('set-1')
+    await deleteHashtagSavedSet('88a93c5b-2935-5cae-9814-a4f4dc76f411')
 
-    expect(apiFetch).toHaveBeenCalledWith('/api/hashtags/saved-sets/set-1', {
-      method: 'DELETE',
-      workspaceScoped: true,
-    })
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/api/hashtags/saved-sets/88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      {
+        method: 'DELETE',
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('propagates a successful no-content delete response', async () => {

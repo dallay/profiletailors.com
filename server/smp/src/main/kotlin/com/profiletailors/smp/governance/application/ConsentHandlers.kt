@@ -10,8 +10,10 @@ import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRepository
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.flow.Flow
+import java.util.UUID
 
 private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
 private val CONSENT_WRITE_PERMISSION = PermissionKey.of("workspace", "consent", "write")
@@ -48,7 +50,9 @@ internal class RecordWorkspaceConsentHandler(
         authorizeWorkspaceConsentWrite(authorizationDecider)
         return recordConsentHandler.handle(
             RecordConsentCommand(
-                workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
+                scope = ConsentScope.Workspace(
+                    UUID.fromString(requireNotNull(resourceContextProvider.require().workspaceId)),
+                ),
                 subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
                 consentType = command.consentType,
                 purpose = command.purpose,
@@ -78,7 +82,9 @@ internal class WithdrawWorkspaceConsentHandler(
         authorizeWorkspaceConsentWrite(authorizationDecider)
         return withdrawConsentHandler.handle(
             WithdrawConsentCommand(
-                workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
+                scope = ConsentScope.Workspace(
+                    UUID.fromString(requireNotNull(resourceContextProvider.require().workspaceId)),
+                ),
                 subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
                 purpose = command.purpose,
                 policyVersion = command.policyVersion,
@@ -105,8 +111,8 @@ internal class GetWorkspaceConsentRecordsHandler(
      */
     override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): Flow<ConsentRecord> {
         authorizeWorkspaceConsentRead(authorizationDecider)
-        return repository.findActiveByWorkspace(
-            requireNotNull(resourceContextProvider.require().workspaceId),
+        return repository.findActiveByScope(
+            ConsentScope.Workspace(UUID.fromString(requireNotNull(resourceContextProvider.require().workspaceId))),
             query.subjectKind,
             query.purpose,
         )
@@ -130,7 +136,7 @@ internal class GetConsentHistoryHandler(
     override suspend fun handle(query: GetConsentHistoryQuery): Flow<ConsentRecord> {
         authorizeWorkspaceConsentRead(authorizationDecider)
         return repository.findHistoricalByIdentity(
-            requireNotNull(resourceContextProvider.require().workspaceId),
+            ConsentScope.Workspace(UUID.fromString(requireNotNull(resourceContextProvider.require().workspaceId))),
             SubjectReference(query.subjectValue, query.subjectKind),
             query.purpose,
         )

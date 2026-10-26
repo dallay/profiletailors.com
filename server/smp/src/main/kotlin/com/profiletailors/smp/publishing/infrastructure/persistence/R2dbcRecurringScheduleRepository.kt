@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 @Suppress("StringLiteralDuplication")
@@ -22,13 +23,13 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
 
     override suspend fun findByWorkspaceAndId(workspaceId: String, id: String): RecurringSchedule? = query(
         "WHERE workspace_id = :workspaceId AND id = :id",
-        mapOf("workspaceId" to workspaceId, "id" to id),
+        mapOf("workspaceId" to UUID.fromString(workspaceId), "id" to UUID.fromString(id)),
     ).next().awaitSingleOrNull()
 
     override suspend fun findByWorkspace(workspaceId: String): List<RecurringSchedule> = query(
         "WHERE workspace_id = :workspaceId AND status <> :cancelled " +
             "ORDER BY next_scheduled_at NULLS LAST, created_at DESC",
-        mapOf("workspaceId" to workspaceId, "cancelled" to RecurringScheduleStatus.CANCELLED.name),
+        mapOf("workspaceId" to UUID.fromString(workspaceId), "cancelled" to RecurringScheduleStatus.CANCELLED.name),
     ).collectList().awaitSingle()
 
     override suspend fun pauseByTemplatePost(workspaceId: String, templatePostId: String) {
@@ -36,7 +37,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             "UPDATE recurring_schedules SET status = :paused, updated_at = CURRENT_TIMESTAMP " +
                 "WHERE workspace_id = :workspaceId AND template_post_id = :templatePostId AND status = :active",
         ).bind("paused", RecurringScheduleStatus.PAUSED.name)
-            .bind("workspaceId", workspaceId).bind("templatePostId", templatePostId)
+            .bind("workspaceId", UUID.fromString(workspaceId)).bind("templatePostId", UUID.fromString(templatePostId))
             .bind("active", RecurringScheduleStatus.ACTIVE.name).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -45,7 +46,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             "WHERE workspace_id = :workspaceId AND id = :id AND status <> :existingCancelled",
     ).bind("cancelled", RecurringScheduleStatus.CANCELLED.name)
         .bind("existingCancelled", RecurringScheduleStatus.CANCELLED.name)
-        .bind("workspaceId", workspaceId).bind("id", id)
+        .bind("workspaceId", UUID.fromString(workspaceId)).bind("id", UUID.fromString(id))
         .fetch().rowsUpdated().awaitSingle() > 0
 
     /**
@@ -71,7 +72,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         }
         val now = schedule.updatedAt ?: Instant.now()
         var spec = databaseClient.sql(sql)
-            .bind("id", schedule.id).bind("workspaceId", schedule.workspaceId)
+            .bind("id", UUID.fromString(schedule.id)).bind("workspaceId", UUID.fromString(schedule.workspaceId))
             .bind("frequency", schedule.recurrenceRule.frequency.name)
             .bind("interval", schedule.recurrenceRule.interval)
             .bind("daysOfWeek", schedule.recurrenceRule.daysOfWeek.sorted().joinToString(","))
@@ -82,7 +83,8 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, Int::class.javaObjectType)
         spec = bindNullable(spec, "nextScheduledAt", schedule.nextScheduledAt, Instant::class.java)
         if (insert) {
-            spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
+            spec = spec.bind("createdBy", UUID.fromString(schedule.createdBy))
+                .bind("templatePostId", UUID.fromString(schedule.templatePostId))
                 .bind("createdAt", schedule.createdAt ?: now)
         }
         val rowsUpdated = spec.fetch().rowsUpdated().awaitSingle()
@@ -115,10 +117,10 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         params.forEach { (key, value) -> spec = spec.bind(key, value) }
         return spec.map { row, _ ->
             RecurringSchedule(
-                id = requireNotNull(row.get("id", String::class.java)),
-                workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-                createdBy = requireNotNull(row.get("created_by", String::class.java)),
-                templatePostId = requireNotNull(row.get("template_post_id", String::class.java)),
+                id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+                workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
+                createdBy = requireNotNull(row.get("created_by", UUID::class.java)).toString(),
+                templatePostId = requireNotNull(row.get("template_post_id", UUID::class.java)).toString(),
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
                     interval = requireNotNull(row.get("recurrence_interval", Int::class.javaObjectType)),

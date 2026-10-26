@@ -1,35 +1,31 @@
 package com.profiletailors.smp.platformadmin.application
 
-import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class PlatformPrincipalIdsTest {
-    private val uuid = UUID.fromString("00000000-0000-0000-0000-000000000001")
+    private val principalId = UUID.fromString("b5fdb517-3b51-4927-8e13-9e3cd728ba40")
 
     @Test
-    fun `should prefix a bare uuid when fromUuid receives one`() {
-        PlatformPrincipalIds.fromUuid(uuid) shouldBe "user-$uuid"
+    fun `uuid conversion returns raw canonical identifier`() {
+        assertEquals(principalId.toString(), PlatformPrincipalIds.fromUuid(principalId))
+        assertEquals(principalId.toString(), PlatformPrincipalIds.fromUuid(principalId.toString().uppercase()))
+        assertEquals(principalId, PlatformPrincipalIds.toUuid(principalId.toString()))
     }
 
     @Test
-    fun `should keep an already prefixed principal id when fromUuid receives one`() {
-        PlatformPrincipalIds.fromUuid("user-$uuid") shouldBe "user-$uuid"
+    fun `legacy user prefix is accepted without emitting it`() {
+        assertEquals(principalId, PlatformPrincipalIds.toUuid("user-$principalId"))
+        assertEquals(principalId.toString(), PlatformPrincipalIds.fromUuid("user-$principalId"))
     }
 
     @Test
-    fun `should never double prefix when fromUuid receives a prefixed id`() {
-        val once = PlatformPrincipalIds.fromUuid(uuid.toString())
-
-        once shouldBe "user-$uuid"
-        once.startsWith("user-user-").shouldBeFalse()
-        PlatformPrincipalIds.fromUuid(once) shouldBe once
-    }
-
-    @Test
-    fun `should strip the prefix and parse bare uuids when toUuid receives either form`() {
-        PlatformPrincipalIds.toUuid("user-$uuid") shouldBe uuid
-        PlatformPrincipalIds.toUuid(uuid.toString()) shouldBe uuid
+    fun `tokens and semantic keys are not principal identifiers`() {
+        listOf("valid-token", "e2e-admin", "role-owner", "platform.users.read").forEach { value ->
+            assertThrows(IllegalArgumentException::class.java) { PlatformPrincipalIds.toUuid(value) }
+            assertThrows(IllegalArgumentException::class.java) { PlatformPrincipalIds.fromUuid(value) }
+        }
     }
 }

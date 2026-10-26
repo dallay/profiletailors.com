@@ -3,6 +3,7 @@ package com.profiletailors.smp.governance.infrastructure
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentRepository
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
@@ -18,6 +19,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.transaction.reactive.executeAndAwait
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Suppress("StringLiteralDuplication")
 @Repository
@@ -36,7 +38,7 @@ class R2dbcConsentRepository(
         var spec = bindRecord(databaseClient.sql(UPSERT_CONSENT), record)
         spec = bindNullableInstant(spec, "withdrawnAt", record.withdrawnAt)
         spec = bindNullable(spec, "withdrawalReason", record.withdrawalReason)
-        spec.fetch().rowsUpdated().awaitSingle()
+        check(spec.fetch().rowsUpdated().awaitSingle() == 1L) { "Consent record belongs to a different scope" }
         return record
     }
 
@@ -50,23 +52,23 @@ class R2dbcConsentRepository(
      */
     override suspend fun recordActiveReturning(record: ConsentRecord): Pair<Boolean, ConsentRecord> = requireNotNull(
         transaction.executeAndAwait {
-            bindRecord(databaseClient.sql(INSERT_ACTIVE), record)
+            val insertedRows = bindRecord(databaseClient.sql(INSERT_ACTIVE), record)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
             val inserted = findActive(
-                record.workspaceId,
+                record.scope,
                 record.subjectReference,
                 record.purpose,
                 record.policyVersion,
             )
             if (inserted == null) {
                 val message = "Consent record not found after insert for " +
-                    "workspaceId=${record.workspaceId}, purpose=${record.purpose}, " +
+                    "scope=${record.scope}, purpose=${record.purpose}, " +
                     "policyVersion=${record.policyVersion}"
                 error(message)
             }
-            val isNewlyInserted = inserted.id == record.id
+            val isNewlyInserted = insertedRows == 1L
             if (isNewlyInserted) appendEvent(inserted)
             isNewlyInserted to inserted
         },
@@ -75,7 +77,6 @@ class R2dbcConsentRepository(
     /**
      * Withdraws the active consent matching the specified identity, purpose, and policy version.
      *
-     * @param workspaceId The workspace containing the consent.
      * @param subjectReference The subject identity associated with the consent.
      * @param purpose The purpose for which consent was given.
      * @param policyVersion The policy version governing the consent.
@@ -84,7 +85,7 @@ class R2dbcConsentRepository(
      * @return The withdrawn consent record, or `null` if no matching active consent exists.
      */
     override suspend fun withdrawActiveReturning(
-        workspaceId: String,
+        scope: ConsentScope,
         subjectReference: SubjectReference,
         purpose: String,
         policyVersion: String,
@@ -92,7 +93,7 @@ class R2dbcConsentRepository(
         reason: String?,
     ): ConsentRecord? = transaction.executeAndAwait {
         var spec = databaseClient.sql(WITHDRAW_ACTIVE)
-            .bind("workspaceId", workspaceId)
+            .bindScope(scope)
             .bind("subjectKind", subjectReference.kind.name)
             .bind("subjectValue", subjectReference.value)
             .bind("purpose", purpose)
@@ -108,19 +109,21 @@ class R2dbcConsentRepository(
      * @param id The identifier of the consent record.
      * @return The matching consent record, or `null` if no record exists.
      */
-    override suspend fun findById(id: ConsentRecordId): ConsentRecord? = databaseClient.sql(SELECT_BY_ID)
-        .bind("id", id.value)
-        .map { row, _ -> mapConsent(row) }
-        .first()
-        .awaitSingleOrNull()
+    override suspend fun findById(scope: ConsentScope, id: ConsentRecordId): ConsentRecord? =
+        databaseClient.sql("$SELECT_BY_ID AND $SCOPE_FILTER")
+            .bindScope(scope)
+            .bind("id", UUID.fromString(id.value))
+            .map { row, _ -> mapConsent(row) }
+            .first()
+            .awaitSingleOrNull()
 
     override suspend fun findActive(
-        workspaceId: String,
+        scope: ConsentScope,
         subjectReference: SubjectReference,
         purpose: String,
         policyVersion: String,
     ): ConsentRecord? = databaseClient.sql(SELECT_ACTIVE)
-        .bind("workspaceId", workspaceId)
+        .bindScope(scope)
         .bind("subjectKind", subjectReference.kind.name)
         .bind("subjectValue", subjectReference.value)
         .bind("purpose", purpose)
@@ -129,12 +132,12 @@ class R2dbcConsentRepository(
         .first()
         .awaitSingleOrNull()
 
-    override fun findActiveByWorkspace(
-        workspaceId: String,
+    override fun findActiveByScope(
+        scope: ConsentScope,
         subjectKind: SubjectKind?,
         purpose: String?,
     ): Flow<ConsentRecord> {
-        val conditions = mutableListOf("workspace_id = :workspaceId", "status = 'ACTIVE'")
+        val conditions = mutableListOf(SCOPE_FILTER, "status = 'ACTIVE'")
         if (subjectKind != null) conditions.add("subject_kind = :subjectKind")
         if (purpose != null) conditions.add("purpose = :purpose")
 
@@ -144,7 +147,7 @@ class R2dbcConsentRepository(
             WHERE ${conditions.joinToString(" AND ")}
             ORDER BY given_at DESC, id DESC
             """.trimIndent(),
-        ).bind("workspaceId", workspaceId)
+        ).bindScope(scope)
 
         if (subjectKind != null) spec = spec.bind("subjectKind", subjectKind.name)
         if (purpose != null) spec = spec.bind("purpose", purpose)
@@ -153,11 +156,11 @@ class R2dbcConsentRepository(
     }
 
     override fun findHistoricalByIdentity(
-        workspaceId: String,
+        scope: ConsentScope,
         subjectReference: SubjectReference,
         purpose: String,
     ): Flow<ConsentRecord> = databaseClient.sql(SELECT_HISTORY)
-        .bind("workspaceId", workspaceId)
+        .bindScope(scope)
         .bind("subjectKind", subjectReference.kind.name)
         .bind("subjectValue", subjectReference.value)
         .bind("purpose", purpose)
@@ -168,18 +171,17 @@ class R2dbcConsentRepository(
     /**
      * Determines whether an active consent exists for the specified identity and purpose.
      *
-     * @param workspaceId The workspace identifier.
      * @param subjectReference The subject identity.
      * @param purpose The consent purpose.
      * @param policyVersion The policy version.
      * @return `true` if an active consent exists, `false` otherwise.
      */
     override suspend fun existsActive(
-        workspaceId: String,
+        scope: ConsentScope,
         subjectReference: SubjectReference,
         purpose: String,
         policyVersion: String,
-    ): Boolean = findActive(workspaceId, subjectReference, purpose, policyVersion) != null
+    ): Boolean = findActive(scope, subjectReference, purpose, policyVersion) != null
 
     /**
      * Binds the consent record fields required by an SQL statement.
@@ -192,8 +194,8 @@ class R2dbcConsentRepository(
         spec: DatabaseClient.GenericExecuteSpec,
         record: ConsentRecord,
     ): DatabaseClient.GenericExecuteSpec = spec
-        .bind("id", record.id.value)
-        .bind("workspaceId", record.workspaceId)
+        .bind("id", UUID.fromString(record.id.value))
+        .bindScope(record.scope)
         .bind("subjectKind", record.subjectReference.kind.name)
         .bind("subjectValue", record.subjectReference.value)
         .bind("consentType", record.consentType.name)
@@ -211,7 +213,7 @@ class R2dbcConsentRepository(
      */
     private suspend fun appendEvent(record: ConsentRecord) {
         var spec = bindRecord(databaseClient.sql(INSERT_EVENT), record)
-            .bind("eventId", "ce-${java.util.UUID.randomUUID()}")
+            .bind("eventId", UUID.randomUUID())
             .bind("eventAt", record.withdrawnAt ?: record.givenAt)
         spec = bindNullableInstant(spec, "withdrawnAt", record.withdrawnAt)
         spec = bindNullable(spec, "withdrawalReason", record.withdrawalReason)
@@ -225,8 +227,8 @@ class R2dbcConsentRepository(
      * @return The consent record represented by the row.
      */
     private fun mapConsent(row: Row): ConsentRecord = ConsentRecord(
-        id = ConsentRecordId(requireNotNull(row.get("id", String::class.java))),
-        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+        id = ConsentRecordId(requireNotNull(row.get("id", UUID::class.java)).toString()),
+        scope = mapScope(row),
         subjectReference = SubjectReference(
             value = requireNotNull(row.get("subject_value", String::class.java)),
             kind = SubjectKind.valueOf(requireNotNull(row.get("subject_kind", String::class.java))),
@@ -243,6 +245,22 @@ class R2dbcConsentRepository(
         createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
         version = requireNotNull(row.get("version", Long::class.java)),
     )
+
+    private fun DatabaseClient.GenericExecuteSpec.bindScope(scope: ConsentScope): DatabaseClient.GenericExecuteSpec =
+        when (scope) {
+            is ConsentScope.Workspace -> bind("workspaceId", scope.id).bindNull("waitlistId", UUID::class.java)
+            is ConsentScope.Waitlist -> bindNull("workspaceId", UUID::class.java).bind("waitlistId", scope.id)
+        }
+
+    private fun mapScope(row: Row): ConsentScope {
+        val workspaceId = row.get("workspace_id", UUID::class.java)
+        val waitlistId = row.get("waitlist_id", UUID::class.java)
+        return when {
+            workspaceId != null && waitlistId == null -> ConsentScope.Workspace(workspaceId)
+            workspaceId == null && waitlistId != null -> ConsentScope.Waitlist(waitlistId)
+            else -> error("Consent must belong to exactly one workspace or waitlist")
+        }
+    }
 
     private fun bindNullable(
         spec: DatabaseClient.GenericExecuteSpec,
@@ -267,23 +285,25 @@ class R2dbcConsentRepository(
         if (value != null) spec.bind(name, value) else spec.bindNull(name, Instant::class.java)
 
     companion object {
+        private const val SCOPE_FILTER =
+            "workspace_id IS NOT DISTINCT FROM :workspaceId AND waitlist_id IS NOT DISTINCT FROM :waitlistId"
+
         private const val INSERT_ACTIVE = """
             INSERT INTO consent_records (
-                id, workspace_id, subject_kind, subject_value, consent_type, purpose,
+                id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type, purpose,
                 policy_version, source, locale, status, given_at, created_at
             ) VALUES (
-                :id, :workspaceId, :subjectKind, :subjectValue, :consentType, :purpose,
+                :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType, :purpose,
                 :policyVersion, :source, :locale, :status, :givenAt,
                 CURRENT_TIMESTAMP
             )
-            ON CONFLICT (workspace_id, subject_kind, subject_value, purpose, policy_version)
-                WHERE status = 'ACTIVE' DO NOTHING
+            ON CONFLICT DO NOTHING
         """
 
         private const val WITHDRAW_ACTIVE = """
             UPDATE consent_records SET status = 'WITHDRAWN', withdrawn_at = :withdrawnAt,
                 withdrawal_reason = :reason, version = version + 1
-            WHERE workspace_id = :workspaceId AND subject_kind = :subjectKind
+            WHERE $SCOPE_FILTER AND subject_kind = :subjectKind
               AND subject_value = :subjectValue AND purpose = :purpose
               AND policy_version = :policyVersion AND status = 'ACTIVE'
             RETURNING *
@@ -291,11 +311,11 @@ class R2dbcConsentRepository(
 
         private const val INSERT_EVENT = """
             INSERT INTO consent_record_events (
-                id, consent_id, workspace_id, subject_kind, subject_value, consent_type,
+                id, consent_id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
                 purpose, policy_version, source, locale, status, given_at, withdrawn_at,
                 withdrawal_reason, event_at
             ) VALUES (
-                :eventId, :id, :workspaceId, :subjectKind, :subjectValue, :consentType,
+                :eventId, :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
                 :purpose, :policyVersion, :source, :locale, :status, :givenAt, :withdrawnAt,
                 :withdrawalReason, :eventAt
             )
@@ -305,7 +325,7 @@ class R2dbcConsentRepository(
 
         private const val SELECT_ACTIVE = """
             SELECT * FROM consent_records
-            WHERE workspace_id = :workspaceId
+            WHERE $SCOPE_FILTER
               AND subject_kind = :subjectKind
               AND subject_value = :subjectValue
               AND purpose = :purpose
@@ -317,7 +337,7 @@ class R2dbcConsentRepository(
 
         private const val SELECT_HISTORY = """
             SELECT * FROM consent_records
-            WHERE workspace_id = :workspaceId
+            WHERE $SCOPE_FILTER
               AND subject_kind = :subjectKind
               AND subject_value = :subjectValue
               AND purpose = :purpose
@@ -326,11 +346,11 @@ class R2dbcConsentRepository(
 
         private const val UPSERT_CONSENT = """
             INSERT INTO consent_records (
-                id, workspace_id, subject_kind, subject_value, consent_type,
+                id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
                 purpose, policy_version, source, locale, status, given_at,
                 withdrawn_at, withdrawal_reason, created_at
             ) VALUES (
-                :id, :workspaceId, :subjectKind, :subjectValue, :consentType,
+                :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
                 :purpose, :policyVersion, :source, :locale, :status, :givenAt,
                 :withdrawnAt, :withdrawalReason, CURRENT_TIMESTAMP
             )
@@ -339,6 +359,8 @@ class R2dbcConsentRepository(
                 withdrawn_at = EXCLUDED.withdrawn_at,
                 withdrawal_reason = EXCLUDED.withdrawal_reason,
                 version = consent_records.version + 1
+            WHERE consent_records.workspace_id IS NOT DISTINCT FROM EXCLUDED.workspace_id
+              AND consent_records.waitlist_id IS NOT DISTINCT FROM EXCLUDED.waitlist_id
         """
     }
 }

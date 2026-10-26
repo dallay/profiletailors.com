@@ -37,42 +37,19 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
     private val repository by lazy { R2dbcNotificationRepository(databaseClient) }
 
+    private fun notificationId(seed: String): String =
+        UUID.nameUUIDFromBytes("notifications:$seed".toByteArray()).toString()
+
     @BeforeEach
     fun prepareNotificationsTable() {
         runBlocking {
-            ensureSchemaExists()
+            NotificationsSchemaInitializer(databaseClient).initializeSchema()
             databaseClient.sql("DELETE FROM notifications").fetch().rowsUpdated().awaitSingle()
         }
     }
 
-    private fun ensureSchemaExists() {
-        runBlocking {
-            databaseClient.sql(
-                """
-                CREATE TABLE IF NOT EXISTS notifications (
-                    id VARCHAR(255) PRIMARY KEY,
-                    idempotency_key VARCHAR(500) UNIQUE NOT NULL,
-                    channel VARCHAR(50) NOT NULL,
-                    recipient VARCHAR(500) NOT NULL,
-                    template_id VARCHAR(255) NOT NULL,
-                    payload JSONB NOT NULL,
-                    status VARCHAR(50) NOT NULL,
-                    sent_at TIMESTAMP,
-                    failed_at TIMESTAMP,
-                    error_message TEXT,
-                    created_at TIMESTAMP NOT NULL,
-                    updated_at TIMESTAMP NOT NULL
-                )
-                """.trimIndent(),
-            ).fetch().rowsUpdated().awaitSingle()
-            databaseClient.sql(
-                "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications (status)",
-            ).fetch().rowsUpdated().awaitSingle()
-        }
-    }
-
     private fun pending(
-        id: String = "ntf-1",
+        id: String = notificationId("pending"),
         key: String = "waitlist.welcome:entry-1",
         channel: NotificationChannel = NotificationChannel.EMAIL,
         templateId: TemplateId = WelcomeEmailTemplateId.INSTANCE,
@@ -93,6 +70,37 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
         createdAt = createdAt,
         updatedAt = createdAt,
     )
+
+    @Test
+    fun `initializer creates native UUID identifiers for a new installation`() = runTest {
+        NotificationsSchemaInitializer(databaseClient).initializeSchema()
+        val type = databaseClient.sql(
+            "SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() " +
+                "AND table_name = 'notifications' AND column_name = 'id'",
+        ).map { row, _ -> requireNotNull(row.get("data_type", String::class.java)) }.one().awaitSingle()
+
+        assertEquals("uuid", type)
+    }
+
+    @Test
+    fun `native UUID identifiers round-trip through lookup claim and update`() = runTest {
+        val written = pending(id = notificationId("native"))
+        repository.save(written)
+
+        val storedId = databaseClient.sql("SELECT id FROM notifications WHERE idempotency_key = :key")
+            .bind("key", written.idempotencyKey.value)
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)) }.one().awaitSingle()
+        assertEquals(UUID.fromString(written.id.value), storedId)
+        assertEquals(written.id, repository.findById(written.id)?.id)
+        assertNull(repository.findById(NotificationId(notificationId("missing"))))
+
+        val now = written.createdAt.plusSeconds(60)
+        val claimed = repository.claimPending(written.templateId, now, written.createdAt.minusSeconds(60), 1)
+        assertEquals(listOf(written.id), claimed.map { it.id })
+        assertEquals(NotificationStatus.DISPATCHING, claimed.single().status)
+        repository.update(claimed.single().markSent(now))
+        assertEquals(NotificationStatus.SENT, repository.findById(written.id)?.status)
+    }
 
     @Test
     fun `save persists a PENDING notification and returns it unchanged`() = runTest {
@@ -118,7 +126,7 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `save then update transitions the same row from PENDING to SENT`() = runTest {
-        val written = pending(id = "ntf-sent", createdAt = Instant.parse("2026-07-20T10:00:00Z"))
+        val written = pending(id = notificationId("sent"), createdAt = Instant.parse("2026-07-20T10:00:00Z"))
         repository.save(written)
 
         val sentAt = Instant.parse("2026-07-20T10:01:00Z")
@@ -134,7 +142,7 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `save then update transitions the same row from PENDING to FAILED with the upstream error`() = runTest {
-        val written = pending(id = "ntf-failed")
+        val written = pending(id = notificationId("failed"))
         repository.save(written)
 
         val failedAt = Instant.parse("2026-07-20T10:02:00Z")
@@ -164,7 +172,7 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
                 "embedded\"quote" to "weird chars: \\ / & 😀",
             ),
         )
-        val written = pending(payload = payload, id = "ntf-payload")
+        val written = pending(payload = payload, id = notificationId("payload"))
         repository.save(written)
 
         val found = repository.findByIdempotencyKey(written.idempotencyKey)
@@ -174,10 +182,10 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `saving a duplicate idempotency key throws DuplicateNotificationException`() = runTest {
-        val first = pending(id = "ntf-dup-a", key = "waitlist.welcome:entry-dup")
+        val first = pending(id = notificationId("dup-a"), key = "waitlist.welcome:entry-dup")
         repository.save(first)
 
-        val second = pending(id = "ntf-dup-b", key = "waitlist.welcome:entry-dup")
+        val second = pending(id = notificationId("dup-b"), key = "waitlist.welcome:entry-dup")
         var thrown: Throwable? = null
         try {
             repository.save(second)
@@ -193,11 +201,11 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `invitation initial and resend keys persist as distinct rows`() = runTest {
         val invitationId = UUID.randomUUID().toString()
-        val initial = pending(id = "ntf-inv-initial", key = "invitation:$invitationId:initial")
+        val initial = pending(id = notificationId("inv-initial"), key = "invitation:$invitationId:initial")
         repository.save(initial)
 
         val deliveryId = UUID.randomUUID().toString()
-        val resend = pending(id = "ntf-inv-resend", key = "invitation:$invitationId:resend:$deliveryId")
+        val resend = pending(id = notificationId("inv-resend"), key = "invitation:$invitationId:resend:$deliveryId")
         repository.save(resend)
 
         val foundInitial = requireNotNull(repository.findByIdempotencyKey(initial.idempotencyKey))

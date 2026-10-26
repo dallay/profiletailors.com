@@ -4,9 +4,12 @@ import { useHashtagSuggestions } from './useHashtagSuggestions'
 import * as api from '@modules/publishing/services/hashtag-api'
 
 describe('useHashtagSuggestions', () => {
-  const savedSet = (id = 'set-1', hashtags = ['#one']): api.HashtagSavedSet => ({
+  const savedSet = (
+    id = '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+    hashtags = ['#one'],
+  ): api.HashtagSavedSet => ({
     id,
-    workspaceId: 'workspace-1',
+    workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
     name: 'Set',
     hashtags,
     createdAt: '2026-08-03T10:00:00Z',
@@ -103,8 +106,8 @@ describe('useHashtagSuggestions', () => {
     const composable = useHashtagSuggestions()
     composable.addHashtag('#one')
     composable.applySet({
-      id: 'set-1',
-      workspaceId: 'workspace-1',
+      id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       name: 'Set',
       hashtags: ['#two', '#three'],
       createdAt: '',
@@ -159,8 +162,8 @@ describe('useHashtagSuggestions', () => {
 
   it('tracks saved-set creation and deletion state', async () => {
     vi.spyOn(api, 'saveHashtagSet').mockResolvedValue({
-      id: 'set-1',
-      workspaceId: 'workspace-1',
+      id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       name: 'Set',
       hashtags: ['#one'],
       createdAt: '',
@@ -171,8 +174,8 @@ describe('useHashtagSuggestions', () => {
 
     await composable.saveSet('Set', ['#one'])
     expect(composable.savedSets.value).toHaveLength(1)
-    await composable.deleteSet('set-1')
-    expect(deleteSet).toHaveBeenCalledWith('set-1')
+    await composable.deleteSet('88a93c5b-2935-5cae-9814-a4f4dc76f411')
+    expect(deleteSet).toHaveBeenCalledWith('88a93c5b-2935-5cae-9814-a4f4dc76f411')
     expect(composable.savedSets.value).toHaveLength(0)
   })
 
@@ -191,7 +194,9 @@ describe('useHashtagSuggestions', () => {
     const composable = useHashtagSuggestions()
     composable.savedSets.value = [savedSet()]
 
-    await expect(composable.deleteSet('set-1')).rejects.toThrow('delete failed')
+    await expect(composable.deleteSet('88a93c5b-2935-5cae-9814-a4f4dc76f411')).rejects.toThrow(
+      'delete failed',
+    )
 
     expect(composable.savedSets.value).toEqual([savedSet()])
   })

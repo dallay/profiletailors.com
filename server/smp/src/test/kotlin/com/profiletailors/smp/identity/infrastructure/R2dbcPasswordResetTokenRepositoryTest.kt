@@ -42,7 +42,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val tokenHash = "hash-one"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -50,19 +50,19 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val stored = repository.findByTokenHash(tokenHash)
         assertNotNull(stored)
-        assertEquals("user-1", stored?.principalId)
+        assertEquals("d5298f21-6c5c-5672-bcac-0490740dd03a", stored?.principalId)
         assertEquals(tokenHash, stored?.tokenHash)
         assertEquals(Instant.parse("2026-07-27T12:30:00Z"), stored?.expiresAt)
         assertNull(stored?.usedAt)
     }
 
     @Test
-    fun `schema references user identities with compatible principal id width`() = runTest {
+    fun `schema references user identities with native UUID principal ids`() = runTest {
         val metadata = databaseClient.sql(
             """
             SELECT ccu.table_name AS target_table,
                    ccu.column_name AS target_column,
-                   cols.character_maximum_length AS principal_length
+                   cols.data_type AS principal_type
             FROM information_schema.table_constraints tc
             JOIN information_schema.constraint_column_usage ccu
               ON ccu.constraint_name = tc.constraint_name
@@ -74,11 +74,11 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             Triple(
                 row.get("target_table", String::class.java),
                 row.get("target_column", String::class.java),
-                row.get("principal_length", Long::class.javaObjectType),
+                row.get("principal_type", String::class.java),
             )
         }.one().awaitSingle()
 
-        assertEquals(Triple("user_identities", "principal_id", 64L), metadata)
+        assertEquals(Triple("user_identities", "principal_id", "uuid"), metadata)
     }
 
     @Test
@@ -92,7 +92,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val tokenHash = "for-consumption-hash"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -100,7 +100,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val stored = repository.findForConsumption(tokenHash)
         assertNotNull(stored)
-        assertEquals("user-1", stored?.principalId)
+        assertEquals("d5298f21-6c5c-5672-bcac-0490740dd03a", stored?.principalId)
         assertEquals(tokenHash, stored?.tokenHash)
     }
 
@@ -114,7 +114,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         seedPrincipal()
 
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "duplicate-hash",
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -122,7 +122,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val exception = runCatching {
             repository.create(
-                principalId = "user-1",
+                principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
                 tokenHash = "duplicate-hash",
                 requestedAt = Instant.parse("2026-07-27T12:05:00Z"),
                 expiresAt = Instant.parse("2026-07-27T12:35:00Z"),
@@ -137,32 +137,32 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         seedPrincipal()
 
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "active-1",
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
         )
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "expired-unused",
             requestedAt = Instant.parse("2026-07-27T11:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T11:30:00Z"),
         )
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "active-2",
             requestedAt = Instant.parse("2026-07-27T12:01:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:31:00Z"),
         )
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "already-used",
             requestedAt = Instant.parse("2026-07-27T11:30:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:00:00Z"),
         )
         markTokenUsed("already-used", Instant.parse("2026-07-27T11:45:00Z"))
 
-        repository.invalidateActiveTokens("user-1", Instant.parse("2026-07-27T12:10:00Z"))
+        repository.invalidateActiveTokens("d5298f21-6c5c-5672-bcac-0490740dd03a", Instant.parse("2026-07-27T12:10:00Z"))
 
         val active1 = repository.findByTokenHash("active-1")
         val active2 = repository.findByTokenHash("active-2")
@@ -177,11 +177,11 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     @Test
     fun `consumeAndUpdatePassword updates the password hash and marks the token as used on success`() = runTest {
         seedPrincipal()
-        seedLocalPasswordCredential("user-1", "old-hash")
+        seedLocalPasswordCredential("d5298f21-6c5c-5672-bcac-0490740dd03a", "old-hash")
 
         val tokenHash = "consume-hash"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -195,17 +195,17 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
 
         val stored = repository.findByTokenHash(tokenHash)
         assertEquals(Instant.parse("2026-07-27T12:10:00Z"), stored?.usedAt)
-        assertEquals("new-hash", lookupPasswordHash("user-1"))
+        assertEquals("new-hash", lookupPasswordHash("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `consumeAndUpdatePassword throws for expired token`() = runTest {
         seedPrincipal()
-        seedLocalPasswordCredential("user-1", "old-hash")
+        seedLocalPasswordCredential("d5298f21-6c5c-5672-bcac-0490740dd03a", "old-hash")
 
         val tokenHash = "expired-hash"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T11:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T11:30:00Z"),
@@ -219,17 +219,17 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             )
         }
         assertNull(repository.findByTokenHash(tokenHash)?.usedAt)
-        assertEquals("old-hash", lookupPasswordHash("user-1"))
+        assertEquals("old-hash", lookupPasswordHash("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `consumeAndUpdatePassword throws for already-used token`() = runTest {
         seedPrincipal()
-        seedLocalPasswordCredential("user-1", "old-hash")
+        seedLocalPasswordCredential("d5298f21-6c5c-5672-bcac-0490740dd03a", "old-hash")
 
         val tokenHash = "used-hash"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -243,13 +243,13 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
                 newPasswordHash = "new-hash",
             )
         }
-        assertEquals("old-hash", lookupPasswordHash("user-1"))
+        assertEquals("old-hash", lookupPasswordHash("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `consumeAndUpdatePassword throws for unknown hash`() = runTest {
         seedPrincipal()
-        seedLocalPasswordCredential("user-1", "old-hash")
+        seedLocalPasswordCredential("d5298f21-6c5c-5672-bcac-0490740dd03a", "old-hash")
 
         shouldThrow<PasswordResetCredentialMissingException> {
             repository.consumeAndUpdatePassword(
@@ -258,17 +258,17 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
                 newPasswordHash = "new-hash",
             )
         }
-        assertEquals("old-hash", lookupPasswordHash("user-1"))
+        assertEquals("old-hash", lookupPasswordHash("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `concurrent consumeAndUpdatePassword calls allow exactly one success`() = runTest {
         seedPrincipal()
-        seedLocalPasswordCredential("user-1", "old-hash")
+        seedLocalPasswordCredential("d5298f21-6c5c-5672-bcac-0490740dd03a", "old-hash")
 
         val tokenHash = "concurrent-hash"
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = tokenHash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -292,7 +292,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         val successes = outcomes.count { it.isSuccess }
         assertEquals(1, successes, "Exactly one concurrent call should succeed")
 
-        val storedHash = lookupPasswordHash("user-1")
+        val storedHash = lookupPasswordHash("d5298f21-6c5c-5672-bcac-0490740dd03a")
         assertTrue(
             storedHash == "first-new-hash" || storedHash == "second-new-hash",
             "Stored hash must match one of the call sites, got $storedHash",
@@ -306,11 +306,31 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         val tokenCleanup: PasswordResetTokenCleanup = R2dbcPasswordResetTokenRepository(databaseClient)
         val cutoff = Instant.parse("2026-07-20T12:00:00Z")
 
-        repository.create("user-1", "expired-old", cutoff.minusSeconds(3600), cutoff.minusSeconds(1))
-        repository.create("user-1", "expired-at-cutoff", cutoff.minusSeconds(3600), cutoff)
-        repository.create("user-1", "expired-recent", cutoff.minusSeconds(1800), cutoff.plusSeconds(1))
-        repository.create("user-1", "active", cutoff, cutoff.plusSeconds(86_400))
-        repository.create("user-1", "recently-used", cutoff.minusSeconds(7200), cutoff.minusSeconds(1))
+        repository.create(
+            "d5298f21-6c5c-5672-bcac-0490740dd03a",
+            "expired-old",
+            cutoff.minusSeconds(3600),
+            cutoff.minusSeconds(1),
+        )
+        repository.create(
+            "d5298f21-6c5c-5672-bcac-0490740dd03a",
+            "expired-at-cutoff",
+            cutoff.minusSeconds(3600),
+            cutoff,
+        )
+        repository.create(
+            "d5298f21-6c5c-5672-bcac-0490740dd03a",
+            "expired-recent",
+            cutoff.minusSeconds(1800),
+            cutoff.plusSeconds(1),
+        )
+        repository.create("d5298f21-6c5c-5672-bcac-0490740dd03a", "active", cutoff, cutoff.plusSeconds(86_400))
+        repository.create(
+            "d5298f21-6c5c-5672-bcac-0490740dd03a",
+            "recently-used",
+            cutoff.minusSeconds(7200),
+            cutoff.minusSeconds(1),
+        )
         markTokenUsed("recently-used", cutoff)
 
         assertEquals(1L, tokenCleanup.deleteExpiredBefore(cutoff))
@@ -327,19 +347,19 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     fun `deleting principal cascades to password_reset_tokens`() = runTest {
         seedPrincipal()
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = "cascade-hash",
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
         )
 
         databaseClient.sql("DELETE FROM user_identities WHERE principal_id = :id")
-            .bind("id", "user-1")
+            .bind("id", java.util.UUID.fromString("d5298f21-6c5c-5672-bcac-0490740dd03a"))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql("DELETE FROM principals WHERE id = :id")
-            .bind("id", "user-1")
+            .bind("id", java.util.UUID.fromString("d5298f21-6c5c-5672-bcac-0490740dd03a"))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -354,7 +374,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         // Generate a real hash for the raw token but only store the hash
         val hash = sha256Hex(rawToken)
         repository.create(
-            principalId = "user-1",
+            principalId = "d5298f21-6c5c-5672-bcac-0490740dd03a",
             tokenHash = hash,
             requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
@@ -369,13 +389,13 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-1', 'USER', 'local:user@example.com', NULL, 'user')
+            VALUES ('d5298f21-6c5c-5672-bcac-0490740dd03a', 'USER', 'local:user@example.com', NULL, 'user')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('user-1', 'user@example.com', 'user')
+            VALUES ('d5298f21-6c5c-5672-bcac-0490740dd03a', 'user@example.com', 'user')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -387,7 +407,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             VALUES (:id, :hash)
             """.trimIndent(),
         )
-            .bind("id", principalId)
+            .bind("id", java.util.UUID.fromString(principalId))
             .bind("hash", passwordHash)
             .fetch()
             .rowsUpdated()
@@ -414,7 +434,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         SELECT password_hash FROM local_password_credentials WHERE principal_id = :id
         """.trimIndent(),
     )
-        .bind("id", principalId)
+        .bind("id", java.util.UUID.fromString(principalId))
         .map { row, _ -> requireNotNull(row.get("password_hash", String::class.java)) }
         .one()
         .awaitSingle()

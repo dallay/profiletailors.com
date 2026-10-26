@@ -28,6 +28,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -49,14 +50,14 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.upsert(samplePost("linkedin-post-1"))
 
         val loaded = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-1"),
         )
 
         assertNotNull(loaded)
-        assertEquals("soacc-1", loaded?.actorId)
+        assertEquals("00000000-0000-0000-0000-000000000489", loaded?.actorId)
         assertEquals("Hello from LinkedIn", loaded?.body)
         assertEquals(PostLifecycle.PUBLISHED, loaded?.lifecycle)
         assertEquals(PostOrigin.EXTERNAL_OR_UNKNOWN, loaded?.origin)
@@ -73,9 +74,9 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         )
 
         val loaded = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-conflict"),
         )
 
@@ -87,9 +88,9 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `findByWorkspaceAndExternalId returns null for unknown post`() = runTest {
         val loaded = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-unknown"),
         )
 
@@ -103,9 +104,9 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.upsert(samplePost("linkedin-post-gone"))
 
         repository.tombstoneMissing(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             seenExternalIds = setOf(
                 ExternalPostId("linkedin-post-seen-1"),
                 ExternalPostId("linkedin-post-seen-2"),
@@ -113,15 +114,15 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         )
 
         val seen = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-seen-1"),
         )
         val gone = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-gone"),
         )
 
@@ -135,16 +136,16 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.upsert(samplePost("linkedin-post-gone-solo"))
 
         repository.tombstoneMissing(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             seenExternalIds = setOf(ExternalPostId("linkedin-post-solo")),
         )
 
         val gone = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-gone-solo"),
         )
 
@@ -156,16 +157,16 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.upsert(samplePost("linkedin-post-keep"))
 
         repository.tombstoneMissing(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             seenExternalIds = emptySet(),
         )
 
         val loaded = repository.findByWorkspaceAndExternalId(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             provider = SocialProvider.LINKEDIN,
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             externalPostId = ExternalPostId("linkedin-post-keep"),
         )
 
@@ -175,8 +176,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `save and find persist sync checkpoint`() = runTest {
         val checkpoint = SyncCheckpoint(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.POSTS,
             cursor = PageCursor("cursor-abc"),
             highWaterMark = Instant.parse("2026-08-01T00:00:00Z"),
@@ -186,8 +187,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.save(checkpoint)
 
         val loaded = repository.find(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.POSTS,
         )
 
@@ -201,8 +202,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     fun `save updates existing comment checkpoint on post-scoped identity conflict`() = runTest {
         val postId = ExternalPostId("linkedin-post-comments")
         val base = SyncCheckpoint(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.COMMENTS,
             cursor = PageCursor("cursor-first"),
             lastSuccessfulAt = Instant.parse("2026-08-01T01:00:00Z"),
@@ -212,8 +213,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.save(base.copy(cursor = PageCursor("cursor-second")))
 
         val loaded = repository.find(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.COMMENTS,
             postId = postId,
         )
@@ -225,8 +226,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `comment checkpoints remain isolated by post identity`() = runTest {
         val first = SyncCheckpoint(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.COMMENTS,
             cursor = PageCursor("cursor-first"),
             lastSuccessfulAt = Instant.parse("2026-08-01T01:00:00Z"),
@@ -243,8 +244,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertEquals(
             "cursor-first",
             repository.find(
-                WorkspaceScope("workspace-1"),
-                "soacc-1",
+                WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+                "00000000-0000-0000-0000-000000000489",
                 SyncResource.COMMENTS,
                 first.postId,
             )?.cursor?.value,
@@ -252,8 +253,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertEquals(
             "cursor-second",
             repository.find(
-                WorkspaceScope("workspace-1"),
-                "soacc-1",
+                WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+                "00000000-0000-0000-0000-000000000489",
                 SyncResource.COMMENTS,
                 second.postId,
             )?.cursor?.value,
@@ -263,8 +264,8 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `find returns null for unknown checkpoint resource`() = runTest {
         val loaded = repository.find(
-            scope = WorkspaceScope("workspace-1"),
-            actorId = "soacc-1",
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
+            actorId = "00000000-0000-0000-0000-000000000489",
             resource = SyncResource.COMMENTS,
             postId = ExternalPostId("linkedin-post-unknown"),
         )
@@ -286,10 +287,10 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
 
         val page = repository.findImportedPosts(
             SocialContentCalendarQuery(
-                scope = WorkspaceScope("workspace-1"),
+                scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
                 from = Instant.parse("2026-08-01T00:00:00Z"),
                 to = Instant.parse("2026-08-03T00:00:00Z"),
-                actorId = "soacc-1",
+                actorId = "00000000-0000-0000-0000-000000000489",
             ),
         )
 
@@ -308,7 +309,7 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         }
 
         val query = SocialContentCalendarQuery(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             from = Instant.parse("2026-08-01T00:00:00Z"),
             to = Instant.parse("2026-08-02T00:00:00Z"),
             limit = 2,
@@ -327,10 +328,10 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     fun `findImportedPosts rejects a cursor bound to another workspace before querying`() = runTest {
         val cursor = SocialContentCalendarCursor(
             version = CalendarCursorVersion(CalendarCursorVersion.V1),
-            workspaceId = "workspace-foreign",
+            workspaceId = "00000000-0000-0000-0000-0000000004a1",
             publishedAt = Instant.parse("2026-08-01T10:00:00Z"),
             provider = SocialProvider.LINKEDIN,
-            socialAccountId = "soacc-1",
+            socialAccountId = "00000000-0000-0000-0000-000000000489",
             externalPostId = "calendar-page-1",
         )
 
@@ -338,7 +339,7 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             kotlinx.coroutines.runBlocking {
                 repository.findImportedPosts(
                     SocialContentCalendarQuery(
-                        scope = WorkspaceScope("workspace-1"),
+                        scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
                         from = Instant.parse("2026-08-01T00:00:00Z"),
                         to = Instant.parse("2026-08-02T00:00:00Z"),
                         cursor = PageCursor(SocialContentCalendarCursorCodec.encode(cursor)),
@@ -365,16 +366,16 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         repository.upsert(
             samplePost("other-actor").copy(
                 publishedAt = publishedAt,
-                actorId = "soacc-2",
+                actorId = "00000000-0000-0000-0000-00000000048a",
                 lifecycle = PostLifecycle.PUBLISHED,
             ),
         )
 
         val query = SocialContentCalendarQuery(
-            scope = WorkspaceScope("workspace-1"),
+            scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
             from = Instant.parse("2026-08-01T00:00:00Z"),
             to = Instant.parse("2026-08-02T00:00:00Z"),
-            actorId = "soacc-1",
+            actorId = "00000000-0000-0000-0000-000000000489",
             lifecycle = PostLifecycle.PUBLISHED,
             limit = 1,
         )
@@ -397,16 +398,16 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
 
         val cursor = SocialContentCalendarCursor(
             version = CalendarCursorVersion(CalendarCursorVersion.V1),
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             publishedAt = boundary,
             provider = SocialProvider.LINKEDIN,
-            socialAccountId = "soacc-1",
+            socialAccountId = "00000000-0000-0000-0000-000000000489",
             externalPostId = "strict-boundary",
         )
 
         val page = repository.findImportedPosts(
             SocialContentCalendarQuery(
-                scope = WorkspaceScope("workspace-1"),
+                scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
                 from = Instant.parse("2026-08-01T00:00:00Z"),
                 to = Instant.parse("2026-08-02T00:00:00Z"),
                 cursor = PageCursor(SocialContentCalendarCursorCodec.encode(cursor)),
@@ -423,7 +424,7 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
 
         val page = repository.findImportedPosts(
             SocialContentCalendarQuery(
-                scope = WorkspaceScope("workspace-1"),
+                scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
                 from = Instant.parse("2026-08-01T00:00:00Z"),
                 to = Instant.parse("2026-08-03T00:00:00Z"),
                 lifecycle = PostLifecycle.PUBLISHED,
@@ -435,9 +436,9 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     }
 
     private fun samplePost(externalId: String): SocialPost = SocialPost(
-        scope = WorkspaceScope("workspace-1"),
+        scope = WorkspaceScope("00000000-0000-0000-0000-00000000049d"),
         provider = SocialProvider.LINKEDIN,
-        actorId = "soacc-1",
+        actorId = "00000000-0000-0000-0000-000000000489",
         externalPostId = ExternalPostId(externalId),
         publishedAt = Instant.parse("2026-08-01T10:00:00Z"),
         body = "Hello from LinkedIn",
@@ -450,24 +451,24 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:owner@example.com', NULL, 'owner')
+            VALUES ('00000000-0000-0000-0000-000000000430', 'USER', 'local:owner@example.com', NULL, 'owner')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         seedSocialAccount(
-            accountId = "soacc-1",
-            connectionId = "soconn-1",
+            accountId = "00000000-0000-0000-0000-000000000489",
+            connectionId = "00000000-0000-0000-0000-000000000493",
             providerAccountId = "linkedin-account-1",
             displayName = "Yuniel",
         )
         seedSocialAccount(
-            accountId = "soacc-2",
-            connectionId = "soconn-2",
+            accountId = "00000000-0000-0000-0000-00000000048a",
+            connectionId = "00000000-0000-0000-0000-000000000494",
             providerAccountId = "linkedin-account-2",
             displayName = "Other actor",
         )
@@ -484,12 +485,12 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                :connectionId, 'workspace-1', 'LINKEDIN', :connectionRef,
+                :connectionId, '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', :connectionRef,
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
         )
-            .bind("connectionId", connectionId)
+            .bind("connectionId", UUID.fromString(connectionId))
             .bind("connectionRef", "linkedin-conn-$connectionId")
             .fetch()
             .rowsUpdated()
@@ -500,13 +501,13 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                :accountId, :connectionId, 'workspace-1', 'LINKEDIN',
+                :accountId, :connectionId, '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 :providerAccountId, 'PERSONAL_PROFILE', :displayName, 'ACTIVE'
             )
             """.trimIndent(),
         )
-            .bind("accountId", accountId)
-            .bind("connectionId", connectionId)
+            .bind("accountId", UUID.fromString(accountId))
+            .bind("connectionId", UUID.fromString(connectionId))
             .bind("providerAccountId", providerAccountId)
             .bind("displayName", displayName)
             .fetch()

@@ -16,7 +16,7 @@ const RouterLinkStub = {
 function makeEvent(id: string, overrides: Partial<TeamActivityEvent> = {}): TeamActivityEvent {
   return {
     id,
-    memberId: 'm1',
+    memberId: '178f3ee9-2160-55b0-89e8-1abb172910fb',
     memberName: 'Yuniel',
     action: 'Scheduled "Kotlin coroutines" for LinkedIn',
     timestamp: '2026-06-12T08:00:00Z',
@@ -38,7 +38,7 @@ describe('TeamActivity', () => {
     const wrapper = mount(TeamActivity, {
       props: {
         events: [makeEvent('e1')],
-        members: [makeMember('m1')],
+        members: [makeMember('178f3ee9-2160-55b0-89e8-1abb172910fb')],
       },
       global: { stubs: { 'router-link': RouterLinkStub } },
     })
@@ -50,7 +50,7 @@ describe('TeamActivity', () => {
     const wrapper = mount(TeamActivity, {
       props: {
         events: [makeEvent('e1', { memberName: 'Yuniel', action: 'Published a post' })],
-        members: [makeMember('m1', { name: 'Yuniel' })],
+        members: [makeMember('178f3ee9-2160-55b0-89e8-1abb172910fb', { name: 'Yuniel' })],
       },
       global: { stubs: { 'router-link': RouterLinkStub } },
     })
@@ -75,8 +75,8 @@ describe('TeamActivity', () => {
   it('renders online indicator for online members', () => {
     const wrapper = mount(TeamActivity, {
       props: {
-        events: [makeEvent('e1', { memberId: 'm1' })],
-        members: [makeMember('m1', { online: true })],
+        events: [makeEvent('e1', { memberId: '178f3ee9-2160-55b0-89e8-1abb172910fb' })],
+        members: [makeMember('178f3ee9-2160-55b0-89e8-1abb172910fb', { online: true })],
       },
       global: { stubs: { 'router-link': RouterLinkStub } },
     })
@@ -87,7 +87,7 @@ describe('TeamActivity', () => {
 
   it('shows empty state when no events', () => {
     const wrapper = mount(TeamActivity, {
-      props: { events: [], members: [makeMember('m1')] },
+      props: { events: [], members: [makeMember('178f3ee9-2160-55b0-89e8-1abb172910fb')] },
       global: { stubs: { 'router-link': RouterLinkStub } },
     })
     expect(wrapper.text()).toContain('dashboard.teamActivity.noActivity')
@@ -97,7 +97,7 @@ describe('TeamActivity', () => {
     const wrapper = mount(TeamActivity, {
       props: {
         events: [makeEvent('e1')],
-        members: [makeMember('m1')],
+        members: [makeMember('178f3ee9-2160-55b0-89e8-1abb172910fb')],
       },
       global: { stubs: { 'router-link': RouterLinkStub } },
     })

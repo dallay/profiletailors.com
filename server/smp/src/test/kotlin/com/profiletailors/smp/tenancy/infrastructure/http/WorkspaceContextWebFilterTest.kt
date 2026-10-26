@@ -23,7 +23,7 @@ class WorkspaceContextWebFilterTest {
         )
         val exchange = MockServerWebExchange.from(
             MockServerHttpRequest.get("/")
-                .header("X-Workspace-Id", "workspace-123")
+                .header("X-Workspace-Id", "00000000-0000-0000-0000-000000000123")
                 .build(),
         )
         var resolvedWorkspaceId: String? = null
@@ -36,7 +36,7 @@ class WorkspaceContextWebFilterTest {
             },
         ).block()
 
-        assertEquals("workspace-123", resolvedWorkspaceId)
+        assertEquals("00000000-0000-0000-0000-000000000123", resolvedWorkspaceId)
         assertNull(store.currentResourceContext())
     }
 

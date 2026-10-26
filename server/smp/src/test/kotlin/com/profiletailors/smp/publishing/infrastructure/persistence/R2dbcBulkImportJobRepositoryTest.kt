@@ -25,6 +25,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.util.UUID
 import java.util.function.BiFunction
 import kotlin.time.Duration.Companion.seconds
 
@@ -74,6 +75,7 @@ class R2dbcBulkImportJobRepositoryTest {
         val rowsSpec = mockk<RowsFetchSpec<BulkImportJob>>(relaxed = false)
         every { databaseClient.sql(ofType(String::class)) } returns genericSpec
         every { genericSpec.bind(any<String>(), any<String>()) } returns genericSpec
+        every { genericSpec.bind(any<String>(), any<UUID>()) } returns genericSpec
         val slot = slot<BiFunction<Row, RowMetadata, BulkImportJob>>()
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.one() } answers {
@@ -82,7 +84,7 @@ class R2dbcBulkImportJobRepositoryTest {
             @Suppress("UNCHECKED_CAST")
             Mono.just(fn.apply(readable, mockk<RowMetadata>()))
         }
-        val result = repository.findByWorkspaceAndId("workspace-1", job.id)
+        val result = repository.findByWorkspaceAndId(WORKSPACE_ID, job.id)
         assertNotNull(result)
     }
 
@@ -92,9 +94,10 @@ class R2dbcBulkImportJobRepositoryTest {
         val rowsSpec = mockk<RowsFetchSpec<BulkImportJob>>(relaxed = false)
         every { databaseClient.sql(ofType(String::class)) } returns genericSpec
         every { genericSpec.bind(any<String>(), any<String>()) } returns genericSpec
+        every { genericSpec.bind(any<String>(), any<UUID>()) } returns genericSpec
         every { genericSpec.map(any<BiFunction<Row, RowMetadata, BulkImportJob>>()) } returns rowsSpec
         every { rowsSpec.one() } returns Mono.empty()
-        assertNull(repository.findByWorkspaceAndId("workspace-1", "missing"))
+        assertNull(repository.findByWorkspaceAndId(WORKSPACE_ID, UUID.randomUUID().toString()))
     }
 
     @Test
@@ -115,7 +118,7 @@ class R2dbcBulkImportJobRepositoryTest {
 
     @Test
     fun `saveRows inserts single chunk`() = runTest {
-        val rows = listOf(sampleRow("bulk-job-1", 0, "brow-0"))
+        val rows = listOf(sampleRow(JOB_ID, 0, "brow-0"))
         val spec = mockSaveRowsSpec()
         every { databaseClient.sql(ofType(String::class)) } returns spec
         repository.saveRows(rows)
@@ -124,18 +127,21 @@ class R2dbcBulkImportJobRepositoryTest {
 
     @Test
     fun `should bind rowIndex as Int when saving rows`() = runTest(timeout = 5.seconds) {
-        val rows = listOf(sampleRow("bulk-job-1", 0, "brow-0"))
+        val rows = listOf(sampleRow(JOB_ID, 0, "brow-0"))
         val spec = mockSaveRowsSpec()
         every { databaseClient.sql(ofType(String::class)) } returns spec
 
         repository.saveRows(rows)
 
         verify { spec.bind("rowIndex0", 0) }
+        verify { spec.bind("id0", rowId("brow-0")) }
+        verify { spec.bind("jobId0", UUID.fromString(JOB_ID)) }
+        verify { spec.bindNull("publicationId0", UUID::class.java) }
     }
 
     @Test
     fun `saveRows chunked 100 splits 101 rows`() = kotlinx.coroutines.runBlocking {
-        val rows = (0 until 101).map { idx -> sampleRow("bulk-job-1", idx, "brow-$idx") }
+        val rows = (0 until 101).map { idx -> sampleRow(JOB_ID, idx, "brow-$idx") }
         val spec = mockSaveRowsSpec()
         every { databaseClient.sql(ofType(String::class)) } returns spec
         repository.saveRows(rows)
@@ -146,8 +152,8 @@ class R2dbcBulkImportJobRepositoryTest {
     fun `saveRows handles nullable fields and mediaUrls blank`() = runTest {
         val rows = listOf(
             BulkImportRow(
-                id = "brow-null",
-                jobId = "bulk-job-1",
+                id = rowId("brow-null").toString(),
+                jobId = JOB_ID,
                 rowIndex = 0,
                 status = BulkRowStatus.VALID,
                 errors = emptyList(),
@@ -158,8 +164,8 @@ class R2dbcBulkImportJobRepositoryTest {
                 hasConflict = false,
             ),
             BulkImportRow(
-                id = "brow-media",
-                jobId = "bulk-job-1",
+                id = rowId("brow-media").toString(),
+                jobId = JOB_ID,
                 rowIndex = 1,
                 status = BulkRowStatus.VALID,
                 errors = emptyList(),
@@ -177,11 +183,12 @@ class R2dbcBulkImportJobRepositoryTest {
 
     @Test
     fun `findRows returns ordered rows and parses mediaUrls and errors`() = runTest {
-        val jobId = "bulk-job-1"
+        val jobId = JOB_ID
         val genericSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         val rowsSpec = mockk<RowsFetchSpec<BulkImportRow>>(relaxed = false)
         every { databaseClient.sql(ofType(String::class)) } returns genericSpec
         every { genericSpec.bind(any<String>(), any<String>()) } returns genericSpec
+        every { genericSpec.bind(any<String>(), any<UUID>()) } returns genericSpec
         val slot = slot<BiFunction<Row, RowMetadata, BulkImportRow>>()
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all().collectList() } answers {
@@ -208,11 +215,12 @@ class R2dbcBulkImportJobRepositoryTest {
 
     @Test
     fun `toBulkRow handles invalid json gracefully`() = runTest {
-        val jobId = "bulk-job-1"
+        val jobId = JOB_ID
         val genericSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         val rowsSpec = mockk<RowsFetchSpec<BulkImportRow>>(relaxed = false)
         every { databaseClient.sql(ofType(String::class)) } returns genericSpec
         every { genericSpec.bind(any<String>(), any<String>()) } returns genericSpec
+        every { genericSpec.bind(any<String>(), any<UUID>()) } returns genericSpec
         val slot = slot<BiFunction<Row, RowMetadata, BulkImportRow>>()
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all().collectList() } answers {
@@ -226,11 +234,12 @@ class R2dbcBulkImportJobRepositoryTest {
 
     @Test
     fun `toBulkRow handles blank mediaUrls as empty`() = runTest {
-        val jobId = "bulk-job-1"
+        val jobId = JOB_ID
         val genericSpec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         val rowsSpec = mockk<RowsFetchSpec<BulkImportRow>>(relaxed = false)
         every { databaseClient.sql(ofType(String::class)) } returns genericSpec
         every { genericSpec.bind(any<String>(), any<String>()) } returns genericSpec
+        every { genericSpec.bind(any<String>(), any<UUID>()) } returns genericSpec
         val slot = slot<BiFunction<Row, RowMetadata, BulkImportRow>>()
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all().collectList() } answers {
@@ -243,9 +252,9 @@ class R2dbcBulkImportJobRepositoryTest {
     }
 
     private fun sampleJob(
-        id: String = "bulk-job-1",
-        workspaceId: String = "workspace-1",
-        principalId: String = "principal-1",
+        id: String = JOB_ID,
+        workspaceId: String = WORKSPACE_ID,
+        principalId: String = PRINCIPAL_ID,
         idempotencyKey: String = "b".repeat(64),
         csvHash: String = "c".repeat(64),
         status: BulkJobStatus = BulkJobStatus.PENDING,
@@ -265,7 +274,7 @@ class R2dbcBulkImportJobRepositoryTest {
     )
 
     private fun sampleRow(jobId: String, rowIndex: Int, id: String) = BulkImportRow(
-        id = id,
+        id = rowId(id).toString(),
         jobId = jobId,
         rowIndex = rowIndex,
         status = BulkRowStatus.VALID,
@@ -278,6 +287,7 @@ class R2dbcBulkImportJobRepositoryTest {
     private fun mockSaveSpec(): DatabaseClient.GenericExecuteSpec {
         val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         every { spec.bind(any<String>(), any<String>()) } returns spec
+        every { spec.bind(any<String>(), any<UUID>()) } returns spec
         every { spec.bind(any<String>(), any<Int>()) } returns spec
         every { spec.bind(any<String>(), any<Instant>()) } returns spec
         val fetchSpec = mockk<FetchSpec<Map<String, Any>>>(relaxed = false)
@@ -289,11 +299,13 @@ class R2dbcBulkImportJobRepositoryTest {
     private fun mockSaveRowsSpec(): DatabaseClient.GenericExecuteSpec {
         val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         every { spec.bind(any<String>(), any<String>()) } returns spec
+        every { spec.bind(any<String>(), any<UUID>()) } returns spec
         every { spec.bind(any<String>(), any<Int>()) } returns spec
         every { spec.bind(any<String>(), any<Instant>()) } returns spec
         every { spec.bind(any<String>(), any<Boolean>()) } returns spec
         every { spec.bindNull(any<String>(), any<Class<String>>()) } returns spec
         every { spec.bindNull(any<String>(), any<Class<Instant>>()) } returns spec
+        every { spec.bindNull(any<String>(), UUID::class.java) } returns spec
         val fetchSpec = mockk<FetchSpec<Map<String, Any>>>(relaxed = false)
         every { spec.fetch() } returns fetchSpec
         every { fetchSpec.rowsUpdated() } returns Mono.just(1L)
@@ -302,9 +314,9 @@ class R2dbcBulkImportJobRepositoryTest {
 
     private fun mockReadableForJob(job: BulkImportJob): Row {
         val readable = mockk<Row>(relaxed = false)
-        every { readable.get("id", String::class.java) } returns job.id
-        every { readable.get("workspace_id", String::class.java) } returns job.workspaceId
-        every { readable.get("principal_id", String::class.java) } returns job.principalId
+        every { readable.get("id", UUID::class.java) } returns UUID.fromString(job.id)
+        every { readable.get("workspace_id", UUID::class.java) } returns UUID.fromString(job.workspaceId)
+        every { readable.get("principal_id", UUID::class.java) } returns UUID.fromString(job.principalId)
         every { readable.get("idempotency_key", String::class.java) } returns job.idempotencyKey
         every { readable.get("csv_hash", String::class.java) } returns job.csvHash
         every { readable.get("status", String::class.java) } returns job.status.name
@@ -328,16 +340,24 @@ class R2dbcBulkImportJobRepositoryTest {
         status: BulkRowStatus,
     ): Row {
         val readable = mockk<Row>(relaxed = false)
-        every { readable.get("id", String::class.java) } returns id
-        every { readable.get("job_id", String::class.java) } returns jobId
+        every { readable.get("id", UUID::class.java) } returns rowId(id)
+        every { readable.get("job_id", UUID::class.java) } returns UUID.fromString(jobId)
         every { readable.get("row_index", Int::class.javaObjectType) } returns rowIndex
         every { readable.get("status", String::class.java) } returns status.name
         every { readable.get("errors", String::class.java) } returns errorsJson
         every { readable.get("media_urls", String::class.java) } returns mediaUrls
         every { readable.get("has_conflict", Boolean::class.javaObjectType) } returns hasConflict
-        every { readable.get("publication_id", String::class.java) } returns null
+        every { readable.get("publication_id", UUID::class.java) } returns null
         every { readable.get("body_text", String::class.java) } returns "row $rowIndex"
         every { readable.get("scheduled_for", OffsetDateTime::class.java) } returns null
         return readable
+    }
+
+    private fun rowId(key: String): UUID = UUID.nameUUIDFromBytes(key.toByteArray(Charsets.UTF_8))
+
+    private companion object {
+        const val JOB_ID = "00000000-0000-0000-0000-000000000001"
+        const val WORKSPACE_ID = "00000000-0000-0000-0000-000000000002"
+        const val PRINCIPAL_ID = "00000000-0000-0000-0000-000000000003"
     }
 }

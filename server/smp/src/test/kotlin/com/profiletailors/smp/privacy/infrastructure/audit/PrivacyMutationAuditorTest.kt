@@ -17,7 +17,7 @@ class PrivacyMutationAuditorTest {
     private val auditHook = mockk<AuditHook>(relaxed = true)
     private val principalContextProvider = object : PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = PrincipalContext(
-            principalId = "test-principal",
+            principalId = "11111111-1111-4111-8111-111111111111",
             principalType = PrincipalType.USER,
             subject = "test@example.com",
         )
@@ -25,10 +25,10 @@ class PrivacyMutationAuditorTest {
     private val auditor = PrivacyMutationAuditor(principalContextProvider, auditHook)
 
     @Test
-    fun `records dsar submitted event with sentinel workspace`() = runTest {
+    fun `records cross workspace dsar submitted event without a workspace`() = runTest {
         auditor.recordSuccess(
             action = "dsar.submitted",
-            requestId = "dsr-123",
+            requestId = "b2b09298-7523-599f-b289-7c09a0b10264",
             details = mapOf("type" to "ACCESS"),
         )
 
@@ -37,9 +37,9 @@ class PrivacyMutationAuditorTest {
                 MutationAuditFact(
                     action = "dsar.submitted",
                     targetType = "DATA_SUBJECT_REQUEST",
-                    targetId = "dsr-123",
-                    actorPrincipalId = "test-principal",
-                    workspaceId = "__DSAR__",
+                    targetId = "b2b09298-7523-599f-b289-7c09a0b10264",
+                    actorPrincipalId = "11111111-1111-4111-8111-111111111111",
+                    workspaceId = null,
                     outcome = MutationAuditOutcome.SUCCESS,
                     details = mapOf("type" to "ACCESS"),
                 ),
@@ -51,7 +51,7 @@ class PrivacyMutationAuditorTest {
     fun `records dsar status changed event`() = runTest {
         auditor.recordSuccess(
             action = "dsar.status_changed",
-            requestId = "dsr-123",
+            requestId = "b2b09298-7523-599f-b289-7c09a0b10264",
             details = mapOf("from" to "PENDING", "to" to "COMPLETED"),
         )
 
@@ -60,9 +60,9 @@ class PrivacyMutationAuditorTest {
                 MutationAuditFact(
                     action = "dsar.status_changed",
                     targetType = "DATA_SUBJECT_REQUEST",
-                    targetId = "dsr-123",
-                    actorPrincipalId = "test-principal",
-                    workspaceId = "__DSAR__",
+                    targetId = "b2b09298-7523-599f-b289-7c09a0b10264",
+                    actorPrincipalId = "11111111-1111-4111-8111-111111111111",
+                    workspaceId = null,
                     outcome = MutationAuditOutcome.SUCCESS,
                     details = mapOf("from" to "PENDING", "to" to "COMPLETED"),
                 ),
@@ -74,7 +74,7 @@ class PrivacyMutationAuditorTest {
     fun `records dsar completed event`() = runTest {
         auditor.recordSuccess(
             action = "dsar.completed",
-            requestId = "dsr-123",
+            requestId = "b2b09298-7523-599f-b289-7c09a0b10264",
             details = mapOf("type" to "EXPORT"),
         )
 
@@ -83,9 +83,9 @@ class PrivacyMutationAuditorTest {
                 MutationAuditFact(
                     action = "dsar.completed",
                     targetType = "DATA_SUBJECT_REQUEST",
-                    targetId = "dsr-123",
-                    actorPrincipalId = "test-principal",
-                    workspaceId = "__DSAR__",
+                    targetId = "b2b09298-7523-599f-b289-7c09a0b10264",
+                    actorPrincipalId = "11111111-1111-4111-8111-111111111111",
+                    workspaceId = null,
                     outcome = MutationAuditOutcome.SUCCESS,
                     details = mapOf("type" to "EXPORT"),
                 ),
@@ -97,7 +97,7 @@ class PrivacyMutationAuditorTest {
     fun `records rejected event`() = runTest {
         auditor.recordRejected(
             action = "dsar.submitted",
-            requestId = "dsr-123",
+            requestId = "b2b09298-7523-599f-b289-7c09a0b10264",
             reason = "rate_limit_exceeded",
             details = mapOf("type" to "ACCESS"),
         )
@@ -107,9 +107,9 @@ class PrivacyMutationAuditorTest {
                 MutationAuditFact(
                     action = "dsar.submitted",
                     targetType = "DATA_SUBJECT_REQUEST",
-                    targetId = "dsr-123",
-                    actorPrincipalId = "test-principal",
-                    workspaceId = "__DSAR__",
+                    targetId = "b2b09298-7523-599f-b289-7c09a0b10264",
+                    actorPrincipalId = "11111111-1111-4111-8111-111111111111",
+                    workspaceId = null,
                     outcome = MutationAuditOutcome.REJECTED,
                     details = mapOf("type" to "ACCESS", "reason" to "rate_limit_exceeded"),
                 ),

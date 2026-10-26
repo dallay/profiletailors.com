@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.UUID
 
 class HashtagsCommandHandlersTest {
     private val repository = FakeRepository()
@@ -33,6 +34,7 @@ class HashtagsCommandHandlersTest {
             .handle(SaveHashtagSetCommand("  Engineering  ", listOf("testing", "#quality")))
 
         assertEquals("Engineering", result.name)
+        UUID.fromString(result.id)
         assertEquals(listOf("#testing", "#quality"), result.hashtags)
         assertEquals("workspace-1", repository.created.single().workspaceId)
     }

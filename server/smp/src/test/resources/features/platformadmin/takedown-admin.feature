@@ -15,23 +15,23 @@ Feature: Platform admin takedown governance
     Then the takedown response status should be 401
 
   Scenario: List returns reports sorted by most recent
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-1"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000001"
     When the platform operator queries takedown reports
     Then the takedown response status should be 200
     And the takedown result should contain at least 1 report
 
   Scenario: Filter by status returns only matching reports
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-2"
-    And a takedown report exists with status "APPROVED" and workspace "ws-gov-3"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000002"
+    And a takedown report exists with status "APPROVED" and workspace "90000000-0000-4000-8000-000000000003"
     When the platform operator queries takedown reports with status filter "REPORTED"
     Then the takedown response status should be 200
     And all takedown reports should have status "REPORTED"
 
   Scenario: Filter by workspace returns only matching reports
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-4"
-    When the platform operator queries takedown reports with workspace filter "ws-gov-4"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000004"
+    When the platform operator queries takedown reports with workspace filter "90000000-0000-4000-8000-000000000004"
     Then the takedown response status should be 200
-    And all takedown reports should have workspace "ws-gov-4"
+    And all takedown reports should have workspace "90000000-0000-4000-8000-000000000004"
 
   Scenario: Pagination returns the correct page
     When the platform operator queries takedown reports with page 0 and size 10
@@ -40,7 +40,7 @@ Feature: Platform admin takedown governance
   # ── Detail ─────────────────────────────────────────────────────────────────
 
   Scenario: Get existing report returns 200 with asset status
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-5"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000005"
     When the platform operator views the takedown report
     Then the takedown response status should be 200
     And the report should include an asset status field
@@ -52,20 +52,20 @@ Feature: Platform admin takedown governance
   # ── Approve ─────────────────────────────────────────────────────────────────
 
   Scenario: Operator can approve a reported takedown
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-6"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000006"
     When the platform operator approves the takedown report
     Then the takedown response status should be 200
     And the report status should be "APPROVED"
 
   Scenario: Approve without idempotency key returns 400
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-7"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000007"
     When the platform operator approves the takedown report without idempotency key
     Then the takedown response status should be 400
 
   # ── Reject ─────────────────────────────────────────────────────────────────
 
   Scenario: Operator can reject a reported takedown with a reason
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-8"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000008"
     When the platform operator rejects the takedown report with reason "Not a violation"
     Then the takedown response status should be 200
     And the report status should be "DISMISSED"
@@ -74,7 +74,7 @@ Feature: Platform admin takedown governance
   # ── Idempotency ─────────────────────────────────────────────────────────────
 
   Scenario: Replaying the same idempotency key returns 200 without duplicate action
-    Given a takedown report exists with status "REPORTED" and workspace "ws-gov-9"
+    Given a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000009"
     When the platform operator approves the takedown report with idempotency key "idempotent-approve-1"
     And the platform operator approves the takedown report with idempotency key "idempotent-approve-1"
     Then the takedown response status should be 200
@@ -82,7 +82,7 @@ Feature: Platform admin takedown governance
   # ── Already decided ─────────────────────────────────────────────────────────
 
   Scenario: Approving an already dismissed report returns 409
-    Given a takedown report exists with status "DISMISSED" and workspace "ws-gov-10"
+    Given a takedown report exists with status "DISMISSED" and workspace "90000000-0000-4000-8000-000000000010"
     When the platform operator approves the takedown report
     Then the takedown response status should be 409
 
@@ -95,6 +95,6 @@ Feature: Platform admin takedown governance
 
   Scenario: AUDITOR cannot mutate — 403 on approve
     Given the authenticated principal has the role "AUDITOR"
-    And a takedown report exists with status "REPORTED" and workspace "ws-gov-11"
+    And a takedown report exists with status "REPORTED" and workspace "90000000-0000-4000-8000-000000000011"
     When the platform operator approves the takedown report
     Then the takedown response status should be 403

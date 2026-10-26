@@ -4,20 +4,20 @@ Feature: LinkedIn social-content sync contracts
 
   Scenario: Missing contract headers are rejected before sync
     Given the social-content BDD state is reset
-    When the client requests social-content sync for actor "page-1" without authorization
+    When the client requests social-content sync for actor "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64" without authorization
     Then the social-content response status should be 401
     And the social-content provider should have received 0 calls
 
   Scenario: Missing workspace context is rejected before sync
     Given the social-content BDD state is reset
-    When the client requests social-content sync for actor "page-1" without workspace context
+    When the client requests social-content sync for actor "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64" without workspace context
     Then the social-content response status should be 400
     And the social-content provider should have received 0 calls
 
   Scenario: Default Community Management gate denies sync without provider access
     Given the social-content BDD state is reset
     And the default social-content feature gates are disabled
-    When the client requests social-content sync for actor "page-1"
+    When the client requests social-content sync for actor "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64"
     Then the social-content response status should be 403
     And the social-content problem should contain denial "OPERATION_DISABLED"
     And the social-content provider should have received 0 calls
@@ -25,7 +25,7 @@ Feature: LinkedIn social-content sync contracts
   Scenario: Personal profile cannot satisfy a Company Page sync
     Given the social-content BDD state is reset
     And a personal LinkedIn social account is the only social-content account
-    When the client requests social-content sync for actor "personal-profile-1"
+    When the client requests social-content sync for actor "ffe9e4e0-68ae-5a1d-8375-c265c626e125"
     Then the social-content response status should be 403
     And the social-content problem should contain denial "ORGANIZATION_PAGE_REQUIRED"
     And the social-content provider should have received 0 calls
@@ -33,8 +33,8 @@ Feature: LinkedIn social-content sync contracts
   Scenario: Valid sync returns an imported count when the read wiring is available
     Given the social-content BDD state is reset
     And an approved LinkedIn organization page actor exists for social-content sync
-    When the client requests social-content sync for actor "page-1"
+    When the client requests social-content sync for actor "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64"
     Then the social-content response status should be 200
-    And the social-content response should contain actorId "page-1"
+    And the social-content response should contain actorId "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64"
     And the social-content response should contain status "COMPLETED"
     And the social-content provider should have received 1 calls

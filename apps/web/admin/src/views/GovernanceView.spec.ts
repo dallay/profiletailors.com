@@ -22,9 +22,9 @@ const messages = {
   en: {
     governance: {
       title: 'Takedown Governance',
-      reportId: 'Report ID',
+      reportId: '51e50f3f-12c4-5817-9667-4d8fbd874d8c',
       workspace: 'Workspace',
-      assetId: 'Asset ID',
+      assetId: '2b2bbef5-8322-5936-a43f-dc5e9ad3618a',
       reportedBy: 'Reported By',
       reason: 'Reason',
       status: 'Status',
@@ -57,16 +57,16 @@ const messages = {
 
 const reportedRow = {
   reportId: 'rep-1',
-  workspaceId: 'ws-1',
-  assetId: 'asset-1',
-  reportedById: 'user-1',
+  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+  assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+  reportedById: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   reason: 'copyright',
   status: 'REPORTED',
   rejectionReason: null,
   reviewedById: null,
   reviewedAt: null,
   reporterEmail: 'reporter@example.com',
-  mediaReferenceUrl: 'https://example.com/media/asset-1',
+  mediaReferenceUrl: 'https://example.com/media/8bdec504-2ed1-59e4-8a4a-c068789d03d2',
   createdAt: '2026-09-22T10:00:00Z',
   updatedAt: '2026-09-22T10:00:00Z',
   assetStatus: null,
@@ -127,7 +127,7 @@ describe('GovernanceView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('rep-1')
-    expect(wrapper.text()).toContain('ws-1')
+    expect(wrapper.text()).toContain('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     expect(wrapper.text()).toContain('Reported')
     expect(wrapper.find('select[aria-label="Filter by status"]').exists()).toBe(true)
     expect(wrapper.find('input[aria-label="Workspace"]').exists()).toBe(true)

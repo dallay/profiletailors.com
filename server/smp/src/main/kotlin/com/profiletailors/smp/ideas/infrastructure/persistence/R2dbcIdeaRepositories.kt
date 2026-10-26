@@ -13,6 +13,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 private const val BIND_WORKSPACE_ID = "workspaceId"
 
@@ -28,7 +29,7 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
         ORDER BY column_id ASC, order_in_column ASC, created_at ASC
         """.trimIndent(),
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
         .map { row, _ -> mapIdeaRow(row) }
         .all()
         .collectList()
@@ -42,8 +43,8 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
         WHERE workspace_id = :workspaceId AND id = :ideaId
         """.trimIndent(),
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
-        .bind("ideaId", ideaId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+        .bind("ideaId", UUID.fromString(ideaId))
         .map { row, _ -> mapIdeaRow(row) }
         .one()
         .awaitSingleOrNull()
@@ -62,15 +63,19 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
             )
             """.trimIndent(),
         )
-            .bind("id", idea.id)
-            .bind(BIND_WORKSPACE_ID, idea.workspaceId)
+            .bind("id", UUID.fromString(idea.id))
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(idea.workspaceId))
             .bind("title", idea.title)
             .bindNullable("notes", idea.notes, String::class.java)
             .bind("tagsJson", objectMapper.writeValueAsString(idea.tags))
             .bind("linksJson", objectMapper.writeValueAsString(idea.links))
             .bind("columnId", idea.columnId)
             .bind("orderInColumn", idea.orderInColumn)
-            .bindNullable("convertedToPublicationId", idea.convertedToPublicationId, String::class.java)
+            .bindNullable(
+                "convertedToPublicationId",
+                idea.convertedToPublicationId?.let(UUID::fromString),
+                UUID::class.java,
+            )
             .bind("createdAt", idea.createdAt)
             .bind("updatedAt", idea.updatedAt)
             .fetch()
@@ -95,15 +100,19 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
               AND id = :id
             """.trimIndent(),
         )
-            .bind("id", idea.id)
-            .bind(BIND_WORKSPACE_ID, idea.workspaceId)
+            .bind("id", UUID.fromString(idea.id))
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(idea.workspaceId))
             .bind("title", idea.title)
             .bindNullable("notes", idea.notes, String::class.java)
             .bind("tagsJson", objectMapper.writeValueAsString(idea.tags))
             .bind("linksJson", objectMapper.writeValueAsString(idea.links))
             .bind("columnId", idea.columnId)
             .bind("orderInColumn", idea.orderInColumn)
-            .bindNullable("convertedToPublicationId", idea.convertedToPublicationId, String::class.java)
+            .bindNullable(
+                "convertedToPublicationId",
+                idea.convertedToPublicationId?.let(UUID::fromString),
+                UUID::class.java,
+            )
             .bind("updatedAt", idea.updatedAt)
             .fetch()
             .rowsUpdated()
@@ -114,8 +123,8 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
     override suspend fun delete(workspaceId: String, ideaId: String): Boolean = databaseClient.sql(
         "DELETE FROM ideas WHERE workspace_id = :workspaceId AND id = :ideaId",
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
-        .bind("ideaId", ideaId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+        .bind("ideaId", UUID.fromString(ideaId))
         .fetch()
         .rowsUpdated()
         .awaitSingle() > 0
@@ -133,8 +142,8 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
         val linksJson = row.get("links_json", String::class.java) ?: "[]"
 
         return Idea(
-            id = requireNotNull(row.get("id", String::class.java)),
-            workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+            id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+            workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
             title = requireNotNull(row.get("title", String::class.java)),
             notes = row.get("notes", String::class.java),
             tags = objectMapper.readValue(
@@ -147,7 +156,7 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
             ),
             columnId = requireNotNull(row.get("column_id", String::class.java)),
             orderInColumn = requireNotNull(row.get("order_in_column", Int::class.javaObjectType)),
-            convertedToPublicationId = row.get("converted_to_publication_id", String::class.java),
+            convertedToPublicationId = row.get("converted_to_publication_id", UUID::class.java)?.toString(),
             createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
             updatedAt = requireNotNull(row.get("updated_at", OffsetDateTime::class.java)).toInstant(),
         )
@@ -162,10 +171,10 @@ class R2dbcIdeaBoardConfigRepository(
     override suspend fun findByWorkspace(workspaceId: String): IdeaBoardConfig? = databaseClient.sql(
         "SELECT workspace_id, columns_json FROM idea_board_configs WHERE workspace_id = :workspaceId",
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
         .map { row, _ ->
             IdeaBoardConfig(
-                workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
                 columns = objectMapper.readValue(
                     row.get("columns_json", String::class.java) ?: "[]",
                     object : com.fasterxml.jackson.core.type.TypeReference<List<IdeaColumn>>() {},
@@ -186,7 +195,7 @@ class R2dbcIdeaBoardConfigRepository(
                 updated_at = EXCLUDED.updated_at
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, config.workspaceId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(config.workspaceId))
             .bind("columnsJson", columnsJson)
             .bind("updatedAt", Instant.now())
             .fetch()

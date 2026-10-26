@@ -26,7 +26,7 @@ internal class CreateAssetHandler(
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         val now = clock.instant()
 
-        val assetId = "pa-${UUID.randomUUID()}"
+        val assetId = UUID.randomUUID().toString()
         val storageKey = if (command.sourceType == AssetSourceType.UPLOADED) {
             "assets/$workspaceId/$assetId"
         } else {

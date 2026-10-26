@@ -14,7 +14,7 @@ describe('usePublicationEventReconnect', () => {
   function makeSut({
     initialVisible = true,
     isAuthenticated = true,
-    workspaceId = 'ws-1',
+    workspaceId = '820c22d8-9ce7-5e76-867f-04bac4e53b59',
   }: {
     initialVisible?: boolean
     isAuthenticated?: boolean
@@ -139,8 +139,8 @@ describe('usePublicationEventReconnect', () => {
 
     const sampleEvent: PublicationInvalidation = {
       type: 'publication-invalidated',
-      workspaceId: 'ws-1',
-      publicationId: 'pub-1',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      publicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
       reason: 'updated',
       occurredAt: new Date().toISOString(),
     }
@@ -246,7 +246,7 @@ describe('usePublicationEventReconnect', () => {
 
   it('stops unavailable SSE retries for this cycle but permits a new workspace cycle', async () => {
     const subscribe = vi.fn<() => Promise<null | 'unavailable'>>().mockResolvedValue('unavailable')
-    const workspaceId = ref<string | null>('ws-1')
+    const workspaceId = ref<string | null>('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     const sut = usePublicationEventReconnect({
       subscribe,
       workspaceId,
@@ -261,7 +261,7 @@ describe('usePublicationEventReconnect', () => {
     document.dispatchEvent(new Event('visibilitychange'))
     expect(subscribe).toHaveBeenCalledTimes(1)
     sut.stop()
-    workspaceId.value = 'ws-2'
+    workspaceId.value = 'ebc2337b-7ff7-579a-9139-5415c77f040e'
     sut.start()
     await vi.advanceTimersByTimeAsync(60000)
     expect(subscribe).toHaveBeenCalledTimes(2)
@@ -276,7 +276,7 @@ describe('usePublicationEventReconnect', () => {
         setup() {
           const sut = usePublicationEventReconnect({
             subscribe: async () => null,
-            workspaceId: ref('ws-1'),
+            workspaceId: ref('820c22d8-9ce7-5e76-867f-04bac4e53b59'),
             isConnected: ref(false),
             isAuthenticated: ref(true),
             unsubscribe,

@@ -139,7 +139,7 @@ describe('useComposerValidation', () => {
       ['facebook', 10],
     ])('returns %i for %s', (provider, expected) => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider,
         name: 'Test',
         status: 'ACTIVE',
@@ -156,7 +156,7 @@ describe('useComposerValidation', () => {
 
     it('returns Infinity for unknown providers', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'unknown',
         name: 'Test',
         status: 'ACTIVE',
@@ -173,7 +173,7 @@ describe('useComposerValidation', () => {
 
     it('uses channel-specific attachmentLimit if provided', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -192,7 +192,7 @@ describe('useComposerValidation', () => {
     it('validates attachment count is within limit', () => {
       const attachmentCount = createRef(8)
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -214,7 +214,7 @@ describe('useComposerValidation', () => {
     it('validates boundary at exactly 9 attachments for LinkedIn', () => {
       const attachmentCount = createRef(9)
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -249,7 +249,7 @@ describe('useComposerValidation', () => {
 
     it('allows submit when channel is selected in create mode', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -277,7 +277,7 @@ describe('useComposerValidation', () => {
 
     it('blocks submit when text is empty', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -295,7 +295,7 @@ describe('useComposerValidation', () => {
 
     it('blocks submit when text is too long', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -313,7 +313,7 @@ describe('useComposerValidation', () => {
 
     it('blocks submit when schedule is invalid in create mode', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -332,7 +332,7 @@ describe('useComposerValidation', () => {
 
     it('allows submit without schedule validation in edit mode', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -351,7 +351,7 @@ describe('useComposerValidation', () => {
 
     it('blocks submit when submitting', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -369,7 +369,7 @@ describe('useComposerValidation', () => {
 
     it('blocks submit when attachment count exceeds limit', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -396,7 +396,7 @@ describe('useComposerValidation', () => {
   describe('validation errors', () => {
     it('returns empty array when all valid', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -431,7 +431,7 @@ describe('useComposerValidation', () => {
   describe('warning count', () => {
     it('returns 0 when no warnings', () => {
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -450,7 +450,7 @@ describe('useComposerValidation', () => {
       // 2750 chars = 250 remaining, which is 8.3% (under 10% = warning)
       const postText = createRef('a'.repeat(2750))
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -468,7 +468,7 @@ describe('useComposerValidation', () => {
     it('returns 1 when near attachment limit', () => {
       // 7 attachments = 77% of 9 (near 70% threshold)
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -488,7 +488,7 @@ describe('useComposerValidation', () => {
       // 2750 chars = warning
       const postText = createRef('a'.repeat(2750))
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -521,7 +521,12 @@ describe('useComposerValidation', () => {
 
       expect(validation.canSubmit.value).toBe(false)
 
-      selectedChannel.value = { id: 'ch1', provider: 'linkedin', name: 'Test', status: 'ACTIVE' }
+      selectedChannel.value = {
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
+        provider: 'linkedin',
+        name: 'Test',
+        status: 'ACTIVE',
+      }
 
       expect(validation.canSubmit.value).toBe(true)
     })
@@ -529,7 +534,7 @@ describe('useComposerValidation', () => {
     it('updates canSubmit when text changes', () => {
       const postText = createRef('')
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
@@ -551,7 +556,7 @@ describe('useComposerValidation', () => {
     it('updates attachmentCount when attachments change', () => {
       const attachmentCount = createRef(0)
       const selectedChannel = createRef({
-        id: 'ch1',
+        id: '580a29ec-2104-551b-8b15-1bcff13817a8',
         provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',

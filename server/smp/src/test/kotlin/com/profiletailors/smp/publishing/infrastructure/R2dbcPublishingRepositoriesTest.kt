@@ -62,8 +62,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `persists and reads social connection and account`() = runTest {
         val connection = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-1",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000493",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-1",
                 status = SocialConnectionStatus.ACTIVE,
@@ -72,9 +72,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         )
         val account = socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-1",
+                id = "00000000-0000-0000-0000-000000000489",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-account-1",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -83,8 +83,14 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val loadedConnection = socialConnectionRepository.findByWorkspaceAndId("workspace-1", "soconn-1")
-        val loadedAccount = socialAccountRepository.findByWorkspaceAndId("workspace-1", "soacc-1")
+        val loadedConnection = socialConnectionRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049d",
+            "00000000-0000-0000-0000-000000000493",
+        )
+        val loadedAccount = socialAccountRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049d",
+            "00000000-0000-0000-0000-000000000489",
+        )
 
         assertEquals("linkedin-conn-1", loadedConnection?.providerConnectionRef)
         assertEquals("linkedin-account-1", loadedAccount?.providerAccountId)
@@ -95,8 +101,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `social connection upsert preserves id on conflict`() = runTest {
         val first = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-original",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000499",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-conflict",
                 status = SocialConnectionStatus.ACTIVE,
@@ -107,8 +113,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         val updated = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-reconnect",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-00000000049b",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-conflict",
                 status = SocialConnectionStatus.REVOKED,
@@ -127,8 +133,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `social account upsert preserves id on conflict`() = runTest {
         val connection = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-account-conflict",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000495",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-account-conflict",
                 status = SocialConnectionStatus.ACTIVE,
@@ -137,9 +143,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         )
         val first = socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-original",
+                id = "00000000-0000-0000-0000-00000000048f",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-account-conflict",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -150,7 +156,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         val updated = socialAccountRepository.upsert(
             first.copy(
-                id = "soacc-reconnect",
+                id = "00000000-0000-0000-0000-000000000491",
                 displayName = "Updated Name",
                 profileUrn = "urn:li:person:updated",
                 status = SocialConnectionStatus.REVOKED,
@@ -167,8 +173,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `connected channel read repository returns safe active joined rows`() = runTest {
         val connection = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-read",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-00000000049a",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-read",
                 status = SocialConnectionStatus.ACTIVE,
@@ -178,9 +184,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         )
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-read",
+                id = "00000000-0000-0000-0000-000000000490",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-account-read",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -190,11 +196,11 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val channels = connectedSocialChannelReadRepository.listByWorkspace("workspace-1")
+        val channels = connectedSocialChannelReadRepository.listByWorkspace("00000000-0000-0000-0000-00000000049d")
 
         assertEquals(1, channels.size)
         val channel = channels.single()
-        assertEquals("soacc-read", channel.socialAccountId)
+        assertEquals("00000000-0000-0000-0000-000000000490", channel.socialAccountId)
         assertEquals(connection.id, channel.connectionId)
         assertEquals(SocialProvider.LINKEDIN, channel.provider)
         assertEquals(SocialAccountKind.PERSONAL_PROFILE, channel.accountKind)
@@ -211,7 +217,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                '00000000-0000-0000-0000-000000000493', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', 'linkedin-conn-1',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
@@ -222,7 +228,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                '00000000-0000-0000-0000-000000000489', '00000000-0000-0000-0000-000000000493', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
             )
             """.trimIndent(),
@@ -231,7 +237,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             """
             INSERT INTO workspace_file_blobs (workspace_id, file_hash, storage_key, detected_media_type, file_size_bytes, status)
             VALUES (
-                'workspace-1', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                '00000000-0000-0000-0000-00000000049d', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                 'storage/key.png', 'image/png', 1024, 'READY'
             )
             """.trimIndent(),
@@ -243,7 +249,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 original_filename, file_size_bytes, status, upload_started_at, created_at,
                 file_hash, detected_media_type
             ) VALUES (
-                'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
+                '00000000-0000-0000-0000-0000000003ed', '00000000-0000-0000-0000-00000000049d', 'UPLOADED', 'image/png', 'storage/key.png',
                 'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP,
                 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png'
             )
@@ -252,23 +258,23 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         val persisted = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-1",
-                workspaceId = "workspace-1",
-                authorPrincipalId = "principal-1",
+                id = "00000000-0000-0000-0000-000000000434",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "soacc-1",
+                socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.QUEUED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = true,
                 bodyText = "Hello world",
-                assetIds = listOf("asset-1"),
+                assetIds = listOf("00000000-0000-0000-0000-0000000003ed"),
             ),
         )
 
-        val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", persisted.id)
+        val loaded = publicationRepository.findByWorkspaceAndId("00000000-0000-0000-0000-00000000049d", persisted.id)
 
         assertNotNull(loaded)
-        assertEquals(listOf("asset-1"), loaded?.assetIds)
+        assertEquals(listOf("00000000-0000-0000-0000-0000000003ed"), loaded?.assetIds)
     }
 
     @Test
@@ -277,8 +283,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             """
             INSERT INTO workspace_file_blobs (workspace_id, file_hash, storage_key, detected_media_type, file_size_bytes, status)
             VALUES
-                ('workspace-1', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'storage/key.png', 'image/png', 1024, 'READY'),
-                ('workspace-1', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'storage/key-2.jpg', 'image/jpeg', 2048, 'READY')
+                ('00000000-0000-0000-0000-00000000049d', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'storage/key.png', 'image/png', 1024, 'READY'),
+                ('00000000-0000-0000-0000-00000000049d', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'storage/key-2.jpg', 'image/jpeg', 2048, 'READY')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
@@ -288,7 +294,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 original_filename, file_size_bytes, status, upload_started_at, created_at,
                 file_hash, detected_media_type
             ) VALUES (
-                'media-asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
+                '00000000-0000-0000-0000-00000000042b', '00000000-0000-0000-0000-00000000049d', 'UPLOADED', 'image/png', 'storage/key.png',
                 'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP,
                 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'image/png'
             )
@@ -301,7 +307,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 original_filename, file_size_bytes, status, upload_started_at, created_at,
                 file_hash, detected_media_type
             ) VALUES (
-                'media-asset-2', 'workspace-1', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
+                '00000000-0000-0000-0000-00000000042c', '00000000-0000-0000-0000-00000000049d', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
                 'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP,
                 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'image/jpeg'
             )
@@ -309,12 +315,12 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
 
         val assets = mediaAssetRepository.findByWorkspaceAndIds(
-            "workspace-1",
-            listOf("media-asset-1"),
+            "00000000-0000-0000-0000-00000000049d",
+            listOf("00000000-0000-0000-0000-00000000042b"),
         )
 
         assertEquals(1, assets.size)
-        assertEquals("media-asset-1", assets.single().assetId)
+        assertEquals("00000000-0000-0000-0000-00000000042b", assets.single().assetId)
         assertEquals("image/png", assets.single().mediaType)
     }
 
@@ -323,23 +329,27 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         seedSocialAccount()
         val pub1 = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-range-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000045b",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "June post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
             ),
         )
         val pub2 = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-range-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000045c",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "July post", scheduledFor = Instant.parse("2026-07-01T12:00:00Z"),
             ),
         )
 
         val results = publicationRepository.findInDateRange(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2026-06-01T00:00:00Z"),
             to = Instant.parse("2026-07-01T00:00:00Z"),
         )
@@ -352,23 +362,27 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         seedSocialAccount()
         val draftPub = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-status-draft", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-000000000477",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.DRAFT, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Draft post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
             ),
         )
         val scheduledPub = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-status-sched", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-000000000478",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Scheduled post", scheduledFor = Instant.parse("2026-06-15T14:00:00Z"),
             ),
         )
 
         val results = publicationRepository.findInDateRange(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2026-06-01T00:00:00Z"),
             to = Instant.parse("2026-07-01T00:00:00Z"),
             statuses = setOf(PublicationStatus.SCHEDULED),
@@ -380,7 +394,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     @Test
     fun `findInDateRange returns empty list for no matches`() = runTest {
         val results = publicationRepository.findInDateRange(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2025-01-01T00:00:00Z"),
             to = Instant.parse("2025-01-31T00:00:00Z"),
         )
@@ -392,15 +406,17 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         seedSocialAccount()
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-count-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000043f",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Count post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
             ),
         )
 
         val results = publicationRepository.countByDate(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2026-06-01T00:00:00Z"),
             to = Instant.parse("2026-07-01T00:00:00Z"),
         )
@@ -418,7 +434,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2',
+                '00000000-0000-0000-0000-000000000494', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', 'linkedin-conn-2',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
@@ -429,7 +445,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN',
+                '00000000-0000-0000-0000-00000000048a', '00000000-0000-0000-0000-000000000494', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE'
             )
             """.trimIndent(),
@@ -437,26 +453,30 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         val pub1 = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-filter-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000044b",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "First account", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
             ),
         )
         val pub2 = publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-filter-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-2",
+                id = "00000000-0000-0000-0000-00000000044c",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-00000000048a",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Second account", scheduledFor = Instant.parse("2026-06-15T14:00:00Z"),
             ),
         )
 
         val results = publicationRepository.findInDateRange(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2026-06-01T00:00:00Z"),
             to = Instant.parse("2026-07-01T00:00:00Z"),
-            socialAccountIds = setOf("soacc-1"),
+            socialAccountIds = setOf("00000000-0000-0000-0000-000000000489"),
         )
 
         assertEquals(listOf(pub1.id), results.map { it.id })
@@ -467,23 +487,27 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         seedSocialAccount()
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-tz-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000047b",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Late UTC", scheduledFor = Instant.parse("2026-06-09T23:00:00Z"),
             ),
         )
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-tz-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
-                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                id = "00000000-0000-0000-0000-00000000047c",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "00000000-0000-0000-0000-000000000489",
                 status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
                 bodyText = "Early UTC", scheduledFor = Instant.parse("2026-06-10T01:00:00Z"),
             ),
         )
 
         val results = publicationRepository.countByDate(
-            workspaceId = "workspace-1",
+            workspaceId = "00000000-0000-0000-0000-00000000049d",
             from = Instant.parse("2026-06-09T00:00:00Z"),
             to = Instant.parse("2026-06-11T00:00:00Z"),
             timezone = "America/New_York",
@@ -498,8 +522,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `upsert increments avatar persisted counter when avatarUrl is present`() = runTest {
         val connection = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-avatar",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000496",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-avatar",
                 status = SocialConnectionStatus.ACTIVE,
@@ -511,9 +535,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-avatar-1",
+                id = "00000000-0000-0000-0000-00000000048c",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-avatar-account-1",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -530,8 +554,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `upsert does not increment avatar persisted counter when avatarUrl is null`() = runTest {
         val connection = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-no-avatar",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000498",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-no-avatar",
                 status = SocialConnectionStatus.ACTIVE,
@@ -543,9 +567,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-no-avatar",
+                id = "00000000-0000-0000-0000-00000000048e",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-no-avatar-account",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -565,8 +589,8 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
     fun `listActiveByWorkspace returns only active accounts`() = runTest {
         socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-list",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000497",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-list",
                 status = SocialConnectionStatus.ACTIVE,
@@ -575,9 +599,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         )
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-active",
-                socialConnectionId = "soconn-list",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-00000000048b",
+                socialConnectionId = "00000000-0000-0000-0000-000000000497",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-active",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -588,9 +612,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         )
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-cancelled",
-                socialConnectionId = "soconn-list",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-00000000048d",
+                socialConnectionId = "00000000-0000-0000-0000-000000000497",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-cancelled",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -600,9 +624,9 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val results = socialAccountRepository.listActiveByWorkspace("workspace-1")
+        val results = socialAccountRepository.listActiveByWorkspace("00000000-0000-0000-0000-00000000049d")
 
-        assertEquals(listOf("soacc-active"), results.map { it.id })
+        assertEquals(listOf("00000000-0000-0000-0000-00000000048b"), results.map { it.id })
     }
 
     private suspend fun seedSocialAccount() {
@@ -611,7 +635,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                '00000000-0000-0000-0000-000000000493', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', 'linkedin-conn-1',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
@@ -622,7 +646,7 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                '00000000-0000-0000-0000-000000000489', '00000000-0000-0000-0000-000000000493', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
             )
             """.trimIndent(),
@@ -633,13 +657,13 @@ class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:owner@example.com', NULL, 'owner')
+            VALUES ('00000000-0000-0000-0000-000000000430', 'USER', 'local:owner@example.com', NULL, 'owner')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

@@ -31,30 +31,30 @@ class CheckRequestStatusHandlerTest {
 
     @Test
     fun `handle finds request by id`() = runTest {
-        val request = createSampleRequest(id = "dsr-123")
-        coEvery { repository.findById("dsr-123") } returns request
+        val request = createSampleRequest(id = "b2b09298-7523-599f-b289-7c09a0b10264")
+        coEvery { repository.findById("b2b09298-7523-599f-b289-7c09a0b10264") } returns request
 
-        val query = CheckRequestStatusQuery(requestId = "dsr-123")
+        val query = CheckRequestStatusQuery(requestId = "b2b09298-7523-599f-b289-7c09a0b10264")
         handler.handle(query)
 
-        coVerify { repository.findById("dsr-123") }
+        coVerify { repository.findById("b2b09298-7523-599f-b289-7c09a0b10264") }
     }
 
     @Test
     fun `handle maps domain object to response`() = runTest {
         val completedAt = Instant.parse("2026-07-19T12:00:00Z")
         val request = createSampleRequest(
-            id = "dsr-456",
+            id = "00e677a9-775a-555d-85c3-06c1b2bed607",
             status = DataSubjectRequestStatus.COMPLETED,
             resultRef = "https://storage.example.com/export.zip",
             completedAt = completedAt,
         )
-        coEvery { repository.findById("dsr-456") } returns request
+        coEvery { repository.findById("00e677a9-775a-555d-85c3-06c1b2bed607") } returns request
 
-        val query = CheckRequestStatusQuery(requestId = "dsr-456")
+        val query = CheckRequestStatusQuery(requestId = "00e677a9-775a-555d-85c3-06c1b2bed607")
         val result = handler.handle(query)
 
-        assert(result!!.id == "dsr-456")
+        assert(result!!.id == "00e677a9-775a-555d-85c3-06c1b2bed607")
         assert(result.status == DataSubjectRequestStatus.COMPLETED.name)
         assert(result.resultRef == "https://storage.example.com/export.zip")
         assert(result.completedAt == completedAt)
@@ -90,8 +90,12 @@ class ListRequestsHandlerTest {
     @Test
     fun `handle maps all requests to responses`() = runTest {
         val requests = listOf(
-            createSampleRequest(id = "dsr-1", type = RequestType.ACCESS),
-            createSampleRequest(id = "dsr-2", type = RequestType.EXPORT, status = DataSubjectRequestStatus.COMPLETED),
+            createSampleRequest(id = "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5", type = RequestType.ACCESS),
+            createSampleRequest(
+                id = "0548b7a9-bdd5-5ce8-b2da-7a78c406d107",
+                type = RequestType.EXPORT,
+                status = DataSubjectRequestStatus.COMPLETED,
+            ),
         )
         coEvery { repository.findByRequester("principal-1") } returns requests
 
@@ -99,18 +103,18 @@ class ListRequestsHandlerTest {
         val result = handler.handle(query)
 
         assert(result.size == 2)
-        assert(result[0].id == "dsr-1")
-        assert(result[1].id == "dsr-2")
+        assert(result[0].id == "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5")
+        assert(result[1].id == "0548b7a9-bdd5-5ce8-b2da-7a78c406d107")
     }
 
     @Test
     fun `handle orders by most recent first`() = runTest {
         val earlier = createSampleRequest(
-            id = "dsr-1",
+            id = "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5",
             createdAt = Instant.parse("2026-07-18T10:00:00Z"),
         )
         val later = createSampleRequest(
-            id = "dsr-2",
+            id = "0548b7a9-bdd5-5ce8-b2da-7a78c406d107",
             createdAt = Instant.parse("2026-07-19T10:00:00Z"),
         )
         coEvery { repository.findByRequester("principal-1") } returns listOf(earlier, later)
@@ -119,15 +123,15 @@ class ListRequestsHandlerTest {
         val result = handler.handle(query)
 
         // Most recent first
-        assert(result[0].id == "dsr-2")
-        assert(result[1].id == "dsr-1")
+        assert(result[0].id == "0548b7a9-bdd5-5ce8-b2da-7a78c406d107")
+        assert(result[1].id == "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5")
     }
 }
 
 // ——————— test helpers ———————
 
 private fun createSampleRequest(
-    id: String = "dsr-test",
+    id: String = "d8fa792a-5a57-5537-af30-59db893b1c01",
     type: RequestType = RequestType.ACCESS,
     status: DataSubjectRequestStatus = DataSubjectRequestStatus.PENDING,
     resultRef: String? = null,

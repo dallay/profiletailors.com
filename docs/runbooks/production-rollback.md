@@ -48,6 +48,14 @@ docker stack deploy -c infra/apps/smp/swarm/stack.yaml profiletailors-smp
 
 ---
 
+### UUID Schema Compatibility Gate
+
+After the UUID identifier conversion, do not run a legacy application image against the converted schema. Legacy applications can read or write prefixed identifiers and are not assumed compatible with native UUID columns or UUID-only API clients. An application-only rollback does not reverse this data migration.
+
+Before any service rollback command below, determine whether conversion committed. Keep **all** writers stopped while deciding between a verified compatible application, a reviewed forward fix, or coordinated restore of the pre-conversion database and matching application/client versions. Restore requires a successful rehearsal and an explicit decision about writes made after the backup; data loss is not implicitly approved. Prepare and convert are separate changesets, so a conversion failure can leave the mapping table committed.
+
+Follow the [UUID identifier migration runbook](./uuid-native-identifiers.md) for migration-state checks, recovery, and the human approval gate. This document records no production restore rehearsal or UUID cutover approval.
+
 ### 2. Service Rollback in Docker Swarm
 
 Swarm maintains previous task definitions for automatic or manual rollback.

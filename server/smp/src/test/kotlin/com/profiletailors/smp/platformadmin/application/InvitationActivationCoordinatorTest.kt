@@ -69,7 +69,7 @@ class InvitationActivationCoordinatorTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val email = "User@Example.com"
-        val principalId = "principal-123"
+        val principalId = "3fad5087-4b3e-40ab-8859-283310e9f79c"
 
         val invitation = createInvitation(
             target = InvitationTarget.NEW_WORKSPACE,
@@ -116,7 +116,7 @@ class InvitationActivationCoordinatorTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val email = "user@example.com"
-        val principalId = "principal-123"
+        val principalId = "3fad5087-4b3e-40ab-8859-283310e9f79c"
 
         val invitation = createInvitation(
             target = InvitationTarget.EXISTING_WORKSPACE,
@@ -164,7 +164,7 @@ class InvitationActivationCoordinatorTest {
     fun `converts a waitlist invitation before accepting it`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
-        val principalId = "principal-123"
+        val principalId = "3fad5087-4b3e-40ab-8859-283310e9f79c"
         val invitation = createInvitation(
             target = InvitationTarget.NEW_WORKSPACE,
             workspaceId = null,
@@ -403,7 +403,7 @@ class InvitationActivationCoordinatorTest {
     }
 
     @Test
-    fun `persists acceptedPrincipalId with single user prefix for bare uuid identity`() = runTest {
+    fun `persists raw acceptedPrincipalId for bare uuid identity`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val operatorUuid = UUID.randomUUID()
@@ -442,15 +442,15 @@ class InvitationActivationCoordinatorTest {
 
         val result = coordinator.activateForRegistration(rawToken, "user@example.com", operatorUuid.toString())
 
-        assertEquals("user-$operatorUuid", result.invitation.acceptedPrincipalId)
-        assertEquals("user-$operatorUuid", savedSlot.captured.acceptedPrincipalId)
+        assertEquals(operatorUuid.toString(), result.invitation.acceptedPrincipalId)
+        assertEquals(operatorUuid.toString(), savedSlot.captured.acceptedPrincipalId)
     }
 
     @Test
-    fun `keeps already prefixed acceptedPrincipalId without double prefix`() = runTest {
+    fun `persists raw acceptedPrincipalId for raw principal`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
-        val prefixedPrincipalId = "user-${UUID.randomUUID()}"
+        val prefixedPrincipalId = UUID.randomUUID().toString()
         val invitation = createInvitation(
             target = InvitationTarget.EXISTING_WORKSPACE,
             workspaceId = "ws-existing",
@@ -495,7 +495,7 @@ class InvitationActivationCoordinatorTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val email = "user@example.com"
-        val principalId = "principal-123"
+        val principalId = "3fad5087-4b3e-40ab-8859-283310e9f79c"
 
         val invitation = createInvitation(
             target = InvitationTarget.EXISTING_WORKSPACE,

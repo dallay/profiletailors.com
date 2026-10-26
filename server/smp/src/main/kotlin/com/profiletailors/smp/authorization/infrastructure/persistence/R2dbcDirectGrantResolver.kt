@@ -13,6 +13,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcDirectGrantResolver(private val databaseClient: DatabaseClient, private val objectMapper: ObjectMapper) :
@@ -39,8 +40,8 @@ class R2dbcDirectGrantResolver(private val databaseClient: DatabaseClient, priva
             ORDER BY p.permission_key, dg.effect
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalContext.principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalContext.principalId))
             .bind("principalType", principalContext.principalType.name)
             .fetch()
             .all()

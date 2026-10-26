@@ -19,7 +19,7 @@ import {
 
 const VERIFIED_EMAIL = 'verified@example.com'
 const VERIFIED_USERNAME = 'verified-user'
-const VERIFIED_WORKSPACE_ID = 'workspace-verified'
+const VERIFIED_WORKSPACE_ID = 'f3861bf2-bc36-57bb-a5e6-56047fe6827a'
 
 function verificationUrl(token: string) {
   return `${APP_URL.verifyEmail}?token=${token}`
@@ -35,7 +35,7 @@ test.describe('Email Verification Link Flow', { tag: '@integration' }, () => {
   }) => {
     await mockVerifyEmailResponse(page)
     await mockUserProfile(page, {
-      principalId: 'verified-user',
+      principalId: '4472dc03-f46d-541a-b005-989a87573b49',
       email: VERIFIED_EMAIL,
       username: VERIFIED_USERNAME,
       displayIdentity: 'Verified User',
@@ -77,7 +77,7 @@ test.describe('Email Verification Link Flow', { tag: '@integration' }, () => {
         accessToken: 'verified-token',
         tokenType: 'Bearer',
         expiresIn: 3600,
-        principalId: 'verified-user',
+        principalId: '4472dc03-f46d-541a-b005-989a87573b49',
         email: VERIFIED_EMAIL,
         username: VERIFIED_USERNAME,
         emailStatus: 'VERIFIED',
@@ -85,7 +85,7 @@ test.describe('Email Verification Link Flow', { tag: '@integration' }, () => {
       },
     })
     await mockUserProfile(page, {
-      principalId: 'verified-user',
+      principalId: '4472dc03-f46d-541a-b005-989a87573b49',
       email: VERIFIED_EMAIL,
       username: VERIFIED_USERNAME,
       displayIdentity: 'Verified User',
@@ -100,9 +100,11 @@ test.describe('Email Verification Link Flow', { tag: '@integration' }, () => {
 
     await mockRefreshResponse(page, {
       accessToken: 'verified-token',
+      principalId: '4472dc03-f46d-541a-b005-989a87573b49',
       email: VERIFIED_EMAIL,
       username: VERIFIED_USERNAME,
       emailStatus: 'VERIFIED',
+      workspaceId: VERIFIED_WORKSPACE_ID,
     })
 
     await page.goto(verificationUrl('bootstrap-token'), { waitUntil: 'domcontentloaded' })
@@ -113,9 +115,14 @@ test.describe('Email Verification Link Flow', { tag: '@integration' }, () => {
     await expect(page).toHaveURL(APP_URL.dashboard)
     await expect(page.getByRole('heading', { name: /welcome back, verified user/i })).toBeVisible()
 
-    await page.getByRole('button', { name: /toggle sidebar/i }).click()
-    await expect(
-      page.getByRole('button', { name: /verified user verified@example.com/i }),
-    ).toBeVisible()
+    await page
+      .locator('header')
+      .getByRole('button', { name: 'Open navigation', exact: true })
+      .click()
+    const account = page.getByRole('button', { name: /verified user/i })
+    await expect(account).toBeVisible()
+    await account.click()
+    await expect(page.getByRole('menu').getByText('Verified User', { exact: true })).toBeVisible()
+    await expect(page.getByRole('menu').getByText(VERIFIED_EMAIL, { exact: true })).toBeVisible()
   })
 })

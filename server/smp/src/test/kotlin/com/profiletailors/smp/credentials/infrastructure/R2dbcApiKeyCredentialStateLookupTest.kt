@@ -38,8 +38,8 @@ class R2dbcApiKeyCredentialStateLookupTest : PostgresDatabaseTestBase() {
 
         val activeCredential = lookup.requireActive("ptk_lookup.secret-value")
 
-        assertEquals("api-key-principal-1", activeCredential.principalId)
-        assertEquals("api-key-cred-1", activeCredential.credentialReference)
+        assertEquals("f2ab295d-2a87-5b81-b017-c111270c183f", activeCredential.principalId)
+        assertEquals("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f", activeCredential.credentialReference)
         assertEquals("api-key-subject", activeCredential.subject)
         assertEquals(null, activeCredential.provider)
     }
@@ -56,7 +56,7 @@ class R2dbcApiKeyCredentialStateLookupTest : PostgresDatabaseTestBase() {
         }
 
         assertEquals(ApiKeyCredentialFailureReason.REVOKED, error.reason)
-        assertEquals("api-key-principal-1", error.principalId)
+        assertEquals("f2ab295d-2a87-5b81-b017-c111270c183f", error.principalId)
     }
 
     @Test
@@ -71,7 +71,7 @@ class R2dbcApiKeyCredentialStateLookupTest : PostgresDatabaseTestBase() {
         }
 
         assertEquals(ApiKeyCredentialFailureReason.INACTIVE, error.reason)
-        assertEquals("api-key-principal-1", error.principalId)
+        assertEquals("f2ab295d-2a87-5b81-b017-c111270c183f", error.principalId)
     }
 
     @Test
@@ -92,7 +92,7 @@ class R2dbcApiKeyCredentialStateLookupTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
+            VALUES ('f2ab295d-2a87-5b81-b017-c111270c183f', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -110,8 +110,8 @@ class R2dbcApiKeyCredentialStateLookupTest : PostgresDatabaseTestBase() {
                 status,
                 revoked_at
             ) VALUES (
-                'api-key-cred-1',
-                'api-key-principal-1',
+                '6e7a6734-9a12-5d32-9c2c-80e8bb3d559f',
+                'f2ab295d-2a87-5b81-b017-c111270c183f',
                 'ptk_lookup',
                 'ptk_lookup',
                 :verifier,

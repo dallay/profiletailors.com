@@ -1,5 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
+import com.profiletailors.smp.tenancy.application.InvalidActiveWorkspaceException
 import com.profiletailors.smp.tenancy.application.MissingActiveWorkspaceException
 import com.profiletailors.smp.tenancy.application.OwnerTargetMustBeActiveMemberException
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
@@ -21,6 +22,12 @@ class TenancyProblemDetailsHandler {
     fun handle(exception: MissingActiveWorkspaceException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Active workspace missing"
+        }
+
+    @ExceptionHandler(InvalidActiveWorkspaceException::class)
+    fun handle(exception: InvalidActiveWorkspaceException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
+            title = "Invalid active workspace"
         }
 
     @ExceptionHandler(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class)

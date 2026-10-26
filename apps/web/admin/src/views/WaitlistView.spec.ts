@@ -20,7 +20,7 @@ const mockEntries = {
       version: 1,
     },
     {
-      id: 'entry-2',
+      id: '9608c72f-36ee-59c2-b353-f14546c7babf',
       email: 'test2@example.com',
       normalizedEmail: 'test2@example.com',
       status: 'INVITED',
@@ -338,7 +338,11 @@ describe('WaitlistView', () => {
           outcome: 'invited',
           invitationId: '00000000-0000-0000-0000-0000000000a1',
         },
-        { entryId: 'entry-2', outcome: 'skipped', code: 'ALREADY_INVITED' },
+        {
+          entryId: '9608c72f-36ee-59c2-b353-f14546c7babf',
+          outcome: 'skipped',
+          code: 'ALREADY_INVITED',
+        },
       ],
       summary: { requested: 2, invited: 1, skipped: 1, failed: 0 },
     }
@@ -378,7 +382,7 @@ describe('WaitlistView', () => {
       expect(bulkCall?.[1]).toMatchObject({ method: 'POST' })
       const sentBody = String((bulkCall?.[1] as RequestInit | undefined)?.body ?? '')
       expect(sentBody).toContain('entry-1')
-      expect(sentBody).toContain('entry-2')
+      expect(sentBody).toContain('9608c72f-36ee-59c2-b353-f14546c7babf')
 
       const results = wrapper.get('[data-testid="bulk-results"]')
       expect(results.text()).toContain('entry-1')

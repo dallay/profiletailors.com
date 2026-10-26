@@ -49,33 +49,33 @@ class PublishingBddSteps {
     @Given("a connected Threads social account exists")
     fun givenConnectedThreadsSocialAccountExists() = runBlocking {
         bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "VERIFIED")
-        bddDatabaseSupport.seedSocialConnection("threads-conn-1", "THREADS", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("60000000-0000-4000-8000-000000000002", "THREADS", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "threads-acc-1",
-            connectionId = "threads-conn-1",
+            accountId = "70000000-0000-4000-8000-000000000002",
+            connectionId = "60000000-0000-4000-8000-000000000002",
             provider = "THREADS",
             providerAccountId = "threads-profile-1",
             accountKind = "PERSONAL_PROFILE",
             displayName = "Threads Profile",
         )
-        currentSocialConnectionId = "threads-conn-1"
-        currentSocialAccountId = "threads-acc-1"
+        currentSocialConnectionId = "60000000-0000-4000-8000-000000000002"
+        currentSocialAccountId = "70000000-0000-4000-8000-000000000002"
     }
 
     @Given("a connected LinkedIn social account exists")
     fun givenConnectedLinkedInSocialAccountExists() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
-        bddDatabaseSupport.seedSocialConnection("social-conn-1", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("82dc702e-799e-53f0-8c44-54ae1f2bd372", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-1",
-            connectionId = "social-conn-1",
+            accountId = "fb939391-0fff-506d-a92e-b9008b859951",
+            connectionId = "82dc702e-799e-53f0-8c44-54ae1f2bd372",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-profile-1",
             accountKind = "PERSONAL_PROFILE",
             displayName = "Yuniel Acosta",
         )
-        currentSocialConnectionId = "social-conn-1"
-        currentSocialAccountId = "social-acc-1"
+        currentSocialConnectionId = "82dc702e-799e-53f0-8c44-54ae1f2bd372"
+        currentSocialAccountId = "fb939391-0fff-506d-a92e-b9008b859951"
     }
 
     @Given("a draft publication exists")
@@ -87,12 +87,12 @@ class PublishingBddSteps {
             "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
         }
         bddDatabaseSupport.seedDraftPublication(
-            publicationId = "pub-bdd-draft-1",
+            publicationId = "7e21e1df-7950-5bfb-a579-c0e06065912d",
             socialAccountId = socialAccountId,
             title = "Draft Post",
             bodyText = "Draft body",
         )
-        currentPublicationId = "pub-bdd-draft-1"
+        currentPublicationId = "7e21e1df-7950-5bfb-a579-c0e06065912d"
     }
 
     @Given("a scheduled publication exists")
@@ -104,13 +104,13 @@ class PublishingBddSteps {
             "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
         }
         bddDatabaseSupport.seedScheduledPublication(
-            publicationId = "pub-bdd-scheduled-1",
+            publicationId = "f27cd516-72e0-5766-8b49-00beb6fc78c2",
             socialAccountId = socialAccountId,
             scheduledFor = Instant.now().plus(java.time.Duration.ofDays(7)),
             title = "Scheduled Post",
             bodyText = "Scheduled body",
         )
-        currentPublicationId = "pub-bdd-scheduled-1"
+        currentPublicationId = "f27cd516-72e0-5766-8b49-00beb6fc78c2"
     }
 
     @Given("a draft and a scheduled publication exist")
@@ -122,13 +122,13 @@ class PublishingBddSteps {
             "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
         }
         bddDatabaseSupport.seedDraftPublication(
-            publicationId = "pub-bdd-draft-2",
+            publicationId = "80e8ff07-8561-5720-81cf-fb39ded42f6e",
             socialAccountId = socialAccountId,
             title = "Draft Post 2",
             bodyText = "Draft body 2",
         )
         bddDatabaseSupport.seedScheduledPublication(
-            publicationId = "pub-bdd-scheduled-2",
+            publicationId = "f5049602-e7c0-56ac-84ea-961c607adc40",
             socialAccountId = socialAccountId,
             scheduledFor = Instant.now().plus(java.time.Duration.ofDays(14)),
             title = "Scheduled Post 2",

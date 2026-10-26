@@ -19,16 +19,20 @@ describe('calendar invalidation channel', () => {
       removeEventListener = vi.fn()
     }
     vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
-    const channel = createCalendarInvalidationChannel('workspace-a')
+    const channel = createCalendarInvalidationChannel('3ccd875f-4801-5cf7-90a2-40f55e939a92')
 
-    channel.publish({ workspaceId: 'workspace-a', publicationId: 'pub-1', reason: 'updated' })
+    channel.publish({
+      workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+      publicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
+      reason: 'updated',
+    })
 
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         version: 1,
         type: 'calendar-invalidated',
-        workspaceId: 'workspace-a',
-        publicationId: 'pub-1',
+        workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+        publicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
         reason: 'updated',
         occurredAt: expect.any(String),
       }),
@@ -45,12 +49,15 @@ describe('calendar invalidation channel', () => {
       removeEventListener = vi.fn()
     }
     vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
-    const channel = createCalendarInvalidationChannel('workspace-a')
+    const channel = createCalendarInvalidationChannel('3ccd875f-4801-5cf7-90a2-40f55e939a92')
 
-    channel.publish({ workspaceId: 'workspace-b', reason: 'updated' })
+    channel.publish({ workspaceId: '30825e54-6d83-592c-b5c5-ec4f4798a9e4', reason: 'updated' })
     expect(postMessage).not.toHaveBeenCalled()
 
-    channel.publish({ workspaceId: 'workspace-a', reason: 'unknown' as CalendarInvalidationReason })
+    channel.publish({
+      workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+      reason: 'unknown' as CalendarInvalidationReason,
+    })
     expect(postMessage).not.toHaveBeenCalled()
   })
 
@@ -69,13 +76,16 @@ describe('calendar invalidation channel', () => {
     }
     vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
     const received = vi.fn()
-    const subscription = createCalendarInvalidationChannel('workspace-a', received)
+    const subscription = createCalendarInvalidationChannel(
+      '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+      received,
+    )
 
     const validMessage = {
       version: 1,
       type: 'calendar-invalidated',
-      workspaceId: 'workspace-a',
-      publicationId: 'pub-123',
+      workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+      publicationId: '98ca48ea-946a-5aa1-841d-a006b233a3b2',
       reason: 'created',
       occurredAt: new Date().toISOString(),
     }
@@ -108,14 +118,17 @@ describe('calendar invalidation channel', () => {
     }
     vi.stubGlobal('BroadcastChannel', BroadcastChannelStub)
     const received = vi.fn()
-    const subscription = createCalendarInvalidationChannel('workspace-a', received)
+    const subscription = createCalendarInvalidationChannel(
+      '3ccd875f-4801-5cf7-90a2-40f55e939a92',
+      received,
+    )
 
     listener?.({ data: null } as MessageEvent)
     listener?.({
       data: {
         version: 1,
         type: 'calendar-invalidated',
-        workspaceId: 'workspace-b',
+        workspaceId: '30825e54-6d83-592c-b5c5-ec4f4798a9e4',
         reason: 'updated',
         occurredAt: new Date().toISOString(),
       },
@@ -124,7 +137,7 @@ describe('calendar invalidation channel', () => {
       data: {
         version: 1,
         type: 'other',
-        workspaceId: 'workspace-a',
+        workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
         reason: 'updated',
         occurredAt: new Date().toISOString(),
       },
@@ -133,7 +146,7 @@ describe('calendar invalidation channel', () => {
       data: {
         version: 1,
         type: 'calendar-invalidated',
-        workspaceId: 'workspace-a',
+        workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92',
         reason: 'updated',
         occurredAt: 'invalid',
       },
@@ -145,8 +158,10 @@ describe('calendar invalidation channel', () => {
   })
 
   it('supports environments without BroadcastChannel', () => {
-    const channel = createCalendarInvalidationChannel('workspace-a')
-    expect(() => channel.publish({ workspaceId: 'workspace-a', reason: 'created' })).not.toThrow()
+    const channel = createCalendarInvalidationChannel('3ccd875f-4801-5cf7-90a2-40f55e939a92')
+    expect(() =>
+      channel.publish({ workspaceId: '3ccd875f-4801-5cf7-90a2-40f55e939a92', reason: 'created' }),
+    ).not.toThrow()
     expect(() => channel.close()).not.toThrow()
   })
 })

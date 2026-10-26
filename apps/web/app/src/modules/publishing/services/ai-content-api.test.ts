@@ -98,16 +98,19 @@ describe('AI content API', () => {
   it('fetches AI suggestions with a GET request', async () => {
     const auth = useAuthStore()
     const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-      postId: 'post-1',
+      postId: '9c49a19d-1574-5e8c-9196-48c9bba55351',
       suggestions: [{ text: 'Try a stronger hook.' }],
     })
 
     const { fetchAiSuggestions } = await import('./ai-content-api')
-    await fetchAiSuggestions('post-1')
+    await fetchAiSuggestions('9c49a19d-1574-5e8c-9196-48c9bba55351')
 
-    expect(apiFetch).toHaveBeenCalledWith('/api/v1/ai/suggestions/post-1', {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/api/v1/ai/suggestions/9c49a19d-1574-5e8c-9196-48c9bba55351',
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
   })
 })

@@ -50,8 +50,8 @@ describe('CalendarHeader', () => {
     const publishingStore = usePublishingStore()
     publishingStore.channels = [
       {
-        id: 'acc-1',
-        accountId: 'acc-1',
+        id: '788c8103-35f1-5899-b15a-6ca994253c99',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         name: 'LinkedIn',
         provider: 'linkedin',
         avatar: '',
@@ -143,7 +143,7 @@ describe('CalendarHeader', () => {
   })
 
   it('renders SocialProviderIcon when channelIds contains a matching accountId', () => {
-    const wrapper = mountHeader({ channelIds: ['acc-1'] })
+    const wrapper = mountHeader({ channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'] })
     const providerIcon = wrapper.findComponent({ name: 'SocialProviderIcon' })
     expect(providerIcon.exists()).toBe(true)
     expect(providerIcon.props('provider')).toBe('linkedin')

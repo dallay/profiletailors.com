@@ -127,9 +127,9 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedActiveInvitation(UUID.randomUUID(), "candidate-key-active-1", version = 0)
         val asOf = Instant.now()
 
-        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", asOf))
-        assertFalse(repository.hasActiveInvitationFor("other@example.com", "workspace-1", asOf))
-        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-2", asOf))
+        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", WORKSPACE_ID, asOf))
+        assertFalse(repository.hasActiveInvitationFor("other@example.com", WORKSPACE_ID, asOf))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", OTHER_WORKSPACE_ID, asOf))
     }
 
     @Test
@@ -137,7 +137,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedReferenceData()
         seedInvitation(UUID.randomUUID(), "candidate-key-revoked-1", InvitationStatus.REVOKED, 1)
 
-        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", WORKSPACE_ID, Instant.now()))
     }
 
     @Test
@@ -145,7 +145,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedReferenceData()
         seedExpiredActiveInvitation(UUID.randomUUID(), "candidate-key-expired-1")
 
-        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", WORKSPACE_ID, Instant.now()))
     }
 
     @Test
@@ -157,11 +157,11 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             source = InvitationSource.DIRECT,
             sourceReferenceId = null,
             target = InvitationTarget.EXISTING_WORKSPACE,
-            workspaceId = "workspace-1",
+            workspaceId = WORKSPACE_ID,
             invitedEmailNormalized = "invitee@example.com",
             tokenHash = "hash-1",
             status = InvitationStatus.ACTIVE,
-            issuedBy = "principal-1",
+            issuedBy = PRINCIPAL_ID,
             createdAt = now,
             expiresAt = now.plusSeconds(604_800),
         )
@@ -269,7 +269,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         val invitationId = UUID.randomUUID()
         seedActiveInvitation(invitationId, "candidate-key-cas-1", version = 1)
         val stored = repository.findById(InvitationId(invitationId))!!
-        val accepted = stored.accept(stored.createdAt.plusSeconds(1), "principal-1")
+        val accepted = stored.accept(stored.createdAt.plusSeconds(1), PRINCIPAL_ID)
 
         val result = repository.updateIfVersionMatches(accepted)
 
@@ -289,7 +289,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedActiveInvitation(invitationId, "candidate-key-cas-accepted", version = 0)
         val stored = repository.findById(InvitationId(invitationId))!!
         val acceptedAt = stored.createdAt.plusSeconds(1)
-        val accepted = stored.accept(acceptedAt, "principal-1")
+        val accepted = stored.accept(acceptedAt, PRINCIPAL_ID)
 
         val result = repository.updateIfVersionMatches(accepted)
 
@@ -297,7 +297,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         val persisted = repository.findById(InvitationId(invitationId))!!
         assertEquals(InvitationStatus.ACCEPTED, persisted.status)
         assertEquals(acceptedAt, persisted.acceptedAt)
-        assertEquals("principal-1", persisted.acceptedPrincipalId)
+        assertEquals(PRINCIPAL_ID, persisted.acceptedPrincipalId)
         assertEquals(1L, persisted.version)
     }
 
@@ -323,10 +323,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             """
             SELECT COUNT(*)
             FROM workspace_memberships
-            WHERE workspace_id = 'workspace-1'
-              AND principal_id = 'principal-1'
+            WHERE workspace_id = :workspaceId
+              AND principal_id = :principalId
             """.trimIndent(),
         )
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("principalId", UUID.fromString(ACCEPTED_PRINCIPAL_ID))
             .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
             .one()
             .awaitSingle()
@@ -340,7 +342,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedActiveInvitation(invitationId, "candidate-key-cas-2", version = 2)
 
         val staleAttempt = newInvitation(id = invitationId, version = 0)
-            .accept(Instant.parse("2026-08-10T10:00:01Z"), "principal-1")
+            .accept(Instant.parse("2026-08-10T10:00:01Z"), PRINCIPAL_ID)
 
         val result = repository.updateIfVersionMatches(staleAttempt)
 
@@ -375,6 +377,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
 
     @Test
     fun `updateIfVersionMatches returns false when version is 0`() = runTest {
+        seedReferenceData()
         val invitation = newInvitation(id = UUID.randomUUID(), version = 0L)
         val result = repository.updateIfVersionMatches(invitation)
         assertFalse(result)
@@ -383,7 +386,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     @Test
     fun `findBySourceReferenceId finds active waitlist invitation`() = runTest {
         seedReferenceData()
-        val sourceRef = "waitlist-ref-100"
+        val sourceRef = WAITLIST_REFERENCE_ID
         val invitationId = UUID.randomUUID()
         databaseClient.sql(
             """
@@ -393,13 +396,14 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 accepted_at, accepted_principal_id, version
             ) VALUES (
                 :id, 'WAITLIST', :sourceRef, 'NEW_WORKSPACE', NULL, 'waitlist@example.com',
-                'cand-waitlist', 'hash-waitlist', 'ACTIVE', 'principal-1', NOW(), NOW() + INTERVAL '7 days',
+                'cand-waitlist', 'hash-waitlist', 'ACTIVE', :principalId, NOW(), NOW() + INTERVAL '7 days',
                 NULL, NULL, 0
             )
             """.trimIndent(),
         )
             .bind("id", invitationId)
             .bind("sourceRef", sourceRef)
+            .bind("principalId", UUID.fromString(PRINCIPAL_ID))
             .fetch().rowsUpdated().awaitSingle()
 
         val found = repository.findBySourceReferenceId(sourceRef)
@@ -431,11 +435,11 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         source = InvitationSource.DIRECT,
         sourceReferenceId = null,
         target = InvitationTarget.EXISTING_WORKSPACE,
-        workspaceId = "workspace-1",
+        workspaceId = WORKSPACE_ID,
         invitedEmailNormalized = "invitee@example.com",
         tokenHash = "candidate-key-new",
         status = status,
-        issuedBy = "principal-1",
+        issuedBy = PRINCIPAL_ID,
         createdAt = Instant.parse("2026-08-10T10:00:00Z"),
         expiresAt = Instant.parse("2026-08-17T10:00:00Z"),
         version = version,
@@ -454,13 +458,15 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 candidate_key, token_hash, status, issued_by, created_at, expires_at,
                 accepted_at, accepted_principal_id, version
             ) VALUES (
-                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', 'workspace-1', 'invitee@example.com',
-                :candidateKey, :candidateKey, 'ACTIVE', 'principal-1', NOW() - INTERVAL '8 days',
+                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', :workspaceId, 'invitee@example.com',
+                :candidateKey, :candidateKey, 'ACTIVE', :principalId, NOW() - INTERVAL '8 days',
                 NOW() - INTERVAL '1 day', NULL, NULL, 0
             )
             """.trimIndent(),
         )
             .bind("id", invitationId)
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("principalId", UUID.fromString(PRINCIPAL_ID))
             .bind("candidateKey", candidateKey)
             .fetch()
             .rowsUpdated()
@@ -480,13 +486,15 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 candidate_key, token_hash, status, issued_by, created_at, expires_at,
                 accepted_at, accepted_principal_id, version
             ) VALUES (
-                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', 'workspace-1', 'invitee@example.com',
-                :candidateKey, :candidateKey, :status, 'principal-1', NOW(), NOW() + INTERVAL '7 days',
+                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', :workspaceId, 'invitee@example.com',
+                :candidateKey, :candidateKey, :status, :principalId, NOW(), NOW() + INTERVAL '7 days',
                 NULL, NULL, :version
             )
             """.trimIndent(),
         )
             .bind("id", invitationId)
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("principalId", UUID.fromString(PRINCIPAL_ID))
             .bind("candidateKey", candidateKey)
             .bind("status", status.name)
             .bind("version", version)
@@ -496,24 +504,45 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     }
 
     private suspend fun seedReferenceData() {
+        val principalId = UUID.fromString(PRINCIPAL_ID)
+        val workspaceId = UUID.fromString(WORKSPACE_ID)
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'principal-1', NULL, 'Issuer')
+            VALUES (:id, 'USER', 'issuer-principal', NULL, 'Issuer')
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        ).bind("id", principalId)
+            .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-principal-1', 'USER', 'subject-user-principal-1', 'https://issuer.example', 'Accepter')
+            VALUES (:id, 'USER', 'invitee-principal', 'https://issuer.example', 'Accepter')
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        ).bind("id", UUID.fromString(ACCEPTED_PRINCIPAL_ID))
+            .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace One', 'ACTIVE', NULL)
+            VALUES (:id, 'Workspace One', 'ACTIVE', NULL)
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        ).bind("id", workspaceId)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (
+                :membershipId,
+                :workspaceId,
+                :principalId,
+                'USER',
+                'ACTIVE'
+            )
+            """.trimIndent(),
+        )
+            .bind("membershipId", UUID.fromString(MEMBERSHIP_ID))
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", UUID.fromString(ACCEPTED_PRINCIPAL_ID))
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     private data class ConcurrentAcceptanceFixture(
@@ -522,6 +551,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         val firstOperator: TransactionalOperator,
         val secondOperator: TransactionalOperator,
         val firstLocked: CompletableDeferred<Unit>,
+        val secondLookupStarted: CompletableDeferred<Unit>,
     )
 
     private fun concurrentAcceptanceFixture(acceptedAt: Instant): ConcurrentAcceptanceFixture {
@@ -538,12 +568,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         )
         val firstLocked = CompletableDeferred<Unit>()
         val secondLookupStarted = CompletableDeferred<Unit>()
-        val secondAcceptanceRepository = object : InvitationRepository by secondRepository {
-            override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? {
-                secondLookupStarted.complete(Unit)
-                return secondRepository.findByCandidateKeyForUpdate(candidateKey)
-            }
-        }
         val firstBlockingProvisioner = object : WorkspaceMembershipProvisioner {
             override suspend fun reconcile(
                 workspaceId: String,
@@ -554,12 +578,18 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 return firstMembershipProvisioner.reconcile(workspaceId, principalId)
             }
         }
+        val secondAcceptanceRepository = object : InvitationRepository by secondRepository {
+            override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? {
+                secondLookupStarted.complete(Unit)
+                return secondRepository.findByCandidateKeyForUpdate(candidateKey)
+            }
+        }
         val noOpWorkspaceProvisioningService = object : WorkspaceProvisioningService {
             override suspend fun provisionDefaultWorkspace(
                 principalId: String,
                 displayName: String,
             ): WorkspaceProvisioningService.ProvisionedWorkspace = WorkspaceProvisioningService.ProvisionedWorkspace(
-                workspaceId = "workspace-1",
+                workspaceId = WORKSPACE_ID,
                 name = displayName,
                 membershipStatus = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             )
@@ -567,7 +597,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         val firstPrincipalLookup = object : PrincipalIdentityLookup by NoOpPrincipalIdentityLookup() {
             override suspend fun findByPrincipalId(principalId: String) =
                 com.profiletailors.smp.identity.domain.PrincipalIdentityFacts(
-                    principalId = "principal-1",
+                    principalId = ACCEPTED_PRINCIPAL_ID,
                     principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
                     subject = "local:invitee@example.com",
                     provider = null,
@@ -578,7 +608,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 )
         }
         val firstCoordinator = InvitationActivationCoordinator(
-            invitationRepository = firstRepository as InvitationRepository,
+            invitationRepository = firstRepository,
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
@@ -605,6 +635,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             firstOperator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory)),
             secondOperator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory)),
             firstLocked = firstLocked,
+            secondLookupStarted = secondLookupStarted,
         )
     }
 
@@ -619,7 +650,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                             fixture.firstGateway.complete(
                                 context = firstContext,
                                 rawToken = "raw-token",
-                                principalId = "principal-1",
+                                principalId = PRINCIPAL_ID,
                                 displayName = "invitee",
                             )
                                 .workspaceId
@@ -635,7 +666,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                             fixture.secondGateway.complete(
                                 context = secondContext,
                                 rawToken = "raw-token",
-                                principalId = "principal-1",
+                                principalId = PRINCIPAL_ID,
                                 displayName = "invitee",
                             )
                                 .workspaceId
@@ -643,6 +674,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                     ).awaitSingle()
                 }
             }
+            fixture.secondLookupStarted.await()
             awaitAll(first, second)
         }
 
@@ -658,6 +690,13 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     }
 
     companion object {
+        private const val PRINCIPAL_ID = "00000000-0000-0000-0000-000000000001"
+        private const val ACCEPTED_PRINCIPAL_ID = "00000000-0000-0000-0000-000000000002"
+        private const val WORKSPACE_ID = "00000000-0000-0000-0000-000000000003"
+        private const val MEMBERSHIP_ID = "00000000-0000-0000-0000-000000000004"
+        private const val OTHER_WORKSPACE_ID = "00000000-0000-0000-0000-000000000005"
+        private const val WAITLIST_REFERENCE_ID = "waitlist-ref-100"
+
         @Container
         @JvmStatic
         val postgres = PostgresTestContainerSupport.newContainer(

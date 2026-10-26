@@ -141,10 +141,13 @@ describe('initializeAdminSentry', () => {
       start_timestamp: 1720000000,
       status: 'ok',
       is_segment: true,
-      attributes: { principalId: 'operator-123', password: 'plaintext-secret' },
+      attributes: {
+        principalId: '6039935b-005d-5eba-b5e2-104bf17f7124',
+        password: 'plaintext-secret',
+      },
     }
     expect(callbacks.beforeSendSpan(span)).toBe(span)
-    expect(span.attributes).toEqual({ principalId: 'operator-123' })
+    expect(span.attributes).toEqual({ principalId: '6039935b-005d-5eba-b5e2-104bf17f7124' })
 
     const redacted = callbacks.beforeSendSpan(
       Object.freeze({

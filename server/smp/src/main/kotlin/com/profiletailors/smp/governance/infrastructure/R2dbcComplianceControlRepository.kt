@@ -19,6 +19,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClient) : ComplianceControlRepository {
@@ -30,7 +31,7 @@ class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClien
      * @return The matching compliance control, or `null` if no control exists.
      */
     override suspend fun findById(id: ComplianceControlId): ComplianceControl? = databaseClient.sql(SELECT_BY_ID)
-        .bind("id", id.value)
+        .bind("id", UUID.fromString(id.value))
         .map { row, _ -> mapControl(row) }
         .first()
         .awaitSingleOrNull()
@@ -83,7 +84,7 @@ class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClien
     override suspend fun save(control: ComplianceControl): ComplianceControl {
         val now = Instant.now()
         var spec = databaseClient.sql(UPSERT_CONTROL)
-            .bind("id", control.id.value)
+            .bind("id", UUID.fromString(control.id.value))
             .bind("controlKey", control.controlKey)
             .bind("name", control.name)
 
@@ -119,7 +120,7 @@ class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClien
      * @return The mapped compliance control.
      */
     private fun mapControl(row: Row): ComplianceControl = ComplianceControl(
-        id = ComplianceControlId(requireNotNull(row.get("id", String::class.java))),
+        id = ComplianceControlId(requireNotNull(row.get("id", UUID::class.java)).toString()),
         controlKey = requireNotNull(row.get("control_key", String::class.java)),
         name = requireNotNull(row.get("name", String::class.java)),
         description = row.get("description", String::class.java),

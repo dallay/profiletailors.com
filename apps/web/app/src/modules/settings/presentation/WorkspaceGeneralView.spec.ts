@@ -15,7 +15,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 
 vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-1',
+    activeWorkspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     activeWorkspace: { name: 'My Workspace', icon: null },
     setWorkspaceName: setWorkspaceNameMock,
   }),
@@ -28,7 +28,10 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
 describe('WorkspaceGeneralView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'My Workspace' })
+    renameWorkspaceMock.mockResolvedValue({
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      name: 'My Workspace',
+    })
   })
 
   it('renders header and workspace identity card', () => {
@@ -45,7 +48,9 @@ describe('WorkspaceGeneralView', () => {
     const wrapper = mount(WorkspaceGeneralView, { global: { stubs: { teleport: true } } })
     const copyBtn = wrapper.find('button[type="button"]')
     await copyBtn.trigger('click')
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ws-1')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
   })
 
   it('calls renameWorkspace and shows success message on save', async () => {
@@ -54,7 +59,11 @@ describe('WorkspaceGeneralView', () => {
     await input.setValue('Renamed Workspace')
     await wrapper.find('form').trigger('submit')
     await wrapper.find('button[type="submit"]').trigger('click')
-    expect(renameWorkspaceMock).toHaveBeenCalledWith('Renamed Workspace', 'valid-token', 'ws-1')
+    expect(renameWorkspaceMock).toHaveBeenCalledWith(
+      'Renamed Workspace',
+      'valid-token',
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
     expect(setWorkspaceNameMock).toHaveBeenCalledWith('My Workspace')
     expect(wrapper.find('[data-testid="save-success"]').exists() || wrapper.text()).toBeTruthy()
   })

@@ -22,7 +22,7 @@ class R2dbcPasswordResetNotificationFailureRepository(private val databaseClient
         try {
             databaseClient.sql(INSERT_SQL)
                 .bind("id", UUID.randomUUID())
-                .bind("principalId", failure.principalId)
+                .bind("principalId", UUID.fromString(failure.principalId))
                 .bind("notificationType", failure.notificationType)
                 .bind("attempts", failure.attempts)
                 .bind("failedAt", OffsetDateTime.ofInstant(failure.failedAt, ZoneOffset.UTC))

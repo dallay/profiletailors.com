@@ -6,25 +6,6 @@ import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 
-/**
- * Auditor for privacy DSAR (Data Subject Access Request) lifecycle events.
- *
- * Follows the [com.profiletailors.smp.tenancy.application.TenancyMutationAuditor]
- * pattern exactly. Records mutation audit events for all DSAR lifecycle
- * transitions: submitted, status_changed, completed, rejected, failed.
- *
- * ## Sentinel Workspace ID
- * Cross-workspace DSAR events use a sentinel `workspace_id` of `"__DSAR__"`
- * to distinguish them from workspace-scoped events in audit queries.
- * This avoids per-workspace audit events for global operations like
- * deletion which span all workspaces.
- *
- * ## Target Type
- * All events target `"DATA_SUBJECT_REQUEST"` with the [targetId] set to
- * the request's unique identifier.
- *
- * @since 1.0.0
- */
 @Service
 class PrivacyMutationAuditor(
     private val principalContextProvider: PrincipalContextProvider,
@@ -45,7 +26,7 @@ class PrivacyMutationAuditor(
                 targetType = TARGET_TYPE,
                 targetId = requestId,
                 actorPrincipalId = actor.principalId,
-                workspaceId = SENTINEL_WORKSPACE_ID,
+                workspaceId = null,
                 outcome = MutationAuditOutcome.SUCCESS,
                 details = details,
             ),
@@ -73,7 +54,7 @@ class PrivacyMutationAuditor(
                 targetType = TARGET_TYPE,
                 targetId = requestId,
                 actorPrincipalId = actor.principalId,
-                workspaceId = SENTINEL_WORKSPACE_ID,
+                workspaceId = null,
                 outcome = MutationAuditOutcome.REJECTED,
                 details = details + ("reason" to reason),
             ),
@@ -81,9 +62,6 @@ class PrivacyMutationAuditor(
     }
 
     private companion object {
-        /** Sentinel workspace ID for cross-workspace DSAR events. */
-        const val SENTINEL_WORKSPACE_ID = "__DSAR__"
-
         /** Target type for all DSAR audit events. */
         const val TARGET_TYPE = "DATA_SUBJECT_REQUEST"
     }

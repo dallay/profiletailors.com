@@ -232,7 +232,7 @@ internal class CompleteProviderConnectionHandler(
         val (connection, account) = transactionRunner.runAtomically {
             val savedConnection = socialConnectionRepository.upsert(
                 SocialConnection(
-                    "soconn-${UUID.randomUUID()}",
+                    UUID.randomUUID().toString(),
                     workspaceId,
                     result.provider,
                     result.providerConnectionRef,
@@ -243,7 +243,7 @@ internal class CompleteProviderConnectionHandler(
             )
             val savedAccount = socialAccountRepository.upsert(
                 SocialAccount(
-                    "soacc-${UUID.randomUUID()}",
+                    UUID.randomUUID().toString(),
                     savedConnection.id,
                     workspaceId,
                     result.provider,
@@ -350,7 +350,7 @@ internal class CompleteLinkedInConnectionHandler(
     ): Pair<SocialConnection, SocialAccount> = transactionRunner.runAtomically {
         val conn = socialConnectionRepository.upsert(
             SocialConnection(
-                id = "soconn-${UUID.randomUUID()}",
+                id = UUID.randomUUID().toString(),
                 workspaceId = workspaceId,
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = providerResult.providerConnectionRef,
@@ -361,7 +361,7 @@ internal class CompleteLinkedInConnectionHandler(
         )
         val acc = socialAccountRepository.upsert(
             SocialAccount(
-                id = "soacc-${UUID.randomUUID()}",
+                id = UUID.randomUUID().toString(),
                 socialConnectionId = conn.id,
                 workspaceId = workspaceId,
                 provider = SocialProvider.LINKEDIN,

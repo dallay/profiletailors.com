@@ -36,16 +36,16 @@ Feature: Ideas canvas lifecycle
 
   Scenario: Handoff associate via PATCH keeps same column
     Given an existing idea in raw column
-    When the client associates the idea with publication "pub-handoff-1"
+    When the client associates the idea with publication "86d63d9a-007b-545e-b654-0eea2602e488"
     Then the ideas response status should be 200
-    And the idea convertedToPublicationId should be "pub-handoff-1"
+    And the idea convertedToPublicationId should be "86d63d9a-007b-545e-b654-0eea2602e488"
     And the idea column should be "raw"
 
   Scenario: Handoff does not auto-move or delete on associate
     Given an existing idea in raw column
-    When the client associates the idea with publication "pub-handoff-2"
+    When the client associates the idea with publication "2d23006f-3d65-5281-995d-cd25b1358b87"
     Then the ideas response status should be 200
-    And the idea convertedToPublicationId should be "pub-handoff-2"
+    And the idea convertedToPublicationId should be "2d23006f-3d65-5281-995d-cd25b1358b87"
     When the client lists ideas
     Then the ideas response status should be 200
     And the ideas response should contain at least 1 idea

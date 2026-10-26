@@ -13,7 +13,7 @@ async function openIdeasNavigation(page: import('@playwright/test').Page) {
   if (!(await ideasLink.isVisible())) {
     await page
       .locator('header')
-      .getByRole('button', { name: /toggle sidebar/i })
+      .getByRole('button', { name: 'Open navigation', exact: true })
       .click()
   }
   await expect(ideasLink).toBeVisible()
@@ -23,6 +23,8 @@ async function openIdeasNavigation(page: import('@playwright/test').Page) {
 test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
   test.beforeEach(async ({ page }) => {
     await seedAuthAndConsent(page)
+    let ideaTitle = 'Launch thread idea'
+    let convertedToPublicationId: string | null = null
 
     await page.route('**/api/ideas/columns', async (route, request) => {
       if (request.method() === 'GET') {
@@ -60,15 +62,15 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
           body: JSON.stringify({
             ideas: [
               {
-                id: 'idea-1',
-                workspaceId: 'workspace-1',
-                title: 'Launch thread idea',
+                id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+                workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+                title: ideaTitle,
                 notes: 'Focus on ROI angle',
                 tags: ['launch', 'roi'],
                 links: [],
                 columnId: 'raw',
                 orderInColumn: 0,
-                convertedToPublicationId: null,
+                convertedToPublicationId,
                 createdAt: '2026-07-31T00:00:00Z',
                 updatedAt: '2026-07-31T00:00:00Z',
               },
@@ -84,8 +86,8 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            id: 'idea-created',
-            workspaceId: 'workspace-1',
+            id: '29e38a90-83cc-5bd6-b35d-fe36041817ea',
+            workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
             title: body.title ?? 'Untitled',
             notes: body.notes ?? null,
             tags: body.tags ?? [],
@@ -112,8 +114,8 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            id: 'idea-1',
-            workspaceId: 'workspace-1',
+            id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+            workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
             title: 'Launch thread idea',
             notes: 'Focus on ROI angle',
             tags: ['launch', 'roi'],
@@ -130,19 +132,23 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
 
       if (method === 'PATCH') {
         const body = JSON.parse(request.postData() ?? '{}')
+        if (typeof body.title === 'string') ideaTitle = body.title
+        if (typeof body.convertedToPublicationId === 'string') {
+          convertedToPublicationId = body.convertedToPublicationId
+        }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            id: 'idea-1',
-            workspaceId: 'workspace-1',
-            title: body.title ?? 'Launch thread idea',
+            id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+            workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+            title: ideaTitle,
             notes: body.notes ?? 'Focus on ROI angle',
             tags: body.tags ?? ['launch', 'roi'],
             links: body.links ?? [],
             columnId: body.columnId ?? 'raw',
             orderInColumn: 0,
-            convertedToPublicationId: null,
+            convertedToPublicationId,
             createdAt: '2026-07-31T00:00:00Z',
             updatedAt: '2026-07-31T00:00:00Z',
           }),
@@ -154,7 +160,10 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ ideaId: 'idea-1', publicationId: 'pub-idea-1' }),
+          body: JSON.stringify({
+            ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+            publicationId: '0e0ca66b-f01a-5684-af70-6bb5f89afdaf',
+          }),
         })
         return
       }
@@ -163,7 +172,7 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ id: 'idea-1' }),
+          body: JSON.stringify({ id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }),
         })
         return
       }
@@ -187,12 +196,54 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
       .first()
       .click()
     await page.getByLabel(/title/i).fill('New campaign angle')
-    await page.getByRole('button', { name: /save idea/i }).click()
+    const modal = page.getByTestId('idea-composer-modal')
+    await modal.getByTestId('composer-save').click()
 
     await expect(page.getByText(/idea saved/i)).toBeVisible()
+    await expect(modal).not.toBeVisible()
+    await expect(page.getByRole('button', { name: /new campaign angle/i })).toBeVisible()
   })
 
-  test('can edit and convert an existing idea', async ({ page }) => {
+  test('can edit an existing idea and associate a publication through Create Post', async ({
+    page,
+  }) => {
+    const publicationId = '0e0ca66b-f01a-5684-af70-6bb5f89afdaf'
+    await page.route('**/api/publishing/channels', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          channels: [
+            {
+              socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+              connectionId: 'fbdc2c13-d186-5d45-8c3e-f12225cd1bd8',
+              provider: 'linkedin',
+              accountKind: 'PERSONAL_PROFILE',
+              displayName: 'Author',
+              status: 'ACTIVE',
+              avatarUrl: null,
+            },
+          ],
+        }),
+      })
+    })
+    await page.route('**/api/publishing/publications/batch', async (route, request) => {
+      expect(request.method()).toBe('POST')
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'ALL_CREATED',
+          results: [
+            {
+              publicationId,
+              socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+              status: 'CREATED',
+            },
+          ],
+        }),
+      })
+    })
     await safeGoto(page, '/ideas')
     await setConsentReceipt(page, {
       categories: { necessary: true, analytics: false },
@@ -203,11 +254,50 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
     await page.getByRole('button', { name: /launch thread idea/i }).click()
 
     await page.getByLabel(/title/i).fill('Launch thread final')
-    await page.getByRole('button', { name: /^save$/i }).click()
+    const modal = page.getByTestId('idea-composer-modal')
+    await modal.getByTestId('composer-save').click()
     await expect(page.getByText(/idea updated/i)).toBeVisible()
 
-    await page.getByRole('button', { name: /convert to post/i }).click()
-    await expect(page.getByText(/idea converted/i)).toBeVisible()
+    await expect(modal).not.toBeVisible()
+    await page.getByRole('button', { name: /launch thread final/i }).click()
+    await expect(modal.getByTestId('composer-title-input')).toHaveValue('Launch thread final')
+    await modal.getByTestId('composer-create-post').click()
+    const textarea = page.getByTestId('composer-textarea')
+    await expect(textarea).toBeVisible()
+    await expect(textarea).toHaveValue('Launch thread final\n\nFocus on ROI angle\n\n#launch #roi')
+    const channel = page.getByTestId('channel-button')
+    await expect(channel).toHaveAttribute('aria-pressed', 'false')
+    await channel.click()
+    await expect(channel).toHaveAttribute('aria-pressed', 'true')
+    const publicationRequestPromise = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/publishing/publications/batch' &&
+        request.method() === 'POST',
+    )
+    const associationRequestPromise = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/ideas/0ca69867-76ef-5e75-a8c3-3933fb8faec4' &&
+        request.method() === 'PATCH',
+    )
+    await page.getByRole('button', { name: /^schedule now$/i }).click()
+    expect((await publicationRequestPromise).postDataJSON()).toMatchObject({
+      bodyText: 'Launch thread final\n\nFocus on ROI angle\n\n#launch #roi',
+      targets: [
+        {
+          socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+          bodyText: 'Launch thread final\n\nFocus on ROI angle\n\n#launch #roi',
+          assetIds: [],
+        },
+      ],
+    })
+    expect((await associationRequestPromise).postDataJSON()).toEqual({
+      convertedToPublicationId: publicationId,
+    })
+    await expect(
+      page.getByText(`Idea converted. Publication: ${publicationId}`, { exact: true }),
+    ).toBeVisible()
+    await expect(textarea).not.toBeVisible()
+    await expect(page.getByRole('button', { name: /launch thread final/i })).toBeVisible()
   })
 
   test('can open columns settings and add a column', async ({ page }) => {

@@ -35,10 +35,10 @@ class PublishingBatchBddSteps {
 
     @When("the client batch-creates publications for valid targets")
     fun whenClientBatchCreatesPublicationsForValidTargets() = runBlocking {
-        bddDatabaseSupport.seedSocialConnection("social-conn-2", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("cd625048-31ec-5692-b336-db9fdbc94339", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-2",
-            connectionId = "social-conn-2",
+            accountId = "aca51a5d-882a-51ac-82ea-cd29a93c3ade",
+            connectionId = "cd625048-31ec-5692-b336-db9fdbc94339",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-profile-2",
             accountKind = "PERSONAL_PROFILE",
@@ -49,8 +49,8 @@ class PublishingBatchBddSteps {
                 "title" to "Batch publication",
                 "scheduleMode" to "NOW",
                 "targets" to listOf(
-                    mapOf("socialAccountId" to "social-acc-1", "bodyText" to "First target"),
-                    mapOf("socialAccountId" to "social-acc-2", "bodyText" to "Second target"),
+                    mapOf("socialAccountId" to "fb939391-0fff-506d-a92e-b9008b859951", "bodyText" to "First target"),
+                    mapOf("socialAccountId" to "aca51a5d-882a-51ac-82ea-cd29a93c3ade", "bodyText" to "Second target"),
                 ),
             ),
         )
@@ -75,8 +75,8 @@ class PublishingBatchBddSteps {
                 "title" to "Batch publication",
                 "scheduleMode" to "NOW",
                 "targets" to listOf(
-                    mapOf("socialAccountId" to "social-acc-1", "bodyText" to "Valid target"),
-                    mapOf("socialAccountId" to "missing-account", "bodyText" to "Invalid target"),
+                    mapOf("socialAccountId" to "fb939391-0fff-506d-a92e-b9008b859951", "bodyText" to "Valid target"),
+                    mapOf("socialAccountId" to "70000000-0000-4000-8000-000000000099", "bodyText" to "Invalid target"),
                 ),
             ),
         )

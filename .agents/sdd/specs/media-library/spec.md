@@ -10,6 +10,67 @@
 
 ## ADDED Requirements
 
+### Requirement: Canonical UUIDs for Internal Asset Identifiers
+
+If the inventory confirms an asset ID is an internal entity/aggregate identifier, the system MUST
+represent it as a UUID and serialize it in the database and API/wire as a canonical UUID without a
+textual prefix. Opaque storage identifiers and external IDs MUST retain their classification and
+MUST NOT be converted because of format similarity.
+
+#### Scenario: Asset identified by UUID
+
+- GIVEN an asset with a valid internal UUID identifier
+- WHEN the asset is created, queried or attached
+- THEN database, API and clients MUST exchange the canonical unprefixed UUID
+- AND workspace and publication relationships MUST reference the same asset
+
+#### Scenario: Workspace filter and authorization
+
+- GIVEN assets from different workspaces have internal UUID identifiers
+- WHEN a user queries or filters assets in the active workspace
+- THEN the user MUST receive only authorized assets from that workspace
+- AND an identifier from another workspace MUST retain not-found semantics
+
+#### Scenario: Opaque key is not converted
+
+- GIVEN a storage key or external identifier is not an internal entity identifier
+- WHEN it is persisted or transmitted alongside the asset
+- THEN it MUST retain semantics independent of the asset UUID
+
+### Requirement: Safe Transition of Asset Data and Consumers
+
+Migration of asset IDs and references MUST prevent loss, collisions and orphaned relationships.
+The selected strategy is the conditional coordinated stopped-writer cutover in the
+[publishing identifier migration contract](../publishing/spec.md#requirement-lossless-identifier-migration-and-conditional-recovery).
+Legacy data/consumers use legacy formats before conversion; converted data and coordinated
+consumers use raw UUIDs afterward within v1. Legacy writers MUST NOT write to the converted schema.
+No maintenance window, rolling compatibility or production approval is assumed. If the coordinated
+conditions cannot be met, release MUST remain blocked pending a separately approved plan. No
+fallback implementation is supplied by this contract. Every persistence and API slice MUST have
+integration tests with actual serialization and references.
+
+#### Scenario: Lossless migration
+
+- GIVEN inventoried historical assets, publication references and workspace associations
+- WHEN the selected migration executes
+- THEN every asset and reference MUST retain the correct identity
+- AND collisions, orphans and invalid rows MUST be detected before advancement
+
+#### Scenario: Compatibility defined by rollout
+
+- GIVEN clients or data still use the legacy representation
+- WHEN the design defines transition stages
+- THEN it MUST specify accepted formats per stage, client coordination and retirement criteria
+- AND it MUST define safe recovery for partially migrated data
+- AND recovery MUST account for new UUID-only writes rather than promise automatic reversal
+
+#### Scenario: Integration tests by slice
+
+- GIVEN a modified database, API or media-library consumer slice
+- WHEN the slice is validated
+- THEN an integration test MUST verify conversion, serialization, foreign keys/references and filters
+- AND API boundaries MUST verify authorization and workspace isolation
+
 ### Requirement: Media Library Is a Separate Bounded Context
 
 The system MUST implement the media library as a separate bounded context from publishing even

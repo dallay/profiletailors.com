@@ -27,8 +27,9 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.sql.Timestamp
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.assertFailsWith
 
@@ -56,8 +57,8 @@ class R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest : PostgresIntegra
     @Autowired
     private lateinit var invitationRepository: WaitlistInvitationRepository
 
-    private val waitlistId = "waitlist-a"
-    private val entryId = "entry-1"
+    private val waitlistId = "00000000-0000-0000-0000-000000000101"
+    private val entryId = "00000000-0000-0000-0000-000000000102"
     private val operatorId: UUID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
     private val issuedAt: Instant = Instant.parse("2026-07-01T10:00:00Z")
     private val expiresAt: Instant = Instant.parse("2026-07-08T10:00:00Z")
@@ -69,8 +70,8 @@ class R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest : PostgresIntegra
             VALUES (:id, 'launch', 'Launch', 'profile-tailors', 'ACTIVE', :now, :now)
             """.trimIndent(),
         )
-            .bind("id", waitlistId)
-            .bind("now", Timestamp.from(issuedAt))
+            .bind("id", UUID.fromString(waitlistId))
+            .bind("now", OffsetDateTime.ofInstant(issuedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
@@ -83,9 +84,9 @@ class R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest : PostgresIntegra
                true, true, '1', 'PENDING', :now, :now)
             """.trimIndent(),
         )
-            .bind("id", entryId)
-            .bind("waitlistId", waitlistId)
-            .bind("now", Timestamp.from(issuedAt))
+            .bind("id", UUID.fromString(entryId))
+            .bind("waitlistId", UUID.fromString(waitlistId))
+            .bind("now", OffsetDateTime.ofInstant(issuedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
     }
 

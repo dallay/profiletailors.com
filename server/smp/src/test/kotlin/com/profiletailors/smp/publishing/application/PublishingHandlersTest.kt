@@ -1659,7 +1659,7 @@ class PublishingHandlersTest {
         assertEquals("workspace-1", result.workspaceId)
         assertEquals(AssetSourceType.UPLOADED, result.sourceType)
         assertEquals("IMAGE/JPEG", result.mediaType)
-        assertNotNull(result.assetId)
+        assertEquals(result.assetId, java.util.UUID.fromString(result.assetId).toString())
     }
 
     @Test

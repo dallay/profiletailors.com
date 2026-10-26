@@ -3,13 +3,13 @@ import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 
-const MOCK_WORKSPACE_ID = 'workspace-001'
+const MOCK_WORKSPACE_ID = '6325c45c-5fdd-5be5-84c2-54f866dfd70e'
 
 const mockThreadsChannels = {
   channels: [
     {
-      socialAccountId: 'sa-linkedin-001',
-      connectionId: 'conn-001',
+      socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+      connectionId: 'a92b9ead-a1a3-5801-9fbc-5d5c7370edd7',
       provider: 'LINKEDIN',
       accountKind: 'PERSONAL_PROFILE',
       displayName: 'Dev User',
@@ -19,8 +19,8 @@ const mockThreadsChannels = {
       lastSyncedAt: '2026-06-18T08:00:00Z',
     },
     {
-      socialAccountId: 'sa-threads-001',
-      connectionId: 'conn-threads-001',
+      socialAccountId: 'e14fa4cc-01f5-5682-b2de-17d9e36c1250',
+      connectionId: '82e18914-68aa-5935-8512-6f53dff1f938',
       provider: 'THREADS',
       accountKind: 'PERSONAL_PROFILE',
       displayName: 'Threads Dev',
@@ -88,12 +88,12 @@ async function registerThreadsMocks(
   await context.route('**/api/publishing/threads/connections/complete', (route) => {
     route.fulfill(
       json({
-        connectionId: 'conn-threads-001',
+        connectionId: '82e18914-68aa-5935-8512-6f53dff1f938',
         workspaceId: MOCK_WORKSPACE_ID,
         provider: 'THREADS',
         status: 'ACTIVE',
         account: {
-          accountId: 'sa-threads-001',
+          accountId: 'e14fa4cc-01f5-5682-b2de-17d9e36c1250',
           providerAccountId: 'threads-profile-1',
           displayName: 'Threads Dev',
           kind: 'PERSONAL_PROFILE',
@@ -167,7 +167,10 @@ test.describe('Scheduler — Threads provider @threads', () => {
 
     await composeModal.expectHidden()
 
-    expect([...postedAccountIds].sort()).toEqual(['sa-linkedin-001', 'sa-threads-001'])
+    expect([...postedAccountIds].sort()).toEqual([
+      'e14fa4cc-01f5-5682-b2de-17d9e36c1250',
+      'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+    ])
     await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
     await page.reload()
     await scheduler.expectVisible()
@@ -213,7 +216,7 @@ test.describe('Scheduler — Threads provider @threads', () => {
             results: targets.map((target: { socialAccountId: string }, index: number) => ({
               socialAccountId: target.socialAccountId,
               publicationId: `publication-${index}`,
-              groupId: 'group-override-e2e',
+              groupId: 'cb54b7d0-04bc-50bb-aa99-58b40d0caeeb',
               status: 'CREATED',
             })),
           }),
@@ -228,7 +231,7 @@ test.describe('Scheduler — Threads provider @threads', () => {
 
     await composeModal.expectHidden()
 
-    expect(payloads['sa-linkedin-001']).toContain(baseText)
-    expect(payloads['sa-threads-001']).toContain(threadsText)
+    expect(payloads['fa6f01a4-0c74-553d-a3b4-49ab3bed24ed']).toContain(baseText)
+    expect(payloads['e14fa4cc-01f5-5682-b2de-17d9e36c1250']).toContain(threadsText)
   })
 })

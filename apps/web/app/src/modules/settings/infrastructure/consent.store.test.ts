@@ -12,7 +12,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const mockUser = {
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'test@test.com',
   username: 'testuser',
   emailStatus: 'VERIFIED',
@@ -205,7 +205,7 @@ describe('consent store', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         subjectKind: 'USER',
-        subjectValue: 'user-1',
+        subjectValue: '18f3c8ec-b5fd-5d86-ac83-465965479890',
         consentType: 'CONSENT',
         purpose: 'web.analytics',
         policyVersion: CURRENT_POLICY_VERSION,
@@ -229,7 +229,7 @@ describe('consent store', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         subjectKind: 'USER',
-        subjectValue: 'user-1',
+        subjectValue: '18f3c8ec-b5fd-5d86-ac83-465965479890',
         purpose: 'web.analytics',
         policyVersion: CURRENT_POLICY_VERSION,
         reason: 'user_request',

@@ -34,13 +34,13 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000011', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('principal-1', 'yuniel@example.com', 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000011', 'yuniel@example.com', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -51,7 +51,7 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         )
 
         requireNotNull(facts)
-        assertEquals("principal-1", facts.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000011", facts.principalId)
         assertEquals(PrincipalType.USER, facts.principalType)
         assertEquals("yuniel@example.com", facts.email)
         assertEquals("yuniel", facts.username)
@@ -64,7 +64,7 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
             VALUES (
-                'service-principal-1', 'SERVICE_ACCOUNT',
+                '00000000-0000-0000-0000-000000000012', 'SERVICE_ACCOUNT',
                 'service-account-subject', 'https://issuer.example', 'scheduler-bot'
             )
             """.trimIndent(),
@@ -77,7 +77,7 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         )
 
         requireNotNull(facts)
-        assertEquals("service-principal-1", facts.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000012", facts.principalId)
         assertEquals(PrincipalType.SERVICE_ACCOUNT, facts.principalType)
         assertEquals("scheduler-bot", facts.displayIdentity)
         assertNull(facts.email)
@@ -89,7 +89,7 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
+            VALUES ('00000000-0000-0000-0000-000000000013', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -100,7 +100,7 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         )
 
         requireNotNull(facts)
-        assertEquals("api-key-principal-1", facts.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000013", facts.principalId)
         assertEquals(PrincipalType.API_KEY, facts.principalType)
         assertEquals("integration-key", facts.displayIdentity)
         assertNull(facts.email)
@@ -112,22 +112,49 @@ class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-2', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000014', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('principal-2', 'yuniel@example.com', 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000014', 'yuniel@example.com', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         val facts = lookup.findByEmail("yuniel@example.com")
 
         requireNotNull(facts)
-        assertEquals("principal-2", facts.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000014", facts.principalId)
         assertEquals(PrincipalType.USER, facts.principalType)
         assertEquals("yuniel@example.com", facts.email)
+    }
+
+    @Test
+    fun `loads principal facts by native UUID principal id`() = runTest {
+        val principalId = java.util.UUID.randomUUID()
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:id, 'USER', 'uuid-subject', 'https://issuer.example', 'uuid-user')
+            """.trimIndent(),
+        )
+            .bind("id", principalId)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES (:principalId, 'uuid@example.com', 'uuid-user')
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .fetch().rowsUpdated().awaitSingle()
+
+        val facts = lookup.findByPrincipalId(principalId.toString())
+
+        requireNotNull(facts)
+        assertEquals(principalId.toString(), facts.principalId)
+        assertEquals("uuid@example.com", facts.email)
     }
 
     @Test

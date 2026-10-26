@@ -8,7 +8,7 @@ import { createI18n } from 'vue-i18n'
 const mockUsersResult = {
   items: [
     {
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'john@example.com',
       displayIdentity: 'John Doe',
       principalType: 'USER',
@@ -19,7 +19,7 @@ const mockUsersResult = {
       platformRoles: ['ROLE_ADMIN'],
     },
     {
-      principalId: 'user-2',
+      principalId: 'c9199f5a-074c-5846-aed4-16f6eff2f72a',
       email: null,
       displayIdentity: null,
       principalType: 'SYSTEM',
@@ -128,7 +128,7 @@ describe('UsersView', () => {
     expect(wrapper.text()).toContain('John Doe')
     expect(wrapper.text()).toContain('Active')
     // Fallback display
-    expect(wrapper.text()).toContain('user-2')
+    expect(wrapper.text()).toContain('c9199f5a-074c-5846-aed4-16f6eff2f72a')
     expect(wrapper.text()).toContain('—')
     expect(wrapper.text()).toContain('Disabled')
   })

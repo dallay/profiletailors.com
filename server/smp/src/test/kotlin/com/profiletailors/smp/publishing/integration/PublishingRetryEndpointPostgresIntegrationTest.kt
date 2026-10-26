@@ -33,6 +33,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 @Tag("postgres")
 @AutoConfigureWebTestClient
@@ -69,19 +70,32 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
     }
 
     private suspend fun seedIdentityAndWorkspace() {
-        seedPrincipal("owner-1")
+        val principalId = "00000000-0000-0000-0000-000000000101"
+        seedPrincipal(principalId)
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username, email_status)
-            VALUES ('owner-1', 'owner@example.com', 'owner', 'VERIFIED')
+            VALUES (:principalId, 'owner@example.com', 'owner', 'VERIFIED')
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
-        seedWorkspace("workspace-1", "Publishing Workspace")
-        seedWorkspaceMembership(
-            id = "membership-owner-1",
-            workspaceId = "workspace-1",
-            principalId = "owner-1",
         )
+            .bind("principalId", java.util.UUID.fromString(principalId))
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, 'ACTIVE', NULL)",
+        )
+            .bind("id", java.util.UUID.fromString(WORKSPACE_ID))
+            .bind("name", "Publishing Workspace")
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (:id, :workspaceId, :principalId, 'USER', 'ACTIVE')
+            """.trimIndent(),
+        )
+            .bind("id", java.util.UUID.fromString(MEMBERSHIP_ID))
+            .bind("workspaceId", java.util.UUID.fromString(WORKSPACE_ID))
+            .bind("principalId", java.util.UUID.fromString(PRINCIPAL_ID))
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedSocialAccount() {
@@ -90,32 +104,39 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1',
+                :id, :workspaceId, 'LINKEDIN', 'linkedin-connection-1',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        )
+            .bind("id", java.util.UUID.fromString(SOCIAL_CONNECTION_ID))
+            .bind("workspaceId", java.util.UUID.fromString(WORKSPACE_ID))
+            .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO social_accounts (
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'account-1', 'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1',
+                :id, :connectionId, :workspaceId, 'LINKEDIN', 'linkedin-account-1',
                 'PERSONAL_PROFILE', 'Profile Tailors', 'ACTIVE'
             )
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        )
+            .bind("id", java.util.UUID.fromString(SOCIAL_ACCOUNT_ID))
+            .bind("connectionId", java.util.UUID.fromString(SOCIAL_CONNECTION_ID))
+            .bind("workspaceId", java.util.UUID.fromString(WORKSPACE_ID))
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedFailedPublication() {
         publicationRepository.createDraft(
             PublicationDraft(
                 id = PUBLICATION_ID,
-                workspaceId = "workspace-1",
-                authorPrincipalId = "owner-1",
+                workspaceId = WORKSPACE_ID,
+                authorPrincipalId = PRINCIPAL_ID,
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-1",
+                socialAccountId = SOCIAL_ACCOUNT_ID,
                 status = PublicationStatus.FAILED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -127,7 +148,7 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
             PublicationJob(
                 id = ORIGINAL_JOB_ID,
                 publicationId = PUBLICATION_ID,
-                workspaceId = "workspace-1",
+                workspaceId = WORKSPACE_ID,
                 status = JobStatus.FAILED,
                 dueAt = Instant.parse("2026-07-13T08:00:00Z"),
                 priorityRank = 0,
@@ -138,7 +159,7 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
         )
         deliveryAttemptRepository.record(
             DeliveryAttempt(
-                id = "attempt-http-retry",
+                id = "00000000-0000-0000-0000-000000000205",
                 publicationId = PUBLICATION_ID,
                 publicationJobId = ORIGINAL_JOB_ID,
                 attemptNumber = 1,
@@ -153,8 +174,8 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
     fun `POST retry removes previous attempts and creates one replacement job`() = runTest {
         webTestClient.post()
             .uri("/api/publishing/publications/$PUBLICATION_ID/retry")
-            .header(HttpHeaders.AUTHORIZATION, "Bearer owner-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer retry-owner-token")
+            .header("X-Workspace-Id", WORKSPACE_ID)
             .header(HttpHeaders.ACCEPT, IntegrationTestBase.API_V1_MEDIA_TYPE)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"scheduleMode":"NOW","priority":true}""")
@@ -170,7 +191,7 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
         assertEquals(
             JobStatus.PENDING.name,
             databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :publicationId")
-                .bind("publicationId", PUBLICATION_ID)
+                .bind("publicationId", UUID.fromString(PUBLICATION_ID))
                 .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
                 .one()
                 .awaitSingle(),
@@ -180,14 +201,19 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
     private suspend fun countDeliveryAttempts(): Long = databaseClient.sql(
         "SELECT COUNT(*) AS count FROM delivery_attempts WHERE publication_id = :publicationId",
     )
-        .bind("publicationId", PUBLICATION_ID)
+        .bind("publicationId", UUID.fromString(PUBLICATION_ID))
         .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
         .one()
         .awaitSingle()
 
     companion object {
-        private const val PUBLICATION_ID = "pub-http-retry"
-        private const val ORIGINAL_JOB_ID = "job-http-retry-original"
+        private const val PRINCIPAL_ID = "00000000-0000-0000-0000-000000000101"
+        private const val WORKSPACE_ID = "00000000-0000-0000-0000-000000000102"
+        private const val MEMBERSHIP_ID = "00000000-0000-0000-0000-000000000103"
+        private const val SOCIAL_CONNECTION_ID = "00000000-0000-0000-0000-000000000104"
+        private const val SOCIAL_ACCOUNT_ID = "00000000-0000-0000-0000-000000000105"
+        private const val PUBLICATION_ID = "00000000-0000-0000-0000-000000000203"
+        private const val ORIGINAL_JOB_ID = "00000000-0000-0000-0000-000000000204"
 
         @Container
         @JvmStatic

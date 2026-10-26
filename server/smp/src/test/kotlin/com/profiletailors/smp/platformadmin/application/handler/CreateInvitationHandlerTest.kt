@@ -100,7 +100,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `should persist prefixed issuer when creating a direct invitation`() = runTest {
+    fun `should persist canonical issuer when creating a direct invitation`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -118,7 +118,7 @@ class CreateInvitationHandlerTest {
 
         handler.handle(command)
 
-        savedSlot.captured.issuedBy shouldBe "user-$operatorId"
+        savedSlot.captured.issuedBy shouldBe operatorId.toString()
     }
 
     @Test

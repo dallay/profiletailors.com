@@ -89,7 +89,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 
 vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
-    activeWorkspaceId: 'workspace-1',
+    activeWorkspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
     setActiveWorkspaceId: vi.fn(),
   }),
 }))

@@ -60,8 +60,8 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Workspace A creates a connection
         socialConnectionRepository.upsert(
             SocialConnection(
-                id = "conn-workspace-a",
-                workspaceId = "workspace-a",
+                id = "00000000-0000-0000-0000-000000000401",
+                workspaceId = "00000000-0000-0000-0000-00000000049f",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-a",
                 status = SocialConnectionStatus.ACTIVE,
@@ -72,8 +72,8 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Workspace B creates a connection
         socialConnectionRepository.upsert(
             SocialConnection(
-                id = "conn-workspace-b",
-                workspaceId = "workspace-b",
+                id = "00000000-0000-0000-0000-000000000402",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-b",
                 status = SocialConnectionStatus.ACTIVE,
@@ -82,88 +82,67 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         )
 
         // Workspace A tries to read its own connection — should succeed
-        val connectionA = socialConnectionRepository.findByWorkspaceAndId("workspace-a", "conn-workspace-a")
+        val connectionA = socialConnectionRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-000000000401",
+        )
         assertEquals("linkedin-conn-a", connectionA?.providerConnectionRef)
 
         // Workspace A tries to read workspace B's connection — should return null
-        val connectionBFromA = socialConnectionRepository.findByWorkspaceAndId("workspace-a", "conn-workspace-b")
+        val connectionBFromA = socialConnectionRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-000000000402",
+        )
         assertNull(connectionBFromA)
 
         // Workspace B tries to read workspace A's connection — should return null
-        val connectionAFromB = socialConnectionRepository.findByWorkspaceAndId("workspace-b", "conn-workspace-a")
+        val connectionAFromB = socialConnectionRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-000000000401",
+        )
         assertNull(connectionAFromB)
 
         // Workspace B tries to read its own connection — should succeed
-        val connectionB = socialConnectionRepository.findByWorkspaceAndId("workspace-b", "conn-workspace-b")
+        val connectionB = socialConnectionRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-000000000402",
+        )
         assertEquals("linkedin-conn-b", connectionB?.providerConnectionRef)
     }
 
     @Test
     fun `workspace A cannot see accounts from workspace B`() = runTest {
-        // Create connections for both workspaces
-        socialConnectionRepository.upsert(
-            SocialConnection(
-                id = "conn-a",
-                workspaceId = "workspace-a",
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = "linkedin-conn-a",
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = "00000000-0000-0000-0000-000000000001",
-            ),
-        )
-        socialConnectionRepository.upsert(
-            SocialConnection(
-                id = "conn-b",
-                workspaceId = "workspace-b",
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = "linkedin-conn-b",
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = "00000000-0000-0000-0000-000000000002",
-            ),
-        )
-
-        // Workspace A creates an account
-        socialAccountRepository.upsert(
-            SocialAccount(
-                id = "account-workspace-a",
-                socialConnectionId = "conn-a",
-                workspaceId = "workspace-a",
-                provider = SocialProvider.LINKEDIN,
-                providerAccountId = "linkedin-account-a",
-                kind = SocialAccountKind.PERSONAL_PROFILE,
-                displayName = "User A",
-                status = SocialConnectionStatus.ACTIVE,
-            ),
-        )
-
-        // Workspace B creates an account
-        socialAccountRepository.upsert(
-            SocialAccount(
-                id = "account-workspace-b",
-                socialConnectionId = "conn-b",
-                workspaceId = "workspace-b",
-                provider = SocialProvider.LINKEDIN,
-                providerAccountId = "linkedin-account-b",
-                kind = SocialAccountKind.PERSONAL_PROFILE,
-                displayName = "User B",
-                status = SocialConnectionStatus.ACTIVE,
-            ),
+        setupConnectionsAndAccounts(
+            accountAId = "00000000-0000-0000-0000-0000000003eb",
+            accountBId = "00000000-0000-0000-0000-0000000003ec",
         )
 
         // Workspace A tries to read its own account — should succeed
-        val accountA = socialAccountRepository.findByWorkspaceAndId("workspace-a", "account-workspace-a")
+        val accountA = socialAccountRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-0000000003eb",
+        )
         assertEquals("linkedin-account-a", accountA?.providerAccountId)
 
         // Workspace A tries to read workspace B's account — should return null
-        val accountBFromA = socialAccountRepository.findByWorkspaceAndId("workspace-a", "account-workspace-b")
+        val accountBFromA = socialAccountRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-0000000003ec",
+        )
         assertNull(accountBFromA)
 
         // Workspace B tries to read workspace A's account — should return null
-        val accountAFromB = socialAccountRepository.findByWorkspaceAndId("workspace-b", "account-workspace-a")
+        val accountAFromB = socialAccountRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-0000000003eb",
+        )
         assertNull(accountAFromB)
 
         // Workspace B tries to read its own account — should succeed
-        val accountB = socialAccountRepository.findByWorkspaceAndId("workspace-b", "account-workspace-b")
+        val accountB = socialAccountRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-0000000003ec",
+        )
         assertEquals("linkedin-account-b", accountB?.providerAccountId)
     }
 
@@ -175,11 +154,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Workspace A creates a publication
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-workspace-a",
-                workspaceId = "workspace-a",
-                authorPrincipalId = "principal-a",
+                id = "00000000-0000-0000-0000-00000000047e",
+                workspaceId = "00000000-0000-0000-0000-00000000049f",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000432",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-a",
+                socialAccountId = "00000000-0000-0000-0000-0000000003e9",
                 status = PublicationStatus.QUEUED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -190,11 +169,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Workspace B creates a publication
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-workspace-b",
-                workspaceId = "workspace-b",
-                authorPrincipalId = "principal-b",
+                id = "00000000-0000-0000-0000-00000000047f",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000433",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-b",
+                socialAccountId = "00000000-0000-0000-0000-0000000003ea",
                 status = PublicationStatus.QUEUED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -203,19 +182,31 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         )
 
         // Workspace A tries to read its own publication — should succeed
-        val pubA = publicationRepository.findByWorkspaceAndId("workspace-a", "pub-workspace-a")
+        val pubA = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-00000000047e",
+        )
         assertEquals("Publication from workspace A", pubA?.bodyText)
 
         // Workspace A tries to read workspace B's publication — should return null
-        val pubBFromA = publicationRepository.findByWorkspaceAndId("workspace-a", "pub-workspace-b")
+        val pubBFromA = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-00000000049f",
+            "00000000-0000-0000-0000-00000000047f",
+        )
         assertNull(pubBFromA)
 
         // Workspace B tries to read workspace A's publication — should return null
-        val pubAFromB = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-workspace-a")
+        val pubAFromB = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-00000000047e",
+        )
         assertNull(pubAFromB)
 
         // Workspace B tries to read its own publication — should succeed
-        val pubB = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-workspace-b")
+        val pubB = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-00000000047f",
+        )
         assertEquals("Publication from workspace B", pubB?.bodyText)
     }
 
@@ -227,11 +218,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Create publications in both workspaces
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-a",
-                workspaceId = "workspace-a",
-                authorPrincipalId = "principal-a",
+                id = "00000000-0000-0000-0000-000000000435",
+                workspaceId = "00000000-0000-0000-0000-00000000049f",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000432",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-a",
+                socialAccountId = "00000000-0000-0000-0000-0000000003e9",
                 status = PublicationStatus.QUEUED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -240,11 +231,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         )
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-b",
-                workspaceId = "workspace-b",
-                authorPrincipalId = "principal-b",
+                id = "00000000-0000-0000-0000-000000000436",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000433",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-b",
+                socialAccountId = "00000000-0000-0000-0000-0000000003ea",
                 status = PublicationStatus.QUEUED,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -254,15 +245,26 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
 
         // Even if workspace A knows the ID of workspace B's publication,
         // it cannot access it by querying with workspace B's ID
-        val attemptCrossWorkspaceAccess = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-b")
+        val attemptCrossWorkspaceAccess = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-000000000436",
+        )
 
         // This query would succeed if we were in workspace B's context,
         // but in this test we're simulating workspace A trying to access workspace B's data
         // The repository correctly enforces workspace_id filtering
-        assertNull(publicationRepository.findByWorkspaceAndId("workspace-a", "pub-b"))
+        assertNull(
+            publicationRepository.findByWorkspaceAndId(
+                "00000000-0000-0000-0000-00000000049f",
+                "00000000-0000-0000-0000-000000000436",
+            ),
+        )
 
         // Verify workspace B can access its own publication
-        val pubB = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-b")
+        val pubB = publicationRepository.findByWorkspaceAndId(
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-000000000436",
+        )
         assertEquals("Publication B", pubB?.bodyText)
     }
 
@@ -272,11 +274,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
 
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-cross-workspace-update",
-                workspaceId = "workspace-b",
-                authorPrincipalId = "principal-b",
+                id = "00000000-0000-0000-0000-000000000444",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000433",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-b",
+                socialAccountId = "00000000-0000-0000-0000-0000000003ea",
                 status = PublicationStatus.DRAFT,
                 scheduleMode = ScheduleMode.NOW,
                 priority = false,
@@ -287,11 +289,11 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         val exception = assertFailsWith<IllegalStateException> {
             publicationRepository.updateEditableDraft(
                 PublicationDraft(
-                    id = "pub-cross-workspace-update",
-                    workspaceId = "workspace-a",
-                    authorPrincipalId = "principal-a",
+                    id = "00000000-0000-0000-0000-000000000444",
+                    workspaceId = "00000000-0000-0000-0000-00000000049f",
+                    authorPrincipalId = "00000000-0000-0000-0000-000000000432",
                     provider = SocialProvider.LINKEDIN,
-                    socialAccountId = "account-a",
+                    socialAccountId = "00000000-0000-0000-0000-0000000003e9",
                     status = PublicationStatus.DRAFT,
                     scheduleMode = ScheduleMode.NOW,
                     priority = false,
@@ -301,10 +303,15 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         }
 
         kotlin.test.assertTrue(exception.message!!.contains("current workspace"))
-        assertNull(publicationRepository.findByWorkspaceAndId("workspace-a", "pub-cross-workspace-update"))
+        assertNull(
+            publicationRepository.findByWorkspaceAndId(
+                "00000000-0000-0000-0000-00000000049f",
+                "00000000-0000-0000-0000-000000000444",
+            ),
+        )
         val workspaceBPublication = publicationRepository.findByWorkspaceAndId(
-            "workspace-b",
-            "pub-cross-workspace-update",
+            "00000000-0000-0000-0000-0000000004a0",
+            "00000000-0000-0000-0000-000000000444",
         )
         assertEquals("Workspace B original body", workspaceBPublication?.bodyText)
     }
@@ -314,13 +321,13 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-a', 'USER', 'local:user-a@example.com', NULL, 'User A')
+            VALUES ('00000000-0000-0000-0000-000000000432', 'USER', 'local:user-a@example.com', NULL, 'User A')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-a', 'Workspace A', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049f', 'Workspace A', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -328,23 +335,26 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-b', 'USER', 'local:user-b@example.com', NULL, 'User B')
+            VALUES ('00000000-0000-0000-0000-000000000433', 'USER', 'local:user-b@example.com', NULL, 'User B')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-b', 'Workspace B', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-0000000004a0', 'Workspace B', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
-    private suspend fun setupConnectionsAndAccounts() {
+    private suspend fun setupConnectionsAndAccounts(
+        accountAId: String = "00000000-0000-0000-0000-0000000003e9",
+        accountBId: String = "00000000-0000-0000-0000-0000000003ea",
+    ) {
         // Workspace A
         socialConnectionRepository.upsert(
             SocialConnection(
-                id = "conn-a",
-                workspaceId = "workspace-a",
+                id = "00000000-0000-0000-0000-0000000003ff",
+                workspaceId = "00000000-0000-0000-0000-00000000049f",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-a",
                 status = SocialConnectionStatus.ACTIVE,
@@ -353,9 +363,9 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         )
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "account-a",
-                socialConnectionId = "conn-a",
-                workspaceId = "workspace-a",
+                id = accountAId,
+                socialConnectionId = "00000000-0000-0000-0000-0000000003ff",
+                workspaceId = "00000000-0000-0000-0000-00000000049f",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-account-a",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -367,8 +377,8 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         // Workspace B
         socialConnectionRepository.upsert(
             SocialConnection(
-                id = "conn-b",
-                workspaceId = "workspace-b",
+                id = "00000000-0000-0000-0000-000000000400",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-conn-b",
                 status = SocialConnectionStatus.ACTIVE,
@@ -377,9 +387,9 @@ class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
         )
         socialAccountRepository.upsert(
             SocialAccount(
-                id = "account-b",
-                socialConnectionId = "conn-b",
-                workspaceId = "workspace-b",
+                id = accountBId,
+                socialConnectionId = "00000000-0000-0000-0000-000000000400",
+                workspaceId = "00000000-0000-0000-0000-0000000004a0",
                 provider = SocialProvider.LINKEDIN,
                 providerAccountId = "linkedin-account-b",
                 kind = SocialAccountKind.PERSONAL_PROFILE,

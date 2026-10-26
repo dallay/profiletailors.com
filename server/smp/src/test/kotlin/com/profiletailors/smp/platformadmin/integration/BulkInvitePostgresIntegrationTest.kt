@@ -67,24 +67,23 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
 
     override suspend fun seedScenario() {
         seedPrincipal(operatorId.toString())
-        seedPrincipal("user-$operatorId")
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)
-            VALUES ('wl-bulk', 'profile-tailors-bulk', 'Bulk', 'profile-tailors', 'ACTIVE')
+            VALUES ('00000000-0000-0000-0000-000000000501', 'profile-tailors-bulk', 'Bulk', 'profile-tailors', 'ACTIVE')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
-        seedEntry("entry-bulk-ok", "bulk-ok@example.com", "PENDING")
-        seedEntry("entry-bulk-converted", "bulk-converted@example.com", "CONVERTED")
-        seedEntry("entry-bulk-invited", "bulk-invited@example.com", "INVITED")
+        seedEntry("00000000-0000-0000-0000-000000000502", "bulk-ok@example.com", "PENDING")
+        seedEntry("00000000-0000-0000-0000-000000000503", "bulk-converted@example.com", "CONVERTED")
+        seedEntry("00000000-0000-0000-0000-000000000504", "bulk-invited@example.com", "INVITED")
         databaseClient.sql(
             """
             INSERT INTO waitlist_invitations
               (id, waitlist_entry_id, token_hash, status, issued_at, expires_at, created_by, delivery_status)
             VALUES
-              (:id, 'entry-bulk-invited', 'bulk-seed-hash', 'ACTIVE', NOW(), NOW() + INTERVAL '7 days', :createdBy, 'PENDING')
+              (:id, '00000000-0000-0000-0000-000000000504', 'bulk-seed-hash', 'ACTIVE', NOW(), NOW() + INTERVAL '7 days', :createdBy, 'PENDING')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
@@ -96,10 +95,15 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
     override fun cleanupStatements(): List<String> = listOf(
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM waitlist_invitations",
-        "DELETE FROM invitations WHERE source_reference_id LIKE 'entry-bulk-%'",
+        """
+        DELETE FROM invitations WHERE source_reference_id IN (
+            '00000000-0000-0000-0000-000000000502', '00000000-0000-0000-0000-000000000503',
+            '00000000-0000-0000-0000-000000000504'
+        )
+        """.trimIndent(),
         "DELETE FROM platform_role_assignments",
-        "DELETE FROM waitlist_entries WHERE id LIKE 'entry-bulk-%'",
-        "DELETE FROM waitlists WHERE id = 'wl-bulk'",
+        "DELETE FROM waitlist_entries WHERE waitlist_id = '00000000-0000-0000-0000-000000000501'",
+        "DELETE FROM waitlists WHERE id = '00000000-0000-0000-0000-000000000501'",
     ) + super.cleanupStatements()
 
     @Test
@@ -108,7 +112,11 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
             BulkInviteWaitlistEntriesCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                entryIds = listOf("entry-bulk-ok", "entry-bulk-invited", "entry-bulk-converted"),
+                entryIds = listOf(
+                    "00000000-0000-0000-0000-000000000502",
+                    "00000000-0000-0000-0000-000000000504",
+                    "00000000-0000-0000-0000-000000000503",
+                ),
             ),
         )
 
@@ -122,10 +130,10 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
         assertEquals(BulkInviteOutcome.FAILED, result.results[2].outcome)
         assertEquals("ENTRY_ALREADY_CONVERTED", result.results[2].code)
 
-        assertEquals("INVITED", entryStatus("entry-bulk-ok"))
-        assertEquals("INVITED", entryStatus("entry-bulk-invited"))
-        assertEquals("CONVERTED", entryStatus("entry-bulk-converted"))
-        assertEquals(1L, activeInvitationCount("entry-bulk-ok"))
+        assertEquals("INVITED", entryStatus("00000000-0000-0000-0000-000000000502"))
+        assertEquals("INVITED", entryStatus("00000000-0000-0000-0000-000000000504"))
+        assertEquals("CONVERTED", entryStatus("00000000-0000-0000-0000-000000000503"))
+        assertEquals(1L, activeInvitationCount("00000000-0000-0000-0000-000000000502"))
 
         assertEquals(1L, auditCount("SUCCEEDED"))
         assertEquals(1L, auditCount("REJECTED"))
@@ -134,7 +142,12 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
 
     @Test
     fun `retry of a completed batch yields skipped without duplicate invitations`() = runTest {
-        val ids = listOf("entry-bulk-ok", "entry-bulk-invited", "entry-bulk-converted")
+        val ids =
+            listOf(
+                "00000000-0000-0000-0000-000000000502",
+                "00000000-0000-0000-0000-000000000504",
+                "00000000-0000-0000-0000-000000000503",
+            )
         bulkHandler.handle(
             BulkInviteWaitlistEntriesCommand(
                 operatorPrincipalId = operatorId,
@@ -154,7 +167,7 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
         assertEquals(0, retry.summary.invited)
         assertEquals(2, retry.summary.skipped)
         assertEquals(1, retry.summary.failed)
-        assertEquals(1L, activeInvitationCount("entry-bulk-ok"))
+        assertEquals(1L, activeInvitationCount("00000000-0000-0000-0000-000000000502"))
     }
 
     @Test
@@ -165,7 +178,7 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
                     InviteWaitlistEntryCommand(
                         operatorPrincipalId = operatorId,
                         operatorRoles = operatorRoles,
-                        waitlistEntryId = "entry-bulk-ok",
+                        waitlistEntryId = "00000000-0000-0000-0000-000000000502",
                     ),
                 )
             }
@@ -175,14 +188,14 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
                 BulkInviteWaitlistEntriesCommand(
                     operatorPrincipalId = operatorId,
                     operatorRoles = operatorRoles,
-                    entryIds = listOf("entry-bulk-ok"),
+                    entryIds = listOf("00000000-0000-0000-0000-000000000502"),
                 ),
             )
         }
         val singleOutcome = single.await()
         val bulkOutcome = bulk.await()
 
-        assertEquals(1L, activeInvitationCount("entry-bulk-ok"))
+        assertEquals(1L, activeInvitationCount("00000000-0000-0000-0000-000000000502"))
         val invitedCount = listOf(
             singleOutcome.isSuccess,
             bulkOutcome.results.single().outcome == BulkInviteOutcome.INVITED,
@@ -193,11 +206,11 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
             BulkInviteWaitlistEntriesCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                entryIds = listOf("entry-bulk-ok"),
+                entryIds = listOf("00000000-0000-0000-0000-000000000502"),
             ),
         )
         assertEquals(BulkInviteOutcome.SKIPPED, retry.results.single().outcome)
-        assertEquals(1L, activeInvitationCount("entry-bulk-ok"))
+        assertEquals(1L, activeInvitationCount("00000000-0000-0000-0000-000000000502"))
     }
 
     private suspend fun seedEntry(id: String, email: String, status: String) {
@@ -207,22 +220,22 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
               (id, waitlist_id, email_original, normalized_email, source,
                consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
-              (:id, 'wl-bulk', :email, :email, 'web', true, false, '1.0', :status, NOW(), NOW())
+              (:id, '00000000-0000-0000-0000-000000000501', :email, :email, 'web', true, false, '1.0', :status, NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", id)
+            .bind("id", UUID.fromString(id))
             .bind("email", email)
             .bind("status", status)
             .fetch().rowsUpdated().awaitSingle()
         if (status == "INVITED" || status == "CONVERTED") {
             databaseClient.sql("UPDATE waitlist_entries SET invited_at = NOW() WHERE id = :id")
-                .bind("id", id)
+                .bind("id", UUID.fromString(id))
                 .fetch().rowsUpdated().awaitSingle()
         }
         if (status == "CONVERTED") {
             databaseClient.sql("UPDATE waitlist_entries SET converted_at = NOW() WHERE id = :id")
-                .bind("id", id)
+                .bind("id", UUID.fromString(id))
                 .fetch().rowsUpdated().awaitSingle()
         }
     }
@@ -230,7 +243,7 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
     private suspend fun entryStatus(entryId: String): String? = databaseClient.sql(
         "SELECT status FROM waitlist_entries WHERE id = :id",
     )
-        .bind("id", entryId)
+        .bind("id", UUID.fromString(entryId))
         .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
         .one()
         .awaitSingle()
@@ -238,7 +251,7 @@ class BulkInvitePostgresIntegrationTest : PostgresIntegrationTestBase() {
     private suspend fun activeInvitationCount(entryId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) FROM waitlist_invitations WHERE waitlist_entry_id = :entryId AND status = 'ACTIVE'",
     )
-        .bind("entryId", entryId)
+        .bind("entryId", UUID.fromString(entryId))
         .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
         .one()
         .awaitSingle()

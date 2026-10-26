@@ -25,6 +25,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Base64
+import java.util.UUID
 
 @Repository
 class R2dbcMediaAssetRepository(
@@ -50,8 +51,8 @@ class R2dbcMediaAssetRepository(
             )
             """.trimIndent(),
         )
-            .bind("assetId", asset.assetId)
-            .bind("workspaceId", asset.workspaceId)
+            .bind("assetId", UUID.fromString(asset.assetId))
+            .bind("workspaceId", UUID.fromString(asset.workspaceId))
             .bind("sourceType", asset.sourceType.name)
             .bind("fileHash", asset.fileHash)
             .bind("mediaType", asset.mediaType)
@@ -92,8 +93,8 @@ class R2dbcMediaAssetRepository(
             WHERE workspace_id = :workspaceId AND asset_id = :assetId
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
-        .bind("assetId", assetId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
+        .bind("assetId", UUID.fromString(assetId))
         .map { row, _ -> rowToMediaAsset(row) }
         .one()
         .awaitSingleOrNull()
@@ -112,8 +113,8 @@ class R2dbcMediaAssetRepository(
             WHERE workspace_id = :workspaceId AND asset_id IN (:assetIds)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("assetIds", assetIds)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("assetIds", assetIds.map(UUID::fromString))
             .map { row, _ -> rowToMediaAsset(row) }
             .all()
             .collectList()
@@ -153,7 +154,7 @@ class R2dbcMediaAssetRepository(
         """.trimIndent()
 
         var spec = databaseClient.sql(sql)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("pageSize", effectivePageSize + 1)
 
         statuses.forEachIndexed { index, status ->
@@ -162,7 +163,7 @@ class R2dbcMediaAssetRepository(
 
         if (cursorCreatedAt != null && cursorAssetId != null) {
             spec = spec.bind("cursorCreatedAt", OffsetDateTime.ofInstant(cursorCreatedAt, ZoneOffset.UTC))
-            spec = spec.bind("cursorAssetId", cursorAssetId)
+            spec = spec.bind("cursorAssetId", UUID.fromString(cursorAssetId))
         }
 
         val assets = spec
@@ -198,8 +199,8 @@ class R2dbcMediaAssetRepository(
             """.trimIndent(),
         )
             .bind("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -221,8 +222,8 @@ class R2dbcMediaAssetRepository(
             """.trimIndent(),
         )
             .bind("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("threshold", OffsetDateTime.ofInstant(threshold, ZoneOffset.UTC))
             .fetch()
             .rowsUpdated()
@@ -242,8 +243,8 @@ class R2dbcMediaAssetRepository(
             """.trimIndent(),
         )
             .bind("fileSizeBytes", fileSizeBytes)
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
 
@@ -270,8 +271,8 @@ class R2dbcMediaAssetRepository(
         )
             .bind("storageKey", storageKey)
             .bind("detectedMediaType", detectedMediaType)
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
 
         spec = if (fileSizeBytes == null) {
             spec.bindNull("fileSizeBytes", Long::class.java)
@@ -296,8 +297,8 @@ class R2dbcMediaAssetRepository(
             """.trimIndent(),
         )
             .bind("reason", reason)
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
 
@@ -313,8 +314,8 @@ class R2dbcMediaAssetRepository(
             WHERE asset_id = :assetId AND workspace_id = :workspaceId
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind(STATUS_COLUMN, status.name)
             .then()
             .awaitSingleOrNull()
@@ -332,8 +333,8 @@ class R2dbcMediaAssetRepository(
             WHERE asset_id = :assetId AND workspace_id = :workspaceId
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
 
@@ -450,7 +451,7 @@ class R2dbcMediaAssetRepository(
               AND status NOT IN ('DELETED', 'FAILED')
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .bind("fileHash", fileHash)
         .map { row, _ -> row.get("cnt", Long::class.java)?.toInt() ?: 0 }
         .one()
@@ -472,7 +473,7 @@ class R2dbcMediaAssetRepository(
                 LIMIT 1
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .map { row, _ -> rowToMediaAsset(row) }
             .one()
@@ -524,8 +525,8 @@ class R2dbcMediaAssetRepository(
             .bind("storageKey", storageKey)
             .bind("detectedMediaType", detectedMediaType)
             .bind("fileSizeBytes", fileSizeBytes)
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
 
@@ -533,8 +534,8 @@ class R2dbcMediaAssetRepository(
     }
 
     private fun rowToMediaAsset(row: Readable): MediaAsset = MediaAsset(
-        assetId = requireNotNull(row.get("asset_id", String::class.java)),
-        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+        assetId = requireNotNull(row.get("asset_id", UUID::class.java)).toString(),
+        workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
         sourceType = MediaSourceType.valueOf(requireNotNull(row.get("source_type", String::class.java))),
         fileHash = row.get("file_hash", String::class.java),
         mediaType = requireNotNull(row.get("media_type", String::class.java)),
@@ -589,7 +590,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             ON CONFLICT (workspace_id, file_hash) DO NOTHING
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .fetch()
             .rowsUpdated()
@@ -615,7 +616,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             WHERE workspace_id = :workspaceId AND file_hash = :fileHash
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .map { row, _ -> rowToBlob(row) }
             .one()
@@ -632,7 +633,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             FOR UPDATE
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .map { row, _ -> rowToBlob(row) }
             .one()
@@ -647,7 +648,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
               AND status NOT IN ('DELETED', 'FAILED')
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .bind("fileHash", fileHash)
         .map { row, _ -> row.get("cnt", Long::class.java)?.toInt() ?: 0 }
         .one()
@@ -664,7 +665,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             """.trimIndent(),
         )
             .bind("orphanedAt", OffsetDateTime.ofInstant(orphanedAt, ZoneOffset.UTC))
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
@@ -680,7 +681,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             WHERE workspace_id = :workspaceId AND file_hash = :fileHash
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
@@ -720,7 +721,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             """.trimIndent(),
         )
             .bind("failureReason", failureReason)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
@@ -748,7 +749,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             .bind("storageKey", storageKey)
             .bind("detectedMediaType", detectedMediaType)
             .bind("fileSizeBytes", fileSizeBytes)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
@@ -769,7 +770,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             WHERE workspace_id = :workspaceId AND file_hash = :fileHash
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
@@ -786,14 +787,14 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
             """.trimIndent(),
         )
             .bind("failureReason", failureReason)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .then()
             .awaitSingleOrNull()
     }
 
     private fun rowToBlob(row: Readable): WorkspaceFileBlob = WorkspaceFileBlob(
-        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+        workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
         fileHash = requireNotNull(row.get("file_hash", String::class.java)),
         storageKey = row.get("storage_key", String::class.java),
         fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
@@ -819,7 +820,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             ON CONFLICT (workspace_id) DO NOTHING
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
 
@@ -832,7 +833,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
               AND active_uploads < :maxConcurrent
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("maxConcurrent", maxConcurrent)
             .fetch()
             .rowsUpdated()
@@ -850,7 +851,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .then()
             .awaitSingleOrNull()
     }
@@ -877,7 +878,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
                 updated_at = CURRENT_TIMESTAMP
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("currentHour", currentHour)
             .then()
             .awaitSingleOrNull()
@@ -893,7 +894,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             RETURNING hourly_creation_count
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("currentHour", currentHour)
             .bind("maxPerHour", maxPerHour)
             .fetch()

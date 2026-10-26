@@ -77,26 +77,37 @@ class PlatformAdminBddSteps {
         registeredUserExists(email)
         databaseClient.sql(
             "INSERT INTO workspaces (id, name, status) " +
-                "VALUES ('bdd-workspace-1', 'BDD Workspace', 'ACTIVE') ON CONFLICT DO NOTHING",
+                "VALUES ('b7e14b29-2ee5-51d9-96eb-e01dbafc1aa8', 'BDD Workspace', 'ACTIVE') ON CONFLICT DO NOTHING",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) " +
-                "VALUES ('bdd-membership-1', 'bdd-workspace-1', 'control-user-1', 'USER', 'ACTIVE') " +
-                "ON CONFLICT DO NOTHING",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (
+                '3d77d8f6-1d6b-5fa0-9879-502768c23815', 'b7e14b29-2ee5-51d9-96eb-e01dbafc1aa8',
+                '545ff180-4f94-59e3-bfed-aa30f3c9cd34', 'USER', 'ACTIVE'
+            )
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
     @Given("a registered user exists for {string}")
     fun registeredUserExists(email: String) = runBlocking {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
-                "VALUES ('control-user-1', 'USER', 'local:$email', NULL, 'Control User') ON CONFLICT DO NOTHING",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('545ff180-4f94-59e3-bfed-aa30f3c9cd34', 'USER', 'local:$email', NULL, 'Control User')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username, email_status) " +
-                "VALUES ('control-user-1', '$email', 'control-user', 'VERIFIED') ON CONFLICT DO NOTHING",
+            """
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES ('545ff180-4f94-59e3-bfed-aa30f3c9cd34', '$email', 'control-user', 'VERIFIED')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
-        state.lastUserId = "control-user-1"
+        state.lastUserId = "545ff180-4f94-59e3-bfed-aa30f3c9cd34"
         state.idempotencyKey = "bdd-control-key"
     }
 
@@ -150,7 +161,7 @@ class PlatformAdminBddSteps {
     @Then("the user detail should include one workspace membership")
     fun userDetailIncludesOneWorkspaceMembership() {
         val body = String(requireNotNull(state.lastResponse).responseBody ?: ByteArray(0))
-        assertTrue(body.contains("workspaceMemberships") && body.contains("bdd-workspace-1"))
+        assertTrue(body.contains("workspaceMemberships") && body.contains("b7e14b29-2ee5-51d9-96eb-e01dbafc1aa8"))
     }
 
     @When("the operator disables the registered user")
@@ -345,7 +356,7 @@ class PlatformAdminBddSteps {
     fun registeredUserAccountStateShouldBe(expected: String) = runBlocking {
         val stateValue = databaseClient.sql(
             "SELECT account_state FROM principals WHERE id = :id",
-        ).bind("id", requireNotNull(state.lastUserId))
+        ).bind("id", UUID.fromString(requireNotNull(state.lastUserId)))
             .map { row, _ -> requireNotNull(row.get("account_state", String::class.java)) }
             .one()
             .awaitSingle()
@@ -358,7 +369,7 @@ class PlatformAdminBddSteps {
             "SELECT COUNT(*) AS event_count FROM platform_admin_audit_events " +
                 "WHERE action = 'USER_DISABLED' AND target_id = :targetId AND result = 'SUCCEEDED'",
         ).bind("targetId", requireNotNull(state.lastUserId))
-            .map { row, _ -> requireNotNull(row.get("event_count", java.lang.Long::class.java)).toLong() }
+            .map { row, _ -> requireNotNull(row.get("event_count", Long::class.javaObjectType)) }
             .one()
             .awaitSingle()
         assertEquals(1L, count)
@@ -455,7 +466,7 @@ class PlatformAdminBddSteps {
     // ── Database helpers ─────────────────────────────────────────────────────
 
     private suspend fun cleanupPlatformAdminData() {
-        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'user-$ADMIN_PRINCIPAL_ID', 'principal-1', 'user-principal-1'"
+        val principalIds = "'$ADMIN_PRINCIPAL_ID', '${BddDatabaseSupport.PRINCIPAL_ID}'"
         val deleteByPrincipal = { table: String ->
             "DELETE FROM $table WHERE principal_id IN ($principalIds)"
         }
@@ -464,14 +475,14 @@ class PlatformAdminBddSteps {
             "DELETE FROM invitations",
             "DELETE FROM waitlist_invitations",
             "DELETE FROM platform_role_assignments WHERE principal_id = '$ADMIN_PRINCIPAL_ID'::uuid",
-            "DELETE FROM waitlist_entries WHERE waitlist_id = 'admin-bdd-waitlist'",
-            "DELETE FROM waitlists WHERE id = 'admin-bdd-waitlist'",
+            "DELETE FROM waitlist_entries WHERE waitlist_id = '67d26d93-f909-5feb-b257-f11ebc6aa5d2'",
+            "DELETE FROM waitlists WHERE id = '67d26d93-f909-5feb-b257-f11ebc6aa5d2'",
             "DELETE FROM membership_roles WHERE membership_id IN (" +
                 "SELECT id FROM workspace_memberships WHERE principal_id IN ($principalIds))",
             deleteByPrincipal("workspace_direct_grants"),
             deleteByPrincipal("workspace_target_scopes"),
             deleteByPrincipal("workspace_memberships"),
-            "DELETE FROM workspace_ownerships WHERE owner_principal_id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
+            "DELETE FROM workspace_ownerships WHERE owner_principal_id IN ($principalIds)",
             deleteByPrincipal("local_password_credentials"),
             deleteByPrincipal("refresh_sessions"),
             deleteByPrincipal("password_reset_tokens"),
@@ -502,23 +513,7 @@ class PlatformAdminBddSteps {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-$ADMIN_PRINCIPAL_ID', 'USER', 'local:admin-issued@platform.example', NULL, 'Platform Admin')
-            ON CONFLICT DO NOTHING
-            """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
-
-        databaseClient.sql(
-            """
-            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
-            ON CONFLICT DO NOTHING
-            """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
-
-        databaseClient.sql(
-            """
-            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-principal-1', 'USER', 'accepted-123', 'https://issuer.example', 'jwt-user@example.com')
+            VALUES ('${BddDatabaseSupport.PRINCIPAL_ID}', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -534,7 +529,7 @@ class PlatformAdminBddSteps {
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username, email_status)
-            VALUES ('principal-1', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
+            VALUES ('${BddDatabaseSupport.PRINCIPAL_ID}', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -555,16 +550,16 @@ class PlatformAdminBddSteps {
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)
-            VALUES ('admin-bdd-waitlist', 'admin-bdd', 'BDD Waitlist', 'admin', 'ACTIVE')
+            VALUES ('67d26d93-f909-5feb-b257-f11ebc6aa5d2', 'admin-bdd', 'BDD Waitlist', 'admin', 'ACTIVE')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
-        return "admin-bdd-waitlist"
+        return "67d26d93-f909-5feb-b257-f11ebc6aa5d2"
     }
 
     private suspend fun seedWaitlistEntry(email: String, status: String): String {
         seedWaitlist()
-        val entryId = "bdd-entry-${email.replace("@", "-at-").replace(".", "-")}"
+        val entryId = UUID.randomUUID().toString()
         val invitedAt = if (status == "INVITED" || status == "CONVERTED") ", invited_at = NOW()" else ""
         val convertedAt = if (status == "CONVERTED") ", converted_at = NOW()" else ""
         databaseClient.sql(
@@ -573,7 +568,7 @@ class PlatformAdminBddSteps {
               (id, waitlist_id, email_original, normalized_email, source,
                consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
-              ('$entryId', 'admin-bdd-waitlist', '$email', '$email', 'bdd',
+              ('$entryId', '67d26d93-f909-5feb-b257-f11ebc6aa5d2', '$email', '$email', 'bdd',
                true, false, '1.0', '$status', NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
@@ -606,7 +601,7 @@ class PlatformAdminBddSteps {
 
     private suspend fun entryStatus(entryId: String): String? =
         databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = :id")
-            .bind("id", entryId)
+            .bind("id", UUID.fromString(entryId))
             .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .first()
             .awaitSingleOrNull()
@@ -614,7 +609,7 @@ class PlatformAdminBddSteps {
     private suspend fun activeInvitationCount(entryId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) FROM waitlist_invitations WHERE waitlist_entry_id = :entryId AND status = 'ACTIVE'",
     )
-        .bind("entryId", entryId)
+        .bind("entryId", UUID.fromString(entryId))
         .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
         .one()
         .awaitSingle()

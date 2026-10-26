@@ -252,7 +252,7 @@ describe('AnalyticsView accessibility', () => {
     analyticsStore.postAnalytics = {
       posts: [
         {
-          postId: 'post-1',
+          postId: '9c49a19d-1574-5e8c-9196-48c9bba55351',
           title: null,
           bodyText: 'A post body that should be used as the preview',
           provider: 'linkedin',
@@ -378,7 +378,7 @@ describe('AnalyticsView accessibility', () => {
     analyticsStore.postAnalytics = {
       posts: [
         {
-          postId: 'post-title',
+          postId: '15071e0f-70de-5507-9739-d30a9a0a4b4d',
           title: 'Title preview',
           bodyText: 'Ignored body',
           provider: 'linkedin',
@@ -392,7 +392,7 @@ describe('AnalyticsView accessibility', () => {
           engagementRate: 0,
         },
         {
-          postId: 'post-empty',
+          postId: '52024bbe-33ad-5142-a686-fb36cac8f71a',
           title: null,
           bodyText: null,
           provider: 'linkedin',
@@ -455,7 +455,7 @@ describe('AnalyticsView accessibility', () => {
     analyticsStore.postAnalytics = {
       posts: [
         {
-          postId: 'post-1',
+          postId: '9c49a19d-1574-5e8c-9196-48c9bba55351',
           title: 'Launch notes',
           bodyText: null,
           provider: 'linkedin',
@@ -469,7 +469,7 @@ describe('AnalyticsView accessibility', () => {
           engagementRate: 8,
         },
         {
-          postId: 'post-2',
+          postId: '9d141898-9baa-575f-a4f7-4ba92baaa505',
           title: 'Weekly recap',
           bodyText: null,
           provider: 'linkedin',

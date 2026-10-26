@@ -1,11 +1,11 @@
 # ADR-0005: Use Prefixed String Identifiers
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-06-21
 - Decision owners: Principal Architect
 - Scope: Repository-wide
 - Supersedes: None
-- Superseded by: None
+- Superseded by: ADR-0029
 
 ## Context
 
@@ -19,6 +19,8 @@ URLs, and debugging sessions.
 - Uniqueness (guaranteed by backing UUID).
 
 ## Decision
+
+This decision is superseded by [ADR-0029](./0029-use-raw-uuid-identifiers.md). Historical decision text remains unchanged.
 
 Entity identifiers MUST use a human-readable prefix followed by a UUID.
 

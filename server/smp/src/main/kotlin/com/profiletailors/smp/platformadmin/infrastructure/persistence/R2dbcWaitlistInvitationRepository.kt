@@ -26,7 +26,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
 
     override suspend fun findActiveByWaitlistEntryId(waitlistEntryId: String): WaitlistInvitation? =
         databaseClient.sql(SELECT_ACTIVE_BY_ENTRY)
-            .bind("waitlistEntryId", waitlistEntryId)
+            .bind("waitlistEntryId", UUID.fromString(waitlistEntryId))
             .bind("status", WaitlistInvitationStatus.ACTIVE.name)
             .map { row, _ -> row.toInvitation() }
             .one()
@@ -34,7 +34,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
 
     override suspend fun findAllByWaitlistEntryId(waitlistEntryId: String): List<WaitlistInvitation> =
         databaseClient.sql(SELECT_ALL_BY_ENTRY)
-            .bind("waitlistEntryId", waitlistEntryId)
+            .bind("waitlistEntryId", UUID.fromString(waitlistEntryId))
             .map { row, _ -> row.toInvitation() }
             .all()
             .collectList()
@@ -83,7 +83,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
 
     override suspend fun countResendsSince(waitlistEntryId: String, sinceEpochMillis: Long): Int =
         databaseClient.sql(COUNT_RESENDS_SINCE)
-            .bind("waitlistEntryId", waitlistEntryId)
+            .bind("waitlistEntryId", UUID.fromString(waitlistEntryId))
             .bind("since", OffsetDateTime.ofInstant(java.time.Instant.ofEpochMilli(sinceEpochMillis), ZoneOffset.UTC))
             .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
             .one()
@@ -93,7 +93,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
     private fun DatabaseClient.GenericExecuteSpec.bindInvitation(
         i: WaitlistInvitation,
     ): DatabaseClient.GenericExecuteSpec = bind("id", i.id.value)
-        .bind("waitlistEntryId", i.waitlistEntryId)
+        .bind("waitlistEntryId", UUID.fromString(i.waitlistEntryId))
         .bind("tokenHash", i.tokenHash)
         .bind("status", i.status.name)
         .bind("issuedAt", OffsetDateTime.ofInstant(i.issuedAt, ZoneOffset.UTC))

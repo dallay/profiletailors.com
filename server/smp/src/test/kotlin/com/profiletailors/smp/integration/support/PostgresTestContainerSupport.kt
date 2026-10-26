@@ -16,6 +16,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.containers.wait.strategy.WaitAllStrategy
 import java.sql.DriverManager
 import java.time.Duration
+import java.util.UUID
 
 object PostgresTestContainerSupport {
     const val IMAGE = "postgres:18-alpine"
@@ -61,6 +62,8 @@ object PostgresTestContainerSupport {
 
 object PostgresDatabaseCleanup {
     val statements: List<String> = listOf(
+        "DELETE FROM consent_record_events",
+        "DELETE FROM consent_records",
         "DELETE FROM shortlink_idempotency",
         "DELETE FROM link_clicks",
         "DELETE FROM links",
@@ -77,7 +80,7 @@ object PostgresDatabaseCleanup {
         "DELETE FROM waitlist_withdrawal_urls",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",
-        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+        "DELETE FROM waitlists WHERE id <> 'ea2c112c-d7f8-5e73-a4a8-ee4c372ed124'",
         "DELETE FROM recurring_schedules",
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
@@ -166,13 +169,16 @@ abstract class PostgresDatabaseTestBase {
 
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+            }
             val database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
             Liquibase(
                 "db/changelog/db.changelog-master.yaml",
                 ClassLoaderResourceAccessor(),
                 database,
-            ).update(Contexts(), LabelExpression())
+            ).update(Contexts("uuid-native-identifiers"), LabelExpression())
         }
     }
 
@@ -224,7 +230,7 @@ abstract class PostgresIntegrationTestBase : IntegrationTestBase() {
 suspend fun org.springframework.r2dbc.core.DatabaseClient.countPublicationJobs(publicationId: String): Long = sql(
     "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :publicationId",
 )
-    .bind("publicationId", publicationId)
+    .bind("publicationId", UUID.fromString(publicationId))
     .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
     .one()
     .awaitSingle()

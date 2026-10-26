@@ -8,6 +8,9 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
+
+private const val PUBLICATION_ID_PARAMETER = "publicationId"
 
 @Repository
 class R2dbcNotificationEventRepository(
@@ -16,7 +19,7 @@ class R2dbcNotificationEventRepository(
 ) : NotificationEventRepository {
 
     override suspend fun record(event: NotificationEvent): NotificationEvent {
-        val id = event.id.ifEmpty { "nevt-${java.util.UUID.randomUUID()}" }
+        val id = event.id.ifEmpty { java.util.UUID.randomUUID().toString() }
         val now = clock.instant()
         val toPersist = event.copy(id = id, createdAt = event.createdAt ?: now)
 
@@ -31,11 +34,14 @@ class R2dbcNotificationEventRepository(
             )
             """.trimIndent(),
         )
-            .bind("id", toPersist.id)
-            .bind("workspaceId", toPersist.workspaceId)
+            .bind("id", UUID.fromString(toPersist.id))
+            .bind("workspaceId", UUID.fromString(toPersist.workspaceId))
             .bind("provider", toPersist.provider.name)
-            .bind("socialAccountId", toPersist.socialAccountId)
-            .bindNullable("publicationId", toPersist.publicationId, String::class.java)
+            .bind("socialAccountId", UUID.fromString(toPersist.socialAccountId))
+            .let { spec ->
+                toPersist.publicationId?.let { spec.bind(PUBLICATION_ID_PARAMETER, UUID.fromString(it)) }
+                    ?: spec.bindNull(PUBLICATION_ID_PARAMETER, UUID::class.java)
+            }
             .bind("category", toPersist.category.name)
             .bind("message", toPersist.message)
             .bindNullable("suggestedAction", toPersist.suggestedAction, String::class.java)
@@ -58,17 +64,17 @@ class R2dbcNotificationEventRepository(
     ): List<NotificationEvent> {
         val conditions = mutableListOf("workspace_id = :workspaceId")
         val paramKeys = mutableMapOf<String, Any>(
-            "workspaceId" to workspaceId,
+            "workspaceId" to UUID.fromString(workspaceId),
         )
 
         socialAccountId?.let {
             conditions.add("social_account_id = :socialAccountId")
-            paramKeys["socialAccountId"] = it
+            paramKeys["socialAccountId"] = UUID.fromString(it)
         }
 
         publicationId?.let {
             conditions.add("publication_id = :publicationId")
-            paramKeys["publicationId"] = it
+            paramKeys[PUBLICATION_ID_PARAMETER] = UUID.fromString(it)
         }
 
         categories?.takeIf { it.isNotEmpty() }?.let { set ->
@@ -93,19 +99,19 @@ class R2dbcNotificationEventRepository(
             .bind("workspaceId", paramKeys["workspaceId"]!!)
             .bind("limit", limit)
 
-        socialAccountId?.let { spec = spec.bind("socialAccountId", it) }
-        publicationId?.let { spec = spec.bind("publicationId", it) }
+        socialAccountId?.let { spec = spec.bind("socialAccountId", UUID.fromString(it)) }
+        publicationId?.let { spec = spec.bind(PUBLICATION_ID_PARAMETER, UUID.fromString(it)) }
         categories?.forEachIndexed { i, _ ->
             spec = spec.bind("category_$i", paramKeys["category_$i"]!!)
         }
 
         return spec.map { row, _ ->
             NotificationEvent(
-                id = requireNotNull(row.get("id", String::class.java)),
-                workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+                workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
                 provider = SocialProvider.valueOf(requireNotNull(row.get("provider", String::class.java))),
-                socialAccountId = requireNotNull(row.get("social_account_id", String::class.java)),
-                publicationId = row.get("publication_id", String::class.java),
+                socialAccountId = requireNotNull(row.get("social_account_id", UUID::class.java)).toString(),
+                publicationId = row.get("publication_id", UUID::class.java)?.toString(),
                 category = NotificationCategory.valueOf(requireNotNull(row.get("category", String::class.java))),
                 message = requireNotNull(row.get("message", String::class.java)),
                 suggestedAction = row.get("suggested_action", String::class.java),

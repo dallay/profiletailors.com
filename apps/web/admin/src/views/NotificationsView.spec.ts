@@ -40,9 +40,9 @@ const messages = {
 }
 
 const failedRow = {
-  id: 'ntf-1',
+  id: '4212341e-fd8b-5e48-a819-922250621622',
   channel: 'EMAIL',
-  templateId: 'platform.password-recovery',
+  templateId: 'b7aa5202-ebfc-5288-8cf5-c2e1de49cee4',
   recipient: 'ops@example.com',
   status: 'FAILED',
   errorMessage: 'smtp timeout',
@@ -99,7 +99,7 @@ describe('NotificationsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('ops@example.com')
-    expect(wrapper.text()).toContain('platform.password-recovery')
+    expect(wrapper.text()).toContain('b7aa5202-ebfc-5288-8cf5-c2e1de49cee4')
     expect(wrapper.text()).toContain('Failed')
   })
 
@@ -137,7 +137,7 @@ describe('NotificationsView', () => {
     await flushPromises()
 
     expect(mockRequest).toHaveBeenCalledWith(
-      '/api/admin/notifications/ntf-1/retry',
+      '/api/admin/notifications/4212341e-fd8b-5e48-a819-922250621622/retry',
       expect.objectContaining({
         method: 'POST',
         headers: { 'X-Idempotency-Key': 'retry-key-1' },

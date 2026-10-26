@@ -18,7 +18,7 @@ internal class RecordRiskAcceptanceHandler(private val repository: ComplianceRis
      */
     override suspend fun handle(command: RecordRiskAcceptanceCommand) {
         val riskAcceptance = ComplianceRiskAcceptance(
-            id = ComplianceRiskAcceptanceId("ra-${UUID.randomUUID()}"),
+            id = ComplianceRiskAcceptanceId(UUID.randomUUID().toString()),
             controlId = command.controlId,
             releaseScope = command.releaseScope,
             marketScope = command.marketScope,

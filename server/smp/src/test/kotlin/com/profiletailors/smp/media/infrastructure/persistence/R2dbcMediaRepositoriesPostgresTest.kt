@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.infrastructure.persistence
 
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.media.domain.MediaAssetStatus
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -27,29 +29,63 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     private val mediaRepository by lazy { R2dbcMediaAssetRepository(databaseClient) }
 
     @Test
-    fun `blob upsert uses PostgreSQL ON CONFLICT without duplicating rows`() = runTest {
-        seedWorkspace("workspace-1")
+    fun `native UUID assets support collection lookup and cursor pagination`() = runTest {
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH_A, "READY")
+        insertMediaAsset(ASSET_1, WORKSPACE_1, HASH_A, "DELETED")
+        insertMediaAsset(ASSET_A, WORKSPACE_1, HASH_A, "DELETED")
 
-        blobRepository.upsertBlob("workspace-1", HASH_A)
-        blobRepository.upsertBlob("workspace-1", HASH_A)
+        val loaded = mediaRepository.findByWorkspaceAndIds(WORKSPACE_1, listOf(ASSET_1, ASSET_A))
+        val first = mediaRepository.listByWorkspace(WORKSPACE_1, setOf(MediaAssetStatus.DELETED), 1, null)
+        val second = mediaRepository.listByWorkspace(
+            WORKSPACE_1,
+            setOf(MediaAssetStatus.DELETED),
+            1,
+            requireNotNull(first.nextCursor),
+        )
+
+        assertEquals(setOf(ASSET_1, ASSET_A), loaded.map { it.assetId }.toSet())
+        assertEquals(setOf(ASSET_1, ASSET_A), (first.assets + second.assets).map { it.assetId }.toSet())
+        assertNull(second.nextCursor)
+    }
+
+    @Test
+    fun `native UUID workspace supports upload slots and hourly limits`() = runTest {
+        seedWorkspace(WORKSPACE_1)
+        val rateLimits = R2dbcMediaRateLimitRepository(databaseClient)
+
+        assertTrue(rateLimits.tryClaimConcurrentUploadSlot(WORKSPACE_1, 1))
+        assertTrue(!rateLimits.tryClaimConcurrentUploadSlot(WORKSPACE_1, 1))
+        rateLimits.releaseConcurrentUploadSlot(WORKSPACE_1)
+        assertTrue(rateLimits.tryClaimConcurrentUploadSlot(WORKSPACE_1, 1))
+        assertTrue(rateLimits.tryIncrementHourlyCreationCount(WORKSPACE_1, 1).isAllowed)
+        assertTrue(!rateLimits.tryIncrementHourlyCreationCount(WORKSPACE_1, 1).isAllowed)
+    }
+
+    @Test
+    fun `blob upsert uses PostgreSQL ON CONFLICT without duplicating rows`() = runTest {
+        seedWorkspace(WORKSPACE_1)
+
+        blobRepository.upsertBlob(WORKSPACE_1, HASH_A)
+        blobRepository.upsertBlob(WORKSPACE_1, HASH_A)
 
         assertEquals(1, countRows("workspace_file_blobs"))
     }
 
     @Test
     fun `CAS upload claim only transitions pending assets once`() = runTest {
-        seedWorkspace("workspace-1")
-        insertWorkspaceBlob("workspace-1", HASH_A, "UPLOADING")
-        insertMediaAsset("asset-1", "workspace-1", HASH_A, "PENDING_UPLOAD")
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH_A, "UPLOADING")
+        insertMediaAsset(ASSET_1, WORKSPACE_1, HASH_A, "PENDING_UPLOAD")
 
         val firstClaim = mediaRepository.claimCasUploadSlot(
-            "asset-1",
-            "workspace-1",
+            ASSET_1,
+            WORKSPACE_1,
             Instant.parse("2026-06-25T10:00:00Z"),
         )
         val secondClaim = mediaRepository.claimCasUploadSlot(
-            "asset-1",
-            "workspace-1",
+            ASSET_1,
+            WORKSPACE_1,
             Instant.parse("2026-06-25T10:01:00Z"),
         )
 
@@ -59,10 +95,10 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `findBlobForUpdate and findReadyForGC execute PostgreSQL lock clauses`() = runTest {
-        seedWorkspace("workspace-1")
-        insertWorkspaceBlob("workspace-1", HASH_A, "READY_FOR_GC", orphanedAt = Instant.parse("2026-06-01T00:00:00Z"))
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH_A, "READY_FOR_GC", orphanedAt = Instant.parse("2026-06-01T00:00:00Z"))
 
-        val locked = blobRepository.findBlobForUpdate("workspace-1", HASH_A)
+        val locked = blobRepository.findBlobForUpdate(WORKSPACE_1, HASH_A)
         val candidates = blobRepository.findReadyForGC(Instant.parse("2026-06-10T00:00:00Z"), 10).toList()
 
         assertNotNull(locked)
@@ -73,29 +109,29 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     fun `cleanup removes media assets before workspace file blobs between tests`() = runTest {
         assertEquals(0, countRows("media_assets"))
         assertEquals(0, countRows("workspace_file_blobs"))
-        assertNull(blobRepository.findByWorkspaceAndHash("workspace-1", HASH_A))
+        assertNull(blobRepository.findByWorkspaceAndHash(WORKSPACE_1, HASH_A))
     }
 
     @Test
     fun `findActiveByWorkspaceAndHash returns the active asset that references the hash`() = runTest {
-        seedWorkspace("workspace-1")
-        insertWorkspaceBlob("workspace-1", HASH_A, "READY")
-        insertMediaAsset("asset-a", "workspace-1", HASH_A, "READY")
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH_A, "READY")
+        insertMediaAsset(ASSET_A, WORKSPACE_1, HASH_A, "READY")
 
-        val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
+        val active = mediaRepository.findActiveByWorkspaceAndHash(WORKSPACE_1, HASH_A)
 
-        assertEquals("asset-a", active?.assetId)
+        assertEquals(ASSET_A, active?.assetId)
     }
 
     @Test
     fun `findActiveByWorkspaceAndHash ignores DELETED and FAILED rows`() = runTest {
-        seedWorkspace("workspace-1")
-        insertWorkspaceBlob("workspace-1", HASH_A, "READY")
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH_A, "READY")
         // Only DELETED + FAILED rows reference HASH_A — neither should match.
-        insertMediaAsset("asset-deleted", "workspace-1", HASH_A, "DELETED")
-        insertMediaAsset("asset-failed", "workspace-1", HASH_A, "FAILED")
+        insertMediaAsset(ASSET_DELETED, WORKSPACE_1, HASH_A, "DELETED")
+        insertMediaAsset(ASSET_FAILED, WORKSPACE_1, HASH_A, "FAILED")
 
-        val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
+        val active = mediaRepository.findActiveByWorkspaceAndHash(WORKSPACE_1, HASH_A)
 
         assertNull(active, "DELETED/FAILED must not block re-upload of the same hash")
     }
@@ -107,7 +143,7 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             VALUES (:workspaceId, 'Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -128,7 +164,7 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             )
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .bind("status", status)
             .let { spec ->
@@ -156,8 +192,8 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             )
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .bind("status", status)
             .fetch()
@@ -181,6 +217,12 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     }
 
     companion object {
+        private const val WORKSPACE_1 = "d3d9800f-120a-501e-ad01-401e54e8f766"
+        private const val ASSET_1 = "484cbbea-47d9-508d-83e1-b80932bcd6ab"
+        private const val ASSET_A = "ac4cf984-8ab6-569f-8cb8-93bea5654e34"
+        private const val ASSET_DELETED = "9797fdda-42f6-59d2-9860-da5e4ed69053"
+        private const val ASSET_FAILED = "551222eb-6564-50a8-a5c4-b500dd308771"
+
         private const val HASH_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
         @Container

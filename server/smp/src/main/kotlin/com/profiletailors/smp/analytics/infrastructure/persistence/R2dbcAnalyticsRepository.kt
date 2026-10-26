@@ -12,6 +12,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val PERCENTAGE_SCALE = 100
@@ -76,7 +77,7 @@ internal class R2dbcAnalyticsRepository(private val databaseClient: DatabaseClie
             LIMIT 10
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .fetch()
             .all()
             .map { row ->
@@ -106,7 +107,7 @@ internal class R2dbcAnalyticsRepository(private val databaseClient: DatabaseClie
             ORDER BY published_at DESC
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("startDate", range.startDate.atStartOfDay())
             .bind("endDate", range.endDate.plusDays(1).atStartOfDay())
             .fetch()
