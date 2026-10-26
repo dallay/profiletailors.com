@@ -34,7 +34,7 @@ class PrivacyControllerWebTest {
     private val now = Instant.parse("2026-07-19T10:00:00Z")
 
     private val sampleResponse = DataSubjectRequestResponse(
-        id = "dsr-test-123",
+        id = "f3812fbf-7066-56eb-b183-2c0c94bd3985",
         type = "ACCESS",
         status = "COMPLETED",
         requestedBy = "test-principal",
@@ -57,7 +57,7 @@ class PrivacyControllerWebTest {
             .exchange()
             .expectStatus().isCreated
             .expectBody()
-            .jsonPath("$.id").isEqualTo("dsr-test-123")
+            .jsonPath("$.id").isEqualTo("f3812fbf-7066-56eb-b183-2c0c94bd3985")
             .jsonPath("$.status").isEqualTo("COMPLETED")
             .jsonPath("$.message").isEqualTo("Request submitted successfully")
     }
@@ -83,7 +83,7 @@ class PrivacyControllerWebTest {
     @Test
     fun `POST correction request dispatches correction command`() {
         mediator.nextCommandResult = sampleResponse.copy(
-            id = "dsr-correction-1",
+            id = "50ef9cd3-0a03-55f0-aa08-a15ce94c1c6f",
             type = "CORRECTION",
         )
 
@@ -112,8 +112,8 @@ class PrivacyControllerWebTest {
     @Test
     fun `GET list requests returns 200`() {
         val requests = listOf(
-            sampleResponse.copy(id = "dsr-1"),
-            sampleResponse.copy(id = "dsr-2", type = "EXPORT"),
+            sampleResponse.copy(id = "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5"),
+            sampleResponse.copy(id = "0548b7a9-bdd5-5ce8-b2da-7a78c406d107", type = "EXPORT"),
         )
         mediator.listQueryResult = requests
 
@@ -124,19 +124,19 @@ class PrivacyControllerWebTest {
             .jsonPath("$.total").isEqualTo(2)
             .jsonPath("$.page").isEqualTo(1)
             .jsonPath("$.perPage").isEqualTo(2)
-            .jsonPath("$.requests[0].id").isEqualTo("dsr-1")
-            .jsonPath("$.requests[1].id").isEqualTo("dsr-2")
+            .jsonPath("$.requests[0].id").isEqualTo("4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5")
+            .jsonPath("$.requests[1].id").isEqualTo("0548b7a9-bdd5-5ce8-b2da-7a78c406d107")
     }
 
     @Test
     fun `GET request by id returns 200`() {
-        mediator.statusQueryResultById = mapOf("dsr-123" to sampleResponse)
+        mediator.statusQueryResultById = mapOf("b2b09298-7523-599f-b289-7c09a0b10264" to sampleResponse)
 
-        client.get().uri("/api/v1/privacy/requests/dsr-123")
+        client.get().uri("/api/v1/privacy/requests/b2b09298-7523-599f-b289-7c09a0b10264")
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.id").isEqualTo("dsr-test-123")
+            .jsonPath("$.id").isEqualTo("f3812fbf-7066-56eb-b183-2c0c94bd3985")
             .jsonPath("$.type").isEqualTo("ACCESS")
             .jsonPath("$.status").isEqualTo("COMPLETED")
     }
@@ -145,7 +145,7 @@ class PrivacyControllerWebTest {
     fun `GET request by non-existent id returns 404`() {
         mediator.statusQueryResultById = emptyMap()
 
-        client.get().uri("/api/v1/privacy/requests/dsr-nonexistent")
+        client.get().uri("/api/v1/privacy/requests/e2dc30b4-0019-5c96-a7b0-2a29bf825320")
             .exchange()
             .expectStatus().isNotFound
     }

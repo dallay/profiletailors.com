@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 025-add-publication-group-id
-      author: profiletailors
+      author: yacosta738
       changes:
         - addColumn:
             tableName: publications

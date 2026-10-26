@@ -7,6 +7,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
+import java.util.UUID
 
 private const val RESPONSE_JSON_COLUMN = "response_json"
 
@@ -24,8 +25,8 @@ internal class R2dbcIdempotencyRecordRepository(private val databaseClient: Data
           AND key_hash = :keyHash
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId))
             .bind("toolName", toolName)
             .bind("keyHash", keyHash)
             .map { row, _ -> requireNotNull(row.get(RESPONSE_JSON_COLUMN, String::class.java)) }
@@ -42,8 +43,8 @@ internal class R2dbcIdempotencyRecordRepository(private val databaseClient: Data
                 (:workspaceId, :principalId, :toolName, :keyHash, :responseJson, :createdAt)
             """.trimIndent(),
         )
-            .bind("workspaceId", record.workspaceId)
-            .bind("principalId", record.principalId)
+            .bind("workspaceId", UUID.fromString(record.workspaceId))
+            .bind("principalId", UUID.fromString(record.principalId))
             .bind("toolName", record.toolName)
             .bind("keyHash", record.keyHash)
             .bind("responseJson", record.responseJson)

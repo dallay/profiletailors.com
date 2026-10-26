@@ -9,7 +9,6 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal class RegisterComplianceEvidenceHandlerTest {
 
@@ -36,7 +35,7 @@ internal class RegisterComplianceEvidenceHandlerTest {
 
         coVerify(exactly = 1) { repository.save(any()) }
         val saved = savedSlot.captured
-        assertTrue(saved.id.value.startsWith("ev-"))
+        assertEquals(saved.id.value, java.util.UUID.fromString(saved.id.value).toString())
         assertEquals(command.evidenceType, saved.evidenceType)
         assertEquals(command.title, saved.title)
         assertEquals(command.description, saved.description)

@@ -125,11 +125,10 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
 
     override suspend fun seedScenario() {
         seedPrincipal(operatorId.toString())
-        seedPrincipal("user-$operatorId")
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)
-            VALUES ('wl-1', 'profile-tailors-beta', 'Beta', 'profile-tailors', 'ACTIVE')
+            VALUES ('00000000-0000-0000-0000-000000000601', 'profile-tailors-beta', 'Beta', 'profile-tailors', 'ACTIVE')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -140,7 +139,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
               (id, waitlist_id, email_original, normalized_email, source,
                consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
-              ('entry-test-1', 'wl-1', 'test@example.com', 'test@example.com', 'web',
+              ('00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000601', 'test@example.com', 'test@example.com', 'web',
                true, false, '1.0', 'PENDING', NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
@@ -152,7 +151,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
               (id, waitlist_id, email_original, normalized_email, source,
                consent_early_access, consent_marketing, consent_version, status, joined_at, last_explicit_action_at)
             VALUES
-              ('entry-test-2', 'wl-1', 'invited@example.com', 'invited@example.com', 'web',
+              ('00000000-0000-0000-0000-000000000603', '00000000-0000-0000-0000-000000000601', 'invited@example.com', 'invited@example.com', 'web',
                true, false, '1.0', 'PENDING', NOW(), NOW())
             ON CONFLICT DO NOTHING
             """.trimIndent(),
@@ -163,16 +162,26 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
         "DELETE FROM notifications",
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM waitlist_invitations",
-        "DELETE FROM invitations WHERE source_reference_id IN ('entry-test-1', 'entry-test-2')",
+        """
+        DELETE FROM invitations WHERE source_reference_id IN (
+            '00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000603'
+        )
+        """.trimIndent(),
         "DELETE FROM invitations WHERE invited_email_normalized = 'direct-unknown-tx@example.com'",
         "DELETE FROM invitations WHERE invited_email_normalized = 'direct-new-workspace-tx@example.com'",
         "DELETE FROM invitations WHERE invited_email_normalized LIKE 'direct-live-%@example.com'",
         "DELETE FROM invitations WHERE invited_email_normalized LIKE 'direct-rollback-%@example.com'",
         "DELETE FROM invitations WHERE invited_email_normalized LIKE 'direct-failed-%@example.com'",
         "DELETE FROM platform_role_assignments",
-        "DELETE FROM waitlist_entries WHERE id IN ('entry-test-1', 'entry-test-2')",
-        "DELETE FROM waitlists WHERE id = 'wl-1'",
-        "DELETE FROM workspaces WHERE id IN ('tx-workspace-live', 'tx-workspace-resend')",
+        """
+        DELETE FROM waitlist_entries
+        WHERE id IN ('00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000603')
+        """.trimIndent(),
+        "DELETE FROM waitlists WHERE id = '00000000-0000-0000-0000-000000000601'",
+        """
+        DELETE FROM workspaces
+        WHERE id IN ('00000000-0000-0000-0000-000000000604', '00000000-0000-0000-0000-000000000605')
+        """.trimIndent(),
     ) + super.cleanupStatements()
 
     @Test
@@ -181,16 +190,19 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-1",
+                waitlistEntryId = "00000000-0000-0000-0000-000000000602",
             ),
         )
 
-        val invitation = requireNotNull(invitationRepository.findActiveByWaitlistEntryId("entry-test-1")) {
-            "Expected an active invitation for entry-test-1"
-        }
+        val invitation =
+            requireNotNull(invitationRepository.findActiveByWaitlistEntryId("00000000-0000-0000-0000-000000000602")) {
+                "Expected an active invitation for entry-test-1"
+            }
         assertEquals(WaitlistInvitationStatus.ACTIVE, invitation.status)
 
-        val entryStatus = databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = 'entry-test-1'")
+        val entryStatus = databaseClient.sql(
+            "SELECT status FROM waitlist_entries WHERE id = '00000000-0000-0000-0000-000000000602'",
+        )
             .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .one()
             .awaitSingle()
@@ -203,7 +215,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-1",
+                waitlistEntryId = "00000000-0000-0000-0000-000000000602",
             ),
         )
 
@@ -218,10 +230,10 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
 
     @Test
     fun `should reject a second active invitation at the database level`() = runTest {
-        insertActiveInvitation(entryId = "entry-test-2", tokenHash = "token-hash-1")
+        insertActiveInvitation(entryId = "00000000-0000-0000-0000-000000000603", tokenHash = "token-hash-1")
 
         val error = try {
-            insertActiveInvitation(entryId = "entry-test-2", tokenHash = "token-hash-2")
+            insertActiveInvitation(entryId = "00000000-0000-0000-0000-000000000603", tokenHash = "token-hash-2")
             null
         } catch (e: Exception) {
             e
@@ -233,7 +245,10 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
         assertTrue(mentionsIndex, "Expected unique index violation, got: ${error.message}")
 
         val activeCount = databaseClient.sql(
-            "SELECT COUNT(*) FROM waitlist_invitations WHERE waitlist_entry_id = 'entry-test-2' AND status = 'ACTIVE'",
+            """
+            SELECT COUNT(*) FROM waitlist_invitations
+            WHERE waitlist_entry_id = '00000000-0000-0000-0000-000000000603' AND status = 'ACTIVE'
+            """.trimIndent(),
         )
             .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
             .one()
@@ -251,7 +266,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             """.trimIndent(),
         )
             .bind("id", UUID.randomUUID())
-            .bind("entryId", entryId)
+            .bind("entryId", UUID.fromString(entryId))
             .bind("tokenHash", tokenHash)
             .bind("createdBy", operatorId)
             .fetch().rowsUpdated().awaitSingle()
@@ -270,7 +285,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
                     operatorRoles = operatorRoles,
                     email = email,
                     target = InvitationTarget.EXISTING_WORKSPACE,
-                    workspaceId = "workspace-missing-tx",
+                    workspaceId = "00000000-0000-0000-0000-000000000699",
                 ),
             )
         }
@@ -373,7 +388,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
         val email = "direct-live-existing@example.com"
         recordingDispatcher.reset()
         toggleablePublisher.reset()
-        seedLiveWorkspace("tx-workspace-live", "Live Workspace")
+        seedLiveWorkspace("00000000-0000-0000-0000-000000000604", "Live Workspace")
 
         val result = createDirectInvitationHandler.handle(
             CreateInvitationCommand(
@@ -381,7 +396,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
                 operatorRoles = operatorRoles,
                 email = email,
                 target = InvitationTarget.EXISTING_WORKSPACE,
-                workspaceId = "tx-workspace-live",
+                workspaceId = "00000000-0000-0000-0000-000000000604",
             ),
         )
 
@@ -398,7 +413,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
         val email = "direct-live-resend@example.com"
         recordingDispatcher.reset()
         toggleablePublisher.reset()
-        seedLiveWorkspace("tx-workspace-resend", "Resend Workspace")
+        seedLiveWorkspace("00000000-0000-0000-0000-000000000605", "Resend Workspace")
 
         val created = createDirectInvitationHandler.handle(
             CreateInvitationCommand(
@@ -406,7 +421,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
                 operatorRoles = operatorRoles,
                 email = email,
                 target = InvitationTarget.EXISTING_WORKSPACE,
-                workspaceId = "tx-workspace-resend",
+                workspaceId = "00000000-0000-0000-0000-000000000605",
             ),
         )
         awaitNotification(IdempotencyKey("invitation:${created.invitationId}:initial"))
@@ -571,7 +586,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-1",
+                waitlistEntryId = "00000000-0000-0000-0000-000000000602",
             ),
         )
 
@@ -579,15 +594,17 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             CancelWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
                 operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-1",
+                waitlistEntryId = "00000000-0000-0000-0000-000000000602",
                 reason = "spam account",
                 expectedVersion = 1,
             ),
         )
 
-        assertNull(invitationRepository.findActiveByWaitlistEntryId("entry-test-1"))
+        assertNull(invitationRepository.findActiveByWaitlistEntryId("00000000-0000-0000-0000-000000000602"))
 
-        val entryStatus = databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = 'entry-test-1'")
+        val entryStatus = databaseClient.sql(
+            "SELECT status FROM waitlist_entries WHERE id = '00000000-0000-0000-0000-000000000602'",
+        )
             .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .one()
             .awaitSingle()
@@ -601,7 +618,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             VALUES (:id, :name, 'ACTIVE', NULL) ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", id)
+            .bind("id", UUID.fromString(id))
             .bind("name", name)
             .fetch()
             .rowsUpdated()

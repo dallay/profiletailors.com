@@ -5,7 +5,7 @@ import { useQueuedCounts } from './useQueuedCounts'
 
 function makePub(overrides: Partial<Publication> = {}): Publication {
   return {
-    id: 'pub-x',
+    id: '107d4268-df5a-53e4-88bb-d6714c1e22c7',
     content: '',
     channels: ['linkedin'],
     scheduledAt: '2026-01-01T00:00:00Z',
@@ -18,11 +18,11 @@ function makePub(overrides: Partial<Publication> = {}): Publication {
 describe('useQueuedCounts', () => {
   it('counts total QUEUED publications', () => {
     const publications = ref<readonly Publication[]>([
-      makePub({ id: 'p1', status: 'QUEUED' }),
-      makePub({ id: 'p2', status: 'QUEUED' }),
-      makePub({ id: 'p3', status: 'QUEUED' }),
-      makePub({ id: 'p4', status: 'PUBLISHED' }),
-      makePub({ id: 'p5', status: 'PUBLISHED' }),
+      makePub({ id: 'cd66b912-3c45-5953-aaa7-bcee5538805c', status: 'QUEUED' }),
+      makePub({ id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248', status: 'QUEUED' }),
+      makePub({ id: 'e04b2ba2-61d3-502b-ab96-de7b7a5631b8', status: 'QUEUED' }),
+      makePub({ id: 'f0892b3d-0322-55bc-a23b-3de3c973f673', status: 'PUBLISHED' }),
+      makePub({ id: '9e5c408d-1b77-5155-9306-7ce7a2578410', status: 'PUBLISHED' }),
     ])
 
     const { total } = useQueuedCounts(publications)
@@ -31,9 +31,21 @@ describe('useQueuedCounts', () => {
 
   it('counts by provider', () => {
     const publications = ref<readonly Publication[]>([
-      makePub({ id: 'p1', status: 'QUEUED', channels: ['linkedin'] }),
-      makePub({ id: 'p2', status: 'QUEUED', channels: ['linkedin'] }),
-      makePub({ id: 'p3', status: 'QUEUED', channels: ['linkedin', 'twitter'] }),
+      makePub({
+        id: 'cd66b912-3c45-5953-aaa7-bcee5538805c',
+        status: 'QUEUED',
+        channels: ['linkedin'],
+      }),
+      makePub({
+        id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248',
+        status: 'QUEUED',
+        channels: ['linkedin'],
+      }),
+      makePub({
+        id: 'e04b2ba2-61d3-502b-ab96-de7b7a5631b8',
+        status: 'QUEUED',
+        channels: ['linkedin', 'twitter'],
+      }),
     ])
 
     const { byProvider } = useQueuedCounts(publications)
@@ -43,9 +55,21 @@ describe('useQueuedCounts', () => {
 
   it('ignores non-QUEUED publications', () => {
     const publications = ref<readonly Publication[]>([
-      makePub({ id: 'p1', status: 'PUBLISHED', channels: ['linkedin'] }),
-      makePub({ id: 'p2', status: 'DRAFT', channels: ['twitter'] }),
-      makePub({ id: 'p3', status: 'SCHEDULED', channels: ['linkedin'] }),
+      makePub({
+        id: 'cd66b912-3c45-5953-aaa7-bcee5538805c',
+        status: 'PUBLISHED',
+        channels: ['linkedin'],
+      }),
+      makePub({
+        id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248',
+        status: 'DRAFT',
+        channels: ['twitter'],
+      }),
+      makePub({
+        id: 'e04b2ba2-61d3-502b-ab96-de7b7a5631b8',
+        status: 'SCHEDULED',
+        channels: ['linkedin'],
+      }),
     ])
 
     const { total, byProvider } = useQueuedCounts(publications)
@@ -55,15 +79,17 @@ describe('useQueuedCounts', () => {
   })
 
   it('reacts to changes in the publications ref', () => {
-    const publications = ref<readonly Publication[]>([makePub({ id: 'p1', status: 'QUEUED' })])
+    const publications = ref<readonly Publication[]>([
+      makePub({ id: 'cd66b912-3c45-5953-aaa7-bcee5538805c', status: 'QUEUED' }),
+    ])
 
     const { total } = useQueuedCounts(publications)
     expect(total.value).toBe(1)
 
     publications.value = [
       ...publications.value,
-      makePub({ id: 'p2', status: 'QUEUED' }),
-      makePub({ id: 'p3', status: 'QUEUED' }),
+      makePub({ id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248', status: 'QUEUED' }),
+      makePub({ id: 'e04b2ba2-61d3-502b-ab96-de7b7a5631b8', status: 'QUEUED' }),
     ]
     expect(total.value).toBe(3)
   })

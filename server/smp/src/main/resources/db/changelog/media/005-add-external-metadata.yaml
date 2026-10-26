@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: media-005-add-external-metadata
-      author: sdd-apply
+      author: yacosta738
       changes:
         - addColumn:
             tableName: media_assets

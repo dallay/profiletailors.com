@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 internal class DataSubjectRequestTest {
 
     private val now = Instant.parse("2026-07-15T10:00:00Z")
-    private val testId = DataSubjectRequestId("dsr-123e4567-e89b-12d3-a456-426614174000")
+    private val testId = DataSubjectRequestId("123e4567-e89b-12d3-a456-426614174000")
 
     @Test
     fun `creates request with PENDING status`() {

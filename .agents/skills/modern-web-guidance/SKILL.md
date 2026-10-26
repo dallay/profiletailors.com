@@ -1,20 +1,11 @@
 ---
 name: modern-web-guidance
-description: |
-  Search tool for modern web development guidance when no specialized local skill covers the HTML, CSS, browser API, or client-side JavaScript topic. Local framework, accessibility, performance, and architecture skills take precedence.
-
-  Trigger immediately for:
-  - UI/Layout: Modals, dialogs, popovers, Glassmorphism/backdrop-filters, anchor positioning, container queries, `:has()`, `:user-valid`.
-  - Scroll/Motion: View Transitions, Scroll-driven animations, scroll parallax/reveals.
-  - Performance: CWV (LCP, INP), content-visibility, Fetch Priority, image optimization.
-  - System/APIs: Local filesystem access, WebUSB, WebSockets sync, WebAssembly widgets.
-  - Frameworks: Framework-neutral browser behavior not covered by a local framework skill.
-  - General Frontend: Forms, autofill, advanced inputs, custom scrollbars, modern component states, etc., when no local skill owns the topic.
-
-  DO NOT trigger for:
-  - Backend: Database SQL, ORMs, Express API routes.
-  - Pipelines: CI/CD deployment, Docker, Actions.
-  - Generic: Local scripts (Python/Go tools), ESLint, Git.
+description: >-
+  Search current web platform guidance for HTML, CSS, browser APIs, and client-side JavaScript
+  when no specialized local skill covers the topic. Use for dialogs, popovers, modern CSS, view
+  transitions, scroll-driven effects, autofill, browser APIs, or framework-neutral UI behavior.
+  Local framework, accessibility, performance, SEO, and architecture skills take precedence. Do
+  not use for backend, CI/CD, scripting, linting, or Git tasks.
 metadata:
   category: frontend-platform
   family: css

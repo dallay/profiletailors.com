@@ -57,7 +57,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)
-            VALUES ('profile-tailors-beta', 'profile-tailors-beta', 'Profile Tailors Beta', 'profile-tailors', 'ACTIVE')
+            VALUES ('00000000-0000-0000-0000-000000000302', 'profile-tailors-beta', 'Profile Tailors Beta', 'profile-tailors', 'ACTIVE')
             """.trimIndent(),
         )
             .fetch()

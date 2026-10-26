@@ -59,8 +59,8 @@ class R2dbcAuditHook(
             .bind("requestName", fact.requestName)
             .bind("requestPath", fact.requestPath)
             .bind("permission", fact.permission)
-            .bind("actorPrincipalId", fact.principalId)
-            .bindNullable("workspaceId", fact.workspaceId, String::class.java)
+            .bind("actorPrincipalId", UUID.fromString(fact.principalId))
+            .bindNullable("workspaceId", fact.workspaceId?.let(UUID::fromString), UUID::class.java)
             .bind("outcome", fact.decision)
             .bind("reasonCode", fact.reasonCode)
             .bind("roleKeysJson", objectMapper.writeValueAsString(fact.roleKeys))
@@ -111,8 +111,8 @@ class R2dbcAuditHook(
         )
             .bind("id", nextId())
             .bind("action", fact.action)
-            .bind("actorPrincipalId", fact.actorPrincipalId)
-            .bindNullable("workspaceId", fact.workspaceId, String::class.java)
+            .bind("actorPrincipalId", UUID.fromString(fact.actorPrincipalId))
+            .bindNullable("workspaceId", fact.workspaceId?.let(UUID::fromString), UUID::class.java)
             .bind("targetType", fact.targetType)
             .bind("targetId", fact.targetId)
             .bind("outcome", fact.outcome.name)
@@ -124,12 +124,12 @@ class R2dbcAuditHook(
             .awaitSingle()
     }
 
-    private fun nextId(): String = "audit-${UUID.randomUUID()}"
+    private fun nextId(): UUID = UUID.randomUUID()
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
         name: String,
-        value: String?,
-        type: Class<String>,
+        value: UUID?,
+        type: Class<UUID>,
     ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
         value?.let { bind(name, it) } ?: bindNull(name, type)
 }

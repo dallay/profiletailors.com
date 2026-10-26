@@ -11,8 +11,8 @@ vi.mock('vue-i18n', () => ({
 
 function makeIdea(overrides: Partial<Idea> = {}): Idea {
   return {
-    id: 'idea-1',
-    workspaceId: 'ws-1',
+    id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: 'Test title',
     notes: null,
     tags: [],
@@ -90,7 +90,9 @@ describe('IdeaCard', () => {
 
   it('shows converted badge secondary when converted', () => {
     const wrapper = mount(IdeaCard, {
-      props: { idea: makeIdea({ convertedToPublicationId: 'pub-1' }) },
+      props: {
+        idea: makeIdea({ convertedToPublicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07' }),
+      },
       global: { stubs: { Badge: { template: '<span><slot /></span>' } } },
     })
     expect(wrapper.find('[data-testid="idea-card-converted"]').exists()).toBe(true)
@@ -103,14 +105,14 @@ describe('IdeaCard', () => {
 
   it('exposes data-dnd-draggable and remains clickable', async () => {
     const wrapper = mount(IdeaCard, {
-      props: { idea: makeIdea({ id: 'idea-42' }) },
+      props: { idea: makeIdea({ id: '7859d5f2-f60e-5965-ba1f-ce3a11a702ec' }) },
       global: { stubs: { Badge: { template: '<span><slot /></span>' } } },
     })
-    const card = wrapper.find('[data-dnd-draggable="idea-42"]')
+    const card = wrapper.find('[data-dnd-draggable="7859d5f2-f60e-5965-ba1f-ce3a11a702ec"]')
     expect(card.exists()).toBe(true)
     expect(card.attributes('draggable')).toBe('true')
     await card.trigger('click')
     expect(wrapper.emitted('select')).toBeTruthy()
-    expect(wrapper.emitted('select')?.[0]).toEqual(['idea-42'])
+    expect(wrapper.emitted('select')?.[0]).toEqual(['7859d5f2-f60e-5965-ba1f-ce3a11a702ec'])
   })
 })

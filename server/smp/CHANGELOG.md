@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.5.13](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.12...smp@v0.5.13) (2026-10-23)
+
+
+### Bug Fixes
+
+* **threads:** update OAuth endpoints ([#1376](https://github.com/dallay/profiletailors.com/issues/1376)) ([05be74f](https://github.com/dallay/profiletailors.com/commit/05be74f6fbb84fb6f736628577926264ceeb687b))
+
+## [0.5.12](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.11...smp@v0.5.12) (2026-10-22)
+
+
+### Bug Fixes
+
+* **authors:** update author names in database change logs ([50addaa](https://github.com/dallay/profiletailors.com/commit/50addaa7ac5c8937f5fa4c6597c78c3f6d69ee44))
+
+## [0.5.11](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.10...smp@v0.5.11) (2026-10-21)
+
+
+### Features
+
+* **publishing:** add multichannel batch composer ([ec1ecfc](https://github.com/dallay/profiletailors.com/commit/ec1ecfc68243032f645b6b1ac3a23f5ee1c2713b))
+* **publishing:** add multichannel batch composer ([#1354](https://github.com/dallay/profiletailors.com/issues/1354)) ([083545b](https://github.com/dallay/profiletailors.com/commit/083545b685a02565460288ea1338937867616353))
+* **publishing:** credential retention slice 1 with disconnect tombstones and purge job ([#1250](https://github.com/dallay/profiletailors.com/issues/1250)) ([64886a7](https://github.com/dallay/profiletailors.com/commit/64886a7ecc93e53716d705ec4ef8f7930f68378e))
+* **publishing:** integrate provider capability registry for validation in publication handlers ([c929240](https://github.com/dallay/profiletailors.com/commit/c9292408ca9a29ea94989d7901d681a63b33dcab))
+* **publishing:** integrate provider capability registry for validation in publication handlers ([761a4f7](https://github.com/dallay/profiletailors.com/commit/761a4f7f9d17de44aeb3f10ae6637d373bab8a48))
+* **shared-web:** add privacy-safe Sentry sanitizer ([#1286](https://github.com/dallay/profiletailors.com/issues/1286)) ([5c7fef0](https://github.com/dallay/profiletailors.com/commit/5c7fef0b4de416312954de56e71a3be6176fbce2))
+* **shortlinks:** add Core V1 backend with idempotent management and safe redirect ([#1305](https://github.com/dallay/profiletailors.com/issues/1305)) ([3178a88](https://github.com/dallay/profiletailors.com/commit/3178a883c2936d04b083a9d184e81e6a921504c5))
+* **shortlinks:** workspace shortlinks with auto-replace and click metrics ([#1341](https://github.com/dallay/profiletailors.com/issues/1341)) ([6a8c847](https://github.com/dallay/profiletailors.com/commit/6a8c8477c33655f850dc91ec71c570af076c7f22))
+* Show backend build information in the admin console ([#1258](https://github.com/dallay/profiletailors.com/issues/1258)) ([b0ccdd5](https://github.com/dallay/profiletailors.com/commit/b0ccdd51a152331f669ebb0c2a5921c9ebe3d04b))
+* **threads:** update body patterns and content type for OAuth and Threads requests ([6333a9b](https://github.com/dallay/profiletailors.com/commit/6333a9b6141c43de3ecdf8728114271929e8f76e))
+
+
+### Bug Fixes
+
+* **bdd,frontend:** use distinct accounts in batch test; reset activeTabId on customize toggle ([91bb831](https://github.com/dallay/profiletailors.com/commit/91bb831252f67484567e80895e825ad26062e0a5))
+* **bdd:** remove groupId calendar step that references non-existent field ([a2e8124](https://github.com/dallay/profiletailors.com/commit/a2e812402c1790b95e2c76bb73fdd4046900d1e2))
+* **deps:** bump Jackson to patched 2.22.3 and 3.2.3 ([#1281](https://github.com/dallay/profiletailors.com/issues/1281)) ([8363b1a](https://github.com/dallay/profiletailors.com/commit/8363b1a26bb05635b8d8c0f2532e2e3e894afee6))
+* **deps:** declare patched Jackson BOMs as native platforms ([#1310](https://github.com/dallay/profiletailors.com/issues/1310)) ([699b246](https://github.com/dallay/profiletailors.com/commit/699b246bffab7a4ef14d7c0c69d6a14536a64bac))
+* **deps:** enforce patched Jackson in shared Spring convention plugins ([#1303](https://github.com/dallay/profiletailors.com/issues/1303)) ([72e52af](https://github.com/dallay/profiletailors.com/commit/72e52af3cae192e52b42c8f28ad9b4d71ce0f8d0))
+* **deps:** pin patched Jackson BOMs declaratively ([#1292](https://github.com/dallay/profiletailors.com/issues/1292)) ([123f6f6](https://github.com/dallay/profiletailors.com/commit/123f6f6d55f011cafe8bdbf474ec113cf7654db9))
+* **e2e,docs,frontend,kotlin:** address review comments from PR [#1354](https://github.com/dallay/profiletailors.com/issues/1354) ([8d1d8ac](https://github.com/dallay/profiletailors.com/commit/8d1d8ac5327ed659f3a2dd34be8a33a6fa73e1ad))
+* **publishing:** persist batch targets atomically ([4f8bae0](https://github.com/dallay/profiletailors.com/commit/4f8bae06608064629c104cc100ac7b28629b6acf))
+* **quality:** remediate SonarCloud findings ([#1267](https://github.com/dallay/profiletailors.com/issues/1267)) ([6669547](https://github.com/dallay/profiletailors.com/commit/66695476839383ff90193fc12def5f87553ae98a))
+* **tests:** drop CSRF disable in actuator test security chain ([#1295](https://github.com/dallay/profiletailors.com/issues/1295)) ([e0e5253](https://github.com/dallay/profiletailors.com/commit/e0e5253fbd4498ae2a440c32cfe19d8b0b3b70cc))
+
+
+### Refactoring
+
+* **backend:** remediate hexagonal architecture and ddd marker gaps ([#1252](https://github.com/dallay/profiletailors.com/issues/1252)) ([cb97da1](https://github.com/dallay/profiletailors.com/commit/cb97da1d77839017affbb911708eb3756fae7110))
+
 ## [0.5.10](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.9...smp@v0.5.10) (2026-09-29)
 
 

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-007-add-invitation-target
-      author: platform-admin
+      author: yacosta738
       changes:
         - sql:
             sql: >

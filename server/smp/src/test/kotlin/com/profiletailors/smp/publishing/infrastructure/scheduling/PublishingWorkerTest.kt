@@ -272,6 +272,8 @@ class PublishingWorkerTest {
         claim.shouldNotBeNull()
         publicationRepository.publishedPublicationId shouldBe "pub-1"
         jobRepository.completedJobId shouldBe "job-1"
+        val attemptId = requireNotNull(attemptRepository.lastAttempt).id
+        java.util.UUID.fromString(attemptId).toString() shouldBe attemptId
         attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.SUCCEEDED
     }
 

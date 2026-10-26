@@ -178,8 +178,8 @@ A pull request enabling a country must link evidence for every item below:
 
 - [European Commission — data protection information for organisations](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations_en)
 - [EUR-Lex — Regulation (EU) 2016/679 (GDPR)](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
-- [European Commission — Digital Services Act](https://digital-strategy.ec.europa.eu/en/policies/digital-services-act)
-- [European Commission — AI Act framework and implementation](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [EUR-Lex — Digital Services Act (Regulation (EU) 2022/2065)](https://eur-lex.europa.eu/eli/reg/2022/2065/oj)
+- [EUR-Lex — Artificial Intelligence Act (Regulation (EU) 2024/1689)](https://eur-lex.europa.eu/eli/reg/2024/1689/oj)
 - [AEPD — cookie guidance](https://www.aepd.es/guias/guia-cookies.pdf)
 - [BOE — Law 34/2002 on information-society services and electronic commerce](https://www.boe.es/buscar/act.php?id=BOE-A-2002-13758)
 
@@ -208,4 +208,4 @@ A pull request enabling a country must link evidence for every item below:
 - [Singapore PDPC — data protection obligations](https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act/data-protection-obligations)
 - [Hong Kong PCPD — cross-border data transfer guidance](https://www.pcpd.org.hk/english/resources_centre/publications/files/GN_crossborder_e.pdf)
 - [Philippines National Privacy Commission — Data Privacy Act](https://privacy.gov.ph/data-privacy-act/)
-- [Malaysia Personal Data Protection Commissioner — laws and cross-border guidance](https://www.pdp.gov.my/ppdpv1/en/akta/personal-data-protection-guidelines-on-cross-border-transfer-of-personal-data-cbpdt/)
+- [Malaysia — Personal Data Protection Act 2010 (Act 709)](https://lom.agc.gov.my/act-detail.php?act=709)

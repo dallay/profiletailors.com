@@ -68,8 +68,11 @@ async function assertInvitationFailure(page: Page, failure: InvitationFailure): 
   })
 
   await page.goto(`${APP_URL.dashboard}invitations/accept?token=${failure.token}`)
+  const acceptInvitation = page.getByRole('button', { name: /accept invitation/i })
+  await expect(acceptInvitation).toBeVisible()
+  await expect(acceptInvitation).toBeEnabled()
   refreshCalled = false
-  await page.getByRole('button', { name: /accept invitation/i }).click()
+  await acceptInvitation.click()
 
   await expect(page.getByRole('alert')).toHaveText(failure.copy)
   await expect(page).toHaveURL(new RegExp(`/invitations/accept\\?token=${failure.token}`))
@@ -105,7 +108,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
         status: 200,
         contentType: 'application/vnd.api.v1+json',
         body: JSON.stringify({
-          workspaceId: 'invitation-workspace',
+          workspaceId: 'e55f35b8-4442-59cf-9e58-7d06f86e2d25',
           membershipStatus: 'ACTIVE',
         }),
       })
@@ -119,11 +122,11 @@ test.describe('Invitee Private Beta Journey @integration', () => {
           accessToken: 'invitation-access-token',
           tokenType: 'Bearer',
           expiresIn: 3600,
-          principalId: 'invitee-principal',
+          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
           email: 'invitee@example.com',
           username: 'invitee',
           emailStatus: 'VERIFIED',
-          workspaceId: 'invitation-workspace',
+          workspaceId: 'e55f35b8-4442-59cf-9e58-7d06f86e2d25',
         }),
       })
     })
@@ -133,7 +136,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
         status: 200,
         contentType: 'application/vnd.api.v1+json',
         body: JSON.stringify({
-          principalId: 'invitee-principal',
+          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
           email: 'invitee@example.com',
           username: 'invitee',
           displayIdentity: 'invitee',
@@ -192,11 +195,11 @@ test.describe('Invitee Private Beta Journey @integration', () => {
           accessToken: 'invitation-access-token',
           tokenType: 'Bearer',
           expiresIn: 3600,
-          principalId: 'invitee-principal',
+          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
           email: 'invitee@example.com',
           username: 'invitee',
           emailStatus: 'PENDING',
-          workspaceId: 'invitation-workspace',
+          workspaceId: 'e55f35b8-4442-59cf-9e58-7d06f86e2d25',
         }),
       })
     })
@@ -206,7 +209,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
         status: 200,
         contentType: 'application/vnd.api.v1+json',
         body: JSON.stringify({
-          principalId: 'invitee-principal',
+          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
           email: 'invitee@example.com',
           username: 'invitee',
           displayIdentity: 'invitee',
@@ -259,11 +262,11 @@ test.describe('Invitee Private Beta Journey @integration', () => {
 
     await mockRegisterSuccess(page, {
       accessToken: 'invitee-schedule-token',
-      principalId: 'invitee-schedule-user',
+      principalId: '0e3f9c21-e278-5a6a-accd-7c21f42da6db',
       email: 'invitee-schedule@example.com',
       username: 'invitee-schedule',
       emailStatus: 'PENDING',
-      workspaceId: 'workspace-001',
+      workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     })
 
     await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-schedule`)
@@ -475,7 +478,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
         status: 200,
         contentType: 'application/vnd.api.v1+json',
         body: JSON.stringify({
-          workspaceId: 'invitation-workspace',
+          workspaceId: 'e55f35b8-4442-59cf-9e58-7d06f86e2d25',
           membershipStatus: 'ACTIVE',
         }),
       })

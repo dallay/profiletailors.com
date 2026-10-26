@@ -29,8 +29,8 @@ describe('SchedulerFiltersSheet', () => {
     setActivePinia(createPinia())
     usePublishingStore().channels = [
       {
-        id: 'acc-1',
-        accountId: 'acc-1',
+        id: '788c8103-35f1-5899-b15a-6ca994253c99',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         name: 'LinkedIn',
         provider: 'linkedin',
         avatar: '',
@@ -46,7 +46,7 @@ describe('SchedulerFiltersSheet', () => {
         open: true,
         status: 'queued',
         timezone: 'Europe/Madrid',
-        channelIds: ['acc-1'],
+        channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'],
         q: '',
         filtersCount: 3,
       },
@@ -69,7 +69,7 @@ describe('SchedulerFiltersSheet', () => {
         open: true,
         status: 'queued',
         timezone: 'Europe/Madrid',
-        channelIds: ['acc-1'],
+        channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'],
         q: '',
         filtersCount: 3,
       },
@@ -84,7 +84,7 @@ describe('SchedulerFiltersSheet', () => {
     expect(wrapper.emitted('change:filter')?.[0]?.[0]).toEqual({
       status: 'queued',
       timezone: 'Europe/Madrid',
-      channelIds: ['acc-1'],
+      channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'],
       q: '',
     })
     expect(wrapper.emitted('update:open')).toEqual([[false]])

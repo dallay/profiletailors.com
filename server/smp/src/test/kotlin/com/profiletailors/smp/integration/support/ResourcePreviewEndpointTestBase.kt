@@ -28,12 +28,12 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
 
     companion object {
         const val API_V1_MEDIA_TYPE = "application/vnd.api.v1+json"
-        const val PRINCIPAL_ID = "principal-1"
-        const val WORKSPACE_ID = "workspace-1"
-        const val RESOURCE_ID = "resource-1"
+        const val PRINCIPAL_ID = "f4b0c946-5bac-5e21-a5af-5213b71804cc"
+        const val WORKSPACE_ID = "d3d9800f-120a-501e-ad01-401e54e8f766"
+        const val RESOURCE_ID = "00000000-0000-0000-0000-000000000701"
         const val BEARER_TOKEN = "Bearer valid-token"
         const val WORKSPACE_HEADER = "X-Workspace-Id"
-        const val RESOURCE_PREVIEW_PATH = "/api/authorization/resources/resource-1/preview"
+        const val RESOURCE_PREVIEW_PATH = "/api/authorization/resources/$RESOURCE_ID/preview"
         const val GET_RESOURCE_PREVIEW_QUERY =
             "com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery"
         const val PERMISSION_RESOURCE_READ = "workspace:resource:read"
@@ -64,7 +64,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     @Test
     fun `denies resource preview when scope excludes target`() {
         seedMemberWithPreviewPermission()
-        seedTargetScope(allowedTargetIdsJson = "[\"resource-2\"]")
+        seedTargetScope(allowedTargetIdsJson = "[\"00000000-0000-0000-0000-000000000702\"]")
 
         expectPreviewDenied("You do not have permission to perform this action.")
         assertAuthorizationFacts(listOf(expectedFact(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, allow = false)))
@@ -141,7 +141,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         kotlinx.coroutines.runBlocking {
             seedPrincipalAndMembership()
             seedRolePermission(
-                permissionId = "permission-resource-read",
+                permissionId = "00000000-0000-0000-0000-000000000703",
                 permissionKey = PERMISSION_RESOURCE_READ,
             )
         }
@@ -151,7 +151,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         kotlinx.coroutines.runBlocking {
             seedPrincipalAndMembership()
             seedRolePermission(
-                permissionId = "permission-members-manage",
+                permissionId = "00000000-0000-0000-0000-000000000704",
                 permissionKey = "workspace:members:manage",
             )
         }
@@ -179,14 +179,20 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('c88a1fae-af37-5aa1-b2d4-717e9e8b478c', 'member', 'WORKSPACE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')",
+            """
+            INSERT INTO membership_roles (membership_id, role_id)
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'c88a1fae-af37-5aa1-b2d4-717e9e8b478c')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -198,8 +204,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     id, workspace_id, principal_id, principal_type, permission_id,
                     target_resource_type, allowed_target_ids_json
                 ) VALUES (
-                    'scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
-                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                    '00000000-0000-0000-0000-000000000705', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
+                    '00000000-0000-0000-0000-000000000703', 'RESOURCE', :allowedTargetIdsJson
                 )
                 """.trimIndent(),
             )
@@ -215,7 +221,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             databaseClient.sql(
                 """
                 INSERT INTO permissions (id, permission_key)
-                VALUES ('permission-resource-read', '$PERMISSION_RESOURCE_READ')
+                VALUES ('00000000-0000-0000-0000-000000000703', '$PERMISSION_RESOURCE_READ')
                 """.trimIndent(),
             )
                 .fetch()

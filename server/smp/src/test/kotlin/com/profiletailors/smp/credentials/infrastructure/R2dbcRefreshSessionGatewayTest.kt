@@ -19,6 +19,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -41,11 +42,16 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     fun `creates and resolves active refresh session`() = runTest {
         seedPrincipal()
         val token = RefreshSessionToken("lookup-1", "secret-value")
-        gateway.create("user-1", token, Instant.parse("2026-05-30T10:15:30Z"))
+        val created = gateway.create(
+            "00000000-0000-0000-0000-000000000001",
+            token,
+            Instant.parse("2026-05-30T10:15:30Z"),
+        )
+        UUID.fromString(created.id)
 
         val active = gateway.requireActive(token, Instant.parse("2026-05-22T10:15:30Z"))
 
-        assertEquals("user-1", active.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000001", active.principalId)
         assertEquals("lookup-1", active.lookupKey)
     }
 
@@ -53,7 +59,7 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     fun `rotates refresh session and denies predecessor afterwards`() = runTest {
         seedPrincipal()
         val original = gateway.create(
-            "user-1",
+            "00000000-0000-0000-0000-000000000001",
             RefreshSessionToken("lookup-1", "secret-value"),
             Instant.parse("2026-05-30T10:15:30Z"),
         )
@@ -88,26 +94,29 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-2', 'USER', 'local:user2@example.com', NULL, 'user2')
+            VALUES ('00000000-0000-0000-0000-000000000002', 'USER', 'local:user2@example.com', NULL, 'user2')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         gateway.create(
-            "user-1",
+            "00000000-0000-0000-0000-000000000001",
             RefreshSessionToken("lookup-1", "secret-value"),
             Instant.parse("2026-05-30T10:15:30Z"),
         )
         gateway.create(
-            "user-1",
+            "00000000-0000-0000-0000-000000000001",
             RefreshSessionToken("lookup-2", "secret-value-2"),
             Instant.parse("2026-05-30T10:15:30Z"),
         )
         gateway.create(
-            "user-2",
+            "00000000-0000-0000-0000-000000000002",
             RefreshSessionToken("lookup-3", "secret-value-3"),
             Instant.parse("2026-05-30T10:15:30Z"),
         )
 
-        val revoked = gateway.revokeAllForPrincipal("user-1", Instant.parse("2026-05-22T10:20:30Z"))
+        val revoked = gateway.revokeAllForPrincipal(
+            "00000000-0000-0000-0000-000000000001",
+            Instant.parse("2026-05-22T10:20:30Z"),
+        )
 
         assertEquals(2, revoked)
         val first = assertThrows(RefreshSessionNotActiveException::class.java) {
@@ -138,7 +147,7 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
     fun `revokes refresh session`() = runTest {
         seedPrincipal()
         val created = gateway.create(
-            "user-1",
+            "00000000-0000-0000-0000-000000000001",
             RefreshSessionToken("lookup-1", "secret-value"),
             Instant.parse("2026-05-30T10:15:30Z"),
         )
@@ -178,14 +187,14 @@ class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
             override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
         }
 
-        assertEquals(0, minimal.revokeAllForPrincipal("user-1", Instant.now()))
+        assertEquals(0, minimal.revokeAllForPrincipal("00000000-0000-0000-0000-000000000001", Instant.now()))
     }
 
     private suspend fun seedPrincipal() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-1', 'USER', 'local:user@example.com', NULL, 'user')
+            VALUES ('00000000-0000-0000-0000-000000000001', 'USER', 'local:user@example.com', NULL, 'user')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

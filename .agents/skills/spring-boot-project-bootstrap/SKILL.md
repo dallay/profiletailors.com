@@ -7,6 +7,7 @@ metadata:
   family: spring-boot
   source: local
   version: 2026-09-30
+  opencode/autoinvoke: "false"
 ---
 
 # Spring Boot Project Bootstrap

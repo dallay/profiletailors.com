@@ -96,8 +96,8 @@ const { ideasStore, workspaceStore, dnd, toast } = vi.hoisted(() => {
     ],
     ideas: [
       {
-        id: 'idea-1',
-        workspaceId: 'workspace-1',
+        id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
         title: 'Test idea',
         notes: null,
         tags: [],
@@ -112,8 +112,8 @@ const { ideasStore, workspaceStore, dnd, toast } = vi.hoisted(() => {
     ideasByColumn: {
       raw: [
         {
-          id: 'idea-1',
-          workspaceId: 'workspace-1',
+          id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
           title: 'Test idea',
           notes: null,
           tags: [],
@@ -139,7 +139,7 @@ const { ideasStore, workspaceStore, dnd, toast } = vi.hoisted(() => {
     convertIdea: vi.fn(),
     updateColumns: vi.fn(),
     createLocalColumn: vi.fn((name: string, color: string | null) => ({
-      id: 'new-column',
+      id: '12ad815c-8dbe-5240-89d1-60dbbd0d6d79',
       name,
       color,
       order: 2,
@@ -150,7 +150,7 @@ const { ideasStore, workspaceStore, dnd, toast } = vi.hoisted(() => {
   return {
     ideasStore,
     workspaceStore: {
-      activeWorkspaceId: 'workspace-1' as string | null,
+      activeWorkspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2' as string | null,
     },
     dnd: {
       monitorOptions,
@@ -260,7 +260,7 @@ function mountIdeasView() {
 function makeTestIdea(id: string, columnId: string, orderInColumn: number): Idea {
   return {
     id,
-    workspaceId: 'workspace-1',
+    workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
     title: id,
     notes: null,
     tags: [],
@@ -314,7 +314,7 @@ describe('IdeasView accessibility', () => {
     ideasStore.createLocalColumn
       .mockReset()
       .mockImplementation((name: string, color: string | null) => ({
-        id: 'new-column',
+        id: '12ad815c-8dbe-5240-89d1-60dbbd0d6d79',
         name,
         color,
         order: 2,
@@ -329,8 +329,8 @@ describe('IdeasView accessibility', () => {
     ]
     ideasStore.ideas = [
       {
-        id: 'idea-1',
-        workspaceId: 'workspace-1',
+        id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
         title: 'Test idea',
         notes: null,
         tags: [],
@@ -346,7 +346,7 @@ describe('IdeasView accessibility', () => {
       raw: [...ideasStore.ideas],
       done: [],
     }
-    workspaceStore.activeWorkspaceId = 'workspace-1'
+    workspaceStore.activeWorkspaceId = 'a219727d-019f-544c-95f9-ac30f00cc8b2'
     dnd.monitorOptions.length = 0
     dnd.draggableOptions.length = 0
     dnd.dropTargetOptions.length = 0
@@ -365,7 +365,9 @@ describe('IdeasView accessibility', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Unable to load ideas board.')
-    expect(wrapper.find('[data-dnd-draggable="idea-1"]').exists()).toBe(false)
+    expect(
+      wrapper.find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]').exists(),
+    ).toBe(false)
   })
 
   it('shows the workspace guard and clears local state without loading the board', async () => {
@@ -386,7 +388,9 @@ describe('IdeasView accessibility', () => {
     const wrapper = mountIdeasView()
 
     expect(wrapper.find('[data-testid="idea-board-skeleton"]').exists()).toBe(true)
-    expect(wrapper.find('[data-dnd-draggable="idea-1"]').exists()).toBe(false)
+    expect(
+      wrapper.find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]').exists(),
+    ).toBe(false)
   })
 
   it('renders empty-column guidance when a board column has no ideas', () => {
@@ -433,7 +437,9 @@ describe('IdeasView accessibility', () => {
   it('associates board settings inputs and selects with stable labels', async () => {
     const wrapper = mountIdeasView()
 
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
     await nextTick()
     await wrapper
       .findAll('button')
@@ -468,7 +474,9 @@ describe('IdeasView accessibility', () => {
     const wrapper = mountIdeasView()
     const laneAdd = wrapper.find('[data-testid="idea-lane-add"]')
     expect(laneAdd.exists()).toBe(true)
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
     await nextTick()
     const laneAdds = wrapper.findAll('[data-testid="idea-lane-add"]')
     const doneAdd =
@@ -488,11 +496,13 @@ describe('IdeasView accessibility', () => {
 
   it('opens composer in edit mode populated from card click', async () => {
     const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
     await nextTick()
     const composer = wrapper.find('[data-testid="idea-composer-modal"]')
     expect(composer.attributes('data-open')).toBe('true')
-    expect(composer.attributes('data-idea')).toBe('idea-1')
+    expect(composer.attributes('data-idea')).toBe('0ca69867-76ef-5e75-a8c3-3933fb8faec4')
   })
 
   it('edits, adds, reorders, removes, and saves board columns', async () => {
@@ -514,7 +524,9 @@ describe('IdeasView accessibility', () => {
       ?.trigger('click')
 
     expect(ideasStore.createLocalColumn).toHaveBeenCalledWith('Review', '#3b82f6')
-    expect(wrapper.find('#idea-column-name-new-column').exists()).toBe(true)
+    expect(wrapper.find('#idea-column-name-12ad815c-8dbe-5240-89d1-60dbbd0d6d79').exists()).toBe(
+      true,
+    )
 
     const rawRow = wrapper.find('#idea-column-name-raw').element.parentElement
     expect(rawRow).toBeTruthy()
@@ -531,7 +543,8 @@ describe('IdeasView accessibility', () => {
       'idea-column-name-raw',
     )
 
-    const newColumnRow = wrapper.find('#idea-column-name-new-column').element.parentElement
+    const newColumnRow = wrapper.find('#idea-column-name-12ad815c-8dbe-5240-89d1-60dbbd0d6d79')
+      .element.parentElement
     expect(newColumnRow).toBeTruthy()
     await newColumnRow!.querySelectorAll('button')[2]!.dispatchEvent(new Event('click'))
     await nextTick()
@@ -578,9 +591,9 @@ describe('IdeasView accessibility', () => {
   })
 
   it('registers drag sources and moves ideas across columns or within a column', async () => {
-    const first = makeTestIdea('idea-1', 'raw', 0)
-    const second = makeTestIdea('idea-2', 'raw', 1)
-    const third = makeTestIdea('idea-3', 'done', 0)
+    const first = makeTestIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeTestIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)
+    const third = makeTestIdea('bf9a7a58-45dc-58b1-b7ad-f24cdf84a0a8', 'done', 0)
     ideasStore.ideas = [first, second, third]
     ideasStore.ideasByColumn = { raw: [first, second], done: [third] }
     ideasStore.moveIdea.mockResolvedValue(undefined)
@@ -589,14 +602,19 @@ describe('IdeasView accessibility', () => {
     await flushPromises()
     const monitor = latestMonitorOptions()
 
-    monitor.onDragStart({ source: { data: { ideaId: 'idea-2' } } })
+    monitor.onDragStart({ source: { data: { ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' } } })
     await nextTick()
-    expect(wrapper.find('[data-dnd-draggable="idea-2"]').classes()).toContain('opacity-50')
+    expect(
+      wrapper.find('[data-dnd-draggable="a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1"]').classes(),
+    ).toContain('opacity-50')
 
     const draggable = dnd.draggableOptions
       .map((options) => options as { getInitialData: () => Record<string, unknown> })
-      .find((options) => options.getInitialData().ideaId === 'idea-2')
-    expect(draggable?.getInitialData()).toEqual({ ideaId: 'idea-2', columnId: 'raw' })
+      .find((options) => options.getInitialData().ideaId === 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1')
+    expect(draggable?.getInitialData()).toEqual({
+      ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1',
+      columnId: 'raw',
+    })
 
     const doneColumn = dnd.dropTargetOptions
       .map((options) => options as { getData: () => Record<string, unknown> })
@@ -607,19 +625,27 @@ describe('IdeasView accessibility', () => {
 
     await monitor.onDrop(
       dropEvent(
-        { ideaId: 'idea-2' },
-        [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } }],
+        { ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' },
+        [
+          {
+            data: { kind: 'card', columnId: 'raw', ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' },
+          },
+        ],
         -1,
       ),
     )
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: doneColumn!.getData() }]))
+    await monitor.onDrop(
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: doneColumn!.getData() },
+      ]),
+    )
     await flushPromises()
 
-    expect(ideasStore.moveIdea).toHaveBeenNthCalledWith(1, 'idea-2', {
+    expect(ideasStore.moveIdea).toHaveBeenNthCalledWith(1, 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', {
       columnId: 'raw',
       orderInColumn: 0,
     })
-    expect(ideasStore.moveIdea).toHaveBeenNthCalledWith(2, 'idea-1', {
+    expect(ideasStore.moveIdea).toHaveBeenNthCalledWith(2, '0ca69867-76ef-5e75-a8c3-3933fb8faec4', {
       columnId: 'done',
       orderInColumn: 1,
     })
@@ -631,8 +657,8 @@ describe('IdeasView accessibility', () => {
   })
 
   it('ignores invalid, missing, and no-op drag/drop events', async () => {
-    const first = makeTestIdea('idea-1', 'raw', 0)
-    const second = makeTestIdea('idea-2', 'raw', 1)
+    const first = makeTestIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeTestIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)
     ideasStore.ideas = [first, second]
     ideasStore.ideasByColumn = { raw: [first, second], done: [] }
     ideasStore.moveIdea.mockResolvedValue(undefined)
@@ -645,13 +671,15 @@ describe('IdeasView accessibility', () => {
     await monitor.onDrop(
       dropEvent({ ideaId: 'missing' }, [{ data: { kind: 'column', columnId: 'raw' } }]),
     )
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, []))
+    await monitor.onDrop(dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, []))
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'unsupported', columnId: 'raw' } }]),
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'unsupported', columnId: 'raw' } },
+      ]),
     )
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [
-        { data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } },
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'card', columnId: 'raw', ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' } },
       ]),
     )
 
@@ -661,7 +689,9 @@ describe('IdeasView accessibility', () => {
 
   it('handoff opens publishing composer with prefill via composition root', async () => {
     const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
     await nextTick()
     const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as {
       exists: () => boolean
@@ -669,7 +699,7 @@ describe('IdeasView accessibility', () => {
     }
     expect(composer.exists()).toBe(true)
     await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', {
-      ideaId: 'idea-1',
+      ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
       prefill: 'Title\n\nNotes\n\n#vue',
     })
     await nextTick()
@@ -680,13 +710,16 @@ describe('IdeasView accessibility', () => {
   })
 
   it('associate keeps idea in same column after publishing success', async () => {
-    ideasStore.ideas = [makeTestIdea('idea-1', 'raw', 0)]
+    ideasStore.ideas = [makeTestIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)]
     ideasStore.ideasByColumn = { raw: [...ideasStore.ideas], done: [] }
-    ideasStore.updateIdea = vi
-      .fn()
-      .mockResolvedValue({ ...makeTestIdea('idea-1', 'raw', 0), convertedToPublicationId: 'pub-9' })
+    ideasStore.updateIdea = vi.fn().mockResolvedValue({
+      ...makeTestIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0),
+      convertedToPublicationId: '5907d0e4-0390-51bb-8711-85387d7562f0',
+    })
     const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
     await nextTick()
     const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as {
       exists: () => boolean
@@ -694,7 +727,7 @@ describe('IdeasView accessibility', () => {
     }
     expect(composer.exists()).toBe(true)
     await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', {
-      ideaId: 'idea-1',
+      ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
       prefill: 'prefill',
     })
     await nextTick()
@@ -705,12 +738,12 @@ describe('IdeasView accessibility', () => {
     expect(publishing.exists()).toBe(true)
     await (publishing.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit(
       'created',
-      { publicationId: 'pub-9' },
+      { publicationId: '5907d0e4-0390-51bb-8711-85387d7562f0' },
     )
     await flushPromises()
     expect(ideasStore.updateIdea).toHaveBeenCalledWith(
-      'idea-1',
-      expect.objectContaining({ convertedToPublicationId: 'pub-9' }),
+      '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+      expect.objectContaining({ convertedToPublicationId: '5907d0e4-0390-51bb-8711-85387d7562f0' }),
     )
   })
 })

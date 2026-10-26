@@ -1,6 +1,8 @@
 package com.profiletailors.smp.publishing.integration
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.integration.support.PostgresDatabaseCleanup
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.integration.support.countPublicationJobs
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
@@ -11,6 +13,7 @@ import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
@@ -42,9 +45,15 @@ import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
+import liquibase.Contexts
+import liquibase.LabelExpression
+import liquibase.Liquibase
+import liquibase.database.DatabaseFactory
+import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -60,10 +69,12 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.sql.DriverManager
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.UUID
 
 /**
  * PostgreSQL integration tests proving that PublishingJobExecutor worker methods execute
@@ -77,7 +88,7 @@ import java.time.ZoneOffset
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
-        "spring.liquibase.enabled=true",
+        "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
     ],
 )
@@ -148,7 +159,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         val initialClaim = seedPublicationAndJob("pub-stale-recovery")
         deliveryAttemptRepository.record(
             DeliveryAttempt(
-                id = "attempt-stale-recovery",
+                id = UUID.randomUUID().toString(),
                 publicationId = initialClaim.publicationId,
                 publicationJobId = initialClaim.jobId,
                 attemptNumber = initialClaim.attemptNumber,
@@ -237,7 +248,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         val claim = seedPublicationAndJob("pub-requeue-attempts", status = PublicationStatus.BLOCKED)
         deliveryAttemptRepository.record(
             DeliveryAttempt(
-                id = "attempt-requeue-blocked",
+                id = UUID.randomUUID().toString(),
                 publicationId = claim.publicationId,
                 publicationJobId = claim.jobId,
                 attemptNumber = 1,
@@ -259,7 +270,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
         assertPublication("pub-requeue-attempts", PublicationStatus.QUEUED)
         assertNoDeliveryAttempt("pub-requeue-attempts")
-        assertEquals(1L, databaseClient.countPublicationJobs("pub-requeue-attempts"))
+        assertEquals(1L, databaseClient.countPublicationJobs(publicationId("pub-requeue-attempts").toString()))
     }
 
     @Test
@@ -279,6 +290,30 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
         // Rollback should keep publication BLOCKED, not QUEUED
         assertPublication("pub-requeue-rollback", PublicationStatus.BLOCKED)
+    }
+
+    @Test
+    fun `notification event repository generates canonical UUID when ID is empty`() = runTest {
+        val event = NotificationEvent(
+            id = "",
+            workspaceId = "00000000-0000-0000-0000-000000000001",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "00000000-0000-0000-0000-000000000002",
+            publicationId = null,
+            category = NotificationCategory.PUBLICATION_FAILED,
+            message = "Failed",
+            occurredAt = fixedClock.instant(),
+        )
+
+        val recorded = notificationEventRepository.record(event)
+
+        assertTrue(isCanonicalUuid(recorded.id))
+        val persistedId = databaseClient.sql("SELECT id FROM notification_events WHERE id = :id")
+            .bind("id", UUID.fromString(recorded.id))
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+        assertEquals(UUID.fromString(recorded.id), persistedId?.get("id"))
     }
 
     // ===== notification event rollback tests =====
@@ -400,11 +435,11 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         attemptNumber: Int = 1,
     ): PublicationJobClaim {
         val draft = PublicationDraft(
-            id = publicationId,
-            workspaceId = "workspace-1",
-            authorPrincipalId = "principal-1",
+            id = publicationId(publicationId).toString(),
+            workspaceId = "00000000-0000-0000-0000-000000000001",
+            authorPrincipalId = "00000000-0000-0000-0000-000000000003",
             provider = SocialProvider.LINKEDIN,
-            socialAccountId = "account-1",
+            socialAccountId = "00000000-0000-0000-0000-000000000002",
             status = status,
             scheduleMode = ScheduleMode.NOW,
             priority = false,
@@ -416,12 +451,12 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         )
         publicationRepository.createDraft(draft)
 
-        val jobId = "job-$publicationId"
+        val jobId = UUID.randomUUID().toString()
         jobRepository.enqueue(
             com.profiletailors.smp.publishing.domain.PublicationJob(
                 id = jobId,
-                publicationId = publicationId,
-                workspaceId = "workspace-1",
+                publicationId = publicationId(publicationId).toString(),
+                workspaceId = "00000000-0000-0000-0000-000000000001",
                 status = JobStatus.PENDING,
                 dueAt = fixedClock.instant(),
                 priorityRank = 0,
@@ -441,7 +476,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private suspend fun assertPublication(publicationId: String, expectedStatus: PublicationStatus) {
         val row = databaseClient.sql("SELECT status FROM publications WHERE id = :id")
-            .bind("id", publicationId)
+            .bind("id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
@@ -450,7 +485,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private suspend fun assertNoDeliveryAttempt(publicationId: String) {
         val row = databaseClient.sql("SELECT id FROM delivery_attempts WHERE publication_id = :pub_id")
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
@@ -461,7 +496,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         val row = databaseClient.sql(
             "SELECT id FROM delivery_attempts WHERE publication_id = :pub_id AND outcome = :outcome",
         )
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .bind("outcome", outcome)
             .fetch()
             .one()
@@ -473,7 +508,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         val row = databaseClient.sql(
             "SELECT id FROM delivery_attempts WHERE publication_id = :pub_id AND outcome = :outcome",
         )
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .bind("outcome", outcome)
             .fetch()
             .one()
@@ -481,11 +516,14 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         assertEquals(true, row != null, "Delivery attempt with outcome $outcome should exist")
     }
 
+    private fun isCanonicalUuid(value: String): Boolean =
+        runCatching { java.util.UUID.fromString(value).toString() == value }.getOrDefault(false)
+
     private suspend fun assertNoNotificationEvent(publicationId: String) {
         val row = databaseClient.sql(
             "SELECT id FROM notification_events WHERE publication_id = :pub_id",
         )
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
@@ -494,7 +532,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private suspend fun assertJobClaimed(publicationId: String) {
         val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
@@ -503,7 +541,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private suspend fun assertJobFailed(publicationId: String) {
         val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
@@ -512,38 +550,25 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private suspend fun assertJobBlocked(publicationId: String) {
         val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
-            .bind("pub_id", publicationId)
+            .bind("pub_id", publicationId(publicationId))
             .fetch()
             .one()
             .awaitSingleOrNull()
         assertEquals("BLOCKED", row?.get("status"), "Job should be BLOCKED")
     }
 
+    private fun publicationId(key: String): UUID = UUID.nameUUIDFromBytes(key.toByteArray(Charsets.UTF_8))
+
     private suspend fun cleanupTestData() {
-        databaseClient.sql(
-            "DELETE FROM notification_events WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM delivery_attempts WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM publication_jobs WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM publication_assets WHERE id LIKE 'asset-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM publications WHERE id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM social_accounts WHERE id = 'account-1'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM social_connections WHERE id = 'connection-1'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM workspaces WHERE id = 'workspace-1'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM principals WHERE id = 'principal-1'").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM notification_events").fetch().rowsUpdated().awaitSingle()
+        PostgresDatabaseCleanup.clean(databaseClient)
     }
 
     private suspend fun seedPrincipalWorkspaceAndAccount() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:test@example.com', NULL, 'principal-1')
+            VALUES ('00000000-0000-0000-0000-000000000003', 'USER', 'local:test@example.com', NULL, 'principal-1')
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -551,7 +576,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Test Workspace', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'Test Workspace', 'ACTIVE', NULL)
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -559,7 +584,10 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         databaseClient.sql(
             """
             INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            VALUES (
+                '00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001',
+                'LINKEDIN', 'linkedin-connection-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -567,16 +595,20 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         databaseClient.sql(
             """
             INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('account-1', 'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Test Account', 'ACTIVE')
+            VALUES (
+                '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000004',
+                '00000000-0000-0000-0000-000000000001', 'LINKEDIN', 'linkedin-account-1',
+                'PERSONAL_PROFILE', 'Test Account', 'ACTIVE'
+            )
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
     private fun testAccount() = SocialAccount(
-        id = "account-1",
-        socialConnectionId = "connection-1",
-        workspaceId = "workspace-1",
+        id = "00000000-0000-0000-0000-000000000002",
+        socialConnectionId = "00000000-0000-0000-0000-000000000004",
+        workspaceId = "00000000-0000-0000-0000-000000000001",
         provider = SocialProvider.LINKEDIN,
         providerAccountId = "linkedin-account-1",
         kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -696,10 +728,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     companion object {
         @Container
         @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("publishing_worker_postgres")
-            .withUsername("profiletailors")
-            .withPassword("profiletailors")
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer("publishing_worker_postgres")
 
         @JvmStatic
         @DynamicPropertySource
@@ -719,6 +748,18 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             registry.add("spring.liquibase.url", postgres::getJdbcUrl)
             registry.add("spring.liquibase.user", postgres::getUsername)
             registry.add("spring.liquibase.password", postgres::getPassword)
+            DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+                }
+                val database = DatabaseFactory.getInstance()
+                    .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
+                Liquibase(
+                    "db/changelog/db.changelog-master.yaml",
+                    ClassLoaderResourceAccessor(),
+                    database,
+                ).update(Contexts("uuid-native-identifiers"), LabelExpression())
+            }
         }
     }
 }

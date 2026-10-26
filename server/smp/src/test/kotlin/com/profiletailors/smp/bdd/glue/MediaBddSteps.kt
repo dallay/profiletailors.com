@@ -48,9 +48,12 @@ class MediaBddSteps {
 
     @Given("a media asset exists in another workspace")
     fun givenForeignMediaAssetExists() = runBlocking {
-        bddDatabaseSupport.seedWorkspace("workspace-2")
-        bddDatabaseSupport.seedMediaAsset(assetId = "asset-foreign-1", workspaceId = "workspace-2")
-        latestAssetId = "asset-foreign-1"
+        bddDatabaseSupport.seedWorkspace("10000000-0000-4000-8000-000000000002")
+        bddDatabaseSupport.seedMediaAsset(
+            assetId = "f4a3a287-d9ee-566d-8a18-c7ea47bd211c",
+            workspaceId = "10000000-0000-4000-8000-000000000002",
+        )
+        latestAssetId = "f4a3a287-d9ee-566d-8a18-c7ea47bd211c"
     }
 
     // ---------------------------------------------------------------------------
@@ -86,7 +89,7 @@ class MediaBddSteps {
             .uri("${bddDatabaseSupport.mediaAssetsPath()}/$assetId")
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, "workspace-2")
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, "10000000-0000-4000-8000-000000000002")
             .exchange()
             .expectBody()
             .returnResult()
@@ -99,7 +102,7 @@ class MediaBddSteps {
             .uri("${bddDatabaseSupport.mediaAssetsPath()}/$assetId")
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, "workspace-2")
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, "10000000-0000-4000-8000-000000000002")
             .exchange()
             .expectBody()
             .returnResult()

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-006-create-takedown-reports
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: takedown_reports

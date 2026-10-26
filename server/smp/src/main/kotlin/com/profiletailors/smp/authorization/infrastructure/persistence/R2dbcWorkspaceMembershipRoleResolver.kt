@@ -8,6 +8,7 @@ import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolv
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcWorkspaceMembershipRoleResolver(private val databaseClient: DatabaseClient) :
@@ -27,7 +28,7 @@ class R2dbcWorkspaceMembershipRoleResolver(private val databaseClient: DatabaseC
             ORDER BY r.role_key, p.permission_key
             """.trimIndent(),
         )
-            .bind("membershipId", membership.id)
+            .bind("membershipId", UUID.fromString(membership.id))
             .fetch()
             .all()
             .collectList()

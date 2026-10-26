@@ -67,7 +67,7 @@ describe('contentPipeline store', () => {
       const store = useContentPipelineStore()
       const initialCount = store.columns[0]?.cards.length ?? 0
       store.addCard('ideas', {
-        id: 'new-card',
+        id: '41ad434a-c3ce-57df-a85e-dac905b7e402',
         title: 'New idea',
         content: 'Test content',
         platform: 'twitter',
@@ -75,7 +75,7 @@ describe('contentPipeline store', () => {
         tags: ['test'],
       })
       expect(store.columns[0]?.cards.length).toBe(initialCount + 1)
-      expect(store.columns[0]?.cards.at(-1)?.id).toBe('new-card')
+      expect(store.columns[0]?.cards.at(-1)?.id).toBe('41ad434a-c3ce-57df-a85e-dac905b7e402')
     })
   })
 

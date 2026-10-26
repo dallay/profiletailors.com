@@ -26,6 +26,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.util.UUID
 import java.util.function.BiFunction
 
 class R2dbcRecurringScheduleRepositoryTest {
@@ -35,13 +36,13 @@ class R2dbcRecurringScheduleRepositoryTest {
     private val fixedInstant = Instant.parse("2026-01-01T12:00:00Z")
 
     private fun sampleSchedule(
-        id: String = "sched-1",
-        workspaceId: String = "ws-1",
-        templatePostId: String = "tmpl-1",
+        id: String = SCHEDULE_ID,
+        workspaceId: String = WORKSPACE_ID,
+        templatePostId: String = TEMPLATE_ID,
     ) = RecurringSchedule(
         id = id,
         workspaceId = workspaceId,
-        createdBy = "user-1",
+        createdBy = PRINCIPAL_ID,
         templatePostId = templatePostId,
         recurrenceRule = RecurrenceRule(
             frequency = RecurrenceFrequency.WEEKLY,
@@ -67,15 +68,15 @@ class R2dbcRecurringScheduleRepositoryTest {
         val result = repository.create(schedule)
 
         assertEquals(schedule.id, result.id)
-        verify { spec.bind("id", "sched-1") }
-        verify { spec.bind("workspaceId", "ws-1") }
+        verify { spec.bind("id", UUID.fromString(SCHEDULE_ID)) }
+        verify { spec.bind("workspaceId", UUID.fromString(WORKSPACE_ID)) }
         verify { spec.bind("frequency", "WEEKLY") }
         verify { spec.bind("interval", 1) }
         verify { spec.bind("daysOfWeek", "1,3,5") }
         verify { spec.bind("timezone", "UTC") }
         verify { spec.bind("status", "ACTIVE") }
-        verify { spec.bind("createdBy", "user-1") }
-        verify { spec.bind("templatePostId", "tmpl-1") }
+        verify { spec.bind("createdBy", UUID.fromString(PRINCIPAL_ID)) }
+        verify { spec.bind("templatePostId", UUID.fromString(TEMPLATE_ID)) }
     }
 
     @Test
@@ -87,8 +88,8 @@ class R2dbcRecurringScheduleRepositoryTest {
         val result = repository.update(schedule)
 
         assertEquals(schedule.id, result.id)
-        verify { spec.bind("id", "sched-1") }
-        verify { spec.bind("workspaceId", "ws-1") }
+        verify { spec.bind("id", UUID.fromString(SCHEDULE_ID)) }
+        verify { spec.bind("workspaceId", UUID.fromString(WORKSPACE_ID)) }
     }
 
     @Test
@@ -113,15 +114,15 @@ class R2dbcRecurringScheduleRepositoryTest {
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all() } answers {
             val fn = slot.captured
-            val row = mockReadableRow("sched-1", "ws-1")
+            val row = mockReadableRow(SCHEDULE_ID, WORKSPACE_ID)
             Flux.just(fn.apply(row, mockk()))
         }
 
-        val result = repository.findByWorkspaceAndId("ws-1", "sched-1")
+        val result = repository.findByWorkspaceAndId(WORKSPACE_ID, SCHEDULE_ID)
 
         assertNotNull(result)
-        assertEquals("sched-1", result?.id)
-        assertEquals("ws-1", result?.workspaceId)
+        assertEquals(SCHEDULE_ID, result?.id)
+        assertEquals(WORKSPACE_ID, result?.workspaceId)
     }
 
     @Test
@@ -135,7 +136,7 @@ class R2dbcRecurringScheduleRepositoryTest {
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all() } returns Flux.empty()
 
-        val result = repository.findByWorkspaceAndId("ws-1", "sched-999")
+        val result = repository.findByWorkspaceAndId(WORKSPACE_ID, UUID.randomUUID().toString())
 
         assertNull(result)
     }
@@ -151,16 +152,16 @@ class R2dbcRecurringScheduleRepositoryTest {
         every { genericSpec.map(capture(slot)) } returns rowsSpec
         every { rowsSpec.all() } answers {
             val fn = slot.captured
-            val row1 = mockReadableRow("sched-1", "ws-1")
-            val row2 = mockReadableRow("sched-2", "ws-1")
+            val row1 = mockReadableRow(SCHEDULE_ID, WORKSPACE_ID)
+            val row2 = mockReadableRow(SECOND_SCHEDULE_ID, WORKSPACE_ID)
             Flux.just(fn.apply(row1, mockk()), fn.apply(row2, mockk()))
         }
 
-        val result = repository.findByWorkspace("ws-1")
+        val result = repository.findByWorkspace(WORKSPACE_ID)
 
         assertEquals(2, result.size)
-        assertEquals("sched-1", result[0].id)
-        assertEquals("sched-2", result[1].id)
+        assertEquals(SCHEDULE_ID, result[0].id)
+        assertEquals(SECOND_SCHEDULE_ID, result[1].id)
     }
 
     @Test
@@ -168,11 +169,11 @@ class R2dbcRecurringScheduleRepositoryTest {
         val spec = mockWriteSpec(rowsUpdated = 1L)
         every { databaseClient.sql(ofType(String::class)) } returns spec
 
-        repository.pauseByTemplatePost("ws-1", "tmpl-1")
+        repository.pauseByTemplatePost(WORKSPACE_ID, TEMPLATE_ID)
 
         verify { spec.bind("paused", "PAUSED") }
-        verify { spec.bind("workspaceId", "ws-1") }
-        verify { spec.bind("templatePostId", "tmpl-1") }
+        verify { spec.bind("workspaceId", UUID.fromString(WORKSPACE_ID)) }
+        verify { spec.bind("templatePostId", UUID.fromString(TEMPLATE_ID)) }
         verify { spec.bind("active", "ACTIVE") }
     }
 
@@ -181,13 +182,13 @@ class R2dbcRecurringScheduleRepositoryTest {
         val spec = mockWriteSpec(rowsUpdated = 1L)
         every { databaseClient.sql(ofType(String::class)) } returns spec
 
-        val deleted = repository.delete("ws-1", "sched-1")
+        val deleted = repository.delete(WORKSPACE_ID, SCHEDULE_ID)
 
         assertTrue(deleted)
         verify { spec.bind("cancelled", "CANCELLED") }
         verify { spec.bind("existingCancelled", "CANCELLED") }
-        verify { spec.bind("workspaceId", "ws-1") }
-        verify { spec.bind("id", "sched-1") }
+        verify { spec.bind("workspaceId", UUID.fromString(WORKSPACE_ID)) }
+        verify { spec.bind("id", UUID.fromString(SCHEDULE_ID)) }
     }
 
     private fun mockWriteSpec(rowsUpdated: Long = 1L): DatabaseClient.GenericExecuteSpec {
@@ -202,10 +203,10 @@ class R2dbcRecurringScheduleRepositoryTest {
 
     private fun mockReadableRow(id: String, workspaceId: String): Row {
         val row = mockk<Row>(relaxed = false)
-        every { row.get("id", String::class.java) } returns id
-        every { row.get("workspace_id", String::class.java) } returns workspaceId
-        every { row.get("created_by", String::class.java) } returns "user-1"
-        every { row.get("template_post_id", String::class.java) } returns "tmpl-1"
+        every { row.get("id", UUID::class.java) } returns UUID.fromString(id)
+        every { row.get("workspace_id", UUID::class.java) } returns UUID.fromString(workspaceId)
+        every { row.get("created_by", UUID::class.java) } returns UUID.fromString(PRINCIPAL_ID)
+        every { row.get("template_post_id", UUID::class.java) } returns UUID.fromString(TEMPLATE_ID)
         every { row.get("frequency", String::class.java) } returns "WEEKLY"
         every { row.get("recurrence_interval", Int::class.javaObjectType) } returns 1
         every { row.get("days_of_week", String::class.java) } returns "1,3,5"
@@ -221,5 +222,13 @@ class R2dbcRecurringScheduleRepositoryTest {
         every { row.get("updated_at", OffsetDateTime::class.java) } returns
             OffsetDateTime.ofInstant(fixedInstant, ZoneId.of("UTC"))
         return row
+    }
+
+    private companion object {
+        const val SCHEDULE_ID = "00000000-0000-0000-0000-000000000001"
+        const val SECOND_SCHEDULE_ID = "00000000-0000-0000-0000-000000000002"
+        const val WORKSPACE_ID = "00000000-0000-0000-0000-000000000003"
+        const val PRINCIPAL_ID = "00000000-0000-0000-0000-000000000004"
+        const val TEMPLATE_ID = "00000000-0000-0000-0000-000000000005"
     }
 }

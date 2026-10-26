@@ -57,16 +57,16 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
                 updated_at = CURRENT_TIMESTAMP
             """.trimIndent(),
         )
-            .bind("id", UUID.randomUUID().toString())
-            .bind(WORKSPACE_ID_PARAMETER, post.scope.value)
-            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, post.actorId)
+            .bind("id", UUID.randomUUID())
+            .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(post.scope.value))
+            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(post.actorId))
             .bind(PROVIDER_PARAMETER, post.provider.name)
             .bind("externalPostId", post.externalPostId.value)
             .bind("publishedAt", post.publishedAt)
             .bindNullable("lastModifiedAt", post.lastModifiedAt, Instant::class.java)
             .bindNullable("body", post.body, String::class.java)
             .bind("origin", post.origin.name)
-            .bindNullable("localPublicationId", post.localPublicationId, String::class.java)
+            .bindNullable("localPublicationId", post.localPublicationId?.let(UUID::fromString), UUID::class.java)
             .bind("lifecycle", post.lifecycle.name)
             .bind("expiresAt", post.expiresAt)
             .fetch()
@@ -91,9 +91,9 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
           AND external_post_id = :externalPostId
         """.trimIndent(),
     )
-        .bind(WORKSPACE_ID_PARAMETER, scope.value)
+        .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(scope.value))
         .bind(PROVIDER_PARAMETER, provider.name)
-        .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
+        .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(actorId))
         .bind("externalPostId", externalPostId.value)
         .map { row, _ -> row.toSocialPost() }
         .one()
@@ -118,9 +118,9 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
               AND lifecycle <> :tombstoned
             """.trimIndent(),
         )
-            .bind(WORKSPACE_ID_PARAMETER, scope.value)
+            .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(scope.value))
             .bind(PROVIDER_PARAMETER, provider.name)
-            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
+            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(actorId))
             .bind("tombstoned", PostLifecycle.TOMBSTONED.name)
         seenExternalIds.forEachIndexed { index, externalPostId ->
             statement = statement.bind("seen$index", externalPostId.value)
@@ -143,8 +143,8 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
           AND (:postId IS NULL OR post_id = :postId)
         """.trimIndent(),
     )
-        .bind(WORKSPACE_ID_PARAMETER, scope.value)
-        .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
+        .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(scope.value))
+        .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(actorId))
         .bind(RESOURCE_PARAMETER, resource.name)
         .bindNullable(POST_ID_PARAMETER, postId?.value, String::class.java)
         .map { row, _ -> row.toSyncCheckpoint() }
@@ -162,9 +162,9 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", UUID.randomUUID().toString())
-            .bind(WORKSPACE_ID_PARAMETER, checkpoint.scope.value)
-            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, checkpoint.actorId)
+            .bind("id", UUID.randomUUID())
+            .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(checkpoint.scope.value))
+            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(checkpoint.actorId))
             .bind(RESOURCE_PARAMETER, checkpoint.resource.name)
             .bindNullable(POST_ID_PARAMETER, checkpoint.postId?.value, String::class.java)
             .bindNullable(CURSOR_PARAMETER, checkpoint.cursor?.value, String::class.java)
@@ -196,8 +196,8 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
               $postIdClause
             """.trimIndent(),
         )
-            .bind(WORKSPACE_ID_PARAMETER, checkpoint.scope.value)
-            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, checkpoint.actorId)
+            .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(checkpoint.scope.value))
+            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, UUID.fromString(checkpoint.actorId))
             .bind(RESOURCE_PARAMETER, checkpoint.resource.name)
             .bindNullable(CURSOR_PARAMETER, checkpoint.cursor?.value, String::class.java)
             .bindNullable(HIGH_WATER_MARK_PARAMETER, checkpoint.highWaterMark, Instant::class.java)
@@ -239,14 +239,14 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
             LIMIT :limit
             """.trimIndent(),
         )
-            .bind(WORKSPACE_ID_PARAMETER, query.scope.value)
+            .bind(WORKSPACE_ID_PARAMETER, UUID.fromString(query.scope.value))
             .bind("fromAt", query.from)
             .bind("toAt", query.to)
-            .bindNullable("actorId", query.actorId, String::class.java)
+            .bindNullable("actorId", query.actorId?.let(UUID::fromString), UUID::class.java)
             .bindNullable("lifecycle", query.lifecycle?.name, String::class.java)
             .bindNullable("cursorPublishedAt", cursor?.publishedAt, Instant::class.java)
             .bindNullable("cursorProvider", cursor?.provider?.name, String::class.java)
-            .bindNullable("cursorSocialAccountId", cursor?.socialAccountId, String::class.java)
+            .bindNullable("cursorSocialAccountId", cursor?.socialAccountId?.let(UUID::fromString), UUID::class.java)
             .bindNullable("cursorExternalPostId", cursor?.externalPostId, String::class.java)
             .bind("limit", query.limit + 1)
         val fetched = statement.map { row, _ -> row.toSocialPost() }.all().collectList().awaitSingle()
@@ -298,9 +298,9 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
      * @throws IllegalArgumentException If a provider, origin, or lifecycle value is invalid.
      */
     private fun io.r2dbc.spi.Readable.toSocialPost(): SocialPost = SocialPost(
-        scope = WorkspaceScope(get("workspace_id", String::class.java) ?: error("workspace_id missing")),
+        scope = WorkspaceScope(requireNotNull(get("workspace_id", UUID::class.java)).toString()),
         provider = SocialProvider.valueOf(get("provider", String::class.java) ?: error("provider missing")),
-        actorId = get("social_account_id", String::class.java) ?: error("social_account_id missing"),
+        actorId = requireNotNull(get("social_account_id", UUID::class.java)).toString(),
         externalPostId = ExternalPostId(
             get("external_post_id", String::class.java) ?: error("external_post_id missing"),
         ),
@@ -308,7 +308,7 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         lastModifiedAt = get("last_modified_at", Instant::class.java),
         body = get("body", String::class.java),
         origin = PostOrigin.valueOf(get("origin", String::class.java) ?: error("origin missing")),
-        localPublicationId = get("local_publication_id", String::class.java),
+        localPublicationId = get("local_publication_id", UUID::class.java)?.toString(),
         lifecycle = PostLifecycle.valueOf(get("lifecycle", String::class.java) ?: error("lifecycle missing")),
         expiresAt = get("expires_at", Instant::class.java) ?: error("expires_at missing"),
     )
@@ -317,8 +317,8 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         val resource = SyncResource.valueOf(get("resource", String::class.java) ?: error("resource missing"))
         val postId = get("post_id", String::class.java)?.let(::ExternalPostId)
         return SyncCheckpoint(
-            scope = WorkspaceScope(get("workspace_id", String::class.java) ?: error("workspace_id missing")),
-            actorId = get("social_account_id", String::class.java) ?: error("social_account_id missing"),
+            scope = WorkspaceScope(requireNotNull(get("workspace_id", UUID::class.java)).toString()),
+            actorId = requireNotNull(get("social_account_id", UUID::class.java)).toString(),
             resource = resource,
             cursor = get("cursor", String::class.java)?.let(::PageCursor),
             highWaterMark = get("high_water_mark", Instant::class.java),

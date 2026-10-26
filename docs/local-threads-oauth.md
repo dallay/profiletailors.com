@@ -39,8 +39,9 @@ pnpm exec portless list
 The Threads mappings live in `infra/wiremock/mappings/threads/`:
 
 - `015-oauth-authorize.json` returns a redirect to the app callback with a mock authorization code and the incoming OAuth `state`. The callback uses the supplied `redirect_uri` or falls back to `https://pt-app.localhost/integrations/threads/callback`.
-- `070-oauth-token.json` accepts the form-urlencoded authorization-code exchange.
-- `072-oauth-refresh-token.json` returns a mock refreshed token.
+- `070-oauth-token.json` accepts the form-urlencoded authorization-code exchange at `/oauth/access_token`.
+- `071-oauth-long-lived-token.json` accepts the GET request to `/access_token` that exchanges the short-lived token.
+- `072-oauth-refresh-token.json` accepts the GET request to `/refresh_access_token` and returns a mock refreshed token.
 - `073-user-profile.json` returns a stable mock profile.
 
 WireMock loads these mappings through the root Compose service. Rebuild that service after changing a mapping:
@@ -59,6 +60,9 @@ SMP_THREADS_CLIENT_ID=local-threads-client
 SMP_THREADS_CLIENT_SECRET=local-threads-secret
 SMP_THREADS_REDIRECT_URI=https://pt-app.localhost/integrations/threads/callback
 SMP_THREADS_API_BASE_URL=https://threads-mock.localhost
+SMP_THREADS_AUTHORIZATION_URL=https://threads-mock.localhost/oauth/authorize
+SMP_THREADS_TOKEN_EXCHANGE_URL=https://threads-mock.localhost/oauth/access_token
+SMP_THREADS_LONG_LIVED_TOKEN_URL=https://threads-mock.localhost/access_token
 ```
 
 Use the exact redirect URI configured for this local app. Restart SMP after changing `.env`; the running backend does not pick up changes automatically.
@@ -116,8 +120,9 @@ A `status=200` confirms that this JDK process trusts the Portless certificate an
 2. Start a **new** Threads connection from the dashboard. Do not reuse an old callback URL: OAuth `state` is short-lived and each attempt must begin with a fresh authorization request.
 3. The browser should visit `threads-mock.localhost`, then return to the dashboard callback.
 4. The dashboard submits the authorization code to `POST /api/publishing/threads/connections/complete`.
-5. SMP should exchange the code at `/v1.0/oauth/access_token`, request `/v1.0/refresh_access_token`, fetch `/v1.0/me`, and complete the connection.
-6. Confirm Threads appears as connected in the dashboard and remains connected after reloading the page.
+5. During connection completion, SMP exchanges the authorization code at `/oauth/access_token`, exchanges the short-lived token at `/access_token`, then fetches the profile from `/v1.0/me`. Connection completion does not call the refresh endpoint.
+6. Later, credential resolution may refresh the stored Threads token with GET `/refresh_access_token` when a valid access token is needed.
+7. Confirm Threads appears as connected in the dashboard and remains connected after reloading the page.
 
 The mock profile is `wiremock_threads_user` with ID `local-wiremock-threads-user-001`. The access tokens are generated mock values and are not accepted by Meta.
 
@@ -129,7 +134,7 @@ The mock profile is `wiremock_threads_user` with ID `local-wiremock-threads-user
 | WireMock endpoints return 404 | Confirm `social-api-wiremock` is running through root Compose (`just infra-up`) and that the Threads mapping files exist. Rebuild the service after mapping edits. |
 | Browser callback reports an expired or invalid state | Start a fresh connection attempt from the dashboard; do not replay the previous callback URL. |
 | SMP reports `SSLHandshakeException` or `PKIX path building failed` | Confirm the Portless CA is present in `.worktree/portless-truststore.p12`, then restart `just serve --force` with `JAVA_TOOL_OPTIONS` and the truststore path. Do not disable TLS validation. |
-| Token endpoint returns 404 or does not match | Confirm `.env` sets `SMP_THREADS_API_BASE_URL=https://threads-mock.localhost`, the backend was restarted, and the current stub accepts form-urlencoded token requests. |
+| OAuth endpoint returns 404 or does not match | Confirm `.env` sets `SMP_THREADS_AUTHORIZATION_URL=https://threads-mock.localhost/oauth/authorize`, `SMP_THREADS_TOKEN_EXCHANGE_URL=https://threads-mock.localhost/oauth/access_token`, `SMP_THREADS_LONG_LIVED_TOKEN_URL=https://threads-mock.localhost/access_token`, and `SMP_THREADS_API_BASE_URL=https://threads-mock.localhost` for refresh and Graph API calls. Restart SMP and rebuild the WireMock service after mapping edits. |
 | OAuth succeeds but Threads is not visible | Check the SMP log for the completion request and subsequent profile/persistence errors; then reload the dashboard and verify the active workspace. |
 
 Local logs are under `.worktree/logs/` when using the repository's managed `just serve` workflow. Never include credentials or tokens when sharing logs.

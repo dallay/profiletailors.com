@@ -3,7 +3,7 @@ include:
 
 services:
   prometheus:
-    image: prom/prometheus:v3.13.2
+    image: prom/prometheus:v3.15.0
     ports:
       - "${PROMETHEUS_HOST_PORT:-0}:9090"
     volumes:
@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:13.2.2
+    image: grafana/grafana:13.2.4
     ports:
       - "${GRAFANA_HOST_PORT:-0}:3000"
     environment:
@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
 
   alloy:
-    image: grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
+    image: grafana/alloy:v1.21.0@sha256:9726bfba078de9bc2212c60c6e643238c700b4fe0868ea78cbe03163d03d95bf
     command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./configs/alloy/config.alloy:/etc/alloy/config.alloy:ro

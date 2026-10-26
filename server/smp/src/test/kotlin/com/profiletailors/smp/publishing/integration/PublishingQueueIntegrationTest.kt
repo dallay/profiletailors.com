@@ -43,11 +43,11 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
     fun `scheduled publication waits until due time and is ignored before due`() = runTest {
         publicationRepository.createDraft(
             PublicationDraft(
-                id = "pub-scheduled",
-                workspaceId = "workspace-1",
-                authorPrincipalId = "principal-1",
+                id = "00000000-0000-0000-0000-000000000473",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-1",
+                socialAccountId = "00000000-0000-0000-0000-0000000003e8",
                 status = PublicationStatus.SCHEDULED,
                 scheduleMode = ScheduleMode.SCHEDULED_AT,
                 priority = false,
@@ -57,9 +57,9 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
         )
         jobRepository.enqueue(
             com.profiletailors.smp.publishing.domain.PublicationJob(
-                id = "job-scheduled",
-                publicationId = "pub-scheduled",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-000000000424",
+                publicationId = "00000000-0000-0000-0000-000000000473",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 status = JobStatus.PENDING,
                 dueAt = Instant.parse("2026-05-27T08:00:00Z"),
                 priorityRank = 0,
@@ -80,8 +80,8 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
     @Test
     fun `priority publication is claimed ahead of regular due work`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-regular",
-            jobId = "job-regular",
+            publicationId = "00000000-0000-0000-0000-00000000045e",
+            jobId = "00000000-0000-0000-0000-00000000041d",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -89,8 +89,8 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             scheduleMode = ScheduleMode.NOW,
         )
         seedPublicationAndJob(
-            publicationId = "pub-priority",
-            jobId = "job-priority",
+            publicationId = "00000000-0000-0000-0000-00000000045a",
+            jobId = "00000000-0000-0000-0000-00000000041c",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = true,
             priorityRank = 100,
@@ -105,15 +105,15 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
         )
 
         assertNotNull(claim)
-        assertEquals("pub-priority", claim?.publicationId)
-        assertEquals("job-priority", claim?.jobId)
+        assertEquals("00000000-0000-0000-0000-00000000045a", claim?.publicationId)
+        assertEquals("00000000-0000-0000-0000-00000000041c", claim?.jobId)
     }
 
     @Test
     fun `next slot publication can be manually rescheduled for later retry execution`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-next-slot",
-            jobId = "job-next-slot",
+            publicationId = "00000000-0000-0000-0000-000000000454",
+            jobId = "00000000-0000-0000-0000-00000000041a",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -130,7 +130,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             ),
         )
         jobRepository.rescheduleRetry(
-            jobId = "job-next-slot",
+            jobId = "00000000-0000-0000-0000-00000000041a",
             claimVersion = initialClaim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:30:00Z"),
             attemptNumber = 2,
@@ -148,15 +148,15 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
         )
 
         assertEquals(null, claimTooEarly)
-        assertEquals("job-next-slot", claimLater?.jobId)
+        assertEquals("00000000-0000-0000-0000-00000000041a", claimLater?.jobId)
         assertEquals(3, claimLater?.attemptNumber)
     }
 
     @Test
     fun `completed publication job is not claimable again`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-completed",
-            jobId = "job-completed",
+            publicationId = "00000000-0000-0000-0000-00000000043d",
+            jobId = "00000000-0000-0000-0000-00000000040a",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -172,7 +172,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             ),
         )
         jobRepository.complete(
-            "job-completed",
+            "00000000-0000-0000-0000-00000000040a",
             firstClaim.claimVersion,
             Instant.parse("2026-05-27T08:02:00Z"),
         )
@@ -182,7 +182,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             Duration.ofMinutes(2),
         )
 
-        assertEquals("job-completed", firstClaim.jobId)
+        assertEquals("00000000-0000-0000-0000-00000000040a", firstClaim.jobId)
         assertEquals(null, secondClaim)
     }
 
@@ -190,13 +190,13 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:owner@example.com', NULL, 'owner')
+            VALUES ('00000000-0000-0000-0000-000000000430', 'USER', 'local:owner@example.com', NULL, 'owner')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
@@ -204,7 +204,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1',
+                '00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', 'linkedin-connection-1',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
@@ -215,7 +215,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'account-1', 'connection-1', 'workspace-1', 'LINKEDIN',
+                '00000000-0000-0000-0000-0000000003e8', '00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
             )
             """.trimIndent(),
@@ -235,10 +235,10 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
         publicationRepository.createDraft(
             PublicationDraft(
                 id = publicationId,
-                workspaceId = "workspace-1",
-                authorPrincipalId = "principal-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-1",
+                socialAccountId = "00000000-0000-0000-0000-0000000003e8",
                 status = status,
                 scheduleMode = scheduleMode,
                 priority = priority,
@@ -251,7 +251,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             com.profiletailors.smp.publishing.domain.PublicationJob(
                 id = jobId,
                 publicationId = publicationId,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 status = JobStatus.PENDING,
                 dueAt = dueAt,
                 priorityRank = priorityRank,

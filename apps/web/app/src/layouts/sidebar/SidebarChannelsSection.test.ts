@@ -33,8 +33,8 @@ vi.mock('@lucide/vue', () => ({
 
 function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
   return {
-    id: 'ch-1',
-    accountId: 'ch-1',
+    id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
+    accountId: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
     name: 'Channel 1',
     provider: 'linkedin',
     avatar: '',
@@ -80,9 +80,9 @@ describe('SidebarChannelsSection', () => {
 
   it('renders one SidebarChannelRow per channel', () => {
     const channels = [
-      makeChannel({ id: 'ch-1', name: 'A', provider: 'linkedin' }),
-      makeChannel({ id: 'ch-2', name: 'B', provider: 'twitter' }),
-      makeChannel({ id: 'ch-3', name: 'C', provider: 'instagram' }),
+      makeChannel({ id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef', name: 'A', provider: 'linkedin' }),
+      makeChannel({ id: '8d7c2526-b27d-5c90-861f-d9b91afe47f2', name: 'B', provider: 'twitter' }),
+      makeChannel({ id: '30b88e8c-8e00-5b5e-8f9c-996d7f58681b', name: 'C', provider: 'instagram' }),
     ]
     const wrapper = mount(SidebarChannelsSection, {
       props: {
@@ -95,14 +95,14 @@ describe('SidebarChannelsSection', () => {
 
     const rows = wrapper.findAllComponents({ name: 'SidebarChannelRow' })
     expect(rows).toHaveLength(3)
-    expect(rows[0]?.props('channel').id).toBe('ch-1')
-    expect(rows[2]?.props('channel').id).toBe('ch-3')
+    expect(rows[0]?.props('channel').id).toBe('92c0751b-b11e-5b27-b9bd-8c4b03c253ef')
+    expect(rows[2]?.props('channel').id).toBe('30b88e8c-8e00-5b5e-8f9c-996d7f58681b')
   })
 
   it('resets avatarLoadFailedMap when channels array reference changes', async () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
-        channels: [makeChannel({ id: 'ch-1' })],
+        channels: [makeChannel({ id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef' })],
         activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: false,
@@ -115,7 +115,10 @@ describe('SidebarChannelsSection', () => {
 
     // The map now has ch-1
     // (Internal ref — assert indirectly by triggering another error and a swap)
-    const newChannels = [makeChannel({ id: 'ch-2' }), makeChannel({ id: 'ch-3' })]
+    const newChannels = [
+      makeChannel({ id: '8d7c2526-b27d-5c90-861f-d9b91afe47f2' }),
+      makeChannel({ id: '30b88e8c-8e00-5b5e-8f9c-996d7f58681b' }),
+    ]
     await wrapper.setProps({ channels: newChannels })
     await nextTick()
 
@@ -145,8 +148,16 @@ describe('SidebarChannelsSection', () => {
 
   it('emits selectChannel with the accountId when a row is clicked', async () => {
     const channels = [
-      makeChannel({ id: 'ch-1', accountId: 'acc-1', provider: 'linkedin' }),
-      makeChannel({ id: 'ch-2', accountId: 'acc-2', provider: 'twitter' }),
+      makeChannel({
+        id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+        provider: 'linkedin',
+      }),
+      makeChannel({
+        id: '8d7c2526-b27d-5c90-861f-d9b91afe47f2',
+        accountId: '28353a84-fcee-5f3a-93b6-4c1bd639921e',
+        provider: 'twitter',
+      }),
     ]
     const wrapper = mount(SidebarChannelsSection, {
       props: {
@@ -162,14 +173,14 @@ describe('SidebarChannelsSection', () => {
 
     expect(wrapper.emitted('selectChannel')).toBeTruthy()
     const payload = wrapper.emitted('selectChannel')?.[0]?.[0] as string
-    expect(payload).toBe('acc-2')
+    expect(payload).toBe('28353a84-fcee-5f3a-93b6-4c1bd639921e')
   })
 
   it('closes the mobile sidebar when a channel is selected', async () => {
     sidebarState.setOpenMobile.mockClear()
     const wrapper = mount(SidebarChannelsSection, {
       props: {
-        channels: [makeChannel({ accountId: 'acc-1' })],
+        channels: [makeChannel({ accountId: '788c8103-35f1-5899-b15a-6ca994253c99' })],
         activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: true,

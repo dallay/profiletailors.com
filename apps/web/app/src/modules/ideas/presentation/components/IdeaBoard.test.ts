@@ -23,7 +23,7 @@ function makeColumn(id: string, order: number, color?: string | null): IdeaColum
 function makeIdea(id: string, columnId: string): Idea {
   return {
     id,
-    workspaceId: 'ws-1',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: id,
     notes: null,
     tags: [],
@@ -41,7 +41,7 @@ describe('IdeaBoard', () => {
     const wrapper = mount(IdeaBoard, {
       props: {
         columns: [makeColumn('raw', 0), makeColumn('done', 1)],
-        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')] },
+        ideasByColumn: { raw: [makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw')] },
         loading: false,
       },
     })
@@ -71,7 +71,7 @@ describe('IdeaBoard', () => {
     const wrapper = mount(IdeaBoard, {
       props: {
         columns: [makeColumn('raw', 0), makeColumn('done', 1)],
-        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')], done: [] },
+        ideasByColumn: { raw: [makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw')], done: [] },
         loading: false,
       },
     })
@@ -86,7 +86,7 @@ describe('IdeaBoard', () => {
     const wrapper = mount(IdeaBoard, {
       props: {
         columns: [makeColumn('raw', 0, '#22c55e'), makeColumn('done', 1)],
-        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')] },
+        ideasByColumn: { raw: [makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw')] },
         loading: false,
         viewMode: 'gallery',
       },
@@ -102,8 +102,10 @@ describe('IdeaBoard', () => {
       .trigger('click')
     await wrapper.findAll('[data-testid="idea-gallery-add"]').at(1)?.trigger('click')
     expect(wrapper.emitted('addIdea')).toEqual([['done'], ['done']])
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
-    expect(wrapper.emitted('selectIdea')).toEqual([['idea-1']])
+    await wrapper
+      .find('[data-dnd-draggable="0ca69867-76ef-5e75-a8c3-3933fb8faec4"]')
+      .trigger('click')
+    expect(wrapper.emitted('selectIdea')).toEqual([['0ca69867-76ef-5e75-a8c3-3933fb8faec4']])
     await wrapper.find('[data-testid="ideas-gallery-new-column"]').trigger('click')
     expect(wrapper.emitted('newColumn')).toHaveLength(1)
   })
@@ -125,9 +127,9 @@ describe('IdeaBoard', () => {
       expect(wrapper.emitted('addIdea')?.[0]).toEqual(['raw'])
       await (lane as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit(
         'selectIdea',
-        'idea-1',
+        '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
       )
-      expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['idea-1'])
+      expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['0ca69867-76ef-5e75-a8c3-3933fb8faec4'])
     }
   })
 

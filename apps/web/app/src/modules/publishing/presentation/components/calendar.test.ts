@@ -45,7 +45,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
 
 function makePublication(overrides: Partial<Publication> = {}): Publication {
   return {
-    id: 'pub-test-1',
+    id: '96486077-0ad0-5194-b7c1-55aba26c5898',
     content: 'Test post content',
     title: 'Test Title',
     channels: ['linkedin'],
@@ -169,8 +169,8 @@ describe('CalendarCell', () => {
 
   it('renders publication snippets', () => {
     const pubs = [
-      makePublication({ id: 'p1', title: 'First Post' }),
-      makePublication({ id: 'p2', title: 'Second Post' }),
+      makePublication({ id: 'cd66b912-3c45-5953-aaa7-bcee5538805c', title: 'First Post' }),
+      makePublication({ id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248', title: 'Second Post' }),
     ]
     const wrapper = mount(CalendarCell, {
       props: {
@@ -186,10 +186,10 @@ describe('CalendarCell', () => {
 
   it('truncates publications beyond maxVisible', () => {
     const pubs = [
-      makePublication({ id: 'p1', title: 'Post 1' }),
-      makePublication({ id: 'p2', title: 'Post 2' }),
-      makePublication({ id: 'p3', title: 'Post 3' }),
-      makePublication({ id: 'p4', title: 'Post 4' }),
+      makePublication({ id: 'cd66b912-3c45-5953-aaa7-bcee5538805c', title: 'Post 1' }),
+      makePublication({ id: '17f7bc7a-35ef-5072-b086-9cb0e9c3c248', title: 'Post 2' }),
+      makePublication({ id: 'e04b2ba2-61d3-502b-ab96-de7b7a5631b8', title: 'Post 3' }),
+      makePublication({ id: 'f0892b3d-0322-55bc-a23b-3de3c973f673', title: 'Post 4' }),
     ]
     const wrapper = mount(CalendarCell, {
       props: {
@@ -282,7 +282,7 @@ describe('CalendarCell', () => {
   it('renders thumbnail image when publication has one', () => {
     const pubs = [
       makePublication({
-        id: 'pub-with-thumb',
+        id: 'e086622f-41c8-5551-8a10-195a02853277',
         thumbnail: 'https://example.com/image.jpg',
       }),
     ]
@@ -302,7 +302,7 @@ describe('CalendarCell', () => {
   it('keeps text visible beside the thumbnail in month view', () => {
     const pubs = [
       makePublication({
-        id: 'pub-with-thumb-and-text',
+        id: 'db8d5dd5-3573-545d-912f-ea9cc1ca3e57',
         title: 'Visible Title',
         thumbnail: 'https://example.com/image.jpg',
       }),

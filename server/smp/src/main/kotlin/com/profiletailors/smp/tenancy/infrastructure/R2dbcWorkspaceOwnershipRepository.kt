@@ -9,6 +9,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Instant
+import java.util.UUID
 
 private const val COL_WORKSPACE_ID = "workspace_id"
 private const val COL_OWNER_PRINCIPAL_ID = "owner_principal_id"
@@ -32,7 +33,7 @@ internal class R2dbcWorkspaceOwnershipRepository(
         WHERE workspace_id = :workspaceId
         """.trimIndent(),
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
         .map { row, _ -> mapWorkspaceOwnership(row) }
         .all()
         .collectList()
@@ -46,7 +47,7 @@ internal class R2dbcWorkspaceOwnershipRepository(
         WHERE workspace_id = :workspaceId
         """.trimIndent(),
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
         .map { row, _ -> mapOwnerPrincipalId(row) }
         .all()
         .collectList()
@@ -60,15 +61,15 @@ internal class R2dbcWorkspaceOwnershipRepository(
             VALUES (:workspaceId, :ownerPrincipalId, :ownerPrincipalType, :createdBy, :createdAt)
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, ownership.workspaceId)
-            .bind("ownerPrincipalId", ownership.ownerPrincipalId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(ownership.workspaceId))
+            .bind("ownerPrincipalId", UUID.fromString(ownership.ownerPrincipalId))
             .bind("ownerPrincipalType", ownership.ownerPrincipalType.name)
             .let { spec ->
                 val createdBy = ownership.createdBy
                 if (createdBy == null) {
-                    spec.bindNull("createdBy", String::class.java)
+                    spec.bindNull("createdBy", UUID::class.java)
                 } else {
-                    spec.bind("createdBy", createdBy)
+                    spec.bind("createdBy", UUID.fromString(createdBy))
                 }
             }
             .bind("createdAt", ownership.createdAt ?: Instant.now())
@@ -84,8 +85,8 @@ internal class R2dbcWorkspaceOwnershipRepository(
             WHERE workspace_id = :workspaceId AND owner_principal_id = :principalId
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
-            .bind(BIND_PRINCIPAL_ID, principalId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+            .bind(BIND_PRINCIPAL_ID, UUID.fromString(principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -99,7 +100,7 @@ internal class R2dbcWorkspaceOwnershipRepository(
             FOR UPDATE
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
             .then()
             .then(
                 databaseClient.sql(
@@ -114,8 +115,8 @@ internal class R2dbcWorkspaceOwnershipRepository(
                       )
                     """.trimIndent(),
                 )
-                    .bind(BIND_WORKSPACE_ID, workspaceId)
-                    .bind(BIND_PRINCIPAL_ID, principalId)
+                    .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+                    .bind(BIND_PRINCIPAL_ID, UUID.fromString(principalId))
                     .fetch()
                     .rowsUpdated(),
             )
@@ -132,8 +133,8 @@ internal class R2dbcWorkspaceOwnershipRepository(
             WHERE workspace_id = :workspaceId AND owner_principal_id = :principalId
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
-            .bind(BIND_PRINCIPAL_ID, principalId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+            .bind(BIND_PRINCIPAL_ID, UUID.fromString(principalId))
             .map { row, _ ->
                 row.get(0, Long::class.javaObjectType) ?: 0L
             }

@@ -175,13 +175,15 @@ export async function mockLoginResponse(
  */
 export async function mockRefreshResponse(
   page: Page,
-  overrides: { accessToken?: string; email?: string; username?: string; emailStatus?: string } = {},
+  overrides: SessionOverrides = {},
 ): Promise<void> {
   const {
     accessToken = 'refreshed-test-token',
+    principalId = 'ba4bd2ec-6c51-5f21-a2e2-b4588292c4d4',
     email = 'dev@profiletailors.com',
     username = 'dev',
     emailStatus = 'PENDING',
+    workspaceId = '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
   } = overrides
   await page.route('**/api/auth/refresh', async (route) => {
     await route.fulfill({
@@ -191,11 +193,11 @@ export async function mockRefreshResponse(
         accessToken,
         tokenType: 'Bearer',
         expiresIn: 3600,
-        principalId: 'test-user',
+        principalId,
         email,
         username,
         emailStatus,
-        workspaceId: 'workspace-001',
+        workspaceId,
       }),
     })
   })
@@ -232,7 +234,7 @@ export async function mockRegisterResponse(
       accessToken: 'register-test-token',
       tokenType: 'Bearer',
       expiresIn: 900,
-      principalId: 'reg-test-user',
+      principalId: 'e892567b-9f3a-518b-b9a5-e351755d9db1',
       email: 'test@example.com',
       username: 'test',
       emailStatus: 'PENDING',
@@ -308,11 +310,11 @@ export async function mockVerifyEmailResponse(
       accessToken: 'verified-token',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'verified-user',
+      principalId: '4472dc03-f46d-541a-b005-989a87573b49',
       email: 'verified@example.com',
       username: 'verified',
       emailStatus: 'VERIFIED',
-      workspaceId: 'workspace-verified',
+      workspaceId: 'f3861bf2-bc36-57bb-a5e6-56047fe6827a',
     },
   } = overrides
   await page.route('**/api/auth/verify-email', async (route) => {
@@ -344,12 +346,12 @@ export async function mockUserProfile(
   } = {},
 ): Promise<void> {
   const {
-    principalId = 'test-user',
+    principalId = 'ba4bd2ec-6c51-5f21-a2e2-b4588292c4d4',
     email = 'dev@profiletailors.com',
     username = 'dev',
     displayIdentity = 'dev',
     emailStatus = 'PENDING',
-    workspaceId = 'workspace-001',
+    workspaceId = '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     workspaceName = "dev's Workspace",
     workspaceRole = 'OWNER',
   } = overrides
@@ -388,7 +390,10 @@ export async function mockCurrentWorkspace(
     workspaceName?: string
   } = {},
 ): Promise<void> {
-  const { workspaceId = 'workspace-001', workspaceName = "dev's Workspace" } = overrides
+  const {
+    workspaceId = '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+    workspaceName = "dev's Workspace",
+  } = overrides
   await page.route('**/api/tenancy/workspaces/current', async (route) => {
     await route.fulfill({
       status: 200,
@@ -422,14 +427,21 @@ export async function mockAuthenticatedSession(
 ): Promise<void> {
   const {
     accessToken = 'e2e-test-token',
-    principalId = 'test-user',
+    principalId = 'ba4bd2ec-6c51-5f21-a2e2-b4588292c4d4',
     email = 'dev@profiletailors.com',
     username = 'dev',
     emailStatus = 'PENDING',
-    workspaceId = 'workspace-001',
+    workspaceId = '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
   } = overrides
 
-  await mockRefreshResponse(page, { accessToken, email, username, emailStatus })
+  await mockRefreshResponse(page, {
+    accessToken,
+    principalId,
+    email,
+    username,
+    emailStatus,
+    workspaceId,
+  })
   await mockUserProfile(page, {
     principalId,
     email,
@@ -458,7 +470,7 @@ export async function mockRegisterSuccess(
 ): Promise<void> {
   const {
     accessToken = 'register-e2e-token',
-    principalId = 'reg-test-user',
+    principalId = '4472dc03-f46d-541a-b005-989a87573b49',
     email = 'test@example.com',
     username = 'test',
     emailStatus = 'PENDING',
@@ -522,5 +534,7 @@ export async function mockRegisterSuccess(
     workspaceId: workspaceId ?? undefined,
   })
 
-  await mockCurrentWorkspace(page, { workspaceId: workspaceId ?? 'workspace-001' })
+  await mockCurrentWorkspace(page, {
+    workspaceId: workspaceId ?? '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+  })
 }

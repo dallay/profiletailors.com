@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 const mockUser = {
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'test@test.com',
   username: 'testuser',
   emailStatus: 'VERIFIED',
   displayIdentity: 'testuser',
 }
 const mockAccessToken = 'mock-token-1'
-const mockWorkspaceId = 'ws-1'
+const mockWorkspaceId = '820c22d8-9ce7-5e76-867f-04bac4e53b59'
 
 vi.mock('@shared/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
@@ -44,7 +44,7 @@ describe('privacy store', () => {
 
   it('submitRequest calls apiFetch POST and adds the returned request', async () => {
     const mockResponse = {
-      id: 'req-1',
+      id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
       status: 'PENDING',
       message: 'Request submitted successfully',
       oldValues: null,
@@ -62,7 +62,7 @@ describe('privacy store', () => {
       body: JSON.stringify({ type: 'ACCESS' }),
       workspaceScoped: true,
     })
-    expect(result.id).toBe('req-1')
+    expect(result.id).toBe('bb513025-ec9f-54eb-8736-1ae20aa53db3')
     expect(result.status).toBe('PENDING')
     expect(result.type).toBe('ACCESS')
     expect(store.requests).toHaveLength(1)
@@ -71,7 +71,7 @@ describe('privacy store', () => {
 
   it('submitRequest with CORRECTION includes correctionData', async () => {
     const mockResponse = {
-      id: 'req-2',
+      id: '50e95b22-ef9a-5e00-979b-2199e23dc96e',
       status: 'PENDING',
       message: 'Request submitted successfully',
       oldValues: null,
@@ -105,8 +105,8 @@ describe('privacy store', () => {
     mockApiFetch.mockResolvedValue({
       requests: [
         {
-          id: 'req-1',
-          workspaceId: 'ws-1',
+          id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           type: 'ACCESS',
           status: 'COMPLETED',
           notes: null,
@@ -124,7 +124,7 @@ describe('privacy store', () => {
     await store.fetchRequests()
 
     expect(store.requests[0]).toMatchObject({
-      id: 'req-1',
+      id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
       resultRef: 'result-1',
     })
   })
@@ -163,7 +163,7 @@ describe('privacy store', () => {
     const mockResponse = {
       requests: [
         {
-          id: 'req-1',
+          id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
           type: 'ACCESS',
           status: 'COMPLETED',
           result: { ref: 'export-file-1.zip' },
@@ -171,7 +171,7 @@ describe('privacy store', () => {
           updatedAt: '2026-07-19T10:00:00Z',
         },
         {
-          id: 'req-2',
+          id: '50e95b22-ef9a-5e00-979b-2199e23dc96e',
           type: 'DELETION',
           status: 'REJECTED',
           result: null,
@@ -199,7 +199,7 @@ describe('privacy store', () => {
 
   it('fetchRequest calls apiFetch GET with id and sets currentRequest', async () => {
     const mockResponse = {
-      id: 'req-1',
+      id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
       type: 'EXPORT',
       status: 'PROCESSING',
       result: null,
@@ -211,12 +211,15 @@ describe('privacy store', () => {
     const { usePrivacyStore } = await import('./privacy.store')
     const store = usePrivacyStore()
 
-    const result = await store.fetchRequest('req-1')
+    const result = await store.fetchRequest('bb513025-ec9f-54eb-8736-1ae20aa53db3')
 
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/v1/privacy/requests/req-1', {
-      workspaceScoped: true,
-    })
-    expect(result.id).toBe('req-1')
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/api/v1/privacy/requests/bb513025-ec9f-54eb-8736-1ae20aa53db3',
+      {
+        workspaceScoped: true,
+      },
+    )
+    expect(result.id).toBe('bb513025-ec9f-54eb-8736-1ae20aa53db3')
     expect(result.type).toBe('EXPORT')
     expect(result.status).toBe('PROCESSING')
     expect(store.currentRequest).toEqual(result)
@@ -235,7 +238,7 @@ describe('privacy store', () => {
   it('clears error after successful request', async () => {
     mockApiFetch.mockRejectedValueOnce(new Error('Network error'))
     mockApiFetch.mockResolvedValueOnce({
-      id: 'req-1',
+      id: 'bb513025-ec9f-54eb-8736-1ae20aa53db3',
       workspaceId: mockWorkspaceId,
       type: 'ACCESS',
       status: 'PENDING',

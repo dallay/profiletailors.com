@@ -42,7 +42,7 @@ internal class CreateIdeaHandler(
         val nextOrder = currentIdeas.count { it.columnId == targetColumnId }
 
         val idea = Idea(
-            id = "idea-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             title = command.title.trim(),
             notes = command.notes,

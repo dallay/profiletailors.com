@@ -20,7 +20,7 @@ const emit = defineEmits<{
   (event: 'openPostDetail', publication: Publication): void
   (event: 'openNewPost', day: Date, hour: number): void
 }>()
-const { viewport, nowMarkerStyle } = useSchedulerTimeline(props)
+const { nowMarkerStyle } = useSchedulerTimeline(props)
 function formatSlotTime(value: string): string {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }

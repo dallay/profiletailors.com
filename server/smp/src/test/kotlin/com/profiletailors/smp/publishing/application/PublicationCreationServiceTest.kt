@@ -139,6 +139,9 @@ class PublicationCreationServiceTest {
             ),
         )
         result.socialAccountId shouldBe "acc-active-1"
+        java.util.UUID.fromString(result.id).toString() shouldBe result.id
+        val job = replacementJobFor(result, PublicationSchedulingPolicy(), clock.instant())
+        java.util.UUID.fromString(job.id).toString() shouldBe job.id
     }
 
     @Test

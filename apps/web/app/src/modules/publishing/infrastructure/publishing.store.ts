@@ -580,7 +580,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
     {
-      id: 'pub-1',
+      id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
       content:
         'El error más común con DDD: crear modelos anémicos y tratar la base de datos como el centro del diseño. ¡Concéntrate en el comportamiento primero!',
       title: 'Common DDD Mistake',
@@ -592,7 +592,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80',
     },
     {
-      id: 'pub-2',
+      id: 'b52a13aa-706c-5325-9156-bcd2f04951d1',
       content:
         '¿Por qué tu Arquitectura debería seguir principios de diseño suizos? Minimalismo visual, tipografía clara y cero ruido ornamental.',
       title: 'Swiss Design Architecture',
@@ -948,15 +948,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelEventsConnected.value = false
   }
 
-  /**
-   * Replaces the active stream and forwards valid invalidations for the current workspace.
-   * Resolves to null when unauthenticated or when the stream ends, fails, or is aborted.
-   * Request and read failures are swallowed; malformed frames and callback errors are ignored.
-   * Connection state is cleared when consumption ends.
-   */
   async function subscribePublicationEvents(
     onInvalidation: (event: PublicationInvalidation) => void,
-  ): Promise<null> {
+  ): Promise<null | 'unavailable'> {
     if (!auth.isAuthenticated) {
       publicationEventsConnected.value = false
       return null
@@ -973,30 +967,49 @@ export const usePublishingStore = defineStore('publishing', () => {
         workspaceScoped: true,
         signal: abortController.signal,
       })
+      if (
+        publicationEventsAbortController.value !== abortController ||
+        abortController.signal.aborted
+      ) {
+        await response.body?.cancel()
+        return null
+      }
       publicationEventsConnected.value = true
       await consumeSseStream<unknown>(response, ({ data }) => {
+        if (
+          abortController.signal.aborted ||
+          publicationEventsAbortController.value !== abortController
+        )
+          return
         const invalidation = toPublicationInvalidation(data)
         if (!invalidation) return
         if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
         onInvalidation(invalidation)
       })
     } catch (err) {
-      if (!abortController.signal.aborted) {
+      if (
+        publicationEventsAbortController.value === abortController &&
+        !abortController.signal.aborted
+      ) {
         console.warn('Publication event stream unavailable; continuing with REST calendar.', err)
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'status' in err &&
+          (err.status === 404 || err.status === 405)
+        )
+          return 'unavailable'
       }
     } finally {
       if (publicationEventsAbortController.value === abortController) {
         publicationEventsAbortController.value = null
+        publicationEventsConnected.value = false
       }
-      publicationEventsConnected.value = false
     }
 
     return null
   }
 
-  /**
-   * Aborts the current publication stream and clears its connection state.
-   */
   function unsubscribePublicationEvents(): void {
     publicationEventsAbortController.value?.abort()
     publicationEventsAbortController.value = null
@@ -1102,7 +1115,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     priority?: boolean
   }): Promise<Publication> {
     const localPub: Publication = {
-      id: `pub-${Date.now()}`,
+      id: crypto.randomUUID(),
       content: opts.bodyText,
       title: opts.title,
       channels: [toChannelProvider('linkedin')],
@@ -1427,7 +1440,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     assetIds?: string[]
     socialAccountId?: string
   }): Promise<Publication> {
-    const publicationId = `pub-${Date.now()}`
+    const publicationId = crypto.randomUUID()
 
     const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
     const effectiveScheduledAt =

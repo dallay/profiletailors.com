@@ -91,11 +91,13 @@ data class Notification(
 @ValueObject
 value class NotificationId(val value: String) {
     init {
-        require(value.isNotBlank()) { "Notification id cannot be blank" }
+        require(UUID.fromString(value).toString() == value) {
+            "Notification id must be a canonical UUID"
+        }
     }
 
     companion object {
-        fun generate(): NotificationId = NotificationId("ntf-${UUID.randomUUID()}")
+        fun generate(): NotificationId = NotificationId(UUID.randomUUID().toString())
     }
 }
 

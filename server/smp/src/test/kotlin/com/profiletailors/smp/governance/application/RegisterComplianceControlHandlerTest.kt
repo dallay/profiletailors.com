@@ -11,7 +11,6 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal class RegisterComplianceControlHandlerTest {
 
@@ -54,7 +53,7 @@ internal class RegisterComplianceControlHandlerTest {
 
         coVerify(exactly = 1) { repository.save(any()) }
         val saved = savedSlot.captured
-        assertTrue(saved.id.value.startsWith("ctrl-"))
+        assertEquals(saved.id.value, java.util.UUID.fromString(saved.id.value).toString())
         assertEquals(command.controlKey, saved.controlKey)
         assertEquals(command.name, saved.name)
         assertEquals(command.owner, saved.owner)

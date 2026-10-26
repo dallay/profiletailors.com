@@ -8,6 +8,9 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
+import com.profiletailors.smp.publishing.domain.NotificationCategory
+import com.profiletailors.smp.publishing.domain.NotificationEvent
+import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationEvent
@@ -104,6 +107,7 @@ class PublicationEventEmissionTest {
     @Test
     fun `delete emits deleted event after single atomic boundary`() = runTest {
         val events = RecordingPublicationEventPublisher()
+        val notificationEvents = RecordingNotificationEventRepository()
         val transactionRunner = passThroughTransactionRunner()
         val handler = DeletePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
@@ -116,11 +120,14 @@ class PublicationEventEmissionTest {
             transactionRunner = transactionRunner,
             clock = fixedClock,
             publicationEventPublisher = events,
+            notificationEventRepository = notificationEvents,
         )
 
         handler.handle(DeletePublicationCommand("pub-1"))
 
         assertEquals(1, transactionRunner.invocations)
+        assertEquals(1, notificationEvents.received.size)
+        assertTrue(isCanonicalUuid(notificationEvents.received.single().id))
         assertEquals(1, events.received.size)
         assertEquals(PublicationEventType.DELETED, events.received.single().type)
         assertEquals("pub-1", events.received.single().publicationId)
@@ -255,6 +262,26 @@ class PublicationEventEmissionTest {
             if (fail) throw IllegalStateException("transaction rolled back")
             return block()
         }
+    }
+
+    private fun isCanonicalUuid(value: String): Boolean =
+        runCatching { java.util.UUID.fromString(value).toString() == value }.getOrDefault(false)
+
+    private class RecordingNotificationEventRepository : NotificationEventRepository {
+        val received = mutableListOf<NotificationEvent>()
+
+        override suspend fun record(event: NotificationEvent): NotificationEvent {
+            received += event
+            return event
+        }
+
+        override suspend fun findByWorkspace(
+            workspaceId: String,
+            socialAccountId: String?,
+            publicationId: String?,
+            categories: Set<NotificationCategory>?,
+            limit: Int,
+        ): List<NotificationEvent> = received.filter { it.workspaceId == workspaceId }
     }
 
     private class RecordingPublicationEventPublisher : PublicationEventPublisher {

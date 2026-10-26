@@ -65,6 +65,7 @@ class JoinWaitlistHandler(
                     )
                     consentRecorder.record(
                         WaitlistConsentRecordRequest(
+                            waitlistId = waitlist.id,
                             waitlistKey = command.waitlistKey,
                             entryId = result.entry.id,
                             normalizedEmail = result.entry.normalizedEmail,

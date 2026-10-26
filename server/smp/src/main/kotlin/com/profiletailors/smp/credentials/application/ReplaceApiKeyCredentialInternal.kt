@@ -6,11 +6,11 @@ import com.profiletailors.smp.credentials.application.ApiKeyCredentialReplacemen
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialResult
 import java.security.SecureRandom
+import java.util.UUID
 
 private const val API_KEY_PREFIX = "ptk_"
 private const val LOOKUP_KEY_BYTES = 12
 private const val SECRET_BYTES = 24
-private const val CREDENTIAL_REFERENCE_BYTES = 16
 
 @Service
 class ReplaceApiKeyCredentialHandler(private val gateway: ApiKeyCredentialReplacementGateway) :
@@ -24,7 +24,7 @@ internal class SecureRandomApiKeyCredentialValueFactory :
     com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {
     private val secureRandom = SecureRandom()
 
-    override fun nextCredentialReference(): String = "api-key-${secureToken(CREDENTIAL_REFERENCE_BYTES)}"
+    override fun nextCredentialReference(): String = UUID.randomUUID().toString()
 
     override fun nextPlaintextApiKey():
         com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey {

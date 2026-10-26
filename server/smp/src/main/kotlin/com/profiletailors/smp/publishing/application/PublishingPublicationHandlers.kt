@@ -223,7 +223,7 @@ internal class DeletePublicationHandler(
             recurringScheduleRepository.pauseByTemplatePost(workspaceId, current.id)
             notificationEventRepository.record(
                 com.profiletailors.smp.publishing.domain.NotificationEvent(
-                    id = "nevt-${java.util.UUID.randomUUID()}", workspaceId = workspaceId,
+                    id = java.util.UUID.randomUUID().toString(), workspaceId = workspaceId,
                     provider = current.provider, socialAccountId = current.socialAccountId,
                     publicationId = current.id,
                     category = com.profiletailors.smp.publishing.domain.NotificationCategory.RECURRENCE_PAUSED,

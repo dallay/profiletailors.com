@@ -3,6 +3,7 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentRepository
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
@@ -16,10 +17,13 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import java.util.UUID
 
 internal class WithdrawConsentHandlerTest {
 
     private val repository: ConsentRepository = mockk()
+    private val workspaceScope = ConsentScope.Workspace(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+    private val waitlistScope = ConsentScope.Waitlist(workspaceScope.id)
     private val fixedClock: Clock = Clock.fixed(
         Instant.parse("2026-08-01T10:00:00Z"),
         ZoneId.of("UTC"),
@@ -34,7 +38,7 @@ internal class WithdrawConsentHandlerTest {
     fun `withdraws active consent without destroying historical identity`() = runTest {
         val existing = activeConsent()
         val command = WithdrawConsentCommand(
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = existing.subjectReference,
             purpose = existing.purpose,
             policyVersion = existing.policyVersion,
@@ -43,7 +47,7 @@ internal class WithdrawConsentHandlerTest {
 
         coEvery {
             repository.withdrawActiveReturning(
-                workspaceId = "ws-001",
+                scope = workspaceScope,
                 subjectReference = existing.subjectReference,
                 purpose = existing.purpose,
                 policyVersion = existing.policyVersion,
@@ -64,7 +68,7 @@ internal class WithdrawConsentHandlerTest {
 
         coVerify {
             repository.withdrawActiveReturning(
-                workspaceId = "ws-001",
+                scope = workspaceScope,
                 subjectReference = existing.subjectReference,
                 purpose = existing.purpose,
                 policyVersion = existing.policyVersion,
@@ -75,10 +79,10 @@ internal class WithdrawConsentHandlerTest {
     }
 
     @Test
-    fun `withdrawal lookup is scoped by workspace`() = runTest {
-        val existing = activeConsent(workspaceId = "ws-isolated")
+    fun `withdrawal lookup preserves explicit waitlist scope`() = runTest {
+        val existing = activeConsent(scope = waitlistScope)
         val command = WithdrawConsentCommand(
-            workspaceId = "ws-isolated",
+            scope = waitlistScope,
             subjectReference = existing.subjectReference,
             purpose = existing.purpose,
             policyVersion = existing.policyVersion,
@@ -86,7 +90,7 @@ internal class WithdrawConsentHandlerTest {
 
         coEvery {
             repository.withdrawActiveReturning(
-                "ws-isolated",
+                waitlistScope,
                 existing.subjectReference,
                 existing.purpose,
                 existing.policyVersion,
@@ -99,7 +103,7 @@ internal class WithdrawConsentHandlerTest {
 
         coVerify {
             repository.withdrawActiveReturning(
-                "ws-isolated",
+                waitlistScope,
                 existing.subjectReference,
                 existing.purpose,
                 existing.policyVersion,
@@ -113,7 +117,7 @@ internal class WithdrawConsentHandlerTest {
     fun `throws when no active consent exists`() = runTest {
         val subject = SubjectReference.workspace("ws-001")
         val command = WithdrawConsentCommand(
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = subject,
             purpose = "marketing_emails",
             policyVersion = "2026-07-01",
@@ -121,7 +125,7 @@ internal class WithdrawConsentHandlerTest {
 
         coEvery {
             repository.withdrawActiveReturning(
-                "ws-001",
+                workspaceScope,
                 subject,
                 "marketing_emails",
                 "2026-07-01",
@@ -136,7 +140,7 @@ internal class WithdrawConsentHandlerTest {
 
         coVerify(exactly = 1) {
             repository.withdrawActiveReturning(
-                "ws-001",
+                workspaceScope,
                 subject,
                 "marketing_emails",
                 "2026-07-01",
@@ -147,22 +151,14 @@ internal class WithdrawConsentHandlerTest {
     }
 
     @Test
-    fun `rejects blank workspaceId`() = runTest {
-        val command = WithdrawConsentCommand(
-            workspaceId = "",
-            subjectReference = SubjectReference.workspace("ws-001"),
-            purpose = "marketing_emails",
-            policyVersion = "2026-07-01",
-        )
-
-        val error = shouldThrow<IllegalArgumentException> { handler.handle(command) }
-        error.message shouldBe "workspaceId must not be blank"
+    fun `waitlist scope rejects blank identifiers at construction`() {
+        shouldThrow<IllegalArgumentException> { ConsentScope.Waitlist(UUID.fromString("")) }
     }
 
     @Test
     fun `rejects blank purpose`() = runTest {
         val command = WithdrawConsentCommand(
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.workspace("ws-001"),
             purpose = "",
             policyVersion = "2026-07-01",
@@ -172,10 +168,10 @@ internal class WithdrawConsentHandlerTest {
         error.message shouldBe "purpose must not be blank"
     }
 
-    private fun activeConsent(workspaceId: String = "ws-001"): ConsentRecord = ConsentRecord(
+    private fun activeConsent(scope: ConsentScope = workspaceScope): ConsentRecord = ConsentRecord(
         id = ConsentRecordId("cs-001"),
-        workspaceId = workspaceId,
-        subjectReference = SubjectReference.workspace(workspaceId),
+        scope = scope,
+        subjectReference = SubjectReference.user("user-001"),
         consentType = ConsentType.CONSENT,
         purpose = "marketing_emails",
         policyVersion = "2026-07-01",

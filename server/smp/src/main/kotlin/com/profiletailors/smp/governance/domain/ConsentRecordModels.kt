@@ -76,7 +76,7 @@ data class SubjectReference(val value: String, val kind: SubjectKind) {
 @AggregateRoot
 data class ConsentRecord(
     val id: ConsentRecordId,
-    val workspaceId: String,
+    val scope: ConsentScope,
     val subjectReference: SubjectReference,
     val consentType: ConsentType,
     val purpose: String,
@@ -91,7 +91,6 @@ data class ConsentRecord(
     val version: Long = 1,
 ) {
     init {
-        require(workspaceId.isNotBlank()) { "Consent workspaceId must not be blank" }
         require(purpose.isNotBlank()) { "Consent purpose must not be blank" }
         require(policyVersion.isNotBlank()) { "Consent policy version must not be blank" }
         require(source.isNotBlank()) { "Consent source must not be blank" }

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: lead-capture-001-create-waitlists
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: waitlists
@@ -55,7 +55,7 @@ databaseChangeLog:
 
   - changeSet:
       id: lead-capture-001-create-waitlist-entries
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: waitlist_entries

@@ -35,11 +35,11 @@ Feature: Stale publication-job visibility for platform operators (DALLAY-555)
   # ── Happy path ──────────────────────────────────────────────────────────
 
   Scenario: Operator lists stale claims and sees publication, workspace, age and suggested action
-    Given a queued publication exists for "stale-test-1"
+    Given a queued publication exists for "80000000-0000-4000-8000-000000000001"
     And a publication job has been claimed by worker "worker-stuck-bdd" with a stale lease
     When the platform operator requests the stale publication jobs endpoint
     Then the stale jobs response status should be 200
-    And the stale jobs response should contain a jobId for "stale-test-1"
+    And the stale jobs response should contain a jobId for "80000000-0000-4000-8000-000000000001"
     And the stale jobs response should contain the workspaceId for the publication
     And the stale jobs entry should expose ageSeconds greater than or equal to 0
     And the stale jobs entry should expose suggestedAction "RELEASE_AND_RETRY"
@@ -48,7 +48,7 @@ Feature: Stale publication-job visibility for platform operators (DALLAY-555)
   # ── No silent publication ────────────────────────────────────────────────
 
   Scenario: Stale claims cannot be silently treated as published
-    Given a queued publication exists for "stale-test-2"
+    Given a queued publication exists for "80000000-0000-4000-8000-000000000002"
     And a publication job has been claimed by worker "worker-stuck-bdd-2" with a stale lease
     When the platform operator requests the stale publication jobs endpoint
     Then the stale jobs response status should be 200
@@ -58,7 +58,7 @@ Feature: Stale publication-job visibility for platform operators (DALLAY-555)
   # ── Redaction contract ───────────────────────────────────────────────────
 
   Scenario: Stale jobs response is safe-shaped and contains no tokens, URLs, exceptions or storage paths
-    Given a queued publication exists for "stale-test-3"
+    Given a queued publication exists for "80000000-0000-4000-8000-000000000003"
     And a publication job has been claimed by worker "worker-stuck-bdd-3" with a stale lease
     When the platform operator requests the stale publication jobs endpoint
     Then the stale jobs response status should be 200

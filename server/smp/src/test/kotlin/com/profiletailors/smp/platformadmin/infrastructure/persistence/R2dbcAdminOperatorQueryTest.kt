@@ -120,10 +120,10 @@ class R2dbcAdminOperatorQueryTest {
     }
 
     @Test
-    fun `should resolve a prefixed user identity when stored uuid has no direct match`() = runTest {
+    fun `resolves a prefixed user identity through canonical principal UUID`() = runTest {
         val principalId = UUID.randomUUID()
         val identity = PrincipalIdentityFacts(
-            principalId = "user-$principalId",
+            principalId = principalId.toString(),
             principalType = PrincipalType.USER,
             subject = "subject-1",
             provider = null,
@@ -141,8 +141,7 @@ class R2dbcAdminOperatorQueryTest {
                 assignedBy = UUID.randomUUID(),
             ),
         )
-        coEvery { principalIdentityLookup.findByPrincipalId(principalId.toString()) } returns null
-        coEvery { principalIdentityLookup.findByPrincipalId("user-$principalId") } returns identity
+        coEvery { principalIdentityLookup.findByPrincipalId(principalId.toString()) } returns identity
 
         val result = query.listAllActive()
 

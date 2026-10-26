@@ -6,7 +6,7 @@ import type { DsarRequest } from '@modules/settings/infrastructure/privacy.store
 import { usePrivacyStore } from '@modules/settings/infrastructure/privacy.store'
 
 const mockUser = {
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'test@test.com',
   username: 'testuser',
   emailStatus: 'VERIFIED',
@@ -29,7 +29,7 @@ vi.mock('@shared/i18n', () => ({
 
 vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-1',
+    activeWorkspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
   }),
 }))
 
@@ -91,8 +91,8 @@ describe('PrivacySection', () => {
     vi.spyOn(store, 'fetchRequests').mockResolvedValue([])
 
     const mockResponse: DsarRequest = {
-      id: 'req-new',
-      workspaceId: 'ws-1',
+      id: 'b3ff63d4-fafd-50a5-8a18-57da5b5c377e',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       type: 'ACCESS',
       status: 'PENDING',
       notes: null,
@@ -127,8 +127,8 @@ describe('PrivacySection', () => {
     const store = usePrivacyStore()
     vi.spyOn(store, 'fetchRequests').mockResolvedValue([])
     const submitSpy = vi.spyOn(store, 'submitRequest').mockResolvedValue({
-      id: 'req-new',
-      workspaceId: 'ws-1',
+      id: 'b3ff63d4-fafd-50a5-8a18-57da5b5c377e',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       type: 'ACCESS',
       status: 'PENDING',
       notes: null,

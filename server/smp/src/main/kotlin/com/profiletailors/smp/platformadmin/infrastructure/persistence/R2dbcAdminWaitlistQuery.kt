@@ -34,7 +34,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         }
         query.waitlistId?.let {
             conditions += "we.waitlist_id = :waitlistId"
-            params["waitlistId"] = it
+            params["waitlistId"] = UUID.fromString(it)
         }
         query.waitlistKey?.let {
             conditions += "w.key = :waitlistKey"
@@ -96,13 +96,13 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
 
     override suspend fun findById(entryId: String): AdminWaitlistEntryDetail? {
         val entry = databaseClient.sql(SELECT_ENTRY_DETAIL)
-            .bind("id", entryId)
+            .bind("id", UUID.fromString(entryId))
             .map { row, _ -> row.toEntrySnapshot() }
             .one()
             .awaitSingleOrNull() ?: return null
 
         val invitations = databaseClient.sql(SELECT_INVITATIONS_FOR_ENTRY)
-            .bind("waitlistEntryId", entryId)
+            .bind("waitlistEntryId", UUID.fromString(entryId))
             .map { row, _ -> row.toInvitationSummary() }
             .all()
             .collectList()

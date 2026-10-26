@@ -5,7 +5,7 @@ databaseChangeLog:
 
   - changeSet:
       id: publishing-013-add-publications-columns
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - addColumn:
             tableName: publications
@@ -54,7 +54,7 @@ databaseChangeLog:
 
   - changeSet:
       id: publishing-013-create-notification-events
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: notification_events
@@ -140,7 +140,7 @@ databaseChangeLog:
 
   - changeSet:
       id: publishing-013-add-credential-metadata-columns
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - addColumn:
             tableName: secure_credentials

@@ -9,6 +9,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 private const val BIND_WORKSPACE_ID = "workspaceId"
 
@@ -26,7 +27,7 @@ class R2dbcHashtagSavedSetRepository(
             ORDER BY created_at ASC
         """.trimIndent(),
     )
-        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
         .map { row, _ -> mapRow(row) }
         .all()
         .collectList()
@@ -40,8 +41,8 @@ class R2dbcHashtagSavedSetRepository(
             WHERE workspace_id = :workspaceId AND id = :setId
             """.trimIndent(),
         )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
-            .bind("setId", setId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+            .bind("setId", UUID.fromString(setId))
             .map { row, _ -> mapRow(row) }
             .one()
             .awaitSingleOrNull()
@@ -53,8 +54,8 @@ class R2dbcHashtagSavedSetRepository(
             VALUES (:id, :workspaceId, :name, :hashtagsJson, :createdAt, :updatedAt)
             """.trimIndent(),
         )
-            .bind("id", set.id)
-            .bind(BIND_WORKSPACE_ID, set.workspaceId)
+            .bind("id", UUID.fromString(set.id))
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(set.workspaceId))
             .bind("name", set.name)
             .bind("hashtagsJson", objectMapper.writeValueAsString(set.hashtags))
             .bind("createdAt", set.createdAt)
@@ -69,8 +70,8 @@ class R2dbcHashtagSavedSetRepository(
         val rows = databaseClient.sql(
             "DELETE FROM hashtag_saved_sets WHERE workspace_id = :workspaceId AND id = :setId",
         )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
-            .bind("setId", setId)
+            .bind(BIND_WORKSPACE_ID, UUID.fromString(workspaceId))
+            .bind("setId", UUID.fromString(setId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -82,8 +83,8 @@ class R2dbcHashtagSavedSetRepository(
         val updatedAt = row.get("updated_at", OffsetDateTime::class.java)!!.toInstant()
         val hashtagsJson = requireNotNull(row.get("hashtags_json", String::class.java))
         return HashtagSavedSet(
-            id = requireNotNull(row.get("id", String::class.java)),
-            workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+            id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+            workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
             name = requireNotNull(row.get("name", String::class.java)),
             hashtags = objectMapper.readValue(hashtagsJson),
             createdAt = createdAt,

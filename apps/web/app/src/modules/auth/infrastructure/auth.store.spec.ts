@@ -40,15 +40,15 @@ describe('auth store verifyEmail', () => {
       accessToken: 'verified-token',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'verified@example.com',
       username: 'verified-user',
       emailStatus: 'PENDING',
-      workspaceId: 'ws-verified',
+      workspaceId: '7e871ce9-881c-5a35-8bfb-192397f375cf',
     }
 
     const profile: CurrentUserProfile = {
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'verified@example.com',
       username: 'verified-user',
       displayIdentity: 'Verified User',
@@ -67,7 +67,7 @@ describe('auth store verifyEmail', () => {
     expect(auth.isAuthenticated).toBe(true)
     expect(auth.accessToken).toBe('verified-token')
     expect(auth.user).toMatchObject({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       emailStatus: 'VERIFIED',
       displayIdentity: 'Verified User',
     })
@@ -97,7 +97,7 @@ describe('auth store verifyEmail', () => {
     // Seed an authenticated session so logout has something to clear
     auth.$patch({
       user: {
-        principalId: 'user-1',
+        principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
         email: 'test@example.com',
         username: 't',
         displayIdentity: 'Test',

@@ -6,7 +6,7 @@ import RecurringScheduleModal from './RecurringScheduleModal.vue'
 
 const mockT = (key: string) => key
 const publication = {
-  id: 'pub-1',
+  id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
   content: 'Test post',
   channels: [],
   scheduledAt: '2099-12-31T12:00:00.000Z',
@@ -29,11 +29,13 @@ vi.mock('@shared/i18n', () => ({
 
 vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   usePublishingStore: () => ({
-    workspaces: [{ id: 'ws-1', name: 'Test Workspace', active: true }],
-    selectedWorkspaceId: 'ws-1',
+    workspaces: [
+      { id: '820c22d8-9ce7-5e76-867f-04bac4e53b59', name: 'Test Workspace', active: true },
+    ],
+    selectedWorkspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     linkedinChannels: [
-      { id: 'li-1', name: 'My Page', type: 'PAGE' as const },
-      { id: 'li-2', name: 'My Profile', type: 'PROFILE' as const },
+      { id: '2896e95d-50ec-51cd-a8c7-8aa8ded945d7', name: 'My Page', type: 'PAGE' as const },
+      { id: '552d6af1-de96-5849-95bc-d9014818dec4', name: 'My Profile', type: 'PROFILE' as const },
     ],
     posts: [],
     fetchLinkedInChannels: vi.fn(),
@@ -86,9 +88,9 @@ describe('RecurringScheduleModal', () => {
     setActivePinia(pinia)
     vi.clearAllMocks()
     mockStore.createRecurringSchedule.mockImplementation(async (templatePostId, input) => ({
-      id: 'rs-1',
-      workspaceId: 'ws-1',
-      createdBy: 'user-1',
+      id: '7e4bf9f2-91c1-5cc2-8461-3b6779481a4b',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      createdBy: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       templatePostId,
       ...input,
       nextScheduledAt: input.startsAt,

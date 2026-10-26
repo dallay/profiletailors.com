@@ -9,6 +9,8 @@ fun interface ActiveWorkspaceContextResolver {
 class MissingActiveWorkspaceException(message: String = "Active workspace identifier is required.") :
     IllegalArgumentException(message)
 
+class InvalidActiveWorkspaceException : IllegalArgumentException("Active workspace identifier must be a UUID.")
+
 class WorkspaceOwnershipOperationRequiresWorkspaceContextException :
     IllegalStateException(
         "Workspace ownership operations require an active workspace context.",

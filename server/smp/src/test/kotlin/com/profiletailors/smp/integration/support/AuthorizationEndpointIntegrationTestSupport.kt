@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.sql.DriverManager
+import java.util.UUID
 
 abstract class AuthorizationEndpointIntegrationTestSupport {
 
@@ -59,9 +60,13 @@ abstract class AuthorizationEndpointIntegrationTestSupport {
         "DELETE FROM principals",
     )
 
-    protected suspend fun seedRolePermission(roleId: String = "role-1", permissionId: String, permissionKey: String) {
+    protected suspend fun seedRolePermission(
+        roleId: String = "c88a1fae-af37-5aa1-b2d4-717e9e8b478c",
+        permissionId: String,
+        permissionKey: String,
+    ) {
         databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
-            .bind("id", permissionId)
+            .bind("id", UUID.fromString(permissionId))
             .bind("permissionKey", permissionKey)
             .fetch()
             .rowsUpdated()
@@ -69,8 +74,8 @@ abstract class AuthorizationEndpointIntegrationTestSupport {
         databaseClient.sql(
             "INSERT INTO role_permissions (role_id, permission_id) VALUES (:roleId, :permissionId)",
         )
-            .bind("roleId", roleId)
-            .bind("permissionId", permissionId)
+            .bind("roleId", UUID.fromString(roleId))
+            .bind("permissionId", UUID.fromString(permissionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -79,6 +84,9 @@ abstract class AuthorizationEndpointIntegrationTestSupport {
     protected fun applyLiquibaseBaseline() {
         DriverManager.getConnection(liquibaseJdbcUrl(), liquibaseUsername(), liquibasePassword())
             .use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+                }
                 val database = DatabaseFactory.getInstance()
                     .findCorrectDatabaseImplementation(
                         liquibase.database.jvm.JdbcConnection(connection),
@@ -87,7 +95,7 @@ abstract class AuthorizationEndpointIntegrationTestSupport {
                     "db/changelog/db.changelog-master.yaml",
                     ClassLoaderResourceAccessor(),
                     database,
-                ).update(Contexts(), LabelExpression())
+                ).update(Contexts("uuid-native-identifiers"), LabelExpression())
             }
     }
 }

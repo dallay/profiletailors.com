@@ -40,7 +40,7 @@ class PostgresTestContainerSupportTest {
         statements.indexOf("DELETE FROM workspace_file_blobs") shouldBeLessThan
             statements.indexOf("DELETE FROM workspaces")
         statements.indexOf("DELETE FROM waitlist_entries") shouldBeLessThan
-            statements.indexOf("DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'")
+            statements.indexOf("DELETE FROM waitlists WHERE id <> 'ea2c112c-d7f8-5e73-a4a8-ee4c372ed124'")
     }
 
     @Test

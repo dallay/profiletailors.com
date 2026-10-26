@@ -17,6 +17,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcApiKeyCredentialReplacementGateway(
@@ -63,7 +64,7 @@ class R2dbcApiKeyCredentialReplacementGateway(
 
     private suspend fun loadActivePredecessor(credentialReference: String): PredecessorCredentialRecord {
         val row = databaseClient.sql(LOAD_PREDECESSOR_SQL)
-            .bind("credentialReference", credentialReference)
+            .bind("credentialReference", UUID.fromString(credentialReference))
             .map { r, _ ->
                 PredecessorCredentialRecord(
                     credentialReference = requireNotNull(r.get("id", String::class.java)),
@@ -107,12 +108,12 @@ class R2dbcApiKeyCredentialReplacementGateway(
         successorSecretVerifier: String,
     ) {
         databaseClient.sql(INSERT_SUCCESSOR_SQL)
-            .bind("successorCredentialReference", successorCredentialReference)
-            .bind("principalId", predecessor.principalId)
+            .bind("successorCredentialReference", UUID.fromString(successorCredentialReference))
+            .bind("principalId", UUID.fromString(predecessor.principalId))
             .bind("lookupKey", plaintextApiKey.lookupKey)
             .bind("keyPrefix", plaintextApiKey.keyPrefix)
             .bind("secretVerifier", successorSecretVerifier)
-            .bind("predecessorCredentialReference", predecessor.credentialReference)
+            .bind("predecessorCredentialReference", UUID.fromString(predecessor.credentialReference))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -124,10 +125,10 @@ class R2dbcApiKeyCredentialReplacementGateway(
         replacedAt: Instant,
     ) {
         val updatedRows = databaseClient.sql(MARK_PREDECESSOR_SQL)
-            .bind("successorCredentialReference", successorCredentialReference)
+            .bind("successorCredentialReference", UUID.fromString(successorCredentialReference))
             .bind("replacedAt", replacedAt)
-            .bind("predecessorCredentialReference", predecessor.credentialReference)
-            .bind("principalId", predecessor.principalId)
+            .bind("predecessorCredentialReference", UUID.fromString(predecessor.credentialReference))
+            .bind("principalId", UUID.fromString(predecessor.principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

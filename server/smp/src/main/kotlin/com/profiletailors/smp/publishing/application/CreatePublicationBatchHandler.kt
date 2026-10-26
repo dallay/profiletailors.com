@@ -87,7 +87,7 @@ internal class CreatePublicationBatchHandler(
             throw PublicationValidationException("At least one target is required.")
         }
 
-        val groupId = "pub-group-${UUID.randomUUID()}"
+        val groupId = UUID.randomUUID().toString()
         val preparedTargets = command.targets.mapIndexed { index, target ->
             prepareOne(index, workspaceId, principalCtx.principalId, command, target, groupId)
         }
@@ -181,7 +181,7 @@ internal class CreatePublicationBatchHandler(
         account: SocialAccount,
         now: Instant,
     ): PublicationDraft = PublicationDraft(
-        id = "pub-${UUID.randomUUID()}",
+        id = UUID.randomUUID().toString(),
         workspaceId = workspaceId,
         authorPrincipalId = authorPrincipalId,
         provider = account.provider,

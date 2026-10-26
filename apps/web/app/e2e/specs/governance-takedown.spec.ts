@@ -6,15 +6,15 @@ test.describe('media copyright takedown', () => {
     await mockAuthenticatedSession(page, {
       email: 'owner@example.com',
       emailStatus: 'VERIFIED',
-      workspaceId: 'workspace-1',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
     })
   })
 
   test('reviews and approves a reported takedown', async ({ page }) => {
     const report = {
-      reportId: 'report-1',
-      workspaceId: 'workspace-1',
-      assetId: 'asset-1',
+      reportId: '17e8782b-5668-5483-a319-82b4ad37c145',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+      assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
       reporterEmail: 'reporter@example.com',
       reason: 'Copyright infringement',
       status: 'REPORTED',
@@ -32,13 +32,16 @@ test.describe('media copyright takedown', () => {
       }
       await route.fallback()
     })
-    await page.route('**/api/governance/takedown/reports/report-1/approve', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ ...report, status: 'APPROVED' }),
-      })
-    })
+    await page.route(
+      '**/api/governance/takedown/reports/17e8782b-5668-5483-a319-82b4ad37c145/approve',
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...report, status: 'APPROVED' }),
+        })
+      },
+    )
 
     await page.goto('/governance/takedown')
 

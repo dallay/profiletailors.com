@@ -187,41 +187,50 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
     )
 
     private suspend fun cleanup() {
-        databaseClient.sql("DELETE FROM password_reset_tokens WHERE principal_id = 'reset-tx-user'")
+        databaseClient.sql(
+            "DELETE FROM password_reset_tokens WHERE principal_id = '00000000-0000-4000-8000-000000000051'",
+        )
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM refresh_sessions WHERE principal_id = 'reset-tx-user'")
+        databaseClient.sql("DELETE FROM refresh_sessions WHERE principal_id = '00000000-0000-4000-8000-000000000051'")
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM local_password_credentials WHERE principal_id = 'reset-tx-user'")
+        databaseClient.sql(
+            "DELETE FROM local_password_credentials WHERE principal_id = '00000000-0000-4000-8000-000000000051'",
+        )
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM user_identities WHERE principal_id = 'reset-tx-user'")
+        databaseClient.sql("DELETE FROM user_identities WHERE principal_id = '00000000-0000-4000-8000-000000000051'")
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM principals WHERE id = 'reset-tx-user'")
+        databaseClient.sql("DELETE FROM principals WHERE id = '00000000-0000-4000-8000-000000000051'")
             .fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedPrincipalCredentialAndSession() {
         databaseClient.sql(
             "INSERT INTO principals (id, principal_type, subject, display_identity) " +
-                "VALUES ('reset-tx-user', 'USER', 'local:reset-tx@example.com', 'reset-tx')",
+                "VALUES ('00000000-0000-4000-8000-000000000051', 'USER', 'local:reset-tx@example.com', 'reset-tx')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO user_identities (principal_id, email, username) " +
-                "VALUES ('reset-tx-user', 'reset-tx@example.com', 'reset-tx')",
+                "VALUES ('00000000-0000-4000-8000-000000000051', 'reset-tx@example.com', 'reset-tx')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO local_password_credentials (principal_id, password_hash) " +
-                "VALUES ('reset-tx-user', 'old-hash')",
+                "VALUES ('00000000-0000-4000-8000-000000000051', 'old-hash')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO refresh_sessions " +
                 "(id, principal_id, lookup_key, token_verifier, status, expires_at) " +
-                "VALUES ('reset-tx-session', 'reset-tx-user', 'lookup', 'verifier', 'ACTIVE', :expiresAt)",
+                """
+                VALUES (
+                    '376132e7-af01-58ef-9ee6-77c6254e1650', '00000000-0000-4000-8000-000000000051',
+                    'lookup', 'verifier', 'ACTIVE', :expiresAt
+                )
+                """.trimIndent(),
         ).bind("expiresAt", now.plusSeconds(3600)).fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedToken(rawToken: String, expiresAt: Instant) {
         repository.create(
-            principalId = "reset-tx-user",
+            principalId = "00000000-0000-4000-8000-000000000051",
             tokenHash = PasswordResetTokenHasher.hash(rawToken),
             requestedAt = now.minusSeconds(60),
             expiresAt = expiresAt,
@@ -229,7 +238,10 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
     }
 
     private suspend fun passwordHash(): String = databaseClient.sql(
-        "SELECT password_hash FROM local_password_credentials WHERE principal_id = 'reset-tx-user'",
+        """
+        SELECT password_hash FROM local_password_credentials
+        WHERE principal_id = '00000000-0000-4000-8000-000000000051'
+        """.trimIndent(),
     ).map { row, _ -> requireNotNull(row.get("password_hash", String::class.java)) }.one().awaitSingle()
 
     private suspend fun tokenUsed(tokenHash: String): Boolean = databaseClient.sql(
@@ -240,7 +252,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
 
     private suspend fun activeSessions(): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM refresh_sessions " +
-            "WHERE principal_id = 'reset-tx-user' AND status = 'ACTIVE'",
+            "WHERE principal_id = '00000000-0000-4000-8000-000000000051' AND status = 'ACTIVE'",
     ).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
     private object TestPasswordHasher : PasswordHasher {

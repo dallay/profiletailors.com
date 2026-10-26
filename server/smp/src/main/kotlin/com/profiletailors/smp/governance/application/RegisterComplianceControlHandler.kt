@@ -18,7 +18,7 @@ internal class RegisterComplianceControlHandler(private val repository: Complian
      */
     override suspend fun handle(command: RegisterComplianceControlCommand) {
         val control = ComplianceControl(
-            id = command.id ?: ComplianceControlId("ctrl-${UUID.randomUUID()}"),
+            id = command.id ?: ComplianceControlId(UUID.randomUUID().toString()),
             controlKey = command.controlKey,
             name = command.name,
             description = command.description,

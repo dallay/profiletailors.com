@@ -29,6 +29,18 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     private lateinit var repository: R2dbcDataSubjectRequestRepository
 
+    @Test
+    fun `native UUID workspace round trips with requester identity`() = runTest {
+        val request = createRequest("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+            .copy(workspaceId = "cccccccc-cccc-cccc-cccc-cccccccccccc")
+
+        repository.save(request)
+
+        val found = requireNotNull(repository.findById(request.id.value))
+        assertEquals(request.workspaceId, found.workspaceId)
+        assertEquals(request.requestedBy, found.requestedBy)
+    }
+
     @BeforeEach
     fun setUp() = runTest {
         databaseClient.sql("DELETE FROM data_subject_requests").fetch().rowsUpdated().awaitSingle()
@@ -37,7 +49,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `save and findById roundtrip`() = runTest {
-        val request = createRequest("dsr-11111111-1111-1111-1111-111111111111")
+        val request = createRequest("11111111-1111-1111-1111-111111111111")
 
         repository.save(request)
         val found = repository.findById(request.id.value)
@@ -46,7 +58,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
         assertEquals(request.id, found!!.id)
         assertEquals(RequestType.ACCESS, found.requestType)
         assertEquals(DataSubjectRequestStatus.PENDING, found.status)
-        assertEquals("principal-1", found.requestedBy)
+        assertEquals(PRINCIPAL_1, found.requestedBy)
         assertEquals("user@example.com", found.requestedByEmail)
         assertEquals("Test notes", found.notes)
         assertNotNull(found.expiresAt)
@@ -54,14 +66,14 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `findById returns null for non-existent id`() = runTest {
-        val found = repository.findById("nonexistent")
+        val found = repository.findById(NONEXISTENT)
 
         assertNull(found)
     }
 
     @Test
     fun `save updates existing request`() = runTest {
-        val id = "dsr-22222222-2222-2222-2222-222222222222"
+        val id = "22222222-2222-2222-2222-222222222222"
         val request = createRequest(id)
         repository.save(request)
 
@@ -76,30 +88,30 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `findByRequester returns requests for that principal`() = runTest {
-        val req1 = createRequest("dsr-33333333-3333-3333-3333-333333333333", requestedBy = "principal-1")
-        val req2 = createRequest("dsr-44444444-4444-4444-4444-444444444444", requestedBy = "principal-1")
-        val req3 = createRequest("dsr-55555555-5555-5555-5555-555555555555", requestedBy = "principal-2")
+        val req1 = createRequest("33333333-3333-3333-3333-333333333333", requestedBy = PRINCIPAL_1)
+        val req2 = createRequest("44444444-4444-4444-4444-444444444444", requestedBy = PRINCIPAL_1)
+        val req3 = createRequest("55555555-5555-5555-5555-555555555555", requestedBy = PRINCIPAL_2)
         repository.save(req1)
         repository.save(req2)
         repository.save(req3)
 
-        val results = repository.findByRequester("principal-1")
+        val results = repository.findByRequester(PRINCIPAL_1)
 
         assertEquals(2, results.size)
-        assertEquals("principal-2", repository.findByRequester("principal-2").first().requestedBy)
+        assertEquals(PRINCIPAL_2, repository.findByRequester(PRINCIPAL_2).first().requestedBy)
     }
 
     @Test
     fun `findByRequester returns empty list when none found`() = runTest {
-        val results = repository.findByRequester("unknown")
+        val results = repository.findByRequester(UNKNOWN)
 
         assertEquals(0, results.size)
     }
 
     @Test
     fun `findByStatus filters by status`() = runTest {
-        val pending = createRequest("dsr-66666666-6666-6666-6666-666666666666")
-        val completed = createRequest("dsr-77777777-7777-7777-7777-777777777777")
+        val pending = createRequest("66666666-6666-6666-6666-666666666666")
+        val completed = createRequest("77777777-7777-7777-7777-777777777777")
             .transitionTo(DataSubjectRequestStatus.COMPLETED)
         repository.save(pending)
         repository.save(completed)
@@ -116,7 +128,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
     @Test
     fun `findExpired returns requests past expiry`() = runTest {
         val notExpired = createRequest(
-            id = "dsr-88888888-8888-8888-8888-888888888888",
+            id = "88888888-8888-8888-8888-888888888888",
             createdAt = Instant.parse("2026-07-15T10:00:00Z"),
         )
         repository.save(notExpired)
@@ -129,7 +141,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `save persists across status transitions`() = runTest {
-        val id = "dsr-99999999-9999-9999-9999-999999999999"
+        val id = "99999999-9999-9999-9999-999999999999"
         val request = createRequest(id)
         repository.save(request)
 
@@ -145,7 +157,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `save persists REJECTED with rejection reason`() = runTest {
-        val id = "dsr-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        val id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
         val request = createRequest(id)
         repository.save(request)
 
@@ -160,7 +172,7 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
 
     private fun createRequest(
         id: String,
-        requestedBy: String = "principal-1",
+        requestedBy: String = PRINCIPAL_1,
         createdAt: Instant = Instant.parse("2026-07-15T10:00:00Z"),
     ): DataSubjectRequest = DataSubjectRequest.create(
         CreateDataSubjectRequest(
@@ -174,6 +186,11 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
     )
 
     companion object {
+        private const val PRINCIPAL_1 = "f4b0c946-5bac-5e21-a5af-5213b71804cc"
+        private const val NONEXISTENT = "c855c7ae-709c-5477-a38d-b487e2704375"
+        private const val PRINCIPAL_2 = "7a878b88-f89d-5e15-8c16-200e06a13313"
+        private const val UNKNOWN = "0edc3579-77eb-5d16-b309-e651d9d22fa6"
+
         @Container
         @JvmStatic
         val postgresContainer = PostgresTestContainerSupport.newContainer("data_subject_request_repository")

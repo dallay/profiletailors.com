@@ -14,8 +14,6 @@ interface PublicationResponse {
   publicationId: string
 }
 
-const workspaceHeaders = { 'X-Workspace-Id': 'dev-workspace-001' }
-
 test.describe('Unsplash real provider smoke @real-unsplash @media @composer', () => {
   test('ML-SMOKE-UNSPLASH-001 loads examples, searches, imports, and creates a post', async ({
     page,
@@ -138,14 +136,14 @@ test.describe('Unsplash real provider smoke @real-unsplash @media @composer', ()
       })
     } finally {
       if (publicationId) {
-        await page.request.delete(`/api/publishing/publications/${publicationId}`, {
-          headers: workspaceHeaders,
-        })
+        const publicationCleanup = await page.request.delete(
+          `/api/publishing/publications/${publicationId}`,
+        )
+        expect([204, 404]).toContain(publicationCleanup.status())
       }
       if (importedAssetId) {
-        await page.request.delete(`/api/media/assets/${importedAssetId}`, {
-          headers: workspaceHeaders,
-        })
+        const assetCleanup = await page.request.delete(`/api/media/assets/${importedAssetId}`)
+        expect([204, 404]).toContain(assetCleanup.status())
       }
     }
   })

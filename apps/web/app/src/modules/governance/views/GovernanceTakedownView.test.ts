@@ -86,9 +86,9 @@ vi.mock('@lucide/vue', () => {
 
 function makeReport(overrides: Partial<TakedownReportResponse> = {}): TakedownReportResponse {
   return {
-    reportId: 'rpt-1',
-    workspaceId: 'ws-1',
-    assetId: 'ast-1',
+    reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
     reporterEmail: 'reporter@example.com',
     reason: 'Copyright infringement',
     status: 'REPORTED',
@@ -177,8 +177,8 @@ describe('GovernanceTakedownView.vue', () => {
 
   it('renders a list of reports', async () => {
     const reports = [
-      makeReport({ reportId: 'rpt-1', reason: 'First report' }),
-      makeReport({ reportId: 'rpt-2', reason: 'Second report' }),
+      makeReport({ reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a', reason: 'First report' }),
+      makeReport({ reportId: 'fe230ab0-6aa5-5516-9064-facd90f21819', reason: 'Second report' }),
     ]
     const wrapper = mountView(reports)
     await flushPromises()
@@ -205,8 +205,12 @@ describe('GovernanceTakedownView.vue', () => {
   })
 
   it('calls approveTakedown when approve button is clicked', async () => {
-    mockApprove.mockResolvedValue(makeReport({ reportId: 'rpt-1', status: 'APPROVED' }))
-    mockListReports.mockResolvedValue([makeReport({ reportId: 'rpt-1' })])
+    mockApprove.mockResolvedValue(
+      makeReport({ reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a', status: 'APPROVED' }),
+    )
+    mockListReports.mockResolvedValue([
+      makeReport({ reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a' }),
+    ])
 
     const wrapper = mount(GovernanceTakedownView, {
       global: {
@@ -225,14 +229,20 @@ describe('GovernanceTakedownView.vue', () => {
     await flushPromises()
 
     expect(mockApprove).toHaveBeenCalledTimes(1)
-    expect(mockApprove).toHaveBeenCalledWith('rpt-1')
+    expect(mockApprove).toHaveBeenCalledWith('68f1061d-8371-5dd2-91ec-672c02a62e4a')
   })
 
   it('calls rejectTakedown with rejection reason after opening reject dialog', async () => {
     mockReject.mockResolvedValue(
-      makeReport({ reportId: 'rpt-1', status: 'DISMISSED', rejectionReason: 'Spam' }),
+      makeReport({
+        reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a',
+        status: 'DISMISSED',
+        rejectionReason: 'Spam',
+      }),
     )
-    mockListReports.mockResolvedValue([makeReport({ reportId: 'rpt-1' })])
+    mockListReports.mockResolvedValue([
+      makeReport({ reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a' }),
+    ])
 
     const wrapper = mount(GovernanceTakedownView, {
       global: {
@@ -262,6 +272,8 @@ describe('GovernanceTakedownView.vue', () => {
     await flushPromises()
 
     expect(mockReject).toHaveBeenCalledTimes(1)
-    expect(mockReject).toHaveBeenCalledWith('rpt-1', { rejectionReason: 'Spam content' })
+    expect(mockReject).toHaveBeenCalledWith('68f1061d-8371-5dd2-91ec-672c02a62e4a', {
+      rejectionReason: 'Spam content',
+    })
   })
 })

@@ -174,7 +174,9 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
         val initial = newActiveInvitation(id = invitationId)
         invitationRepository.save(initial, candidateKey = "candidate-key-rollback")
 
-        val accepted = initial.copy(version = 0).accept(Instant.parse("2026-08-10T11:00:00Z"), "principal-1")
+        val accepted = initial.copy(
+            version = 0,
+        ).accept(Instant.parse("2026-08-10T11:00:00Z"), "f4b0c946-5bac-5e21-a5af-5213b71804cc")
 
         val firstUpdate = invitationRepository.updateIfVersionMatches(accepted)
         assertTrue(firstUpdate, "First conditional update with the transition version must succeed")
@@ -202,20 +204,20 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
             .awaitSingle()
         assertEquals(1L, persisted.first, "Only the first conditional update may increment version")
         assertEquals(InvitationStatus.ACCEPTED.name, persisted.second)
-        assertEquals("principal-1", persisted.third)
+        assertEquals("f4b0c946-5bac-5e21-a5af-5213b71804cc", persisted.third)
     }
 
     private suspend fun seedReferenceData() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'principal-1', NULL, 'Issuer')
+            VALUES ('f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER', 'principal-1', NULL, 'Issuer')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace One', 'ACTIVE', NULL)
+            VALUES ('d3d9800f-120a-501e-ad01-401e54e8f766', 'Workspace One', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -246,8 +248,8 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
                 candidate_key, token_hash, status, issued_by, created_at, expires_at,
                 accepted_at, accepted_principal_id, version
             ) VALUES (
-                :id, 'DIRECT', NULL, 'workspace-1', 'invitee@example.com',
-                :candidateKey, :tokenHash, :status, 'principal-1',
+                :id, 'DIRECT', NULL, 'd3d9800f-120a-501e-ad01-401e54e8f766', 'invitee@example.com',
+                :candidateKey, :tokenHash, :status, 'f4b0c946-5bac-5e21-a5af-5213b71804cc',
                 TIMESTAMPTZ '2026-08-10T10:00:00Z', TIMESTAMPTZ '2026-08-17T10:00:00Z',
                 :acceptedAt, :acceptedPrincipalId, 0
             )
@@ -258,14 +260,23 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
             .bind("tokenHash", tokenHash)
             .bind("status", status.name)
             .bind("acceptedAt", acceptedAt?.let { java.time.OffsetDateTime.ofInstant(it, java.time.ZoneOffset.UTC) })
-            .bindNullableString("acceptedPrincipalId", acceptedPrincipalId)
+            .let { spec ->
+                if (acceptedPrincipalId == null) {
+                    spec.bindNull("acceptedPrincipalId", UUID::class.java)
+                } else {
+                    spec.bind("acceptedPrincipalId", UUID.fromString(acceptedPrincipalId))
+                }
+            }
             .fetch()
             .rowsUpdated()
             .awaitSingle()
     }
 
     private suspend fun countActiveInvitations(): Long = databaseClient.sql(
-        "SELECT COUNT(*) FROM invitations WHERE workspace_id = 'workspace-1' AND status = 'ACTIVE'",
+        """
+        SELECT COUNT(*) FROM invitations
+        WHERE workspace_id = 'd3d9800f-120a-501e-ad01-401e54e8f766' AND status = 'ACTIVE'
+        """.trimIndent(),
     )
         .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
         .one()
@@ -276,11 +287,11 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
         source = InvitationSource.DIRECT,
         sourceReferenceId = null,
         target = InvitationTarget.EXISTING_WORKSPACE,
-        workspaceId = "workspace-1",
+        workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
         invitedEmailNormalized = "invitee@example.com",
         tokenHash = "candidate-key-rollback",
         status = InvitationStatus.ACTIVE,
-        issuedBy = "principal-1",
+        issuedBy = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
         createdAt = Instant.parse("2026-08-10T10:00:00Z"),
         expiresAt = Instant.parse("2026-08-17T10:00:00Z"),
         version = 0,
@@ -304,8 +315,3 @@ private fun DatabaseClient.GenericExecuteSpec.bind(
     value: java.time.OffsetDateTime?,
 ): DatabaseClient.GenericExecuteSpec =
     if (value != null) bind(name, value) else bindNull(name, java.time.OffsetDateTime::class.java)
-
-private fun DatabaseClient.GenericExecuteSpec.bindNullableString(
-    name: String,
-    value: String?,
-): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, String::class.java)

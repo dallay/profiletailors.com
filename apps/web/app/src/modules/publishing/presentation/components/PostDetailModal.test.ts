@@ -74,7 +74,7 @@ vi.mock('@shared/lib/provider-styles', () => ({
 
 function makePublication(overrides: Partial<Publication> = {}): Publication {
   return {
-    id: 'pub-1',
+    id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
     content: 'Test post body text',
     title: 'Test Title',
     channels: ['linkedin'],
@@ -264,7 +264,7 @@ describe('PostDetailModal', () => {
 
     it('never renders sensitive raw failure diagnostics', async () => {
       const sensitive =
-        'com.example.StorageObjectNotFoundException at stack trace https://api.test/path token=secret workspace-123 bucket/key Request failed'
+        'com.example.StorageObjectNotFoundException at stack trace https://api.test/path token=secret 1f14547c-1b7a-5c82-b98b-2d90bd7f6abc bucket/key Request failed'
       const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode: sensitive }))
       await flushPromises()
 
@@ -272,7 +272,7 @@ describe('PostDetailModal', () => {
         'StorageObjectNotFoundException',
         'https://api.test',
         'token=secret',
-        'workspace-123',
+        '1f14547c-1b7a-5c82-b98b-2d90bd7f6abc',
         'bucket/key',
         'Request failed',
       ]) {
@@ -283,7 +283,9 @@ describe('PostDetailModal', () => {
 
     it('calls retryPublication and emits retried when failed retry succeeds', async () => {
       storeOverrides.isPublicationEditable = () => false
-      mockRetry.mockResolvedValue(makePublication({ id: 'pub-1', status: 'QUEUED' }))
+      mockRetry.mockResolvedValue(
+        makePublication({ id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07', status: 'QUEUED' }),
+      )
       const wrapper = mountModal(makePublication({ status: 'FAILED' }))
 
       const retryButton = wrapper
@@ -293,8 +295,8 @@ describe('PostDetailModal', () => {
       await retryButton!.trigger('click')
       await flushPromises()
 
-      expect(mockRetry).toHaveBeenCalledWith('pub-1')
-      expect(wrapper.emitted('retried')).toEqual([['pub-1']])
+      expect(mockRetry).toHaveBeenCalledWith('48c5787c-4ddb-5cd5-b205-cd0f99e7fc07')
+      expect(wrapper.emitted('retried')).toEqual([['48c5787c-4ddb-5cd5-b205-cd0f99e7fc07']])
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
@@ -372,8 +374,8 @@ describe('PostDetailModal', () => {
       await deleteButton!.trigger('click')
       await flushPromises()
 
-      expect(mockDelete).toHaveBeenCalledWith('pub-1')
-      expect(wrapper.emitted('deleted')).toEqual([['pub-1']])
+      expect(mockDelete).toHaveBeenCalledWith('48c5787c-4ddb-5cd5-b205-cd0f99e7fc07')
+      expect(wrapper.emitted('deleted')).toEqual([['48c5787c-4ddb-5cd5-b205-cd0f99e7fc07']])
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
@@ -522,10 +524,16 @@ describe('PostDetailModal', () => {
     })
 
     it('calls reschedulePublication and emits reschedule on confirm', async () => {
-      storeOverrides.rescheduleResult = makePublication({ id: 'pub-2' })
+      storeOverrides.rescheduleResult = makePublication({
+        id: 'b52a13aa-706c-5325-9156-bcd2f04951d1',
+      })
       storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
+        makePublication({
+          id: 'b52a13aa-706c-5325-9156-bcd2f04951d1',
+          status: 'PROCESSING',
+          scheduledAt: '2027-07-01T10:00:00Z',
+        }),
       )
 
       // Open reschedule
@@ -542,10 +550,13 @@ describe('PostDetailModal', () => {
       await flushPromises()
       await nextTick()
 
-      expect(mockReschedule).toHaveBeenCalledWith('pub-2', expect.any(String))
+      expect(mockReschedule).toHaveBeenCalledWith(
+        'b52a13aa-706c-5325-9156-bcd2f04951d1',
+        expect.any(String),
+      )
       expect(wrapper.emitted('reschedule')).toBeDefined()
       expect(wrapper.emitted('reschedule')![0]).toEqual([
-        { id: 'pub-2', scheduledAt: expect.any(String) },
+        { id: 'b52a13aa-706c-5325-9156-bcd2f04951d1', scheduledAt: expect.any(String) },
       ])
       expect(wrapper.emitted('close')).toHaveLength(1)
     })

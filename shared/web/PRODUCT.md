@@ -42,6 +42,9 @@ Infrastructure, not a product. Positioning is defined by the surfaces that consu
 **Constraints:**
 
 - No server-side consent storage at early-access stage
+- This browser-receipt package is separate from backend waitlist legal evidence under
+  [ADR-0030](../../docs/architecture/adr/0030-separate-public-waitlist-consent-scope.md). The backend
+  scope/identifier migration does not change this receipt schema, storage key, or version.
 - Region is hardcoded to `EU` — future markets require schema extension
 - Only two consent categories: `necessary` (always true) and `analytics` (opt-in)
 - Source values are limited to `banner` and `settings-panel`

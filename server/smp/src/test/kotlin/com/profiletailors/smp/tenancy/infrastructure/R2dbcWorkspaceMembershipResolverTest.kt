@@ -29,38 +29,44 @@ class R2dbcWorkspaceMembershipResolverTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
+            VALUES ('f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', 'briefcase')
+            VALUES ('d3d9800f-120a-501e-ad01-401e54e8f766', 'Profile Tailors', 'ACTIVE', 'briefcase')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-1', 'workspace-1', 'principal-1', 'USER', 'ACTIVE')
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'd3d9800f-120a-501e-ad01-401e54e8f766', 'f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER', 'ACTIVE')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         val membership = resolver.resolve(
-            principalId = "principal-1",
-            resourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId = "workspace-1"),
+            principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+            resourceContext = ResourceContext(
+                ResourceContextType.WORKSPACE,
+                workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
+            ),
         )
 
         requireNotNull(membership)
-        assertEquals("workspace-1", membership.workspaceId)
-        assertEquals("principal-1", membership.principalId)
+        assertEquals("d3d9800f-120a-501e-ad01-401e54e8f766", membership.workspaceId)
+        assertEquals("f4b0c946-5bac-5e21-a5af-5213b71804cc", membership.principalId)
         assertEquals(PrincipalType.USER, membership.principalType)
     }
 
     @Test
     fun `returns null when no workspace membership exists`() = runTest {
         val membership = resolver.resolve(
-            principalId = "principal-1",
-            resourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId = "workspace-1"),
+            principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+            resourceContext = ResourceContext(
+                ResourceContextType.WORKSPACE,
+                workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
+            ),
         )
 
         assertNull(membership)

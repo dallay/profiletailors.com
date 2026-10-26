@@ -34,11 +34,11 @@ describe('ShortlinkAnalyticsView', () => {
     const { createPinia, setActivePinia } = await import('pinia')
     setActivePinia(createPinia())
     const store = workspace.useWorkspaceStore()
-    store.setActiveWorkspaceId('workspace-a')
+    store.setActiveWorkspaceId('3ccd875f-4801-5cf7-90a2-40f55e939a92')
     listWorkspaceShortlinkMetrics.mockResolvedValue({ links: [], nextCursor: null })
     const wrapper = mount(ShortlinkAnalyticsView)
     await flushPromises()
-    store.setActiveWorkspaceId('workspace-b')
+    store.setActiveWorkspaceId('30825e54-6d83-592c-b5c5-ec4f4798a9e4')
     await flushPromises()
     expect(listWorkspaceShortlinkMetrics.mock.calls.map(([cursor]) => cursor)).toEqual([null, null])
     wrapper.unmount()
@@ -49,7 +49,7 @@ describe('ShortlinkAnalyticsView', () => {
     const workspace = await import('@modules/workspace')
     setActivePinia(createPinia())
     const store = workspace.useWorkspaceStore()
-    store.setActiveWorkspaceId('workspace-a')
+    store.setActiveWorkspaceId('3ccd875f-4801-5cf7-90a2-40f55e939a92')
     let resolveWorkspaceA:
       | ((value: { links: ReturnType<typeof metric>[]; nextCursor: null }) => void)
       | undefined
@@ -60,17 +60,23 @@ describe('ShortlinkAnalyticsView', () => {
             resolveWorkspaceA = resolve
           }),
       )
-      .mockResolvedValueOnce({ links: [metric('workspace-b', 4)], nextCursor: null })
+      .mockResolvedValueOnce({
+        links: [metric('30825e54-6d83-592c-b5c5-ec4f4798a9e4', 4)],
+        nextCursor: null,
+      })
 
     const wrapper = mount(ShortlinkAnalyticsView)
     await flushPromises()
-    store.setActiveWorkspaceId('workspace-b')
+    store.setActiveWorkspaceId('30825e54-6d83-592c-b5c5-ec4f4798a9e4')
     await flushPromises()
-    resolveWorkspaceA?.({ links: [metric('workspace-a', 2)], nextCursor: null })
+    resolveWorkspaceA?.({
+      links: [metric('3ccd875f-4801-5cf7-90a2-40f55e939a92', 2)],
+      nextCursor: null,
+    })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('workspace-b')
-    expect(wrapper.text()).not.toContain('workspace-a')
+    expect(wrapper.text()).toContain('30825e54-6d83-592c-b5c5-ec4f4798a9e4')
+    expect(wrapper.text()).not.toContain('3ccd875f-4801-5cf7-90a2-40f55e939a92')
     wrapper.unmount()
   })
 

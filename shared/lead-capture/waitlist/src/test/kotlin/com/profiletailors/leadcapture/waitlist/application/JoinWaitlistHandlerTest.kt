@@ -52,7 +52,7 @@ internal class JoinWaitlistHandlerTest {
 
     @Test
     fun `new email join returns Accepted with internal new distinction`() = runTest {
-        val waitlistId = WaitlistId("w-1")
+        val waitlistId = WaitlistId("ea2c112c-d7f8-5e73-a4a8-ee4c372ed124")
         val activeWaitlist = Waitlist(
             id = waitlistId,
             key = WaitlistKey("profile-tailors-launch"),
@@ -96,7 +96,8 @@ internal class JoinWaitlistHandlerTest {
         verify(exactly = 1) {
             consentRecorder.record(
                 match {
-                    it.waitlistKey == WaitlistKey("profile-tailors-launch") &&
+                    it.waitlistId == waitlistId &&
+                        it.waitlistKey == WaitlistKey("profile-tailors-launch") &&
                         it.entryId == WaitlistEntryId("e-new") &&
                         it.normalizedEmail == NormalizedEmail.from(EmailAddress("user@example.com")) &&
                         it.consent == WaitlistConsent(earlyAccess = true, version = "2026-06-25") &&

@@ -7,8 +7,8 @@ Feature: Workspace access summary credentials enforcement
     Given an entitled authorized service-account principal exists
     When the client requests the current workspace access summary with a service-account bearer token
     Then the response status should be 200
-    And the response workspaceId should be "workspace-1"
-    And the response principalId should be "service-principal-1"
+    And the response workspaceId should be "10000000-0000-4000-8000-000000000001"
+    And the response principalId should be "76fb2b6a-c363-5719-8ccb-0799a29bf94e"
     And the latest authorization decision should be allow because "ROLE_PERMISSION"
 
   Scenario: Revoked service-account credential is rejected before authorization succeeds

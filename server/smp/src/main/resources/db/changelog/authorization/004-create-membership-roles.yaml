@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-004-create-membership-roles
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: membership_roles

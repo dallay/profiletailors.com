@@ -74,20 +74,23 @@ class PasswordResetRequestTransactionPostgresIntegrationTest : PostgresDatabaseT
     private suspend fun seedPrincipalAndCredential() {
         databaseClient.sql(
             "INSERT INTO principals (id, principal_type, subject, display_identity) " +
-                "VALUES ('request-tx-user', 'USER', 'local:request-tx@example.com', 'request-tx')",
+                "VALUES ('b67216a4-a6bc-5ea5-9f38-7783a7a89c30', 'USER', 'local:request-tx@example.com', 'request-tx')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO user_identities (principal_id, email, username) " +
-                "VALUES ('request-tx-user', 'request-tx@example.com', 'request-tx')",
+                "VALUES ('b67216a4-a6bc-5ea5-9f38-7783a7a89c30', 'request-tx@example.com', 'request-tx')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO local_password_credentials (principal_id, password_hash) " +
-                "VALUES ('request-tx-user', 'old-hash')",
+                "VALUES ('b67216a4-a6bc-5ea5-9f38-7783a7a89c30', 'old-hash')",
         ).fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun tokenCount(): Long = databaseClient.sql(
-        "SELECT COUNT(*) AS total FROM password_reset_tokens WHERE principal_id = 'request-tx-user'",
+        """
+        SELECT COUNT(*) AS total FROM password_reset_tokens
+        WHERE principal_id = 'b67216a4-a6bc-5ea5-9f38-7783a7a89c30'
+        """.trimIndent(),
     ).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
     private class FailingCreateRepository(

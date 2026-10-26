@@ -47,20 +47,20 @@ Feature: Analytics Dashboard
 
   Scenario: Non-member is denied analytics overview
     Given a workspace without membership exists
-    When the client requests analytics overview in workspace "workspace-2"
+    When the client requests analytics overview in workspace "10000000-0000-4000-8000-000000000002"
     Then the analytics response status should be 403
 
   Scenario: Non-member is denied post analytics
     Given a workspace without membership exists
-    When the client requests post analytics in workspace "workspace-2"
+    When the client requests post analytics in workspace "10000000-0000-4000-8000-000000000002"
     Then the analytics response status should be 403
 
   Scenario: Non-member is denied best posting times
     Given a workspace without membership exists
-    When the client requests best posting times in workspace "workspace-2"
+    When the client requests best posting times in workspace "10000000-0000-4000-8000-000000000002"
     Then the analytics response status should be 403
 
   Scenario: Non-member is denied analytics CSV export
     Given a workspace without membership exists
-    When the client exports analytics as CSV in workspace "workspace-2"
+    When the client exports analytics as CSV in workspace "10000000-0000-4000-8000-000000000002"
     Then the analytics response status should be 403

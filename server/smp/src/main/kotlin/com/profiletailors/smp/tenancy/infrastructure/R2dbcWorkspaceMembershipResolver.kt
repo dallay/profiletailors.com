@@ -12,6 +12,7 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcWorkspaceMembershipResolver(private val databaseClient: DatabaseClient) :
@@ -35,8 +36,8 @@ class R2dbcWorkspaceMembershipResolver(private val databaseClient: DatabaseClien
             WHERE workspace_id = :workspaceId AND principal_id = :principalId
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId))
             .map { row, _ ->
                 val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
                 val statusValue = requireNotNull(row.get("status", String::class.java))

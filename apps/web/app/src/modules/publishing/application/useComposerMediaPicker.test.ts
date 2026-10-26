@@ -37,7 +37,9 @@ function createFakeMediaStore(
     upsertAsset: vi.fn(),
     loadAssets: vi.fn().mockResolvedValue(undefined),
     loadAsset: vi.fn().mockResolvedValue({} as MediaAssetSummary),
-    createAndUpload: vi.fn().mockResolvedValue({ assetId: 'new-asset' } as MediaAssetSummary),
+    createAndUpload: vi
+      .fn()
+      .mockResolvedValue({ assetId: '83b32657-fb8d-55f2-bebe-030cd4f0694f' } as MediaAssetSummary),
     ...overrides,
   }
 }
@@ -51,8 +53,8 @@ function createFakePublishingStore(
 } {
   const defaultChannels: Channel[] = [
     {
-      id: 'ch-1',
-      accountId: 'ch-1',
+      id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
+      accountId: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
       name: 'LinkedIn',
       provider: 'linkedin',
       avatar: '',
@@ -69,8 +71,8 @@ function createFakePublishingStore(
 
 function makeMediaAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummary {
   return {
-    assetId: 'asset-1',
-    workspaceId: 'ws-1',
+    assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     sourceType: 'UPLOADED',
     mediaType: 'image/png',
     status: 'READY',
@@ -98,14 +100,17 @@ describe('useComposerMediaPicker', () => {
   describe('library search', () => {
     it('matches loaded assets by filename, asset ID, and media type without case sensitivity', () => {
       const assets = [
-        makeMediaAsset({ assetId: 'filename-match', originalFilename: 'Spring-Hero.PNG' }),
         makeMediaAsset({
-          assetId: 'library-search-special-42',
+          assetId: '2da13f9f-d9f6-5812-9932-947261d9695a',
+          originalFilename: 'Spring-Hero.PNG',
+        }),
+        makeMediaAsset({
+          assetId: 'a88123c3-df0b-58de-aaef-ba815d623ae4',
           originalFilename: 'notes.txt',
           mediaType: 'text/plain',
         }),
         makeMediaAsset({
-          assetId: 'pdf-match',
+          assetId: '6cff963c-c793-56ea-a7f7-aa0d7e7b9d31',
           originalFilename: 'statement',
           mediaType: 'application/pdf',
         }),
@@ -126,16 +131,18 @@ describe('useComposerMediaPicker', () => {
 
       picker.handleLibrarySearch({ query: '  HERO  ' })
       expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
-        'filename-match',
+        '2da13f9f-d9f6-5812-9932-947261d9695a',
       ])
 
-      picker.handleLibrarySearch({ query: 'SEARCH-SPECIAL' })
+      picker.handleLibrarySearch({ query: 'A88123C3-DF0B-58DE-AAEF-BA815D623AE4' })
       expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
-        'library-search-special-42',
+        'a88123c3-df0b-58de-aaef-ba815d623ae4',
       ])
 
       picker.handleLibrarySearch({ query: 'APPLICATION/PDF' })
-      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(['pdf-match'])
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
+        '6cff963c-c793-56ea-a7f7-aa0d7e7b9d31',
+      ])
 
       picker.handleLibrarySearch({ query: '   ' })
       expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(
@@ -145,9 +152,18 @@ describe('useComposerMediaPicker', () => {
 
     it('preserves staged, pending, and auto-staged IDs while filtering and applying', () => {
       const assets = [
-        makeMediaAsset({ assetId: 'visible', originalFilename: 'hero.png' }),
-        makeMediaAsset({ assetId: 'hidden', originalFilename: 'portrait.png' }),
-        makeMediaAsset({ assetId: 'pending', originalFilename: 'pending.png' }),
+        makeMediaAsset({
+          assetId: '3d16f71a-564f-5dea-bc04-9d412a3bf253',
+          originalFilename: 'hero.png',
+        }),
+        makeMediaAsset({
+          assetId: 'a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff',
+          originalFilename: 'portrait.png',
+        }),
+        makeMediaAsset({
+          assetId: 'f96ab610-da70-5026-90e6-b870c3f63b48',
+          originalFilename: 'pending.png',
+        }),
       ]
       const mediaStore = createFakeMediaStore({
         assetsById: ref(Object.fromEntries(assets.map((asset) => [asset.assetId, asset]))),
@@ -160,21 +176,32 @@ describe('useComposerMediaPicker', () => {
         provider: ref(null),
         initialChannelId: ref(null),
       })
-      picker.draftAttachmentIds.value = ['visible', 'hidden']
+      picker.draftAttachmentIds.value = [
+        '3d16f71a-564f-5dea-bc04-9d412a3bf253',
+        'a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff',
+      ]
       picker.openMediaPicker()
-      picker.ensurePickerAssetVisible('pending')
-      picker.autoStagedAssetIds.value = ['hidden']
+      picker.ensurePickerAssetVisible('f96ab610-da70-5026-90e6-b870c3f63b48')
+      picker.autoStagedAssetIds.value = ['a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff']
 
       picker.handleLibrarySearch({ query: 'hero' })
 
-      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual(['visible'])
-      expect(picker.pickerSelectionIds.value).toEqual(['visible', 'hidden'])
-      expect(picker.pendingPickerAssets.value).toEqual(['pending'])
-      expect(picker.autoStagedAssetIds.value).toEqual(['hidden'])
+      expect(picker.filteredPickerAssets.value.map((asset) => asset.assetId)).toEqual([
+        '3d16f71a-564f-5dea-bc04-9d412a3bf253',
+      ])
+      expect(picker.pickerSelectionIds.value).toEqual([
+        '3d16f71a-564f-5dea-bc04-9d412a3bf253',
+        'a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff',
+      ])
+      expect(picker.pendingPickerAssets.value).toEqual(['f96ab610-da70-5026-90e6-b870c3f63b48'])
+      expect(picker.autoStagedAssetIds.value).toEqual(['a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff'])
 
       picker.applyPickerSelection()
 
-      expect(picker.draftAttachmentIds.value).toEqual(['visible', 'hidden'])
+      expect(picker.draftAttachmentIds.value).toEqual([
+        '3d16f71a-564f-5dea-bc04-9d412a3bf253',
+        'a328e5b5-2b06-5e9a-86f2-d46fa7ca7fff',
+      ])
       expect(picker.libraryQuery.value).toBe('')
       expect(picker.filteredPickerAssets.value).toHaveLength(3)
     })
@@ -255,8 +282,8 @@ describe('useComposerMediaPicker', () => {
       const publishingStore = createFakePublishingStore({
         channels: ref([
           {
-            id: 'ch-li',
-            accountId: 'ch-li',
+            id: 'b431194a-5205-577d-b212-98398966a944',
+            accountId: 'b431194a-5205-577d-b212-98398966a944',
             name: 'LinkedIn',
             provider: 'linkedin',
             avatar: '',
@@ -265,8 +292,8 @@ describe('useComposerMediaPicker', () => {
             maxAttachments: 9,
           },
           {
-            id: 'ch-tw',
-            accountId: 'ch-tw',
+            id: 'c86487f2-0190-5d05-911c-d60a612366e0',
+            accountId: 'c86487f2-0190-5d05-911c-d60a612366e0',
             name: 'Twitter',
             provider: 'twitter',
             avatar: '',
@@ -282,7 +309,7 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref(null),
         // Twitter is the selected channel
-        initialChannelId: ref('ch-tw'),
+        initialChannelId: ref('c86487f2-0190-5d05-911c-d60a612366e0'),
       })
       expect(picker.effectiveAttachmentLimit.value).toBe(4)
     })
@@ -292,8 +319,8 @@ describe('useComposerMediaPicker', () => {
       const publishingStore = createFakePublishingStore({
         channels: ref([
           {
-            id: 'ch-inactive',
-            accountId: 'ch-inactive',
+            id: 'ac7e79c4-b055-5476-9ab3-edd5250e24ca',
+            accountId: 'ac7e79c4-b055-5476-9ab3-edd5250e24ca',
             name: 'Inactive Channel',
             provider: 'linkedin',
             avatar: '',
@@ -344,8 +371,8 @@ describe('useComposerMediaPicker', () => {
       const publishingStore = createFakePublishingStore({
         channels: ref([
           {
-            id: 'ch-active',
-            accountId: 'ch-active',
+            id: 'de3f34c5-50c6-5d59-92d5-5cb765fec322',
+            accountId: 'de3f34c5-50c6-5d59-92d5-5cb765fec322',
             name: 'Active',
             provider: 'linkedin',
             avatar: '',
@@ -353,8 +380,8 @@ describe('useComposerMediaPicker', () => {
             status: 'ACTIVE',
           },
           {
-            id: 'ch-inactive',
-            accountId: 'ch-inactive',
+            id: 'ac7e79c4-b055-5476-9ab3-edd5250e24ca',
+            accountId: 'ac7e79c4-b055-5476-9ab3-edd5250e24ca',
             name: 'Inactive',
             provider: 'linkedin',
             avatar: '',
@@ -371,7 +398,7 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
       expect(picker.activeChannels.value).toHaveLength(1)
-      expect(picker.activeChannels.value[0]!.id).toBe('ch-active')
+      expect(picker.activeChannels.value[0]!.id).toBe('de3f34c5-50c6-5d59-92d5-5cb765fec322')
     })
 
     it('providerQuery starts empty', () => {
@@ -479,9 +506,15 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.draftAttachmentIds.value = ['asset-a', 'asset-b']
+      picker.draftAttachmentIds.value = [
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ]
       picker.openMediaPicker()
-      expect(picker.pickerSelectionIds.value).toEqual(['asset-a', 'asset-b'])
+      expect(picker.pickerSelectionIds.value).toEqual([
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ])
     })
   })
 
@@ -516,9 +549,9 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.draftAttachmentIds.value = ['asset-a']
+      picker.draftAttachmentIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
       picker.openMediaPicker()
-      expect(picker.pickerSelectionIds.value).toEqual(['asset-a'])
+      expect(picker.pickerSelectionIds.value).toEqual(['f464d618-0f38-5b38-adda-9cf4a0b674eb'])
       picker.closeMediaPicker()
       expect(picker.pickerSelectionIds.value).toEqual([])
     })
@@ -535,13 +568,16 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.draftAttachmentIds.value = ['asset-a']
+      picker.draftAttachmentIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-b')
-      expect(picker.pickerSelectionIds.value).toEqual(['asset-a', 'asset-b'])
+      picker.togglePickerAsset('13001fc9-a24f-54d3-bde1-cfa79074593c')
+      expect(picker.pickerSelectionIds.value).toEqual([
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ])
       picker.closeMediaPicker()
       // draft remains unchanged (cancel discards staged changes)
-      expect(picker.draftAttachmentIds.value).toEqual(['asset-a'])
+      expect(picker.draftAttachmentIds.value).toEqual(['f464d618-0f38-5b38-adda-9cf4a0b674eb'])
     })
   })
 
@@ -559,8 +595,8 @@ describe('useComposerMediaPicker', () => {
       })
 
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-a')
-      expect(picker.pickerSelectionIds.value).toContain('asset-a')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.pickerSelectionIds.value).toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb')
     })
 
     it('removes asset from pickerSelectionIds when already selected', () => {
@@ -576,10 +612,10 @@ describe('useComposerMediaPicker', () => {
       })
 
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-a')
-      expect(picker.pickerSelectionIds.value).toContain('asset-a')
-      picker.togglePickerAsset('asset-a')
-      expect(picker.pickerSelectionIds.value).not.toContain('asset-a')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.pickerSelectionIds.value).toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.pickerSelectionIds.value).not.toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb')
     })
 
     it('tracks manually deselected auto-staged assets', () => {
@@ -596,12 +632,14 @@ describe('useComposerMediaPicker', () => {
 
       picker.openMediaPicker()
       // Simulate auto-staged asset
-      picker.autoStagedAssetIds.value = ['asset-a']
-      picker.pickerSelectionIds.value = ['asset-a']
+      picker.autoStagedAssetIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
+      picker.pickerSelectionIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
       // User manually deselects it
-      picker.togglePickerAsset('asset-a')
-      expect(picker.manuallyDeselectedAutoStageIds.value).toContain('asset-a')
-      expect(picker.pickerSelectionIds.value).not.toContain('asset-a')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.manuallyDeselectedAutoStageIds.value).toContain(
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+      )
+      expect(picker.pickerSelectionIds.value).not.toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb')
     })
   })
 
@@ -619,11 +657,14 @@ describe('useComposerMediaPicker', () => {
       })
 
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-a')
-      picker.togglePickerAsset('asset-b')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      picker.togglePickerAsset('13001fc9-a24f-54d3-bde1-cfa79074593c')
       picker.applyPickerSelection()
 
-      expect(picker.draftAttachmentIds.value).toEqual(['asset-a', 'asset-b'])
+      expect(picker.draftAttachmentIds.value).toEqual([
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ])
     })
 
     it('blocks apply when selection exceeds effectiveAttachmentLimit', () => {
@@ -631,8 +672,8 @@ describe('useComposerMediaPicker', () => {
       const publishingStore = createFakePublishingStore({
         channels: ref([
           {
-            id: 'ch-tw',
-            accountId: 'ch-tw',
+            id: 'c86487f2-0190-5d05-911c-d60a612366e0',
+            accountId: 'c86487f2-0190-5d05-911c-d60a612366e0',
             name: 'Twitter',
             provider: 'twitter',
             avatar: '',
@@ -648,12 +689,12 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        initialChannelId: ref('ch-tw'),
+        initialChannelId: ref('c86487f2-0190-5d05-911c-d60a612366e0'),
       })
 
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-a')
-      picker.togglePickerAsset('asset-b') // over limit
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      picker.togglePickerAsset('13001fc9-a24f-54d3-bde1-cfa79074593c') // over limit
       picker.applyPickerSelection()
 
       // draft should NOT change — apply was blocked
@@ -674,7 +715,7 @@ describe('useComposerMediaPicker', () => {
       })
 
       picker.openMediaPicker()
-      picker.togglePickerAsset('asset-a')
+      picker.togglePickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
       picker.applyPickerSelection()
 
       expect(picker.isMediaPickerOpen.value).toBe(false)
@@ -694,9 +735,12 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.draftAttachmentIds.value = ['asset-a', 'asset-b']
-      picker.removeDraftAttachment('asset-a')
-      expect(picker.draftAttachmentIds.value).toEqual(['asset-b'])
+      picker.draftAttachmentIds.value = [
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ]
+      picker.removeDraftAttachment('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.draftAttachmentIds.value).toEqual(['13001fc9-a24f-54d3-bde1-cfa79074593c'])
     })
   })
 
@@ -709,15 +753,15 @@ describe('useComposerMediaPicker', () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
       const loadAssetSpy = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
-        assetId: 'asset-recon',
-        workspaceId: 'ws-1',
+        assetId: 'e0851379-4b7a-55f3-9708-fa1fdde1c46c',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'READY',
         originalFilename: 'recon.png',
         fileSizeBytes: 1024,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: '/api/media/assets/asset-recon/preview',
+        previewUrl: '/api/media/assets/e0851379-4b7a-55f3-9708-fa1fdde1c46c/preview',
       })
       const upsertSpy = vi.spyOn(mediaStore, 'upsertAsset')
 
@@ -729,11 +773,11 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.startAssetReconciliation('asset-recon')
+      picker.startAssetReconciliation('e0851379-4b7a-55f3-9708-fa1fdde1c46c')
 
       // Advance past the RECONCILIATION_POLL_INTERVAL_MS (1000ms)
       await vi.advanceTimersByTimeAsync(1100)
-      expect(loadAssetSpy).toHaveBeenCalledWith('asset-recon')
+      expect(loadAssetSpy).toHaveBeenCalledWith('e0851379-4b7a-55f3-9708-fa1fdde1c46c')
       expect(upsertSpy).toHaveBeenCalled()
     })
 
@@ -750,8 +794,10 @@ describe('useComposerMediaPicker', () => {
       })
 
       // scheduleAssetReconciliation is internal — use startAssetReconciliation
-      picker.startAssetReconciliation('asset-recon')
-      expect(picker.reconciliationPollers.value.has('asset-recon')).toBe(true)
+      picker.startAssetReconciliation('e0851379-4b7a-55f3-9708-fa1fdde1c46c')
+      expect(picker.reconciliationPollers.value.has('e0851379-4b7a-55f3-9708-fa1fdde1c46c')).toBe(
+        true,
+      )
     })
 
     it('stopReconciliationPoller clears the timer', () => {
@@ -766,10 +812,14 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.startAssetReconciliation('asset-recon')
-      expect(picker.reconciliationPollers.value.has('asset-recon')).toBe(true)
-      picker.stopReconciliationPoller('asset-recon')
-      expect(picker.reconciliationPollers.value.has('asset-recon')).toBe(false)
+      picker.startAssetReconciliation('e0851379-4b7a-55f3-9708-fa1fdde1c46c')
+      expect(picker.reconciliationPollers.value.has('e0851379-4b7a-55f3-9708-fa1fdde1c46c')).toBe(
+        true,
+      )
+      picker.stopReconciliationPoller('e0851379-4b7a-55f3-9708-fa1fdde1c46c')
+      expect(picker.reconciliationPollers.value.has('e0851379-4b7a-55f3-9708-fa1fdde1c46c')).toBe(
+        false,
+      )
     })
 
     it('stopAllReconciliationPollers clears all timers', () => {
@@ -784,8 +834,8 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.startAssetReconciliation('asset-1')
-      picker.startAssetReconciliation('asset-2')
+      picker.startAssetReconciliation('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+      picker.startAssetReconciliation('b909d06f-92ea-5671-9f13-73475a89080e')
       expect(picker.reconciliationPollers.value.size).toBe(2)
       picker.stopAllReconciliationPollers()
       expect(picker.reconciliationPollers.value.size).toBe(0)
@@ -795,8 +845,8 @@ describe('useComposerMediaPicker', () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
       vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
-        assetId: 'asset-poll',
-        workspaceId: 'ws-1',
+        assetId: '57620eeb-c0e5-5a74-ac42-95dbeae9426a',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'UPLOADING', // stays non-READY
@@ -815,7 +865,7 @@ describe('useComposerMediaPicker', () => {
       })
 
       picker.openMediaPicker()
-      picker.startAssetReconciliation('asset-poll')
+      picker.startAssetReconciliation('57620eeb-c0e5-5a74-ac42-95dbeae9426a')
 
       // Advance past all polling intervals
       await vi.advanceTimersByTimeAsync(5_000 + 100)
@@ -964,15 +1014,15 @@ describe('useComposerMediaPicker', () => {
       const publishingStore = createFakePublishingStore()
       const upsertSpy = vi.spyOn(mediaStore, 'upsertAsset')
       const importedAsset: MediaAssetSummary = {
-        assetId: 'asset-mountain-1',
-        workspaceId: 'ws-1',
+        assetId: '1a378d75-3e06-5a66-9f68-ec6f418e3068',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'EXTERNAL',
         mediaType: 'image/jpeg',
         status: 'READY',
         originalFilename: 'mountain-1.jpg',
         fileSizeBytes: 1024,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: '/api/media/assets/asset-mountain-1/preview',
+        previewUrl: '/api/media/assets/1a378d75-3e06-5a66-9f68-ec6f418e3068/preview',
         sourceProvider: 'unsplash',
         externalId: 'mountain-1',
       }
@@ -992,8 +1042,10 @@ describe('useComposerMediaPicker', () => {
 
       expect(importUnsplash).toHaveBeenCalledOnce()
       expect(upsertSpy).toHaveBeenCalledWith(importedAsset)
-      expect(picker.pickerSelectionIds.value).toContain('asset-mountain-1')
-      expect(picker.providerImportResolution.value['mountain-1']).toBe('asset-mountain-1')
+      expect(picker.pickerSelectionIds.value).toContain('1a378d75-3e06-5a66-9f68-ec6f418e3068')
+      expect(picker.providerImportResolution.value['mountain-1']).toBe(
+        '1a378d75-3e06-5a66-9f68-ec6f418e3068',
+      )
     })
 
     it('allows retry after an import failure', async () => {
@@ -1001,8 +1053,8 @@ describe('useComposerMediaPicker', () => {
         .fn()
         .mockRejectedValueOnce(new Error('Import failed'))
         .mockResolvedValueOnce({
-          assetId: 'asset-retry',
-          workspaceId: 'ws-1',
+          assetId: '1ba5762a-06ea-5304-84a0-52261731aa43',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'EXTERNAL',
           mediaType: 'image/jpeg',
           status: 'READY',
@@ -1024,7 +1076,9 @@ describe('useComposerMediaPicker', () => {
 
       await picker.handleProviderImport({ externalId: 'retry' })
       expect(importUnsplash).toHaveBeenCalledTimes(2)
-      expect(picker.providerImportResolution.value.retry).toBe('asset-retry')
+      expect(picker.providerImportResolution.value.retry).toBe(
+        '1ba5762a-06ea-5304-84a0-52261731aa43',
+      )
     })
   })
 
@@ -1045,11 +1099,11 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.scheduleAssetReconciliation('asset-1')
-      picker.scheduleAssetReconciliation('asset-2')
-      picker.pendingPickerAssets.value = ['asset-1']
-      picker.autoStagedAssetIds.value = ['asset-2']
-      picker.manuallyDeselectedAutoStageIds.value = ['asset-3']
+      picker.scheduleAssetReconciliation('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+      picker.scheduleAssetReconciliation('b909d06f-92ea-5671-9f13-73475a89080e')
+      picker.pendingPickerAssets.value = ['8bdec504-2ed1-59e4-8a4a-c068789d03d2']
+      picker.autoStagedAssetIds.value = ['b909d06f-92ea-5671-9f13-73475a89080e']
+      picker.manuallyDeselectedAutoStageIds.value = ['24add7a3-5877-5ff8-a4cb-11ff965d127f']
 
       picker.resetPickerSessionTracking()
 
@@ -1073,10 +1127,14 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.autoStagedAssetIds.value = ['asset-a']
-      picker.stageAssetOnce('asset-a')
+      picker.autoStagedAssetIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
+      picker.stageAssetOnce('f464d618-0f38-5b38-adda-9cf4a0b674eb')
       // Should not add duplicate
-      expect(picker.autoStagedAssetIds.value.filter((id) => id === 'asset-a')).toHaveLength(1)
+      expect(
+        picker.autoStagedAssetIds.value.filter(
+          (id) => id === 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        ),
+      ).toHaveLength(1)
     })
 
     it('is a no-op when asset is in manuallyDeselectedAutoStageIds', () => {
@@ -1091,9 +1149,9 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.manuallyDeselectedAutoStageIds.value = ['asset-a']
-      picker.stageAssetOnce('asset-a')
-      expect(picker.autoStagedAssetIds.value).not.toContain('asset-a')
+      picker.manuallyDeselectedAutoStageIds.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
+      picker.stageAssetOnce('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.autoStagedAssetIds.value).not.toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb')
     })
 
     it('adds to autoStagedAssetIds and pickerSelectionIds when not tracked', () => {
@@ -1108,9 +1166,9 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.stageAssetOnce('asset-new')
-      expect(picker.autoStagedAssetIds.value).toContain('asset-new')
-      expect(picker.pickerSelectionIds.value).toContain('asset-new')
+      picker.stageAssetOnce('222d5a39-3627-55e2-859c-489f66bfc783')
+      expect(picker.autoStagedAssetIds.value).toContain('222d5a39-3627-55e2-859c-489f66bfc783')
+      expect(picker.pickerSelectionIds.value).toContain('222d5a39-3627-55e2-859c-489f66bfc783')
     })
   })
 
@@ -1145,9 +1203,13 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.pendingPickerAssets.value = ['asset-a']
-      picker.addPendingPickerAsset('asset-a')
-      expect(picker.pendingPickerAssets.value.filter((id) => id === 'asset-a')).toHaveLength(1)
+      picker.pendingPickerAssets.value = ['f464d618-0f38-5b38-adda-9cf4a0b674eb']
+      picker.addPendingPickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(
+        picker.pendingPickerAssets.value.filter(
+          (id) => id === 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        ),
+      ).toHaveLength(1)
     })
   })
 
@@ -1164,9 +1226,12 @@ describe('useComposerMediaPicker', () => {
         initialChannelId: ref(null),
       })
 
-      picker.pendingPickerAssets.value = ['asset-a', 'asset-b']
-      picker.clearPendingPickerAsset('asset-a')
-      expect(picker.pendingPickerAssets.value).toEqual(['asset-b'])
+      picker.pendingPickerAssets.value = [
+        'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+        '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      ]
+      picker.clearPendingPickerAsset('f464d618-0f38-5b38-adda-9cf4a0b674eb')
+      expect(picker.pendingPickerAssets.value).toEqual(['13001fc9-a24f-54d3-bde1-cfa79074593c'])
     })
   })
 

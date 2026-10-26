@@ -50,7 +50,7 @@ describe('WorkspaceChannelsView', () => {
   it('renders channel list when channels are present', () => {
     defaultStore.channels = [
       {
-        id: 'ch-1',
+        id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
         name: 'Ada Lovelace',
         provider: 'linkedin',
         avatar: 'https://example.com/avatar.jpg',

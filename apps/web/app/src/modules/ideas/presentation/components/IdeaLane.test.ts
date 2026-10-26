@@ -23,7 +23,7 @@ function makeColumn(overrides: Partial<IdeaColumn> = {}): IdeaColumn {
 function makeIdea(id: string, columnId = 'raw'): Idea {
   return {
     id,
-    workspaceId: 'ws-1',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: id,
     notes: null,
     tags: [],
@@ -41,7 +41,10 @@ describe('IdeaLane', () => {
     const wrapper = mount(IdeaLane, {
       props: {
         column: makeColumn({ name: 'In Progress', id: 'in-progress', color: '#22c55e' }),
-        ideas: [makeIdea('idea-1'), makeIdea('idea-2')],
+        ideas: [
+          makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4'),
+          makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1'),
+        ],
       },
     })
     const root = wrapper.find('[data-testid="idea-lane"]')
@@ -58,7 +61,7 @@ describe('IdeaLane', () => {
 
   it('contains vertical scroll area', () => {
     const wrapper = mount(IdeaLane, {
-      props: { column: makeColumn(), ideas: [makeIdea('idea-1')] },
+      props: { column: makeColumn(), ideas: [makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4')] },
     })
     const scroll = wrapper.find('[data-testid="idea-lane-scroll"]')
     expect(scroll.exists()).toBe(true)
@@ -84,7 +87,13 @@ describe('IdeaLane', () => {
 
   it('renders IdeaCard for each idea and emits select and add', async () => {
     const wrapper = mount(IdeaLane, {
-      props: { column: makeColumn(), ideas: [makeIdea('idea-1'), makeIdea('idea-2')] },
+      props: {
+        column: makeColumn(),
+        ideas: [
+          makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4'),
+          makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1'),
+        ],
+      },
     })
     const cards = wrapper.findAll('[data-dnd-draggable]')
     expect(cards).toHaveLength(2)
@@ -95,17 +104,17 @@ describe('IdeaLane', () => {
 
   it('emits select when card selected', async () => {
     const wrapper = mount(IdeaLane, {
-      props: { column: makeColumn(), ideas: [makeIdea('idea-99')] },
+      props: { column: makeColumn(), ideas: [makeIdea('e83a1812-0b46-5b51-84ea-690ea276dddf')] },
     })
     const stubCard = wrapper.findComponent({ name: 'IdeaCard' } as never)
     if (stubCard.exists()) {
       await (stubCard as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit(
         'select',
-        'idea-99',
+        'e83a1812-0b46-5b51-84ea-690ea276dddf',
       )
-      expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['idea-99'])
+      expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['e83a1812-0b46-5b51-84ea-690ea276dddf'])
     } else {
-      const el = wrapper.find('[data-dnd-draggable="idea-99"]')
+      const el = wrapper.find('[data-dnd-draggable="e83a1812-0b46-5b51-84ea-690ea276dddf"]')
       await el.trigger('click')
       expect(wrapper.emitted('selectIdea')).toBeTruthy()
     }

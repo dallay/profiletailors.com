@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-004-create-invitations
-      author: platform-admin
+      author: yacosta738
       changes:
         - createTable:
             tableName: invitations

@@ -39,7 +39,7 @@ test.describe('Bulk import @bulk @e2e', () => {
           status: 207,
           contentType: 'application/vnd.api.v1+json',
           body: JSON.stringify({
-            jobId: 'job-1',
+            jobId: '834ed335-3137-5ff0-9c10-d2b4008b4578',
             totalRows: 2,
             scheduledCount: 1,
             failedCount: 1,
@@ -52,7 +52,7 @@ test.describe('Bulk import @bulk @e2e', () => {
           status: 200,
           contentType: 'application/vnd.api.v1+json',
           body: JSON.stringify({
-            jobId: 'job-1',
+            jobId: '834ed335-3137-5ff0-9c10-d2b4008b4578',
             status: 'PARTIAL',
             totalRows: 2,
             scheduledCount: 1,
@@ -112,7 +112,9 @@ test.describe('Bulk import @bulk @e2e', () => {
     await test.step('schedule and verify result', async () => {
       await page.getByTestId('bulk-schedule-btn').click()
       await expect(page.getByTestId('bulk-schedule-result')).toBeVisible()
-      await expect(page.getByTestId('bulk-schedule-result')).toContainText('job-1')
+      await expect(page.getByTestId('bulk-schedule-result')).toContainText(
+        '834ed335-3137-5ff0-9c10-d2b4008b4578',
+      )
     })
   })
 

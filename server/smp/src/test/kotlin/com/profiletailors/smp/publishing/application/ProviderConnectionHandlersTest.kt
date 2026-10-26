@@ -223,6 +223,8 @@ class ProviderConnectionHandlersTest {
         assertEquals("workspace-1", result.workspaceId)
         assertNotNull(connectionRepo.lastSaved)
         assertNotNull(accountRepo.lastSaved)
+        assertEquals(result.connectionId, java.util.UUID.fromString(result.connectionId).toString())
+        assertEquals(result.account.accountId, java.util.UUID.fromString(result.account.accountId).toString())
         assertEquals("threads-account-1", result.account.providerAccountId)
         assertEquals(1, publisher.events.size)
         assertEquals("workspace-1", publisher.events.first().workspaceId)
