@@ -45,10 +45,10 @@ class PrivacyRequestResultMappingTest {
     fun `result object exposes the single field 'ref' when resultRef is set`() {
         val ref = "https://storage.example.com/export-abc.json"
         mediator.statusQueryResultById = mapOf(
-            "dsr-1" to sampleResponse().copy(resultRef = ref),
+            "4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5" to sampleResponse().copy(resultRef = ref),
         )
 
-        client.get().uri("/api/v1/privacy/requests/dsr-1")
+        client.get().uri("/api/v1/privacy/requests/4eac5319-6c43-5aff-b8e3-fcfb0f7fcca5")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -58,10 +58,10 @@ class PrivacyRequestResultMappingTest {
     @Test
     fun `result object is null when resultRef is null`() {
         mediator.statusQueryResultById = mapOf(
-            "dsr-2" to sampleResponse().copy(resultRef = null),
+            "0548b7a9-bdd5-5ce8-b2da-7a78c406d107" to sampleResponse().copy(resultRef = null),
         )
 
-        client.get().uri("/api/v1/privacy/requests/dsr-2")
+        client.get().uri("/api/v1/privacy/requests/0548b7a9-bdd5-5ce8-b2da-7a78c406d107")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -88,7 +88,7 @@ class PrivacyRequestResultMappingTest {
     }
 
     private fun sampleResponse(): DataSubjectRequestResponse = DataSubjectRequestResponse(
-        id = "dsr-test-123",
+        id = "f3812fbf-7066-56eb-b183-2c0c94bd3985",
         type = "ACCESS",
         status = "COMPLETED",
         requestedBy = "test-principal",

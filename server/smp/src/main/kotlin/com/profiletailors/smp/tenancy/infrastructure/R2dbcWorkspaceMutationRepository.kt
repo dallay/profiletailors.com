@@ -4,6 +4,7 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcWorkspaceMutationRepository(private val databaseClient: DatabaseClient) : WorkspaceMutationRepository {
@@ -11,7 +12,7 @@ class R2dbcWorkspaceMutationRepository(private val databaseClient: DatabaseClien
     override suspend fun rename(workspaceId: String, newName: String): Boolean {
         val rowsUpdated = databaseClient.sql("UPDATE workspaces SET name = :name WHERE id = :id")
             .bind("name", newName)
-            .bind("id", workspaceId)
+            .bind("id", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -24,7 +25,7 @@ class R2dbcWorkspaceMutationRepository(private val databaseClient: DatabaseClien
             .let { spec ->
                 if (icon == null) spec.bindNull("icon", String::class.java) else spec.bind("icon", icon)
             }
-            .bind("id", workspaceId)
+            .bind("id", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

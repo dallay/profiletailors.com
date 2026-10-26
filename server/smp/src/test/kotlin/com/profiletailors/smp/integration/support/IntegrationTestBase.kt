@@ -28,6 +28,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Mono
 import java.sql.DriverManager
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Base class for Spring Boot integration tests backed by a caller-provided database.
@@ -86,7 +87,7 @@ abstract class IntegrationTestBase {
             VALUES (:id, 'USER', :subject, 'https://issuer.example', :displayIdentity)
             """.trimIndent(),
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("subject", "subject-$principalId")
             .bind("displayIdentity", principalId)
             .fetch()
@@ -98,7 +99,7 @@ abstract class IntegrationTestBase {
         databaseClient.sql(
             "INSERT INTO user_identities (principal_id, email, username) VALUES (:principalId, :email, :username)",
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("email", email)
             .bind("username", username)
             .fetch()
@@ -115,7 +116,7 @@ abstract class IntegrationTestBase {
         databaseClient.sql(
             "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status, :icon)",
         )
-            .bind("id", workspaceId)
+            .bind("id", UUID.fromString(workspaceId))
             .bind("name", name)
             .bind("status", status)
             .let { spec ->
@@ -143,9 +144,9 @@ abstract class IntegrationTestBase {
             VALUES (:id, :workspaceId, :principalId, :principalType, :status)
             """.trimIndent(),
         )
-            .bind("id", id)
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("id", UUID.fromString(id))
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId))
             .bind("principalType", principalType)
             .bind("status", status)
             .fetch()
@@ -165,19 +166,23 @@ abstract class IntegrationTestBase {
             VALUES (:workspaceId, :ownerPrincipalId, :ownerPrincipalType, :createdBy)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("ownerPrincipalId", ownerPrincipalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("ownerPrincipalId", UUID.fromString(ownerPrincipalId))
             .bind("ownerPrincipalType", ownerPrincipalType)
-            .bind("createdBy", createdBy)
+            .bind("createdBy", UUID.fromString(createdBy))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
     }
 
     protected open fun cleanupStatements(): List<String> = listOf(
+        "DELETE FROM consent_record_events",
+        "DELETE FROM consent_records",
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
         "DELETE FROM publication_asset_links",
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'ea2c112c-d7f8-5e73-a4a8-ee4c372ed124'",
         "DELETE FROM publications",
         "DELETE FROM media_assets",
         "DELETE FROM workspace_file_blobs",
@@ -209,13 +214,16 @@ abstract class IntegrationTestBase {
             liquibaseUsername(),
             liquibasePassword(),
         ).use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+            }
             val database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
             Liquibase(
                 "db/changelog/db.changelog-master.yaml",
                 ClassLoaderResourceAccessor(),
                 database,
-            ).update(Contexts(), LabelExpression())
+            ).update(Contexts("uuid-native-identifiers"), LabelExpression())
         }
     }
 
@@ -229,6 +237,19 @@ abstract class IntegrationTestBase {
         @Primary
         fun reactiveJwtDecoder(): ReactiveJwtDecoder = ReactiveJwtDecoder { token ->
             when (token) {
+                "retry-owner-token" -> Mono.just(
+                    Jwt.withTokenValue(token)
+                        .subject("subject-retry-owner")
+                        .header("alg", "none")
+                        .claim("sub", "subject-retry-owner")
+                        .claim("iss", "https://issuer.example")
+                        .claim("principal_id", "00000000-0000-0000-0000-000000000101")
+                        .claim("principal_type", "USER")
+                        .issuedAt(Instant.parse("2026-05-20T10:15:30Z"))
+                        .expiresAt(Instant.parse("2026-05-20T11:15:30Z"))
+                        .build(),
+                )
+
                 "owner-token" -> Mono.just(
                     Jwt.withTokenValue(token)
                         .subject("subject-owner-1")

@@ -10,9 +10,9 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 internal class RecordRiskAcceptanceHandlerTest {
 
@@ -44,7 +44,7 @@ internal class RecordRiskAcceptanceHandlerTest {
 
         coVerify(exactly = 1) { repository.save(any()) }
         val saved = savedSlot.captured
-        assertTrue(saved.id.value.startsWith("ra-"))
+        UUID.fromString(saved.id.value)
         assertEquals(command.controlId, saved.controlId)
         assertEquals(command.releaseScope, saved.releaseScope)
         assertEquals(command.marketScope, saved.marketScope)
@@ -76,7 +76,7 @@ internal class RecordRiskAcceptanceHandlerTest {
 
         coVerify(exactly = 1) { repository.save(any()) }
         val saved = savedSlot.captured
-        assertTrue(saved.id.value.startsWith("ra-"))
+        UUID.fromString(saved.id.value)
         assertEquals(command.controlId, saved.controlId)
         assertEquals(command.riskSummary, saved.riskSummary)
         assertEquals(command.requestedBy, saved.requestedBy)

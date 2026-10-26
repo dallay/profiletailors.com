@@ -98,8 +98,8 @@ describe('HashtagSuggestionPanel accessibility', () => {
 
   it('falls back to trending tags and emits saved-set actions', async () => {
     const savedSet: HashtagSavedSet = {
-      id: 'set-1',
-      workspaceId: 'workspace-1',
+      id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       name: 'Engineering',
       hashtags: ['#testing'],
       createdAt: '',
@@ -132,7 +132,7 @@ describe('HashtagSuggestionPanel accessibility', () => {
       ?.trigger('click')
 
     expect(wrapper.emitted('apply-set')).toEqual([[savedSet]])
-    expect(wrapper.emitted('delete-set')).toEqual([['set-1']])
+    expect(wrapper.emitted('delete-set')).toEqual([['88a93c5b-2935-5cae-9814-a4f4dc76f411']])
   })
 
   it('renders the limit states, analyzing indicator, empty state, and accessible labels', async () => {
@@ -200,8 +200,8 @@ describe('HashtagSuggestionPanel accessibility', () => {
 
   it('blocks applying saved sets at the limit and toggles the trending section', async () => {
     const savedSet: HashtagSavedSet = {
-      id: 'set-1',
-      workspaceId: 'workspace-1',
+      id: '88a93c5b-2935-5cae-9814-a4f4dc76f411',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       name: 'Engineering',
       hashtags: ['#testing'],
       createdAt: '',

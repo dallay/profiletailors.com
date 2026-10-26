@@ -66,7 +66,9 @@ All requests across API endpoints and background workers MUST propagate correlat
 In accordance with platform security and GDPR policies:
 
 - **STRICTLY FORBIDDEN IN LOGS/METRICS:** Plaintext passwords, authentication tokens (JWT, OAuth refresh/access tokens), encryption keys, user emails, raw IP addresses, or password reset URLs.
-- **Allowed Log Attributes:** Fixed category codes, operation names, bounded status strings, duration in milliseconds, and prefixed entity IDs (`ws-UUID`, `user-UUID`, `pub-UUID`).
+- **Allowed Log Attributes:** Fixed category codes, operation names, bounded status strings, duration in milliseconds, and canonical unprefixed UUID strings for internal entity IDs. Use structured field names to identify entity types, not prefixes.
+
+[ADR-0029](./architecture/adr/0029-use-raw-uuid-identifiers.md) governs internal entity IDs. Historical logs may retain legacy prefixes; do not rewrite retained telemetry. Coordinate saved queries, alert parsers, and dashboards with the UUID-only release through the [UUID migration runbook](./runbooks/uuid-native-identifiers.md). The opaque worker identifier `worker-<UUID>` is unchanged and MUST NOT be normalized as an entity ID.
 
 ### 4. Hexagonal Operational Events
 

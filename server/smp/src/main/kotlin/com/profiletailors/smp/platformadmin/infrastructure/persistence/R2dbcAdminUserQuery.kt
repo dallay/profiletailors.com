@@ -93,7 +93,7 @@ class R2dbcAdminUserQuery(
 
     override suspend fun findById(principalId: String): AdminUserDetail? {
         val detail = databaseClient.sql(SELECT_USER_DETAIL)
-            .bind("id", principalId)
+            .bind("id", java.util.UUID.fromString(principalId))
             .map { row, _ -> row.toDetail() }
             .one()
             .awaitSingleOrNull()

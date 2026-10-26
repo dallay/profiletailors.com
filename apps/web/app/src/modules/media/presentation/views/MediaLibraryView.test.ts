@@ -56,11 +56,11 @@ function mountView(): ReturnType<typeof mount<typeof MediaLibraryView>> {
 }
 
 function makeAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummary {
-  const assetId = overrides.assetId ?? 'asset-1'
+  const assetId = overrides.assetId ?? '8bdec504-2ed1-59e4-8a4a-c068789d03d2'
 
   return {
     assetId,
-    workspaceId: 'ws-1',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     sourceType: 'UPLOADED',
     mediaType: 'image/jpeg',
     status: 'READY',
@@ -79,7 +79,7 @@ describe('MediaLibraryView', () => {
     const store = useMediaStore()
     vi.spyOn(store, 'loadAssets').mockResolvedValue()
     useAuthStore().user = {
-      principalId: 'principal-1',
+      principalId: '4dae1d83-d090-58ea-ac4b-eb99348c0689',
       email: 'owner@example.com',
       username: 'owner',
       displayIdentity: 'Owner',
@@ -166,13 +166,13 @@ describe('MediaLibraryView', () => {
   it('shows the no-filtered-results message when assets exist but all are filtered out (lines 441-444)', async () => {
     const mediaStore = useMediaStore()
     // Add one READY image asset
-    mediaStore.assetsById['image-ready'] = makeAsset({
-      assetId: 'image-ready',
+    mediaStore.assetsById['4f2e33dc-0383-5951-94c5-a9a29e94da27'] = makeAsset({
+      assetId: '4f2e33dc-0383-5951-94c5-a9a29e94da27',
       originalFilename: 'hero.jpg',
-      previewUrl: '/api/media/assets/image-ready/preview',
-      downloadUrl: '/api/media/assets/image-ready/content',
+      previewUrl: '/api/media/assets/4f2e33dc-0383-5951-94c5-a9a29e94da27/preview',
+      downloadUrl: '/api/media/assets/4f2e33dc-0383-5951-94c5-a9a29e94da27/content',
     })
-    mediaStore.assetIds.push('image-ready')
+    mediaStore.assetIds.push('4f2e33dc-0383-5951-94c5-a9a29e94da27')
 
     const wrapper = mountView()
     await flushPromises()
@@ -186,8 +186,8 @@ describe('MediaLibraryView', () => {
 
   it('renders external attribution metadata when available', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['external-asset'] = makeAsset({
-      assetId: 'external-asset',
+    mediaStore.assetsById['1ebf4f07-c2b2-5500-a8ca-91d78a3041d4'] = makeAsset({
+      assetId: '1ebf4f07-c2b2-5500-a8ca-91d78a3041d4',
       sourceType: 'EXTERNAL',
       sourceProvider: 'unsplash',
       externalId: 'photo-123',
@@ -197,10 +197,10 @@ describe('MediaLibraryView', () => {
       metadata: { attributionSentinel: 'hidden-provider-metadata' },
       originalFilename: 'external.jpg',
       fileSizeBytes: 1024,
-      previewUrl: '/api/media/assets/external-asset/preview',
-      downloadUrl: '/api/media/assets/external-asset/content',
+      previewUrl: '/api/media/assets/1ebf4f07-c2b2-5500-a8ca-91d78a3041d4/preview',
+      downloadUrl: '/api/media/assets/1ebf4f07-c2b2-5500-a8ca-91d78a3041d4/content',
     })
-    mediaStore.assetIds.push('external-asset')
+    mediaStore.assetIds.push('1ebf4f07-c2b2-5500-a8ca-91d78a3041d4')
 
     const wrapper = mountView()
     await flushPromises()
@@ -214,41 +214,46 @@ describe('MediaLibraryView', () => {
 
   it('renders asset cards when assets exist', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-1'] = makeAsset({
-      assetId: 'asset-1',
+    mediaStore.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] = makeAsset({
+      assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
       originalFilename: 'hero.jpg',
       fileSizeBytes: 1024,
-      previewUrl: '/api/media/assets/asset-1/preview',
-      downloadUrl: '/api/media/assets/asset-1/content',
+      previewUrl: '/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/preview',
+      downloadUrl: '/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/content',
     })
-    mediaStore.assetIds.push('asset-1')
+    mediaStore.assetIds.push('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
     const wrapper = mountView()
     await flushPromises()
 
     expect(wrapper.text()).toContain('hero.jpg')
     expect(wrapper.text()).toContain('READY')
-    expect(wrapper.find('img').attributes('src')).toContain('/api/media/assets/asset-1/preview')
+    expect(wrapper.find('img').attributes('src')).toContain(
+      '/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/preview',
+    )
   })
 
   it('filters assets by status and type', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['image-ready'] = makeAsset({
-      assetId: 'image-ready',
+    mediaStore.assetsById['4f2e33dc-0383-5951-94c5-a9a29e94da27'] = makeAsset({
+      assetId: '4f2e33dc-0383-5951-94c5-a9a29e94da27',
       originalFilename: 'hero.jpg',
-      previewUrl: '/api/media/assets/image-ready/preview',
-      downloadUrl: '/api/media/assets/image-ready/content',
+      previewUrl: '/api/media/assets/4f2e33dc-0383-5951-94c5-a9a29e94da27/preview',
+      downloadUrl: '/api/media/assets/4f2e33dc-0383-5951-94c5-a9a29e94da27/content',
     })
-    mediaStore.assetsById['video-processing'] = makeAsset({
-      assetId: 'video-processing',
+    mediaStore.assetsById['bec0bfdf-176b-5a29-8e10-b0a5c592cf98'] = makeAsset({
+      assetId: 'bec0bfdf-176b-5a29-8e10-b0a5c592cf98',
       mediaType: 'video/mp4',
       status: 'UPLOADING',
       originalFilename: 'clip.mp4',
       fileSizeBytes: 200,
       createdAt: '2026-06-18T12:00:00Z',
-      downloadUrl: '/api/media/assets/video-processing/content',
+      downloadUrl: '/api/media/assets/bec0bfdf-176b-5a29-8e10-b0a5c592cf98/content',
     })
-    mediaStore.assetIds.push('image-ready', 'video-processing')
+    mediaStore.assetIds.push(
+      '4f2e33dc-0383-5951-94c5-a9a29e94da27',
+      'bec0bfdf-176b-5a29-8e10-b0a5c592cf98',
+    )
 
     const wrapper = mountView()
     await flushPromises()
@@ -296,13 +301,13 @@ describe('MediaLibraryView', () => {
 
   it('applies fallback status class for unknown/edge statuses like DELETED', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['deleted-asset'] = makeAsset({
-      assetId: 'deleted-asset',
+    mediaStore.assetsById['19ef7f0c-93a6-567f-b783-769519768aef'] = makeAsset({
+      assetId: '19ef7f0c-93a6-567f-b783-769519768aef',
       mediaType: 'image/png',
       status: 'DELETED',
       originalFilename: 'removed.png',
     })
-    mediaStore.assetIds.push('deleted-asset')
+    mediaStore.assetIds.push('19ef7f0c-93a6-567f-b783-769519768aef')
 
     const wrapper = mountView()
     await flushPromises()
@@ -319,20 +324,23 @@ describe('MediaLibraryView', () => {
 
   it('searches assets by filename', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-a'] = makeAsset({
-      assetId: 'asset-a',
+    mediaStore.assetsById['f464d618-0f38-5b38-adda-9cf4a0b674eb'] = makeAsset({
+      assetId: 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
       originalFilename: 'hero.jpg',
-      previewUrl: '/api/media/assets/asset-a/preview',
-      downloadUrl: '/api/media/assets/asset-a/content',
+      previewUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/preview',
+      downloadUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/content',
     })
-    mediaStore.assetsById['asset-b'] = makeAsset({
-      assetId: 'asset-b',
+    mediaStore.assetsById['13001fc9-a24f-54d3-bde1-cfa79074593c'] = makeAsset({
+      assetId: '13001fc9-a24f-54d3-bde1-cfa79074593c',
       mediaType: 'application/pdf',
       originalFilename: 'invoice.pdf',
       createdAt: '2026-06-18T12:00:00Z',
-      downloadUrl: '/api/media/assets/asset-b/content',
+      downloadUrl: '/api/media/assets/13001fc9-a24f-54d3-bde1-cfa79074593c/content',
     })
-    mediaStore.assetIds.push('asset-a', 'asset-b')
+    mediaStore.assetIds.push(
+      'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+      '13001fc9-a24f-54d3-bde1-cfa79074593c',
+    )
 
     const wrapper = mountView()
     await flushPromises()
@@ -345,20 +353,23 @@ describe('MediaLibraryView', () => {
 
   it('sorts assets by filename ascending', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-z'] = makeAsset({
-      assetId: 'asset-z',
+    mediaStore.assetsById['0530be4d-dfc8-58f6-b0a9-5b9a30939c67'] = makeAsset({
+      assetId: '0530be4d-dfc8-58f6-b0a9-5b9a30939c67',
       originalFilename: 'zebra.jpg',
-      previewUrl: '/api/media/assets/asset-z/preview',
-      downloadUrl: '/api/media/assets/asset-z/content',
+      previewUrl: '/api/media/assets/0530be4d-dfc8-58f6-b0a9-5b9a30939c67/preview',
+      downloadUrl: '/api/media/assets/0530be4d-dfc8-58f6-b0a9-5b9a30939c67/content',
     })
-    mediaStore.assetsById['asset-a'] = makeAsset({
-      assetId: 'asset-a',
+    mediaStore.assetsById['f464d618-0f38-5b38-adda-9cf4a0b674eb'] = makeAsset({
+      assetId: 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
       originalFilename: 'apple.jpg',
       createdAt: '2026-06-18T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-a/preview',
-      downloadUrl: '/api/media/assets/asset-a/content',
+      previewUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/preview',
+      downloadUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/content',
     })
-    mediaStore.assetIds.push('asset-z', 'asset-a')
+    mediaStore.assetIds.push(
+      '0530be4d-dfc8-58f6-b0a9-5b9a30939c67',
+      'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+    )
 
     const wrapper = mountView()
     await flushPromises()
@@ -372,34 +383,38 @@ describe('MediaLibraryView', () => {
 
   it('selects deletable assets only and handles per-item failures gracefully', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-1'] = makeAsset({
-      assetId: 'asset-1',
+    mediaStore.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] = makeAsset({
+      assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
       originalFilename: 'one.jpg',
-      previewUrl: '/api/media/assets/asset-1/preview',
-      downloadUrl: '/api/media/assets/asset-1/content',
+      previewUrl: '/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/preview',
+      downloadUrl: '/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/content',
     })
-    mediaStore.assetsById['asset-2'] = makeAsset({
-      assetId: 'asset-2',
+    mediaStore.assetsById['b909d06f-92ea-5671-9f13-73475a89080e'] = makeAsset({
+      assetId: 'b909d06f-92ea-5671-9f13-73475a89080e',
       mediaType: 'application/pdf',
       status: 'FAILED',
       originalFilename: 'two.pdf',
       createdAt: '2026-06-18T12:00:00Z',
-      downloadUrl: '/api/media/assets/asset-2/content',
+      downloadUrl: '/api/media/assets/b909d06f-92ea-5671-9f13-73475a89080e/content',
     })
-    mediaStore.assetsById['asset-3'] = makeAsset({
-      assetId: 'asset-3',
+    mediaStore.assetsById['24add7a3-5877-5ff8-a4cb-11ff965d127f'] = makeAsset({
+      assetId: '24add7a3-5877-5ff8-a4cb-11ff965d127f',
       mediaType: 'image/png',
       status: 'UPLOADING',
       originalFilename: 'three.png',
       createdAt: '2026-06-20T12:00:00Z',
     })
-    mediaStore.assetIds.push('asset-1', 'asset-2', 'asset-3')
+    mediaStore.assetIds.push(
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+    )
 
     // asset-2 delete will fail; test that loop continues and PROCESSING assets are excluded
     const deleteSpy = vi
       .spyOn(mediaStore, 'deletePersistedAsset')
       .mockImplementation(async (assetId) => {
-        if (assetId === 'asset-2') throw new Error('delete failed')
+        if (assetId === 'b909d06f-92ea-5671-9f13-73475a89080e') throw new Error('delete failed')
       })
 
     const wrapper = mountView()
@@ -421,8 +436,8 @@ describe('MediaLibraryView', () => {
 
     // asset-1 and asset-2 were attempted; asset-3 (PROCESSING) was skipped
     expect(deleteSpy).toHaveBeenCalledTimes(2)
-    expect(deleteSpy).toHaveBeenCalledWith('asset-1')
-    expect(deleteSpy).toHaveBeenCalledWith('asset-2')
-    expect(deleteSpy).not.toHaveBeenCalledWith('asset-3')
+    expect(deleteSpy).toHaveBeenCalledWith('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+    expect(deleteSpy).toHaveBeenCalledWith('b909d06f-92ea-5671-9f13-73475a89080e')
+    expect(deleteSpy).not.toHaveBeenCalledWith('24add7a3-5877-5ff8-a4cb-11ff965d127f')
   })
 })

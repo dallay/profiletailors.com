@@ -69,11 +69,11 @@ vi.mock('@/components/ui/dialog', () => ({
 
 function makeAsset(overrides: Partial<ComposerMediaPickerAsset> = {}): ComposerMediaPickerAsset {
   return {
-    assetId: 'asset-1',
+    assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
     name: 'Hero image',
     mediaType: 'image/png',
     status: 'READY',
-    previewUrl: '/preview/asset-1.png',
+    previewUrl: '/preview/8bdec504-2ed1-59e4-8a4a-c068789d03d2.png',
     selectable: true,
     selected: false,
     sourceType: 'UPLOADED',
@@ -118,15 +118,25 @@ describe('ComposerMediaPickerShell.vue', () => {
     expect(wrapper.text()).toContain('Library')
     expect(wrapper.text()).toContain('Unsplash')
 
-    await wrapper.get('[data-testid="picker-asset-card-asset-1"]').trigger('click')
-    expect(wrapper.emitted('toggle-asset')).toEqual([[{ assetId: 'asset-1' }]])
+    await wrapper
+      .get('[data-testid="picker-asset-card-8bdec504-2ed1-59e4-8a4a-c068789d03d2"]')
+      .trigger('click')
+    expect(wrapper.emitted('toggle-asset')).toEqual([
+      [{ assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2' }],
+    ])
 
-    expect(wrapper.find('[data-testid="picker-asset-selected-indicator-asset-1"]').exists()).toBe(
-      true,
-    )
+    expect(
+      wrapper
+        .find(
+          '[data-testid="picker-asset-selected-indicator-8bdec504-2ed1-59e4-8a4a-c068789d03d2"]',
+        )
+        .exists(),
+    ).toBe(true)
 
     await wrapper.get('[data-testid="picker-apply"]').trigger('click')
-    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: ['asset-1'] }]])
+    expect(wrapper.emitted('apply-selection')).toEqual([
+      [{ assetIds: ['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] }],
+    ])
 
     await wrapper.get('[data-testid="picker-cancel"]').trigger('click')
     expect(wrapper.emitted('close')).toEqual([[]])
@@ -188,13 +198,15 @@ describe('ComposerMediaPickerShell.vue', () => {
 
   it('applies selected assets that are hidden by the current search', async () => {
     const wrapper = mountShell({
-      assets: [makeAsset({ assetId: 'visible', selected: true })],
-      selectedAssetIds: ['visible', 'hidden'],
+      assets: [makeAsset({ assetId: '3d16f71a-564f-5dea-bc04-9d412a3bf253', selected: true })],
+      selectedAssetIds: ['3d16f71a-564f-5dea-bc04-9d412a3bf253', 'hidden'],
     })
 
     await wrapper.get('[data-testid="picker-apply"]').trigger('click')
 
-    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: ['visible', 'hidden'] }]])
+    expect(wrapper.emitted('apply-selection')).toEqual([
+      [{ assetIds: ['3d16f71a-564f-5dea-bc04-9d412a3bf253', 'hidden'] }],
+    ])
   })
 
   it('clears the library search when the picker closes', async () => {
@@ -222,32 +234,52 @@ describe('ComposerMediaPickerShell.vue', () => {
     expect(error.text()).toContain('Unable to load media library.')
 
     const ready = mountShell({
-      assets: [makeAsset({ assetId: 'fallback', previewUrl: null })],
+      assets: [makeAsset({ assetId: '222c393c-7f87-5577-beaa-2e4e4c3c5cd1', previewUrl: null })],
     })
 
-    const fallbackCard = ready.get('[data-testid="picker-asset-card-fallback"]')
+    const fallbackCard = ready.get(
+      '[data-testid="picker-asset-card-222c393c-7f87-5577-beaa-2e4e4c3c5cd1"]',
+    )
     expect(fallbackCard.text()).toContain('No preview')
     await fallbackCard.trigger('click')
-    expect(ready.emitted('toggle-asset')).toEqual([[{ assetId: 'fallback' }]])
+    expect(ready.emitted('toggle-asset')).toEqual([
+      [{ assetId: '222c393c-7f87-5577-beaa-2e4e4c3c5cd1' }],
+    ])
   })
 
   it('keeps processing and failed assets visible but not selectable', async () => {
     const wrapper = mountShell({
       assets: [
-        makeAsset({ assetId: 'processing', status: 'PROCESSING', selectable: false }),
-        makeAsset({ assetId: 'failed', status: 'FAILED', selectable: false }),
+        makeAsset({
+          assetId: 'a5a01d7b-50a7-516e-a439-b3478650b956',
+          status: 'PROCESSING',
+          selectable: false,
+        }),
+        makeAsset({
+          assetId: 'b5c006d8-273f-5a30-840e-ae1830fd989b',
+          status: 'FAILED',
+          selectable: false,
+        }),
       ],
     })
 
     expect(
-      wrapper.get('[data-testid="picker-asset-card-processing"]').attributes('aria-disabled'),
+      wrapper
+        .get('[data-testid="picker-asset-card-a5a01d7b-50a7-516e-a439-b3478650b956"]')
+        .attributes('aria-disabled'),
     ).toBe('true')
     expect(
-      wrapper.get('[data-testid="picker-asset-card-failed"]').attributes('aria-disabled'),
+      wrapper
+        .get('[data-testid="picker-asset-card-b5c006d8-273f-5a30-840e-ae1830fd989b"]')
+        .attributes('aria-disabled'),
     ).toBe('true')
 
-    await wrapper.get('[data-testid="picker-asset-card-processing"]').trigger('click')
-    await wrapper.get('[data-testid="picker-asset-card-failed"]').trigger('click')
+    await wrapper
+      .get('[data-testid="picker-asset-card-a5a01d7b-50a7-516e-a439-b3478650b956"]')
+      .trigger('click')
+    await wrapper
+      .get('[data-testid="picker-asset-card-b5c006d8-273f-5a30-840e-ae1830fd989b"]')
+      .trigger('click')
 
     expect(wrapper.emitted('toggle-asset')).toBeUndefined()
   })

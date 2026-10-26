@@ -8,19 +8,19 @@ import { createI18n } from 'vue-i18n'
 const mockAuditLogsResult = {
   items: [
     {
-      eventId: 'evt-1',
+      eventId: 'd19d943f-2733-5c44-8d01-035e3a6fc167',
       occurredAt: '2024-06-01T12:00:00Z',
       action: 'USER_DISABLE',
       targetType: 'USER',
-      targetId: 'user-2',
+      targetId: 'c9199f5a-074c-5846-aed4-16f6eff2f72a',
       result: 'SUCCEEDED',
     },
     {
-      eventId: 'evt-2',
+      eventId: 'cf652be5-2706-5be7-a561-4d4c6eaf3686',
       occurredAt: '2024-06-01T11:00:00Z',
       action: 'ROLE_ASSIGN',
       targetType: 'USER',
-      targetId: 'user-3',
+      targetId: 'f3e49830-1c3c-5cef-9d9e-c82479cd4088',
       result: 'REJECTED',
     },
   ],
@@ -55,7 +55,7 @@ async function createView() {
           action: 'Action',
           filterByAction: 'Filter by action...',
           targetType: 'Target Type',
-          targetId: 'Target ID',
+          targetId: '2cfe8360-e012-5877-a86a-a3837da411eb',
           result: 'Result',
           allResults: 'All Results',
           results: {
@@ -108,7 +108,7 @@ describe('AuditView', () => {
 
     expect(wrapper.text()).toContain('Audit Logs')
     expect(wrapper.text()).toContain('USER_DISABLE')
-    expect(wrapper.text()).toContain('user-2')
+    expect(wrapper.text()).toContain('c9199f5a-074c-5846-aed4-16f6eff2f72a')
     expect(wrapper.text()).toContain('Succeeded')
     expect(wrapper.text()).toContain('ROLE_ASSIGN')
     expect(wrapper.text()).toContain('Rejected')

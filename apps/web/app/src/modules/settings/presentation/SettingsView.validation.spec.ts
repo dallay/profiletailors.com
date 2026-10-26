@@ -72,7 +72,7 @@ describe('SettingsView workspace rename validation', () => {
 
   it('does not submit rename when the workspace name is blank after trimming', async () => {
     const workspace = useWorkspaceStore()
-    workspace.setActiveWorkspaceId('ws-1')
+    workspace.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     workspace.setWorkspaceName('Current name')
 
     const wrapper = mountSettings()
@@ -92,9 +92,12 @@ describe('SettingsView workspace rename validation', () => {
 
   it('trims the workspace name before submitting rename', async () => {
     const workspace = useWorkspaceStore()
-    workspace.setActiveWorkspaceId('ws-1')
+    workspace.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     workspace.setWorkspaceName('Current name')
-    renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+    renameWorkspaceMock.mockResolvedValue({
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      name: 'Studio PT',
+    })
 
     const wrapper = mountSettings()
     await flushPromises()
@@ -110,6 +113,10 @@ describe('SettingsView workspace rename validation', () => {
       .find((button) => button.text().includes('workspace.save'))
       ?.trigger('click')
 
-    expect(renameWorkspaceMock).toHaveBeenCalledWith('Studio PT', expect.anything(), 'ws-1')
+    expect(renameWorkspaceMock).toHaveBeenCalledWith(
+      'Studio PT',
+      expect.anything(),
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
   })
 })

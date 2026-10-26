@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: uuid-native-identifiers-001-prepare-mapping
+      author: profiletailors
+      dbms: postgresql
+      context: "@uuid-native-identifiers"
+      changes:
+        - sqlFile:
+            path: 001-prepare.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: uuid-native-identifiers-002-convert
+      author: profiletailors
+      dbms: postgresql
+      context: "@uuid-native-identifiers"
+      runInTransaction: true
+      changes:
+        - sqlFile:
+            path: 002-convert.sql
+            relativeToChangelogFile: true
+            splitStatements: false

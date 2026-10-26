@@ -1,6 +1,6 @@
 import { WaitlistPage } from '../pages/waitlist-page'
 import { expect, setupOwnerSession, setupSupportSession, test } from '../fixtures/base-test'
-import { makeEntry, resetEntrySequence } from '../fixtures/test-data'
+import { makeEntry } from '../fixtures/test-data'
 
 test.describe('waitlist bulk invite (mocked lane)', () => {
   test('hides bulk actions without the invite permission', async ({ page }) => {
@@ -101,6 +101,8 @@ test.describe('waitlist bulk invite (mocked lane)', () => {
 
   test('retrying a partial batch yields skips without duplicates', async ({ page }) => {
     const { state } = await setupOwnerSession(page)
+    const remainingEntry = state.entries.find((entry) => entry.email === 'cid@example.com')
+    if (!remainingEntry) throw new Error('The pending retry entry is missing')
     const waitlist = new WaitlistPage(page)
     await waitlist.goto()
 
@@ -115,7 +117,7 @@ test.describe('waitlist bulk invite (mocked lane)', () => {
     await expect(waitlist.resultsPanel).toContainText('1 invited')
     await expect(waitlist.resultsPanel).toContainText('3 skipped')
     await expect(waitlist.resultsPanel).toContainText('1 failed')
-    await expect(waitlist.resultsPanel).toContainText('e2e-entry-3 — invited')
+    await expect(waitlist.resultsPanel).toContainText(`${remainingEntry.id} — invited`)
     expect(state.bulkCalls).toHaveLength(2)
   })
 
@@ -129,7 +131,6 @@ test.describe('waitlist bulk invite (mocked lane)', () => {
   })
 
   test('over-limit selection is blocked with a localized message', async ({ page }) => {
-    resetEntrySequence()
     const many = Array.from({ length: 51 }, (_, index) => makeEntry(`bulk-${index}`))
     const { state } = await setupOwnerSession(page, { entries: many })
     const waitlist = new WaitlistPage(page)

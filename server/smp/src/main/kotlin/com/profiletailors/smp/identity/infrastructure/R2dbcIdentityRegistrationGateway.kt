@@ -10,6 +10,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
+import java.util.UUID
 
 @Repository
 class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClient) : IdentityRegistrationGateway {
@@ -28,7 +29,7 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             VALUES (:id, :principalType, :subject, :provider, :displayIdentity)
             """.trimIndent(),
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("principalType", PrincipalType.USER.name)
             .bind("subject", subject)
             .bind("displayIdentity", displayIdentity)
@@ -50,7 +51,7 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
             VALUES (:principalId, :email, :username, :emailStatus)
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("email", email)
             .bind("username", username)
             .bind("emailStatus", emailStatus.name)
@@ -62,10 +63,11 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
     override suspend fun createEmailVerificationToken(email: String, tokenHash: String, expiresAt: Instant) {
         databaseClient.sql(
             """
-            INSERT INTO email_verification_tokens (email, token_hash, expires_at)
-            VALUES (:email, :tokenHash, :expiresAt)
+            INSERT INTO email_verification_tokens (id, email, token_hash, expires_at)
+            VALUES (:id, :email, :tokenHash, :expiresAt)
             """.trimIndent(),
         )
+            .bind("id", UUID.randomUUID())
             .bind("email", email)
             .bind("tokenHash", tokenHash)
             .bind("expiresAt", expiresAt)

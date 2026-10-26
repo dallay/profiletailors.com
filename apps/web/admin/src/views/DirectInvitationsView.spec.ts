@@ -46,10 +46,10 @@ function listPageResponse(items: unknown[] = []) {
 
 function listRowResponse(overrides: Record<string, unknown> = {}) {
   return {
-    invitationId: 'inv-1',
+    invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
     email: 'ops@example.com',
     target: 'EXISTING_WORKSPACE',
-    workspaceId: 'ws-1',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     status: 'ACTIVE',
     expiresAt: '2030-01-01T00:00:00Z',
     version: 2,
@@ -132,7 +132,7 @@ describe('DirectInvitationsView', () => {
     request.mockResolvedValueOnce(listPageResponse()).mockResolvedValue(
       new Response(
         JSON.stringify({
-          invitationId: 'inv-1',
+          invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
           status: 'ACTIVE',
           expiresAt: '2030-01-01T00:00:00Z',
           version: 0,
@@ -144,7 +144,9 @@ describe('DirectInvitationsView', () => {
     )
     const wrapper = mountView()
     await wrapper.get('[data-testid="direct-invitation-email"]').setValue('user@example.com')
-    await wrapper.get('[data-testid="direct-invitation-workspace"]').setValue('ws-99')
+    await wrapper
+      .get('[data-testid="direct-invitation-workspace"]')
+      .setValue('738bcbd6-9bc7-5416-b9a8-d8d0b20a157b')
     await wrapper.get('[data-testid="direct-invitation-submit"]').trigger('click')
     await flushPromises()
     expect(request).toHaveBeenCalledWith(
@@ -158,7 +160,7 @@ describe('DirectInvitationsView', () => {
     expect(body).toMatchObject({
       email: 'user@example.com',
       target: 'EXISTING_WORKSPACE',
-      workspaceId: 'ws-99',
+      workspaceId: '738bcbd6-9bc7-5416-b9a8-d8d0b20a157b',
     })
     const headers = new Headers(init.headers)
     expect(headers.get('Content-Type')).toBe('application/vnd.api.v1+json')
@@ -171,7 +173,7 @@ describe('DirectInvitationsView', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            invitationId: 'inv-1',
+            invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
             status: 'ACTIVE',
             expiresAt: '2030-01-01T00:00:00Z',
             version: 0,
@@ -182,7 +184,7 @@ describe('DirectInvitationsView', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            invitationId: 'inv-1',
+            invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
             status: 'ACTIVE',
             expiresAt: '2030-01-08T00:00:00Z',
             version: 1,
@@ -198,11 +200,12 @@ describe('DirectInvitationsView', () => {
     await wrapper.get('[data-testid="direct-invitation-resend"]').trigger('click')
     await flushPromises()
     expect(request).toHaveBeenCalledWith(
-      '/api/admin/invitations/inv-1/direct-resend',
+      '/api/admin/invitations/12865a82-4941-50b1-ac48-0704d2344044/direct-resend',
       expect.objectContaining({ method: 'POST' }),
     )
     const resendCall = postCalls().find(
-      (call) => call[0] === '/api/admin/invitations/inv-1/direct-resend',
+      (call) =>
+        call[0] === '/api/admin/invitations/12865a82-4941-50b1-ac48-0704d2344044/direct-resend',
     )
     expect(resendCall).toBeDefined()
     const resendInit = resendCall?.[1] as RequestInit
@@ -216,7 +219,7 @@ describe('DirectInvitationsView', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            invitationId: 'inv-1',
+            invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
             status: 'ACTIVE',
             expiresAt: '2030-01-01T00:00:00Z',
             version: 2,
@@ -225,7 +228,9 @@ describe('DirectInvitationsView', () => {
         ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ invitationId: 'inv-1' }), { status: 200 }),
+        new Response(JSON.stringify({ invitationId: '12865a82-4941-50b1-ac48-0704d2344044' }), {
+          status: 200,
+        }),
       )
     const wrapper = mountView()
     await wrapper.get('[data-testid="direct-invitation-email"]').setValue('user@example.com')
@@ -244,7 +249,7 @@ describe('DirectInvitationsView', () => {
     request.mockResolvedValueOnce(listPageResponse()).mockResolvedValue(
       new Response(
         JSON.stringify({
-          invitationId: 'inv-1',
+          invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
           status: 'ACTIVE',
           expiresAt: '2030-01-01T00:00:00Z',
         }),
@@ -259,7 +264,7 @@ describe('DirectInvitationsView', () => {
     await wrapper.get('[data-testid="direct-invitation-submit"]').trigger('click')
     await flushPromises()
     const success = wrapper.get('[data-testid="direct-invitation-success"]')
-    expect(success.text()).toContain('inv-1')
+    expect(success.text()).toContain('12865a82-4941-50b1-ac48-0704d2344044')
     expect(success.text()).not.toContain('tok')
     expect(success.text()).not.toMatch(/token/i)
     wrapper.unmount()
@@ -285,7 +290,10 @@ describe('DirectInvitationsView', () => {
     request.mockResolvedValueOnce(
       listPageResponse([
         listRowResponse(),
-        listRowResponse({ invitationId: 'inv-2', email: 'second@example.com' }),
+        listRowResponse({
+          invitationId: '3ca54d3c-bc94-58f7-85d3-8fa6094e77da',
+          email: 'second@example.com',
+        }),
       ]),
     )
     const wrapper = mountView()
@@ -367,7 +375,7 @@ describe('DirectInvitationsView', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            invitationId: 'inv-1',
+            invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
             status: 'ACTIVE',
             expiresAt: '2030-01-08T00:00:00Z',
             version: 3,
@@ -383,7 +391,7 @@ describe('DirectInvitationsView', () => {
     await wrapper.get('[data-testid="direct-invitation-row-resend"]').trigger('click')
     await flushPromises()
     expect(request).toHaveBeenCalledWith(
-      '/api/admin/invitations/inv-1/direct-resend',
+      '/api/admin/invitations/12865a82-4941-50b1-ac48-0704d2344044/direct-resend',
       expect.objectContaining({ method: 'POST' }),
     )
     expect(listCalls().length).toBe(2)
@@ -394,7 +402,9 @@ describe('DirectInvitationsView', () => {
     request
       .mockResolvedValueOnce(listPageResponse([listRowResponse()]))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ invitationId: 'inv-1' }), { status: 200 }),
+        new Response(JSON.stringify({ invitationId: '12865a82-4941-50b1-ac48-0704d2344044' }), {
+          status: 200,
+        }),
       )
       .mockImplementation(() => Promise.resolve(listPageResponse([])))
     const wrapper = mountView()
@@ -407,7 +417,8 @@ describe('DirectInvitationsView', () => {
     await dialog.vm.$emit('confirm', 2)
     await flushPromises()
     const revokeCall = postCalls().find(
-      (call) => call[0] === '/api/admin/invitations/inv-1/direct-revoke',
+      (call) =>
+        call[0] === '/api/admin/invitations/12865a82-4941-50b1-ac48-0704d2344044/direct-revoke',
     )
     expect(revokeCall).toBeDefined()
     const revokeInit = revokeCall?.[1] as RequestInit

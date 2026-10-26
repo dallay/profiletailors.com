@@ -27,9 +27,19 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
 
     @BeforeEach
     fun setUpRepositories() = runTest {
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-1', 'Tombstone', 'ACTIVE')")
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Tombstone', 'ACTIVE')
+            """.trimIndent(),
+        )
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-2', 'Other', 'ACTIVE')")
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status)
+            VALUES ('00000000-0000-0000-0000-00000000049e', 'Other', 'ACTIVE')
+            """.trimIndent(),
+        )
             .fetch().rowsUpdated().awaitSingle()
         tombstones = R2dbcCredentialDeletionTombstoneRepository(databaseClient)
     }
@@ -39,8 +49,8 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
         val deletedAt = Instant.parse("2026-09-30T00:00:00Z")
         tombstones.record(
             CredentialDeletionTombstone(
-                workspaceId = "workspace-1",
-                connectionId = "connection-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                connectionId = "00000000-0000-0000-0000-000000000403",
                 provider = SocialProvider.THREADS,
                 providerConnectionRef = "threads-user-1",
                 credentialReference = "credential-1",
@@ -51,7 +61,10 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val loaded = tombstones.findByWorkspaceAndConnection("workspace-1", "connection-1")
+        val loaded = tombstones.findByWorkspaceAndConnection(
+            "00000000-0000-0000-0000-00000000049d",
+            "00000000-0000-0000-0000-000000000403",
+        )
 
         assertEquals(SocialProvider.THREADS, loaded?.provider)
         assertEquals("threads-user-1", loaded?.providerConnectionRef)
@@ -66,8 +79,8 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
     fun `re-recording refreshes reason and timestamp`() = runTest {
         tombstones.record(
             CredentialDeletionTombstone(
-                workspaceId = "workspace-1",
-                connectionId = "connection-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                connectionId = "00000000-0000-0000-0000-000000000403",
                 provider = SocialProvider.THREADS,
                 providerConnectionRef = "threads-user-1",
                 credentialReference = null,
@@ -79,8 +92,8 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
         )
         tombstones.record(
             CredentialDeletionTombstone(
-                workspaceId = "workspace-1",
-                connectionId = "connection-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                connectionId = "00000000-0000-0000-0000-000000000403",
                 provider = SocialProvider.THREADS,
                 providerConnectionRef = "threads-user-1",
                 credentialReference = null,
@@ -91,7 +104,10 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val loaded = tombstones.findByWorkspaceAndConnection("workspace-1", "connection-1")
+        val loaded = tombstones.findByWorkspaceAndConnection(
+            "00000000-0000-0000-0000-00000000049d",
+            "00000000-0000-0000-0000-000000000403",
+        )
 
         assertEquals(CredentialDeletionReason.EXPIRED, loaded?.reason)
         assertEquals(Instant.parse("2026-09-30T00:00:00Z"), loaded?.deletedAt)
@@ -99,11 +115,16 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `missing tombstone and other workspace stay isolated`() = runTest {
-        assertNull(tombstones.findByWorkspaceAndConnection("workspace-1", "missing"))
+        assertNull(
+            tombstones.findByWorkspaceAndConnection(
+                "00000000-0000-0000-0000-00000000049d",
+                "00000000-0000-0000-0000-00000000042d",
+            ),
+        )
         tombstones.record(
             CredentialDeletionTombstone(
-                workspaceId = "workspace-1",
-                connectionId = "connection-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                connectionId = "00000000-0000-0000-0000-000000000403",
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-user-1",
                 credentialReference = null,
@@ -114,7 +135,12 @@ class CredentialDeletionTombstonePostgresTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        assertNull(tombstones.findByWorkspaceAndConnection("workspace-2", "connection-1"))
+        assertNull(
+            tombstones.findByWorkspaceAndConnection(
+                "00000000-0000-0000-0000-00000000049e",
+                "00000000-0000-0000-0000-000000000403",
+            ),
+        )
     }
 
     companion object {

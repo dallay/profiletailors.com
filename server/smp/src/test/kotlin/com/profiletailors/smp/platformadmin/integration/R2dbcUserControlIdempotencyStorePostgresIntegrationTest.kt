@@ -59,7 +59,8 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     @Test
     fun `should return the stored record when a claim is stored`() = runTest {
         val operatorId = UUID.randomUUID()
-        val record = UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1")
+        val record =
+            UserControlIdempotencyRecord(operatorId, "disable", "d5298f21-6c5c-5672-bcac-0490740dd03a", "key-1")
 
         assertTrue(store.claim(record))
 
@@ -70,7 +71,8 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     @Test
     fun `should reject a duplicate claim for the same key`() = runTest {
         val operatorId = UUID.randomUUID()
-        val record = UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1")
+        val record =
+            UserControlIdempotencyRecord(operatorId, "disable", "d5298f21-6c5c-5672-bcac-0490740dd03a", "key-1")
 
         assertTrue(store.claim(record))
         assertFalse(store.claim(record))
@@ -78,7 +80,13 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
 
     @Test
     fun `should propagate non-duplicate storage failures`() = runTest {
-        val record = UserControlIdempotencyRecord(UUID.randomUUID(), "x".repeat(40), "user-1", "key-1")
+        val record =
+            UserControlIdempotencyRecord(
+                UUID.randomUUID(),
+                "x".repeat(40),
+                "d5298f21-6c5c-5672-bcac-0490740dd03a",
+                "key-1",
+            )
 
         assertThrows(DataAccessException::class.java) {
             kotlinx.coroutines.runBlocking { store.claim(record) }
@@ -88,18 +96,22 @@ class R2dbcUserControlIdempotencyStorePostgresIntegrationTest : PostgresIntegrat
     @Test
     fun `should replay the stored response after completion`() = runTest {
         val operatorId = UUID.randomUUID()
-        store.claim(UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1"))
+        store.claim(
+            UserControlIdempotencyRecord(operatorId, "disable", "d5298f21-6c5c-5672-bcac-0490740dd03a", "key-1"),
+        )
 
-        store.complete(operatorId, "key-1", """{"principalId":"user-1"}""")
+        store.complete(operatorId, "key-1", """{"principalId":"d5298f21-6c5c-5672-bcac-0490740dd03a"}""")
 
         val found = store.find(operatorId, "key-1")
-        assertEquals("""{"principalId":"user-1"}""", found?.responseJson)
+        assertEquals("""{"principalId":"d5298f21-6c5c-5672-bcac-0490740dd03a"}""", found?.responseJson)
     }
 
     @Test
     fun `should forget the record after removal`() = runTest {
         val operatorId = UUID.randomUUID()
-        store.claim(UserControlIdempotencyRecord(operatorId, "disable", "user-1", "key-1"))
+        store.claim(
+            UserControlIdempotencyRecord(operatorId, "disable", "d5298f21-6c5c-5672-bcac-0490740dd03a", "key-1"),
+        )
 
         store.remove(operatorId, "key-1")
 

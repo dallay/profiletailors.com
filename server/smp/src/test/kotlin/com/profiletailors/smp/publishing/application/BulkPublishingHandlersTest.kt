@@ -78,7 +78,11 @@ class BulkPublishingHandlersTest {
         every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
-        coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit
+        coEvery { bulkImportJobRepository.saveRows(any()) } answers {
+            firstArg<List<com.profiletailors.smp.publishing.domain.BulkImportRow>>().forEach { row ->
+                java.util.UUID.fromString(row.id).toString() shouldBe row.id
+            }
+        }
         coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns SocialAccount(
             id = "acc-1",
             socialConnectionId = "conn-1",
@@ -105,6 +109,7 @@ class BulkPublishingHandlersTest {
         val result = scheduleHandler.handle(
             ScheduleBulkCommand(workspaceId = workspaceId, csvText = csv, csvHash = csv),
         )
+        java.util.UUID.fromString(result.jobId).toString() shouldBe result.jobId
         result.totalRows shouldBe 2
         result.scheduledCount shouldBe 1
         result.failedCount shouldBe 1

@@ -178,11 +178,11 @@ describe('initializeAppSentry', () => {
         url: 'https://app.profiletailors.com/reset-password?token=reset-secret',
         headers: { Authorization: 'Bearer access-secret', Accept: 'application/json' },
       },
-      user: { id: 'principal-123', email: 'person@example.com' },
+      user: { id: '4b0763d2-ad51-56ad-822c-530230a82e3f', email: 'person@example.com' },
     }
     expect(callbacks.beforeSend(event)).toBe(event)
     expect(event.request.url).toBe('https://app.profiletailors.com/reset-password')
-    expect(event.user).toEqual({ id: 'principal-123' })
+    expect(event.user).toEqual({ id: '4b0763d2-ad51-56ad-822c-530230a82e3f' })
     expect(callbacks.beforeSend(Object.freeze({ note: 'hello' }))).toBeNull()
 
     const breadcrumb = { message: 'hello person@example.com' }
@@ -197,10 +197,13 @@ describe('initializeAppSentry', () => {
       start_timestamp: 1720000000,
       status: 'ok',
       is_segment: true,
-      attributes: { principalId: 'principal-123', password: 'plaintext-secret' },
+      attributes: {
+        principalId: '4b0763d2-ad51-56ad-822c-530230a82e3f',
+        password: 'plaintext-secret',
+      },
     }
     expect(callbacks.beforeSendSpan(span)).toBe(span)
-    expect(span.attributes).toEqual({ principalId: 'principal-123' })
+    expect(span.attributes).toEqual({ principalId: '4b0763d2-ad51-56ad-822c-530230a82e3f' })
 
     const redacted = callbacks.beforeSendSpan(
       Object.freeze({

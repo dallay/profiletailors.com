@@ -9,6 +9,7 @@ import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) : PrincipalIdentityLookup {
@@ -49,7 +50,7 @@ class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) :
             WHERE p.id = :principalId
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ -> mapPrincipalIdentityFacts(row) }
         .one()
         .awaitSingleOrNull()

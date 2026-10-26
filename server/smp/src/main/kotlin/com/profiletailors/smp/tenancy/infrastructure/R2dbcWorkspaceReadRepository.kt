@@ -6,6 +6,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 /**
  * Read-only repository for workspace queries.
@@ -41,7 +42,7 @@ internal class R2dbcWorkspaceReadRepository(private val databaseClient: Database
             ORDER BY w.name ASC
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .bind("membershipStatus", "ACTIVE")
         .bind("workspaceStatus", "ACTIVE")
         .map { row, _ ->
@@ -72,7 +73,7 @@ internal class R2dbcWorkspaceReadRepository(private val databaseClient: Database
             ORDER BY wm.created_at DESC
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ ->
             com.profiletailors.smp.tenancy.application.WorkspaceMembershipSummary(
                 workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),

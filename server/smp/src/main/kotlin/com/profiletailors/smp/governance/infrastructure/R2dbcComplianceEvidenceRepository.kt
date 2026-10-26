@@ -17,6 +17,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 @Suppress("StringLiteralDuplication")
@@ -29,7 +30,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      * @return The matching compliance evidence, or `null` if none exists.
      */
     override suspend fun findById(id: ComplianceEvidenceId): ComplianceEvidence? = databaseClient.sql(SELECT_BY_ID)
-        .bind("id", id.value)
+        .bind("id", UUID.fromString(id.value))
         .map { row, _ -> mapEvidence(row) }
         .first()
         .awaitSingleOrNull()
@@ -42,7 +43,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      */
     override fun findByControlId(controlId: ComplianceControlId): Flow<ComplianceEvidence> =
         databaseClient.sql(SELECT_BY_CONTROL)
-            .bind("controlId", controlId.value)
+            .bind("controlId", UUID.fromString(controlId.value))
             .map { row, _ -> mapEvidence(row) }
             .all()
             .asFlow()
@@ -55,7 +56,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      */
     override suspend fun save(evidence: ComplianceEvidence): ComplianceEvidence {
         var spec = databaseClient.sql(INSERT_EVIDENCE)
-            .bind("id", evidence.id.value)
+            .bind("id", UUID.fromString(evidence.id.value))
             .bind("evidenceType", evidence.evidenceType)
             .bind("title", evidence.title)
             .bind("submittedBy", evidence.submittedBy)
@@ -93,11 +94,11 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         evidenceId: ComplianceEvidenceId,
         linkedBy: String,
     ): ComplianceControlEvidence {
-        val id = "ctrlev-${controlId.value}-${evidenceId.value}"
+        val id = UUID.randomUUID().toString()
         databaseClient.sql(LINK_EVIDENCE)
-            .bind("id", id)
-            .bind("controlId", controlId.value)
-            .bind("evidenceId", evidenceId.value)
+            .bind("id", UUID.fromString(id))
+            .bind("controlId", UUID.fromString(controlId.value))
+            .bind("evidenceId", UUID.fromString(evidenceId.value))
             .bind("linkedBy", linkedBy)
             .fetch()
             .rowsUpdated()
@@ -118,8 +119,8 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      */
     override suspend fun saveEvidenceLink(link: EvidenceLink): EvidenceLink {
         databaseClient.sql(INSERT_EVIDENCE_LINK)
-            .bind("id", link.id)
-            .bind("evidenceId", link.evidenceId.value)
+            .bind("id", UUID.fromString(link.id))
+            .bind("evidenceId", UUID.fromString(link.evidenceId.value))
             .bind("linkType", link.linkType.name)
             .bind("targetReference", link.targetReference)
             .bind("linkedBy", link.linkedBy)
@@ -140,7 +141,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      */
     override fun findLinksByEvidenceId(evidenceId: ComplianceEvidenceId): Flow<EvidenceLink> =
         databaseClient.sql(SELECT_LINKS_BY_EVIDENCE)
-            .bind("evidenceId", evidenceId.value)
+            .bind("evidenceId", UUID.fromString(evidenceId.value))
             .map { row, _ -> mapEvidenceLink(row) }
             .all()
             .asFlow()
@@ -154,7 +155,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      * @throws IllegalArgumentException If the review status is invalid.
      */
     private fun mapEvidence(row: Row): ComplianceEvidence = ComplianceEvidence(
-        id = ComplianceEvidenceId(requireNotNull(row.get("id", String::class.java))),
+        id = ComplianceEvidenceId(requireNotNull(row.get("id", UUID::class.java)).toString()),
         evidenceType = requireNotNull(row.get("evidence_type", String::class.java)),
         title = requireNotNull(row.get("title", String::class.java)),
         description = row.get("description", String::class.java),
@@ -186,8 +187,8 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      * @throws IllegalArgumentException If the link type is not a valid evidence link type.
      */
     private fun mapEvidenceLink(row: Row): EvidenceLink = EvidenceLink(
-        id = requireNotNull(row.get("id", String::class.java)),
-        evidenceId = ComplianceEvidenceId(requireNotNull(row.get("evidence_id", String::class.java))),
+        id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+        evidenceId = ComplianceEvidenceId(requireNotNull(row.get("evidence_id", UUID::class.java)).toString()),
         linkType = EvidenceLinkType.valueOf(requireNotNull(row.get("link_type", String::class.java))),
         targetReference = requireNotNull(row.get("target_reference", String::class.java)),
         description = row.get("description", String::class.java),

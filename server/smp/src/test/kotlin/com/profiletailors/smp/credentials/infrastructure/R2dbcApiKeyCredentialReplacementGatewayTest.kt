@@ -46,10 +46,12 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
         seedPrincipal()
         seedApiKeyCredential(status = "ACTIVE")
 
-        val result = gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("api-key-cred-1"))
+        val result = gateway.replaceActiveCredential(
+            ReplaceApiKeyCredentialCommand("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"),
+        )
 
-        assertEquals("api-key-cred-1", result.predecessorCredentialReference)
-        assertEquals("api-key-cred-2", result.successorCredentialReference)
+        assertEquals("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f", result.predecessorCredentialReference)
+        assertEquals("c183d81a-e6de-5a91-9ded-4bc3481b723f", result.successorCredentialReference)
         assertEquals("ptk_successor.successor-secret", result.successorPlaintextApiKey)
 
         val rows = databaseClient.sql(
@@ -70,14 +72,14 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
         }.all().collectList().awaitSingle()
 
         assertEquals(2, rows.size)
-        val predecessor = rows.first { it["id"] == "api-key-cred-1" }
-        val successor = rows.first { it["id"] == "api-key-cred-2" }
+        val predecessor = rows.first { it["id"] == "6e7a6734-9a12-5d32-9c2c-80e8bb3d559f" }
+        val successor = rows.first { it["id"] == "c183d81a-e6de-5a91-9ded-4bc3481b723f" }
 
         assertEquals("INACTIVE", predecessor["status"])
-        assertEquals("api-key-cred-2", predecessor["replaced_by_credential_id"])
+        assertEquals("c183d81a-e6de-5a91-9ded-4bc3481b723f", predecessor["replaced_by_credential_id"])
         assertEquals(fixedClock.instant(), predecessor["replaced_at"])
         assertEquals("ACTIVE", successor["status"])
-        assertEquals("api-key-cred-1", successor["replaced_credential_id"])
+        assertEquals("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f", successor["replaced_credential_id"])
         assertNull(successor["replaced_by_credential_id"])
         assertNull(successor["replaced_at"])
         assertEquals("ptk_successor", successor["lookup_key"])
@@ -93,7 +95,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
 
         val error = assertThrows(ApiKeyCredentialNotActiveException::class.java) {
             kotlinx.coroutines.runBlocking {
-                gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("api-key-cred-1"))
+                gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"))
             }
         }
 
@@ -112,7 +114,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
 
         val error = assertThrows(ApiKeyCredentialNotActiveException::class.java) {
             kotlinx.coroutines.runBlocking {
-                gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("api-key-cred-1"))
+                gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"))
             }
         }
 
@@ -124,7 +126,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
         seedPrincipal()
         seedApiKeyCredential(status = "ACTIVE")
 
-        gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("api-key-cred-1"))
+        gateway.replaceActiveCredential(ReplaceApiKeyCredentialCommand("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"))
 
         val verifiers = databaseClient.sql(
             "SELECT id, secret_verifier FROM api_key_credentials ORDER BY id",
@@ -133,16 +135,19 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
                 requireNotNull(row.get("secret_verifier", String::class.java))
         }.all().collectList().awaitSingle().toMap()
 
-        assertNotNull(verifiers["api-key-cred-1"])
-        assertNotNull(verifiers["api-key-cred-2"])
-        assertNotEquals(verifiers["api-key-cred-1"], verifiers["api-key-cred-2"])
+        assertNotNull(verifiers["6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"])
+        assertNotNull(verifiers["c183d81a-e6de-5a91-9ded-4bc3481b723f"])
+        assertNotEquals(
+            verifiers["6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"],
+            verifiers["c183d81a-e6de-5a91-9ded-4bc3481b723f"],
+        )
     }
 
     private suspend fun seedPrincipal() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
+            VALUES ('f2ab295d-2a87-5b81-b017-c111270c183f', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -168,8 +173,8 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
                 replaced_credential_id,
                 replaced_at
             ) VALUES (
-                'api-key-cred-1',
-                'api-key-principal-1',
+                '6e7a6734-9a12-5d32-9c2c-80e8bb3d559f',
+                'f2ab295d-2a87-5b81-b017-c111270c183f',
                 'ptk_lookup',
                 'ptk_lookup',
                 :verifier,
@@ -190,9 +195,9 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
                     spec.bind("revokedAt", revokedAt)
                 }
                 val withReplacedBy = if (replacedByCredentialId == null) {
-                    withRevokedAt.bindNull("replacedByCredentialId", String::class.java)
+                    withRevokedAt.bindNull("replacedByCredentialId", java.util.UUID::class.java)
                 } else {
-                    withRevokedAt.bind("replacedByCredentialId", replacedByCredentialId)
+                    withRevokedAt.bind("replacedByCredentialId", java.util.UUID.fromString(replacedByCredentialId))
                 }
                 if (replacedAt == null) {
                     withReplacedBy.bindNull("replacedAt", Instant::class.java)
@@ -219,7 +224,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
     }
 
     private class StubApiKeyCredentialValueFactory : ApiKeyCredentialValueFactory {
-        override fun nextCredentialReference(): String = "api-key-cred-2"
+        override fun nextCredentialReference(): String = "c183d81a-e6de-5a91-9ded-4bc3481b723f"
 
         override fun nextPlaintextApiKey(): ApiKeyCredentialValueFactory.PlaintextApiKey =
             com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey(

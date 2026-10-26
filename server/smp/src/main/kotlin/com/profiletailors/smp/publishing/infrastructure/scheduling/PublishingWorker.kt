@@ -547,7 +547,7 @@ class PublishingJobExecutor(
         operationKey: String,
         now: Instant,
     ): DeliveryAttempt = DeliveryAttempt(
-        id = "attempt-${UUID.randomUUID()}",
+        id = UUID.randomUUID().toString(),
         publicationId = publication.id,
         publicationJobId = claim.jobId,
         attemptNumber = claim.attemptNumber,
@@ -625,7 +625,7 @@ class PublishingJobExecutor(
     ): Boolean {
         val existing = deliveryAttemptRepository.findByOperationKey(claim.operationKey)
         val attempt = DeliveryAttempt(
-            id = existing?.id ?: "attempt-${UUID.randomUUID()}",
+            id = existing?.id ?: UUID.randomUUID().toString(),
             publicationId = publication.id,
             publicationJobId = claim.jobId,
             attemptNumber = claim.attemptNumber,
@@ -994,7 +994,7 @@ class PublishingWorker(
             publicationRepository.updateEditableDraft(prepared)
             publicationJobRepository.replaceForPublication(
                 com.profiletailors.smp.publishing.domain.PublicationJob(
-                    id = "pjob-${UUID.randomUUID()}",
+                    id = UUID.randomUUID().toString(),
                     publicationId = prepared.id,
                     workspaceId = prepared.workspaceId,
                     status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,

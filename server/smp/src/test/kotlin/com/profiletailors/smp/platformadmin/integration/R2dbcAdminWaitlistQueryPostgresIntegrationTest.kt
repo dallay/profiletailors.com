@@ -54,8 +54,8 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
     @Autowired
     private lateinit var adminWaitlistQuery: AdminWaitlistQuery
 
-    private val waitlistId = "waitlist-a"
-    private val entryId = "entry-1"
+    private val waitlistId = "00000000-0000-0000-0000-000000000101"
+    private val entryId = "00000000-0000-0000-0000-000000000102"
     private val joinedAt: Instant = Instant.parse("2026-07-01T10:00:00Z")
     private val invitationId: UUID = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
     private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
@@ -67,7 +67,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
             VALUES (:id, 'launch', 'Launch', 'profile-tailors', 'ACTIVE', :joinedAt, :joinedAt)
             """.trimIndent(),
         )
-            .bind("id", waitlistId)
+            .bind("id", UUID.fromString(waitlistId))
             .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
 
@@ -82,8 +82,8 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
                true, true, '1', 'PENDING', :joinedAt, :joinedAt, NULL, NULL, NULL)
             """.trimIndent(),
         )
-            .bind("id", entryId)
-            .bind("waitlistId", waitlistId)
+            .bind("id", UUID.fromString(entryId))
+            .bind("waitlistId", UUID.fromString(waitlistId))
             .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
 
@@ -98,8 +98,8 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
                true, false, '1', 'INVITED', :joinedAt, :joinedAt, :invitedAt, NULL, NULL)
             """.trimIndent(),
         )
-            .bind("id", "entry-2")
-            .bind("waitlistId", waitlistId)
+            .bind("id", UUID.fromString("00000000-0000-0000-0000-000000000103"))
+            .bind("waitlistId", UUID.fromString(waitlistId))
             .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(3600), ZoneOffset.UTC))
             .bind("invitedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(7200), ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
@@ -115,11 +115,23 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
             """.trimIndent(),
         )
             .bind("id", invitationId)
-            .bind("entryId", entryId)
+            .bind("entryId", UUID.fromString(entryId))
             .bind("issuedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(3600), ZoneOffset.UTC))
             .bind("expiresAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(604_800), ZoneOffset.UTC))
             .bind("operatorId", operatorId)
             .fetch().rowsUpdated().awaitSingle()
+    }
+
+    @Test
+    fun `list filters by native waitlist identifier`() = runTest {
+        val matching = adminWaitlistQuery.list(ListAdminWaitlistEntriesQuery(waitlistId = waitlistId))
+        val missing = adminWaitlistQuery.list(
+            ListAdminWaitlistEntriesQuery(waitlistId = "00000000-0000-0000-0000-000000000199"),
+        )
+
+        assertEquals(2L, matching.totalElements)
+        assertTrue(matching.items.all { it.waitlistId == waitlistId })
+        assertEquals(0L, missing.totalElements)
     }
 
     @Test
@@ -142,7 +154,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
         )
 
         assertEquals(1, result.totalElements)
-        assertEquals("entry-2", result.items.single().id)
+        assertEquals("00000000-0000-0000-0000-000000000103", result.items.single().id)
     }
 
     @Test
@@ -152,7 +164,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
         )
 
         assertEquals(1, result.totalElements)
-        assertEquals("entry-2", result.items.single().id)
+        assertEquals("00000000-0000-0000-0000-000000000103", result.items.single().id)
     }
 
     @Test
@@ -200,7 +212,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
 
     @Test
     fun `findById returns null for unknown entry`() = runTest {
-        assertNull(adminWaitlistQuery.findById("does-not-exist"))
+        assertNull(adminWaitlistQuery.findById("00000000-0000-0000-0000-000000000199"))
     }
 
     @Test

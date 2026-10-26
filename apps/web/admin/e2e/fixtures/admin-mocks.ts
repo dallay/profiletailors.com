@@ -5,7 +5,6 @@ import {
   SUPPORT_PRINCIPAL,
   makeEntry,
   mockTokens,
-  resetEntrySequence,
   toListItem,
   toSummary,
   type BulkResultEntry,
@@ -33,7 +32,6 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 export function defaultEntries(): MockWaitlistEntry[] {
-  resetEntrySequence()
   const pending = [makeEntry('ava'), makeEntry('ben'), makeEntry('cid')]
   const invited = makeEntry('dan', 'INVITED')
   const converted = makeEntry('eli', 'CONVERTED')
@@ -82,7 +80,7 @@ export async function registerAdminMocks(
   await page.route('**/api/admin/session', (route) =>
     route.fulfill(
       jsonResponse(200, {
-        principalId: 'e2e-principal-001',
+        principalId: 'e398cc5c-a565-5b7e-bea6-e52050ba0094',
         email: principalEmail,
         displayName: 'E2E Operator',
         platformRoles: roles,
@@ -162,5 +160,5 @@ function inviteOne(state: AdminMockState, entryId: string): BulkResultEntry {
   }
   entry.status = 'INVITED'
   entry.invitedAt = new Date().toISOString()
-  return { entryId, outcome: 'invited', invitationId: `mock-invitation-${entryId}` }
+  return { entryId, outcome: 'invited', invitationId: crypto.randomUUID() }
 }

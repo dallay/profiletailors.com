@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.assertEquals
 
 internal class NotificationRepositoryPortAdapterTest {
@@ -47,8 +48,11 @@ internal class NotificationRepositoryPortAdapterTest {
         }
     }
 
+    private fun notificationId(seed: String): String =
+        UUID.nameUUIDFromBytes("notifications:$seed".toByteArray()).toString()
+
     private fun pendingNotification(): Notification = Notification(
-        id = NotificationId("ntf-1"),
+        id = NotificationId(notificationId("one")),
         idempotencyKey = IdempotencyKey("retry-key-1"),
         channel = NotificationChannel.EMAIL,
         recipient = Recipient("user@example.com"),

@@ -89,14 +89,14 @@ export const test = base.extend<MediaRealFixtures>({
 
     await context.setExtraHTTPHeaders({
       Authorization: `Bearer ${tokens.accessToken}`,
-      'X-Workspace-Id': 'dev-workspace-001',
+      'X-Workspace-Id': 'dff2a2c2-444f-5e9c-a664-85e376f98475',
       'x-e2e-run-id': runId,
     })
     await use(page)
 
     // Teardown/cleanup runs after the test finishes
     const apiRequest = context.request
-    const workspaceId = 'dev-workspace-001'
+    const workspaceId = 'dff2a2c2-444f-5e9c-a664-85e376f98475'
 
     async function fetchAllPublications(): Promise<Array<Record<string, unknown>>> {
       const all: Array<Record<string, unknown>> = []

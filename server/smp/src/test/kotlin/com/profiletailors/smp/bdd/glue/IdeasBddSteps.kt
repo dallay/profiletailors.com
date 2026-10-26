@@ -152,17 +152,12 @@ class IdeasBddSteps {
 
     @When("the client associates the idea with publication {string}")
     fun associateIdea(publicationId: String) = runBlocking {
-        if (publicationId.startsWith("pub-handoff-")) {
-            try {
-                bddDatabaseSupport.seedDraftPublication(
-                    publicationId = publicationId,
-                    socialAccountId = "social-acc-1",
-                    title = "Handoff publication $publicationId",
-                    bodyText = "Handoff body for $publicationId",
-                )
-            } catch (_: Exception) {
-            }
-        }
+        bddDatabaseSupport.seedDraftPublication(
+            publicationId = publicationId,
+            socialAccountId = "fb939391-0fff-506d-a92e-b9008b859951",
+            title = "Handoff publication $publicationId",
+            bodyText = "Handoff body for $publicationId",
+        )
         val ideaId = requireNotNull(currentIdeaId)
         val payload = mapOf("convertedToPublicationId" to publicationId)
         latestIdeasResponse = webTestClient.patch()

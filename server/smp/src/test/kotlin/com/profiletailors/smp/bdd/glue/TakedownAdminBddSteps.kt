@@ -44,9 +44,9 @@ class TakedownAdminBddSteps {
 
     @Given("a takedown report exists with status {string} and workspace {string}")
     fun seedTakedownReport(status: String, workspaceId: String) = runBlocking {
-        val reportId = "bdd-takedown-${UUID.randomUUID()}"
+        val reportId = UUID.randomUUID().toString()
         val principalId = UUID.randomUUID().toString()
-        val assetId = "bdd-asset-${UUID.randomUUID()}"
+        val assetId = UUID.randomUUID().toString()
         val reporterEmail = "reporter+${UUID.randomUUID()}@example.com"
 
         seedReporterPrincipal(principalId, reporterEmail)
@@ -63,7 +63,7 @@ class TakedownAdminBddSteps {
             VALUES (:principalId, 'USER', :subject, NULL, 'BDD Reporter')
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
-        ).bind("principalId", principalId)
+        ).bind("principalId", UUID.fromString(principalId))
             .bind("subject", "local:reporter-$principalId@example.com")
             .fetch().rowsUpdated().awaitSingle()
 
@@ -73,7 +73,7 @@ class TakedownAdminBddSteps {
             VALUES (:principalId, :email, :username, 'VERIFIED')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
-        ).bind("principalId", principalId)
+        ).bind("principalId", UUID.fromString(principalId))
             .bind("email", reporterEmail)
             .bind("username", "bdd-reporter")
             .fetch().rowsUpdated().awaitSingle()
@@ -86,7 +86,7 @@ class TakedownAdminBddSteps {
             VALUES (:wsId, 'BDD Workspace', 'ACTIVE', 'flask')
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
-        ).bind("wsId", workspaceId).fetch().rowsUpdated().awaitSingle()
+        ).bind("wsId", UUID.fromString(workspaceId)).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
             """
@@ -94,7 +94,8 @@ class TakedownAdminBddSteps {
             VALUES (:wsId, :principalId, 'USER', :principalId)
             ON CONFLICT DO NOTHING
             """.trimIndent(),
-        ).bind("wsId", workspaceId).bind("principalId", principalId).fetch().rowsUpdated().awaitSingle()
+        ).bind("wsId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId)).fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun insertTakedownReport(
@@ -119,17 +120,17 @@ class TakedownAdminBddSteps {
             ON CONFLICT (report_id) DO UPDATE SET status = :status
             """.trimIndent(),
         )
-            .bind("reportId", reportId)
-            .bind("wsId", workspaceId)
-            .bind("assetId", assetId)
-            .bind("reportedById", principalId)
+            .bind("reportId", UUID.fromString(reportId))
+            .bind("wsId", UUID.fromString(workspaceId))
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("reportedById", UUID.fromString(principalId))
             .bind("status", status)
             .bind("reporterEmail", reporterEmail)
         insert = if (decided) {
-            insert.bind("reviewedById", principalId)
+            insert.bind("reviewedById", UUID.fromString(principalId))
                 .bind("reviewedAt", OffsetDateTime.now())
         } else {
-            insert.bindNull("reviewedById", String::class.java)
+            insert.bindNull("reviewedById", UUID::class.java)
                 .bindNull("reviewedAt", OffsetDateTime::class.java)
         }
         insert = if (status == "DISMISSED") {
@@ -209,7 +210,7 @@ class TakedownAdminBddSteps {
     @When("the platform operator views the non-existent takedown report")
     fun viewNonExistentTakedownReport() {
         state.lastResponse = webTestClient.get()
-            .uri("$TAKEDOWN_PATH/does-not-exist-${UUID.randomUUID()}")
+            .uri("$TAKEDOWN_PATH/${UUID.randomUUID()}")
             .header(HttpHeaders.AUTHORIZATION, TAKEDOWN_ADMIN_BEARER)
             .header(HttpHeaders.ACCEPT, TAKEDOWN_API_V1)
             .exchange()

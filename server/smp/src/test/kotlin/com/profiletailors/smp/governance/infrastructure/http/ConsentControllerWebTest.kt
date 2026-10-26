@@ -9,6 +9,7 @@ import com.profiletailors.smp.governance.application.RecordWorkspaceConsentComma
 import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCommand
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
@@ -35,7 +36,7 @@ class ConsentControllerWebTest {
             created = true,
             record = ConsentRecord(
                 id = ConsentRecordId("cs-new-001"),
-                workspaceId = "ws-001",
+                scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
                 subjectReference = SubjectReference.user("user-123"),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
                 purpose = "terms.acceptance",
@@ -75,7 +76,7 @@ class ConsentControllerWebTest {
             created = false,
             record = ConsentRecord(
                 id = ConsentRecordId("cs-existing"),
-                workspaceId = "ws-001",
+                scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
                 subjectReference = SubjectReference.user("user-123"),
                 consentType = ConsentType.CONSENT,
                 purpose = "marketing.emails",
@@ -226,7 +227,7 @@ class ConsentControllerWebTest {
     fun `POST withdraw returns 200 with withdrawn status`() {
         coEvery { mediator.send(any<WithdrawWorkspaceConsentCommand>()) } returns ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
             subjectReference = SubjectReference.user("user-123"),
             consentType = ConsentType.CONSENT,
             purpose = "marketing.emails",
@@ -289,7 +290,7 @@ class ConsentControllerWebTest {
         coEvery { mediator.send(any<GetWorkspaceConsentRecordsQuery>()) } returns flowOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
-                workspaceId = "ws-001",
+                scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
                 subjectReference = SubjectReference.user("user-123"),
                 consentType = ConsentType.CONSENT,
                 purpose = "marketing.emails",
@@ -314,7 +315,7 @@ class ConsentControllerWebTest {
         coEvery { mediator.send(any<GetConsentHistoryQuery>()) } returns flowOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
-                workspaceId = "ws-001",
+                scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
                 subjectReference = SubjectReference.user("user-123"),
                 consentType = ConsentType.CONSENT,
                 purpose = "marketing.emails",

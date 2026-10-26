@@ -34,24 +34,31 @@ class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-1', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000001', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('user-1', 'yuniel@example.com', 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000001', 'yuniel@example.com', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
-        gateway.create("user-1", "hashed-password123")
+        val principalId = "00000000-0000-0000-0000-000000000001"
+        gateway.create(principalId, "hashed-password123")
 
         val record = gateway.findByEmail("yuniel@example.com")
 
         assertNotNull(record)
-        assertEquals("user-1", record?.principalId)
+        assertEquals(principalId, record?.principalId)
         assertEquals("hashed-password123", record?.passwordHash)
         assertEquals("yuniel", record?.username)
+        assertEquals(record, gateway.findByPrincipalId(principalId))
+
+        gateway.updatePasswordHash(principalId, "replacement-hash")
+
+        assertEquals("replacement-hash", gateway.findByPrincipalId(principalId)?.passwordHash)
+        assertEquals("replacement-hash", gateway.findByEmail("yuniel@example.com")?.passwordHash)
     }
 
     @Test
@@ -65,13 +72,13 @@ class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('user-1', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000001', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('user-1', 'yuniel@example.com', 'yuniel')
+            VALUES ('00000000-0000-0000-0000-000000000001', 'yuniel@example.com', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -79,7 +86,7 @@ class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
         val facts = lookup.findByEmail("yuniel@example.com")
 
         assertNotNull(facts)
-        assertEquals("user-1", facts?.principalId)
+        assertEquals("00000000-0000-0000-0000-000000000001", facts?.principalId)
         assertEquals(PrincipalType.USER, facts?.principalType)
     }
 

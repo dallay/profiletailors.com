@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Repository
 internal class R2dbcWaitlistWithdrawalUrlRepository(private val databaseClient: DatabaseClient) :
@@ -29,7 +30,7 @@ internal class R2dbcWaitlistWithdrawalUrlRepository(private val databaseClient: 
                 updated_at = CURRENT_TIMESTAMP
             """.trimIndent(),
         )
-            .bind("entryId", entryId.value)
+            .bind("entryId", UUID.fromString(entryId.value))
             .bind("ciphertextVersion", ciphertextVersion)
             .bind("ciphertext", ciphertext)
             .bind("expiresAt", OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC))
@@ -46,7 +47,7 @@ internal class R2dbcWaitlistWithdrawalUrlRepository(private val databaseClient: 
             WHERE entry_id = :entryId
             """.trimIndent(),
         )
-            .bind("entryId", entryId.value)
+            .bind("entryId", UUID.fromString(entryId.value))
             .map { row, _ ->
                 WaitlistWithdrawalUrlRepository.StoredWithdrawalUrl(
                     ciphertextVersion = requireNotNull(row.get("ciphertext_version", String::class.java)),
@@ -59,7 +60,7 @@ internal class R2dbcWaitlistWithdrawalUrlRepository(private val databaseClient: 
 
     override suspend fun deleteByEntryId(entryId: WaitlistEntryId) {
         databaseClient.sql("DELETE FROM waitlist_withdrawal_urls WHERE entry_id = :entryId")
-            .bind("entryId", entryId.value)
+            .bind("entryId", UUID.fromString(entryId.value))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

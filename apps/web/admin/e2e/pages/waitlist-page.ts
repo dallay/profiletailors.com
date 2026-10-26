@@ -8,7 +8,7 @@ export class WaitlistPage {
   }
 
   get heading(): Locator {
-    return this.page.getByRole('heading', { name: /waitlist/i })
+    return this.page.getByRole('main').getByRole('heading', { name: /waitlist/i, level: 1 })
   }
 
   get searchInput(): Locator {
@@ -41,7 +41,7 @@ export class WaitlistPage {
 
   async goto(heading: RegExp = /waitlist/i): Promise<void> {
     await this.page.goto('/waitlist')
-    await this.page.getByRole('heading', { name: heading }).waitFor()
+    await this.page.getByRole('main').getByRole('heading', { name: heading, level: 1 }).waitFor()
   }
 
   async search(email: string): Promise<void> {

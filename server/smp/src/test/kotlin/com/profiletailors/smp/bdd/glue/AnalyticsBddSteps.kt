@@ -37,25 +37,25 @@ class AnalyticsBddSteps {
 
     @Given("a workspace without membership exists")
     fun givenWorkspaceWithoutMembershipExists() = runBlocking {
-        bddDatabaseSupport.seedWorkspace("workspace-2")
+        bddDatabaseSupport.seedWorkspace("10000000-0000-4000-8000-000000000002")
     }
 
     @Given("a published publication exists")
     fun givenPublishedPublicationExists() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
-        bddDatabaseSupport.seedSocialConnection("social-conn-analytics-1", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("a75a8aea-630a-5aee-a13b-44f21186f6aa", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-analytics-1",
-            connectionId = "social-conn-analytics-1",
+            accountId = "1d808d72-9492-53d7-a608-8bbfab6b5964",
+            connectionId = "a75a8aea-630a-5aee-a13b-44f21186f6aa",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-analytics-1",
             accountKind = "PERSONAL_PROFILE",
             displayName = "Analytics Test Account",
         )
-        currentSocialAccountId = "social-acc-analytics-1"
+        currentSocialAccountId = "1d808d72-9492-53d7-a608-8bbfab6b5964"
         bddDatabaseSupport.seedPublishedPublication(
-            publicationId = "pub-analytics-1",
-            socialAccountId = "social-acc-analytics-1",
+            publicationId = "f892cb71-601b-5bb1-ad78-acbcc689e2ee",
+            socialAccountId = "1d808d72-9492-53d7-a608-8bbfab6b5964",
             title = "Analytics Test Post",
             bodyText = "Post body for analytics testing",
             publishedAt = Instant.now().minus(7, ChronoUnit.DAYS),

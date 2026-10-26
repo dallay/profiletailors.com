@@ -9,6 +9,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.governance.application.RecordConsentCommand
 import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
@@ -118,7 +119,7 @@ internal class RegisterUserHandler(
 
         ensureEmailAvailable(normalizedEmail)
 
-        val principalId = "user-${UUID.randomUUID()}"
+        val principalId = UUID.randomUUID().toString()
         val subject = "local:$normalizedEmail"
 
         val registrationResult = runRegistrationTransaction(
@@ -258,7 +259,7 @@ internal class RegisterUserHandler(
     private suspend fun recordConsentRecords(principalId: String, workspaceId: String, acceptedTermsVersion: String) {
         recordConsentHandler.handle(
             RecordConsentCommand(
-                workspaceId = workspaceId,
+                scope = ConsentScope.Workspace(UUID.fromString(workspaceId)),
                 subjectReference = SubjectReference.user(principalId),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
                 purpose = AGE_ELIGIBILITY_PURPOSE,
@@ -270,7 +271,7 @@ internal class RegisterUserHandler(
 
         recordConsentHandler.handle(
             RecordConsentCommand(
-                workspaceId = workspaceId,
+                scope = ConsentScope.Workspace(UUID.fromString(workspaceId)),
                 subjectReference = SubjectReference.user(principalId),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
                 purpose = TERMS_ACCEPTANCE_PURPOSE,

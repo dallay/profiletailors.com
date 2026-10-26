@@ -15,7 +15,7 @@ vi.mock('./invitation-api', async (importOriginal) => {
 
 function successResult(overrides: Partial<AcceptInvitationResult> = {}): AcceptInvitationResult {
   return {
-    workspaceId: 'ws-abc',
+    workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
     membershipStatus: 'ACTIVE',
     errorCode: null,
     errorStatus: null,
@@ -101,9 +101,9 @@ describe('useAcceptInvitationStore', () => {
     resolveRequest(successResult())
     const result = await promise
 
-    expect(result.workspaceId).toBe('ws-abc')
+    expect(result.workspaceId).toBe('ef541e38-d4a8-5714-9348-8bb19f5055db')
     expect(store.pending).toBe(false)
-    expect(store.workspaceId).toBe('ws-abc')
+    expect(store.workspaceId).toBe('ef541e38-d4a8-5714-9348-8bb19f5055db')
     expect(store.membershipStatus).toBe('ACTIVE')
     expect(store.hasAccepted).toBe(true)
   })
@@ -113,13 +113,16 @@ describe('useAcceptInvitationStore', () => {
     store.errorCode = 'PREVIOUS'
     store.errorStatus = 400
     mockAcceptInvitationRequest.mockResolvedValue(
-      successResult({ workspaceId: 'ws-new', membershipStatus: 'PENDING' }),
+      successResult({
+        workspaceId: '924027d5-be2a-5091-8a9d-4cdc05969982',
+        membershipStatus: 'PENDING',
+      }),
     )
 
     const result = await store.accept('tok')
 
-    expect(result.workspaceId).toBe('ws-new')
-    expect(store.workspaceId).toBe('ws-new')
+    expect(result.workspaceId).toBe('924027d5-be2a-5091-8a9d-4cdc05969982')
+    expect(store.workspaceId).toBe('924027d5-be2a-5091-8a9d-4cdc05969982')
     expect(store.membershipStatus).toBe('PENDING')
     expect(store.errorCode).toBeNull()
     expect(store.errorStatus).toBeNull()
@@ -141,7 +144,7 @@ describe('useAcceptInvitationStore', () => {
   it('stores api-returned error fields when request resolves with error', async () => {
     mockAcceptInvitationRequest.mockResolvedValue(errorResult('INVITATION_INVALID', 400))
     const store = useAcceptInvitationStore()
-    store.workspaceId = 'ws-old'
+    store.workspaceId = 'ddddfbd1-f528-5788-8906-124e2da96986'
     store.membershipStatus = 'ACTIVE'
 
     const result = await store.accept('tok')
@@ -167,9 +170,11 @@ describe('useAcceptInvitationStore', () => {
 
   it('clears previous workspace on error result', async () => {
     const store = useAcceptInvitationStore()
-    mockAcceptInvitationRequest.mockResolvedValueOnce(successResult({ workspaceId: 'ws-1' }))
+    mockAcceptInvitationRequest.mockResolvedValueOnce(
+      successResult({ workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59' }),
+    )
     await store.accept('tok')
-    expect(store.workspaceId).toBe('ws-1')
+    expect(store.workspaceId).toBe('820c22d8-9ce7-5e76-867f-04bac4e53b59')
 
     mockAcceptInvitationRequest.mockResolvedValueOnce(errorResult('INVITATION_INVALID', 400))
     await store.accept('tok2')
@@ -308,22 +313,28 @@ describe('useAcceptInvitationStore', () => {
 
   it('allows successive accepts after reset', async () => {
     const store = useAcceptInvitationStore()
-    mockAcceptInvitationRequest.mockResolvedValueOnce(successResult({ workspaceId: 'ws-1' }))
+    mockAcceptInvitationRequest.mockResolvedValueOnce(
+      successResult({ workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59' }),
+    )
     await store.accept('tok1')
     store.reset()
 
-    mockAcceptInvitationRequest.mockResolvedValueOnce(successResult({ workspaceId: 'ws-2' }))
+    mockAcceptInvitationRequest.mockResolvedValueOnce(
+      successResult({ workspaceId: 'ebc2337b-7ff7-579a-9139-5415c77f040e' }),
+    )
     const result = await store.accept('tok2')
 
-    expect(result.workspaceId).toBe('ws-2')
-    expect(store.workspaceId).toBe('ws-2')
+    expect(result.workspaceId).toBe('ebc2337b-7ff7-579a-9139-5415c77f040e')
+    expect(store.workspaceId).toBe('ebc2337b-7ff7-579a-9139-5415c77f040e')
   })
 
   it('hasAccepted reacts to workspaceId changes', async () => {
     const store = useAcceptInvitationStore()
     expect(store.hasAccepted).toBe(false)
 
-    mockAcceptInvitationRequest.mockResolvedValue(successResult({ workspaceId: 'ws-x' }))
+    mockAcceptInvitationRequest.mockResolvedValue(
+      successResult({ workspaceId: 'cd2058e5-3903-5b50-9052-34ba75f946fd' }),
+    )
     await store.accept('tok')
     expect(store.hasAccepted).toBe(true)
 

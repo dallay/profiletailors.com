@@ -100,7 +100,7 @@ describe('TakedownReportDialog.vue', () => {
 
   function mountDialog() {
     return mount(TakedownReportDialog, {
-      props: { assetId: 'ast-1' },
+      props: { assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d' },
       global: {
         stubs: { Teleport: true },
         mocks: { $t: (key: string) => key },
@@ -135,7 +135,7 @@ describe('TakedownReportDialog.vue', () => {
 
   it('calls reportTakedown on valid submit and emits reported', async () => {
     mockReportTakedown.mockResolvedValue({
-      reportId: 'rpt-new',
+      reportId: 'af9b38e9-95d0-59b8-b40d-c80eec5b54f8',
       status: 'REPORTED',
     })
     const wrapper = mountDialog()
@@ -147,7 +147,7 @@ describe('TakedownReportDialog.vue', () => {
     await flushPromises()
 
     expect(mockReportTakedown).toHaveBeenCalledWith({
-      assetId: 'ast-1',
+      assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
       reason: 'This is a copyright infringement',
     })
     expect(wrapper.emitted('reported')).toBeTruthy()
@@ -155,7 +155,7 @@ describe('TakedownReportDialog.vue', () => {
 
   it('includes mediaReferenceUrl when provided', async () => {
     mockReportTakedown.mockResolvedValue({
-      reportId: 'rpt-new',
+      reportId: 'af9b38e9-95d0-59b8-b40d-c80eec5b54f8',
       status: 'REPORTED',
     })
     const wrapper = mountDialog()
@@ -195,7 +195,7 @@ describe('TakedownReportDialog.vue', () => {
 
   it('closes dialog and emits reported on successful submission', async () => {
     mockReportTakedown.mockResolvedValue({
-      reportId: 'rpt-new',
+      reportId: 'af9b38e9-95d0-59b8-b40d-c80eec5b54f8',
       status: 'REPORTED',
     })
     const wrapper = mountDialog()

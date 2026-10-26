@@ -26,6 +26,7 @@ import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -60,13 +61,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
-            .jsonPath("$.principalId").isEqualTo("principal-1")
+            .jsonPath("$.workspaceId").isEqualTo("d3d9800f-120a-501e-ad01-401e54e8f766")
+            .jsonPath("$.principalId").isEqualTo("f4b0c946-5bac-5e21-a5af-5213b71804cc")
             .jsonPath("$.roles[0]").isEqualTo("member")
             .jsonPath("$.permissions[0]").isEqualTo("workspace:access:read")
 
@@ -76,8 +77,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -93,7 +94,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -104,8 +105,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -122,13 +123,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
-            .jsonPath("$.principalId").isEqualTo("principal-1")
+            .jsonPath("$.workspaceId").isEqualTo("d3d9800f-120a-501e-ad01-401e54e8f766")
+            .jsonPath("$.principalId").isEqualTo("f4b0c946-5bac-5e21-a5af-5213b71804cc")
 
         assertAuthorizationFacts(
             listOf(
@@ -136,8 +137,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -149,18 +150,22 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     @Test
     fun `allows entitled member through persisted direct allow grant`() {
         seedMemberWithoutPermission(entitled = true)
-        seedDirectGrant(effect = "ALLOW", permissionId = "permission-1", permissionKey = "workspace:access:read")
+        seedDirectGrant(
+            effect = "ALLOW",
+            permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
+            permissionKey = "workspace:access:read",
+        )
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
-            .jsonPath("$.principalId").isEqualTo("principal-1")
+            .jsonPath("$.workspaceId").isEqualTo("d3d9800f-120a-501e-ad01-401e54e8f766")
+            .jsonPath("$.principalId").isEqualTo("f4b0c946-5bac-5e21-a5af-5213b71804cc")
 
         assertAuthorizationFacts(
             listOf(
@@ -168,8 +173,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
                     reasonCode = AuthorizationReasonCode.DIRECT_ALLOW.name,
                     roleKeys = listOf("member"),
@@ -183,7 +188,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         seedAuthorizedMember(entitled = true)
         seedDirectGrant(
             effect = "DENY",
-            permissionId = "permission-1",
+            permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
             permissionKey = "workspace:access:read",
             insertPermission = false,
         )
@@ -191,7 +196,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -202,8 +207,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.DIRECT_DENY.name,
                     roleKeys = listOf("member"),
@@ -217,7 +222,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         seedMemberWithoutPermission(entitled = true)
         seedDirectGrant(
             effect = "ALLOW",
-            permissionId = "permission-1",
+            permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
             permissionKey = "workspace:access:read",
             expiresAt = "2026-05-15T09:00:00Z",
         )
@@ -225,7 +230,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -236,8 +241,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -253,13 +258,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
-            .jsonPath("$.principalId").isEqualTo("service-principal-1")
+            .jsonPath("$.workspaceId").isEqualTo("d3d9800f-120a-501e-ad01-401e54e8f766")
+            .jsonPath("$.principalId").isEqualTo("00000000-0000-0000-0000-000000000711")
             .jsonPath("$.roles[0]").isEqualTo("member")
             .jsonPath("$.permissions[0]").isEqualTo("workspace:access:read")
 
@@ -269,8 +274,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "service-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "00000000-0000-0000-0000-000000000711",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -286,7 +291,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -297,8 +302,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "service-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "00000000-0000-0000-0000-000000000711",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -314,7 +319,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
@@ -325,8 +330,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "service-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "00000000-0000-0000-0000-000000000711",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
@@ -342,13 +347,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
-            .jsonPath("$.principalId").isEqualTo("api-key-principal-1")
+            .jsonPath("$.workspaceId").isEqualTo("d3d9800f-120a-501e-ad01-401e54e8f766")
+            .jsonPath("$.principalId").isEqualTo("f2ab295d-2a87-5b81-b017-c111270c183f")
             .jsonPath("$.roles[0]").isEqualTo("member")
             .jsonPath("$.permissions[0]").isEqualTo("workspace:access:read")
 
@@ -358,8 +363,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "api-key-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -375,7 +380,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -386,8 +391,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "api-key-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
@@ -403,7 +408,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
@@ -414,8 +419,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "api-key-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
@@ -431,7 +436,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
@@ -442,8 +447,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "api-key-principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
@@ -459,7 +464,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
@@ -470,8 +475,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                    workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
                     reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT.name,
                     roleKeys = listOf("member"),
@@ -487,23 +492,23 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.principalId").isEqualTo("api-key-principal-1")
+            .jsonPath("$.principalId").isEqualTo("f2ab295d-2a87-5b81-b017-c111270c183f")
 
         val replacement = kotlinx.coroutines.runBlocking {
             replaceApiKeyCredentialHandler.handle(
-                ReplaceApiKeyCredentialCommand("api-key-cred-1"),
+                ReplaceApiKeyCredentialCommand("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f"),
             )
         }
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
@@ -511,21 +516,21 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ${replacement.successorPlaintextApiKey}")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.principalId").isEqualTo("api-key-principal-1")
+            .jsonPath("$.principalId").isEqualTo("f2ab295d-2a87-5b81-b017-c111270c183f")
 
         val rows = kotlinx.coroutines.runBlocking { readApiKeyRows() }
         assertEquals(2, rows.size)
-        val predecessor = rows.first { it.id == "api-key-cred-1" }
+        val predecessor = rows.first { it.id == "6e7a6734-9a12-5d32-9c2c-80e8bb3d559f" }
         val successor = rows.first { it.id == replacement.successorCredentialReference }
         assertEquals("INACTIVE", predecessor.status)
         assertEquals(replacement.successorCredentialReference, predecessor.replacedByCredentialId)
         assertEquals("ACTIVE", successor.status)
-        assertEquals("api-key-cred-1", successor.replacedCredentialId)
+        assertEquals("6e7a6734-9a12-5d32-9c2c-80e8bb3d559f", successor.replacedCredentialId)
     }
 
     // ── Assertions ────────────────────────────────────────────────────────────
@@ -539,34 +544,51 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     protected fun seedAuthorizedMember(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedUserPrincipal()
-            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
-            seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
+            seedWorkspaceAndRole(
+                principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                principalType = "USER",
+                entitled = entitled,
+            )
+            seedRolePermission(
+                permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
+                permissionKey = "workspace:access:read",
+            )
         }
     }
 
     protected fun seedMemberWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedUserPrincipal()
-            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
-            seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
+            seedWorkspaceAndRole(
+                principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
+                principalType = "USER",
+                entitled = entitled,
+            )
+            seedRolePermission(
+                permissionId = "00000000-0000-0000-0000-000000000713",
+                permissionKey = "workspace:members:manage",
+            )
         }
     }
 
     protected fun seedAuthorizedServiceAccount(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedPrincipal(
-                principalId = "service-principal-1",
+                principalId = "00000000-0000-0000-0000-000000000711",
                 principalType = "SERVICE_ACCOUNT",
                 subject = "service-account-subject",
                 provider = "https://issuer.example",
                 displayIdentity = "scheduler-bot",
             )
             seedWorkspaceAndRole(
-                principalId = "service-principal-1",
+                principalId = "00000000-0000-0000-0000-000000000711",
                 principalType = "SERVICE_ACCOUNT",
                 entitled = entitled,
             )
-            seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
+            seedRolePermission(
+                permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
+                permissionKey = "workspace:access:read",
+            )
             seedServiceAccountCredential(status = credentialStatus)
         }
     }
@@ -574,18 +596,21 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     protected fun seedServiceAccountWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedPrincipal(
-                principalId = "service-principal-1",
+                principalId = "00000000-0000-0000-0000-000000000711",
                 principalType = "SERVICE_ACCOUNT",
                 subject = "service-account-subject",
                 provider = "https://issuer.example",
                 displayIdentity = "scheduler-bot",
             )
             seedWorkspaceAndRole(
-                principalId = "service-principal-1",
+                principalId = "00000000-0000-0000-0000-000000000711",
                 principalType = "SERVICE_ACCOUNT",
                 entitled = entitled,
             )
-            seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
+            seedRolePermission(
+                permissionId = "00000000-0000-0000-0000-000000000713",
+                permissionKey = "workspace:members:manage",
+            )
             seedServiceAccountCredential(status = "ACTIVE")
         }
     }
@@ -593,14 +618,21 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     protected fun seedAuthorizedApiKeyPrincipal(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedPrincipal(
-                principalId = "api-key-principal-1",
+                principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
                 principalType = "API_KEY",
                 subject = "api-key-subject",
                 provider = null,
                 displayIdentity = "integration-key",
             )
-            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
-            seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
+            seedWorkspaceAndRole(
+                principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                principalType = "API_KEY",
+                entitled = entitled,
+            )
+            seedRolePermission(
+                permissionId = "60461c36-6137-55f3-89ef-3d2fd2123af8",
+                permissionKey = "workspace:access:read",
+            )
             seedApiKeyCredential(status = credentialStatus)
         }
     }
@@ -608,38 +640,54 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     protected fun seedApiKeyPrincipalWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             seedPrincipal(
-                principalId = "api-key-principal-1",
+                principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
                 principalType = "API_KEY",
                 subject = "api-key-subject",
                 provider = null,
                 displayIdentity = "integration-key",
             )
-            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
-            seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
+            seedWorkspaceAndRole(
+                principalId = "f2ab295d-2a87-5b81-b017-c111270c183f",
+                principalType = "API_KEY",
+                entitled = entitled,
+            )
+            seedRolePermission(
+                permissionId = "00000000-0000-0000-0000-000000000713",
+                permissionKey = "workspace:members:manage",
+            )
             seedApiKeyCredential(status = "ACTIVE")
         }
     }
 
     private suspend fun seedWorkspaceAndRole(principalId: String, principalType: String, entitled: Boolean = false) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('d3d9800f-120a-501e-ad01-401e54e8f766', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'd3d9800f-120a-501e-ad01-401e54e8f766', :principalId, :principalType, 'ACTIVE')
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("principalType", principalType)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql(
-            "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('c88a1fae-af37-5aa1-b2d4-717e9e8b478c', 'member', 'WORKSPACE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')",
+            """
+            INSERT INTO membership_roles (membership_id, role_id)
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'c88a1fae-af37-5aa1-b2d4-717e9e8b478c')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         if (entitled) {
             seedWorkspaceEntitlement()
@@ -648,7 +696,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
     private suspend fun seedUserPrincipal() {
         seedPrincipal(
-            principalId = "principal-1",
+            principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
             principalType = "USER",
             subject = "subject-123",
             provider = "https://issuer.example",
@@ -657,7 +705,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('principal-1', 'yuniel@example.com', 'yuniel')
+            VALUES ('f4b0c946-5bac-5e21-a5af-5213b71804cc', 'yuniel@example.com', 'yuniel')
             """.trimIndent(),
         )
             .fetch()
@@ -678,7 +726,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("principalType", principalType)
             .bind("subject", subject)
             .let { spec ->
@@ -700,7 +748,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         databaseClient.sql(
             """
             INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled)
-            VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)
+            VALUES ('00000000-0000-0000-0000-000000000714', 'd3d9800f-120a-501e-ad01-401e54e8f766', 'workspace.access.summary', TRUE)
             """.trimIndent(),
         )
             .fetch()
@@ -713,7 +761,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             databaseClient.sql(
                 """
                 INSERT INTO permissions (id, permission_key)
-                VALUES ('permission-resource-read', 'workspace:resource:read')
+                VALUES ('00000000-0000-0000-0000-000000000703', 'workspace:resource:read')
                 """.trimIndent(),
             )
                 .fetch()
@@ -725,8 +773,8 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     id, workspace_id, principal_id, principal_type, permission_id,
                     target_resource_type, allowed_target_ids_json
                 ) VALUES (
-                    'scope-legacy-1', 'workspace-1', 'principal-1', 'USER',
-                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                    '00000000-0000-0000-0000-000000000715', 'd3d9800f-120a-501e-ad01-401e54e8f766', 'f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER',
+                    '00000000-0000-0000-0000-000000000703', 'RESOURCE', :allowedTargetIdsJson
                 )
                 """.trimIndent(),
             )
@@ -743,7 +791,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             INSERT INTO service_account_credentials (
                 id, principal_id, provider, credential_reference, status, revoked_at
             ) VALUES (
-                'svc-cred-row-1', 'service-principal-1', 'https://issuer.example',
+                '00000000-0000-0000-0000-000000000712', '00000000-0000-0000-0000-000000000711', 'https://issuer.example',
                 'svc-cred-1', :status, :revokedAt
             )
             """.trimIndent(),
@@ -774,7 +822,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
                 replaced_by_credential_id, replaced_credential_id, replaced_at
             ) VALUES (
-                'api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup',
+                '6e7a6734-9a12-5d32-9c2c-80e8bb3d559f', 'f2ab295d-2a87-5b81-b017-c111270c183f', 'ptk_lookup', 'ptk_lookup',
                 :verifier, :status, :revokedAt, NULL, NULL, NULL
             )
             """.trimIndent(),
@@ -827,7 +875,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         kotlinx.coroutines.runBlocking {
             if (insertPermission) {
                 databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
-                    .bind("id", permissionId)
+                    .bind("id", UUID.fromString(permissionId))
                     .bind("permissionKey", permissionKey)
                     .fetch()
                     .rowsUpdated()
@@ -845,11 +893,11 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 )
                 """.trimIndent(),
             )
-                .bind("id", "grant-$effect-$permissionId")
-                .bind("workspaceId", "workspace-1")
-                .bind("principalId", "principal-1")
+                .bind("id", UUID.nameUUIDFromBytes("grant:$effect:$permissionId".toByteArray()))
+                .bind("workspaceId", UUID.fromString("d3d9800f-120a-501e-ad01-401e54e8f766"))
+                .bind("principalId", UUID.fromString("f4b0c946-5bac-5e21-a5af-5213b71804cc"))
                 .bind("principalType", "USER")
-                .bind("permissionId", permissionId)
+                .bind("permissionId", UUID.fromString(permissionId))
                 .bind("effect", effect)
                 .let { spec ->
                     if (expiresAt ==

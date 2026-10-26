@@ -33,85 +33,94 @@ class R2dbcWorkspaceOwnershipRepositoryTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('owner-1', 'USER', 'owner-1', NULL, 'Owner One')
+            VALUES ('35205e1e-1d3d-54b7-9ea0-5d1e92734d4d', 'USER', 'owner-1', NULL, 'Owner One')
             """.trimIndent(),
         ).then().block()
 
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('owner-2', 'USER', 'owner-2', NULL, 'Owner Two')
+            VALUES ('026cddb4-fce7-510a-9796-23002cc752b5', 'USER', 'owner-2', NULL, 'Owner Two')
             """.trimIndent(),
         ).then().block()
 
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-1', 'Workspace Alpha', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('eaee8a38-38a1-5c3c-9b23-dad13b400a27', 'Workspace Alpha', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).then().block()
     }
 
     @Test
     fun `add, exists, and findByWorkspaceId works correctly`() = runTest {
         val ownership = WorkspaceOwnership(
-            workspaceId = "ws-1",
-            ownerPrincipalId = "owner-1",
+            workspaceId = "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            ownerPrincipalId = "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
             ownerPrincipalType = PrincipalType.USER,
-            createdBy = "owner-1",
+            createdBy = "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
             createdAt = Instant.now(),
         )
 
         repository.add(ownership)
 
-        assertTrue(repository.exists("ws-1", "owner-1"))
-        assertFalse(repository.exists("ws-1", "owner-2"))
+        assertTrue(repository.exists("eaee8a38-38a1-5c3c-9b23-dad13b400a27", "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d"))
+        assertFalse(repository.exists("eaee8a38-38a1-5c3c-9b23-dad13b400a27", "026cddb4-fce7-510a-9796-23002cc752b5"))
 
-        val owners = repository.findByWorkspaceId("ws-1")
+        val owners = repository.findByWorkspaceId("eaee8a38-38a1-5c3c-9b23-dad13b400a27")
         assertEquals(1, owners.size)
         val firstOwner = owners.first()
-        assertEquals("ws-1", firstOwner.workspaceId)
-        assertEquals("owner-1", firstOwner.ownerPrincipalId)
+        assertEquals("eaee8a38-38a1-5c3c-9b23-dad13b400a27", firstOwner.workspaceId)
+        assertEquals("35205e1e-1d3d-54b7-9ea0-5d1e92734d4d", firstOwner.ownerPrincipalId)
         assertEquals(PrincipalType.USER, firstOwner.ownerPrincipalType)
     }
 
     @Test
     fun `removeIfReplacementExists works correctly`() = runTest {
         val o1 = WorkspaceOwnership(
-            workspaceId = "ws-1",
-            ownerPrincipalId = "owner-1",
+            workspaceId = "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            ownerPrincipalId = "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
             ownerPrincipalType = PrincipalType.USER,
         )
         val o2 = WorkspaceOwnership(
-            workspaceId = "ws-1",
-            ownerPrincipalId = "owner-2",
+            workspaceId = "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            ownerPrincipalId = "026cddb4-fce7-510a-9796-23002cc752b5",
             ownerPrincipalType = PrincipalType.USER,
         )
 
         repository.add(o1)
 
         // Attempting to remove the only owner should fail (return false)
-        val removedSingle = repository.removeIfReplacementExists("ws-1", "owner-1")
+        val removedSingle = repository.removeIfReplacementExists(
+            "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
+        )
         assertFalse(removedSingle)
-        assertTrue(repository.exists("ws-1", "owner-1"))
+        assertTrue(repository.exists("eaee8a38-38a1-5c3c-9b23-dad13b400a27", "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d"))
 
         // Add a second owner
         repository.add(o2)
 
         // Now removing one owner should succeed because a replacement exists
-        val removedWithReplacement = repository.removeIfReplacementExists("ws-1", "owner-1")
+        val removedWithReplacement = repository.removeIfReplacementExists(
+            "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
+        )
         assertTrue(removedWithReplacement)
-        assertFalse(repository.exists("ws-1", "owner-1"))
-        assertTrue(repository.exists("ws-1", "owner-2"))
+        assertFalse(repository.exists("eaee8a38-38a1-5c3c-9b23-dad13b400a27", "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d"))
+        assertTrue(repository.exists("eaee8a38-38a1-5c3c-9b23-dad13b400a27", "026cddb4-fce7-510a-9796-23002cc752b5"))
     }
 
     @Test
     fun `removeIfReplacementExists maintains one-owner invariant under real concurrency`() = runTest {
         val o1 = WorkspaceOwnership(
-            workspaceId = "ws-1",
-            ownerPrincipalId = "owner-1",
+            workspaceId = "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            ownerPrincipalId = "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
             ownerPrincipalType = PrincipalType.USER,
         )
         val o2 = WorkspaceOwnership(
-            workspaceId = "ws-1",
-            ownerPrincipalId = "owner-2",
+            workspaceId = "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+            ownerPrincipalId = "026cddb4-fce7-510a-9796-23002cc752b5",
             ownerPrincipalType = PrincipalType.USER,
         )
 
@@ -121,10 +130,16 @@ class R2dbcWorkspaceOwnershipRepositoryTest : PostgresDatabaseTestBase() {
         // Launch two parallel deletions for different owners in the same workspace.
         // SELECT ... FOR UPDATE will block and serialize them correctly.
         val deferred1 = async {
-            repository.removeIfReplacementExists("ws-1", "owner-1")
+            repository.removeIfReplacementExists(
+                "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+                "35205e1e-1d3d-54b7-9ea0-5d1e92734d4d",
+            )
         }
         val deferred2 = async {
-            repository.removeIfReplacementExists("ws-1", "owner-2")
+            repository.removeIfReplacementExists(
+                "eaee8a38-38a1-5c3c-9b23-dad13b400a27",
+                "026cddb4-fce7-510a-9796-23002cc752b5",
+            )
         }
 
         val result1 = deferred1.await()
@@ -135,7 +150,7 @@ class R2dbcWorkspaceOwnershipRepositoryTest : PostgresDatabaseTestBase() {
         assertFalse(result1 && result2)
 
         // Exactly one owner must remain in the database.
-        val remainingOwners = repository.findByWorkspaceId("ws-1")
+        val remainingOwners = repository.findByWorkspaceId("eaee8a38-38a1-5c3c-9b23-dad13b400a27")
         assertEquals(1, remainingOwners.size)
     }
 

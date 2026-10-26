@@ -3,12 +3,16 @@ package com.profiletailors.smp.platformadmin.application
 import java.util.UUID
 
 object PlatformPrincipalIds {
-    private const val USER_PREFIX = "user-"
+    private const val LEGACY_USER_PREFIX = "user-"
 
-    fun toUuid(principalId: String): UUID = UUID.fromString(principalId.removePrefix(USER_PREFIX))
+    fun toUuid(principalId: String): UUID {
+        val canonical = principalId.removePrefix(LEGACY_USER_PREFIX).lowercase()
+        val uuid = UUID.fromString(canonical)
+        require(uuid.toString() == canonical) { "Principal ID must be a canonical UUID." }
+        return uuid
+    }
 
-    fun fromUuid(principalId: UUID): String = "$USER_PREFIX$principalId"
+    fun fromUuid(principalId: UUID): String = principalId.toString()
 
-    fun fromUuid(principalId: String): String =
-        if (principalId.startsWith(USER_PREFIX)) principalId else "$USER_PREFIX$principalId"
+    fun fromUuid(principalId: String): String = toUuid(principalId).toString()
 }

@@ -83,7 +83,10 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
         // Seed the WORKSPACE_OWNER role required by R2dbcWorkspaceProvisioningService
         databaseClient.sql(
-            "INSERT INTO roles (id, role_key, category) VALUES ('role-owner', 'owner', 'WORKSPACE')",
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('6ce35f6c-2f1e-5702-9b59-d7a0e9402006', 'WORKSPACE_OWNER', 'WORKSPACE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -215,6 +218,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         "DELETE FROM permissions",
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
+        "DELETE FROM consent_record_events",
         "DELETE FROM consent_records",
         "DELETE FROM workspaces",
         "DELETE FROM service_account_credentials",
@@ -475,7 +479,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .exchange()
             .expectStatus().isCreated
             .expectBody()
-            .jsonPath("$.workspaceId").isEqualTo("invited-workspace")
+            .jsonPath("$.workspaceId").isEqualTo("00000000-0000-0000-0000-000000000011")
             .returnResult()
 
         val principalId = Regex(""""principalId":"([^"]+)"""")
@@ -710,14 +714,14 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             databaseClient.sql(
                 """
                 INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-                VALUES ('owner-1', 'USER', 'local:owner@example.com', NULL, 'owner')
+                VALUES ('00000000-0000-0000-0000-000000000001', 'USER', 'local:owner@example.com', NULL, 'owner')
                 """.trimIndent(),
             ).fetch().rowsUpdated().block()!!
 
             databaseClient.sql(
                 """
                 INSERT INTO user_identities (principal_id, email, username, email_status)
-                VALUES ('owner-1', 'owner@example.com', 'owner', 'VERIFIED')
+                VALUES ('00000000-0000-0000-0000-000000000001', 'owner@example.com', 'owner', 'VERIFIED')
                 """.trimIndent(),
             ).fetch().rowsUpdated().block()!!
 
@@ -725,7 +729,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             databaseClient.sql(
                 """
                 INSERT INTO local_password_credentials (principal_id, password_hash)
-                VALUES ('owner-1', :passwordHash)
+                VALUES ('00000000-0000-0000-0000-000000000001', :passwordHash)
                 """.trimIndent(),
             )
                 .bind("passwordHash", passwordHash)
@@ -764,13 +768,13 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('invitation-issuer', 'USER', 'local:issuer@example.com', NULL, 'issuer')
+            VALUES ('00000000-0000-0000-0000-000000000010', 'USER', 'local:issuer@example.com', NULL, 'issuer')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('invited-workspace', 'Invited Workspace', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-000000000011', 'Invited Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
@@ -779,8 +783,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 id, source, source_reference_id, workspace_id, invited_email_normalized,
                 candidate_key, token_hash, status, issued_by, created_at, expires_at
             ) VALUES (
-                :id, 'DIRECT', NULL, 'invited-workspace', 'invitee@example.com',
-                :candidateKey, :tokenHash, 'ACTIVE', 'invitation-issuer', :createdAt, :expiresAt
+                :id, 'DIRECT', NULL, '00000000-0000-0000-0000-000000000011', 'invitee@example.com',
+                :candidateKey, :tokenHash, 'ACTIVE', '00000000-0000-0000-0000-000000000010', :createdAt, :expiresAt
             )
             """.trimIndent(),
         )
@@ -809,7 +813,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             countRows(
                 """
                 SELECT COUNT(*) FROM workspace_memberships
-                WHERE workspace_id = 'invited-workspace' AND principal_id = '$principalId'
+                WHERE workspace_id = '00000000-0000-0000-0000-000000000011' AND principal_id = '$principalId'
                 """.trimIndent(),
             ),
         )
@@ -821,7 +825,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         expiresAt: Instant,
         usedAt: Instant? = null,
     ) {
-        val principalId = "principal-${email.substringBefore('@')}"
+        val principalId = UUID.randomUUID()
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)

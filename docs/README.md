@@ -133,6 +133,7 @@
 - [Actuator Security](./monitoring/actuator-security.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
 - [Production Rollback Runbook](./runbooks/production-rollback.md)
+- [UUID Identifier Migration Runbook](./runbooks/uuid-native-identifiers.md) — Explicit-context conversion, writer shutdown, approval gates, and coordinated recovery
 - [Password Recovery Runbook](./runbooks/password-recovery.md)
 
 ## 📝 Documentation Standards

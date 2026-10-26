@@ -29,7 +29,7 @@ import java.time.ZoneOffset
 class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : WaitlistEntryAdmin {
 
     override suspend fun findById(id: String): WaitlistEntry? = databaseClient.sql(SELECT_BY_ID)
-        .bind("id", id)
+        .bind("id", java.util.UUID.fromString(id))
         .map { row, _ -> row.toWaitlistEntry() }
         .one()
         .awaitSingleOrNull()
@@ -43,7 +43,7 @@ class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : Wait
             .bindNullable("invitedAt", invitedAt, OffsetDateTime::class.java)
             .bindNullable("convertedAt", convertedAt, OffsetDateTime::class.java)
             .bindNullable("cancelledAt", cancelledAt, OffsetDateTime::class.java)
-            .bind("id", entry.id.value)
+            .bind("id", java.util.UUID.fromString(entry.id.value))
             .bind("expectedVersion", entry.version)
             .fetch()
             .rowsUpdated()
@@ -54,7 +54,7 @@ class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : Wait
 
     override suspend fun findInvitationContext(id: String): WaitlistInvitationContext? =
         databaseClient.sql(SELECT_INVITATION_CONTEXT)
-            .bind("id", id)
+            .bind("id", java.util.UUID.fromString(id))
             .map { row, _ ->
                 WaitlistInvitationContext(
                     recipientEmail = requireNotNull(row.get("normalized_email", String::class.java)),

@@ -2,8 +2,8 @@
 Feature: Bulk scheduling
 
   Background:
-    Given workspace "ws-bulk-1" exists
-    And user "bulk-user" with emailStatus VERIFIED in workspace "ws-bulk-1" with token "valid-token"
+    Given workspace "9d412dbd-a8bc-58f9-91cc-ac2f3c2481f7" exists
+    And user "bulk-user" with emailStatus VERIFIED in workspace "9d412dbd-a8bc-58f9-91cc-ac2f3c2481f7" with token "valid-token"
 
   Scenario: Gherkin 1 — per-row errors, no persistence
     When POST /bulk/validate with csvText "bodyText,scheduledFor,timezone,media_urls,hashtags\nHello 1,2099-06-15T10:00:00Z,UTC,,\n,not-a-date,UTC,,\nHello 3,2099-06-15T11:00:00Z,UTC,,"
@@ -30,8 +30,8 @@ Feature: Bulk scheduling
     Then it MUST return 200 with counts and row errors
 
   Scenario: Cross-workspace blocked
-    Given job in workspace A "ws-bulk-1" with id "job-cross"
-    When workspace B "ws-bulk-2" requests same jobId
+    Given job in workspace A "9d412dbd-a8bc-58f9-91cc-ac2f3c2481f7" with id "57b8d129-9cfd-5322-9c27-3c2edf5dae02"
+    When workspace B "9fb52cf4-3c6c-5961-a623-79ec38f16ba4" requests same jobId
     Then it MUST return 404
 
   Scenario: Gherkin 4 — catalog and CSV correct

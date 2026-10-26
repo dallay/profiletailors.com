@@ -11,11 +11,28 @@ class HeaderActiveWorkspaceContextResolverTest {
     private val resolver = HeaderActiveWorkspaceContextResolver()
 
     @Test
-    fun `resolves explicit workspace id into workspace resource context`() {
-        val resourceContext = resolver.resolve("workspace-123")
+    fun `resolves canonical raw UUID into workspace resource context`() {
+        val workspaceId = "0199b1ca-0000-7000-8000-000000000001"
+        val resourceContext = resolver.resolve(workspaceId)
 
         assertEquals(ResourceContextType.WORKSPACE, resourceContext.type)
-        assertEquals("workspace-123", resourceContext.workspaceId)
+        assertEquals(workspaceId, resourceContext.workspaceId)
+    }
+
+    @Test
+    fun `accepts canonical raw workspace UUID`() {
+        val context = resolver.resolve("0199b1ca-0000-7000-8000-000000000001")
+
+        assertEquals("0199b1ca-0000-7000-8000-000000000001", context.workspaceId)
+    }
+
+    @Test
+    fun `rejects prefixed workspace id`() {
+        val error = assertThrows(InvalidActiveWorkspaceException::class.java) {
+            resolver.resolve("ws-0199b1ca-0000-7000-8000-000000000001")
+        }
+
+        assertEquals("Active workspace identifier must be a UUID.", error.message)
     }
 
     @Test

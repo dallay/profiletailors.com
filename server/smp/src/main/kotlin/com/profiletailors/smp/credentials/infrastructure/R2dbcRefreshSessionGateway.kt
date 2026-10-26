@@ -27,7 +27,7 @@ class R2dbcRefreshSessionGateway(
         refreshToken: RefreshSessionToken,
         expiresAt: Instant,
     ): CreatedRefreshSession {
-        val sessionId = "refresh-session-${UUID.randomUUID()}"
+        val sessionId = UUID.randomUUID()
         databaseClient.sql(
             """
             INSERT INTO refresh_sessions (
@@ -48,7 +48,7 @@ class R2dbcRefreshSessionGateway(
             """.trimIndent(),
         )
             .bind("id", sessionId)
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("lookupKey", refreshToken.lookupKey)
             .bind("tokenVerifier", refreshTokenHasher.hash(refreshToken.secret))
             .bind("status", RefreshSessionStatus.ACTIVE.name)
@@ -58,7 +58,7 @@ class R2dbcRefreshSessionGateway(
             .awaitSingle()
 
         return CreatedRefreshSession(
-            id = sessionId,
+            id = sessionId.toString(),
             principalId = principalId,
             refreshToken = refreshToken,
             expiresAt = expiresAt,
@@ -121,8 +121,8 @@ class R2dbcRefreshSessionGateway(
             .bind("status", RefreshSessionStatus.ROTATED.name)
             .bind("rotatedAt", now)
             .bind("lastUsedAt", now)
-            .bind("replacementSessionId", replacement.id)
-            .bind("currentSessionId", currentSessionId)
+            .bind("replacementSessionId", UUID.fromString(replacement.id))
+            .bind("currentSessionId", UUID.fromString(currentSessionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -135,9 +135,9 @@ class R2dbcRefreshSessionGateway(
             WHERE id = :replacementSessionId
             """.trimIndent(),
         )
-            .bind("currentSessionId", currentSessionId)
+            .bind("currentSessionId", UUID.fromString(currentSessionId))
             .bind("lastUsedAt", now)
-            .bind("replacementSessionId", replacement.id)
+            .bind("replacementSessionId", UUID.fromString(replacement.id))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -164,7 +164,7 @@ class R2dbcRefreshSessionGateway(
             .bind("status", RefreshSessionStatus.REVOKED.name)
             .bind("revokedAt", now)
             .bind("lastUsedAt", now)
-            .bind("currentSessionId", currentSessionId)
+            .bind("currentSessionId", UUID.fromString(currentSessionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -182,8 +182,8 @@ class R2dbcRefreshSessionGateway(
             "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +
                 "WHERE principal_id = :principalId AND id != :excludeSessionId AND status = 'ACTIVE'",
         )
-            .bind("principalId", principalId)
-            .bind("excludeSessionId", excludeSessionId)
+            .bind("principalId", UUID.fromString(principalId))
+            .bind("excludeSessionId", UUID.fromString(excludeSessionId))
             .bind("now", now)
             .fetch()
             .rowsUpdated()
@@ -200,7 +200,7 @@ class R2dbcRefreshSessionGateway(
         "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +
             "WHERE principal_id = :principalId AND status = 'ACTIVE'",
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .bind("now", now)
         .fetch()
         .rowsUpdated()
@@ -210,7 +210,7 @@ class R2dbcRefreshSessionGateway(
     private suspend fun resolvePrincipalId(sessionId: String): String = databaseClient.sql(
         "SELECT principal_id FROM refresh_sessions WHERE id = :id",
     )
-        .bind("id", sessionId)
+        .bind("id", UUID.fromString(sessionId))
         .map { row, _ -> requireNotNull(row.get("principal_id", String::class.java)) }
         .one()
         .awaitSingleOrNull()

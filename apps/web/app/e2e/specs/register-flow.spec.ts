@@ -76,7 +76,7 @@ test.describe('Register redesign', { tag: '@frontend' }, () => {
       email,
       username: email.slice(0, email.indexOf('@')),
       emailStatus: 'PENDING',
-      workspaceId: 'workspace-001',
+      workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     })
     const requestPromise = page.waitForRequest(
       (request) => request.url().includes('/api/auth/register') && request.method() === 'POST',
@@ -134,11 +134,11 @@ test.describe('Register redesign', { tag: '@frontend' }, () => {
   }) => {
     await mockAuthenticatedSession(page, {
       accessToken: 'auth-redirect-token',
-      principalId: 'auth-redirect-user',
+      principalId: '234d8e95-7666-5d29-9d0a-6f45459265ad',
       email: VALID_CREDENTIALS.email,
       username: 'auth-redirect',
       emailStatus: 'VERIFIED',
-      workspaceId: 'workspace-001',
+      workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     })
     await capabilities(page, true)
 
@@ -188,20 +188,20 @@ test.describe('Register redesign', { tag: '@frontend' }, () => {
         accessToken: 'pending-login-token',
         tokenType: 'Bearer',
         expiresIn: 900,
-        principalId: 'pending-user',
+        principalId: '0966e767-03db-5261-bb23-124558678c62',
         email: VALID_CREDENTIALS.email,
         username: 'dev',
         emailStatus: 'PENDING',
-        workspaceId: 'workspace-001',
+        workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
       },
     })
     await mockUserProfile(page, {
-      principalId: 'pending-user',
+      principalId: '0966e767-03db-5261-bb23-124558678c62',
       email: VALID_CREDENTIALS.email,
       username: 'dev',
       displayIdentity: 'dev',
       emailStatus: 'PENDING',
-      workspaceId: 'workspace-001',
+      workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     })
     await mockCurrentWorkspace(page)
     await capabilities(page, true)

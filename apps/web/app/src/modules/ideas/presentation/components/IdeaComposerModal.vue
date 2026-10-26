@@ -405,7 +405,7 @@ async function handleCreatePost(): Promise<void> {
         </div>
       </div>
 
-      <DialogFooter class="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle bg-bg-primary/30 px-6 py-4">
+      <DialogFooter class="mx-0 mb-0 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle bg-bg-primary/30 px-6 py-4">
         <div>
           <Button
             v-if="isEditMode"

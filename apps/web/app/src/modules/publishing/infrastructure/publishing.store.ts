@@ -580,7 +580,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
     {
-      id: 'pub-1',
+      id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
       content:
         'El error más común con DDD: crear modelos anémicos y tratar la base de datos como el centro del diseño. ¡Concéntrate en el comportamiento primero!',
       title: 'Common DDD Mistake',
@@ -592,7 +592,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80',
     },
     {
-      id: 'pub-2',
+      id: 'b52a13aa-706c-5325-9156-bcd2f04951d1',
       content:
         '¿Por qué tu Arquitectura debería seguir principios de diseño suizos? Minimalismo visual, tipografía clara y cero ruido ornamental.',
       title: 'Swiss Design Architecture',
@@ -1115,7 +1115,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     priority?: boolean
   }): Promise<Publication> {
     const localPub: Publication = {
-      id: `pub-${Date.now()}`,
+      id: crypto.randomUUID(),
       content: opts.bodyText,
       title: opts.title,
       channels: [toChannelProvider('linkedin')],
@@ -1440,7 +1440,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     assetIds?: string[]
     socialAccountId?: string
   }): Promise<Publication> {
-    const publicationId = `pub-${Date.now()}`
+    const publicationId = crypto.randomUUID()
 
     const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
     const effectiveScheduledAt =

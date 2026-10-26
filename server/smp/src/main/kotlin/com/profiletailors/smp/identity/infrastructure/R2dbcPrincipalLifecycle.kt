@@ -45,7 +45,7 @@ class R2dbcPrincipalLifecycle(
 
     private suspend fun findOrThrow(principalId: String): PrincipalLifecycleSnapshot =
         databaseClient.sql("SELECT id, status, version FROM principals WHERE id = :id")
-            .bind("id", principalId)
+            .bind("id", java.util.UUID.fromString(principalId))
             .map { row, _ ->
                 PrincipalLifecycleSnapshot(
                     status = PrincipalStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
@@ -67,7 +67,7 @@ class R2dbcPrincipalLifecycle(
             "UPDATE principals SET status = :status, version = version + 1 " +
                 "WHERE id = :id AND version = :expectedVersion",
         )
-            .bind("id", principalId)
+            .bind("id", java.util.UUID.fromString(principalId))
             .bind("status", target.name)
             .bind("expectedVersion", expectedVersion)
             .fetch()
