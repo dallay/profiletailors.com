@@ -27,6 +27,7 @@ import com.profiletailors.smp.identity.application.VerifyEmailHandler
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.infrastructure.R2dbcIdentityRegistrationGateway
 import com.profiletailors.smp.identity.infrastructure.R2dbcPrincipalIdentityLookup
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
@@ -37,6 +38,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
+import liquibase.Contexts
+import liquibase.LabelExpression
+import liquibase.Liquibase
+import liquibase.database.DatabaseFactory
+import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -59,6 +65,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.sql.DriverManager
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -67,7 +74,7 @@ import java.time.ZoneOffset
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
-        "spring.liquibase.enabled=true",
+        "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
         "app.identity.registration.mode=OPEN",
     ],
@@ -94,6 +101,8 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
     private lateinit var transactionRunner: AtomicTransactionRunner
     private val now: Instant = Instant.parse("2026-05-20T10:15:30Z")
     private val clock: Clock = Clock.fixed(now, ZoneOffset.UTC)
+    private val principalId = "00000000-0000-0000-0000-000000000193"
+    private val testPrincipalId = principalId
 
     @BeforeEach
     fun setUpRepositories() = runTest {
@@ -269,8 +278,8 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
 
     private suspend fun seedInvitation(email: String, rawToken: String, target: InvitationTarget): SeededInvitation {
         val invitationId = java.util.UUID.randomUUID()
-        val issuerId = "transaction-issuer-${java.util.UUID.randomUUID()}"
-        val workspaceId = "transaction-workspace-${java.util.UUID.randomUUID()}"
+        val issuerId = java.util.UUID.randomUUID().toString()
+        val workspaceId = java.util.UUID.randomUUID().toString()
         val tokenHasher = BCryptTokenHasher()
         databaseClient.sql(
             """
@@ -278,7 +287,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             VALUES (:issuerId, 'USER', :subject, NULL, 'transaction issuer')
             """.trimIndent(),
         )
-            .bind("issuerId", issuerId)
+            .bind("issuerId", java.util.UUID.fromString(issuerId))
             .bind("subject", "local:$issuerId@example.com")
             .fetch().rowsUpdated().awaitSingle()
         if (target == InvitationTarget.EXISTING_WORKSPACE) {
@@ -288,7 +297,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
                 VALUES (:workspaceId, 'Transaction Workspace', 'ACTIVE', NULL)
                 """.trimIndent(),
             )
-                .bind("workspaceId", workspaceId)
+                .bind("workspaceId", java.util.UUID.fromString(workspaceId))
                 .fetch().rowsUpdated().awaitSingle()
         }
         val workspaceExpression = if (target == InvitationTarget.EXISTING_WORKSPACE) ":workspaceId" else "NULL"
@@ -307,12 +316,12 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             .bind("email", email)
             .bind("candidateKey", tokenHasher.candidateKey(rawToken))
             .bind("tokenHash", tokenHasher.hash(rawToken))
-            .bind("issuerId", issuerId)
+            .bind("issuerId", java.util.UUID.fromString(issuerId))
             .bind("createdAt", now)
             .bind("expiresAt", Instant.parse("2099-01-01T00:00:00Z"))
             .let { spec ->
                 if (target == InvitationTarget.EXISTING_WORKSPACE) {
-                    spec.bind("workspaceId", workspaceId)
+                    spec.bind("workspaceId", java.util.UUID.fromString(workspaceId))
                 } else {
                     spec
                 }
@@ -338,9 +347,9 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM email_verification_tokens WHERE email = 'issue193@example.com'")
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM user_identities WHERE principal_id = 'issue-193-principal'")
+        databaseClient.sql("DELETE FROM user_identities WHERE principal_id = '$principalId'")
             .fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM principals WHERE id = 'issue-193-principal'")
+        databaseClient.sql("DELETE FROM principals WHERE id = '$principalId'")
             .fetch().rowsUpdated().awaitSingle()
     }
 
@@ -348,13 +357,13 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('issue-193-principal', 'USER', 'local:issue193@example.com', NULL, 'issue193')
+            VALUES ('00000000-0000-0000-0000-000000000193', 'USER', 'local:issue193@example.com', NULL, 'issue193')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username, email_status)
-            VALUES ('issue-193-principal', 'issue193@example.com', 'issue193', 'PENDING')
+            VALUES ('00000000-0000-0000-0000-000000000193', 'issue193@example.com', 'issue193', 'PENDING')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -385,7 +394,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         .awaitSingle()
 
     private fun fakeRefreshLifecycleService(): RefreshSessionLifecycleService = RefreshSessionLifecycleService(
-        refreshSessionGateway = FakeRefreshSessionGateway(),
+        refreshSessionGateway = FakeRefreshSessionGateway(principalId),
         refreshSessionTokenService = object : RefreshSessionTokenService() {
             override fun issue(): RefreshSessionToken = RefreshSessionToken("refresh-lookup", "refresh-secret")
         },
@@ -451,7 +460,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         ): IssuedAccessToken = IssuedAccessToken("token-for-$email", 900)
     }
 
-    private class FakeRefreshSessionGateway : RefreshSessionGateway {
+    private class FakeRefreshSessionGateway(private val principalId: String) : RefreshSessionGateway {
         override suspend fun create(
             principalId: String,
             refreshToken: RefreshSessionToken,
@@ -466,7 +475,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
             ActiveRefreshSession(
                 id = "refresh-session-193",
-                principalId = "issue-193-principal",
+                principalId = principalId,
                 lookupKey = refreshToken.lookupKey,
                 tokenVerifier = "verifier",
                 expiresAt = now.plusSeconds(3600),
@@ -481,7 +490,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             now: Instant,
         ): CreatedRefreshSession = CreatedRefreshSession(
             id = "refresh-session-194",
-            principalId = "issue-193-principal",
+            principalId = principalId,
             refreshToken = replacementToken,
             expiresAt = expiresAt,
         )
@@ -503,10 +512,9 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
 
         @Container
         @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("identity_transactions_postgres")
-            .withUsername("profiletailors")
-            .withPassword("profiletailors")
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer(
+            "identity_transactions_postgres",
+        )
 
         @JvmStatic
         @DynamicPropertySource
@@ -526,6 +534,18 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             registry.add("spring.liquibase.url", postgres::getJdbcUrl)
             registry.add("spring.liquibase.user", postgres::getUsername)
             registry.add("spring.liquibase.password", postgres::getPassword)
+            DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+                }
+                val database = DatabaseFactory.getInstance()
+                    .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
+                Liquibase(
+                    "db/changelog/db.changelog-master.yaml",
+                    ClassLoaderResourceAccessor(),
+                    database,
+                ).update(Contexts("uuid-native-identifiers"), LabelExpression())
+            }
         }
     }
 }

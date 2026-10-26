@@ -129,7 +129,7 @@ help list:
 	@echo "  --- DOCS, CI & CLEANUP ---"
 	@echo "  docs-links                   Check Markdown links with lychee"
 	@echo "  docs-lint                    Lint Markdown with markdownlint-cli2"
-	@echo "  licence-check                Scan dependency licences for AGPL-3.0 compatibility"
+	@echo "  licence-check                Generate dependency licence inventories for review"
 	@echo "  ci-local                     Fast CI checks (lint, unit tests, builds)"
 	@echo "  ci-full                      CI checks including Postgres integration + BDD"
 	@echo "  ci                           Full CI pipeline (sequential fail-fast checks)"
@@ -395,8 +395,10 @@ docs-lint:
 	pnpm exec markdownlint-cli2
 
 licence-check:
-	@echo "▸ Frontend: dependency licence scan..."
-	pnpm licenses list --json | node scripts/check-frontend-licences.mjs
+	@echo "▸ Frontend: dependency licence inventory..."
+	mkdir -p server/smp/build/reports/dependency-licence
+	pnpm --filter app licenses list --json > server/smp/build/reports/dependency-licence/frontend-dependency-licences.json
+	@echo "  Report: server/smp/build/reports/dependency-licence/frontend-dependency-licences.json"
 	@echo "▸ Backend: dependency licence report..."
 	$(GRADLE_ROOT) :server:smp:generateLicenseReport --no-daemon
 	@echo "  Report: server/smp/build/reports/dependency-licence/dependency-licence.txt"
@@ -419,7 +421,7 @@ ci-local:
 	@echo "▸ Markdown lint..."
 	$(MAKE) docs-lint
 	@echo ""
-	@echo "▸ Dependency licence scan..."
+	@echo "▸ Dependency licence inventory generation..."
 	$(MAKE) licence-check
 	@echo ""
 	@echo "▸ Marketing: Biome lint..."

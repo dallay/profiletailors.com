@@ -12,6 +12,7 @@ import liquibase.resource.ClassLoaderResourceAccessor
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 import java.time.Instant
+import java.util.UUID
 
 @Suppress("LargeClass")
 class BddDatabaseSupport(
@@ -28,16 +29,20 @@ class BddDatabaseSupport(
     )
 
     private var lastRawPasswordResetToken: String = ""
+    private val consentCleanupStatements = listOf(
+        "DELETE FROM consent_record_events",
+        "DELETE FROM consent_records",
+    )
 
     companion object {
-        const val WORKSPACE_ID = "workspace-1"
-        const val PRINCIPAL_ID = "principal-1"
-        const val RESOURCE_ID = "resource-1"
+        const val WORKSPACE_ID = "10000000-0000-4000-8000-000000000001"
+        const val PRINCIPAL_ID = "20000000-0000-4000-8000-000000000001"
+        const val RESOURCE_ID = "30000000-0000-4000-8000-000000000001"
         const val WORKSPACE_HEADER = "X-Workspace-Id"
-        const val QA_PRINCIPAL_ID = "qa-user-001"
+        const val QA_PRINCIPAL_ID = "20000000-0000-4000-8000-000000000003"
         const val QA_EMAIL = "qa@profiletailors.com"
         const val QA_PASSWORD = "FinalQaPassword789!"
-        const val QA_WORKSPACE_ID = "qa-workspace-001"
+        const val QA_WORKSPACE_ID = "10000000-0000-4000-8000-000000000003"
         const val USER_BEARER = "Bearer valid-token"
         const val VERIFIED_USER_BEARER = "Bearer verified-token"
         const val API_VERSION_MEDIA_TYPE = "application/vnd.api.v1+json"
@@ -50,7 +55,7 @@ class BddDatabaseSupport(
         const val LOCAL_AUTH_RESEND_PATH = "/api/auth/resend-verification"
         const val CURRENT_USER_PROFILE_PATH = "/api/auth/me"
         const val MEDIA_ASSETS_PATH = "/api/media/assets"
-        const val MEDIA_ASSET_ID = "asset-bdd-1"
+        const val MEDIA_ASSET_ID = "40000000-0000-4000-8000-000000000001"
         const val MEDIA_ASSET_FILE_HASH = "b591d9820ae723ef0604a2014276dea6a9a26566b5f857a146a51fae9b22da41"
         const val PUBLISHING_PUBLICATIONS_PATH = "/api/publishing/publications"
         const val RECURRING_SCHEDULES_PATH_TEMPLATE = "/api/v1/workspaces/%s/recurring"
@@ -85,8 +90,8 @@ class BddDatabaseSupport(
         val exists: String? = databaseClient.sql(
             "SELECT principal_id FROM user_identities WHERE principal_id = :id",
         )
-            .bind("id", QA_PRINCIPAL_ID)
-            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .bind("id", UUID.fromString(QA_PRINCIPAL_ID))
+            .map { row, _ -> requireNotNull(row.get("principal_id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (exists != null) return
@@ -94,21 +99,21 @@ class BddDatabaseSupport(
             "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
                 "VALUES (:id, 'USER', :email, 'local', 'QA User')",
         )
-            .bind("id", QA_PRINCIPAL_ID)
+            .bind("id", UUID.fromString(QA_PRINCIPAL_ID))
             .bind("email", QA_EMAIL)
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO user_identities (principal_id, email, username, email_status) " +
                 "VALUES (:id, :email, 'qa', 'VERIFIED')",
         )
-            .bind("id", QA_PRINCIPAL_ID)
+            .bind("id", UUID.fromString(QA_PRINCIPAL_ID))
             .bind("email", QA_EMAIL)
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO local_password_credentials (principal_id, password_hash) " +
                 "VALUES (:id, :hash)",
         )
-            .bind("id", QA_PRINCIPAL_ID)
+            .bind("id", UUID.fromString(QA_PRINCIPAL_ID))
             .bind(
                 "hash",
                 org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
@@ -120,21 +125,21 @@ class BddDatabaseSupport(
         databaseClient.sql(
             "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, 'QA Workspace', 'ACTIVE', 'flask')",
         )
-            .bind("id", QA_WORKSPACE_ID)
+            .bind("id", UUID.fromString(QA_WORKSPACE_ID))
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by) " +
                 "VALUES (:workspaceId, :ownerId, 'USER', :ownerId)",
         )
-            .bind("workspaceId", QA_WORKSPACE_ID)
-            .bind("ownerId", QA_PRINCIPAL_ID)
+            .bind("workspaceId", UUID.fromString(QA_WORKSPACE_ID))
+            .bind("ownerId", UUID.fromString(QA_PRINCIPAL_ID))
             .fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) " +
-                "VALUES ('qa-membership-001', :workspaceId, :ownerId, 'USER', 'ACTIVE')",
+                "VALUES ('50000000-0000-4000-8000-000000000003', :workspaceId, :ownerId, 'USER', 'ACTIVE')",
         )
-            .bind("workspaceId", QA_WORKSPACE_ID)
-            .bind("ownerId", QA_PRINCIPAL_ID)
+            .bind("workspaceId", UUID.fromString(QA_WORKSPACE_ID))
+            .bind("ownerId", UUID.fromString(QA_PRINCIPAL_ID))
             .fetch().rowsUpdated().awaitSingle()
     }
 
@@ -142,7 +147,7 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO roles (id, role_key, category)
-            VALUES ('role-owner', 'owner', 'WORKSPACE')
+            VALUES ('6ce35f6c-2f1e-5702-9b59-d7a0e9402006', 'WORKSPACE_OWNER', 'WORKSPACE')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -150,13 +155,19 @@ class BddDatabaseSupport(
     suspend fun seedEntitledAuthorizedMember() {
         seedUserPrincipal()
         seedWorkspaceAndRole(entitled = true)
-        seedRolePermission(permissionId = "permission-1", permissionKey = WORKSPACE_ACCESS_PERMISSION)
+        seedRolePermission(
+            permissionId = "a1c2ad6d-c637-5205-a0af-9bb95c4239b2",
+            permissionKey = WORKSPACE_ACCESS_PERMISSION,
+        )
     }
 
     suspend fun seedEntitledMemberWithoutAccessPermission() {
         seedUserPrincipal()
         seedWorkspaceAndRole(entitled = true)
-        seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
+        seedRolePermission(
+            permissionId = "1536040a-1a3c-58a6-943e-c66a8c120590",
+            permissionKey = "workspace:members:manage",
+        )
     }
 
     suspend fun seedAuthenticatedPrincipalOnly() {
@@ -169,7 +180,7 @@ class BddDatabaseSupport(
             "SELECT id FROM permissions WHERE permission_key = :permissionKey",
         )
             .bind("permissionKey", permissionKey)
-            .map { row, _ -> requireNotNull(row.get("id", String::class.java)) }
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
 
@@ -179,12 +190,12 @@ class BddDatabaseSupport(
             val newId = if (permissionKey ==
                 WORKSPACE_ACCESS_PERMISSION
             ) {
-                "permission-1"
+                "a1c2ad6d-c637-5205-a0af-9bb95c4239b2"
             } else {
-                "permission-dg-${System.currentTimeMillis()}"
+                UUID.randomUUID().toString()
             }
             databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
-                .bind("id", newId)
+                .bind("id", UUID.fromString(newId))
                 .bind("permissionKey", permissionKey)
                 .fetch()
                 .rowsUpdated()
@@ -202,10 +213,10 @@ class BddDatabaseSupport(
             )
             """.trimIndent(),
         )
-            .bind("id", "grant-$effect-$permissionId")
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("principalId", PRINCIPAL_ID)
-            .bind("permissionId", permissionId)
+            .bind("id", UUID.randomUUID())
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("principalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("permissionId", UUID.fromString(permissionId))
             .bind("effect", effect)
             .fetch()
             .rowsUpdated()
@@ -231,7 +242,7 @@ class BddDatabaseSupport(
 
         // Seed owner-2 principal
         seedPrincipal(
-            principalId = "owner-2",
+            principalId = "6dd7b370-46f9-5f08-9a95-ba34f26bd8e7",
             principalType = "USER",
             subject = "owner-2-subject",
             provider = "https://issuer.example",
@@ -240,14 +251,14 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('owner-2', 'owner2@example.com', 'owner2')
+            VALUES ('6dd7b370-46f9-5f08-9a95-ba34f26bd8e7', 'owner2@example.com', 'owner2')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
             """
             INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type)
-            VALUES ('$WORKSPACE_ID', 'owner-2', 'USER')
+            VALUES ('$WORKSPACE_ID', '6dd7b370-46f9-5f08-9a95-ba34f26bd8e7', 'USER')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -264,7 +275,7 @@ class BddDatabaseSupport(
 
         // Seed member-2 principal
         seedPrincipal(
-            principalId = "member-2",
+            principalId = "e6d7cb4c-50e4-52e7-9a54-76436681215a",
             principalType = "USER",
             subject = "member-2-subject",
             provider = "https://issuer.example",
@@ -273,14 +284,14 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('member-2', 'member2@example.com', 'member2')
+            VALUES ('e6d7cb4c-50e4-52e7-9a54-76436681215a', 'member2@example.com', 'member2')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-2', '$WORKSPACE_ID', 'member-2', 'USER', 'ACTIVE')
+            VALUES ('80cf5168-eff9-5abd-95c7-aae94ea2d331', '$WORKSPACE_ID', 'e6d7cb4c-50e4-52e7-9a54-76436681215a', 'USER', 'ACTIVE')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -288,42 +299,58 @@ class BddDatabaseSupport(
     suspend fun seedMemberWithPreviewPermission() {
         seedUserPrincipal()
         seedWorkspaceAndRole(entitled = false)
-        seedRolePermission(permissionId = "permission-resource-read", permissionKey = RESOURCE_PREVIEW_PERMISSION)
+        seedRolePermission(
+            permissionId = "f8b1076a-d58a-5ab3-98d1-840d86a28384",
+            permissionKey = RESOURCE_PREVIEW_PERMISSION,
+        )
     }
 
     suspend fun seedMemberWithAuditReadPermission() {
         seedUserPrincipal()
         seedWorkspaceAndRole(entitled = false)
-        seedRolePermission(permissionId = "permission-audit-read", permissionKey = WORKSPACE_AUDIT_READ_PERMISSION)
+        seedRolePermission(
+            permissionId = "73cf192f-653d-59d2-b3a9-6fde1f5a51d1",
+            permissionKey = WORKSPACE_AUDIT_READ_PERMISSION,
+        )
     }
 
     suspend fun seedAuthorizedServiceAccount(entitled: Boolean, credentialStatus: String = "ACTIVE") {
         seedPrincipal(
-            principalId = "service-principal-1",
+            principalId = "76fb2b6a-c363-5719-8ccb-0799a29bf94e",
             principalType = "SERVICE_ACCOUNT",
             subject = "service-account-subject",
             provider = "https://issuer.example",
             displayIdentity = "scheduler-bot",
         )
         seedWorkspaceAndRole(
-            principalId = "service-principal-1",
+            principalId = "76fb2b6a-c363-5719-8ccb-0799a29bf94e",
             principalType = "SERVICE_ACCOUNT",
             entitled = entitled,
         )
-        seedRolePermission(permissionId = "permission-1", permissionKey = WORKSPACE_ACCESS_PERMISSION)
+        seedRolePermission(
+            permissionId = "a1c2ad6d-c637-5205-a0af-9bb95c4239b2",
+            permissionKey = WORKSPACE_ACCESS_PERMISSION,
+        )
         seedServiceAccountCredential(status = credentialStatus)
     }
 
     suspend fun seedAuthorizedApiKeyPrincipal(entitled: Boolean, credentialStatus: String = "ACTIVE") {
         seedPrincipal(
-            principalId = "api-key-principal-1",
+            principalId = "10c6f425-30a0-59ad-a17d-05b77a4708f5",
             principalType = "API_KEY",
             subject = "api-key-subject",
             provider = null,
             displayIdentity = "integration-key",
         )
-        seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
-        seedRolePermission(permissionId = "permission-1", permissionKey = WORKSPACE_ACCESS_PERMISSION)
+        seedWorkspaceAndRole(
+            principalId = "10c6f425-30a0-59ad-a17d-05b77a4708f5",
+            principalType = "API_KEY",
+            entitled = entitled,
+        )
+        seedRolePermission(
+            permissionId = "a1c2ad6d-c637-5205-a0af-9bb95c4239b2",
+            permissionKey = WORKSPACE_ACCESS_PERMISSION,
+        )
         seedApiKeyCredential(status = credentialStatus)
     }
 
@@ -334,8 +361,8 @@ class BddDatabaseSupport(
                 id, workspace_id, principal_id, principal_type, permission_id,
                 target_resource_type, allowed_target_ids_json
             ) VALUES (
-                'scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
-                'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                '90ec297a-2115-5671-9364-7befed7bcd48', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
+                'f8b1076a-d58a-5ab3-98d1-840d86a28384', 'RESOURCE', :allowedTargetIdsJson
             )
             """.trimIndent(),
         )
@@ -370,7 +397,7 @@ class BddDatabaseSupport(
     suspend fun countScheduledPublications(): Long = databaseClient.sql(
         "SELECT COUNT(*) AS count FROM publications WHERE workspace_id = :workspaceId AND status = 'SCHEDULED'",
     )
-        .bind("workspaceId", WORKSPACE_ID)
+        .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
         .map { row, _ -> requireNotNull(row.get("count", Long::class.java)) }
         .one()
         .awaitSingle()
@@ -389,7 +416,7 @@ class BddDatabaseSupport(
     suspend fun replaceActiveApiKeyCredential(): ApiKeyCredentialReplacementState {
         val successorLookupKey = "ptk_successor"
         val successorSecret = "successor-secret-value"
-        val successorCredentialReference = "api-key-cred-2"
+        val successorCredentialReference = "00000000-0000-4000-8000-000000000041"
         val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
             successorSecret,
             org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
@@ -401,12 +428,12 @@ class BddDatabaseSupport(
                 id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
                 replaced_by_credential_id, replaced_credential_id, replaced_at
             ) VALUES (
-                :id, 'api-key-principal-1', :lookupKey, :keyPrefix, :verifier, 'ACTIVE', NULL,
-                NULL, 'api-key-cred-1', NULL
+                :id, '10c6f425-30a0-59ad-a17d-05b77a4708f5', :lookupKey, :keyPrefix, :verifier, 'ACTIVE', NULL,
+                NULL, '7df8d7ff-4304-5a31-8bb4-d830c7053bd2', NULL
             )
             """.trimIndent(),
         )
-            .bind("id", successorCredentialReference)
+            .bind("id", UUID.fromString(successorCredentialReference))
             .bind("lookupKey", successorLookupKey)
             .bind("keyPrefix", successorLookupKey)
             .bind("verifier", verifier)
@@ -420,10 +447,10 @@ class BddDatabaseSupport(
             SET status = 'INACTIVE',
                 replaced_by_credential_id = :successorCredentialReference,
                 replaced_at = :replacedAt
-            WHERE id = 'api-key-cred-1'
+            WHERE id = '7df8d7ff-4304-5a31-8bb4-d830c7053bd2'
             """.trimIndent(),
         )
-            .bind("successorCredentialReference", successorCredentialReference)
+            .bind("successorCredentialReference", UUID.fromString(successorCredentialReference))
             .bind("replacedAt", Instant.parse("2026-05-15T10:50:30Z"))
             .fetch()
             .rowsUpdated()
@@ -441,7 +468,7 @@ class BddDatabaseSupport(
             "UPDATE user_identities SET email_status = :emailStatus WHERE principal_id = :principalId",
         )
             .bind("emailStatus", emailStatus)
-            .bind("principalId", PRINCIPAL_ID)
+            .bind("principalId", UUID.fromString(PRINCIPAL_ID))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -473,15 +500,15 @@ class BddDatabaseSupport(
         val exists: String? = databaseClient.sql(
             "SELECT id FROM workspaces WHERE id = :id",
         )
-            .bind("id", workspaceId)
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .bind("id", UUID.fromString(workspaceId))
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (exists != null) return
         databaseClient.sql(
             "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, 'Profile Tailors', 'ACTIVE', NULL)",
         )
-            .bind("id", workspaceId)
+            .bind("id", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -495,8 +522,8 @@ class BddDatabaseSupport(
         val principalExists: String? = databaseClient.sql(
             "SELECT id FROM principals WHERE id = :id",
         )
-            .bind("id", principalId)
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .bind("id", UUID.fromString(principalId))
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (principalExists == null) {
@@ -511,8 +538,8 @@ class BddDatabaseSupport(
         val identityExists: String? = databaseClient.sql(
             "SELECT principal_id FROM user_identities WHERE principal_id = :id",
         )
-            .bind("id", principalId)
-            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .bind("id", UUID.fromString(principalId))
+            .map { row, _ -> requireNotNull(row.get("principal_id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (identityExists == null) {
@@ -522,7 +549,7 @@ class BddDatabaseSupport(
                 VALUES (:principalId, :email, :username)
                 """.trimIndent(),
             )
-                .bind("principalId", principalId)
+                .bind("principalId", UUID.fromString(principalId))
                 .bind("email", email)
                 .bind("username", email.substringBefore('@'))
                 .fetch()
@@ -532,8 +559,8 @@ class BddDatabaseSupport(
         val workspaceExists: String? = databaseClient.sql(
             "SELECT id FROM workspaces WHERE id = :id",
         )
-            .bind("id", workspaceId)
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .bind("id", UUID.fromString(workspaceId))
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (workspaceExists == null) {
@@ -543,7 +570,7 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedWorkspaceMembership(principalId: String, workspaceId: String = WORKSPACE_ID) {
-        val membershipId = "membership-$principalId-$workspaceId"
+        val membershipId = UUID.randomUUID()
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
@@ -551,8 +578,8 @@ class BddDatabaseSupport(
             """.trimIndent(),
         )
             .bind("id", membershipId)
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -580,8 +607,8 @@ class BddDatabaseSupport(
                     :fileHash, :originalFilename, :fileSizeBytes, :status, NOW())
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("sourceType", sourceType)
             .bind("mediaType", mediaType)
             .bind("storageKey", storageKey)
@@ -615,9 +642,9 @@ class BddDatabaseSupport(
         val existing: String? = databaseClient.sql(
             "SELECT workspace_id FROM workspace_file_blobs WHERE workspace_id = :workspaceId AND file_hash = :fileHash",
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
-            .map { row, _ -> row.get("workspace_id", String::class.java) as String }
+            .map { row, _ -> requireNotNull(row.get("workspace_id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (existing != null) return
@@ -630,7 +657,7 @@ class BddDatabaseSupport(
             VALUES (:workspaceId, :fileHash, :storageKey, 12345, 'image/png', :status, NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .bind("storageKey", key)
             .bind("status", status)
@@ -641,7 +668,7 @@ class BddDatabaseSupport(
 
     suspend fun countMediaAssets(workspaceId: String = WORKSPACE_ID): Long =
         databaseClient.sql("SELECT COUNT(*) AS total FROM media_assets WHERE workspace_id = :workspaceId")
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .map { row, _ -> (row.get("total") as Number).toLong() }
             .one()
             .awaitSingle()
@@ -652,8 +679,8 @@ class BddDatabaseSupport(
             WHERE asset_id = :assetId AND workspace_id = :workspaceId
         """.trimIndent(),
     )
-        .bind("assetId", assetId)
-        .bind("workspaceId", workspaceId)
+        .bind("assetId", UUID.fromString(assetId))
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .map { row, _ -> row.get("status") as String }
         .one()
         .awaitSingleOrNull()
@@ -666,8 +693,8 @@ class BddDatabaseSupport(
             LIMIT 1
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
-        .map { row, _ -> row.get("workspace_id", String::class.java) as String }
+        .bind("principalId", UUID.fromString(principalId))
+        .map { row, _ -> requireNotNull(row.get("workspace_id", UUID::class.java)).toString() }
         .one()
         .awaitSingleOrNull()
 
@@ -676,13 +703,13 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedWorkspaceMembershipIdempotent(principalId: String, workspaceId: String = WORKSPACE_ID) {
-        val membershipId = "membership-$principalId-$workspaceId"
+        val membershipId = UUID.randomUUID()
         val exists: String? = databaseClient.sql(
             "SELECT id FROM workspace_memberships WHERE principal_id = :principalId AND workspace_id = :workspaceId",
         )
-            .bind("principalId", principalId)
-            .bind("workspaceId", workspaceId)
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .bind("principalId", UUID.fromString(principalId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (exists != null) return
@@ -693,8 +720,8 @@ class BddDatabaseSupport(
             """.trimIndent(),
         )
             .bind("id", membershipId)
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -707,8 +734,8 @@ class BddDatabaseSupport(
                 id, event_type, action, request_name, request_path, permission, actor_principal_id,
                 workspace_id, target_type, target_id, outcome, reason_code, role_keys_json, details_json, created_at
             ) VALUES (
-                'audit-1', 'MUTATION', 'workspace.owner.add', NULL, NULL, NULL, 'owner-1',
-                '$WORKSPACE_ID', 'WORKSPACE_OWNER', 'owner-2', 'SUCCESS', NULL, '[]', '{"ownerPrincipalId":"owner-2"}',
+                '0f974b95-b4af-52b3-901a-21333615a820', 'MUTATION', 'workspace.owner.add', NULL, NULL, NULL, '2c19bb64-6aee-5fd7-84c8-d6b49e51e46e',
+                '$WORKSPACE_ID', 'WORKSPACE_OWNER', '6dd7b370-46f9-5f08-9a95-ba34f26bd8e7', 'SUCCESS', NULL, '[]', '{"ownerPrincipalId":"6dd7b370-46f9-5f08-9a95-ba34f26bd8e7"}',
                 TIMESTAMP WITH TIME ZONE '2026-05-20T12:00:00Z'
             )
             """.trimIndent(),
@@ -731,8 +758,8 @@ class BddDatabaseSupport(
                     NULL, NOW(), NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", connectionId)
-            .bind("workspaceId", WORKSPACE_ID)
+            .bind("id", UUID.fromString(connectionId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
             .bind("provider", provider)
             .bind("providerConnectionRef", "ref-$connectionId")
             .bind("status", status)
@@ -767,9 +794,9 @@ class BddDatabaseSupport(
                     :accountKind, :displayName, :profileUrn, 'ACTIVE', NOW())
             """.trimIndent(),
         )
-            .bind("id", accountId)
-            .bind("connectionId", connectionId)
-            .bind("workspaceId", WORKSPACE_ID)
+            .bind("id", UUID.fromString(accountId))
+            .bind("connectionId", UUID.fromString(connectionId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
             .bind("provider", provider)
             .bind("providerAccountId", providerAccountId)
             .bind("accountKind", accountKind)
@@ -798,8 +825,8 @@ class BddDatabaseSupport(
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", connectionId)
-            .bind("workspaceId", workspaceId)
+            .bind("id", UUID.fromString(connectionId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("provider", provider)
             .bind("providerConnectionRef", "ref-$connectionId")
             .bind("status", status)
@@ -838,9 +865,9 @@ class BddDatabaseSupport(
             ON CONFLICT (id, workspace_id) DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", accountId)
-            .bind("connectionId", connectionId)
-            .bind("workspaceId", workspaceId)
+            .bind("id", UUID.fromString(accountId))
+            .bind("connectionId", UUID.fromString(connectionId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("provider", provider)
             .bind("providerAccountId", providerAccountId)
             .bind("accountKind", accountKind)
@@ -873,9 +900,9 @@ class BddDatabaseSupport(
             DO UPDATE SET published_at = EXCLUDED.published_at
             """.trimIndent(),
         )
-            .bind("id", java.util.UUID.randomUUID().toString())
-            .bind("workspaceId", post.scope.value)
-            .bind("socialAccountId", post.actorId)
+            .bind("id", UUID.randomUUID())
+            .bind("workspaceId", UUID.fromString(post.scope.value))
+            .bind("socialAccountId", UUID.fromString(post.actorId))
             .bind("provider", post.provider.name)
             .bind("externalPostId", post.externalPostId.value)
             .bind("publishedAt", post.publishedAt)
@@ -888,9 +915,9 @@ class BddDatabaseSupport(
             .let { spec ->
                 val localPubId = post.localPublicationId
                 if (localPubId != null) {
-                    spec.bind("localPublicationId", localPubId)
+                    spec.bind("localPublicationId", UUID.fromString(localPubId))
                 } else {
-                    spec.bindNull("localPublicationId", String::class.java)
+                    spec.bindNull("localPublicationId", UUID::class.java)
                 }
             }
             .bind("lifecycle", post.lifecycle.name)
@@ -926,10 +953,10 @@ class BddDatabaseSupport(
                     NOW(), NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .let { spec ->
                 if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
             }
@@ -967,10 +994,10 @@ class BddDatabaseSupport(
                     NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .bind("scheduledFor", scheduledFor)
             .let { spec ->
                 if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
@@ -1010,10 +1037,10 @@ class BddDatabaseSupport(
                     NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .let { spec ->
                 if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
             }
@@ -1042,10 +1069,10 @@ class BddDatabaseSupport(
                     :publishedAt, NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .bind("publishedAt", publishedAt)
             .let { spec ->
                 if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
@@ -1075,10 +1102,10 @@ class BddDatabaseSupport(
                     NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .bind("failedAt", Instant.now().minusSeconds(60))
             .fetch()
             .rowsUpdated()
@@ -1099,10 +1126,10 @@ class BddDatabaseSupport(
                     NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", publicationId)
-            .bind("workspaceId", WORKSPACE_ID)
-            .bind("authorPrincipalId", PRINCIPAL_ID)
-            .bind("socialAccountId", socialAccountId)
+            .bind("id", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(WORKSPACE_ID))
+            .bind("authorPrincipalId", UUID.fromString(PRINCIPAL_ID))
+            .bind("socialAccountId", UUID.fromString(socialAccountId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -1126,7 +1153,7 @@ class BddDatabaseSupport(
             INSERT INTO service_account_credentials (
                 id, principal_id, provider, credential_reference, status, revoked_at
             ) VALUES (
-                'svc-cred-row-1', 'service-principal-1', 'https://issuer.example',
+                'b6fe3450-c487-5a70-9267-8ad68e83ae76', '76fb2b6a-c363-5719-8ccb-0799a29bf94e', 'https://issuer.example',
                 'svc-cred-1', :status, :revokedAt
             )
             """.trimIndent(),
@@ -1162,7 +1189,7 @@ class BddDatabaseSupport(
                 id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
                 replaced_by_credential_id, replaced_credential_id, replaced_at
             ) VALUES (
-                'api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup',
+                '7df8d7ff-4304-5a31-8bb4-d830c7053bd2', '10c6f425-30a0-59ad-a17d-05b77a4708f5', 'ptk_lookup', 'ptk_lookup',
                 :verifier, :status, :revokedAt, NULL, NULL, NULL
             )
             """.trimIndent(),
@@ -1189,13 +1216,13 @@ class BddDatabaseSupport(
         "DELETE FROM links",
     )
 
-    private fun cleanupStatements(): List<String> = shortLinksCleanupStatements() + listOf(
+    private fun cleanupStatements(): List<String> = consentCleanupStatements + shortLinksCleanupStatements() + listOf(
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",
-        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+        "DELETE FROM waitlists WHERE id <> 'ea2c112c-d7f8-5e73-a4a8-ee4c372ed124'",
         "DELETE FROM compliance_risk_acceptances",
         "DELETE FROM compliance_control_evidences",
         // evidence_links FK references compliance_evidences, must be deleted first
@@ -1270,13 +1297,16 @@ class BddDatabaseSupport(
             liquibaseUsername,
             liquibasePassword,
         ).use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+            }
             val database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(JdbcConnection(connection))
             Liquibase(
                 "db/changelog/db.changelog-master.yaml",
                 ClassLoaderResourceAccessor(),
                 database,
-            ).update(Contexts(), LabelExpression())
+            ).update(Contexts("uuid-native-identifiers"), LabelExpression())
         }
     }
 
@@ -1284,15 +1314,15 @@ class BddDatabaseSupport(
         val principalExists: String? = databaseClient.sql(
             "SELECT id FROM principals WHERE id = :id",
         )
-            .bind("id", PRINCIPAL_ID)
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .bind("id", UUID.fromString(PRINCIPAL_ID))
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         val exists: String? = databaseClient.sql(
             "SELECT principal_id FROM user_identities WHERE principal_id = :id",
         )
-            .bind("id", PRINCIPAL_ID)
-            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .bind("id", UUID.fromString(PRINCIPAL_ID))
+            .map { row, _ -> requireNotNull(row.get("principal_id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (exists != null) return
@@ -1326,7 +1356,7 @@ class BddDatabaseSupport(
             VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("principalType", principalType)
             .bind("subject", subject)
             .let { spec ->
@@ -1358,25 +1388,31 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-1', '$WORKSPACE_ID', :principalId, :principalType, 'ACTIVE')
+            VALUES ('3b933158-0683-5e2c-b2ab-453853482dd2', '$WORKSPACE_ID', :principalId, :principalType, 'ACTIVE')
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("principalType", principalType)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql(
-            "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('9f702b07-3409-55a7-92ca-d9019e382df3', 'member', 'WORKSPACE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')",
+            """
+            INSERT INTO membership_roles (membership_id, role_id)
+            VALUES ('3b933158-0683-5e2c-b2ab-453853482dd2', '9f702b07-3409-55a7-92ca-d9019e382df3')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         if (entitled) {
             databaseClient.sql(
                 """
                 INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled)
-                VALUES ('entitlement-1', '$WORKSPACE_ID', '$WORKSPACE_ACCESS_ENTITLEMENT', TRUE)
+                VALUES ('c7d20521-b394-5d16-a54b-2d6f150e2c04', '$WORKSPACE_ID', '$WORKSPACE_ACCESS_ENTITLEMENT', TRUE)
                 """.trimIndent(),
             ).fetch().rowsUpdated().awaitSingle()
         }
@@ -1386,15 +1422,18 @@ class BddDatabaseSupport(
         databaseClient.sql(
             "INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)",
         )
-            .bind("id", permissionId)
+            .bind("id", UUID.fromString(permissionId))
             .bind("permissionKey", permissionKey)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql(
-            "INSERT INTO role_permissions (role_id, permission_id) VALUES ('role-1', :permissionId)",
+            """
+            INSERT INTO role_permissions (role_id, permission_id)
+            VALUES ('9f702b07-3409-55a7-92ca-d9019e382df3', :permissionId)
+            """.trimIndent(),
         )
-            .bind("permissionId", permissionId)
+            .bind("permissionId", UUID.fromString(permissionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -1404,13 +1443,13 @@ class BddDatabaseSupport(
         val principalId = if (email.equals("user@example.com", true)) {
             PRINCIPAL_ID
         } else {
-            "principal-${email.substringBefore('@')}"
+            UUID.nameUUIDFromBytes("bdd-local:$email".toByteArray(Charsets.UTF_8)).toString()
         }
         databaseClient.sql(
             "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
                 "VALUES (:id, 'USER', :subject, NULL, :display) ON CONFLICT (id) DO NOTHING",
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("subject", "local:$email")
             .bind("display", email.substringBefore('@'))
             .fetch().rowsUpdated().awaitSingle()
@@ -1418,7 +1457,7 @@ class BddDatabaseSupport(
             "INSERT INTO user_identities (principal_id, email, username, email_status) " +
                 "VALUES (:id, :email, :username, 'VERIFIED') ON CONFLICT DO NOTHING",
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("email", email.trim().lowercase())
             .bind("username", email.substringBefore('@'))
             .fetch().rowsUpdated().awaitSingle()
@@ -1426,7 +1465,7 @@ class BddDatabaseSupport(
             "INSERT INTO local_password_credentials (principal_id, password_hash) " +
                 "VALUES (:id, :hash) ON CONFLICT (principal_id) DO NOTHING",
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind(
                 "hash",
                 org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
@@ -1438,12 +1477,12 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedAccountWithoutPasswordCredential(email: String) {
-        val principalId = "principal-${email.substringBefore('@')}"
+        val principalId = UUID.nameUUIDFromBytes("bdd-local:$email".toByteArray(Charsets.UTF_8)).toString()
         databaseClient.sql(
             "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
                 "VALUES (:id, 'USER', :subject, 'https://issuer.example', :display) ON CONFLICT (id) DO NOTHING",
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("subject", "oauth:$email")
             .bind("display", email.substringBefore('@'))
             .fetch().rowsUpdated().awaitSingle()
@@ -1451,7 +1490,7 @@ class BddDatabaseSupport(
             "INSERT INTO user_identities (principal_id, email, username, email_status) " +
                 "VALUES (:id, :email, :username, 'VERIFIED') ON CONFLICT DO NOTHING",
         )
-            .bind("id", principalId)
+            .bind("id", UUID.fromString(principalId))
             .bind("email", email.trim().lowercase())
             .bind("username", email.substringBefore('@'))
             .fetch().rowsUpdated().awaitSingle()
@@ -1470,7 +1509,7 @@ class BddDatabaseSupport(
             "INSERT INTO password_reset_tokens (id, principal_id, token_hash, requested_at, expires_at, used_at) " +
                 "VALUES (gen_random_uuid(), :principalId, :hash, :requestedAt, :expiresAt, NULL)",
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("hash", hash)
             .bind("requestedAt", requestedAt)
             .bind("expiresAt", expiresAt)
@@ -1487,7 +1526,7 @@ class BddDatabaseSupport(
     suspend fun seedUsedPasswordResetToken(principalId: String, email: String) {
         seedActivePasswordResetToken(principalId, email)
         databaseClient.sql("UPDATE password_reset_tokens SET used_at = NOW() WHERE principal_id = :id")
-            .bind("id", principalId).fetch().rowsUpdated().awaitSingle()
+            .bind("id", UUID.fromString(principalId)).fetch().rowsUpdated().awaitSingle()
     }
 
     suspend fun invalidateAllActivePasswordResetTokens(principalId: String) {
@@ -1495,7 +1534,7 @@ class BddDatabaseSupport(
             "UPDATE password_reset_tokens SET used_at = NOW() " +
                 "WHERE principal_id = :id AND used_at IS NULL",
         )
-            .bind("id", principalId).fetch().rowsUpdated().awaitSingle()
+            .bind("id", UUID.fromString(principalId)).fetch().rowsUpdated().awaitSingle()
     }
 
     suspend fun seedRefreshSession(principalId: String, lookupKey: String, secret: String) {
@@ -1504,8 +1543,8 @@ class BddDatabaseSupport(
             "INSERT INTO refresh_sessions (id, principal_id, lookup_key, token_verifier, status, expires_at) " +
                 "VALUES (:id, :principalId, :lookup, :verifier, 'ACTIVE', NOW() + INTERVAL '7 days')",
         )
-            .bind("id", "bdd-refresh-${java.util.UUID.randomUUID()}")
-            .bind("principalId", principalId)
+            .bind("id", UUID.randomUUID())
+            .bind("principalId", UUID.fromString(principalId))
             .bind("lookup", lookupKey)
             .bind(
                 "verifier",
@@ -1519,7 +1558,7 @@ class BddDatabaseSupport(
 
     suspend fun updatePasswordHash(principalId: String, hash: String) {
         databaseClient.sql("UPDATE local_password_credentials SET password_hash = :hash WHERE principal_id = :id")
-            .bind("id", principalId).bind("hash", hash).fetch().rowsUpdated().awaitSingle()
+            .bind("id", UUID.fromString(principalId)).bind("hash", hash).fetch().rowsUpdated().awaitSingle()
     }
 
     suspend fun countAccountsByEmail(email: String): Long = databaseClient.sql(
@@ -1528,7 +1567,9 @@ class BddDatabaseSupport(
 
     suspend fun countIdentities(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM user_identities WHERE principal_id = :id",
-    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     suspend fun countInvitationsByEmail(email: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM invitations WHERE invited_email_normalized = :email",
@@ -1539,35 +1580,45 @@ class BddDatabaseSupport(
 
     suspend fun countPasswordCredentials(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM local_password_credentials WHERE principal_id = :id",
-    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     suspend fun countWorkspaces(workspaceId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM workspaces WHERE id = :id",
-    ).bind("id", workspaceId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(workspaceId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     suspend fun countWorkspaceMemberships(principalId: String, workspaceId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM workspace_memberships " +
             "WHERE principal_id = :principalId AND workspace_id = :workspaceId",
     )
-        .bind("principalId", principalId)
-        .bind("workspaceId", workspaceId)
+        .bind("principalId", UUID.fromString(principalId))
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .map { row, _ -> (row.get("total") as Number).toLong() }
         .one()
         .awaitSingle()
 
     suspend fun lookupPasswordHash(principalId: String): String? = databaseClient.sql(
         "SELECT password_hash FROM local_password_credentials WHERE principal_id = :id",
-    ).bind("id", principalId).map { row, _ -> row.get("password_hash", String::class.java)!! }
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        requireNotNull(row.get("password_hash", String::class.java))
+    }
         .one().awaitSingleOrNull()
 
     suspend fun countActivePasswordResetTokens(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM password_reset_tokens " +
             "WHERE principal_id = :id AND used_at IS NULL AND expires_at > NOW()",
-    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     suspend fun countUsedPasswordResetTokens(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM password_reset_tokens WHERE principal_id = :id AND used_at IS NOT NULL",
-    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     /**
      * Counts all password reset tokens in the database.
@@ -1590,9 +1641,10 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO password_reset_tokens (id, principal_id, token_hash, requested_at, expires_at, used_at)
-            VALUES (gen_random_uuid(), 'principal-cleanup', :tokenHash, :requestedAt, :expiresAt, :usedAt)
+            VALUES (gen_random_uuid(), :principalId, :tokenHash, :requestedAt, :expiresAt, :usedAt)
             """.trimIndent(),
         )
+            .bind("principalId", UUID.nameUUIDFromBytes("bdd-local:cleanup@example.com".toByteArray(Charsets.UTF_8)))
             .bind("tokenHash", tokenHash)
             .bind("requestedAt", expiresAt.minusSeconds(1800))
             .bind("expiresAt", expiresAt)
@@ -1626,7 +1678,9 @@ class BddDatabaseSupport(
      */
     suspend fun countActiveRefreshSessions(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM refresh_sessions WHERE principal_id = :id AND status = 'ACTIVE'",
-    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+    ).bind("id", UUID.fromString(principalId)).map { row, _ ->
+        (row.get("total") as Number).toLong()
+    }.one().awaitSingle()
 
     suspend fun findRawTokenValues(): List<String> = databaseClient.sql(
         "SELECT token_hash FROM password_reset_tokens",

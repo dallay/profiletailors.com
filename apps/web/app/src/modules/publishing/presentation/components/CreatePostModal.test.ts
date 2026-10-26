@@ -74,6 +74,18 @@ const translations: Record<string, string> = {
   'composer.nextScheduleBtn': 'Next Schedule',
   'composer.saveChanges': 'Save Changes',
   'composer.cancelBtn': 'Cancel',
+  'composer.threadsPreview': 'Threads Preview',
+  'composer.linkedinAuthorFallback': 'LinkedIn Member',
+  'composer.threadsAuthorFallback': 'Threads user',
+  'composer.customizePerNetwork': 'Customize per network',
+  'composer.customizeBase': 'Base',
+  'composer.customizeReset': 'Reset to base',
+  'composer.customizeUsingBase':
+    'Uses base content. First edit creates a version only for this account.',
+  'composer.customizeCustomized': 'Customized. Base edits no longer change this account.',
+  'composer.customizeBaseStatus': 'Base content feeds {count} account(s) using base content.',
+  'composer.channelLimitExceeded': '{name} exceeds {limit} characters',
+  'composer.channelEmptyText': '{name} text is empty',
   'composer.markdown.bold': 'Bold',
   'composer.markdown.italic': 'Italic',
   'composer.markdown.strikethrough': 'Strikethrough',
@@ -189,7 +201,7 @@ vi.mock('@modules/media/services/media-api', async (importOriginal) => {
     importUnsplashPhoto: vi.fn(
       async (externalId: string): Promise<MediaAssetSummary> => ({
         assetId: `unsplash-${externalId}`,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'EXTERNAL' as const,
         mediaType: 'image/jpeg',
         status: 'READY' as const,
@@ -231,6 +243,7 @@ vi.mock('@lucide/vue', () => {
     Search: stub,
     Info: stub,
     Globe: stub,
+    Heart: stub,
     ThumbsUp: stub,
     MessageCircle: stub,
     Repeat2: stub,
@@ -255,7 +268,7 @@ interface TestChannel {
   id: string
   accountId: string
   name: string
-  provider: 'linkedin' | 'twitter'
+  provider: 'linkedin' | 'twitter' | 'threads'
   avatar: string
   avatarUrl?: string
   handle: string
@@ -285,17 +298,19 @@ function mountModal(
   store.channels = channels
 
   const workspaceStore = useWorkspaceStore()
-  workspaceStore.setActiveWorkspaceId('ws-1')
+  workspaceStore.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
 
+  const { isOpen = true, ...restProps } = props
   const wrapper = mount(CreatePostModalComponent, {
     attachTo: document.body,
-    props: { isOpen: true, ...props },
+    props: { isOpen: false, ...restProps },
     global: {
       mocks: { $t: mockT },
       stubs,
     },
   })
   mountedWrappers.push(wrapper)
+  void wrapper.setProps({ isOpen })
   return wrapper
 }
 
@@ -348,7 +363,7 @@ function makeEditingPublication(
   > = {},
 ) {
   return {
-    id: 'pub-edit-1',
+    id: '7fc06d85-71cb-5e22-bab4-c881fe923beb',
     content: 'Existing scheduled content',
     channels: ['linkedin'] as ('linkedin' | 'twitter' | 'instagram' | 'facebook')[],
     // Use a date far in the future to avoid validateCustomSchedule rejecting it
@@ -357,8 +372,11 @@ function makeEditingPublication(
     scheduleMode: 'SCHEDULED_AT' as const,
     status: 'SCHEDULED' as const,
     priority: true,
-    accountId: 'ch-edit-1',
-    assetIds: ['asset-1', 'asset-2'] as string[],
+    accountId: '73a4665b-8dcc-5f27-8cba-bca328b27bde',
+    assetIds: [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+    ] as string[],
     ...overrides,
   }
 }
@@ -390,31 +408,33 @@ describe('CreatePostModal.vue — media picker foundation', () => {
 
   it('shows an Add Media entry and opens a staged picker from current draft attachments', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-a'] = {
-      assetId: 'asset-a',
-      workspaceId: 'ws-1',
+    mediaStore.assetsById['f464d618-0f38-5b38-adda-9cf4a0b674eb'] = {
+      assetId: 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'asset-a.png',
+      originalFilename: 'f464d618-0f38-5b38-adda-9cf4a0b674eb.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-a/preview',
+      previewUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/preview',
     }
 
-    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a'])
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['f464d618-0f38-5b38-adda-9cf4a0b674eb'])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
+      editingPublication: makeEditingPublication({
+        assetIds: ['f464d618-0f38-5b38-adda-9cf4a0b674eb'],
+      }),
     })
     await flushModal(wrapper)
     await flushModal(wrapper)
 
     expect(document.body.innerHTML).toContain('Add Media')
     expect(document.body.innerHTML).not.toContain('composer.dragDrop')
-    expect(document.body.innerHTML).toContain('asset-a.png')
+    expect(document.body.innerHTML).toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb.png')
 
-    getByTestId('attachment-remove-asset-a').click()
+    getByTestId('attachment-remove-f464d618-0f38-5b38-adda-9cf4a0b674eb').click()
     await flushModal(wrapper)
 
     getByTestId('add-media-button').click()
@@ -422,7 +442,11 @@ describe('CreatePostModal.vue — media picker foundation', () => {
 
     expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
     expect(document.body.innerHTML).toContain('Media Library')
-    expect(getByTestId('picker-asset-card-asset-a').getAttribute('data-selected')).toBe('false')
+    expect(
+      getByTestId('picker-asset-card-f464d618-0f38-5b38-adda-9cf4a0b674eb').getAttribute(
+        'data-selected',
+      ),
+    ).toBe('false')
   })
 
   it('loads workspace assets when the picker opens and renders empty or error collection states', async () => {
@@ -452,33 +476,38 @@ describe('CreatePostModal.vue — media picker foundation', () => {
 
   it('discards staged changes on cancel, reapplies current draft on reopen, and replaces draft on apply', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-a'] = {
-      assetId: 'asset-a',
-      workspaceId: 'ws-1',
+    mediaStore.assetsById['f464d618-0f38-5b38-adda-9cf4a0b674eb'] = {
+      assetId: 'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'asset-a.png',
+      originalFilename: 'f464d618-0f38-5b38-adda-9cf4a0b674eb.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-a/preview',
+      previewUrl: '/api/media/assets/f464d618-0f38-5b38-adda-9cf4a0b674eb/preview',
     }
-    mediaStore.assetsById['asset-b'] = {
-      assetId: 'asset-b',
-      workspaceId: 'ws-1',
+    mediaStore.assetsById['13001fc9-a24f-54d3-bde1-cfa79074593c'] = {
+      assetId: '13001fc9-a24f-54d3-bde1-cfa79074593c',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'asset-b.png',
+      originalFilename: '13001fc9-a24f-54d3-bde1-cfa79074593c.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-b/preview',
+      previewUrl: '/api/media/assets/13001fc9-a24f-54d3-bde1-cfa79074593c/preview',
     }
 
-    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a', 'asset-b'])
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, [
+      'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+      '13001fc9-a24f-54d3-bde1-cfa79074593c',
+    ])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
+      editingPublication: makeEditingPublication({
+        assetIds: ['f464d618-0f38-5b38-adda-9cf4a0b674eb'],
+      }),
     })
     await flushModal(wrapper)
     await flushModal(wrapper)
@@ -486,27 +515,35 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
     expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
-    getByTestId('picker-asset-card-asset-b').click()
+    getByTestId('picker-asset-card-13001fc9-a24f-54d3-bde1-cfa79074593c').click()
     await flushModal(wrapper)
     getByTestId('picker-cancel').click()
     await flushModal(wrapper)
 
-    expect(document.body.innerHTML).toContain('asset-a.png')
-    expect(document.body.innerHTML).not.toContain('asset-b.png')
+    expect(document.body.innerHTML).toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb.png')
+    expect(document.body.innerHTML).not.toContain('13001fc9-a24f-54d3-bde1-cfa79074593c.png')
 
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
-    expect(getByTestId('picker-asset-card-asset-a').getAttribute('data-selected')).toBe('true')
-    expect(getByTestId('picker-asset-card-asset-b').getAttribute('data-selected')).toBe('false')
+    expect(
+      getByTestId('picker-asset-card-f464d618-0f38-5b38-adda-9cf4a0b674eb').getAttribute(
+        'data-selected',
+      ),
+    ).toBe('true')
+    expect(
+      getByTestId('picker-asset-card-13001fc9-a24f-54d3-bde1-cfa79074593c').getAttribute(
+        'data-selected',
+      ),
+    ).toBe('false')
 
-    getByTestId('picker-asset-card-asset-a').click()
-    getByTestId('picker-asset-card-asset-b').click()
+    getByTestId('picker-asset-card-f464d618-0f38-5b38-adda-9cf4a0b674eb').click()
+    getByTestId('picker-asset-card-13001fc9-a24f-54d3-bde1-cfa79074593c').click()
     await flushModal(wrapper)
     getByTestId('picker-apply').click()
     await flushModal(wrapper)
 
-    expect(document.body.innerHTML).not.toContain('asset-a.png')
-    expect(document.body.innerHTML).toContain('asset-b.png')
+    expect(document.body.innerHTML).not.toContain('f464d618-0f38-5b38-adda-9cf4a0b674eb.png')
+    expect(document.body.innerHTML).toContain('13001fc9-a24f-54d3-bde1-cfa79074593c.png')
   })
 
   it('uploads from the active picker session, reconciles the persisted asset in-place, and auto-stages it once selectable', async () => {
@@ -518,8 +555,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         .spyOn(mediaStore, 'createAndUpload')
         .mockImplementation(async (fileArg, tempKeyArg) => {
           const createdAsset = {
-            assetId: 'asset-uploaded',
-            workspaceId: 'ws-1',
+            assetId: '482fa2cb-b1d5-5d75-88fb-908c80a3b162',
+            workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
             sourceType: 'UPLOADED' as const,
             mediaType: 'image/png',
             status: 'PENDING_UPLOAD' as const,
@@ -542,8 +579,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       const loadAsset = vi
         .spyOn(mediaStore, 'loadAsset')
         .mockResolvedValueOnce({
-          assetId: 'asset-uploaded',
-          workspaceId: 'ws-1',
+          assetId: '482fa2cb-b1d5-5d75-88fb-908c80a3b162',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED',
           mediaType: 'image/png',
           status: 'UPLOADING',
@@ -553,15 +590,15 @@ describe('CreatePostModal.vue — media picker foundation', () => {
           previewUrl: null,
         })
         .mockResolvedValueOnce({
-          assetId: 'asset-uploaded',
-          workspaceId: 'ws-1',
+          assetId: '482fa2cb-b1d5-5d75-88fb-908c80a3b162',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED',
           mediaType: 'image/png',
           status: 'READY',
           originalFilename: 'uploaded.png',
           fileSizeBytes: 4096,
           createdAt: '2026-06-19T12:00:00Z',
-          previewUrl: '/api/media/assets/asset-uploaded/preview',
+          previewUrl: '/api/media/assets/482fa2cb-b1d5-5d75-88fb-908c80a3b162/preview',
         })
 
       const wrapper = mountModal([makeChannel('ch-picker')])
@@ -588,29 +625,39 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         expect.stringMatching(/^picker-upload-/),
         expect.any(Function),
       )
-      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('aria-disabled')).toBe(
-        'true',
-      )
-      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(
+        getByTestId('picker-asset-card-482fa2cb-b1d5-5d75-88fb-908c80a3b162').getAttribute(
+          'aria-disabled',
+        ),
+      ).toBe('true')
+      expect(
+        getByTestId('picker-asset-card-482fa2cb-b1d5-5d75-88fb-908c80a3b162').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
 
       await vi.advanceTimersByTimeAsync(1000)
       await flushModal(wrapper)
-      expect(loadAsset).toHaveBeenCalledWith('asset-uploaded')
-      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(loadAsset).toHaveBeenCalledWith('482fa2cb-b1d5-5d75-88fb-908c80a3b162')
+      expect(
+        getByTestId('picker-asset-card-482fa2cb-b1d5-5d75-88fb-908c80a3b162').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
 
       await vi.advanceTimersByTimeAsync(1000)
       await flushModal(wrapper)
       expect(loadAsset).toHaveBeenCalledTimes(2)
-      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('aria-disabled')).toBe(
-        'false',
-      )
-      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
-        'true',
-      )
+      expect(
+        getByTestId('picker-asset-card-482fa2cb-b1d5-5d75-88fb-908c80a3b162').getAttribute(
+          'aria-disabled',
+        ),
+      ).toBe('false')
+      expect(
+        getByTestId('picker-asset-card-482fa2cb-b1d5-5d75-88fb-908c80a3b162').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('true')
 
       getByTestId('picker-apply').click()
       await flushModal(wrapper)
@@ -629,8 +676,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       })
       vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
         const createdAsset = {
-          assetId: 'asset-pending',
-          workspaceId: 'ws-1',
+          assetId: '1d24d2ca-6f0c-5951-a32f-41e4d79a02d2',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED' as const,
           mediaType: 'image/png',
           status: 'PENDING_UPLOAD' as const,
@@ -651,8 +698,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         return createdAsset
       })
       const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
-        assetId: 'asset-pending',
-        workspaceId: 'ws-1',
+        assetId: '1d24d2ca-6f0c-5951-a32f-41e4d79a02d2',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'UPLOADING',
@@ -678,9 +725,11 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       })
       pickerUploadInput!.dispatchEvent(new Event('change'))
       await flushModal(wrapper)
-      expect(getByTestId('picker-asset-card-asset-pending').getAttribute('aria-disabled')).toBe(
-        'true',
-      )
+      expect(
+        getByTestId('picker-asset-card-1d24d2ca-6f0c-5951-a32f-41e4d79a02d2').getAttribute(
+          'aria-disabled',
+        ),
+      ).toBe('true')
 
       getByTestId('picker-cancel').click()
       await flushModal(wrapper)
@@ -692,7 +741,9 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       getByTestId('add-media-button').click()
       await flushModal(wrapper)
       expect(document.body.innerHTML).toContain('No media assets yet')
-      expect(document.body.innerHTML).not.toContain('picker-asset-card-asset-pending')
+      expect(document.body.innerHTML).not.toContain(
+        'picker-asset-card-1d24d2ca-6f0c-5951-a32f-41e4d79a02d2',
+      )
     } finally {
       vi.useRealTimers()
     }
@@ -707,8 +758,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       })
       vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
         const createdAsset = {
-          assetId: 'asset-flaky',
-          workspaceId: 'ws-1',
+          assetId: 'e1fd64a2-d2b7-5e4d-8847-934585748a0b',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED' as const,
           mediaType: 'image/png',
           status: 'PENDING_UPLOAD' as const,
@@ -732,26 +783,26 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         .spyOn(mediaStore, 'loadAsset')
         .mockRejectedValueOnce(new Error('temporary network failure'))
         .mockResolvedValueOnce({
-          assetId: 'asset-flaky',
-          workspaceId: 'ws-1',
+          assetId: 'e1fd64a2-d2b7-5e4d-8847-934585748a0b',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED',
           mediaType: 'image/png',
           status: 'READY',
           originalFilename: 'flaky.png',
           fileSizeBytes: 2048,
           createdAt: '2026-06-19T12:00:00Z',
-          previewUrl: '/api/media/assets/asset-flaky/preview',
+          previewUrl: '/api/media/assets/e1fd64a2-d2b7-5e4d-8847-934585748a0b/preview',
         })
         .mockResolvedValue({
-          assetId: 'asset-flaky',
-          workspaceId: 'ws-1',
+          assetId: 'e1fd64a2-d2b7-5e4d-8847-934585748a0b',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED',
           mediaType: 'image/png',
           status: 'READY',
           originalFilename: 'flaky.png',
           fileSizeBytes: 2048,
           createdAt: '2026-06-19T12:00:00Z',
-          previewUrl: '/api/media/assets/asset-flaky/preview',
+          previewUrl: '/api/media/assets/e1fd64a2-d2b7-5e4d-8847-934585748a0b/preview',
         })
 
       const wrapper = mountModal([makeChannel('ch-picker')])
@@ -774,26 +825,32 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       await vi.advanceTimersByTimeAsync(1000)
       await flushModal(wrapper)
       expect(loadAsset).toHaveBeenCalledTimes(1)
-      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(
+        getByTestId('picker-asset-card-e1fd64a2-d2b7-5e4d-8847-934585748a0b').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
 
       await vi.advanceTimersByTimeAsync(1000)
       await flushModal(wrapper)
       expect(loadAsset).toHaveBeenCalledTimes(2)
-      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
-        'true',
-      )
+      expect(
+        getByTestId('picker-asset-card-e1fd64a2-d2b7-5e4d-8847-934585748a0b').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('true')
 
-      getByTestId('picker-asset-card-asset-flaky').click()
+      getByTestId('picker-asset-card-e1fd64a2-d2b7-5e4d-8847-934585748a0b').click()
       await flushModal(wrapper)
-      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(
+        getByTestId('picker-asset-card-e1fd64a2-d2b7-5e4d-8847-934585748a0b').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
 
       mediaStore.upsertAsset({
-        assetId: 'asset-flaky',
-        workspaceId: 'ws-1',
+        assetId: 'e1fd64a2-d2b7-5e4d-8847-934585748a0b',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'UPLOADING',
@@ -803,23 +860,25 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         previewUrl: null,
       })
       mediaStore.upsertAsset({
-        assetId: 'asset-flaky',
-        workspaceId: 'ws-1',
+        assetId: 'e1fd64a2-d2b7-5e4d-8847-934585748a0b',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'READY',
         originalFilename: 'flaky.png',
         fileSizeBytes: 2048,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: '/api/media/assets/asset-flaky/preview',
+        previewUrl: '/api/media/assets/e1fd64a2-d2b7-5e4d-8847-934585748a0b/preview',
       })
 
       await vi.advanceTimersByTimeAsync(2000)
       await flushModal(wrapper)
       expect(loadAsset).toHaveBeenCalledTimes(2)
-      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(
+        getByTestId('picker-asset-card-e1fd64a2-d2b7-5e4d-8847-934585748a0b').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
     } finally {
       vi.useRealTimers()
     }
@@ -834,8 +893,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       })
       vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
         const createdAsset = {
-          assetId: 'asset-timeout',
-          workspaceId: 'ws-1',
+          assetId: 'd3fe7e7c-495c-5ff2-9263-4a19f48bdabe',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'UPLOADED' as const,
           mediaType: 'image/png',
           status: 'PENDING_UPLOAD' as const,
@@ -856,8 +915,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
         return createdAsset
       })
       const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
-        assetId: 'asset-timeout',
-        workspaceId: 'ws-1',
+        assetId: 'd3fe7e7c-495c-5ff2-9263-4a19f48bdabe',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'UPLOADING',
@@ -887,12 +946,16 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       await vi.advanceTimersByTimeAsync(10_000)
       await flushModal(wrapper)
       expect(loadAsset).toHaveBeenCalledTimes(5)
-      expect(getByTestId('picker-asset-card-asset-timeout').getAttribute('aria-disabled')).toBe(
-        'true',
-      )
-      expect(getByTestId('picker-asset-card-asset-timeout').getAttribute('data-selected')).toBe(
-        'false',
-      )
+      expect(
+        getByTestId('picker-asset-card-d3fe7e7c-495c-5ff2-9263-4a19f48bdabe').getAttribute(
+          'aria-disabled',
+        ),
+      ).toBe('true')
+      expect(
+        getByTestId('picker-asset-card-d3fe7e7c-495c-5ff2-9263-4a19f48bdabe').getAttribute(
+          'data-selected',
+        ),
+      ).toBe('false')
 
       await vi.advanceTimersByTimeAsync(5_000)
       await flushModal(wrapper)
@@ -951,8 +1014,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       })
       vi.spyOn(mediaStore, 'loadAsset')
         .mockResolvedValueOnce({
-          assetId: 'unsplash-mountain-1',
-          workspaceId: 'ws-1',
+          assetId: '5d41f601-f8a7-5ca7-86a3-6c7ea6d8f479',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'EXTERNAL',
           mediaType: 'image/jpeg',
           status: 'UPLOADING',
@@ -964,15 +1027,15 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
           externalId: 'mountain-1',
         })
         .mockResolvedValueOnce({
-          assetId: 'unsplash-mountain-1',
-          workspaceId: 'ws-1',
+          assetId: '5d41f601-f8a7-5ca7-86a3-6c7ea6d8f479',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           sourceType: 'EXTERNAL',
           mediaType: 'image/jpeg',
           status: 'READY',
           originalFilename: 'mountain-1.jpg',
           fileSizeBytes: 1024,
           createdAt: '2026-06-19T12:00:00Z',
-          previewUrl: '/api/media/assets/unsplash-mountain-1/preview',
+          previewUrl: '/api/media/assets/5d41f601-f8a7-5ca7-86a3-6c7ea6d8f479/preview',
           sourceProvider: 'unsplash',
           externalId: 'mountain-1',
         })
@@ -1062,12 +1125,18 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('enforces effectiveAttachmentLimit of the selected channel and blocks apply above it', async () => {
+  it('enforces the strictest attachment limit across selected channels and blocks apply above it', async () => {
     const mediaStore = useMediaStore()
-    for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
+    for (const id of [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+      'f0465146-355a-5da1-b916-5770deff3ff2',
+      'd9c82a9b-8776-5d39-b0a5-bbc47895211f',
+    ]) {
       mediaStore.assetsById[id] = {
         assetId: id,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'READY',
@@ -1077,10 +1146,19 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
         previewUrl: `/api/media/assets/${id}/preview`,
       }
     }
-    mockLoadAssetsWithIds(mediaStore, ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5'])
+    mockLoadAssetsWithIds(mediaStore, [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+      'f0465146-355a-5da1-b916-5770deff3ff2',
+      'd9c82a9b-8776-5d39-b0a5-bbc47895211f',
+    ])
 
     const channels = [
-      makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        provider: 'linkedin',
+        name: 'LinkedIn',
+      } as Partial<TestChannel>),
       makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
     ]
     ;(channels[0] as { maxAttachments?: number }).maxAttachments = 9
@@ -1090,17 +1168,16 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     await flushModal(wrapper)
     await flushModal(wrapper)
 
-    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Twitter'),
-    )
-    expect(twitterButton).toBeDefined()
-    twitterButton!.click()
-    await flushModal(wrapper)
-
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
 
-    for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
+    for (const id of [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+      'f0465146-355a-5da1-b916-5770deff3ff2',
+      'd9c82a9b-8776-5d39-b0a5-bbc47895211f',
+    ]) {
       getByTestId(`picker-asset-card-${id}`).click()
       await flushModal(wrapper)
     }
@@ -1117,10 +1194,14 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
   it('preserves attachments on channel change and surfaces invalid state without auto-removal', async () => {
     const mediaStore = useMediaStore()
-    for (const id of ['asset-1', 'asset-2', 'asset-3']) {
+    for (const id of [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+    ]) {
       mediaStore.assetsById[id] = {
         assetId: id,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'READY',
@@ -1131,11 +1212,18 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       }
     }
     vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3']
+      mediaStore.assetIds = [
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+        'b909d06f-92ea-5671-9f13-73475a89080e',
+        '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+      ]
     })
 
     const channels = [
-      makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        provider: 'linkedin',
+        name: 'LinkedIn',
+      } as Partial<TestChannel>),
       makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
     ]
     ;(channels[0] as { maxAttachments?: number }).maxAttachments = 9
@@ -1148,27 +1236,33 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     // (Simpler than staging them all through the picker here.)
     await wrapper.unmount()
     const editWrapper = mountModal(channels, {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-1', 'asset-2', 'asset-3'] }),
+      editingPublication: makeEditingPublication({
+        assetIds: [
+          '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+          'b909d06f-92ea-5671-9f13-73475a89080e',
+          '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+        ],
+      }),
     })
     await flushModal(editWrapper)
     await flushModal(editWrapper)
 
-    expect(document.body.innerHTML).toContain('asset-1.png')
-    expect(document.body.innerHTML).toContain('asset-2.png')
-    expect(document.body.innerHTML).toContain('asset-3.png')
+    expect(document.body.innerHTML).toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2.png')
+    expect(document.body.innerHTML).toContain('b909d06f-92ea-5671-9f13-73475a89080e.png')
+    expect(document.body.innerHTML).toContain('24add7a3-5877-5ff8-a4cb-11ff965d127f.png')
 
     // Switch to the lower-limit Twitter channel
-    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Twitter'),
-    )
+    const twitterButton = Array.from(
+      document.querySelectorAll('[data-channel-provider="twitter"]'),
+    )[0]
     expect(twitterButton).toBeDefined()
     twitterButton!.click()
     await flushModal(editWrapper)
 
     // All 3 attachments MUST remain in the draft (no auto-removal)
-    expect(document.body.innerHTML).toContain('asset-1.png')
-    expect(document.body.innerHTML).toContain('asset-2.png')
-    expect(document.body.innerHTML).toContain('asset-3.png')
+    expect(document.body.innerHTML).toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2.png')
+    expect(document.body.innerHTML).toContain('b909d06f-92ea-5671-9f13-73475a89080e.png')
+    expect(document.body.innerHTML).toContain('24add7a3-5877-5ff8-a4cb-11ff965d127f.png')
 
     // Close the wrapper if still mounted.
     await editWrapper.unmount()
@@ -1176,10 +1270,14 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
   it('surfaces the limit warning when draft attachments exceed the selected channel limit, blocking publish/schedule', async () => {
     const mediaStore = useMediaStore()
-    for (const id of ['asset-1', 'asset-2', 'asset-3']) {
+    for (const id of [
+      '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      'b909d06f-92ea-5671-9f13-73475a89080e',
+      '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+    ]) {
       mediaStore.assetsById[id] = {
         assetId: id,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status: 'READY',
@@ -1190,17 +1288,29 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       }
     }
     vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3']
+      mediaStore.assetIds = [
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+        'b909d06f-92ea-5671-9f13-73475a89080e',
+        '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+      ]
     })
 
     // LinkedIn with limit 2 — three draft attachments exceed it.
-    const channels = [makeChannel('ch-li', { name: 'LinkedIn' } as Partial<TestChannel>)]
+    const channels = [
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        name: 'LinkedIn',
+      } as Partial<TestChannel>),
+    ]
     ;(channels[0] as { maxAttachments?: number }).maxAttachments = 2
 
     const wrapper = mountModal(channels, {
       editingPublication: makeEditingPublication({
-        assetIds: ['asset-1', 'asset-2', 'asset-3'],
-        accountId: 'ch-li',
+        assetIds: [
+          '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+          'b909d06f-92ea-5671-9f13-73475a89080e',
+          '24add7a3-5877-5ff8-a4cb-11ff965d127f',
+        ],
+        accountId: 'b431194a-5205-577d-b212-98398966a944',
       }),
     })
     // Wait for initEditMode to complete (async asset loading + channel selection)
@@ -1213,16 +1323,10 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(warning).not.toBeNull()
     expect(warning?.textContent ?? '').toContain('Too many attachments')
 
-    // The submit button MUST be disabled. Because the mock returns i18n keys,
-    // we look at the last <button> inside the grid action container — that's
-    // the disabled primary action in the modal footer.
-    const actionButtons = document.querySelectorAll(
-      '.ui-button, button[disabled], button:not([data-testid])',
+    const anyEnabledSubmit = Array.from(document.querySelectorAll('.ui-button')).find(
+      (btn) => !(btn as HTMLButtonElement).hasAttribute('disabled'),
     )
-    const disabledSubmit = Array.from(actionButtons).find((btn) =>
-      (btn as HTMLButtonElement).hasAttribute('disabled'),
-    )
-    expect(disabledSubmit).toBeDefined()
+    expect(anyEnabledSubmit).toBeUndefined()
 
     await wrapper.unmount()
   })
@@ -1233,6 +1337,16 @@ describe('CreatePostModal.vue — AI assistant', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'c98c3b43-390a-556e-8fe3-622a2b97918a',
+          publicationId: '9cdff3ca-0dd3-53b3-8cb9-b223e3e93037',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.mocked(createShortlink).mockReset()
     vi.mocked(toast.warning).mockReset()
     vi.stubGlobal('URL', {
@@ -1256,7 +1370,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
         'Clean code turns software projects into systems teams can trust, extend, and ship faster.',
     })
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
 
     getByTestId('composer-ai-assist').click()
@@ -1307,14 +1421,14 @@ describe('CreatePostModal.vue — AI assistant', () => {
     })
     const auth = useAuthStore()
     auth.user = {
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'author@example.com',
       username: 'author',
       emailStatus: 'VERIFIED',
       displayIdentity: 'Author Name',
     }
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1359,7 +1473,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('rejects a blank prompt before making an AI request', async () => {
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
 
     getByTestId('composer-ai-assist').click()
@@ -1381,7 +1495,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   it('shows the empty-response message when the AI response has no content', async () => {
     vi.mocked(generateAiPostContent).mockResolvedValueOnce({ content: undefined } as never)
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1401,7 +1515,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   it('falls back to the generic error when a failed AI request has no message', async () => {
     vi.mocked(generateAiPostContent).mockRejectedValueOnce(new Error(''))
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1426,7 +1540,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
         Object.assign(new Error('Rate limited'), { status: 429 }),
       )
 
-      const wrapper = mountModal([makeChannel('ch-ai')])
+      const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
       await flushModal(wrapper)
       getByTestId('composer-ai-assist').click()
       await flushModal(wrapper)
@@ -1453,7 +1567,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
       }),
     )
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
 
     getByTestId('composer-ai-assist').click()
@@ -1479,7 +1593,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   it('optimizes the current draft and sends the draft content to the AI service', async () => {
     vi.mocked(optimizeAiPostContent).mockResolvedValueOnce({ content: 'Optimized draft' })
 
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1501,7 +1615,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('keeps optimize disabled and reports the draft guard when no current content exists', async () => {
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1512,7 +1626,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('keeps regenerate disabled until a generated version exists', async () => {
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
     getByTestId('composer-ai-assist').click()
     await flushModal(wrapper)
@@ -1524,8 +1638,17 @@ describe('CreatePostModal.vue — AI assistant', () => {
 
   it('emits create-another, clears the draft, and unchecks create-another after creation', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'ac36c5e0-c4a6-5de8-abfe-1f3c50f83491',
+          publicationId: 'cc0ced20-56b1-58d7-8072-17242d4c9d68',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
 
     const composerTextarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -1549,15 +1672,19 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await flushModal(wrapper)
 
     expect(scheduleSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'First post content' }),
+      expect.objectContaining({
+        targets: [expect.objectContaining({ content: 'First post content' })],
+      }),
     )
-    expect(wrapper.emitted('created')).toEqual([[{ keepOpen: true }]])
+    expect(wrapper.emitted('created')).toEqual([
+      [{ keepOpen: true, publicationId: 'cc0ced20-56b1-58d7-8072-17242d4c9d68' }],
+    ])
     expect(composerTextarea.value).toBe('')
     expect(createAnotherInput!.checked).toBe(false)
   })
 
   it('uses the translated submit label for each schedule mode and edit mode', async () => {
-    const wrapper = mountModal([makeChannel('ch-ai')])
+    const wrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')])
     await flushModal(wrapper)
 
     const submitButton = () => document.querySelector<HTMLButtonElement>('.ui-button')
@@ -1576,7 +1703,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     expect(submitButton()?.textContent).toContain('Schedule Post')
 
     await wrapper.unmount()
-    const editWrapper = mountModal([makeChannel('ch-ai')], {
+    const editWrapper = mountModal([makeChannel('ac36c5e0-c4a6-5de8-abfe-1f3c50f83491')], {
       editingPublication: makeEditingPublication(),
     })
     await flushModal(editWrapper)
@@ -1641,16 +1768,9 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await wrapper.unmount()
   })
 
-  it('selects the first active channel when the current channel becomes inactive', async () => {
+  it('prunes inactive channels and defaults to the remaining active channel', async () => {
     const channels = [makeChannel('ch-first'), makeChannel('ch-second')]
     const wrapper = mountModal(channels)
-    await flushModal(wrapper)
-
-    const channelButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-      (button) => button.textContent?.includes('Channel ch-second'),
-    )
-    expect(channelButton).toBeDefined()
-    channelButton!.click()
     await flushModal(wrapper)
 
     const publishingStore = usePublishingStore()
@@ -1660,19 +1780,21 @@ describe('CreatePostModal.vue — AI assistant', () => {
     ]
     await flushModal(wrapper)
 
-    const selectedChannelButton = Array.from(
+    const buttons = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
-    ).find((button) => button.textContent?.includes('Channel ch-third'))
-    expect(
-      selectedChannelButton?.querySelector('[data-testid="channel-selected-icon"]'),
-    ).not.toBeNull()
+    )
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]?.getAttribute('aria-pressed')).toBe('true')
   })
 
   it('updates an edited publication without assetIds until attachments are changed', async () => {
     const publishingStore = usePublishingStore()
     const updatePost = vi.spyOn(publishingStore, 'updatePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ accountId: 'ch-edit-1', assetIds: [] }),
+    const wrapper = mountModal([makeChannel('73a4665b-8dcc-5f27-8cba-bca328b27bde')], {
+      editingPublication: makeEditingPublication({
+        accountId: '73a4665b-8dcc-5f27-8cba-bca328b27bde',
+        assetIds: [],
+      }),
     })
     await flushModal(wrapper)
     await flushModal(wrapper)
@@ -1689,7 +1811,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await vi.waitFor(() => expect(updatePost).toHaveBeenCalledTimes(1))
 
     expect(updatePost).toHaveBeenCalledWith(
-      'pub-edit-1',
+      '7fc06d85-71cb-5e22-bab4-c881fe923beb',
       expect.not.objectContaining({ assetIds: expect.anything() }),
     )
     expect(wrapper.emitted('updated')).toHaveLength(1)
@@ -1727,21 +1849,28 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('shortens each distinct URL once and replaces every occurrence before submitting', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'f28eed72-9176-538b-8927-d851062a2970',
+          publicationId: '347b54cf-b463-5c93-9fd4-817cbaa2a62a',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.mocked(createShortlink)
       .mockResolvedValueOnce({
-        id: 'shortlink-one',
+        id: 'ce43975e-96af-59af-bea3-7d369916d24d',
         shortUrl: 'https://pt.link/a',
         destinationUrl: 'https://example.com/article',
       })
       .mockResolvedValueOnce({
-        id: 'shortlink-two',
+        id: 'd4e70d18-926a-59f7-85ec-d90b1cff371f',
         shortUrl: 'https://pt.link/b',
         destinationUrl: 'https://other.example/page',
       })
-    const wrapper = mountModal([makeChannel('ch-shortlink-auto')])
+    const wrapper = mountModal([makeChannel('f28eed72-9176-538b-8927-d851062a2970')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -1768,7 +1897,11 @@ describe('CreatePostModal.vue — AI assistant', () => {
     )
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
+        targets: [
+          expect.objectContaining({
+            content: 'Read https://pt.link/a and https://pt.link/b, then https://pt.link/a.',
+          }),
+        ],
       }),
     )
     expect(document.querySelector('[data-testid="shortlink-opt-in"]')).toBeNull()
@@ -1777,17 +1910,24 @@ describe('CreatePostModal.vue — AI assistant', () => {
   })
 
   it('keeps publishing when an individual shortlink request fails and shows a non-blocking warning', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '324d00a2-87e7-5cc5-a803-a31fe9c45163',
+          publicationId: '347b54cf-b463-5c93-9fd4-817cbaa2a62a',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.mocked(createShortlink)
       .mockRejectedValueOnce(new Error('shortlink unavailable'))
       .mockResolvedValueOnce({
-        id: 'shortlink-success',
+        id: '5aaeca83-fc27-5e02-8a0d-98f7aeea6a01',
         shortUrl: 'https://pt.link/b',
         destinationUrl: 'https://other.example/page',
       })
-    const wrapper = mountModal([makeChannel('ch-shortlink-failure')])
+    const wrapper = mountModal([makeChannel('324d00a2-87e7-5cc5-a803-a31fe9c45163')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -1803,7 +1943,9 @@ describe('CreatePostModal.vue — AI assistant', () => {
     expect(createShortlink).toHaveBeenCalledTimes(2)
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: 'https://example.com/article and https://pt.link/b',
+        targets: [
+          expect.objectContaining({ content: 'https://example.com/article and https://pt.link/b' }),
+        ],
       }),
     )
     expect(toast.warning).toHaveBeenCalledWith(
@@ -1811,11 +1953,105 @@ describe('CreatePostModal.vue — AI assistant', () => {
     )
   })
 
+  it('keeps the modal open and preserves the draft when some targets fail', async () => {
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'PARTIAL',
+      results: [
+        {
+          socialAccountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+          publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+          status: 'CREATED',
+        },
+        {
+          socialAccountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+          errorMessage: 'Threads failed',
+          status: 'FAILED',
+        },
+      ],
+    })
+    const wrapper = mountModal([
+      makeChannel('ch-partial-li', {
+        accountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+        name: 'LinkedIn',
+      }),
+      makeChannel('ch-partial-th', {
+        accountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+        provider: 'threads',
+        name: 'Threads',
+      }),
+    ])
+    await flushModal(wrapper)
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Retryable draft'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('customize-toggle').click()
+    await flushModal(wrapper)
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'))
+      .find((tab) => tab.textContent?.includes('LinkedIn'))
+      ?.click()
+    await flushModal(wrapper)
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    scheduleButton?.click()
+    await flushPromises()
+    await flushModal(wrapper)
+
+    expect(wrapper.emitted('created')).toEqual([
+      [{ keepOpen: true, publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359' }],
+    ])
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Retryable draft')
+    expect(document.body.textContent).toContain('Threads: Threads failed')
+    const channelButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
+    )
+    expect(
+      channelButtons
+        .find((button) => button.getAttribute('data-channel-provider') === 'threads')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      channelButtons
+        .find((button) => button.getAttribute('data-channel-provider') === 'linkedin')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('false')
+    const customizeTabs = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'),
+    )
+    expect(
+      customizeTabs.find((tab) => tab.textContent?.includes('Base'))?.getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(customizeTabs.some((tab) => tab.textContent?.includes('LinkedIn'))).toBe(false)
+    expect(
+      customizeTabs
+        .find((tab) => tab.textContent?.includes('Threads'))
+        ?.getAttribute('aria-selected'),
+    ).toBe('false')
+
+    scheduleButton?.click()
+    await flushPromises()
+    await flushModal(wrapper)
+
+    const retryPayload = vi.mocked(usePublishingStore().scheduleMultiChannel).mock.calls.at(-1)?.[0]
+    expect(retryPayload?.targets.map((target) => target.socialAccountId)).toEqual([
+      'c15e6f35-c95f-5cca-b943-da6f94483679',
+    ])
+  })
+
   it('submits content with no URL without calling the shortlink service', async () => {
-    const schedulePost = vi
-      .spyOn(usePublishingStore(), 'schedulePost')
-      .mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-no-url')])
+    const schedulePost = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'ef753858-7a8d-5043-ba04-5fe0a748b415',
+          publicationId: '33cd4fc0-a8e8-5acc-bf53-4f047e169715',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal([makeChannel('ef753858-7a8d-5043-ba04-5fe0a748b415')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -1825,11 +2061,14 @@ describe('CreatePostModal.vue — AI assistant', () => {
     Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
       .find((button) => button.textContent?.includes('Schedule Now'))
       ?.click()
+    await flushPromises()
     await flushModal(wrapper)
 
     expect(createShortlink).not.toHaveBeenCalled()
     expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'A post without a URL' }),
+      expect.objectContaining({
+        targets: [expect.objectContaining({ content: 'A post without a URL' })],
+      }),
     )
   })
 
@@ -1837,10 +2076,10 @@ describe('CreatePostModal.vue — AI assistant', () => {
     const updatePost = vi
       .spyOn(usePublishingStore(), 'updatePost')
       .mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-edit-shortlink')], {
+    const wrapper = mountModal([makeChannel('9aa02deb-2ff8-5b1a-9176-f9c9a00944a4')], {
       editingPublication: makeEditingPublication({
         content: 'Read https://example.com/article',
-        accountId: 'ch-edit-shortlink',
+        accountId: '9aa02deb-2ff8-5b1a-9176-f9c9a00944a4',
         assetIds: [],
       }),
     })
@@ -1860,7 +2099,7 @@ describe('CreatePostModal.vue — AI assistant', () => {
     await flushModal(wrapper)
 
     expect(updatePost).toHaveBeenCalledWith(
-      'pub-edit-1',
+      '7fc06d85-71cb-5e22-bab4-c881fe923beb',
       expect.objectContaining({ content: 'Updated https://example.com/article' }),
     )
     expect(createShortlink).not.toHaveBeenCalled()
@@ -1872,6 +2111,16 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'c98c3b43-390a-556e-8fe3-622a2b97918a',
+          publicationId: '9cdff3ca-0dd3-53b3-8cb9-b223e3e93037',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -1884,7 +2133,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('renders a local upload as a same-size inline card and keeps the filename as tooltip only', async () => {
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
@@ -1904,7 +2153,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
 
   it('shows a round spinner upload overlay instead of the stuck preparing state', async () => {
     const mediaStore = useMediaStore()
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
@@ -1918,7 +2167,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
 
     mediaStore.uploads['modal-upload-inline'] = {
       tempKey: 'modal-upload-inline',
-      assetId: 'asset-inline-upload',
+      assetId: '793f573e-1865-5bd5-976c-5afaa7db95f6',
       file: uploadFile,
       progress: 42,
       status: 'uploading',
@@ -1934,7 +2183,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     const mediaStore = useMediaStore()
     const createAndUploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
 
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
@@ -1954,7 +2203,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('accepts pasted images in the composer textarea using the same inline upload flow', async () => {
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea')
@@ -1974,7 +2223,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('accepts dropped images directly over the composer textarea', async () => {
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea')
@@ -1992,7 +2241,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('rejects an unsupported dropped file over the composer surface via addFiles path', async () => {
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea')
@@ -2010,7 +2259,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('accepts a valid file when dropped alongside an unsupported one', async () => {
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea')
@@ -2030,10 +2279,59 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     )
   })
 
+  it('keeps the draft when every destination rejects the publication', async () => {
+    const wrapper = mountModal([makeChannel('8ce3aa09-4ce4-5c20-82ef-b819fadd38d9')])
+    await flushModal(wrapper)
+    const input = getByTestId('composer-textarea') as HTMLTextAreaElement
+    input.value = 'Keep this draft'
+    input.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    const createAnotherLabel = Array.from(document.querySelectorAll('label')).find((label) =>
+      label.textContent?.includes('Create Another'),
+    )
+    const createAnotherInput =
+      createAnotherLabel?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+    expect(createAnotherInput).toBeTruthy()
+    createAnotherInput!.checked = true
+    createAnotherInput!.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushModal(wrapper)
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_FAILED',
+      results: [
+        {
+          socialAccountId: '8ce3aa09-4ce4-5c20-82ef-b819fadd38d9',
+          status: 'BAD_REQUEST',
+          errorMessage: 'Rejected by destination',
+        },
+      ],
+    })
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(scheduleButton).toBeDefined()
+    scheduleButton!.click()
+    await vi.waitFor(() => expect(scheduleSpy).toHaveBeenCalledOnce())
+    await flushModal(wrapper)
+
+    expect(input.value).toBe('Keep this draft')
+    expect(wrapper.emitted('created')).toBeUndefined()
+    expect(createAnotherInput.checked).toBe(true)
+  })
+
   it('clears a prior file-rejection alert when publishing with createAnother', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-inline')])
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '8bd79d9b-a3f2-51e7-9943-dd649728e5ce',
+          publicationId: '61e201fe-e865-5cff-860a-68237a7f44ca',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal([makeChannel('8bd79d9b-a3f2-51e7-9943-dd649728e5ce')])
     await flushModal(wrapper)
 
     // Reject an unsupported drop → role=alert appears
@@ -2082,6 +2380,16 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'c98c3b43-390a-556e-8fe3-622a2b97918a',
+          publicationId: '9cdff3ca-0dd3-53b3-8cb9-b223e3e93037',
+          status: 'CREATED',
+        },
+      ],
+    })
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:mock-preview'),
       revokeObjectURL: vi.fn(),
@@ -2096,7 +2404,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies link formatting when the link button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2114,8 +2422,17 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
   it('submits plain text (stripped of markdown) to the store on schedule', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '45d24f46-f69c-5335-b77c-18d4e5796879',
+          publicationId: '42b7279b-bccb-5737-bdab-b3eca31b3f91',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2133,7 +2450,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
       expect(scheduleSpy).toHaveBeenCalledTimes(1)
     })
 
-    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.targets[0]?.content
     expect(submittedContent).toBe('Bold and italic post')
   })
 
@@ -2152,7 +2469,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   it('disables toolbar buttons while submitting', async () => {
     const store = usePublishingStore()
     vi.spyOn(store, 'schedulePost').mockImplementation(() => new Promise(() => {}))
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2173,7 +2490,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies bold formatting when the bold button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2189,7 +2506,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies italic formatting when the italic button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2205,7 +2522,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies heading formatting when the heading button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2221,7 +2538,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies unordered list formatting when the list button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2237,7 +2554,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies ordered list formatting when the numbered list button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2253,7 +2570,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies blockquote formatting when the quote button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2269,7 +2586,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies inline code formatting when the code button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2285,7 +2602,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('applies strikethrough formatting when the strikethrough button is clicked', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2302,8 +2619,17 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
   it('normalizes hashtags in submitted content', async () => {
     const store = usePublishingStore()
-    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '45d24f46-f69c-5335-b77c-18d4e5796879',
+          publicationId: '42b7279b-bccb-5737-bdab-b3eca31b3f91',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2320,12 +2646,12 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
       expect(scheduleSpy).toHaveBeenCalledTimes(1)
     })
 
-    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.targets[0]?.content
     expect(submittedContent).toBe('Check this out #awesome #coolstuff')
   })
 
   it('renders the markdown toolbar with accessible labels', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const toolbar = getByTestId('markdown-toolbar')
@@ -2334,7 +2660,7 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   })
 
   it('shows the preview panel text without markdown markers', async () => {
-    const wrapper = mountModal([makeChannel('ch-md')])
+    const wrapper = mountModal([makeChannel('45d24f46-f69c-5335-b77c-18d4e5796879')])
     await flushModal(wrapper)
 
     const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
@@ -2351,10 +2677,11 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
   it('preserves markdown-formatted content in edit mode and strips on resubmit', async () => {
     const store = usePublishingStore()
     const updateSpy = vi.spyOn(store, 'updatePost').mockResolvedValue({} as Publication)
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+    const wrapper = mountModal([makeChannel('73a4665b-8dcc-5f27-8cba-bca328b27bde')], {
       editingPublication: makeEditingPublication({
         content: '**Bold** content',
-        accountId: 'ch-edit-1',
+        accountId: '73a4665b-8dcc-5f27-8cba-bca328b27bde',
+        assetIds: [],
       }),
     })
     await flushModal(wrapper)
@@ -2375,5 +2702,511 @@ describe('CreatePostModal.vue — markdown toolbar', () => {
 
     const submittedContent = updateSpy.mock.calls[0]?.[1]?.content
     expect(submittedContent).toBe('Bold content')
+  })
+})
+
+describe('CreatePostModal.vue — multi-channel (Buffer-style)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    document.body.innerHTML = ''
+  })
+
+  function twoChannels() {
+    return [
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        accountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+        provider: 'linkedin',
+        name: 'LinkedIn',
+      }),
+      makeChannel('ch-th', {
+        accountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+        provider: 'threads',
+        name: 'Threads',
+      }),
+    ]
+  }
+
+  function fillText(text: string) {
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = text
+    textarea.dispatchEvent(new Event('input'))
+  }
+
+  function scheduleNowButton(): HTMLButtonElement {
+    const button = Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button')).find(
+      (entry) => entry.textContent?.includes('Schedule Now'),
+    )
+    if (!button) {
+      throw new Error('Expected Schedule Now button to exist')
+    }
+    return button
+  }
+
+  it('selects every active channel by default on open', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const selected = document.querySelectorAll(
+      '[data-testid="channel-button"][aria-pressed="true"]',
+    )
+    expect(selected).toHaveLength(2)
+  })
+
+  it('deselects a channel when its chip is clicked again', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const linkedInChip = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
+    ).find((button) => button.getAttribute('data-channel-provider') === 'linkedin')
+    expect(linkedInChip).toBeDefined()
+    linkedInChip!.click()
+    await flushModal(wrapper)
+
+    expect(
+      document.querySelectorAll('[data-testid="channel-button"][aria-pressed="true"]'),
+    ).toHaveLength(1)
+    expect(document.querySelectorAll('[data-channel-provider="threads"]')).toHaveLength(1)
+  })
+
+  it('shows over-limit errors live and blocks submit without calling the API', async () => {
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel')
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillText('x'.repeat(600))
+    await flushModal(wrapper)
+
+    expect(scheduleNowButton().disabled).toBe(true)
+    const errors = getByTestId('composer-channel-limit-errors')
+    expect(errors.textContent).toContain('Threads')
+    expect(errors.textContent).toContain('500')
+
+    scheduleNowButton().click()
+    await flushModal(wrapper)
+    expect(scheduleSpy).not.toHaveBeenCalled()
+  })
+
+  it('hides channel errors on open until the composer is attempted or touched', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+  })
+
+  it('reveals empty-text errors only after a submit attempt, without calling the API', async () => {
+    const scheduleSpy = vi.spyOn(usePublishingStore(), 'scheduleMultiChannel')
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(scheduleNowButton().disabled).toBe(true)
+    scheduleNowButton().click()
+    await flushModal(wrapper)
+    expect(scheduleSpy).not.toHaveBeenCalled()
+
+    const vm = wrapper.vm as Record<string, unknown>
+    ;(vm as Record<string, boolean>).submitAttempted = true
+    await flushModal(wrapper)
+
+    const errors = getByTestId('composer-channel-limit-errors')
+    expect(errors.textContent).toContain('LinkedIn')
+    expect(errors.textContent).toContain('Threads')
+    expect(scheduleSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not reveal empty-text errors when the composer is blurred without editing', async () => {
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.blur()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+  })
+
+  it('submits one batch request with every selected account', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+          publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+          status: 'CREATED',
+        },
+        {
+          socialAccountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+          publicationId: '261ef19a-4b40-52ca-8850-86ae31fdc4c3',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal(twoChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillText('Hello every network')
+    await flushModal(wrapper)
+
+    scheduleNowButton().click()
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submitted = scheduleSpy.mock.calls[0]?.[0]
+    expect(submitted?.targets.map((target) => target.socialAccountId).sort()).toEqual([
+      '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+      'c15e6f35-c95f-5cca-b943-da6f94483679',
+    ])
+  })
+})
+
+describe('CreatePostModal.vue — per-network customization', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.spyOn(usePublishingStore(), 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: 'c98c3b43-390a-556e-8fe3-622a2b97918a',
+          publicationId: '9cdff3ca-0dd3-53b3-8cb9-b223e3e93037',
+          status: 'CREATED',
+        },
+      ],
+    })
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    document.body.innerHTML = ''
+  })
+
+  function baseChannels() {
+    return [
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        accountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+        provider: 'linkedin',
+        name: 'LinkedIn',
+      }),
+      makeChannel('ch-th', {
+        accountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+        provider: 'threads',
+        name: 'Threads',
+      }),
+    ]
+  }
+
+  function fillComposer(text: string) {
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = text
+    textarea.dispatchEvent(new Event('input'))
+  }
+
+  function customizeTabs(): HTMLButtonElement[] {
+    return Array.from(document.querySelectorAll<HTMLButtonElement>('[data-testid="customize-tab"]'))
+  }
+
+  function openCustomizing() {
+    getByTestId('customize-toggle').click()
+  }
+
+  it('adds emoji to the active channel override without changing the base draft', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    fillComposer('Base draft')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    const threadsTab = customizeTabs().find((tab) => tab.textContent?.includes('Threads'))
+    expect(threadsTab).toBeDefined()
+    threadsTab?.click()
+    await flushModal(wrapper)
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Open emoji picker"]')?.click()
+    await flushModal(wrapper)
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Base draft 🙂')
+
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Base'))!
+      .click()
+    await flushModal(wrapper)
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('Base draft')
+  })
+
+  it('hides channel tabs until customize mode is enabled', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(getByTestId('customize-toggle')).toBeDefined()
+    expect(document.querySelector('[data-testid="customize-tabs"]')).toBeNull()
+  })
+
+  it('reveals one tab per selected channel with per-network counters', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    openCustomizing()
+    await flushModal(wrapper)
+
+    const tabs = customizeTabs()
+    expect(tabs.map((tab) => tab.textContent)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Base'),
+        expect.stringContaining('LinkedIn'),
+        expect.stringContaining('Threads'),
+      ]),
+    )
+    const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
+    expect(threadsTab?.textContent).toContain('500')
+  })
+
+  it('states the inheritance status of the active tab in words', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="customize-status"]')).not.toBeNull()
+    expect(getByTestId('customize-status').textContent).toContain('feeds 2 account(s)')
+
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    expect(getByTestId('customize-status').textContent).toContain('Uses base content')
+
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+    expect(getByTestId('customize-status').textContent).toContain('Customized')
+  })
+
+  it('submits distinct bodyText per account in one batch request', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'scheduleMultiChannel').mockResolvedValue({
+      status: 'ALL_CREATED',
+      results: [
+        {
+          socialAccountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+          publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+          status: 'CREATED',
+        },
+        {
+          socialAccountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+          publicationId: '261ef19a-4b40-52ca-8850-86ae31fdc4c3',
+          status: 'CREATED',
+        },
+      ],
+    })
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button'))
+      .find((button) => button.textContent?.includes('Schedule Now'))!
+      .click()
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submittedTargets = scheduleSpy.mock.calls[0]?.[0].targets
+    const byAccount = Object.fromEntries(
+      submittedTargets.map((target) => [target.socialAccountId, target.content]),
+    )
+    expect(byAccount['6eeca0c2-97ec-588e-966c-bd4bbacdb5d9']).toBe('Hello every network')
+    expect(byAccount['c15e6f35-c95f-5cca-b943-da6f94483679']).toBe('Short for threads')
+  })
+
+  it('removes the override mark when tab text matches base again', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+    expect(document.querySelector('[data-testid="customize-dot"]')).not.toBeNull()
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    expect(document.querySelector('[data-testid="customize-dot"]')).toBeNull()
+  })
+
+  it('unblocks submit when a short override replaces an over-limit base for Threads', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('x'.repeat(600))
+    await flushModal(wrapper)
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))!
+    expect(scheduleButton.disabled).toBe(true)
+
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('y'.repeat(100))
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(scheduleButton.disabled).toBe(false)
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+  })
+
+  it('reset button clears the override back to base text', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    getByTestId('customize-reset').click()
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toBe('Hello every network')
+    expect(document.querySelector('[data-testid="customize-dot"]')).toBeNull()
+  })
+
+  it('uses provider-specific author fallbacks while preserving a channel handle', async () => {
+    const wrapper = mountModal([
+      makeChannel('b431194a-5205-577d-b212-98398966a944', {
+        accountId: '6eeca0c2-97ec-588e-966c-bd4bbacdb5d9',
+        provider: 'linkedin',
+        name: 'LinkedIn',
+        handle: '',
+      }),
+      makeChannel('ch-th', {
+        accountId: 'c15e6f35-c95f-5cca-b943-da6f94483679',
+        provider: 'threads',
+        name: 'Threads',
+        handle: '',
+      }),
+    ])
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+
+    const handleText = (value: string) =>
+      Array.from(document.querySelectorAll('p')).find(
+        (paragraph) => paragraph.textContent?.trim() === value,
+      )
+
+    expect(handleText('LinkedIn Member')).toBeDefined()
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    expect(handleText('Threads user')).toBeDefined()
+
+    const linkedinWithHandle = mountModal([
+      makeChannel('ch-li-handle', {
+        accountId: 'dfa6b191-56f3-5216-ad74-9fee37368d0c',
+        provider: 'linkedin',
+        handle: '@linkedin',
+      }),
+    ])
+    await flushModal(linkedinWithHandle)
+    expect(handleText('@linkedin')).toBeDefined()
+  })
+
+  it('renders the Threads preview with the override text for the active tab', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    fillComposer('Hello every network')
+    await flushModal(wrapper)
+    openCustomizing()
+    await flushModal(wrapper)
+    customizeTabs()
+      .find((tab) => tab.textContent?.includes('Threads'))!
+      .click()
+    await flushModal(wrapper)
+    fillComposer('Short for threads')
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="threads-preview"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="threads-preview-text"]')?.textContent).toBe(
+      'Short for threads',
+    )
+  })
+
+  it('does not reveal errors when merely tabbing through without editing', async () => {
+    const wrapper = mountModal(baseChannels())
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
+
+    openCustomizing()
+    await flushModal(wrapper)
+    const tabs = customizeTabs()
+    const threadsTab = tabs.find((tab) => tab.textContent?.includes('Threads'))
+    threadsTab?.click()
+    await flushModal(wrapper)
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.blur()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[data-testid="composer-channel-limit-errors"]')).toBeNull()
   })
 })

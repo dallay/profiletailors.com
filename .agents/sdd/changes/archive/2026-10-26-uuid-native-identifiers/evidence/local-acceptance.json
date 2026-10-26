@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-26",
+  "scope": "Local candidate only; no production or remote CI approval",
+  "environment": {
+    "backend": "Packaged smp-0.0.1-SNAPSHOT.jar, test profile, loopback",
+    "frontend": "Actual Astro marketing dev server, loopback",
+    "database": "Disposable PostgreSQL 18 with explicit UUID Liquibase context and approval GUC",
+    "email": "MockEmailSender and synthetic example.invalid recipient",
+    "browser_response_substitution": "None reported by orchestrator; summaries are corroborated by backend and database evidence, not a retained network trace"
+  },
+  "browser_submissions": {
+    "observed_http_statuses": [202, 202],
+    "visible_result": "You're on the list",
+    "waitlist_entries": 1,
+    "public_consents": 1,
+    "public_events": 1,
+    "workspaces": 1,
+    "invalid_projection_scopes": 0
+  },
+  "scope_fixture": {
+    "workspace_and_waitlist_uuid": "099c8ab5-9c9b-4af2-8b18-b4a888264423",
+    "public_consent_id": "c48289f6-6e3d-499f-a8ca-5d5787353b92",
+    "public_workspace_reference": null,
+    "public_waitlist_reference": "099c8ab5-9c9b-4af2-8b18-b4a888264423",
+    "tenant_source": "Actual registration created the workspace; public capture did not create a workspace",
+    "authorization_fixture": "Consent-write direct grant only for the synthetic principal in its own workspace; app authorization policy unchanged"
+  },
+  "http_observations": {
+    "anonymous_tenant_query": 401,
+    "authorized_tenant_query_public_only": 200,
+    "authorized_tenant_query_body": [],
+    "authorized_tenant_withdraw_public_only": 404,
+    "public_projection_and_events_unchanged": true,
+    "tenant_record_same_subject_purpose_policy": 201,
+    "tenant_idempotent_replay": 200,
+    "tenant_withdrawal": 200,
+    "tenant_history": 200,
+    "tenant_events_after_record_replay_withdraw": 2,
+    "history_excludes_public_consent": true
+  },
+  "setup_diagnostics": [
+    "Persisted registration mode CLOSED returned 503; only the disposable fixture was set to OPEN",
+    "An outdated terms version returned 422; the fixture used the actual terms-v1.0.0 contract",
+    "Missing consent-write permission returned 403 before the explicit scoped fixture grant"
+  ],
+  "cleanup": {
+    "named_browser_closed": true,
+    "owned_backend_and_frontend_processes_absent": true,
+    "disposable_container_absent": true,
+    "temporary_auth_and_state_files_removed": true,
+    "sanitized_backend_log_url_token_occurrences_redacted": 5
+  },
+  "provenance": {
+    "executed_by": "Orchestrator",
+    "independent_acceptance_review": "Mirror: PASS WITH WARNINGS, scoped local acceptance",
+    "technical_verification": "verify-report.md",
+    "acceptance_report": "qa-report.md",
+    "external_raw_evidence_directory": "uuid-live-qa under the approved opencode temporary directory",
+    "retained_repeat_query": "Same executed count query retained after execution, not a pre-existing execution transcript"
+  },
+  "not_claimed": [
+    "Production cutover or backup/restore rehearsal",
+    "Legal or operational approval",
+    "Remote CI/security/Sonar gates",
+    "Live third-party Unsplash or external email delivery",
+    "Complete historical TDD chronology",
+    "Dedicated malformed-shortlinks-header integrated HTTP negative regression"
+  ]
+}

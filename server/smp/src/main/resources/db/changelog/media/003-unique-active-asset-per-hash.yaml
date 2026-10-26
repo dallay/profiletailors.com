@@ -11,7 +11,7 @@ databaseChangeLog:
   # soft-deleted history from blocking re-upload after a previous asset was deleted.
   - changeSet:
       id: media-003-unique-active-asset-per-hash
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       runInTransaction: false
       changes:

@@ -20,14 +20,11 @@ export interface BulkResultEntry {
   code?: string
 }
 
-let entrySequence = 0
-
 export function makeEntry(
   emailPrefix: string,
   status: WaitlistEntryStatus = 'PENDING',
 ): MockWaitlistEntry {
-  entrySequence += 1
-  const id = `e2e-entry-${entrySequence}`
+  const id = crypto.randomUUID()
   const email = `${emailPrefix}@example.com`
   return {
     id,
@@ -39,10 +36,6 @@ export function makeEntry(
     source: 'web',
     version: 1,
   }
-}
-
-export function resetEntrySequence(): void {
-  entrySequence = 0
 }
 
 export function toListItem(entry: MockWaitlistEntry) {
@@ -70,14 +63,14 @@ export function toSummary(entries: MockWaitlistEntry[]) {
 }
 
 export const OWNER_PRINCIPAL = {
-  principalId: 'e2e-owner-001',
+  principalId: '7eea372c-238e-5460-89ae-357e719c39da',
   email: 'owner@example.com',
   displayName: 'E2E Owner',
   platformRoles: ['PLATFORM_OWNER'],
 }
 
 export const SUPPORT_PRINCIPAL = {
-  principalId: 'e2e-support-001',
+  principalId: '88f72487-9ea0-5439-b38e-cb2a044bd8da',
   email: 'support@example.com',
   displayName: 'E2E Support',
   platformRoles: ['SUPPORT_AGENT'],
@@ -88,7 +81,8 @@ export function mockTokens(email: string) {
     accessToken: `e2e-access-token-for-${email}`,
     tokenType: 'Bearer',
     expiresIn: 900,
-    principalId: `e2e-principal-for-${email}`,
+    principalId:
+      email === OWNER_PRINCIPAL.email ? OWNER_PRINCIPAL.principalId : SUPPORT_PRINCIPAL.principalId,
     email,
     username: email.split('@')[0] ?? email,
     emailStatus: 'VERIFIED',

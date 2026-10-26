@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.UUID
 import kotlin.test.assertEquals
 
 internal class DispatchNotificationRetryConsumerTest {
@@ -33,12 +34,12 @@ internal class DispatchNotificationRetryConsumerTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val pending = pendingRetry()
-        coEvery { repository.findById(NotificationId("ntf-retry-1")) } returns pending
+        coEvery { repository.findById(NotificationId(notificationId("retry-1"))) } returns pending
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Success
 
         val consumer = DispatchNotificationRetryConsumer(dispatcher, repository, clock)
-        consumer.consume(NotificationRetryRequested("ntf-retry-1", "retry-key-1"))
+        consumer.consume(NotificationRetryRequested(notificationId("retry-1"), "retry-key-1"))
 
         coVerify(exactly = 1) {
             dispatcher.dispatch(
@@ -56,12 +57,12 @@ internal class DispatchNotificationRetryConsumerTest {
     fun `marks notification FAILED when dispatcher returns failure`() = runTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
-        coEvery { repository.findById(NotificationId("ntf-retry-1")) } returns pendingRetry()
+        coEvery { repository.findById(NotificationId(notificationId("retry-1"))) } returns pendingRetry()
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Failure("smtp 5xx")
 
         val consumer = DispatchNotificationRetryConsumer(dispatcher, repository, clock)
-        consumer.consume(NotificationRetryRequested("ntf-retry-1", "retry-key-1"))
+        consumer.consume(NotificationRetryRequested(notificationId("retry-1"), "retry-key-1"))
 
         val updated = slot<Notification>()
         coVerify(exactly = 1) { repository.update(capture(updated)) }
@@ -73,10 +74,10 @@ internal class DispatchNotificationRetryConsumerTest {
     fun `skips dispatch when retry notification is missing`() = runTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
-        coEvery { repository.findById(any()) } returns null
+        coEvery { repository.findById(NotificationId(notificationId("missing"))) } returns null
 
         val consumer = DispatchNotificationRetryConsumer(dispatcher, repository, clock)
-        consumer.consume(NotificationRetryRequested("ntf-missing", "retry-key-1"))
+        consumer.consume(NotificationRetryRequested(notificationId("missing"), "retry-key-1"))
 
         coVerify(exactly = 0) { dispatcher.dispatch(any(), any()) }
         coVerify(exactly = 0) { repository.update(any()) }
@@ -86,10 +87,11 @@ internal class DispatchNotificationRetryConsumerTest {
     fun `skips dispatch when retry was already processed`() = runTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
-        coEvery { repository.findById(NotificationId("ntf-retry-1")) } returns pendingRetry().markSent(fixedNow)
+        coEvery { repository.findById(NotificationId(notificationId("retry-1"))) } returns
+            pendingRetry().markSent(fixedNow)
 
         val consumer = DispatchNotificationRetryConsumer(dispatcher, repository, clock)
-        consumer.consume(NotificationRetryRequested("ntf-retry-1", "retry-key-1"))
+        consumer.consume(NotificationRetryRequested(notificationId("retry-1"), "retry-key-1"))
 
         coVerify(exactly = 0) { dispatcher.dispatch(any(), any()) }
         coVerify(exactly = 0) { repository.update(any()) }
@@ -99,20 +101,23 @@ internal class DispatchNotificationRetryConsumerTest {
     fun `rendered retry email contains recovery message`() = runTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
-        coEvery { repository.findById(NotificationId("ntf-retry-1")) } returns pendingRetry()
+        coEvery { repository.findById(NotificationId(notificationId("retry-1"))) } returns pendingRetry()
         coEvery { repository.update(any()) } answers { firstArg() }
         coEvery { dispatcher.dispatch(any(), any()) } returns EmailDispatchResult.Success
 
         val consumer = DispatchNotificationRetryConsumer(dispatcher, repository, clock)
-        consumer.consume(NotificationRetryRequested("ntf-retry-1", "retry-key-1"))
+        consumer.consume(NotificationRetryRequested(notificationId("retry-1"), "retry-key-1"))
 
         coVerify(exactly = 1) {
             dispatcher.dispatch(any(), match { it.text.contains("Reset your password") })
         }
     }
 
+    private fun notificationId(seed: String): String =
+        UUID.nameUUIDFromBytes("notifications:$seed".toByteArray()).toString()
+
     private fun pendingRetry(): Notification = Notification(
-        id = NotificationId("ntf-retry-1"),
+        id = NotificationId(notificationId("retry-1")),
         idempotencyKey = IdempotencyKey("retry-key-1"),
         channel = NotificationChannel.EMAIL,
         recipient = Recipient("user@example.com"),

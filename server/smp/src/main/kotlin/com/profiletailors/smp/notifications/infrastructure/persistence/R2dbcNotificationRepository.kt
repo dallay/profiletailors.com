@@ -18,34 +18,14 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
-/**
- * R2DBC-backed [NotificationRepository].
- *
- * Schema (see [com.profiletailors.smp.notifications.infrastructure.persistence.NotificationsSchemaInitializer]):
- * <pre>
- * CREATE TABLE notifications (
- *   id                VARCHAR(255) PRIMARY KEY,
- *   idempotency_key   VARCHAR(500) UNIQUE NOT NULL,
- *   channel           VARCHAR(50)  NOT NULL,
- *   recipient         VARCHAR(500) NOT NULL,
- *   template_id       VARCHAR(255) NOT NULL,
- *   payload           JSONB        NOT NULL,
- *   status            VARCHAR(50)  NOT NULL,
- *   sent_at           TIMESTAMP,
- *   failed_at         TIMESTAMP,
- *   error_message     TEXT,
- *   created_at        TIMESTAMP    NOT NULL,
- *   updated_at        TIMESTAMP    NOT NULL
- * );
- * </pre>
- */
 @Repository
 internal class R2dbcNotificationRepository(private val databaseClient: DatabaseClient) : NotificationRepository {
 
     override suspend fun save(notification: Notification): Notification = try {
         databaseClient.sql(INSERT_SQL)
-            .bind("id", notification.id.value)
+            .bind("id", UUID.fromString(notification.id.value))
             .bind("idempotencyKey", notification.idempotencyKey.value)
             .bind("channel", notification.channel.name)
             .bind("recipient", notification.recipient.value)
@@ -73,7 +53,7 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             .bindNullable("failedAt", notification.failedAt?.toUtcLocalDateTime(), LocalDateTime::class.java)
             .bindNullable("errorMessage", notification.errorMessage, String::class.java)
             .bind("updatedAt", notification.updatedAt.toUtcLocalDateTime())
-            .bind("id", notification.id.value)
+            .bind("id", UUID.fromString(notification.id.value))
             .fetch()
             .rowsUpdated()
             .asFlow()
@@ -90,7 +70,7 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             .firstOrNull()
 
     override suspend fun findById(id: NotificationId): Notification? = databaseClient.sql(SELECT_BY_ID_SQL)
-        .bind("id", id.value)
+        .bind("id", UUID.fromString(id.value))
         .map { row, _ -> row.toNotification() }
         .one()
         .asFlow()
@@ -191,7 +171,7 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
         }
 
         private fun io.r2dbc.spi.Readable.toNotification(): Notification {
-            val id = get("id", String::class.java)!!
+            val id = requireNotNull(get("id", UUID::class.java))
             val idempotencyKey = get("idempotency_key", String::class.java)!!
             val channel = get("channel", String::class.java)!!
             val recipient = get("recipient", String::class.java)!!
@@ -211,7 +191,7 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             val updatedAt = updatedAtValue.toInstant(java.time.ZoneOffset.UTC)
 
             return Notification(
-                id = NotificationId(id),
+                id = NotificationId(id.toString()),
                 idempotencyKey = IdempotencyKey(idempotencyKey),
                 channel = NotificationChannel.valueOf(channel),
                 recipient = Recipient(recipient),

@@ -5,10 +5,11 @@
     "urlPathPattern": "/v1.0/[a-zA-Z0-9-]+/threads_publish",
     "headers": {
       "Authorization": { "matches": "Bearer mock-threads-.+" },
-      "Content-Type": { "contains": "application/json" }
+      "Content-Type": { "contains": "application/x-www-form-urlencoded" }
     },
     "bodyPatterns": [
-      { "matchesJsonPath": "$.creation_id" }
+      { "matches": ".*access_token=mock-threads-.+.*" },
+      { "matches": ".*creation_id=.+.*" }
     ]
   },
   "response": {

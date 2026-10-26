@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-003-seed-compliance-controls
-      author: sdd-apply
+      author: yacosta738
       changes:
         - insert:
             tableName: compliance_controls

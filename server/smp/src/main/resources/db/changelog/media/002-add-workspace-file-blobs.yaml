@@ -2,7 +2,7 @@ databaseChangeLog:
   # ── 1. Create workspace_file_blobs table ──────────────────────────
   - changeSet:
       id: media-002-create-workspace-file-blobs
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: workspace_file_blobs
@@ -62,7 +62,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-workspace-file-blobs-primary-key
-      author: sdd-apply
+      author: yacosta738
       changes:
         - addPrimaryKey:
             tableName: workspace_file_blobs
@@ -72,7 +72,7 @@ databaseChangeLog:
   # ── 2. workspace_file_blobs indexes ────────────────────────────────
   - changeSet:
       id: media-002-blob-status-index
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createIndex:
             tableName: workspace_file_blobs
@@ -85,7 +85,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-blob-gc-candidates-index
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:
@@ -97,7 +97,7 @@ databaseChangeLog:
   # ── 2b. PostgreSQL-native blob constraints ──────────────────────
   - changeSet:
       id: media-002-blob-status-check
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:
@@ -114,7 +114,7 @@ databaseChangeLog:
   # ── 2c. PostgreSQL-native READY metadata constraints ────────────
   - changeSet:
       id: media-002-blob-ready-metadata-checks
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:
@@ -140,7 +140,7 @@ databaseChangeLog:
   # A PostgreSQL CHECK constraint validates the SHA-256 format for non-NULL values.
   - changeSet:
       id: media-002-add-file-hash-and-related-columns
-      author: sdd-apply
+      author: yacosta738
       changes:
         - addColumn:
             tableName: media_assets
@@ -162,7 +162,7 @@ databaseChangeLog:
   # ── 4. indexes and constraints for media_assets ───────────────
   - changeSet:
       id: media-002-make-media-assets-storage-key-nullable
-      author: sdd-apply
+      author: yacosta738
       changes:
         - dropNotNullConstraint:
             tableName: media_assets
@@ -171,7 +171,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-media-assets-status-and-storage-checks
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:
@@ -187,7 +187,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-asset-file-hash-index
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createIndex:
             tableName: media_assets
@@ -198,7 +198,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-media-assets-workspace-blob-fk
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - addForeignKeyConstraint:
@@ -211,7 +211,7 @@ databaseChangeLog:
 
   - changeSet:
       id: media-002-media-assets-file-hash-check
-      author: sdd-apply
+      author: yacosta738
       dbms: postgresql
       changes:
         - sql:

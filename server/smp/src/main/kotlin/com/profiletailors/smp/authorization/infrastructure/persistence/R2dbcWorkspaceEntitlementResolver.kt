@@ -7,6 +7,7 @@ import com.profiletailors.smp.authorization.domain.EntitlementResolver
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcWorkspaceEntitlementResolver(private val databaseClient: DatabaseClient) : EntitlementResolver {
@@ -22,7 +23,7 @@ class R2dbcWorkspaceEntitlementResolver(private val databaseClient: DatabaseClie
             WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .map { row, _ ->
                 Entitlement(
                     key = requireNotNull(row.get("entitlement_key", String::class.java)),

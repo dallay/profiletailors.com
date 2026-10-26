@@ -68,7 +68,9 @@ async function holdNextUploadResponse(
       await route.fallback()
       return
     }
-    const assetId = new URL(route.request().url()).pathname.split('/').at(-2) ?? 'asset-e2e-upload'
+    const assetId =
+      new URL(route.request().url()).pathname.split('/').at(-2) ??
+      '48650526-8ac3-5679-8194-212e1d65b56b'
     markStarted(assetId)
     await releasePromise
     await route.fulfill({
@@ -76,7 +78,7 @@ async function holdNextUploadResponse(
       headers: { 'content-type': 'application/vnd.api.v1+json' },
       body: JSON.stringify({
         assetId,
-        workspaceId: 'workspace-001',
+        workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
         status: 'READY',
         mediaType: mediaFiles.base.type,
         detectedMediaType: mediaFiles.base.type,
@@ -105,11 +107,11 @@ async function hydrateAuthStore(page: import('@playwright/test').Page): Promise<
         accessToken: 'e2e-test-token',
         tokenType: 'Bearer',
         expiresIn: 3600,
-        principalId: 'test-user',
+        principalId: 'fe039ae6-52ce-5929-87b0-7ac4d1ef82f7',
         email: 'dev@profiletailors.com',
         username: 'dev',
         emailStatus: 'VERIFIED',
-        workspaceId: 'workspace-001',
+        workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
       }),
     })
   })
@@ -250,7 +252,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   }) => {
     const composePage = await openComposeModal(page)
     const asset = mockState.seedAsset({
-      assetId: 'asset-composer-007',
+      assetId: '0f983826-3c74-559a-b40b-e9e8f2742e34',
       mediaType: mediaFiles.base.type,
       originalFilename: mediaFiles.base.name,
     })
@@ -280,7 +282,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     mockState,
   }) => {
     const asset = mockState.seedAsset({
-      assetId: 'asset-composer-009',
+      assetId: 'aadd72ae-ba68-5d5e-a93b-3946d95d4043',
       mediaType: mediaFiles.base.type,
       originalFilename: mediaFiles.base.name,
     })
@@ -300,7 +302,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     mockState,
   }) => {
     const asset = mockState.seedAsset({
-      assetId: 'asset-composer-010',
+      assetId: 'c77f4ef5-2f89-59cb-8362-fd24c2f623f6',
       mediaType: mediaFiles.base.type,
       originalFilename: mediaFiles.base.name,
     })
@@ -327,7 +329,6 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   }) => {
     const assets = Array.from({ length: 5 }, (_, index) =>
       mockState.seedAsset({
-        assetId: `asset-composer-012-${index + 1}`,
         mediaType: mediaFiles.base.type,
         originalFilename: `overflow-${index + 1}.png`,
       }),
@@ -515,15 +516,19 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     const publicationResponse = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' &&
-        new URL(response.url()).pathname === '/api/publishing/publications',
+        new URL(response.url()).pathname === '/api/publishing/publications/batch',
       { timeout: 20_000 },
     )
     await composePage.clickScheduleNow()
     const response = await publicationResponse
     expect(response.ok()).toBe(true)
+    const importedAsset = mockState.assets.find((asset) => asset.externalId === 'remote-work')
+    expect(importedAsset?.assetId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    )
     expect(response.request().postDataJSON()).toMatchObject({
       bodyText: 'Post with an Unsplash image',
-      assetIds: ['unsplash-remote-work'],
+      targets: [{ bodyText: 'Post with an Unsplash image', assetIds: [importedAsset?.assetId] }],
     })
     expect(mockState.unsplashImportCount).toBe(1)
     expect(mockState.publicationPostCount).toBe(1)
@@ -602,7 +607,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     mockState,
   }) => {
     const asset = mockState.seedAsset({
-      assetId: 'asset-composer-030',
+      assetId: '9beae146-fc34-56a7-8b98-5a1b96664a61',
       mediaType: mediaFiles.base.type,
       originalFilename: mediaFiles.base.name,
     })
@@ -620,17 +625,17 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     mockState,
   }) => {
     const filenameAsset = mockState.seedAsset({
-      assetId: 'asset-composer-031-filename',
+      assetId: 'c11c9c30-1b72-5062-8ea8-47af54ca91b1',
       originalFilename: 'Campaign-Hero.png',
       mediaType: 'image/png',
     })
     const idAsset = mockState.seedAsset({
-      assetId: 'asset-composer-031-id-match',
+      assetId: 'fef59f6f-845a-5c89-88c5-c481d05157e0',
       originalFilename: 'notes.png',
       mediaType: 'image/png',
     })
     const mimeAsset = mockState.seedAsset({
-      assetId: 'asset-composer-031-mime',
+      assetId: 'bcd72779-be26-50cd-9d1e-3d44703aaeda',
       originalFilename: 'statement',
       mediaType: 'application/pdf',
     })
@@ -655,7 +660,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
       await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeVisible()
       await expect(composePage.libraryAssetCard(mimeAsset.assetId)).toBeVisible()
 
-      await composePage.librarySearchInput.fill('031-ID-MATCH')
+      await composePage.librarySearchInput.fill(idAsset.assetId.toUpperCase())
       await expect(composePage.libraryAssetCard(idAsset.assetId)).toBeVisible()
       await expect(composePage.libraryAssetCard(filenameAsset.assetId)).toBeHidden()
 

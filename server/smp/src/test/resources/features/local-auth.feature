@@ -89,7 +89,7 @@ Feature: Local authentication session lifecycle
   Scenario: Invite-only registration rejects a client workspace override
     Given public registration is invite-only
     And an active direct invitation exists for "override-invitation@example.com"
-    When the visitor submits invite-only registration for "override-invitation@example.com" with the invitation token and workspace "client-workspace"
+    When the visitor submits invite-only registration for "override-invitation@example.com" with the invitation token and workspace "b17488f7-2709-5be6-88a8-ee67fa5c1f48"
     Then the invite-only registration response status should be 400
     And the invite-only problem response should include code "INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED"
     And no invite-only registration mutation should exist for "override-invitation@example.com"

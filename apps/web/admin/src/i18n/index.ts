@@ -349,7 +349,10 @@ const locales = {
       targetExisting: ['Existing workspace', 'Espacio de trabajo existente'],
       targetNew: ['New workspace', 'Nuevo espacio de trabajo'],
       workspaceId: ['Workspace ID', 'ID del espacio de trabajo'],
-      workspaceIdPlaceholder: ['ws_xxxxxxxx', 'ws_xxxxxxxx'],
+      workspaceIdPlaceholder: [
+        '550e8400-e29b-41d4-a716-446655440000',
+        '550e8400-e29b-41d4-a716-446655440000',
+      ],
       submit: ['Create invitation', 'Crear invitación'],
       emailInvalid: ['Enter a valid email address.', 'Introduce un correo electrónico válido.'],
     },

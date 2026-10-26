@@ -360,12 +360,14 @@ class PublishingApiTest {
             scheduledFor = now,
             hasConflict = true,
             conflictingPublicationIds = listOf("pub-2"),
+            groupId = "pub-group-1",
         )
 
         assertEquals("pub-1", result.id)
         assertTrue(result.hasConflict)
         assertEquals(listOf("asset-1"), result.assetIds)
         assertEquals(listOf("pub-2"), result.conflictingPublicationIds)
+        assertEquals("pub-group-1", result.groupId)
     }
 
     @Test

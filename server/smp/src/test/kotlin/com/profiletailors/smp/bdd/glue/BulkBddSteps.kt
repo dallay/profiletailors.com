@@ -20,6 +20,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.security.MessageDigest
+import java.util.UUID
 
 @Suppress("TooManyFunctions", "LargeClass", "UnusedParameter", "MaxLineLength", "StringShouldBeRawString")
 class BulkBddSteps {
@@ -168,7 +169,7 @@ class BulkBddSteps {
         assertNotNull(jobId)
         val rowCount = databaseClient.sql(
             "SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId",
-        ).bind("jobId", jobId!!).map {
+        ).bind("jobId", UUID.fromString(requireNotNull(jobId))).map {
                 r,
                 _,
             ->
@@ -195,10 +196,10 @@ class BulkBddSteps {
     @Given("user {string} with emailStatus VERIFIED in workspace {string} with token {string}")
     fun givenUserVerified(user: String, workspace: String, token: String) = runBlocking {
         bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "VERIFIED")
-        bddDatabaseSupport.seedSocialConnection("social-conn-bulk", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("32776889-f29b-5aa2-a064-70cd6b6a0b90", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            "social-acc-bulk",
-            "social-conn-bulk",
+            "845df9fa-72ae-56ad-b729-fbabc7475ce6",
+            "32776889-f29b-5aa2-a064-70cd6b6a0b90",
             "LINKEDIN",
             "linkedin-bulk-1",
             "PERSONAL_PROFILE",
@@ -231,7 +232,7 @@ class BulkBddSteps {
         assertTrue(jobStatus in setOf("SCHEDULED", "PARTIAL", "SCHEDULING"), "job status $jobStatus")
         val rowCount = databaseClient.sql(
             "SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId",
-        ).bind("jobId", jobId!!).map {
+        ).bind("jobId", UUID.fromString(requireNotNull(jobId))).map {
                 r,
                 _,
             ->
@@ -242,7 +243,7 @@ class BulkBddSteps {
         assertTrue(pubCount >= 900, "publications persisted $pubCount")
         val totalFromDb = databaseClient.sql(
             "SELECT total_rows FROM bulk_import_jobs WHERE id = :id",
-        ).bind("id", jobId).map {
+        ).bind("id", UUID.fromString(requireNotNull(jobId))).map {
                 r,
                 _,
             ->
@@ -260,25 +261,27 @@ class BulkBddSteps {
     @Given("workspace A job is PARTIAL with total 3 scheduled 2 failed 1")
     fun givenWorkspaceAJob() = runBlocking {
         bddDatabaseSupport.ensureSocialConnection(
-            "social-conn-bulk",
+            "32776889-f29b-5aa2-a064-70cd6b6a0b90",
             BddDatabaseSupport.WORKSPACE_ID,
             "LINKEDIN",
             "ACTIVE",
         )
         bddDatabaseSupport.ensureSocialAccount(
-            "social-acc-bulk",
-            "social-conn-bulk",
+            "845df9fa-72ae-56ad-b729-fbabc7475ce6",
+            "32776889-f29b-5aa2-a064-70cd6b6a0b90",
             BddDatabaseSupport.WORKSPACE_ID,
             "LINKEDIN",
             "linkedin-bulk-1",
             "PERSONAL_PROFILE",
             "Bulk User",
         )
-        val jobId = "job-workspace-a"
+        val jobId = "1def2b18-3826-5cd4-8ee0-8fa1da5172d9"
         databaseClient.sql(
             "INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at) VALUES (:id, :ws, :pid, :key, :status, :total, :sc, :fc, :hash, NOW(), NOW()) ON CONFLICT (id) DO NOTHING",
         )
-            .bind("id", jobId).bind("ws", BddDatabaseSupport.WORKSPACE_ID).bind("pid", BddDatabaseSupport.PRINCIPAL_ID)
+            .bind("id", UUID.fromString(jobId))
+            .bind("ws", UUID.fromString(BddDatabaseSupport.WORKSPACE_ID))
+            .bind("pid", UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID))
             .bind(
                 "key",
                 "a".repeat(64),
@@ -288,19 +291,28 @@ class BulkBddSteps {
             ).bind("total", 3).bind("sc", 2).bind("fc", 1).bind("hash", "hash-a").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 0, 'SCHEDULED', '[]', 'A', false, NOW()) ON CONFLICT DO NOTHING",
-        ).bind("id", "row-a-0").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+        ).bind(
+            "id",
+            UUID.fromString("f56f2e8b-c227-5419-b8b8-b62bb6cedaad"),
+        ).bind("jid", UUID.fromString(jobId)).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 1, 'SCHEDULED', '[]', 'B', false, NOW()) ON CONFLICT DO NOTHING",
-        ).bind("id", "row-a-1").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+        ).bind(
+            "id",
+            UUID.fromString("6eaa5be0-e25a-54b4-bb60-04a5e79784cf"),
+        ).bind("jid", UUID.fromString(jobId)).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 2, 'FAILED', '[{\"code\":\"INVALID_DATE\"}]', '', false, NOW()) ON CONFLICT DO NOTHING",
-        ).bind("id", "row-a-2").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+        ).bind(
+            "id",
+            UUID.fromString("a3431f10-83b6-55c2-993f-880dcf2ee7ec"),
+        ).bind("jid", UUID.fromString(jobId)).fetch().rowsUpdated().awaitSingle()
         lastCsvText = jobId
     }
 
     @When("GET \\/bulk\\/jobs\\/\\{jobId\\} in A is called")
     fun whenGetBulkJobInA() {
-        val jobId = if (lastCsvText.startsWith("job-")) lastCsvText else "job-workspace-a"
+        val jobId = lastCsvText
         latestBulkResponse = webTestClient.get().uri("${bulkBase(BddDatabaseSupport.WORKSPACE_ID)}/jobs/$jobId")
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
@@ -326,13 +338,13 @@ class BulkBddSteps {
         )
             .bind(
                 "id",
-                jobId,
+                UUID.fromString(jobId),
             ).bind(
                 "ws",
-                ws,
+                UUID.fromString(ws),
             ).bind(
                 "pid",
-                BddDatabaseSupport.PRINCIPAL_ID,
+                UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID),
             ).bind(
                 "key",
                 jobId.padEnd(64, '0').take(64),
@@ -409,7 +421,7 @@ class BulkBddSteps {
 
     @Given("user in A calls bulk for B")
     fun givenUserInACallsBulkForB() {
-        lastCsvText = "ws-bulk-2"
+        lastCsvText = "9fb52cf4-3c6c-5961-a623-79ec38f16ba4"
     }
 
     @When("request is evaluated")

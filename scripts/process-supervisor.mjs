@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -69,4 +69,65 @@ export function terminateProcessRecord(path) {
   }
   if (existsSync(path)) unlinkSync(path)
   return true
+}
+
+export function runManagedChild({
+  name,
+  command,
+  args,
+  context = getWorktreeContext(),
+  spawnOptions = {},
+  metadata = {},
+}) {
+  const child = spawn(command, args, {
+    ...spawnOptions,
+    detached: !isWin,
+  })
+  writeProcessRecord(
+    name,
+    [
+      { pid: process.pid, detached: false },
+      { pid: child.pid, detached: !isWin },
+    ],
+    context,
+    metadata,
+  )
+
+  let shuttingDown = false
+  const shutdown = async (code = 0) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    if (child.exitCode === null && child.signalCode === null && child.pid) {
+      terminatePid(child.pid, true)
+      let timeout
+      const exited = await Promise.race([
+        new Promise((resolveExit) => child.once('exit', () => resolveExit(true))),
+        new Promise((resolveTimeout) => {
+          timeout = setTimeout(() => resolveTimeout(false), 5000)
+        }),
+      ])
+      clearTimeout(timeout)
+      if (!exited && child.exitCode === null && child.signalCode === null) {
+        if (isWin) {
+          try {
+            execFileSync('taskkill', ['/F', '/T', '/PID', String(child.pid)], { stdio: 'ignore' })
+          } catch {}
+        } else {
+          terminatePid(child.pid, true)
+          try {
+            process.kill(-child.pid, 'SIGKILL')
+          } catch {}
+        }
+      }
+    }
+    removeProcessRecord(name, context)
+    process.exit(code)
+  }
+
+  process.on('SIGINT', () => void shutdown())
+  process.on('SIGTERM', () => void shutdown())
+  child.on('error', () => void shutdown(1))
+  child.on('exit', (code) => void shutdown(code ?? 1))
+
+  return { child, shutdown }
 }

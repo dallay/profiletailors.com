@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 025-add-publication-group-id
+      author: yacosta738
+      changes:
+        - addColumn:
+            tableName: publications
+            columns:
+              - column:
+                  name: group_id
+                  type: varchar(255)

@@ -59,8 +59,8 @@ vi.mock('vue-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 function makeIdea(overrides: Partial<Idea> = {}): Idea {
   return {
-    id: 'idea-1',
-    workspaceId: 'ws-1',
+    id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: 'Test idea',
     notes: 'Some notes',
     tags: ['kotlin'],
@@ -309,7 +309,7 @@ describe('IdeaComposerModal', () => {
     await nextTick()
     await wrapper.find('[data-testid="composer-delete-confirm-btn"]').trigger('click')
     await flushPromises()
-    expect(mockDeleteIdea).toHaveBeenCalledWith('idea-1')
+    expect(mockDeleteIdea).toHaveBeenCalledWith('0ca69867-76ef-5e75-a8c3-3933fb8faec4')
   })
 
   it('renders markdown toolbar and schedule panel', () => {
@@ -336,7 +336,7 @@ describe('IdeaComposerModal', () => {
     await flushPromises()
 
     expect(mockUpdateIdea).toHaveBeenCalledWith(
-      'idea-1',
+      '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
       expect.objectContaining({ title: 'Edit me', columnId: 'raw' }),
     )
   })
@@ -381,7 +381,12 @@ describe('IdeaComposerModal', () => {
 
   it('emits handoff with prefill after persisting unsaved idea', async () => {
     mockPublishingHasNoChannels.value = false
-    const created = makeIdea({ id: 'idea-new', title: 'New', notes: 'Notes', tags: ['vue'] })
+    const created = makeIdea({
+      id: 'b5489022-b2f9-5268-a83c-1006bb72857d',
+      title: 'New',
+      notes: 'Notes',
+      tags: ['vue'],
+    })
     mockCreateIdea.mockResolvedValue(created)
     const wrapper = mountModal({ idea: null })
     const titleInput = wrapper.find('#idea-composer-title')
@@ -402,7 +407,9 @@ describe('IdeaComposerModal', () => {
     await createPost.trigger('click')
     await flushPromises()
     expect(mockCreateIdea).toHaveBeenCalled()
-    expect(wrapper.emitted('handoff')?.[0]?.[0]).toMatchObject({ ideaId: 'idea-new' })
+    expect(wrapper.emitted('handoff')?.[0]?.[0]).toMatchObject({
+      ideaId: 'b5489022-b2f9-5268-a83c-1006bb72857d',
+    })
     const emitted = wrapper.emitted('handoff')?.[0]?.[0] as { prefill: string }
     expect(emitted.prefill).toBe('New\n\nNotes\n\n#vue')
   })
@@ -410,7 +417,7 @@ describe('IdeaComposerModal', () => {
   it('emits handoff with deduped hashtags for existing idea', async () => {
     mockPublishingHasNoChannels.value = false
     const idea = makeIdea({
-      id: 'idea-1',
+      id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
       title: 'T',
       notes: 'Notes #kafka',
       tags: ['kafka', 'testing'],

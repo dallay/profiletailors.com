@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: tenancy-001-create-workspaces
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: workspaces

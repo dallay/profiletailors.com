@@ -65,3 +65,14 @@ Same root DESIGN.md visual language as the dashboard app. No additional branding
 ## Accessibility & Inclusion
 
 Same accessibility standards as the dashboard app. This surface is internal-only but not exempt — internal tools should also be accessible.
+
+## Internal identifier format
+
+Internal entity and aggregate IDs use canonical lowercase UUID strings without resource prefixes.
+The client sends IDs unchanged, including `X-Workspace-Id`, under the existing
+`application/vnd.api.v1+json` media type. Provider-owned IDs, credentials, tokens, idempotency keys,
+and opaque keys retain their own formats. There is no permanent prefixed-ID compatibility path.
+
+This contract follows [ADR-0029](../../../docs/architecture/adr/0029-use-raw-uuid-identifiers.md).
+Local implementation does not certify production data conversion. Production deployment requires
+operator-reviewed migration and production validation.

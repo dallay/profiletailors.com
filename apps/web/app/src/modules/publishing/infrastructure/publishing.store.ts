@@ -79,6 +79,7 @@ export type Publication = {
   blockedReason?: string
   /** Provider or domain error code explaining a FAILED publication. */
   errorCode?: string
+  groupId?: string
 }
 
 export type PublicationUpdate = Partial<Publication> & {
@@ -148,6 +149,7 @@ export type CalendarPublicationResult = {
   updatedAt?: string | null
   blockedReason?: string | null
   errorCode?: string | null
+  groupId?: string | null
 }
 
 export type ConflictEntry = {
@@ -166,6 +168,39 @@ export type CalendarResponse = {
   publications: CalendarPublicationResult[]
   conflicts: ConflictEntry[]
   activity: ActivityEntry[]
+}
+
+export type PublicationBatchTargetResult = {
+  socialAccountId: string
+  publicationId?: string
+  status: string
+  errorCode?: string
+  errorMessage?: string
+  groupId?: string
+}
+
+export type PublicationBatchResult = {
+  status: 'ALL_CREATED' | 'PARTIAL' | 'ALL_FAILED'
+  results: PublicationBatchTargetResult[]
+}
+
+function isPublicationBatchFailure(
+  error: unknown,
+): error is Error & { results: PublicationBatchTargetResult[] } {
+  return (
+    error instanceof Error &&
+    'results' in error &&
+    Array.isArray(error.results) &&
+    error.results.every(
+      (result) =>
+        typeof result === 'object' &&
+        result !== null &&
+        'socialAccountId' in result &&
+        typeof result.socialAccountId === 'string' &&
+        'status' in result &&
+        typeof result.status === 'string',
+    )
+  )
 }
 
 type PublicationMutationResult = {
@@ -418,6 +453,7 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     updatedAt: api.updatedAt ?? null,
     blockedReason: api.blockedReason ?? undefined,
     errorCode: api.errorCode ?? undefined,
+    groupId: api.groupId ?? undefined,
     thumbnail: api.previewUrl ? resolveApiUrl(api.previewUrl) : undefined,
   }
 }
@@ -544,7 +580,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
     {
-      id: 'pub-1',
+      id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
       content:
         'El error más común con DDD: crear modelos anémicos y tratar la base de datos como el centro del diseño. ¡Concéntrate en el comportamiento primero!',
       title: 'Common DDD Mistake',
@@ -556,7 +592,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80',
     },
     {
-      id: 'pub-2',
+      id: 'b52a13aa-706c-5325-9156-bcd2f04951d1',
       content:
         '¿Por qué tu Arquitectura debería seguir principios de diseño suizos? Minimalismo visual, tipografía clara y cero ruido ornamental.',
       title: 'Swiss Design Architecture',
@@ -912,15 +948,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelEventsConnected.value = false
   }
 
-  /**
-   * Replaces the active stream and forwards valid invalidations for the current workspace.
-   * Resolves to null when unauthenticated or when the stream ends, fails, or is aborted.
-   * Request and read failures are swallowed; malformed frames and callback errors are ignored.
-   * Connection state is cleared when consumption ends.
-   */
   async function subscribePublicationEvents(
     onInvalidation: (event: PublicationInvalidation) => void,
-  ): Promise<null> {
+  ): Promise<null | 'unavailable'> {
     if (!auth.isAuthenticated) {
       publicationEventsConnected.value = false
       return null
@@ -937,30 +967,49 @@ export const usePublishingStore = defineStore('publishing', () => {
         workspaceScoped: true,
         signal: abortController.signal,
       })
+      if (
+        publicationEventsAbortController.value !== abortController ||
+        abortController.signal.aborted
+      ) {
+        await response.body?.cancel()
+        return null
+      }
       publicationEventsConnected.value = true
       await consumeSseStream<unknown>(response, ({ data }) => {
+        if (
+          abortController.signal.aborted ||
+          publicationEventsAbortController.value !== abortController
+        )
+          return
         const invalidation = toPublicationInvalidation(data)
         if (!invalidation) return
         if (invalidation.workspaceId !== workspace.activeWorkspaceId) return
         onInvalidation(invalidation)
       })
     } catch (err) {
-      if (!abortController.signal.aborted) {
+      if (
+        publicationEventsAbortController.value === abortController &&
+        !abortController.signal.aborted
+      ) {
         console.warn('Publication event stream unavailable; continuing with REST calendar.', err)
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'status' in err &&
+          (err.status === 404 || err.status === 405)
+        )
+          return 'unavailable'
       }
     } finally {
       if (publicationEventsAbortController.value === abortController) {
         publicationEventsAbortController.value = null
+        publicationEventsConnected.value = false
       }
-      publicationEventsConnected.value = false
     }
 
     return null
   }
 
-  /**
-   * Aborts the current publication stream and clears its connection state.
-   */
   function unsubscribePublicationEvents(): void {
     publicationEventsAbortController.value?.abort()
     publicationEventsAbortController.value = null
@@ -1066,7 +1115,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     priority?: boolean
   }): Promise<Publication> {
     const localPub: Publication = {
-      id: `pub-${Date.now()}`,
+      id: crypto.randomUUID(),
       content: opts.bodyText,
       title: opts.title,
       channels: [toChannelProvider('linkedin')],
@@ -1300,6 +1349,85 @@ export const usePublishingStore = defineStore('publishing', () => {
    * ```
    */
 
+  async function scheduleMultiChannel(input: {
+    title?: string
+    scheduleMode: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
+    scheduledAt?: string
+    nextSlotAfter?: string
+    priority: boolean
+    assetIds?: string[]
+    targets: Array<{ socialAccountId: string; provider: SocialProvider; content: string }>
+  }): Promise<PublicationBatchResult> {
+    if (!auth.isAuthenticated) {
+      throw new Error('Multi-channel publishing requires an authenticated workspace.')
+    }
+
+    const targets = input.targets.map((target) => {
+      const channel = channels.value.find(
+        (candidate) =>
+          candidate.accountId === target.socialAccountId && candidate.status === 'ACTIVE',
+      )
+      if (!channel) {
+        throw new Error('A selected social account is unavailable.')
+      }
+      return { ...target, channel }
+    })
+    let result: PublicationBatchResult
+    try {
+      result = await auth.apiFetch<PublicationBatchResult>('/api/publishing/publications/batch', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: input.title,
+          bodyText: targets[0]?.content ?? '',
+          targets: targets.map(({ socialAccountId, content }) => ({
+            socialAccountId,
+            bodyText: content,
+            assetIds: input.assetIds ?? [],
+          })),
+          scheduleMode: input.scheduleMode,
+          scheduledFor: input.scheduledAt,
+          nextSlotAfter: input.nextSlotAfter,
+          priority: input.priority,
+        }),
+        workspaceScoped: true,
+      })
+    } catch (error) {
+      if (isPublicationBatchFailure(error)) {
+        result = { status: 'ALL_FAILED', results: error.results }
+      } else {
+        throw error
+      }
+    }
+
+    for (const targetResult of result.results) {
+      if (!targetResult.publicationId) continue
+      const target = targets.find(
+        (candidate) => candidate.socialAccountId === targetResult.socialAccountId,
+      )
+      if (!target) continue
+      const publication: Publication = {
+        id: targetResult.publicationId,
+        content: target.content,
+        title: input.title,
+        channels: [target.provider],
+        scheduledAt:
+          input.scheduleMode === 'NEXT_SLOT'
+            ? (input.nextSlotAfter ?? new Date().toISOString())
+            : (input.scheduledAt ?? new Date().toISOString()),
+        scheduleMode: input.scheduleMode,
+        status: input.scheduleMode === 'NOW' ? 'QUEUED' : 'SCHEDULED',
+        priority: input.priority,
+        assetIds: input.assetIds ?? [],
+        accountId: target.socialAccountId,
+        groupId: targetResult.groupId,
+      }
+      publications.value.unshift(publication)
+      emitCalendarInvalidation(publication.id, 'created')
+    }
+    saveToStorage()
+    return result
+  }
+
   async function schedulePost(post: {
     content: string
     title?: string
@@ -1312,7 +1440,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     assetIds?: string[]
     socialAccountId?: string
   }): Promise<Publication> {
-    const publicationId = `pub-${Date.now()}`
+    const publicationId = crypto.randomUUID()
 
     const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
     const effectiveScheduledAt =
@@ -1547,6 +1675,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     isPublicationEditable,
     isPublicationDeletable,
     // Actions
+    scheduleMultiChannel,
     fetchChannels,
     fetchProviderCatalog,
     fetchConfiguredProviders,

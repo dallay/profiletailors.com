@@ -159,7 +159,7 @@ class InviteWaitlistEntryHandlerTest {
     }
 
     @Test
-    fun `persists waitlist invitation issuedBy as prefixed platform principal id`() = runTest {
+    fun `persists waitlist invitation issuedBy as canonical platform principal id`() = runTest {
         val pendingEntry = entry(WaitlistEntryStatus.PENDING)
         coEvery { waitlistEntryAdmin.findById(entryId) } returns pendingEntry
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
@@ -172,7 +172,7 @@ class InviteWaitlistEntryHandlerTest {
 
         handler.handle(command())
 
-        assertThat(newInvitationSlot.captured.issuedBy).isEqualTo("user-$operatorId")
+        assertThat(newInvitationSlot.captured.issuedBy).isEqualTo(operatorId.toString())
     }
 
     @Test

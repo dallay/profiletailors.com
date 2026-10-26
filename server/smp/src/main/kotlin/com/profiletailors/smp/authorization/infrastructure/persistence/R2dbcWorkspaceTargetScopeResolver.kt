@@ -11,6 +11,7 @@ import com.profiletailors.smp.authorization.domain.ScopeResolver
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcWorkspaceTargetScopeResolver(
@@ -38,8 +39,8 @@ class R2dbcWorkspaceTargetScopeResolver(
             ORDER BY p.permission_key, s.target_resource_type
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalContext.principalId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("principalId", UUID.fromString(principalContext.principalId))
             .bind("principalType", principalContext.principalType.name)
             .map { row, _ ->
                 AuthorizationScope(

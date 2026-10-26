@@ -69,9 +69,9 @@ class SocialContentBddSteps {
     @Given("a personal LinkedIn social account is the only social-content account")
     fun givenPersonalLinkedInSocialAccountIsOnlySocialContentAccount() {
         state.gates.importEnabled = true
-        state.socialAccounts[BddDatabaseSupport.WORKSPACE_ID to "personal-profile-1"] = SocialAccount(
-            id = "personal-profile-1",
-            socialConnectionId = "personal-connection-1",
+        state.socialAccounts[BddDatabaseSupport.WORKSPACE_ID to "ffe9e4e0-68ae-5a1d-8375-c265c626e125"] = SocialAccount(
+            id = "ffe9e4e0-68ae-5a1d-8375-c265c626e125",
+            socialConnectionId = "b0b87033-08d3-54dc-aa05-c89dd4102a3b",
             workspaceId = BddDatabaseSupport.WORKSPACE_ID,
             provider = SocialProvider.LINKEDIN,
             providerAccountId = "linkedin-profile-1",

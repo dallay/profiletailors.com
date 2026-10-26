@@ -129,6 +129,12 @@ The root `portless.json` provides additional name resolution for the monorepo:
 | `pnpm exec portless doctor`         | Check proxy, routes, and DNS                    |
 | `pnpm exec portless clean`          | Clean local TLS state                           |
 
+## Trusting Portless from local JVM clients
+
+Portless adds its CA to the operating-system trust store, but Java processes may use a JDK-specific truststore and still reject `.localhost` certificates with a PKIX path-building error. Keep the fix scoped to the local JVM process: create a truststore from the active JDK's `cacerts`, import `~/.portless/ca.pem`, and pass its path with `javax.net.ssl.trustStore` and `javax.net.ssl.trustStorePassword`. Do not disable TLS certificate or hostname verification.
+
+The full reproducible workflow, including truststore creation, Java TLS probe, `JAVA_TOOL_OPTIONS` for the repository backend, and troubleshooting, is documented in [Local Threads OAuth with WireMock](./local-threads-oauth.md#let-the-local-jvm-trust-portless).
+
 ## Troubleshooting
 
 ### Proxy won't start — permission denied

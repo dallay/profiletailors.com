@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-004-create-publications
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: publications

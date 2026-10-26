@@ -70,6 +70,16 @@ class ThreadsPublishingAdapterTest {
             "/v1.0/container-1",
             "/v1.0/threads-user-1/threads_publish",
         )
+        transport.requests[0].headers().firstValue("Content-Type").orElse(null) shouldBe
+            "application/x-www-form-urlencoded"
+        check(transport.bodies[0].contains("access_token=access-token"))
+        check(transport.bodies[0].contains("media_type=TEXT"))
+        check(transport.bodies[0].contains("text=Hello+Threads"))
+        transport.requests[1].uri().rawQuery shouldBe "fields=status&access_token=access-token"
+        transport.requests[2].headers().firstValue("Content-Type").orElse(null) shouldBe
+            "application/x-www-form-urlencoded"
+        check(transport.bodies[1].contains("creation_id=container-1"))
+        check(transport.bodies[1].contains("access_token=access-token"))
     }
 
     @Test
@@ -85,6 +95,7 @@ class ThreadsPublishingAdapterTest {
         )
         val result = adapter(transport).publish(
             command(
+                body = "Carousel caption",
                 assets = listOf(
                     asset("image/jpeg"),
                     asset("video/mp4", "asset-2"),
@@ -93,9 +104,15 @@ class ThreadsPublishingAdapterTest {
         )
 
         result.externalPublicationId shouldBe "post-2"
-        check(transport.bodies[4].contains("CAROUSEL"))
-        check(transport.bodies[4].contains("child-1"))
-        check(transport.bodies[4].contains("child-2"))
+        check(transport.bodies[2].contains("media_type=CAROUSEL"))
+        check(transport.bodies[0].contains("media_type=IMAGE"))
+        check(transport.bodies[0].contains("is_carousel_item=true"))
+        check(!transport.bodies[0].contains("Carousel+caption"))
+        check(transport.bodies[1].contains("media_type=VIDEO"))
+        check(transport.bodies[1].contains("is_carousel_item=true"))
+        check(!transport.bodies[1].contains("Carousel+caption"))
+        check(transport.bodies[2].contains("children=child-1%2Cchild-2"))
+        check(transport.bodies[2].contains("text=Carousel+caption"))
     }
 
     @Test
@@ -131,7 +148,7 @@ class ThreadsPublishingAdapterTest {
         adapter(transport, mediaResolver).publish(command(assets = listOf(asset("image/jpeg"))))
 
         resolved.get() shouldBe 1
-        check(transport.bodies.first().contains("https://cdn.example/asset-1"))
+        check(transport.bodies.first().contains("https%3A%2F%2Fcdn.example%2Fasset-1"))
     }
 
     @Test
@@ -144,7 +161,7 @@ class ThreadsPublishingAdapterTest {
         adapter(transport).publish(command(assets = listOf(asset("video/mp4"))))
 
         val body = transport.bodies.first()
-        check(body.contains(""""video_url":"https://cdn.example/asset-1""""))
+        check(body.contains("video_url=https%3A%2F%2Fcdn.example%2Fasset-1"))
         check(!body.contains("image_url"))
     }
 

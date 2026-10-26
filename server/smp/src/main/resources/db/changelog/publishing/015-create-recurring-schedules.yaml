@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-015-create-recurring-schedules
-      author: profiletailors
+      author: yacosta738
       changes:
         - createTable:
             tableName: recurring_schedules

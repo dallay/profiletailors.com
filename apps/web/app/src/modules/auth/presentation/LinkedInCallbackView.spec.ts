@@ -8,12 +8,12 @@ import {
 } from '@modules/publishing/infrastructure/publishing.store'
 
 const mockConnectionResult: SocialConnectionResult = {
-  connectionId: 'conn-1',
-  workspaceId: 'ws-1',
+  connectionId: '7fb06252-ea7d-5a8f-b3ad-726b3222f6f2',
+  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
   provider: 'linkedin',
   status: 'connected',
   account: {
-    accountId: 'acc-1',
+    accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
     providerAccountId: 'pa-1',
     displayName: 'Test User',
     kind: 'PROFILE',

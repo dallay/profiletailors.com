@@ -5,10 +5,12 @@ import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 
 /** Request emitted by the waitlist context when a new entry has consent worth recording as legal evidence. */
 data class WaitlistConsentRecordRequest(
+    val waitlistId: WaitlistId,
     val waitlistKey: WaitlistKey,
     val entryId: WaitlistEntryId,
     val normalizedEmail: NormalizedEmail,

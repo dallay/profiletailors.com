@@ -69,7 +69,7 @@ class PublishingStaleJobsBddSteps {
         val publicationId = requireNotNull(currentPublicationId) {
             "Step requires 'a queued publication exists for ...' to run first"
         }
-        val jobId = "pjob-stale-${UUID.randomUUID()}"
+        val jobId = UUID.randomUUID()
         val claimedAt = Instant.now().minus(java.time.Duration.ofMinutes(30))
         val leaseExpiresAt = Instant.now().minus(java.time.Duration.ofMinutes(20))
         databaseClient.sql(
@@ -85,8 +85,8 @@ class PublishingStaleJobsBddSteps {
             """.trimIndent(),
         )
             .bind("id", jobId)
-            .bind("publicationId", publicationId)
-            .bind("workspaceId", BddDatabaseSupport.WORKSPACE_ID)
+            .bind("publicationId", UUID.fromString(publicationId))
+            .bind("workspaceId", UUID.fromString(BddDatabaseSupport.WORKSPACE_ID))
             .bind("dueAt", claimedAt)
             .bind("workerId", workerId)
             .bind("claimedAt", claimedAt)
@@ -184,7 +184,7 @@ class PublishingStaleJobsBddSteps {
         val status: String = databaseClient.sql(
             "SELECT status FROM publications WHERE id = :id",
         )
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .one()
             .awaitSingle()
@@ -197,7 +197,7 @@ class PublishingStaleJobsBddSteps {
         val hasPublishedAt: Boolean = databaseClient.sql(
             "SELECT published_at FROM publications WHERE id = :id",
         )
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .map { row, _ -> row.get("published_at", OffsetDateTime::class.java) != null }
             .one()
             .awaitSingle()
@@ -241,22 +241,22 @@ class PublishingStaleJobsBddSteps {
 
     private suspend fun ensureSocialAccount(): String {
         val existing: String? = databaseClient.sql(
-            "SELECT id FROM social_accounts WHERE id = 'social-acc-1'",
+            "SELECT id FROM social_accounts WHERE id = 'fb939391-0fff-506d-a92e-b9008b859951'",
         )
-            .map { row, _ -> row.get("id", String::class.java) as String }
+            .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
         if (existing != null) return existing
-        bddDatabaseSupport.seedSocialConnection("social-conn-stale", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("edbb4416-2efe-523f-9540-6e3fb7f58828", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-1",
-            connectionId = "social-conn-stale",
+            accountId = "fb939391-0fff-506d-a92e-b9008b859951",
+            connectionId = "edbb4416-2efe-523f-9540-6e3fb7f58828",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-stale-profile",
             accountKind = "PERSONAL_PROFILE",
             displayName = "Stale Profile",
         )
-        return "social-acc-1"
+        return "fb939391-0fff-506d-a92e-b9008b859951"
     }
 
     private fun lastResponseJson(): JsonNode {

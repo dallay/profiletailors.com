@@ -237,12 +237,12 @@ describe('AcceptInvitationView branch coverage', () => {
   })
 
   it('shows redirecting state when accepted and redirecting', async () => {
-    state.workspaceId = 'ws-abc'
+    state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
     state.membershipStatus = 'ACTIVE'
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -264,9 +264,9 @@ describe('AcceptInvitationView branch coverage', () => {
 
   it('sets document title when redirecting', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -305,12 +305,12 @@ describe('AcceptInvitationView branch coverage', () => {
     await wrapper.find('form').trigger('submit.prevent')
     expect(callCount).toBe(1)
     resolvePending({
-      workspaceId: 'ws-abc',
+      workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
       membershipStatus: 'ACTIVE',
       errorCode: null,
       errorStatus: null,
     })
-    state.workspaceId = 'ws-abc'
+    state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
     await flushPromises()
     await flushPromises()
   })
@@ -337,9 +337,9 @@ describe('AcceptInvitationView branch coverage', () => {
 
   it('swallows hydrateSession errors and still redirects to login when not authenticated', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,

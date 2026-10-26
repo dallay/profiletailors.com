@@ -18,7 +18,7 @@ internal class RegisterComplianceEvidenceHandler(private val repository: Complia
      */
     override suspend fun handle(command: RegisterComplianceEvidenceCommand) {
         val evidence = ComplianceEvidence(
-            id = ComplianceEvidenceId("ev-${UUID.randomUUID()}"),
+            id = ComplianceEvidenceId(UUID.randomUUID().toString()),
             evidenceType = command.evidenceType,
             title = command.title,
             description = command.description,

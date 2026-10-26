@@ -4,6 +4,8 @@ package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
@@ -137,6 +139,9 @@ class PublicationCreationServiceTest {
             ),
         )
         result.socialAccountId shouldBe "acc-active-1"
+        java.util.UUID.fromString(result.id).toString() shouldBe result.id
+        val job = replacementJobFor(result, PublicationSchedulingPolicy(), clock.instant())
+        java.util.UUID.fromString(job.id).toString() shouldBe job.id
     }
 
     @Test
@@ -155,5 +160,57 @@ class PublicationCreationServiceTest {
                 ),
             )
         }
+    }
+
+    @Test
+    fun `should create threads publication via registry validator`() = runTest {
+        val workspaceId = "ws-threads"
+        val principalId = "u-1"
+        val accountId = "soacc-threads-1"
+        coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, accountId) } returns SocialAccount(
+            id = accountId,
+            socialConnectionId = "conn-threads-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.THREADS,
+            providerAccountId = "threads-user-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "WireMock Threads User",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        coEvery { publicationRepository.createDraft(any()) } answers
+            { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
+        val threadsValidator = mockk<ProviderCapabilityValidator>(relaxed = true)
+        val registry = ProviderCapabilityRegistry.fromValidators(
+            SocialProvider.THREADS to threadsValidator,
+        )
+        coEvery { providerCapabilityValidator.validate(any<ProviderCapabilityValidationInput>()) } answers {
+            val input = it.invocation.args[0] as ProviderCapabilityValidationInput
+            if (input.provider == SocialProvider.THREADS) {
+                throw IllegalArgumentException("LinkedIn capability validator only supports LINKEDIN.")
+            }
+        }
+        val threadsService = PublicationCreationService(
+            socialAccountRepository,
+            publicationRepository,
+            publicationAssetRepository,
+            publicationJobRepository,
+            transactionRunner,
+            providerCapabilityValidator,
+            schedulingPolicy,
+            mediaAssetResolver,
+            mediaIntegrationSettings,
+            clock,
+            providerCapabilityRegistry = registry,
+        )
+        val result = threadsService.create(
+            identity = PublicationCreationService.PublishingIdentity(workspaceId, principalId),
+            socialAccountId = accountId,
+            bodyText = "Hello from Threads",
+            scheduling = PublicationCreationService.PublicationSchedulingConfig(
+                scheduleMode = com.profiletailors.smp.publishing.domain.ScheduleMode.NOW,
+            ),
+        )
+        result.socialAccountId shouldBe accountId
+        result.provider shouldBe SocialProvider.THREADS
     }
 }

@@ -40,7 +40,7 @@ class ThreadsConnectionProvider(
         val credentials = ProviderCredentials(
             provider = SocialProvider.THREADS,
             accessToken = longLived.accessToken,
-            refreshToken = null,
+            refreshToken = longLived.accessToken,
             expiresAtEpochSeconds = longLived.expiresIn?.let { clock.instant().epochSecond + it },
             grantedScopes = properties.requiredScopes.sorted().joinToString(" "),
             scope = properties.requiredScopes.sorted().joinToString(" "),
@@ -66,7 +66,7 @@ class ThreadsConnectionProvider(
 
     private suspend fun exchangeCode(command: CompleteProviderConnectionCommand): ThreadsShortLivedTokenResponse {
         val response = httpTransport.send(
-            HttpRequest.newBuilder(URI.create("${properties.apiBaseUrl}/${properties.apiVersion}/oauth/access_token"))
+            HttpRequest.newBuilder(URI.create(properties.tokenExchangeUrl))
                 .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
                 .POST(
                     HttpRequest.BodyPublishers.ofString(
@@ -88,7 +88,7 @@ class ThreadsConnectionProvider(
         val response = httpTransport.send(
             HttpRequest.newBuilder(
                 URI.create(
-                    "${properties.apiBaseUrl}/${properties.apiVersion}/access_token?" +
+                    "${properties.longLivedTokenUrl}?" +
                         formUrlEncoded(
                             "grant_type" to "th_exchange_token",
                             "client_secret" to properties.clientSecret,

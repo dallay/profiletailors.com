@@ -15,10 +15,10 @@
     "monorepo"
   ],
   "engines": {
-    "node": ">=24.21.0",
-    "pnpm": ">=11.26.0"
+    "node": ">=24.22.1",
+    "pnpm": ">=12.14.0"
   },
-  "packageManager": "pnpm@12.9.1",
+  "packageManager": "pnpm@12.14.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/dallay/profiletailors.com.git"
@@ -52,14 +52,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "markdownlint-cli2": "0.23.3",
-    "portless": "0.15.7",
+    "portless": "0.15.8",
     "wrangler": "^4.147.0"
-  },
-  "overrides": {
-    "undici": ">=8.10.2",
-    "brace-expansion": ">=1.1.21",
-    "decode-uri-component": ">=0.5.0",
-    "qs": ">=6.16.0",
-    "hono": ">=4.13.13"
   }
 }

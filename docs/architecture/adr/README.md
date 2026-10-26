@@ -29,7 +29,8 @@ as a historical record and a guide for current and future development.
 | 0002 | [Adhere to Hexagonal Architecture](./0002-adhere-to-hexagonal-architecture.md)           | Accepted | 2026-06-21 |
 | 0003 | [Mandatory Reactive Stack](./0003-mandatory-reactive-stack.md)                           | Accepted | 2026-06-21 |
 | 0004 | [Implement CQRS via Mediator](./0004-implement-cqrs-via-mediator.md)                     | Accepted | 2026-06-21 |
-| 0005 | [Use Prefixed String Identifiers](./0005-use-prefixed-string-identifiers.md)             | Accepted | 2026-06-21 |
+| 0005 | [Use Prefixed String Identifiers](./0005-use-prefixed-string-identifiers.md)             | Superseded | 2026-06-21 |
+| 0029 | [Use Raw UUID Identifiers for Internal Entities](./0029-use-raw-uuid-identifiers.md)     | Accepted | 2026-10-25 |
 | 0006 | [Resource Creation via POST](./0006-resource-creation-via-post.md)                       | Accepted | 2026-06-21 |
 | 0007 | [Astro & Vue Frontend Split](./0007-astro-and-vue-frontend-split.md)                     | Accepted | 2026-06-21 |
 | 0008 | [Application-Level Multi-tenancy](./0008-application-level-multi-tenancy.md)             | Accepted | 2026-06-21 |
@@ -53,6 +54,7 @@ as a historical record and a guide for current and future development.
 | 0026 | [Remove Automated Skill Doctor and Registry Generator](./0026-remove-automated-skill-doctor.md) | Accepted | 2026-09-30 |
 | 0027 | [Conditional Sentry Error-Tracking Boundary](./0027-conditional-sentry-error-tracking-boundary.md) | Accepted | 2026-10-02 |
 | 0028 | [Defer Shortlinks Capabilities Beyond Core V1](./0028-defer-shortlinks-beyond-core-v1.md) | Accepted | 2026-10-04 |
+| 0030 | [Separate Public WAITLIST Consent from Tenant Workspaces](./0030-separate-public-waitlist-consent-scope.md) | Accepted | 2026-10-26 |
 
 ## Relationship with other docs
 

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -35,8 +36,8 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
     @Test
     fun `external metadata round trips through repository`() = runTest {
-        seedWorkspace("workspace-1")
-        insertWorkspaceBlob("workspace-1", HASH)
+        seedWorkspace(WORKSPACE_1)
+        insertWorkspaceBlob(WORKSPACE_1, HASH)
         val asset = externalAsset(
             metadata = mapOf(
                 "provider" to mapOf("downloadLocation" to "https://api.unsplash.com/photos/photo-123/download"),
@@ -46,7 +47,7 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
         repository.create(asset)
 
-        val found = requireNotNull(repository.findByWorkspaceAndId("workspace-1", "asset-external"))
+        val found = requireNotNull(repository.findByWorkspaceAndId(WORKSPACE_1, ASSET_EXTERNAL))
         assertEquals(MediaSourceType.EXTERNAL, found.sourceType)
         assertEquals("unsplash", found.sourceProvider)
         assertEquals("photo-123", found.externalId)
@@ -58,13 +59,13 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
     @Test
     fun `database rejects uploaded rows with source provider`() = runTest {
-        seedWorkspace("workspace-2")
-        insertWorkspaceBlob("workspace-2", HASH)
+        seedWorkspace(WORKSPACE_2)
+        insertWorkspaceBlob(WORKSPACE_2, HASH)
 
         val exception = kotlin.runCatching {
             insertRawAsset(
-                assetId = "asset-uploaded-provider",
-                workspaceId = "workspace-2",
+                assetId = ASSET_UPLOADED_PROVIDER,
+                workspaceId = WORKSPACE_2,
                 sourceType = "UPLOADED",
                 sourceProvider = "unsplash",
                 externalId = null,
@@ -82,13 +83,13 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
     @Test
     fun `database rejects external rows without provider`() = runTest {
-        seedWorkspace("workspace-3")
-        insertWorkspaceBlob("workspace-3", HASH)
+        seedWorkspace(WORKSPACE_3)
+        insertWorkspaceBlob(WORKSPACE_3, HASH)
 
         val exception = kotlin.runCatching {
             insertRawAsset(
-                assetId = "asset-missing-provider",
-                workspaceId = "workspace-3",
+                assetId = ASSET_MISSING_PROVIDER,
+                workspaceId = WORKSPACE_3,
                 sourceType = "EXTERNAL",
                 sourceProvider = null,
                 externalId = "photo-123",
@@ -101,13 +102,13 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
     @Test
     fun `database rejects external rows without external id`() = runTest {
-        seedWorkspace("workspace-4")
-        insertWorkspaceBlob("workspace-4", HASH)
+        seedWorkspace(WORKSPACE_4)
+        insertWorkspaceBlob(WORKSPACE_4, HASH)
 
         val exception = kotlin.runCatching {
             insertRawAsset(
-                assetId = "asset-missing-id",
-                workspaceId = "workspace-4",
+                assetId = ASSET_MISSING_ID,
+                workspaceId = WORKSPACE_4,
                 sourceType = "EXTERNAL",
                 sourceProvider = "unsplash",
                 externalId = null,
@@ -120,12 +121,12 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
 
     @Test
     fun `metadata jsonb supports nested structure`() = runTest {
-        seedWorkspace("workspace-5")
-        insertWorkspaceBlob("workspace-5", HASH)
+        seedWorkspace(WORKSPACE_5)
+        insertWorkspaceBlob(WORKSPACE_5, HASH)
         repository.create(
             externalAsset(
-                assetId = "asset-jsonb",
-                workspaceId = "workspace-5",
+                assetId = ASSET_JSONB,
+                workspaceId = WORKSPACE_5,
                 metadata = mapOf("nested" to mapOf("width" to 1080, "tags" to listOf("social", "hero"))),
             ),
         )
@@ -134,7 +135,7 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
             """
             SELECT metadata #>> '{nested,tags,1}' AS tag
             FROM media_assets
-            WHERE asset_id = 'asset-jsonb'
+            WHERE asset_id = '$ASSET_JSONB'
             """.trimIndent(),
         )
             .map { row, _ -> requireNotNull(row.get("tag", String::class.java)) }
@@ -151,7 +152,7 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
             VALUES (:workspaceId, 'Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -167,7 +168,7 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
             )
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .fetch()
             .rowsUpdated()
@@ -192,8 +193,8 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
             )
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("sourceType", sourceType)
             .bind("fileHash", HASH)
         spec = if (sourceProvider == null) {
@@ -215,8 +216,8 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
     }
 
     private fun externalAsset(
-        assetId: String = "asset-external",
-        workspaceId: String = "workspace-1",
+        assetId: String = ASSET_EXTERNAL,
+        workspaceId: String = WORKSPACE_1,
         metadata: Map<String, Any>? = null,
     ) = MediaAsset(
         assetId = assetId,
@@ -237,6 +238,17 @@ class R2dbcMediaAssetRepositoryExternalMetadataTest : PostgresDatabaseTestBase()
     )
 
     companion object {
+        private const val WORKSPACE_1 = "d3d9800f-120a-501e-ad01-401e54e8f766"
+        private const val ASSET_EXTERNAL = "9d119052-5d20-5ac7-baf5-0276e5c0cc93"
+        private const val WORKSPACE_2 = "57af0326-afba-57ec-83e4-15ec87ecc8bc"
+        private const val ASSET_UPLOADED_PROVIDER = "b3c5e1bb-b4cf-5ec7-9314-bfff93286719"
+        private const val WORKSPACE_3 = "5bcd87e0-6e75-5367-b969-99c74c860cdc"
+        private const val ASSET_MISSING_PROVIDER = "30019f31-931a-57c5-b35e-f22ce88cf23f"
+        private const val WORKSPACE_4 = "591c3e24-e1fc-55ea-8be4-5dc9fafb4a6a"
+        private const val ASSET_MISSING_ID = "bcf2237d-2d9e-5d0d-8797-9160c6b33204"
+        private const val WORKSPACE_5 = "aed2d3a0-8415-57ed-b2b8-d5dde80ca7c7"
+        private const val ASSET_JSONB = "e18c2167-dd44-5b64-a82c-6bc3c98d4f51"
+
         private const val HASH = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
         @Container

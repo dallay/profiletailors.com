@@ -401,24 +401,27 @@ class BddContentStore :
     )
 }
 
-fun bddOrganizationPageActor(workspaceId: String, actorId: String = "page-1", socialAccountId: String = actorId) =
-    SocialContentActor(
-        id = actorId,
-        socialAccountId = socialAccountId,
-        scope = WorkspaceScope(workspaceId),
-        connectionId = "connection-$workspaceId",
-        provider = SocialProvider.LINKEDIN,
-        externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:organization:$actorId"),
-        kind = SocialAccountKind.ORGANIZATION_PAGE,
-        displayName = "Profile Tailors Page",
-        roleState = ActorRoleState.ADMIN,
-        grantedScopes = setOf("r_organization_social", "r_organization_social_feed"),
-    )
+fun bddOrganizationPageActor(
+    workspaceId: String,
+    actorId: String = "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64",
+    socialAccountId: String = actorId,
+) = SocialContentActor(
+    id = actorId,
+    socialAccountId = socialAccountId,
+    scope = WorkspaceScope(workspaceId),
+    connectionId = "60000000-0000-4000-8000-000000000001",
+    provider = SocialProvider.LINKEDIN,
+    externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:organization:page-1"),
+    kind = SocialAccountKind.ORGANIZATION_PAGE,
+    displayName = "Profile Tailors Page",
+    roleState = ActorRoleState.ADMIN,
+    grantedScopes = setOf("r_organization_social", "r_organization_social_feed"),
+)
 
 fun bddImportedPost(workspaceId: String, externalPostId: String = "post-1") = SocialPost(
     scope = WorkspaceScope(workspaceId),
     provider = SocialProvider.LINKEDIN,
-    actorId = "page-1",
+    actorId = "b1c0c296-b2cb-54f6-96f7-3f2b9b6aaf64",
     externalPostId = ExternalPostId(externalPostId),
     publishedAt = Instant.parse("2026-08-02T12:00:00Z"),
     body = "Imported page content",

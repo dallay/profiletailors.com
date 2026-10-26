@@ -25,7 +25,7 @@ internal class SaveHashtagSetHandler(
         membershipGate.requireActiveMember(workspaceId)
         val now = clock.instant()
         val set = HashtagSavedSet(
-            id = "htset-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             name = command.name.trim(),
             hashtags = command.hashtags.map { normalizeHashtag(it) },

@@ -31,13 +31,24 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
     'SMP_LINKEDIN_PUBLISHING_API_BASE_URL',
     'SMP_LINKEDIN_AUTHORIZATION_BASE_URL',
     'SMP_LINKEDIN_TOKEN_BASE_URL',
+    'SMP_THREADS_API_BASE_URL',
   ]
   const previousLinkedinBaseUrls = new Map(
     linkedinBaseUrlKeys.map((key) => [key, process.env[key]]),
   )
+  let root
   try {
     for (const key of linkedinBaseUrlKeys) delete process.env[key]
-    const context = getWorktreeContext()
+    root = mkdtempSync(join(tmpdir(), 'profiletailors-worktree-'))
+    const originalContext = getWorktreeContext()
+    const context = {
+      ...originalContext,
+      root,
+      runtimeDir: join(root, '.worktree'),
+      runDir: join(root, '.worktree', 'run'),
+      logDir: join(root, '.worktree', 'logs'),
+      storageDir: join(root, '.worktree', 'storage'),
+    }
     const runtime = getRuntimeEnvironment(context)
     const compose = getComposeEnvironment(context)
 
@@ -47,6 +58,9 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
     assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
     assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
     assert.equal(compose.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+    assert.equal(context.wiremockHostPort, process.env.WIREMOCK_HOST_PORT || '8089')
+    assert.equal(runtime.WIREMOCK_HOST_PORT, context.wiremockHostPort)
+    assert.equal(runtime.SMP_THREADS_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_PUBLISHING_API_BASE_URL, `http://localhost:${context.wiremockHostPort}`)
     assert.equal(runtime.SMP_LINKEDIN_AUTHORIZATION_BASE_URL, `http://localhost:${context.wiremockHostPort}/oauth/v2/authorization`)
@@ -56,6 +70,35 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
       if (value === undefined) delete process.env[key]
       else process.env[key] = value
     }
+    if (root) rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('uses root env defaults without overriding process environment values', () => {
+  const root = mkdtempSync(join(tmpdir(), 'profiletailors-env-'))
+  const context = {
+    root,
+    runtimeDir: join(root, '.worktree'),
+    runDir: join(root, '.worktree', 'run'),
+    logDir: join(root, '.worktree', 'logs'),
+    storageDir: join(root, '.worktree', 'storage'),
+    worktreeId: 'pt-test-env',
+    composeProjectName: 'pt-test-env',
+    corsOrigins: ['https://pt-app.localhost'],
+    wiremockHostPort: '8089',
+  }
+  const previous = process.env.SMP_THREADS_API_BASE_URL
+  writeFileSync(join(root, '.env'), 'SMP_THREADS_API_BASE_URL=http://env-file.test\n')
+
+  try {
+    process.env.SMP_THREADS_API_BASE_URL = 'http://process-env.test'
+    assert.equal(getRuntimeEnvironment(context).SMP_THREADS_API_BASE_URL, 'http://process-env.test')
+    delete process.env.SMP_THREADS_API_BASE_URL
+    assert.equal(getRuntimeEnvironment(context).SMP_THREADS_API_BASE_URL, 'http://env-file.test')
+  } finally {
+    if (previous === undefined) delete process.env.SMP_THREADS_API_BASE_URL
+    else process.env.SMP_THREADS_API_BASE_URL = previous
+    rmSync(root, { recursive: true, force: true })
   }
 })
 

@@ -51,14 +51,14 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
     apiFetch: mockApiFetch,
     apiFetchRaw: mockApiFetchRaw,
     accessToken: { value: 'fake-token' },
-    workspace: { activeWorkspaceId: 'ws-media-test' },
+    workspace: { activeWorkspaceId: 'a0c6b80d-0d0c-5221-8858-e507447063df' },
     $reset: vi.fn(),
   }),
 }))
 
 vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-media-test',
+    activeWorkspaceId: 'a0c6b80d-0d0c-5221-8858-e507447063df',
   }),
 }))
 
@@ -102,8 +102,8 @@ function emptyResponse(status: number): Response {
 describe('media asset external metadata contract', () => {
   it('accepts optional external metadata fields on media summaries', () => {
     const summary: MediaAssetSummary = {
-      assetId: 'asset-external',
-      workspaceId: 'workspace-1',
+      assetId: '097590a1-c080-53f3-b5c2-aa595c3a08ef',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       sourceType: 'EXTERNAL',
       mediaType: 'image/jpeg',
       status: 'READY',
@@ -165,7 +165,7 @@ describe('Unsplash provider API', () => {
   })
 
   it('imports the selected photo with a workspace-scoped POST', async () => {
-    mockApiFetch.mockResolvedValueOnce({ assetId: 'asset-1' })
+    mockApiFetch.mockResolvedValueOnce({ assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2' })
 
     await importUnsplashPhoto('photo/with spaces')
 
@@ -196,7 +196,7 @@ describe('deleteAsset', () => {
   it('throws a 401 error when the user is not authenticated', async () => {
     mockAuthenticatedBox.current = false
 
-    await expect(deleteAsset('asset-123')).rejects.toMatchObject({
+    await expect(deleteAsset('df0fa098-1f32-5770-8065-9abe0487642b')).rejects.toMatchObject({
       title: 'Not authenticated',
       detail: 'You must be signed in.',
       status: 401,
@@ -208,19 +208,22 @@ describe('deleteAsset', () => {
   it('calls apiFetch with DELETE method and the correct asset path', async () => {
     mockApiFetch.mockResolvedValueOnce(undefined)
 
-    await deleteAsset('asset-abc')
+    await deleteAsset('635a80d8-ddac-5be0-bcd5-3f04c43df611')
 
     expect(mockApiFetch).toHaveBeenCalledOnce()
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/assets/asset-abc', {
-      method: 'DELETE',
-      workspaceScoped: true,
-    })
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/api/media/assets/635a80d8-ddac-5be0-bcd5-3f04c43df611',
+      {
+        method: 'DELETE',
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('resolves without returning a value on success', async () => {
     mockApiFetch.mockResolvedValueOnce(undefined)
 
-    const result = await deleteAsset('asset-xyz')
+    const result = await deleteAsset('b6167bf0-8ae8-548f-bf18-ce66f0e43771')
 
     expect(result).toBeUndefined()
   })
@@ -241,7 +244,7 @@ describe('deleteAsset', () => {
   it('uses the workspaceScoped flag so the X-Workspace-Id header is injected', async () => {
     mockApiFetch.mockResolvedValueOnce(undefined)
 
-    await deleteAsset('asset-ws-check')
+    await deleteAsset('d6064dd3-0a18-5ff3-b11d-57865b46c8ab')
 
     const [, options] = mockApiFetch.mock.calls[0] as [string, { workspaceScoped?: boolean }]
     expect(options.workspaceScoped).toBe(true)
@@ -268,7 +271,7 @@ describe('getAsset', () => {
   it('throws 401 when not authenticated', async () => {
     mockAuthenticatedBox.current = false
 
-    await expect(getAsset('asset-id')).rejects.toMatchObject({
+    await expect(getAsset('65656b27-19fb-5b2c-9050-d8cc60847d2c')).rejects.toMatchObject({
       title: 'Not authenticated',
       status: 401,
     })
@@ -278,25 +281,28 @@ describe('getAsset', () => {
 
   it('calls apiFetch GET on /api/media/assets/{assetId}', async () => {
     mockApiFetch.mockResolvedValueOnce({
-      assetId: 'asset-id',
-      workspaceId: 'ws-1',
+      assetId: '65656b27-19fb-5b2c-9050-d8cc60847d2c',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       status: 'READY',
       mediaType: 'image/jpeg',
     })
 
-    await getAsset('asset-id')
+    await getAsset('65656b27-19fb-5b2c-9050-d8cc60847d2c')
 
     expect(mockApiFetch).toHaveBeenCalledOnce()
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/assets/asset-id', {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/api/media/assets/65656b27-19fb-5b2c-9050-d8cc60847d2c',
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('returns the apiFetch response payload', async () => {
     const payload = {
-      assetId: 'asset-1',
-      workspaceId: 'ws-1',
+      assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       status: 'READY' as const,
       mediaType: 'image/png',
       detectedMediaType: 'image/png',
@@ -306,7 +312,7 @@ describe('getAsset', () => {
     }
     mockApiFetch.mockResolvedValueOnce(payload)
 
-    const result = await getAsset('asset-1')
+    const result = await getAsset('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
     expect(result).toEqual(payload)
   })
@@ -369,8 +375,8 @@ describe('listAssets', () => {
     const payload = {
       assets: [
         {
-          assetId: 'asset-1',
-          workspaceId: 'ws-1',
+          assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'READY' as const,
           mediaType: 'image/jpeg',
           detectedMediaType: 'image/jpeg',
@@ -402,7 +408,7 @@ describe('putAsset', () => {
     mockAuthenticatedBox.current = false
 
     const file = new File(['hello'], 'hello.txt')
-    await expect(putAsset(file, 'ws-1')).rejects.toMatchObject({
+    await expect(putAsset(file, '820c22d8-9ce7-5e76-867f-04bac4e53b59')).rejects.toMatchObject({
       title: 'Not authenticated',
       status: 401,
     })
@@ -414,7 +420,7 @@ describe('putAsset', () => {
     mockMediaApiFetch.mockResolvedValueOnce(
       jsonResponse(200, {
         assetId: FIXED_UUID,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         status: 'READY',
         mediaType: 'image/jpeg',
         detectedMediaType: 'image/jpeg',
@@ -425,7 +431,7 @@ describe('putAsset', () => {
     )
 
     const file = new File(['hello'], 'photo_with_spaces.jpg', { type: 'image/jpeg' })
-    await putAsset(file, 'ws-1')
+    await putAsset(file, '820c22d8-9ce7-5e76-867f-04bac4e53b59')
 
     expect(mockMediaApiFetch).toHaveBeenCalledTimes(1)
     const [path, options] = mockMediaApiFetch.mock.calls[0] as [
@@ -446,7 +452,7 @@ describe('putAsset', () => {
     mockMediaApiFetch.mockResolvedValueOnce(
       jsonResponse(200, {
         assetId: FIXED_UUID,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         status: 'READY',
         mediaType: 'image/jpeg',
         detectedMediaType: 'image/jpeg',
@@ -457,7 +463,7 @@ describe('putAsset', () => {
     )
 
     const file = new File(['x'], '../../../etc/passwd\0.jpg', { type: 'image/jpeg' })
-    await putAsset(file, 'ws-1')
+    await putAsset(file, '820c22d8-9ce7-5e76-867f-04bac4e53b59')
 
     const options = mockMediaApiFetch.mock.calls[0]?.[1] as { body: string }
     const body = JSON.parse(options.body)
@@ -472,7 +478,7 @@ describe('putAsset', () => {
     mockMediaApiFetch.mockResolvedValueOnce(
       jsonResponse(200, {
         assetId: FIXED_UUID,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         status: 'READY',
         mediaType: 'image/jpeg',
         detectedMediaType: 'image/jpeg',
@@ -483,7 +489,7 @@ describe('putAsset', () => {
     )
 
     const file = new File([], 'unknown.bin')
-    await putAsset(file, 'ws-1')
+    await putAsset(file, '820c22d8-9ce7-5e76-867f-04bac4e53b59')
 
     const [, options] = mockMediaApiFetch.mock.calls[0] as [string, { body: string }]
     const body = JSON.parse(options.body)
@@ -493,7 +499,7 @@ describe('putAsset', () => {
   it('returns the body directly when PUT returns 200 with READY status (dedup hit)', async () => {
     const dedupBody = {
       assetId: FIXED_UUID,
-      workspaceId: 'ws-1',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       status: 'READY',
       mediaType: 'image/jpeg',
       detectedMediaType: 'image/jpeg',
@@ -503,7 +509,10 @@ describe('putAsset', () => {
     }
     mockMediaApiFetch.mockResolvedValueOnce(jsonResponse(200, dedupBody))
 
-    const result = await putAsset(new File(['x'], 'photo.jpg'), 'ws-1')
+    const result = await putAsset(
+      new File(['x'], 'photo.jpg'),
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
 
     expect(result).toEqual(dedupBody)
     // No upload POST happened
@@ -519,7 +528,9 @@ describe('putAsset', () => {
       }),
     )
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'Rate limit exceeded',
       detail: 'Hourly creation limit exceeded.',
       status: 429,
@@ -537,7 +548,9 @@ describe('putAsset', () => {
       }),
     )
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'Asset hash mismatch',
       detail: 'Asset already exists with a different file hash.',
       status: 409,
@@ -554,7 +567,9 @@ describe('putAsset', () => {
       }),
     )
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'Email verification required',
       detail: 'Please verify your email before uploading media.',
       status: 403,
@@ -570,7 +585,9 @@ describe('putAsset', () => {
       }),
     )
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'Validation error',
       status: 400,
       errorCode: 'FILE_SIZE_INVALID',
@@ -585,7 +602,9 @@ describe('putAsset', () => {
       }),
     )
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'INTERNAL_SERVER_ERROR',
       detail: 'Something went wrong.',
       status: 500,
@@ -595,7 +614,9 @@ describe('putAsset', () => {
   it('throws with status-only title when non-OK PUT has no JSON body', async () => {
     mockMediaApiFetch.mockResolvedValueOnce(emptyResponse(502))
 
-    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+    await expect(
+      putAsset(new File(['x'], 'a.jpg'), '820c22d8-9ce7-5e76-867f-04bac4e53b59'),
+    ).rejects.toMatchObject({
       title: 'PUT failed',
       detail: 'Server returned 502.',
       status: 502,
@@ -607,7 +628,7 @@ describe('putAsset', () => {
       .mockResolvedValueOnce(
         jsonResponse(201, {
           assetId: FIXED_UUID,
-          workspaceId: 'ws-1',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'PENDING_UPLOAD',
           mediaType: 'image/jpeg',
           uploadUrl: '/api/media/assets/abc/upload',
@@ -616,7 +637,7 @@ describe('putAsset', () => {
       .mockResolvedValueOnce(
         jsonResponse(200, {
           assetId: FIXED_UUID,
-          workspaceId: 'ws-1',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'READY',
           mediaType: 'image/jpeg',
           detectedMediaType: 'image/jpeg',
@@ -626,7 +647,10 @@ describe('putAsset', () => {
         }),
       )
 
-    const result = await putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+    const result = await putAsset(
+      new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
 
     expect(mockMediaApiFetch).toHaveBeenCalledTimes(2)
     const [, uploadOptions] = mockMediaApiFetch.mock.calls[1] as [
@@ -648,7 +672,7 @@ describe('putAsset', () => {
       .mockResolvedValueOnce(
         jsonResponse(201, {
           assetId: FIXED_UUID,
-          workspaceId: 'ws-1',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'PENDING_UPLOAD',
           mediaType: 'image/jpeg',
           uploadUrl: '/api/media/assets/abc/upload',
@@ -662,7 +686,10 @@ describe('putAsset', () => {
       )
 
     await expect(
-      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+      putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      ),
     ).rejects.toMatchObject({
       title: 'Email verification required',
       detail: 'Please verify your email before uploading media.',
@@ -676,7 +703,7 @@ describe('putAsset', () => {
       .mockResolvedValueOnce(
         jsonResponse(201, {
           assetId: FIXED_UUID,
-          workspaceId: 'ws-1',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'PENDING_UPLOAD',
           mediaType: 'image/jpeg',
           uploadUrl: '/api/media/assets/abc/upload',
@@ -690,7 +717,10 @@ describe('putAsset', () => {
       )
 
     await expect(
-      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+      putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      ),
     ).rejects.toMatchObject({
       title: 'HASH_MISMATCH',
       detail: 'Server-side hash check failed.',
@@ -704,7 +734,7 @@ describe('putAsset', () => {
       .mockResolvedValueOnce(
         jsonResponse(201, {
           assetId: FIXED_UUID,
-          workspaceId: 'ws-1',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           status: 'PENDING_UPLOAD',
           mediaType: 'image/jpeg',
           uploadUrl: '/api/media/assets/abc/upload',
@@ -718,7 +748,10 @@ describe('putAsset', () => {
       )
 
     await expect(
-      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+      putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      ),
     ).rejects.toMatchObject({
       title: 'STORAGE_UNAVAILABLE',
       detail: 'Object store is unreachable.',
@@ -730,14 +763,17 @@ describe('putAsset', () => {
     mockMediaApiFetch.mockResolvedValueOnce(
       jsonResponse(201, {
         assetId: FIXED_UUID,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
       }),
     )
 
     await expect(
-      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+      putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      ),
     ).rejects.toMatchObject({
       title: 'Upload URL missing',
       detail: 'Server requested an upload but did not provide an upload URL.',
@@ -751,7 +787,7 @@ describe('putAsset', () => {
     mockApiFetchRaw.mockResolvedValueOnce(
       jsonResponse(200, {
         assetId: FIXED_UUID,
-        workspaceId: 'ws-1',
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
         status: 'READY',
         mediaType: 'image/jpeg',
         detectedMediaType: 'image/jpeg',
@@ -761,12 +797,15 @@ describe('putAsset', () => {
       }),
     )
 
-    await putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+    await putAsset(
+      new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+      '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    )
 
     expect(mockMediaApiFetch).not.toHaveBeenCalled()
     expect(mockApiFetchRaw).toHaveBeenCalledWith(`/api/media/assets/${FIXED_UUID}`, {
       method: 'PUT',
-      headers: { 'X-Workspace-Id': 'ws-1' },
+      headers: { 'X-Workspace-Id': '820c22d8-9ce7-5e76-867f-04bac4e53b59' },
       body: JSON.stringify({
         fileHash: 'a'.repeat(64),
         fileSizeBytes: 5,
@@ -794,7 +833,10 @@ describe('putAsset', () => {
         .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
         .mockResolvedValueOnce(jsonResponse(200, { status: 'READY' }))
 
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
       await vi.advanceTimersByTimeAsync(3_100)
       const result = await promise
 
@@ -808,7 +850,10 @@ describe('putAsset', () => {
         .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
         .mockResolvedValueOnce(jsonResponse(200, { status: 'READY' }))
 
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
 
       // Advance past each poll interval
       for (let i = 0; i < 3; i++) {
@@ -825,7 +870,10 @@ describe('putAsset', () => {
         .mockResolvedValueOnce(jsonResponse(409, { status: 'HASH_MISMATCH' }))
 
       let error: unknown
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
       // Attach catch handler BEFORE advancing timers so the rejection is claimed
       promise.catch((e) => {
         error = e
@@ -846,7 +894,10 @@ describe('putAsset', () => {
         )
 
       let error: unknown
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
       promise.catch((e) => {
         error = e
       })
@@ -867,7 +918,10 @@ describe('putAsset', () => {
         .mockResolvedValueOnce(emptyResponse(502))
 
       let error: unknown
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
       promise.catch((e) => {
         error = e
       })
@@ -889,7 +943,10 @@ describe('putAsset', () => {
       }
 
       let error: unknown
-      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      const promise = putAsset(
+        new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }),
+        '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+      )
       promise.catch((e) => {
         error = e
       })

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-001-create-platform-role-assignments
-      author: platform-admin
+      author: yacosta738
       changes:
         - createTable:
             tableName: platform_role_assignments

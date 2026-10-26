@@ -44,17 +44,20 @@ infra/
 just infra-up
 ```
 
-The `dev` Spring profile points LinkedIn authorization, token exchange, userinfo, and publishing API
-traffic to the local WireMock at `http://localhost:33185`. Keep `WIREMOCK_HOST_PORT=33185` aligned
-with that endpoint. WireMock returns a deterministic local authorization code and mock access/refresh
-tokens; this exercises the application's authorization-code and refresh exchanges, not every
-LinkedIn OAuth API behavior. The browser authorization stub accepts only localhost callbacks. Do
-not override the development LinkedIn endpoint variables with real LinkedIn URLs when exercising
-OAuth locally. Binary upload mappings only accept the mock upload paths returned by the local
-image, document, and video initialization mappings; they are not a general-purpose PUT stub.
+The local social API WireMock uses the provider-neutral `social-api-wiremock` service and publishes
+port `8089` by default at `http://localhost:8089`. The SMP provider API base URLs retain their
+provider defaults: `https://api.linkedin.com` for LinkedIn and `https://graph.threads.net` for
+Threads. Set the provider API base-URL variables explicitly to use WireMock. `WIREMOCK_HOST_PORT`
+only overrides WireMock's published host port. LinkedIn WireMock returns a local
+authorization code and mock access/refresh tokens; this exercises the application's
+authorization-code and refresh exchanges, not every LinkedIn OAuth API behavior. The browser
+authorization stub accepts only localhost callbacks. Do not override the development LinkedIn
+endpoint variables with real LinkedIn URLs when exercising OAuth locally. Binary upload mappings
+only accept the mock upload paths returned by the local image, document, and video initialization
+mappings; they are not a general-purpose PUT stub.
 
-Host ports are allocated dynamically per worktree. Run `just infra-info` to inspect Mailpit,
-Prometheus, and Grafana. Loki is available internally at
+PostgreSQL, Mailpit, Prometheus, and Grafana host ports remain allocated per worktree. Run
+`just infra-info` to inspect Mailpit, Prometheus, and Grafana. Loki is available internally at
 `http://loki:3100`; use Grafana's pre-provisioned **Loki** datasource to query logs.
 
 ### Loki and Alloy with Compose

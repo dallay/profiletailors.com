@@ -18,6 +18,20 @@ Feature: Publications management
     And the response should contain a publicationId
     And the publication status should be "SCHEDULED"
 
+  Scenario: Batch creation returns groupId in response
+    When the client batch-creates publications for valid targets
+    Then the batch publication response status should be 201
+    And the batch publication status should be "ALL_CREATED"
+    And the batch response should contain 2 created targets
+    And the batch publication response should not contain provider data
+
+  Scenario: Batch create publication with one invalid target
+    When the client batch-creates publications with one valid and one invalid target
+    Then the batch publication response status should be 207
+    And the batch publication status should be "PARTIAL"
+    And the batch response should contain one created and one failed target
+    And the batch publication response should not contain provider data
+
   Scenario: Edit a draft publication
     Given a draft publication exists
     When the client edits the publication with new title "Updated Title"

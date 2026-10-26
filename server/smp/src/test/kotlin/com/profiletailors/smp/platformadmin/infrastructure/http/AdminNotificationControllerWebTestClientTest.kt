@@ -3,6 +3,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.notifications.domain.NotificationId
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
@@ -173,7 +174,7 @@ internal class AdminNotificationControllerWebTestClientTest {
     @Test
     fun `getNotification returns 404 when notification does not exist`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { notificationQuery.findById(any()) } returns null
+        coEvery { notificationQuery.findById(NotificationId(notificationId.toString())) } returns null
 
         webClient()
             .get()
@@ -187,7 +188,7 @@ internal class AdminNotificationControllerWebTestClientTest {
     fun `getNotification returns 200 with notification details`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         val summary = notificationSummary()
-        coEvery { notificationQuery.findById(any()) } returns summary
+        coEvery { notificationQuery.findById(NotificationId(notificationId.toString())) } returns summary
 
         webClient()
             .get()

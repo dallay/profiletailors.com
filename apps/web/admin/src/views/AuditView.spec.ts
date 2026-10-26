@@ -1,0 +1,150 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import AuditView from './AuditView.vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import { createI18n } from 'vue-i18n'
+
+const mockAuditLogsResult = {
+  items: [
+    {
+      eventId: 'd19d943f-2733-5c44-8d01-035e3a6fc167',
+      occurredAt: '2024-06-01T12:00:00Z',
+      action: 'USER_DISABLE',
+      targetType: 'USER',
+      targetId: 'c9199f5a-074c-5846-aed4-16f6eff2f72a',
+      result: 'SUCCEEDED',
+    },
+    {
+      eventId: 'cf652be5-2706-5be7-a561-4d4c6eaf3686',
+      occurredAt: '2024-06-01T11:00:00Z',
+      action: 'ROLE_ASSIGN',
+      targetType: 'USER',
+      targetId: 'f3e49830-1c3c-5cef-9d9e-c82479cd4088',
+      result: 'REJECTED',
+    },
+  ],
+  page: 0,
+  size: 25,
+  totalItems: 2,
+  totalPages: 1,
+  hasPrevious: false,
+  hasNext: false,
+}
+
+const mockRequest = vi.fn()
+vi.mock('@/stores/auth.store', () => ({
+  useAdminAuthStore: () => ({ request: mockRequest }),
+}))
+
+async function createView() {
+  setActivePinia(createPinia())
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/audit', name: 'audit', component: AuditView }],
+  })
+  const i18n = createI18n({
+    legacy: false,
+    locale: 'en',
+    messages: {
+      en: {
+        audit: {
+          title: 'Audit Logs',
+          empty: 'No audit logs found',
+          occurredAt: 'Occurred At',
+          action: 'Action',
+          filterByAction: 'Filter by action...',
+          targetType: 'Target Type',
+          targetId: '2cfe8360-e012-5877-a86a-a3837da411eb',
+          result: 'Result',
+          allResults: 'All Results',
+          results: {
+            succeeded: 'Succeeded',
+            rejected: 'Rejected',
+            failed: 'Failed',
+          },
+        },
+        common: {
+          loading: 'Loading...',
+          error: 'An error occurred',
+        },
+      },
+    },
+  })
+
+  await router.push({ name: 'audit' })
+  const wrapper = mount(AuditView, {
+    global: {
+      plugins: [router, i18n],
+      stubs: {
+        PaginationControls: {
+          props: ['page', 'totalPages', 'hasPrevious', 'hasNext'],
+          template: `
+            <div class="pagination">
+              <button class="prev" :disabled="!hasPrevious" @click="$emit('previous')">Prev</button>
+              <button class="next" :disabled="!hasNext" @click="$emit('next')">Next</button>
+            </div>
+          `,
+        },
+      },
+    },
+  })
+  return { wrapper, router }
+}
+
+describe('AuditView', () => {
+  beforeEach(() => {
+    mockRequest.mockReset()
+  })
+
+  it('renders audit log entries successfully', async () => {
+    mockRequest.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockAuditLogsResult),
+    })
+
+    const { wrapper } = await createView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Audit Logs')
+    expect(wrapper.text()).toContain('USER_DISABLE')
+    expect(wrapper.text()).toContain('c9199f5a-074c-5846-aed4-16f6eff2f72a')
+    expect(wrapper.text()).toContain('Succeeded')
+    expect(wrapper.text()).toContain('ROLE_ASSIGN')
+    expect(wrapper.text()).toContain('Rejected')
+  })
+
+  it('shows error message when request fails', async () => {
+    mockRequest.mockResolvedValueOnce({ ok: false, status: 500 })
+
+    const { wrapper } = await createView()
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').text()).toBe('An error occurred')
+  })
+
+  it('sends the action filter when the action input changes', async () => {
+    mockRequest
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockAuditLogsResult) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockAuditLogsResult) })
+
+    const { wrapper } = await createView()
+    await flushPromises()
+
+    const actionInput = wrapper.find('input[type="text"]')
+    await actionInput.setValue('USER_DISABLE')
+
+    await flushPromises()
+
+    expect(mockRequest).toHaveBeenCalledTimes(2)
+    const secondCall = mockRequest.mock.calls[1]
+    expect(secondCall).toBeDefined()
+    const requestUrl = secondCall?.[0]
+    if (typeof requestUrl !== 'string') throw new Error('Expected an audit request URL')
+    const params = new URL(requestUrl, 'http://localhost').searchParams
+    expect(params.get('action')).toBe('USER_DISABLE')
+    expect(params.get('page')).toBe('0')
+    expect(params.get('size')).toBe('25')
+    expect(params.has('result')).toBe(false)
+  })
+})

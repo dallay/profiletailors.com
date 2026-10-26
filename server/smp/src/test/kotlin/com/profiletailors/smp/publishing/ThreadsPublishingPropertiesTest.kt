@@ -4,6 +4,8 @@ import com.profiletailors.smp.publishing.infrastructure.threads.ThreadsPublishin
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.Duration
 
 class ThreadsPublishingPropertiesTest {
@@ -37,8 +39,75 @@ class ThreadsPublishingPropertiesTest {
         properties.isAllowedRedirectUri("https://attacker.example.test/callback") shouldBe false
     }
 
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "",
+            "http://example.test/oauth",
+            "https://",
+            "/oauth/access_token",
+            "https://user:password@example.test/oauth",
+            "https://example.test/oauth#fragment",
+            "https://invalid host/oauth",
+        ],
+    )
+    fun `should reject unsafe HTTPS URLs when threads is enabled`(endpoint: String) {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        listOf(
+            properties.copy(apiBaseUrl = endpoint),
+            properties.copy(authorizationBaseUrl = endpoint),
+            properties.copy(tokenExchangeUrl = endpoint),
+            properties.copy(longLivedTokenUrl = endpoint),
+        ).forEach { invalidProperties ->
+            invalidProperties.isConfigured() shouldBe false
+            shouldThrow<IllegalStateException> { invalidProperties.validate() }
+        }
+    }
+
     @Test
-    fun `enabled threads rejects unsupported scopes and invalid workflow budget`() {
+    fun `should reject OAuth endpoint URLs with query components when threads is enabled`() {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+        )
+
+        listOf(
+            properties.copy(authorizationBaseUrl = "https://threads.example/oauth/authorize?mode=test"),
+            properties.copy(tokenExchangeUrl = "https://threads.example/oauth/access_token?mode=test"),
+            properties.copy(longLivedTokenUrl = "https://threads.example/access_token?mode=test"),
+        ).forEach { invalidProperties ->
+            invalidProperties.isConfigured() shouldBe false
+            shouldThrow<IllegalStateException> { invalidProperties.validate() }
+        }
+    }
+
+    @Test
+    fun `should accept safe HTTPS endpoint overrides when threads is enabled`() {
+        val properties = ThreadsPublishingProperties(
+            enabled = true,
+            clientId = "client-id",
+            clientSecret = "client-secret",
+            redirectUri = "https://app.example.test/integrations/threads/callback",
+            apiBaseUrl = "https://threads-mock.example.test:8443",
+            authorizationBaseUrl = "https://threads-mock.example.test:8443/oauth/authorize",
+            tokenExchangeUrl = "https://threads-mock.example.test:8443/oauth/access_token",
+            longLivedTokenUrl = "https://threads-mock.example.test:8443/access_token",
+        )
+
+        properties.isConfigured() shouldBe true
+        properties.validate()
+    }
+
+    @Test
+    fun `should reject unsupported scopes and invalid workflow budgets when threads is enabled`() {
         val invalidScopes = ThreadsPublishingProperties(
             enabled = true,
             clientId = "client-id",

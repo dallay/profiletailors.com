@@ -35,12 +35,12 @@ Feature: Publishing channels and providers
     And the channels list should contain the existing LinkedIn channel
 
   Scenario: Provider policy is isolated by workspace
-    Given LinkedIn provider policy is available for workspace "workspace-1"
-    And LinkedIn provider policy is entitlement locked for workspace "workspace-2"
-    When the client lists configured providers for workspace "workspace-1"
+    Given LinkedIn provider policy is available for workspace "10000000-0000-4000-8000-000000000001"
+    And LinkedIn provider policy is entitlement locked for workspace "10000000-0000-4000-8000-000000000002"
+    When the client lists configured providers for workspace "10000000-0000-4000-8000-000000000001"
     Then the publishing response status should be 200
     And the catalog should contain available LinkedIn personal profile without secrets or plans
-    When the client lists configured providers for workspace "workspace-2"
+    When the client lists configured providers for workspace "10000000-0000-4000-8000-000000000002"
     Then the publishing response status should be 200
     And the catalog should contain LinkedIn locked for "NOT_ENTITLED"
 

@@ -133,4 +133,48 @@ class BulkValidationPipelineTest {
         assertEquals(BulkRowStatus.VALID, result.rows.first().status)
         assertTrue(result.rows.first().errors.isEmpty())
     }
+
+    @Test
+    fun `threads media row uses registry validator`() = runTest {
+        val threadsAccount = SocialAccount(
+            id = "account-threads-1",
+            socialConnectionId = "connection-threads-1",
+            workspaceId = "ws-threads",
+            provider = SocialProvider.THREADS,
+            providerAccountId = "threads-user-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "WireMock Threads User",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        val accountRepository = object : SocialAccountRepository {
+            override suspend fun upsert(account: SocialAccount): SocialAccount = account
+            override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
+            override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = threadsAccount
+            override suspend fun listActiveByWorkspace(workspaceId: String): List<SocialAccount> =
+                listOf(threadsAccount)
+            override suspend fun deleteByConnectionId(connectionId: String) = Unit
+        }
+        val linkedInOnlyValidator = ProviderCapabilityValidator { input ->
+            require(input.provider == SocialProvider.LINKEDIN) {
+                "LinkedIn capability validator only supports LINKEDIN."
+            }
+        }
+        val threadsValidator = ProviderCapabilityValidator { }
+        val registry = ProviderCapabilityRegistry.fromValidators(
+            SocialProvider.THREADS to threadsValidator,
+        )
+        val threadsPipeline = BulkValidationPipeline(
+            providerCapabilityValidator = linkedInOnlyValidator,
+            clock = fixedClock,
+            socialAccountRepository = accountRepository,
+            providerCapabilityRegistry = registry,
+        )
+        val csv = """
+            bodyText,scheduledFor,timezone,media_urls,hashtags
+            Hello Threads,2026-09-01T10:00:00Z,UTC,https://cdn.example.com/image.jpg,
+        """.trimIndent()
+        val result = threadsPipeline.validate("ws-threads", csv)
+        assertEquals(1, result.rows.size)
+        assertEquals(BulkRowStatus.VALID, result.rows.first().status)
+    }
 }

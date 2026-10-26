@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Repository
 class R2dbcUserPreferencesGateway(private val databaseClient: DatabaseClient) : UserPreferencesGateway {
@@ -25,7 +26,7 @@ class R2dbcUserPreferencesGateway(private val databaseClient: DatabaseClient) : 
         WHERE principal_id = :principalId
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ ->
             UserPreferences(
                 principalId = requireNotNull(row.get("principal_id", String::class.java)),
@@ -65,7 +66,7 @@ class R2dbcUserPreferencesGateway(private val databaseClient: DatabaseClient) : 
                 updated_at = EXCLUDED.updated_at
             """.trimIndent(),
         )
-            .bind("principalId", preferences.principalId)
+            .bind("principalId", UUID.fromString(preferences.principalId))
             .bind("locale", preferences.locale)
             .bind("timezone", preferences.timezone)
             .bind("timeFormat", preferences.timeFormat)

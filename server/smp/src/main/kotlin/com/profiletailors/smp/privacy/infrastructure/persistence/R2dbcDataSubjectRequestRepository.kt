@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 /**
  * R2DBC implementation of [DataSubjectRequestRepository].
@@ -48,12 +49,12 @@ class R2dbcDataSubjectRequestRepository(private val databaseClient: DatabaseClie
                 completed_at = EXCLUDED.completed_at
             """.trimIndent(),
         )
-            .bind("id", request.id.value)
+            .bind("id", UUID.fromString(request.id.value))
             .bind("requestType", request.requestType.name)
             .bind("status", request.status.name)
-            .bind("requestedBy", request.requestedBy)
+            .bind("requestedBy", UUID.fromString(request.requestedBy))
             .bind("requestedByEmail", request.requestedByEmail)
-            .bindNullable("workspaceId", request.workspaceId, String::class.java)
+            .bindNullable("workspaceId", request.workspaceId?.let(UUID::fromString), UUID::class.java)
             .bindNullable("notes", request.notes, String::class.java)
             .bindNullable("correctionData", request.correctionData, String::class.java)
             .bindNullable("resultRef", request.resultRef, String::class.java)
@@ -81,7 +82,7 @@ class R2dbcDataSubjectRequestRepository(private val databaseClient: DatabaseClie
         WHERE id = :id
         """.trimIndent(),
     )
-        .bind("id", id)
+        .bind("id", UUID.fromString(id))
         .map { row, _ -> rowToRequest(row) }
         .one()
         .awaitSingleOrNull()
@@ -96,7 +97,7 @@ class R2dbcDataSubjectRequestRepository(private val databaseClient: DatabaseClie
         ORDER BY created_at DESC
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ -> rowToRequest(row) }
         .all()
         .asFlow()
@@ -145,12 +146,12 @@ class R2dbcDataSubjectRequestRepository(private val databaseClient: DatabaseClie
     }
 
     private fun rowToRequest(row: Readable): DataSubjectRequest = DataSubjectRequest(
-        id = DataSubjectRequestId(requireNotNull(row.get("id", String::class.java))),
+        id = DataSubjectRequestId(requireNotNull(row.get("id", UUID::class.java)).toString()),
         requestType = RequestType.valueOf(requireNotNull(row.get("request_type", String::class.java))),
         status = DataSubjectRequestStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
-        requestedBy = requireNotNull(row.get("requested_by", String::class.java)),
+        requestedBy = requireNotNull(row.get("requested_by", UUID::class.java)).toString(),
         requestedByEmail = requireNotNull(row.get("requested_by_email", String::class.java)),
-        workspaceId = row.get("workspace_id", String::class.java),
+        workspaceId = row.get("workspace_id", UUID::class.java)?.toString(),
         notes = row.get("notes", String::class.java),
         correctionData = row.get("correction_data", String::class.java),
         resultRef = row.get("result_ref", String::class.java),

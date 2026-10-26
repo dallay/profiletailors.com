@@ -34,6 +34,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 private const val PUBLICATION_UPDATE_COLUMNS = """
     workspace_id = :workspaceId,
@@ -54,6 +55,7 @@ private const val PUBLICATION_UPDATE_COLUMNS = """
     published_at = :publishedAt,
     failed_at = :failedAt,
     external_publication_id = :externalPublicationId,
+    group_id = :groupId,
     last_error_code = :lastErrorCode,
     last_error_message = :lastErrorMessage,
     updated_at = :updatedAt
@@ -63,14 +65,14 @@ private const val PUBLICATION_INSERT_COLUMNS = """
     id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
     title, body_text, public_url, blocked_at, blocked_reason, retry_count,
     scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-    last_error_code, last_error_message, created_at, updated_at
+    last_error_code, last_error_message, created_at, updated_at, group_id
 """
 
 private const val PUBLICATION_INSERT_VALUES = """
     :id, :workspaceId, :authorPrincipalId, :provider, :socialAccountId, :status, :scheduleMode, :priority,
     :title, :bodyText, :publicUrl, :blockedAt, :blockedReason, :retryCount,
     :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
-    :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
+    :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt, :groupId
 """
 
 private const val PUBLICATION_ID_COLUMN = "publication_id"
@@ -95,20 +97,20 @@ class R2dbcPublicationRepository(
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
                    title, body_text, public_url, blocked_at, blocked_reason, retry_count,
                    scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-                   last_error_code, last_error_message, created_at, updated_at
+                   last_error_code, last_error_message, created_at, updated_at, group_id
             FROM publications
             WHERE workspace_id = :workspaceId AND id = :id
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("id", publicationId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("id", UUID.fromString(publicationId))
             .map { row, _ ->
                 PublicationDraft(
-                    id = requireNotNull(row.get("id", String::class.java)),
-                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-                    authorPrincipalId = requireNotNull(row.get("author_principal_id", String::class.java)),
+                    id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+                    workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
+                    authorPrincipalId = requireNotNull(row.get("author_principal_id", UUID::class.java)).toString(),
                     provider = SocialProvider.valueOf(requireNotNull(row.get("provider", String::class.java))),
-                    socialAccountId = requireNotNull(row.get("social_account_id", String::class.java)),
+                    socialAccountId = requireNotNull(row.get("social_account_id", UUID::class.java)).toString(),
                     status = PublicationStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                     scheduleMode = ScheduleMode.valueOf(requireNotNull(row.get("schedule_mode", String::class.java))),
                     priority = requireNotNull(row.get("priority", Boolean::class.javaObjectType)),
@@ -127,6 +129,7 @@ class R2dbcPublicationRepository(
                     lastErrorCode = row.get("last_error_code", String::class.java),
                     lastErrorMessage = row.get("last_error_message", String::class.java),
                     createdAt = row.get("created_at", OffsetDateTime::class.java)?.toInstant(),
+                    groupId = row.get("group_id", String::class.java),
                     updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
                 )
             }
@@ -141,8 +144,8 @@ class R2dbcPublicationRepository(
             ORDER BY position_index ASC
             """.trimIndent(),
         )
-            .bind("publicationId", publication.id)
-            .map { row, _ -> requireNotNull(row.get("asset_id", String::class.java)) }
+            .bind("publicationId", UUID.fromString(publication.id))
+            .map { row, _ -> requireNotNull(row.get("asset_id", UUID::class.java)).toString() }
             .all()
             .collectList()
             .awaitSingle()
@@ -159,8 +162,8 @@ class R2dbcPublicationRepository(
         hydrateAssets: Boolean,
     ): List<PublicationDraft> {
         val conditions = mutableListOf("workspace_id = :workspaceId", "scheduled_for >= :from", "scheduled_for < :to")
-        val paramKeys = mutableMapOf(
-            "workspaceId" to workspaceId,
+        val paramKeys = mutableMapOf<String, Any>(
+            "workspaceId" to UUID.fromString(workspaceId),
             "from" to from,
             "to" to to,
         )
@@ -177,7 +180,7 @@ class R2dbcPublicationRepository(
         socialAccountIds?.takeIf { it.isNotEmpty() }?.let { set ->
             val placeholders = set.mapIndexed { i, id ->
                 val key = "account_$i"
-                paramKeys[key] = id
+                paramKeys[key] = UUID.fromString(id)
                 ":$key"
             }
             conditions.add("social_account_id IN (${placeholders.joinToString(", ")})")
@@ -187,7 +190,7 @@ class R2dbcPublicationRepository(
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
                    title, body_text, public_url, blocked_at, blocked_reason, retry_count,
                    scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-                   last_error_code, last_error_message, created_at, updated_at
+                   last_error_code, last_error_message, created_at, updated_at, group_id
             FROM publications
             WHERE ${conditions.joinToString(" AND ")}
             ORDER BY scheduled_for ASC
@@ -250,10 +253,10 @@ class R2dbcPublicationRepository(
             ORDER BY publication_id, position_index ASC
             """.trimIndent(),
         )
-            .bind("ids", publicationIds)
+            .bind("ids", publicationIds.map(UUID::fromString))
             .map { row, _ ->
-                requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)) to
-                    requireNotNull(row.get("asset_id", String::class.java))
+                requireNotNull(row.get(PUBLICATION_ID_COLUMN, UUID::class.java)).toString() to
+                    requireNotNull(row.get("asset_id", UUID::class.java)).toString()
             }
             .all()
             .collectList()
@@ -286,7 +289,7 @@ class R2dbcPublicationRepository(
             .bind("externalPublicationId", externalPublicationId)
             .bind("publishedAt", publishedAt)
             .bind("updatedAt", publishedAt)
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -314,7 +317,7 @@ class R2dbcPublicationRepository(
             .bindNullable("reasonCode", reasonCode, String::class.java)
             .bindNullable("reasonMessage", reasonMessage, String::class.java)
             .bind("updatedAt", failedAt)
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -333,7 +336,7 @@ class R2dbcPublicationRepository(
             .bind("status", PublicationStatus.CANCELLED.name)
             .bind("cancelledAt", cancelledAt)
             .bind("updatedAt", cancelledAt)
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -354,7 +357,7 @@ class R2dbcPublicationRepository(
             .bind("blockedAt", blockedAt)
             .bindNullable("reason", reason, String::class.java)
             .bind("updatedAt", blockedAt)
-            .bind("id", publicationId)
+            .bind("id", UUID.fromString(publicationId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -376,8 +379,8 @@ class R2dbcPublicationRepository(
             FOR UPDATE
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
-        .bind("publicationId", publicationId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
+        .bind("publicationId", UUID.fromString(publicationId))
         .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
         .one()
         .awaitSingleOrNull()
@@ -393,8 +396,8 @@ class R2dbcPublicationRepository(
                   AND status IN (:pendingStatus, :retryWaitingStatus)
                     """.trimIndent(),
                 )
-                    .bind("publicationId", publicationId)
-                    .bind("workspaceId", workspaceId)
+                    .bind("publicationId", UUID.fromString(publicationId))
+                    .bind("workspaceId", UUID.fromString(workspaceId))
                     .bind("pendingStatus", JobStatus.PENDING.name)
                     .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
                     .fetch()
@@ -407,7 +410,7 @@ class R2dbcPublicationRepository(
                 WHERE publication_id = :publicationId
                     """.trimIndent(),
                 )
-                    .bind("publicationId", publicationId)
+                    .bind("publicationId", UUID.fromString(publicationId))
                     .fetch()
                     .rowsUpdated()
                     .awaitSingle()
@@ -420,8 +423,8 @@ class R2dbcPublicationRepository(
                   AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
                     """.trimIndent(),
                 )
-                    .bind("workspaceId", workspaceId)
-                    .bind("publicationId", publicationId)
+                    .bind("workspaceId", UUID.fromString(workspaceId))
+                    .bind("publicationId", UUID.fromString(publicationId))
                     .fetch()
                     .rowsUpdated()
                     .awaitSingle()
@@ -436,7 +439,7 @@ class R2dbcPublicationRepository(
             SELECT p.id, p.workspace_id, p.author_principal_id, p.provider, p.social_account_id, p.status, p.schedule_mode, p.priority,
                    p.title, p.body_text, p.public_url, p.blocked_at, p.blocked_reason, p.retry_count,
                    p.scheduled_for, p.next_slot_after, p.published_at, p.failed_at, p.external_publication_id,
-                   p.last_error_code, p.last_error_message, p.created_at, p.updated_at
+                   p.last_error_code, p.last_error_message, p.created_at, p.updated_at, p.group_id
             FROM publications p
             JOIN social_accounts a
               ON a.id = p.social_account_id
@@ -467,10 +470,10 @@ class R2dbcPublicationRepository(
                 ORDER BY publication_id, position_index ASC
                 """.trimIndent(),
             )
-                .bind("ids", publicationIds)
+                .bind("ids", publicationIds.map(UUID::fromString))
                 .map { row, _ ->
-                    requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)) to
-                        requireNotNull(row.get("asset_id", String::class.java))
+                    requireNotNull(row.get(PUBLICATION_ID_COLUMN, UUID::class.java)).toString() to
+                        requireNotNull(row.get("asset_id", UUID::class.java)).toString()
                 }
                 .all()
                 .collectList()
@@ -511,8 +514,8 @@ class R2dbcPublicationRepository(
             WHERE id = :id
             """.trimIndent(),
         )
-            .bind("id", draft.id)
-            .map { row, _ -> requireNotNull(row.get("workspace_id", String::class.java)) }
+            .bind("id", UUID.fromString(draft.id))
+            .map { row, _ -> requireNotNull(row.get("workspace_id", UUID::class.java)).toString() }
             .one()
             .awaitSingleOrNull()
 
@@ -542,39 +545,41 @@ class R2dbcPublicationRepository(
         updatedAt: Instant,
     ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
         bindPublicationUpdateWriteParams(draft, updatedAt)
-            .bind("id", draft.id)
+            .bind("id", UUID.fromString(draft.id))
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationInsertParams(
         draft: PublicationDraft,
         createdAt: Instant,
         updatedAt: Instant,
-    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = bind("id", draft.id)
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = bind("id", UUID.fromString(draft.id))
         .bindPublicationWriteParams(draft, createdAt, updatedAt)
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationUpdateWriteParams(
         draft: PublicationDraft,
         updatedAt: Instant,
-    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = bind("workspaceId", draft.workspaceId)
-        .bind("authorPrincipalId", draft.authorPrincipalId)
-        .bind("provider", draft.provider.name)
-        .bind("socialAccountId", draft.socialAccountId)
-        .bind("status", draft.status.name)
-        .bind("scheduleMode", draft.scheduleMode.name)
-        .bind("priority", draft.priority)
-        .bindNullable("title", draft.title, String::class.java)
-        .bindNullable("bodyText", draft.bodyText, String::class.java)
-        .bindNullable("publicUrl", draft.publicUrl, String::class.java)
-        .bindNullable("blockedAt", draft.blockedAt, Instant::class.java)
-        .bindNullable("blockedReason", draft.blockedReason, String::class.java)
-        .bind("retryCount", draft.retryCount)
-        .bindNullable("scheduledFor", draft.scheduledFor, Instant::class.java)
-        .bindNullable("nextSlotAfter", draft.nextSlotAfter, Instant::class.java)
-        .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
-        .bindNullable("failedAt", draft.failedAt, Instant::class.java)
-        .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
-        .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
-        .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
-        .bind("updatedAt", updatedAt)
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+        bind("workspaceId", UUID.fromString(draft.workspaceId))
+            .bind("authorPrincipalId", UUID.fromString(draft.authorPrincipalId))
+            .bind("provider", draft.provider.name)
+            .bind("socialAccountId", UUID.fromString(draft.socialAccountId))
+            .bind("status", draft.status.name)
+            .bind("scheduleMode", draft.scheduleMode.name)
+            .bind("priority", draft.priority)
+            .bindNullable("title", draft.title, String::class.java)
+            .bindNullable("bodyText", draft.bodyText, String::class.java)
+            .bindNullable("publicUrl", draft.publicUrl, String::class.java)
+            .bindNullable("blockedAt", draft.blockedAt, Instant::class.java)
+            .bindNullable("blockedReason", draft.blockedReason, String::class.java)
+            .bind("retryCount", draft.retryCount)
+            .bindNullable("scheduledFor", draft.scheduledFor, Instant::class.java)
+            .bindNullable("nextSlotAfter", draft.nextSlotAfter, Instant::class.java)
+            .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
+            .bindNullable("failedAt", draft.failedAt, Instant::class.java)
+            .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
+            .bindNullable("groupId", draft.groupId, String::class.java)
+            .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
+            .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
+            .bind("updatedAt", updatedAt)
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationWriteParams(
         draft: PublicationDraft,
@@ -591,7 +596,7 @@ class R2dbcPublicationRepository(
             WHERE publication_id = :publicationId
             """.trimIndent(),
         )
-            .bind("publicationId", draft.id)
+            .bind("publicationId", UUID.fromString(draft.id))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -604,8 +609,8 @@ class R2dbcPublicationRepository(
                 VALUES (:publicationId, :assetId, :positionIndex)
                 """.trimIndent(),
             )
-                .bind("publicationId", draft.id)
-                .bind("assetId", assetId)
+                .bind("publicationId", UUID.fromString(draft.id))
+                .bind("assetId", UUID.fromString(assetId))
                 .bind("positionIndex", index)
                 .fetch()
                 .rowsUpdated()
@@ -631,11 +636,11 @@ class R2dbcPublicationAssetRepository(
             WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .map { row, _ ->
                 PublicationAsset(
-                    id = requireNotNull(row.get("id", String::class.java)),
-                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                    id = requireNotNull(row.get("id", UUID::class.java)).toString(),
+                    workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
                     sourceType = AssetSourceType.valueOf(requireNotNull(row.get("source_type", String::class.java))),
                     mediaType = requireNotNull(row.get("media_type", String::class.java)),
                     storageKey = row.get("storage_key", String::class.java),
@@ -651,7 +656,9 @@ class R2dbcPublicationAssetRepository(
                             )
                         }.getOrNull()
                     },
-                    createdByPrincipalId = requireNotNull(row.get("created_by_principal_id", String::class.java)),
+                    createdByPrincipalId = requireNotNull(
+                        row.get("created_by_principal_id", UUID::class.java),
+                    ).toString(),
                     createdAt = row.get("created_at", OffsetDateTime::class.java)?.toInstant(),
                 )
             }
@@ -676,8 +683,8 @@ class R2dbcPublicationAssetRepository(
             )
             """.trimIndent(),
         )
-            .bind("id", asset.id)
-            .bind("workspaceId", asset.workspaceId)
+            .bind("id", UUID.fromString(asset.id))
+            .bind("workspaceId", UUID.fromString(asset.workspaceId))
             .bind("sourceType", asset.sourceType.name)
             .bind("mediaType", asset.mediaType)
             .bindNullable("storageKey", asset.storageKey, String::class.java)
@@ -693,7 +700,7 @@ class R2dbcPublicationAssetRepository(
             }
             .bind("status", asset.status.name)
             .bindNullable("providerAssetRef", providerAssetRefJson, String::class.java)
-            .bind("createdByPrincipalId", asset.createdByPrincipalId)
+            .bind("createdByPrincipalId", UUID.fromString(asset.createdByPrincipalId))
             .bindNullable("createdAt", asset.createdAt ?: Instant.now(), Instant::class.java)
             .fetch()
             .rowsUpdated()
@@ -710,7 +717,7 @@ class R2dbcPublicationAssetRepository(
             """.trimIndent(),
         )
             .bind("status", status.name)
-            .bind("id", assetId)
+            .bind("id", UUID.fromString(assetId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -731,7 +738,7 @@ class R2dbcPublicationAssetRepository(
         )
             .bind("status", PublicationAssetStatus.READY.name)
             .bind("providerAssetRef", providerAssetRefJson)
-            .bind("id", assetId)
+            .bind("id", UUID.fromString(assetId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -747,15 +754,15 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
 
     override suspend fun replaceForPublication(job: PublicationJob) {
         databaseClient.sql("DELETE FROM delivery_attempts WHERE publication_id = :publicationId")
-            .bind("publicationId", job.publicationId)
+            .bind("publicationId", UUID.fromString(job.publicationId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql(
             "DELETE FROM publication_jobs WHERE publication_id = :publicationId AND workspace_id = :workspaceId",
         )
-            .bind("publicationId", job.publicationId)
-            .bind("workspaceId", job.workspaceId)
+            .bind("publicationId", UUID.fromString(job.publicationId))
+            .bind("workspaceId", UUID.fromString(job.workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -808,9 +815,9 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .bind("leaseExpiresAt", leaseExpiresAt)
             .map { resultRow, _ ->
                 PublicationJobClaim(
-                    jobId = requireNotNull(resultRow.get("id", String::class.java)),
-                    publicationId = requireNotNull(resultRow.get(PUBLICATION_ID_COLUMN, String::class.java)),
-                    workspaceId = requireNotNull(resultRow.get("workspace_id", String::class.java)),
+                    jobId = requireNotNull(resultRow.get("id", UUID::class.java)).toString(),
+                    publicationId = requireNotNull(resultRow.get(PUBLICATION_ID_COLUMN, UUID::class.java)).toString(),
+                    workspaceId = requireNotNull(resultRow.get("workspace_id", UUID::class.java)).toString(),
                     attemptNumber = requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
                     claimedAt = now,
                     leaseExpiresAt = leaseExpiresAt,
@@ -833,7 +840,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         LIMIT 1
         """.trimIndent(),
     )
-        .bind("publicationJobId", publicationJobId)
+        .bind("publicationJobId", UUID.fromString(publicationJobId))
         .map { resultRow, _ -> requireNotNull(resultRow.get("operation_key", String::class.java)) }
         .one()
         .awaitSingleOrNull()
@@ -861,7 +868,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         .bind("status", JobStatus.RETRY_WAITING.name)
         .bind("nextAttemptAt", nextAttemptAt)
         .bind("attemptCount", attemptNumber)
-        .bind("id", jobId)
+        .bind("id", UUID.fromString(jobId))
         .bind("claimVersion", claimVersion)
         .fetch()
         .rowsUpdated()
@@ -887,7 +894,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         )
             .bind("status", JobStatus.CANCELLED.name)
             .bind("cancelledAt", cancelledAt)
-            .bind("publicationId", jobId)
+            .bind("publicationId", UUID.fromString(jobId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -917,9 +924,9 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .map { row, _ ->
                 total = requireNotNull(row.get("total_count", Long::class.javaObjectType)).toInt()
                 StaleJob(
-                    jobId = requireNotNull(row.get("id", String::class.java)),
-                    publicationId = requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)),
-                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                    jobId = requireNotNull(row.get("id", UUID::class.java)).toString(),
+                    publicationId = requireNotNull(row.get(PUBLICATION_ID_COLUMN, UUID::class.java)).toString(),
+                    workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
                     claimedByWorker = requireNotNull(row.get("claimed_by_worker", String::class.java)),
                     claimedAt = requireNotNull(row.get("claimed_at", OffsetDateTime::class.java)).toInstant(),
                     leaseExpiresAt = requireNotNull(
@@ -982,7 +989,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         )
             .bind("status", status.name)
             .bind("timestamp", timestamp)
-            .bind("id", jobId)
+            .bind("id", UUID.fromString(jobId))
             .bind("claimVersion", claimVersion)
             .fetch()
             .rowsUpdated()
@@ -1004,9 +1011,9 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             )
             """.trimIndent(),
         )
-            .bind("id", job.id)
-            .bind("publicationId", job.publicationId)
-            .bind("workspaceId", job.workspaceId)
+            .bind("id", UUID.fromString(job.id))
+            .bind("publicationId", UUID.fromString(job.publicationId))
+            .bind("workspaceId", UUID.fromString(job.workspaceId))
             .bind("status", job.status.name)
             .bind("dueAt", job.dueAt)
             .bind("priorityRank", job.priorityRank)
@@ -1043,9 +1050,9 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             )
             """.trimIndent(),
         )
-            .bind("id", attempt.id)
-            .bind("publicationId", attempt.publicationId)
-            .bind("publicationJobId", attempt.publicationJobId)
+            .bind("id", UUID.fromString(attempt.id))
+            .bind("publicationId", UUID.fromString(attempt.publicationId))
+            .bind("publicationJobId", UUID.fromString(attempt.publicationJobId))
             .bind("attemptNumber", attempt.attemptNumber)
             .bind("outcome", attempt.outcome.name)
             .bind("retryable", attempt.retryable)
@@ -1113,7 +1120,7 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
         .bind("phase", attempt.phase.name)
         .bind("operationKey", attempt.operationKey)
         .bind("claimVersion", attempt.claimVersion)
-        .bind("publicationJobId", attempt.publicationJobId)
+        .bind("publicationJobId", UUID.fromString(attempt.publicationJobId))
         .fetch()
         .rowsUpdated()
         .awaitSingle()
@@ -1121,9 +1128,9 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
 }
 
 private fun Readable.toDeliveryAttempt(): DeliveryAttempt = DeliveryAttempt(
-    id = requireNotNull(get("id", String::class.java)),
-    publicationId = requireNotNull(get(PUBLICATION_ID_COLUMN, String::class.java)),
-    publicationJobId = requireNotNull(get("publication_job_id", String::class.java)),
+    id = requireNotNull(get("id", UUID::class.java)).toString(),
+    publicationId = requireNotNull(get(PUBLICATION_ID_COLUMN, UUID::class.java)).toString(),
+    publicationJobId = requireNotNull(get("publication_job_id", UUID::class.java)).toString(),
     attemptNumber = requireNotNull(get("attempt_number", Int::class.javaObjectType)),
     outcome = DeliveryAttemptOutcome.valueOf(requireNotNull(get("outcome", String::class.java))),
     retryable = requireNotNull(get("retryable", Boolean::class.javaObjectType)),
@@ -1167,11 +1174,11 @@ internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bi
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
 private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
-    id = requireNotNull(get("id", String::class.java)),
-    workspaceId = requireNotNull(get("workspace_id", String::class.java)),
-    authorPrincipalId = requireNotNull(get("author_principal_id", String::class.java)),
+    id = requireNotNull(get("id", UUID::class.java)).toString(),
+    workspaceId = requireNotNull(get("workspace_id", UUID::class.java)).toString(),
+    authorPrincipalId = requireNotNull(get("author_principal_id", UUID::class.java)).toString(),
     provider = SocialProvider.valueOf(requireNotNull(get("provider", String::class.java))),
-    socialAccountId = requireNotNull(get("social_account_id", String::class.java)),
+    socialAccountId = requireNotNull(get("social_account_id", UUID::class.java)).toString(),
     status = PublicationStatus.valueOf(requireNotNull(get("status", String::class.java))),
     scheduleMode = ScheduleMode.valueOf(requireNotNull(get("schedule_mode", String::class.java))),
     priority = requireNotNull(get("priority", Boolean::class.javaObjectType)),
@@ -1190,5 +1197,6 @@ private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
     lastErrorCode = get("last_error_code", String::class.java),
     lastErrorMessage = get("last_error_message", String::class.java),
     createdAt = get("created_at", OffsetDateTime::class.java)?.toInstant(),
+    groupId = get("group_id", String::class.java),
     updatedAt = get("updated_at", OffsetDateTime::class.java)?.toInstant(),
 )

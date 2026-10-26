@@ -60,6 +60,16 @@ watch(
 
 const connectingLinkedIn = ref(false)
 
+const failedChannelAvatarIds = ref(new Set<string>())
+
+function onChannelAvatarError(channelId: string) {
+  if (!failedChannelAvatarIds.value.has(channelId)) {
+    const next = new Set(failedChannelAvatarIds.value)
+    next.add(channelId)
+    failedChannelAvatarIds.value = next
+  }
+}
+
 async function connectLinkedInProfile() {
   connectingLinkedIn.value = true
   connectError.value = null
@@ -227,10 +237,11 @@ function segmentedControlClass(active: boolean) {
               data-testid="settings-connected-channel"
             >
               <img
-                v-if="channel.avatarUrl"
+                v-if="channel.avatarUrl && !failedChannelAvatarIds.has(channel.id)"
                 :src="proxyImageUrl(channel.avatarUrl)"
                 :alt="`${channel.name} avatar`"
                 class="size-11 rounded-full border border-border-visible object-cover"
+                @error="onChannelAvatarError(channel.id)"
               >
               <div
                 v-else

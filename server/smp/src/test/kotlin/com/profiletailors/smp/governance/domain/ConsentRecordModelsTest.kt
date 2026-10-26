@@ -3,6 +3,7 @@ package com.profiletailors.smp.governance.domain
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -11,12 +12,13 @@ import kotlin.test.assertTrue
 internal class ConsentRecordModelsTest {
 
     private val givenAt = Instant.parse("2026-07-17T10:00:00Z")
+    private val workspaceScope = ConsentScope.Workspace(UUID.fromString("00000000-0000-0000-0000-000000000001"))
 
     @Test
     fun `creates consent record with required fields`() {
         val record = ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.workspace("ws-001"),
             consentType = ConsentType.CONSENT,
             purpose = "waitlist.early_access",
@@ -42,7 +44,7 @@ internal class ConsentRecordModelsTest {
     fun `withdrawal preserves historical record and sets status to WITHDRAWN`() {
         val record = ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.user("user-001"),
             consentType = ConsentType.CONSENT,
             purpose = "marketing_emails",
@@ -59,6 +61,7 @@ internal class ConsentRecordModelsTest {
         assertEquals(withdrawnAt, withdrawn.withdrawnAt)
         assertEquals(record.givenAt, withdrawn.givenAt)
         assertEquals(record.id, withdrawn.id)
+        assertEquals(record.scope, withdrawn.scope)
         assertEquals(record.subjectReference, withdrawn.subjectReference)
         assertEquals(record.purpose, withdrawn.purpose)
     }
@@ -67,7 +70,7 @@ internal class ConsentRecordModelsTest {
     fun `cannot withdraw an already withdrawn record`() {
         val record = ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.workspace("ws-001"),
             consentType = ConsentType.CONSENT,
             purpose = "waitlist.early_access",
@@ -86,7 +89,7 @@ internal class ConsentRecordModelsTest {
     fun `withdraw with timestamp before givenAt throws`() {
         val record = ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.workspace("ws-001"),
             consentType = ConsentType.CONSENT,
             purpose = "waitlist.early_access",
@@ -140,7 +143,7 @@ internal class ConsentRecordModelsTest {
         assertThrows<IllegalArgumentException> {
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
-                workspaceId = "ws-001",
+                scope = workspaceScope,
                 subjectReference = SubjectReference.workspace("ws-001"),
                 consentType = ConsentType.CONSENT,
                 purpose = "",
@@ -154,7 +157,7 @@ internal class ConsentRecordModelsTest {
         assertThrows<IllegalArgumentException> {
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
-                workspaceId = "ws-001",
+                scope = workspaceScope,
                 subjectReference = SubjectReference.workspace("ws-001"),
                 consentType = ConsentType.CONSENT,
                 purpose = "waitlist.early_access",
@@ -170,7 +173,7 @@ internal class ConsentRecordModelsTest {
     fun `isActive helper reflects current status`() {
         val active = ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = workspaceScope,
             subjectReference = SubjectReference.workspace("ws-001"),
             consentType = ConsentType.CONSENT,
             purpose = "waitlist.early_access",

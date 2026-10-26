@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-021-create-bulk-import-jobs
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: bulk_import_jobs

@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.2.25](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.24...landing@v0.2.25) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#1379](https://github.com/dallay/profiletailors.com/issues/1379)) ([e6959f7](https://github.com/dallay/profiletailors.com/commit/e6959f70e8382a2ca7c6a140b20bea86663fd1f2))
+
+## [0.2.24](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.23...landing@v0.2.24) (2026-10-23)
+
+
+### Bug Fixes
+
+* Update OAuth endpoints and Node.js version in configuration ([#1386](https://github.com/dallay/profiletailors.com/issues/1386)) ([e2628c9](https://github.com/dallay/profiletailors.com/commit/e2628c9ab32810906aabf79983a915378768914c))
+
+## [0.2.23](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.22...landing@v0.2.23) (2026-10-21)
+
+
+### Features
+
+* **agpl:** document strategy and source offers ([#1260](https://github.com/dallay/profiletailors.com/issues/1260)) ([ae26f8f](https://github.com/dallay/profiletailors.com/commit/ae26f8f8ea772a273fa7c4b7321535154a74bead))
+
+
+### Bug Fixes
+
+* **quality:** remediate SonarCloud findings ([#1267](https://github.com/dallay/profiletailors.com/issues/1267)) ([6669547](https://github.com/dallay/profiletailors.com/commit/66695476839383ff90193fc12def5f87553ae98a))
+* **tests:** harden frontend test helpers flagged by CodeQL ([#1285](https://github.com/dallay/profiletailors.com/issues/1285)) ([5e75878](https://github.com/dallay/profiletailors.com/commit/5e75878c09de34ef366f03b009e892e21b26b4e1))
+
+
+### Refactoring
+
+* **tests:** enhance analytics and scheduler tests with improved data handling and validation ([a75fb40](https://github.com/dallay/profiletailors.com/commit/a75fb40b181e46e9e29303fb30383f8de6bfe0e4))
+
+
+### Documentation
+
+* **specs:** reconcile business contracts with implementation ([#1296](https://github.com/dallay/profiletailors.com/issues/1296)) ([70fc7ca](https://github.com/dallay/profiletailors.com/commit/70fc7ca9fca32d4cc1ca9aee699d7704adb3747d))
+
 ## [0.2.22](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.21...landing@v0.2.22) (2026-09-29)
 
 

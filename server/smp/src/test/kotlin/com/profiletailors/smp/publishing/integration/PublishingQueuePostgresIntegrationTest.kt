@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.integration
 
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
@@ -14,6 +15,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
+import liquibase.Contexts
+import liquibase.LabelExpression
+import liquibase.Liquibase
+import liquibase.database.DatabaseFactory
+import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -31,8 +37,10 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.sql.DriverManager
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
 
 /**
  * PostgreSQL-specific integration tests for publishing queue claim and update operations.
@@ -77,28 +85,32 @@ class PublishingQueuePostgresIntegrationTest {
     }
 
     private suspend fun cleanupTestData() {
-        databaseClient.sql(
-            "DELETE FROM delivery_attempts WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM publication_jobs WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM publication_asset_links WHERE publication_id LIKE 'pub-%'",
-        ).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM publications WHERE id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM social_accounts WHERE id LIKE 'account-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql(
-            "DELETE FROM social_connections WHERE id LIKE 'connection-%' OR id LIKE 'conn-%'",
-        ).fetch().rowsUpdated().awaitSingle()
+        listOf(
+            """
+            DELETE FROM delivery_attempts
+            WHERE publication_id IN (SELECT id FROM publications WHERE workspace_id = :workspaceId)
+            """.trimIndent(),
+            "DELETE FROM publication_jobs WHERE workspace_id = :workspaceId",
+            """
+            DELETE FROM publication_asset_links
+            WHERE publication_id IN (SELECT id FROM publications WHERE workspace_id = :workspaceId)
+            """.trimIndent(),
+            "DELETE FROM publications WHERE workspace_id = :workspaceId",
+            "DELETE FROM social_accounts WHERE workspace_id = :workspaceId",
+            "DELETE FROM social_connections WHERE workspace_id = :workspaceId",
+        ).forEach { sql ->
+            databaseClient.sql(sql)
+                .bind("workspaceId", UUID.fromString("00000000-0000-0000-0000-00000000049d"))
+                .fetch().rowsUpdated().awaitSingle()
+        }
     }
 
     @Test
     fun `claimNextDue with ORDER BY priority_rank DESC and due_at ASC works correctly in PostgreSQL`() = runTest {
         // Seed three jobs with different priorities and due times
         seedPublicationAndJob(
-            publicationId = "pub-low-priority-early",
-            jobId = "job-low-priority-early",
+            publicationId = "00000000-0000-0000-0000-000000000451",
+            jobId = "00000000-0000-0000-0000-000000000418",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -106,8 +118,8 @@ class PublishingQueuePostgresIntegrationTest {
             scheduleMode = ScheduleMode.NOW,
         )
         seedPublicationAndJob(
-            publicationId = "pub-high-priority-late",
-            jobId = "job-high-priority-late",
+            publicationId = "00000000-0000-0000-0000-00000000044f",
+            jobId = "00000000-0000-0000-0000-000000000416",
             dueAt = Instant.parse("2026-05-27T09:00:00Z"),
             priority = true,
             priorityRank = 100,
@@ -115,8 +127,8 @@ class PublishingQueuePostgresIntegrationTest {
             scheduleMode = ScheduleMode.NOW,
         )
         seedPublicationAndJob(
-            publicationId = "pub-medium-priority-middle",
-            jobId = "job-medium-priority-middle",
+            publicationId = "00000000-0000-0000-0000-000000000452",
+            jobId = "00000000-0000-0000-0000-000000000419",
             dueAt = Instant.parse("2026-05-27T08:30:00Z"),
             priority = false,
             priorityRank = 50,
@@ -133,15 +145,15 @@ class PublishingQueuePostgresIntegrationTest {
 
         // Should claim the highest priority first (priority_rank DESC)
         assertNotNull(claim)
-        assertEquals("job-high-priority-late", claim?.jobId)
-        assertEquals("pub-high-priority-late", claim?.publicationId)
+        assertEquals("00000000-0000-0000-0000-000000000416", claim?.jobId)
+        assertEquals("00000000-0000-0000-0000-00000000044f", claim?.publicationId)
     }
 
     @Test
     fun `UPDATE with status transition from PENDING to CLAIMED updates attempt_count correctly`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-claim-test",
-            jobId = "job-claim-test",
+            publicationId = "00000000-0000-0000-0000-00000000043c",
+            jobId = "00000000-0000-0000-0000-000000000408",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -167,7 +179,7 @@ class PublishingQueuePostgresIntegrationTest {
             WHERE id = :id
             """.trimIndent(),
         )
-            .bind("id", "job-claim-test")
+            .bind("id", UUID.fromString("00000000-0000-0000-0000-000000000408"))
             .fetch()
             .one()
             .awaitSingle()
@@ -181,8 +193,8 @@ class PublishingQueuePostgresIntegrationTest {
     @Test
     fun `rescheduleRetry updates status to RETRY_WAITING and clears worker claim fields`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-retry-test",
-            jobId = "job-retry-test",
+            publicationId = "00000000-0000-0000-0000-000000000469",
+            jobId = "00000000-0000-0000-0000-000000000422",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -199,7 +211,7 @@ class PublishingQueuePostgresIntegrationTest {
             ),
         )
         jobRepository.rescheduleRetry(
-            jobId = "job-retry-test",
+            jobId = "00000000-0000-0000-0000-000000000422",
             claimVersion = claim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:00:00Z"),
             attemptNumber = 1,
@@ -213,7 +225,7 @@ class PublishingQueuePostgresIntegrationTest {
             WHERE id = :id
             """.trimIndent(),
         )
-            .bind("id", "job-retry-test")
+            .bind("id", UUID.fromString("00000000-0000-0000-0000-000000000422"))
             .fetch()
             .one()
             .awaitSingle()
@@ -227,8 +239,8 @@ class PublishingQueuePostgresIntegrationTest {
     @Test
     fun `timestamp comparison with due_at works correctly with PostgreSQL TIMESTAMP WITH TIME ZONE`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-timestamp-test",
-            jobId = "job-timestamp-test",
+            publicationId = "00000000-0000-0000-0000-00000000047a",
+            jobId = "00000000-0000-0000-0000-00000000042a",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -251,14 +263,14 @@ class PublishingQueuePostgresIntegrationTest {
             Duration.ofMinutes(2),
         )
         assertNotNull(claimExact)
-        assertEquals("job-timestamp-test", claimExact?.jobId)
+        assertEquals("00000000-0000-0000-0000-00000000042a", claimExact?.jobId)
     }
 
     @Test
     fun `should return one claim when two workers claim concurrently`() = runTest {
         seedPublicationAndJob(
-            publicationId = "pub-concurrent-test",
-            jobId = "job-concurrent-test",
+            publicationId = "00000000-0000-0000-0000-00000000043e",
+            jobId = "00000000-0000-0000-0000-00000000040b",
             dueAt = Instant.parse("2026-05-27T08:00:00Z"),
             priority = false,
             priorityRank = 0,
@@ -286,14 +298,14 @@ class PublishingQueuePostgresIntegrationTest {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:owner@example.com', NULL, 'owner')
+            VALUES ('00000000-0000-0000-0000-000000000430', 'USER', 'local:owner@example.com', NULL, 'owner')
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Workspace 1', 'ACTIVE', NULL)
             ON CONFLICT (id) DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -302,7 +314,7 @@ class PublishingQueuePostgresIntegrationTest {
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1',
+                '00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN', 'linkedin-connection-1',
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             ON CONFLICT (id) DO NOTHING
@@ -314,7 +326,7 @@ class PublishingQueuePostgresIntegrationTest {
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'account-1', 'connection-1', 'workspace-1', 'LINKEDIN',
+                '00000000-0000-0000-0000-0000000003e8', '00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-00000000049d', 'LINKEDIN',
                 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
             )
             ON CONFLICT (id) DO NOTHING
@@ -335,10 +347,10 @@ class PublishingQueuePostgresIntegrationTest {
         publicationRepository.createDraft(
             PublicationDraft(
                 id = publicationId,
-                workspaceId = "workspace-1",
-                authorPrincipalId = "principal-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
+                authorPrincipalId = "00000000-0000-0000-0000-000000000430",
                 provider = SocialProvider.LINKEDIN,
-                socialAccountId = "account-1",
+                socialAccountId = "00000000-0000-0000-0000-0000000003e8",
                 status = status,
                 scheduleMode = scheduleMode,
                 priority = priority,
@@ -351,7 +363,7 @@ class PublishingQueuePostgresIntegrationTest {
             PublicationJob(
                 id = jobId,
                 publicationId = publicationId,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 status = JobStatus.PENDING,
                 dueAt = dueAt,
                 priorityRank = priorityRank,
@@ -364,10 +376,7 @@ class PublishingQueuePostgresIntegrationTest {
     companion object {
         @Container
         @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("publishing_queue_postgres")
-            .withUsername("profiletailors")
-            .withPassword("profiletailors")
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer("publishing_queue_postgres")
 
         @JvmStatic
         @DynamicPropertySource
@@ -387,6 +396,18 @@ class PublishingQueuePostgresIntegrationTest {
             registry.add("spring.liquibase.url", postgres::getJdbcUrl)
             registry.add("spring.liquibase.user", postgres::getUsername)
             registry.add("spring.liquibase.password", postgres::getPassword)
+            DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("SET profiletailors.uuid_cutover_approved = 'on'")
+                }
+                val database = DatabaseFactory.getInstance()
+                    .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
+                Liquibase(
+                    "db/changelog/db.changelog-master.yaml",
+                    ClassLoaderResourceAccessor(),
+                    database,
+                ).update(Contexts("uuid-native-identifiers"), LabelExpression())
+            }
         }
     }
 }

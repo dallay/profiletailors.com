@@ -10,7 +10,7 @@ function makeColumn(id: string, order: number): IdeaColumn {
 function makeIdea(id: string, columnId: string, orderInColumn: number): Idea {
   return {
     id,
-    workspaceId: 'ws-1',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: id,
     notes: null,
     tags: [],
@@ -74,9 +74,9 @@ describe('useIdeaDragAndDrop', () => {
       }),
     }
 
-    const first = makeIdea('idea-1', 'raw', 0)
-    const second = makeIdea('idea-2', 'raw', 1)
-    const third = makeIdea('idea-3', 'done', 0)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)
+    const third = makeIdea('bf9a7a58-45dc-58b1-b7ad-f24cdf84a0a8', 'done', 0)
     ideasStore = {
       ideas: [first, second, third],
       ideasByColumn: { raw: [first, second], done: [third] },
@@ -103,9 +103,15 @@ describe('useIdeaDragAndDrop', () => {
     const boardColumns = ref([
       {
         ...makeColumn('raw', 0),
-        ideas: [makeIdea('idea-1', 'raw', 0), makeIdea('idea-2', 'raw', 1)],
+        ideas: [
+          makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0),
+          makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1),
+        ],
       },
-      { ...makeColumn('done', 1), ideas: [makeIdea('idea-3', 'done', 0)] },
+      {
+        ...makeColumn('done', 1),
+        ideas: [makeIdea('bf9a7a58-45dc-58b1-b7ad-f24cdf84a0a8', 'done', 0)],
+      },
     ])
     const { setColumnRef, setCardRef } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
@@ -120,9 +126,9 @@ describe('useIdeaDragAndDrop', () => {
 
     setColumnRef('raw', colEl)
     setColumnRef('done', document.createElement('div'))
-    setCardRef('idea-1', cardEl1)
-    setCardRef('idea-2', cardEl2)
-    setCardRef('idea-3', cardEl3)
+    setCardRef('0ca69867-76ef-5e75-a8c3-3933fb8faec4', cardEl1)
+    setCardRef('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', cardEl2)
+    setCardRef('bf9a7a58-45dc-58b1-b7ad-f24cdf84a0a8', cardEl3)
 
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
@@ -133,8 +139,11 @@ describe('useIdeaDragAndDrop', () => {
 
     const draggable = draggableOptions
       .map((o) => o as { getInitialData: () => Record<string, unknown> })
-      .find((o) => o.getInitialData().ideaId === 'idea-2')
-    expect(draggable?.getInitialData()).toEqual({ ideaId: 'idea-2', columnId: 'raw' })
+      .find((o) => o.getInitialData().ideaId === 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1')
+    expect(draggable?.getInitialData()).toEqual({
+      ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1',
+      columnId: 'raw',
+    })
 
     const doneColumn = dropTargetOptions
       .map((o) => o as { getData: () => Record<string, unknown> })
@@ -143,8 +152,8 @@ describe('useIdeaDragAndDrop', () => {
   })
 
   it('computes drop index via half-height and moves within column', async () => {
-    const first = makeIdea('idea-1', 'raw', 0)
-    const second = makeIdea('idea-2', 'raw', 1)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first, second] }])
     const { setCardRef, setColumnRef, getDropIndex } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
@@ -180,48 +189,66 @@ describe('useIdeaDragAndDrop', () => {
       y: 0,
       toJSON: () => {},
     } as DOMRect)
-    setCardRef('idea-1', cardEl1)
-    setCardRef('idea-2', cardEl2)
+    setCardRef('0ca69867-76ef-5e75-a8c3-3933fb8faec4', cardEl1)
+    setCardRef('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', cardEl2)
     setColumnRef('raw', document.createElement('div'))
 
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
 
-    expect(getDropIndex({ kind: 'card', columnId: 'raw', ideaId: 'idea-2' }, 90)).toBe(1)
-    expect(getDropIndex({ kind: 'card', columnId: 'raw', ideaId: 'idea-2' }, 130)).toBe(2)
+    expect(
+      getDropIndex(
+        { kind: 'card', columnId: 'raw', ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' },
+        90,
+      ),
+    ).toBe(1)
+    expect(
+      getDropIndex(
+        { kind: 'card', columnId: 'raw', ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' },
+        130,
+      ),
+    ).toBe(2)
 
     const monitor = latestMonitor()
-    monitor.onDragStart({ source: { data: { ideaId: 'idea-2' } } })
+    monitor.onDragStart({ source: { data: { ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' } } })
     await monitor.onDrop(
       dropEvent(
-        { ideaId: 'idea-2' },
-        [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } }],
+        { ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' },
+        [
+          {
+            data: { kind: 'card', columnId: 'raw', ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' },
+          },
+        ],
         90,
       ),
     )
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-2', {
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', {
       columnId: 'raw',
       orderInColumn: 0,
     })
 
     ideasStore.moveIdea.mockClear()
-    monitor.onDragStart({ source: { data: { ideaId: 'idea-1' } } })
+    monitor.onDragStart({ source: { data: { ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' } } })
     await monitor.onDrop(
       dropEvent(
-        { ideaId: 'idea-1' },
-        [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-2' } }],
+        { ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' },
+        [
+          {
+            data: { kind: 'card', columnId: 'raw', ideaId: 'a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1' },
+          },
+        ],
         130,
       ),
     )
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', {
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('0ca69867-76ef-5e75-a8c3-3933fb8faec4', {
       columnId: 'raw',
       orderInColumn: 1,
     })
   })
 
   it('moves across columns to end when dropping on column', async () => {
-    const first = makeIdea('idea-1', 'raw', 0)
-    const second = makeIdea('idea-2', 'done', 0)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'done', 0)
     const boardColumns = ref([
       { ...makeColumn('raw', 0), ideas: [first] },
       { ...makeColumn('done', 1), ideas: [second] },
@@ -239,17 +266,19 @@ describe('useIdeaDragAndDrop', () => {
     await new Promise((r) => setTimeout(r, 0))
     const monitor = latestMonitor()
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'done' } }]),
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'column', columnId: 'done' } },
+      ]),
     )
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', {
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('0ca69867-76ef-5e75-a8c3-3933fb8faec4', {
       columnId: 'done',
       orderInColumn: 1,
     })
   })
 
   it('ignores invalid and no-op drops', async () => {
-    const first = makeIdea('idea-1', 'raw', 0)
-    const second = makeIdea('idea-2', 'raw', 1)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
+    const second = makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first, second] }])
     useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
@@ -267,20 +296,22 @@ describe('useIdeaDragAndDrop', () => {
     await monitor.onDrop(
       dropEvent({ ideaId: 'missing' }, [{ data: { kind: 'column', columnId: 'raw' } }]),
     )
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, []))
+    await monitor.onDrop(dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, []))
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'unsupported', columnId: 'raw' } }]),
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'unsupported', columnId: 'raw' } },
+      ]),
     )
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [
-        { data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } },
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'card', columnId: 'raw', ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' } },
       ]),
     )
     expect(ideasStore.moveIdea).not.toHaveBeenCalled()
   })
 
   it('watches boardColumns and cleans up on change and unmount', async () => {
-    const first = makeIdea('idea-1', 'raw', 0)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first] }])
     const { unmount } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
@@ -298,7 +329,12 @@ describe('useIdeaDragAndDrop', () => {
     expect(initialCleanupCount).toBeGreaterThan(0)
 
     const firstBatch = [...cleanups]
-    boardColumns.value = [{ ...makeColumn('raw', 0), ideas: [first, makeIdea('idea-2', 'raw', 1)] }]
+    boardColumns.value = [
+      {
+        ...makeColumn('raw', 0),
+        ideas: [first, makeIdea('a7dfae4e-afcd-5cc0-a278-5eebffa5b0b1', 'raw', 1)],
+      },
+    ]
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
     expect(firstBatch.every((fn) => fn.mock.calls.length === 1)).toBe(true)
@@ -311,7 +347,7 @@ describe('useIdeaDragAndDrop', () => {
   })
 
   it('exposes draggedIdeaId via onDragStart', async () => {
-    const first = makeIdea('idea-1', 'raw', 0)
+    const first = makeIdea('0ca69867-76ef-5e75-a8c3-3933fb8faec4', 'raw', 0)
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first] }])
     const { draggedIdeaId } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
@@ -325,10 +361,12 @@ describe('useIdeaDragAndDrop', () => {
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
     const monitor = latestMonitor()
-    monitor.onDragStart({ source: { data: { ideaId: 'idea-1' } } })
-    expect(draggedIdeaId.value).toBe('idea-1')
+    monitor.onDragStart({ source: { data: { ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' } } })
+    expect(draggedIdeaId.value).toBe('0ca69867-76ef-5e75-a8c3-3933fb8faec4')
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'raw' } }]),
+      dropEvent({ ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4' }, [
+        { data: { kind: 'column', columnId: 'raw' } },
+      ]),
     )
     expect(draggedIdeaId.value).toBeNull()
   })

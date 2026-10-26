@@ -52,7 +52,7 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             """.trimIndent(),
         )
             .bind("id", UUID.randomUUID())
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind(TOKEN_HASH_BIND, tokenHash)
             .bind("requestedAt", requestedAt)
             .bind("expiresAt", expiresAt)
@@ -77,7 +77,7 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             """.trimIndent(),
         )
             .bind("invalidatedAt", invalidatedAt)
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

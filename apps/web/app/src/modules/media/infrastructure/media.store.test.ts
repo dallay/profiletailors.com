@@ -29,7 +29,7 @@ const mockPutAsset = vi.fn()
 const mockListAssets = vi.fn()
 const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
-const mockWorkspace = { activeWorkspaceId: 'ws-test-1' as string | null }
+const mockWorkspace = { activeWorkspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc' as string | null }
 
 vi.mock('@modules/media/services/media-api', () => ({
   putAsset: (...args: unknown[]) => mockPutAsset(...args),
@@ -45,7 +45,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     isAuthenticated: true,
     accessToken: { value: 'fake-token' },
-    workspace: { activeWorkspaceId: 'ws-test-1' },
+    workspace: { activeWorkspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc' },
   }),
 }))
 
@@ -61,7 +61,7 @@ vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
 // ---------------------------------------------------------------------------
 const readyAsset = (assetId: string) => ({
   assetId,
-  workspaceId: 'ws-test-1',
+  workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
   sourceType: 'UPLOADED' as const,
   mediaType: 'image/jpeg',
   status: 'READY' as const,
@@ -72,7 +72,7 @@ const readyAsset = (assetId: string) => ({
 
 const processingAsset = (assetId: string) => ({
   assetId,
-  workspaceId: 'ws-test-1',
+  workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
   sourceType: 'UPLOADED' as const,
   mediaType: 'image/png',
   status: 'UPLOADING' as const,
@@ -90,7 +90,7 @@ describe('media store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
-    mockWorkspace.activeWorkspaceId = 'ws-test-1'
+    mockWorkspace.activeWorkspaceId = '2b255986-a5f6-5b57-85d9-1f11eb5d96bc'
   })
 
   describe('initial state', () => {
@@ -125,7 +125,7 @@ describe('media store', () => {
     it('loads READY assets by default', async () => {
       const store = useMediaStore()
       mockListAssets.mockResolvedValueOnce({
-        assets: [readyAsset('asset-1')],
+        assets: [readyAsset('8bdec504-2ed1-59e4-8a4a-c068789d03d2')],
         nextCursor: null,
       })
 
@@ -135,14 +135,14 @@ describe('media store', () => {
         status: 'READY',
         pageSize: 50,
       })
-      expect(store.assetIds).toContain('asset-1')
-      expect(store.assetsById['asset-1']?.status).toBe('READY')
+      expect(store.assetIds).toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+      expect(store.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2']?.status).toBe('READY')
     })
 
     it('loads UPLOADING assets when requested', async () => {
       const store = useMediaStore()
       mockListAssets.mockResolvedValueOnce({
-        assets: [processingAsset('asset-2')],
+        assets: [processingAsset('b909d06f-92ea-5671-9f13-73475a89080e')],
         nextCursor: null,
       })
 
@@ -152,8 +152,8 @@ describe('media store', () => {
         status: 'UPLOADING',
         pageSize: 50,
       })
-      expect(store.assetIds).toContain('asset-2')
-      expect(store.assetIds).not.toContain('asset-1')
+      expect(store.assetIds).toContain('b909d06f-92ea-5671-9f13-73475a89080e')
+      expect(store.assetIds).not.toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
     })
 
     it('loads all statuses when querying dangling assets', async () => {
@@ -226,13 +226,20 @@ describe('media store', () => {
       store.assetsById['existing-asset'] = readyAsset('existing-asset')
       store.nextCursor = 'next-page'
       mockListAssets.mockResolvedValueOnce({
-        assets: [readyAsset('page-asset-1'), readyAsset('page-asset-2')],
+        assets: [
+          readyAsset('a4ed5f4b-1b79-5e4e-828c-27b7b68952f6'),
+          readyAsset('b81b1dba-5135-58c4-832f-f9c687c1bf83'),
+        ],
         nextCursor: null,
       })
 
       await store.loadNextPage()
 
-      expect(store.assetIds).toEqual(['existing-asset', 'page-asset-1', 'page-asset-2'])
+      expect(store.assetIds).toEqual([
+        'existing-asset',
+        'a4ed5f4b-1b79-5e4e-828c-27b7b68952f6',
+        'b81b1dba-5135-58c4-832f-f9c687c1bf83',
+      ])
     })
 
     it('does nothing when no cursor available', async () => {
@@ -281,77 +288,83 @@ describe('media store', () => {
     it('uploads the file and returns ready asset', async () => {
       const store = useMediaStore()
       mockPutAsset.mockResolvedValueOnce({
-        assetId: 'reserved-asset',
-        workspaceId: 'ws-test-1',
+        assetId: '7a6b54b9-d3f6-5885-81c3-ca9107eccee1',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
         deduped: false,
         createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
-        ...readyAsset('reserved-asset'),
-        previewUrl: '/api/media/assets/reserved-asset/preview',
-        downloadUrl: '/api/media/assets/reserved-asset/content',
+        ...readyAsset('7a6b54b9-d3f6-5885-81c3-ca9107eccee1'),
+        previewUrl: '/api/media/assets/7a6b54b9-d3f6-5885-81c3-ca9107eccee1/preview',
+        downloadUrl: '/api/media/assets/7a6b54b9-d3f6-5885-81c3-ca9107eccee1/content',
       })
 
       const file = mockFile()
       const result = await store.createAndUpload(file, 'temp-key-1')
 
-      expect(mockPutAsset).toHaveBeenCalledWith(file, 'ws-test-1', expect.any(String))
-      expect(result.assetId).toBe('reserved-asset')
+      expect(mockPutAsset).toHaveBeenCalledWith(
+        file,
+        '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
+        expect.any(String),
+      )
+      expect(result.assetId).toBe('7a6b54b9-d3f6-5885-81c3-ca9107eccee1')
       expect(result.status).toBe('READY')
     })
 
     it('hydrates previewUrl and downloadUrl after upload by re-fetching the asset', async () => {
       const store = useMediaStore()
       mockPutAsset.mockResolvedValueOnce({
-        assetId: 'hydrated-asset',
-        workspaceId: 'ws-test-1',
+        assetId: '5c08f33b-611f-536d-9dae-6bd03101dbcb',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
         deduped: false,
         createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
-        assetId: 'hydrated-asset',
-        workspaceId: 'ws-test-1',
+        assetId: '5c08f33b-611f-536d-9dae-6bd03101dbcb',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         sourceType: 'UPLOADED',
         mediaType: 'image/jpeg',
         status: 'READY',
         originalFilename: 'photo.jpg',
         fileSizeBytes: 1024,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: '/api/media/assets/hydrated-asset/preview',
-        downloadUrl: '/api/media/assets/hydrated-asset/content',
+        previewUrl: '/api/media/assets/5c08f33b-611f-536d-9dae-6bd03101dbcb/preview',
+        downloadUrl: '/api/media/assets/5c08f33b-611f-536d-9dae-6bd03101dbcb/content',
       })
 
       const file = mockFile()
       const result = await store.createAndUpload(file, 'hydrated-key')
 
       // getAsset was called to fill in the URLs
-      expect(mockGetAsset).toHaveBeenCalledWith('hydrated-asset')
+      expect(mockGetAsset).toHaveBeenCalledWith('5c08f33b-611f-536d-9dae-6bd03101dbcb')
       // The returned asset now has previewUrl so the library grid renders correctly
-      expect(result.previewUrl).toBe('/api/media/assets/hydrated-asset/preview')
+      expect(result.previewUrl).toBe(
+        '/api/media/assets/5c08f33b-611f-536d-9dae-6bd03101dbcb/preview',
+      )
       // The store holds the full asset
-      expect(store.assetsById['hydrated-asset']?.previewUrl).toBe(
-        '/api/media/assets/hydrated-asset/preview',
+      expect(store.assetsById['5c08f33b-611f-536d-9dae-6bd03101dbcb']?.previewUrl).toBe(
+        '/api/media/assets/5c08f33b-611f-536d-9dae-6bd03101dbcb/preview',
       )
     })
 
     it('tracks upload item and marks done after successful upload', async () => {
       const store = useMediaStore()
       mockPutAsset.mockResolvedValueOnce({
-        assetId: 'tracked-asset',
-        workspaceId: 'ws-test-1',
+        assetId: '1a120b9a-7541-5c48-998c-642eba217f3d',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
         deduped: false,
         createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
-        ...readyAsset('tracked-asset'),
-        previewUrl: '/api/media/assets/tracked-asset/preview',
-        downloadUrl: '/api/media/assets/tracked-asset/content',
+        ...readyAsset('1a120b9a-7541-5c48-998c-642eba217f3d'),
+        previewUrl: '/api/media/assets/1a120b9a-7541-5c48-998c-642eba217f3d/preview',
+        downloadUrl: '/api/media/assets/1a120b9a-7541-5c48-998c-642eba217f3d/content',
       })
 
       const file = mockFile()
@@ -447,29 +460,31 @@ describe('media store', () => {
   describe('targeted reconciliation helpers', () => {
     it('upserts a single asset into the newest-first cache without duplicating ids', () => {
       const store = useMediaStore()
-      const asset = readyAsset('asset-upserted')
+      const asset = readyAsset('514795e5-71d8-567c-865c-ed8939cc7c6f')
 
       store.upsertAsset(asset)
       store.upsertAsset({ ...asset, originalFilename: 'updated-name.png' })
 
-      expect(store.assetIds).toEqual(['asset-upserted'])
-      expect(store.assetsById['asset-upserted']?.originalFilename).toBe('updated-name.png')
+      expect(store.assetIds).toEqual(['514795e5-71d8-567c-865c-ed8939cc7c6f'])
+      expect(store.assetsById['514795e5-71d8-567c-865c-ed8939cc7c6f']?.originalFilename).toBe(
+        'updated-name.png',
+      )
     })
 
     it('refreshes a single asset from the API and keeps it available in the library cache', async () => {
       const store = useMediaStore()
       mockGetAsset.mockResolvedValueOnce({
-        ...readyAsset('asset-refresh'),
-        previewUrl: '/api/media/assets/asset-refresh/preview',
+        ...readyAsset('bf45c0c4-fce8-58bf-90d1-a01947ac0dc3'),
+        previewUrl: '/api/media/assets/bf45c0c4-fce8-58bf-90d1-a01947ac0dc3/preview',
       })
 
-      const result = await store.refreshAsset('asset-refresh')
+      const result = await store.refreshAsset('bf45c0c4-fce8-58bf-90d1-a01947ac0dc3')
 
-      expect(mockGetAsset).toHaveBeenCalledWith('asset-refresh')
-      expect(result.assetId).toBe('asset-refresh')
-      expect(store.assetIds[0]).toBe('asset-refresh')
-      expect(store.assetsById['asset-refresh']?.previewUrl).toBe(
-        '/api/media/assets/asset-refresh/preview',
+      expect(mockGetAsset).toHaveBeenCalledWith('bf45c0c4-fce8-58bf-90d1-a01947ac0dc3')
+      expect(result.assetId).toBe('bf45c0c4-fce8-58bf-90d1-a01947ac0dc3')
+      expect(store.assetIds[0]).toBe('bf45c0c4-fce8-58bf-90d1-a01947ac0dc3')
+      expect(store.assetsById['bf45c0c4-fce8-58bf-90d1-a01947ac0dc3']?.previewUrl).toBe(
+        '/api/media/assets/bf45c0c4-fce8-58bf-90d1-a01947ac0dc3/preview',
       )
     })
   })
@@ -480,7 +495,7 @@ describe('media store', () => {
       // Pre-seed a failed upload
       store.uploads['retry-key'] = {
         tempKey: 'retry-key',
-        assetId: 'retry-asset',
+        assetId: '087fe0a1-8bc8-5a2b-bfb6-838695c90382',
         file: mockFile(),
         progress: 0,
         status: 'failed',
@@ -488,22 +503,26 @@ describe('media store', () => {
         errorDetail: 'Server error',
       }
       mockPutAsset.mockResolvedValueOnce({
-        assetId: 'retry-asset',
-        workspaceId: 'ws-test-1',
+        assetId: '087fe0a1-8bc8-5a2b-bfb6-838695c90382',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
         deduped: false,
         createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
-        ...readyAsset('retry-asset'),
-        previewUrl: '/api/media/assets/retry-asset/preview',
-        downloadUrl: '/api/media/assets/retry-asset/content',
+        ...readyAsset('087fe0a1-8bc8-5a2b-bfb6-838695c90382'),
+        previewUrl: '/api/media/assets/087fe0a1-8bc8-5a2b-bfb6-838695c90382/preview',
+        downloadUrl: '/api/media/assets/087fe0a1-8bc8-5a2b-bfb6-838695c90382/content',
       })
 
       const result = await store.retryUpload('retry-key')
 
-      expect(mockPutAsset).toHaveBeenCalledWith(expect.any(File), 'ws-test-1', expect.any(String))
+      expect(mockPutAsset).toHaveBeenCalledWith(
+        expect.any(File),
+        '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
+        expect.any(String),
+      )
       expect(result.status).toBe('READY')
       expect(store.uploads['retry-key']?.status).toBe('done')
     })
@@ -518,7 +537,7 @@ describe('media store', () => {
       const store = useMediaStore()
       store.uploads['in-progress-key'] = {
         tempKey: 'in-progress-key',
-        assetId: 'asset-1',
+        assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
         file: mockFile(),
         progress: 50,
         status: 'uploading',
@@ -531,36 +550,45 @@ describe('media store', () => {
   describe('addToSelection / removeFromSelection', () => {
     it('adds asset to selection', () => {
       const store = useMediaStore()
-      store.assetsById['asset-1'] = readyAsset('asset-1')
+      store.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] = readyAsset(
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      )
 
-      store.addToSelection('asset-1')
+      store.addToSelection('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
-      expect(store.selectedAssetIds).toContain('asset-1')
+      expect(store.selectedAssetIds).toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
       expect(store.selectedAssets).toHaveLength(1)
     })
 
     it('addToSelection is idempotent — duplicate adds are ignored', () => {
       const store = useMediaStore()
-      store.assetsById['asset-1'] = readyAsset('asset-1')
+      store.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] = readyAsset(
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      )
 
-      store.addToSelection('asset-1')
-      store.addToSelection('asset-1')
+      store.addToSelection('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+      store.addToSelection('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
-      expect(store.selectedAssetIds.filter((id) => id === 'asset-1')).toHaveLength(1)
+      expect(
+        store.selectedAssetIds.filter((id) => id === '8bdec504-2ed1-59e4-8a4a-c068789d03d2'),
+      ).toHaveLength(1)
     })
 
     it('removes asset from selection', () => {
       const store = useMediaStore()
-      store.selectedAssetIds.push('asset-1')
+      store.selectedAssetIds.push('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
-      store.removeFromSelection('asset-1')
+      store.removeFromSelection('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
 
-      expect(store.selectedAssetIds).not.toContain('asset-1')
+      expect(store.selectedAssetIds).not.toContain('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
     })
 
     it('clearSelection removes all assets', () => {
       const store = useMediaStore()
-      store.selectedAssetIds.push('asset-1', 'asset-2')
+      store.selectedAssetIds.push(
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+        'b909d06f-92ea-5671-9f13-73475a89080e',
+      )
 
       store.clearSelection()
 
@@ -571,15 +599,22 @@ describe('media store', () => {
   describe('selectedAssets computed', () => {
     it('returns selected assets in order', () => {
       const store = useMediaStore()
-      store.assetsById['asset-1'] = readyAsset('asset-1')
-      store.assetsById['asset-2'] = readyAsset('asset-2')
-      store.selectedAssetIds.push('asset-1', 'asset-2')
+      store.assetsById['8bdec504-2ed1-59e4-8a4a-c068789d03d2'] = readyAsset(
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+      )
+      store.assetsById['b909d06f-92ea-5671-9f13-73475a89080e'] = readyAsset(
+        'b909d06f-92ea-5671-9f13-73475a89080e',
+      )
+      store.selectedAssetIds.push(
+        '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
+        'b909d06f-92ea-5671-9f13-73475a89080e',
+      )
 
       const selected = store.selectedAssets
 
       expect(selected).toHaveLength(2)
-      expect(selected[0]?.assetId).toBe('asset-1')
-      expect(selected[1]?.assetId).toBe('asset-2')
+      expect(selected[0]?.assetId).toBe('8bdec504-2ed1-59e4-8a4a-c068789d03d2')
+      expect(selected[1]?.assetId).toBe('b909d06f-92ea-5671-9f13-73475a89080e')
     })
 
     it('excludes unknown asset ids from selectedAssets', () => {
@@ -600,7 +635,7 @@ describe('media store', () => {
       const store = useMediaStore()
       store.uploads['dismiss-key'] = {
         tempKey: 'dismiss-key',
-        assetId: 'asset-1',
+        assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
         file: mockFile(),
         progress: 0,
         status: 'failed',
@@ -617,14 +652,14 @@ describe('media store', () => {
       const store = useMediaStore()
       store.uploads['key-1'] = {
         tempKey: 'key-1',
-        assetId: 'asset-1',
+        assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
         file: mockFile(),
         progress: 0,
         status: 'failed',
       }
       store.uploads['key-2'] = {
         tempKey: 'key-2',
-        assetId: 'asset-2',
+        assetId: 'b909d06f-92ea-5671-9f13-73475a89080e',
         file: mockFile(),
         progress: 0,
         status: 'done',
@@ -640,7 +675,7 @@ describe('media store', () => {
     it('sets nextCursor from list response', async () => {
       const store = useMediaStore()
       mockListAssets.mockResolvedValueOnce({
-        assets: [readyAsset('asset-1')],
+        assets: [readyAsset('8bdec504-2ed1-59e4-8a4a-c068789d03d2')],
         nextCursor: 'cursor-page-2',
       })
 
@@ -655,14 +690,14 @@ describe('media store', () => {
       const store = useMediaStore()
       store.uploads.uploading = {
         tempKey: 'uploading',
-        assetId: 'a1',
+        assetId: 'bd526c7b-ec12-5f9f-a8ba-f27b4d769b3e',
         file: mockFile(),
         progress: 50,
         status: 'uploading',
       }
       store.uploads.done = {
         tempKey: 'done',
-        assetId: 'a2',
+        assetId: 'b2becc82-9edd-508c-afe3-9f9c67eb89f3',
         file: mockFile(),
         progress: 100,
         status: 'done',
@@ -676,7 +711,7 @@ describe('media store', () => {
       const store = useMediaStore()
       store.uploads.failed = {
         tempKey: 'failed',
-        assetId: 'a1',
+        assetId: 'bd526c7b-ec12-5f9f-a8ba-f27b4d769b3e',
         file: mockFile(),
         progress: 0,
         status: 'failed',
@@ -685,7 +720,7 @@ describe('media store', () => {
       }
       store.uploads.conflict = {
         tempKey: 'conflict',
-        assetId: 'a2',
+        assetId: 'b2becc82-9edd-508c-afe3-9f9c67eb89f3',
         file: mockFile(),
         progress: 0,
         status: 'conflict',
@@ -700,38 +735,44 @@ describe('media store', () => {
   describe('deletePersistedAsset', () => {
     it('calls deleteAsset API and removes the asset from local state', async () => {
       const store = useMediaStore()
-      store.assetsById['del-asset-1'] = readyAsset('del-asset-1')
-      store.assetIds.push('del-asset-1')
+      store.assetsById['08e791d4-38c0-53d5-881f-570f51f991c8'] = readyAsset(
+        '08e791d4-38c0-53d5-881f-570f51f991c8',
+      )
+      store.assetIds.push('08e791d4-38c0-53d5-881f-570f51f991c8')
       mockDeleteAsset.mockResolvedValueOnce(undefined)
 
-      await store.deletePersistedAsset('del-asset-1')
+      await store.deletePersistedAsset('08e791d4-38c0-53d5-881f-570f51f991c8')
 
-      expect(mockDeleteAsset).toHaveBeenCalledWith('del-asset-1')
-      expect(store.assetIds).not.toContain('del-asset-1')
-      expect(store.assetsById['del-asset-1']).toBeUndefined()
+      expect(mockDeleteAsset).toHaveBeenCalledWith('08e791d4-38c0-53d5-881f-570f51f991c8')
+      expect(store.assetIds).not.toContain('08e791d4-38c0-53d5-881f-570f51f991c8')
+      expect(store.assetsById['08e791d4-38c0-53d5-881f-570f51f991c8']).toBeUndefined()
     })
 
     it('removes the deleted asset from selectedAssetIds', async () => {
       const store = useMediaStore()
-      store.assetsById['del-asset-2'] = readyAsset('del-asset-2')
-      store.assetIds.push('del-asset-2')
-      store.selectedAssetIds.push('del-asset-2')
+      store.assetsById['bc9ecbd2-39ab-5bf6-b271-114032e2bf7f'] = readyAsset(
+        'bc9ecbd2-39ab-5bf6-b271-114032e2bf7f',
+      )
+      store.assetIds.push('bc9ecbd2-39ab-5bf6-b271-114032e2bf7f')
+      store.selectedAssetIds.push('bc9ecbd2-39ab-5bf6-b271-114032e2bf7f')
       mockDeleteAsset.mockResolvedValueOnce(undefined)
 
-      await store.deletePersistedAsset('del-asset-2')
+      await store.deletePersistedAsset('bc9ecbd2-39ab-5bf6-b271-114032e2bf7f')
 
-      expect(store.selectedAssetIds).not.toContain('del-asset-2')
+      expect(store.selectedAssetIds).not.toContain('bc9ecbd2-39ab-5bf6-b271-114032e2bf7f')
     })
 
     it('does not remove other assets when deleting one', async () => {
       const store = useMediaStore()
       store.assetsById['keep-asset'] = readyAsset('keep-asset')
       store.assetIds.push('keep-asset')
-      store.assetsById['del-asset-3'] = readyAsset('del-asset-3')
-      store.assetIds.push('del-asset-3')
+      store.assetsById['b9c4a8fc-728d-5911-b8d0-5b86d25339bd'] = readyAsset(
+        'b9c4a8fc-728d-5911-b8d0-5b86d25339bd',
+      )
+      store.assetIds.push('b9c4a8fc-728d-5911-b8d0-5b86d25339bd')
       mockDeleteAsset.mockResolvedValueOnce(undefined)
 
-      await store.deletePersistedAsset('del-asset-3')
+      await store.deletePersistedAsset('b9c4a8fc-728d-5911-b8d0-5b86d25339bd')
 
       expect(store.assetIds).toContain('keep-asset')
       expect(store.assetsById['keep-asset']).toBeDefined()
@@ -795,7 +836,7 @@ describe('media store', () => {
           if (existingAssetId) {
             return {
               assetId: existingAssetId,
-              workspaceId: 'ws-test-1',
+              workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
               status: 'READY',
               mediaType: file.type || 'application/octet-stream',
               deduped: true,
@@ -808,7 +849,7 @@ describe('media store', () => {
 
           return {
             assetId,
-            workspaceId: 'ws-test-1',
+            workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
             status: 'PENDING_UPLOAD',
             mediaType: file.type || 'application/octet-stream',
             deduped: false,
@@ -819,7 +860,7 @@ describe('media store', () => {
 
       mockGetAsset.mockImplementation(async (assetId: string) => ({
         assetId,
-        workspaceId: 'ws-test-1',
+        workspaceId: '2b255986-a5f6-5b57-85d9-1f11eb5d96bc',
         sourceType: 'UPLOADED' as const,
         mediaType: 'image/svg+xml',
         status: 'READY' as const,

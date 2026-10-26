@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-008-add-account-state
-      author: identity
+      author: yacosta738
       changes:
         - addColumn:
             tableName: principals

@@ -50,15 +50,18 @@ describe('publishing store bulk', () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-bulk')
+    ws.setActiveWorkspaceId('e7fe1994-3594-5bc7-8591-5861d2a08149')
     Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
     const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ rows: [] } as never)
     const result = await store.validateBulk('hello,2026-09-01T10:00:00Z')
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-bulk/bulk/validate', {
-      method: 'POST',
-      body: JSON.stringify({ csvText: 'hello,2026-09-01T10:00:00Z' }),
-      workspaceScoped: true,
-    })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/e7fe1994-3594-5bc7-8591-5861d2a08149/bulk/validate',
+      {
+        method: 'POST',
+        body: JSON.stringify({ csvText: 'hello,2026-09-01T10:00:00Z' }),
+        workspaceScoped: true,
+      },
+    )
     expect(result).toEqual({ rows: [] })
   })
 
@@ -66,48 +69,63 @@ describe('publishing store bulk', () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-bulk')
-    const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ jobId: 'j1' } as never)
+    ws.setActiveWorkspaceId('e7fe1994-3594-5bc7-8591-5861d2a08149')
+    const spy = vi
+      .spyOn(auth, 'apiFetch')
+      .mockResolvedValue({ jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f' } as never)
     const result = await store.scheduleBulk('csv-content', 'abc123hash')
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-bulk/bulk/schedule', {
-      method: 'POST',
-      body: JSON.stringify({ csvText: 'csv-content', csvHash: 'abc123hash' }),
-      workspaceScoped: true,
-    })
-    expect(result).toEqual({ jobId: 'j1' })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/e7fe1994-3594-5bc7-8591-5861d2a08149/bulk/schedule',
+      {
+        method: 'POST',
+        body: JSON.stringify({ csvText: 'csv-content', csvHash: 'abc123hash' }),
+        workspaceScoped: true,
+      },
+    )
+    expect(result).toEqual({ jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f' })
   })
 
   it('scheduleBulk without hash computes SHA-256 via crypto.subtle', async () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-bulk')
-    const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ jobId: 'j2' } as never)
+    ws.setActiveWorkspaceId('e7fe1994-3594-5bc7-8591-5861d2a08149')
+    const spy = vi
+      .spyOn(auth, 'apiFetch')
+      .mockResolvedValue({ jobId: 'c038c62a-5d96-5ece-a481-513e646497a6' } as never)
     const csv = 'hello world'
     await store.scheduleBulk(csv)
     const expectedHash = await computeExpectedHash(csv)
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-bulk/bulk/schedule', {
-      method: 'POST',
-      body: JSON.stringify({ csvText: csv, csvHash: expectedHash }),
-      workspaceScoped: true,
-    })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/e7fe1994-3594-5bc7-8591-5861d2a08149/bulk/schedule',
+      {
+        method: 'POST',
+        body: JSON.stringify({ csvText: csv, csvHash: expectedHash }),
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('scheduleBulk without hash falls back to csvText when crypto.subtle missing', async () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-bulk')
-    const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ jobId: 'j3' } as never)
+    ws.setActiveWorkspaceId('e7fe1994-3594-5bc7-8591-5861d2a08149')
+    const spy = vi
+      .spyOn(auth, 'apiFetch')
+      .mockResolvedValue({ jobId: '1d173128-f7e0-51f7-ac0d-3e657fbf9656' } as never)
     const originalSubtle = globalThis.crypto.subtle
     Object.defineProperty(globalThis.crypto, 'subtle', { value: undefined, configurable: true })
     try {
       await store.scheduleBulk('fallback-csv')
-      expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-bulk/bulk/schedule', {
-        method: 'POST',
-        body: JSON.stringify({ csvText: 'fallback-csv', csvHash: 'fallback-csv' }),
-        workspaceScoped: true,
-      })
+      expect(spy).toHaveBeenCalledWith(
+        '/api/v1/workspaces/e7fe1994-3594-5bc7-8591-5861d2a08149/bulk/schedule',
+        {
+          method: 'POST',
+          body: JSON.stringify({ csvText: 'fallback-csv', csvHash: 'fallback-csv' }),
+          workspaceScoped: true,
+        },
+      )
     } finally {
       Object.defineProperty(globalThis.crypto, 'subtle', {
         value: originalSubtle,
@@ -120,41 +138,50 @@ describe('publishing store bulk', () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-123')
+    ws.setActiveWorkspaceId('2406a8a6-0da6-5b2e-bcb4-98e6392fd0fa')
     const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ jobId: 'job/1' } as never)
     await store.fetchBulkJob('job/1')
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-123/bulk/jobs/job%2F1', {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/2406a8a6-0da6-5b2e-bcb4-98e6392fd0fa/bulk/jobs/job%2F1',
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('fetchBulkTemplates calls apiFetch with templates path', async () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-t')
+    ws.setActiveWorkspaceId('392658da-97e6-5d5b-8626-5b36432ba4ec')
     const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ templates: [] } as never)
     await store.fetchBulkTemplates()
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-t/bulk/templates', {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/392658da-97e6-5d5b-8626-5b36432ba4ec/bulk/templates',
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
   })
 
   it('fetchBulkTemplateCsv encodes templateId and returns text', async () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-t')
+    ws.setActiveWorkspaceId('392658da-97e6-5d5b-8626-5b36432ba4ec')
     const spy = vi
       .spyOn(auth, 'apiFetchRaw')
       .mockResolvedValue(new Response('a,b,c', { status: 200 }))
     const result = await store.fetchBulkTemplateCsv('tpl/1')
-    expect(spy).toHaveBeenCalledWith('/api/v1/workspaces/ws-t/bulk/templates/tpl%2F1/csv', {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/workspaces/392658da-97e6-5d5b-8626-5b36432ba4ec/bulk/templates/tpl%2F1/csv',
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
     expect(result).toBe('a,b,c')
   })
 
@@ -162,7 +189,9 @@ describe('publishing store bulk', () => {
     const store = usePublishingStore()
     const ws = useWorkspaceStore()
     ws.setActiveWorkspaceId(null)
-    await expect(store.fetchBulkJob('j1')).rejects.toThrow('Select a workspace before bulk import.')
+    await expect(store.fetchBulkJob('ba279f93-83d1-581c-b974-255cd9cd286f')).rejects.toThrow(
+      'Select a workspace before bulk import.',
+    )
   })
 
   it('fetchBulkTemplates rejects when no workspace is selected', async () => {
@@ -187,7 +216,7 @@ describe('publishing store bulk', () => {
     const store = usePublishingStore()
     const auth = useAuthStore()
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-1')
+    ws.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
     const spy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
       publications: [],
@@ -197,7 +226,7 @@ describe('publishing store bulk', () => {
     store.userTimezone = 'Europe/Madrid'
     await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z', {
       status: 'QUEUED',
-      socialAccountId: 'acc-1',
+      socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
       timezone: 'UTC',
     })
     expect(spy).toHaveBeenCalledWith(
@@ -209,7 +238,7 @@ describe('publishing store bulk', () => {
     expect(url).toContain('to=2026-07-01T00%3A00%3A00Z')
     expect(url).toContain('timezone=UTC')
     expect(url).toContain('status=QUEUED')
-    expect(url).toContain('socialAccountId=acc-1')
+    expect(url).toContain('socialAccountId=788c8103-35f1-5899-b15a-6ca994253c99')
   })
 
   it('fetchCalendar keeps canonical in-memory activity and conflicts when an authenticated remote fails', async () => {
@@ -219,10 +248,10 @@ describe('publishing store bulk', () => {
     vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('network'))
     store.publications = [
       {
-        id: 'local-1',
+        id: '494209e5-e5d9-5eee-b2fd-4848e29511de',
         content: 'Architecture notes',
         channels: ['linkedin'],
-        accountId: 'acc-1',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         scheduledAt: '2026-06-10T12:00:00Z',
         status: 'QUEUED',
         priority: false,
@@ -230,12 +259,20 @@ describe('publishing store bulk', () => {
     ]
     store.activity = [{ date: '2026-06-10', density: 'HIGH', count: 3 }] as never
     store.conflicts = [
-      { publicationId: 'local-1', conflictingPublicationIds: [], reason: 'x' },
+      {
+        publicationId: '494209e5-e5d9-5eee-b2fd-4848e29511de',
+        conflictingPublicationIds: [],
+        reason: 'x',
+      },
     ] as never
     await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
     expect(store.activity).toEqual([{ date: '2026-06-10', density: 'HIGH', count: 3 }])
     expect(store.conflicts).toEqual([
-      { publicationId: 'local-1', conflictingPublicationIds: [], reason: 'x' },
+      {
+        publicationId: '494209e5-e5d9-5eee-b2fd-4848e29511de',
+        conflictingPublicationIds: [],
+        reason: 'x',
+      },
     ])
   })
 
@@ -244,7 +281,7 @@ describe('publishing store bulk', () => {
       'pt_publications',
       JSON.stringify([
         {
-          id: 'stored-1',
+          id: 'ecd3f327-749a-51dc-9d7d-0e10c99f964a',
           content: 'stored',
           channels: ['linkedin'],
           scheduledAt: '2026-06-10T12:00:00Z',
@@ -255,7 +292,9 @@ describe('publishing store bulk', () => {
     )
     setActivePinia(createPinia())
     const store = usePublishingStore()
-    expect(store.publications.some((p) => p.id === 'stored-1')).toBe(true)
+    expect(store.publications.some((p) => p.id === 'ecd3f327-749a-51dc-9d7d-0e10c99f964a')).toBe(
+      true,
+    )
   })
 
   it('initial publications falls back to seed when localStorage contains invalid JSON', () => {

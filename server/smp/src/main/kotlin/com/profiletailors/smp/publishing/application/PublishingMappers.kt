@@ -98,6 +98,7 @@ internal fun PublicationDraft.toCalendarResult(
     previewUrl = previewUrl,
     blockedReason = blockedReason,
     errorCode = lastErrorCode,
+    groupId = groupId,
 )
 
 internal fun PublicationDraft.toListItem(): ListPublicationItem = ListPublicationItem(
@@ -124,7 +125,7 @@ internal fun replacementJobFor(
     schedulingPolicy: PublicationSchedulingPolicy,
     now: Instant,
 ): PublicationJob = PublicationJob(
-    id = "pjob-${UUID.randomUUID()}",
+    id = UUID.randomUUID().toString(),
     publicationId = publication.id,
     workspaceId = publication.workspaceId,
     status = JobStatus.PENDING,

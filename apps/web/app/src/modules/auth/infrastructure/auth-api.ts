@@ -44,6 +44,14 @@ export type ApiError = {
   errorCode?: string
   resetAt?: string
   upgradeOptions?: string[]
+  results?: Array<{
+    socialAccountId: string
+    publicationId?: string
+    groupId?: string
+    status: string
+    errorCode?: string
+    errorMessage?: string
+  }>
 }
 
 export type ApiFetchOptions = RequestInit & {
@@ -122,6 +130,7 @@ async function requestRaw(
       {
         code: payload?.code,
         errorCode: payload?.errorCode,
+        results: payload?.results,
         resetAt: payload?.resetAt,
         upgradeOptions: payload?.upgradeOptions,
       },

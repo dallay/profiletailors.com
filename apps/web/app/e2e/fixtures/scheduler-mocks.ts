@@ -97,14 +97,14 @@ let publications: MockPublication[] = []
 // Mock data — realistic shapes matching the backend contract
 // ---------------------------------------------------------------------------
 
-const MOCK_WORKSPACE_ID = 'workspace-001'
-const MOCK_SOCIAL_ACCOUNT_ID = 'sa-linkedin-001'
+const MOCK_WORKSPACE_ID = '6325c45c-5fdd-5be5-84c2-54f866dfd70e'
+const MOCK_SOCIAL_ACCOUNT_ID = 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed'
 
 const mockChannels = {
   channels: [
     {
       socialAccountId: MOCK_SOCIAL_ACCOUNT_ID,
-      connectionId: 'conn-001',
+      connectionId: 'a92b9ead-a1a3-5801-9fbc-5d5c7370edd7',
       provider: 'linkedin',
       accountKind: 'PERSONAL',
       displayName: 'Dev User',
@@ -187,8 +187,57 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
 
     if (method === 'POST') {
       const body = route.request().postDataJSON()
+      if (route.request().url().endsWith('/batch')) {
+        const targets: Array<{ socialAccountId?: string; bodyText?: string }> = Array.isArray(
+          body?.targets,
+        )
+          ? body.targets
+          : []
+        const channelByAccountId = Object.fromEntries(
+          mockChannels.channels.map((ch) => [ch.socialAccountId, ch]),
+        )
+        const results = targets.map((target) => {
+          const accountId = target.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID
+          const channel = channelByAccountId[accountId]
+          const publicationId = crypto.randomUUID()
+          publications.push({
+            id: publicationId,
+            workspaceId: MOCK_WORKSPACE_ID,
+            socialAccountId: accountId,
+            provider: channel?.provider ?? 'linkedin',
+            status: body?.scheduleMode === 'NOW' ? 'QUEUED' : 'SCHEDULED',
+            scheduleMode: body?.scheduleMode ?? 'NOW',
+            priority: body?.priority ?? false,
+            title: body?.title ?? 'Post from App',
+            bodyText: target.bodyText ?? body?.bodyText ?? '',
+            scheduledFor: body?.scheduledFor ?? body?.nextSlotAfter ?? new Date().toISOString(),
+            nextSlotAfter: body?.nextSlotAfter ?? null,
+            assetIds: Array.isArray(target.assetIds) ? target.assetIds : [],
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          })
+          return {
+            socialAccountId: accountId,
+            publicationId,
+            groupId: null,
+            status: 'CREATED',
+            errorCode: null,
+            errorMessage: null,
+          }
+        })
+        route.fulfill(
+          json(
+            {
+              status: 'ALL_CREATED',
+              results,
+            },
+            201,
+          ),
+        )
+        return
+      }
       const pub: MockPublication = {
-        id: `backend-publication-${Date.now()}`,
+        id: crypto.randomUUID(),
         workspaceId: MOCK_WORKSPACE_ID,
         socialAccountId: body?.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
         provider: 'linkedin',
@@ -208,7 +257,13 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
       return
     }
 
-    // GET — list all publications
+    if (method === 'DELETE') {
+      const id = new URL(route.request().url()).pathname.split('/publications/')[1]
+      publications = publications.filter((publication) => publication.id !== id)
+      route.fulfill(json({ success: true }))
+      return
+    }
+
     route.fulfill(json({ publications }))
   })
 
@@ -221,7 +276,7 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
   await context.route('**/api/publishing/publications/quick-create**', (route) => {
     const body = route.request().postDataJSON()
     const pub: MockPublication = {
-      id: `pub-${Date.now()}`,
+      id: crypto.randomUUID(),
       workspaceId: MOCK_WORKSPACE_ID,
       socialAccountId: body?.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
       provider: 'linkedin',
@@ -348,7 +403,7 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
   await context.route('**/api/publishing/linkedin/connections/complete**', (route) => {
     route.fulfill(
       json({
-        connectionId: 'conn-001',
+        connectionId: 'a92b9ead-a1a3-5801-9fbc-5d5c7370edd7',
         workspaceId: MOCK_WORKSPACE_ID,
         provider: 'linkedin',
         status: 'ACTIVE',
@@ -394,8 +449,8 @@ export function resetSchedulerMocks(): void {
 export async function ensureChannelsLoaded(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
     const channel: PiniaChannel = {
-      id: 'sa-linkedin-001',
-      accountId: 'sa-linkedin-001',
+      id: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+      accountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
       name: 'Dev User',
       provider: 'linkedin',
       avatar: '',
@@ -433,14 +488,13 @@ export async function createPublicationInStore(
     errorCode?: string | null
   },
 ): Promise<void> {
-  const timestamp = Date.now()
   const title = options?.title === undefined ? 'E2E Test Post' : options.title
   const priority = options?.priority ?? false
   const status = options?.status ?? 'QUEUED'
   const scheduledAt = options?.scheduledAt ?? null
 
   const calendarPublication: MockPublication = {
-    id: `pub-e2e-${timestamp}`,
+    id: crypto.randomUUID(),
     workspaceId: MOCK_WORKSPACE_ID,
     socialAccountId: MOCK_SOCIAL_ACCOUNT_ID,
     provider: 'linkedin',

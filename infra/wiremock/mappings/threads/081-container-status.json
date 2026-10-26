@@ -2,18 +2,15 @@
   "priority": 10,
   "request": {
     "method": "GET",
-    "urlPathPattern": "/v1.0/[0-9]+",
+    "urlPathPattern": "/v1.0/[a-zA-Z0-9_-]+",
     "queryParameters": {
-      "fields": { "equalTo": "status" }
+      "fields": { "equalTo": "status" },
+      "access_token": { "matches": "mock-threads-.+" }
     }
   },
   "response": {
     "status": 200,
     "headers": { "Content-Type": "application/json" },
-    "jsonBody": {
-      "id": "{{jsonPath request.path '$.*[0]'}}",
-      "status": "FINISHED"
-    },
-    "transformers": ["response-template"]
+    "jsonBody": { "status": "FINISHED" }
   }
 }

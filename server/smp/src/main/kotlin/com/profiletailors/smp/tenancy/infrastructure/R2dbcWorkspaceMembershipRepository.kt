@@ -31,7 +31,7 @@ internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: Da
         WHERE workspace_id = :workspaceId
         """.trimIndent(),
     )
-        .bind(WORKSPACE_ID_BINDING, workspaceId)
+        .bind(WORKSPACE_ID_BINDING, UUID.fromString(workspaceId))
         .map { row, _ ->
             val principalTypeValue = requireNotNull(row.get(PRINCIPAL_TYPE_COLUMN, String::class.java))
             val statusValue = requireNotNull(row.get(STATUS_COLUMN, String::class.java))
@@ -57,8 +57,8 @@ internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: Da
             """.trimIndent(),
         )
             .bind(STATUS_BINDING, status.name)
-            .bind(WORKSPACE_ID_BINDING, workspaceId)
-            .bind(PRINCIPAL_ID_BINDING, principalId)
+            .bind(WORKSPACE_ID_BINDING, UUID.fromString(workspaceId))
+            .bind(PRINCIPAL_ID_BINDING, UUID.fromString(principalId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -73,8 +73,8 @@ internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: Da
             FOR UPDATE
             """.trimIndent(),
         )
-            .bind(WORKSPACE_ID_BINDING, workspaceId)
-            .bind(PRINCIPAL_ID_BINDING, principalId)
+            .bind(WORKSPACE_ID_BINDING, UUID.fromString(workspaceId))
+            .bind(PRINCIPAL_ID_BINDING, UUID.fromString(principalId))
             .map { row, _ ->
                 WorkspaceMembership(
                     id = requireNotNull(row.get(ID_COLUMN, String::class.java)),
@@ -93,16 +93,16 @@ internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: Da
 
         if (existing != null) return existing
 
-        val id = "wm-${UUID.randomUUID()}"
+        val id = UUID.randomUUID().toString()
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
             VALUES (:id, :workspaceId, :principalId, :principalType, :status)
             """.trimIndent(),
         )
-            .bind("id", id)
-            .bind(WORKSPACE_ID_BINDING, workspaceId)
-            .bind(PRINCIPAL_ID_BINDING, principalId)
+            .bind("id", UUID.fromString(id))
+            .bind(WORKSPACE_ID_BINDING, UUID.fromString(workspaceId))
+            .bind(PRINCIPAL_ID_BINDING, UUID.fromString(principalId))
             .bind(PRINCIPAL_TYPE_BINDING, PrincipalType.USER.name)
             .bind("status", WorkspaceMembershipStatus.ACTIVE.name)
             .fetch()

@@ -35,11 +35,11 @@ const fakeTokens: AuthTokens = {
   accessToken: 'access-hydrated',
   tokenType: 'Bearer',
   expiresIn: 3600,
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'user@example.com',
   username: 'testuser',
   emailStatus: 'ACTIVE',
-  workspaceId: 'ws-1',
+  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
 }
 
 describe('router real guard navigation', { timeout: 15000 }, () => {

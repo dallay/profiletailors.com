@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: dev-002-seed-shortlink-second-user-workspace
-      author: yuniel acosta
+      author: yacosta738
       context: "@dev"
       preConditions:
         - onFail: HALT

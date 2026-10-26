@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: platform-admin-003-create-platform-admin-audit-events
-      author: platform-admin
+      author: yacosta738
       changes:
         - createTable:
             tableName: platform_admin_audit_events

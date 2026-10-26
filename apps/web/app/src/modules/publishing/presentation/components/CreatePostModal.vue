@@ -9,6 +9,9 @@ import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import { ImageIcon, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useMarkdownEditor } from '@modules/publishing/application/useMarkdownEditor'
+import { channelCharLimit, DEFAULT_CHAR_LIMIT } from '@modules/publishing/application/channel-limits'
+import { channelInitials } from '@modules/publishing/application/channel-initials'
+import { normalizeForSubmission } from '@modules/publishing/application/markdown'
 import {
   generateAiPostContent,
   optimizeAiPostContent,
@@ -30,7 +33,12 @@ import { useComposerShortlinks } from '@modules/shortlinks'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import HashtagSuggestionPanel from '@modules/publishing/presentation/components/composer/HashtagSuggestionPanel.vue'
 import { useHashtagSuggestions } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
-import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
+import type {
+  LinkedInPreviewModel,
+  PostPreviewMedia,
+  PreviewProvider,
+  ThreadsPreviewModel,
+} from '@modules/publishing/presentation/components/composer/post-preview.types'
 import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Progress } from '@/components/ui/progress'
@@ -111,9 +119,31 @@ type AiVersion = {
 
 
 const postText = ref('')
-const selectedChannelId = ref<string | null>(null)
+const selectedChannelIds = ref<string[]>([])
+const selectionTouched = ref(false)
+const overrides = ref<Record<string, string>>({})
+const customizing = ref(false)
+const activeTabId = ref<string | null>(null)
 
-const markdownEditor = useMarkdownEditor({ postText: postText })
+const activeText = computed({
+  get: () => {
+    if (activeTabId.value === null) return postText.value
+    return overrides.value[activeTabId.value] ?? postText.value
+  },
+  set: (value: string) => {
+    if (activeTabId.value === null) {
+      postText.value = value
+      return
+    }
+    if (value === postText.value) {
+      delete overrides.value[activeTabId.value]
+      return
+    }
+    overrides.value[activeTabId.value] = value
+  },
+})
+
+const markdownEditor = useMarkdownEditor({ postText: activeText })
 const _composerTextareaEl = markdownEditor.textareaEl
 
 const picker = useComposerMediaPicker({
@@ -121,12 +151,22 @@ const picker = useComposerMediaPicker({
   publishingStore,
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
-  initialChannelId: () => selectedChannelId.value,
+  initialChannelId: () => strictestChannelId.value,
   onAttachmentsChanged: () => {
     assetsTouched.value = true
   },
 })
 const submitError = ref('')
+const submitAttempted = ref(false)
+const touchedTabs = ref<Record<string, boolean>>({})
+const hasEdited = ref(false)
+
+function markComposerTouched() {
+  if (hasEdited.value) {
+    touchedTabs.value[activeTabId.value ?? 'base'] = true
+  }
+  hasEdited.value = false
+}
 const {
   failedUrls: failedShortlinkUrls,
   shortlinkWarning,
@@ -254,7 +294,11 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   const pubChannelId = pub.accountId
     ?? publishingStore.channels.find((ch) => isSocialProvider(ch.provider) && pub.channels?.includes(ch.provider))?.id
     ?? null
-  selectedChannelId.value = pubChannelId
+  selectedChannelIds.value = pubChannelId ? [pubChannelId] : []
+  selectionTouched.value = true
+  overrides.value = {}
+  activeTabId.value = null
+  customizing.value = false
 
   if (scheduleMode.value === 'custom' && pub.scheduledAt) {
     const dateSrc = new Date(pub.scheduledAt)
@@ -282,7 +326,11 @@ function initCreateMode() {
   picker.pickerSelectionIds.value = []
   picker.resetPickerSessionTracking()
   mediaStore.clearSelection()
-  selectedChannelId.value = hasPrefill ? null : (publishingStore.channels[0]?.id ?? null)
+  selectedChannelIds.value = hasPrefill ? [] : defaultActiveChannelIds()
+  selectionTouched.value = hasPrefill
+  overrides.value = {}
+  activeTabId.value = null
+  customizing.value = false
 
   const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
   selectedCalendarDate.value = new CalendarDate(
@@ -293,6 +341,13 @@ function initCreateMode() {
   scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
 }
 
+function toggleCustomizing() {
+  customizing.value = !customizing.value
+  if (!customizing.value) {
+    activeTabId.value = null
+  }
+}
+
 function requestChannelConnection() {
   emit('close')
   emit('connectChannels')
@@ -300,6 +355,8 @@ function requestChannelConnection() {
 
 async function initializeComposerForOpen() {
   submitError.value = ''
+  submitAttempted.value = false
+  touchedTabs.value = {}
   mediaError.value = null
   isDatePickerOpen.value = false
   resetAiAssistantState()
@@ -366,7 +423,7 @@ watch(
 
 let analyzeDebounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(
-  () => postText.value,
+  () => activeText.value,
   (text) => {
     if (!isHashtagPanelOpen.value) return
     clearTimeout(analyzeDebounceTimer)
@@ -379,51 +436,95 @@ watch(
 watch(
   () => publishingStore.channels,
   (channels) => {
-    const hasPrefill = typeof props.initialContent === 'string' && props.initialContent.trim().length > 0
-    if (hasPrefill && !isEditMode.value && selectedChannelId.value === null) return
-    if (channels.length === 0) {
-      selectedChannelId.value = null
-      return
+    const activeIds = new Set(channels.filter((ch) => ch.status === 'ACTIVE').map((ch) => ch.id))
+    const pruned = selectedChannelIds.value.filter((id) => activeIds.has(id))
+    if (pruned.length !== selectedChannelIds.value.length) {
+      selectedChannelIds.value = pruned
     }
-    const activeIds = new Set(channels.filter(ch => ch.status === 'ACTIVE').map(ch => ch.id))
-    if (!activeIds.has(selectedChannelId.value ?? '')) {
-      selectedChannelId.value = channels.find(ch => ch.status === 'ACTIVE')?.id ?? null
+    if (activeTabId.value && !activeIds.has(activeTabId.value)) {
+      activeTabId.value = null
+    }
+    if (!selectionTouched.value && !isEditMode.value && pruned.length === 0 && activeIds.size > 0) {
+      selectedChannelIds.value = [...activeIds]
     }
   },
 )
 
 
 const isSubmitting = ref(false)
-const charLimit = 3000
-const normalizedText = computed(() => markdownEditor.plainTextForSubmit())
-const charsRemaining = computed(() => charLimit - normalizedText.value.length)
-const isTextTooLong = computed(() => charsRemaining.value < 0)
-const selectedChannel = computed(() =>
-  publishingStore.channels.find((channel) => channel.id === selectedChannelId.value)
-  ?? publishingStore.channels[0]
-  ?? null,
-)
-const selectedProviders = computed(() =>
-  selectedChannel.value && isSocialProvider(selectedChannel.value.provider)
-    ? [selectedChannel.value.provider]
-    : [],
-)
-const selectedChannelInitials = computed(() => {
-  const name = selectedChannel.value?.name?.trim()
-  if (!name) return 'PT'
-
-  const parts = name.split(/\s+/).filter(Boolean)
-  if (parts.length === 1) {
-    return (parts[0]?.slice(0, 2) ?? 'PT').toUpperCase()
+const counterLimit = computed(() => {
+  if (activeTabId.value) {
+    const channel = selectedChannels.value.find((ch) => ch.id === activeTabId.value)
+    if (channel) return channelCharLimit(channel.provider)
   }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
+  const limits = selectedChannels.value.map((ch) => channelCharLimit(ch.provider))
+  return limits.length > 0 ? Math.min(...limits) : DEFAULT_CHAR_LIMIT
 })
+const counterRemaining = computed(
+  () => counterLimit.value - normalizeForSubmission(activeText.value).length,
+)
+const isCounterOverLimit = computed(() => counterRemaining.value < 0)
+const selectedChannels = computed(() =>
+  publishingStore.channels.filter((channel) => selectedChannelIds.value.includes(channel.id)),
+)
+function effectiveRawFor(channelId: string): string {
+  return overrides.value[channelId] ?? postText.value
+}
 
+function effectiveSubmitFor(channelId: string): string {
+  return normalizeForSubmission(effectiveRawFor(channelId))
+}
+
+const baseSubmitLength = computed(() => normalizeForSubmission(postText.value).length)
+
+const channelStatuses = computed(() =>
+  selectedChannels.value.map((channel) => {
+    const limit = channelCharLimit(channel.provider)
+    const length = effectiveSubmitFor(channel.id).length
+    return {
+      channelId: channel.id,
+      name: channel.name,
+      limit,
+      length,
+      remaining: limit - length,
+      tooLong: length > limit,
+      empty: length === 0,
+    }
+  }),
+)
+const allChannelsValid = computed(() =>
+  channelStatuses.value.length > 0
+  && channelStatuses.value.every((status) => !status.tooLong && !status.empty),
+)
+function buildChannelErrors(statuses: typeof channelStatuses.value, includeEmpty: boolean) {
+  return [
+    ...statuses
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...statuses
+      .filter((status) => status.empty && includeEmpty)
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
+}
+const channelLimitErrors = computed(() => buildChannelErrors(channelStatuses.value, true))
+const visibleChannelLimitErrors = computed(() => {
+  if (submitAttempted.value) {
+    if (selectedChannels.value.length === 0) return [t('composer.noChannelsSelected')]
+    return channelLimitErrors.value
+  }
+  const touched = touchedTabs.value
+  return [
+    ...channelStatuses.value
+      .filter((status) => status.tooLong)
+      .map((status) => t('composer.channelLimitExceeded', { name: status.name, limit: status.limit })),
+    ...channelStatuses.value
+      .filter(
+        (status) =>
+          status.empty && (touched[status.channelId] || touched.base === true),
+      )
+      .map((status) => t('composer.channelEmptyText', { name: status.name })),
+  ]
+})
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
   const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
@@ -442,11 +543,13 @@ const scheduleHelperText = computed(() => {
 })
 
 const canSubmit = computed(() => {
+  const allHaveOverrides = selectedChannels.value.every(
+    (ch) => Boolean(overrides.value[ch.id]?.trim()),
+  )
+  const baseValid = baseSubmitLength.value > 0 || allHaveOverrides
   return (
-    !!selectedChannel.value &&
-    postText.value.trim().length > 0 &&
-    normalizedText.value.trim().length > 0 &&
-    !isTextTooLong.value &&
+    baseValid &&
+    allChannelsValid.value &&
     !isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
   )
@@ -685,15 +788,79 @@ const selectedPreviewMedia = computed<PostPreviewMedia | null>(() => {
   }
 })
 
-const linkedinPreview = computed<LinkedInPreviewModel>(() => ({
-  authorName: selectedChannel.value?.name || auth.user?.username || 'Profile Tailors',
-  authorHandle: selectedChannel.value?.handle || 'LinkedIn Member',
-  authorAvatarUrl: selectedChannel.value?.avatarUrl ?? null,
-  authorInitials: selectedChannelInitials.value,
-  text: markdownEditor.plainTextForPreview.value,
-  placeholderText: t('composer.seePreviewHere'),
-  media: selectedPreviewMedia.value,
-}))
+const previewChannel = computed(() => {
+  if (activeTabId.value) {
+    return selectedChannels.value.find((channel) => channel.id === activeTabId.value) ?? null
+  }
+  return selectedChannels.value[0] ?? null
+})
+
+const previewProvider = computed<PreviewProvider>(() =>
+  previewChannel.value?.provider === 'threads' ? 'threads' : 'linkedin',
+)
+
+const previewTitle = computed(() =>
+  previewProvider.value === 'threads' ? t('composer.threadsPreview') : t('composer.linkedinPreview'),
+)
+
+function previewModelFor(channelId: string | null): LinkedInPreviewModel {
+  const channel = channelId
+    ? (selectedChannels.value.find((entry) => entry.id === channelId) ?? null)
+    : (selectedChannels.value[0] ?? null)
+  return {
+    authorName: channel?.name || auth.user?.username || 'Profile Tailors',
+    authorHandle:
+      channel?.handle ||
+      (previewProvider.value === 'threads'
+        ? t('composer.threadsAuthorFallback')
+        : t('composer.linkedinAuthorFallback')),
+    authorAvatarUrl: channel?.avatarUrl ?? null,
+    authorInitials: channelInitials(channel?.name),
+    text: markdownEditor.stripMarkdown(channelId ? effectiveRawFor(channelId) : postText.value),
+    placeholderText: t('composer.seePreviewHere'),
+    media: selectedPreviewMedia.value,
+  }
+}
+
+const activePreview = computed<LinkedInPreviewModel | ThreadsPreviewModel>(() =>
+  previewModelFor(activeTabId.value),
+)
+
+const customizeTabs = computed(() => {
+  const remainingValues = channelStatuses.value.map((status) => status.remaining)
+  const baseTab = {
+    id: null as string | null,
+    name: t('composer.customizeBase'),
+    provider: null as string | null,
+    remaining: remainingValues.length > 0 ? Math.min(...remainingValues) : 0,
+    limit: null as number | null,
+    customized: false,
+  }
+  const channelTabs = selectedChannels.value.map((channel) => {
+    const status = channelStatuses.value.find((entry) => entry.channelId === channel.id)
+    return {
+      id: channel.id as string | null,
+      name: channel.name,
+      provider: channel.provider as string | null,
+      remaining: status?.remaining ?? 0,
+      limit: (status?.limit ?? channelCharLimit(channel.provider)) as number | null,
+      customized: overrides.value[channel.id] !== undefined,
+    }
+  })
+  return [baseTab, ...channelTabs]
+})
+
+const customizeStatusText = computed(() => {
+  if (activeTabId.value === null) {
+    const inheriting = selectedChannels.value.filter(
+      (channel) => overrides.value[channel.id] === undefined,
+    ).length
+    return t('composer.customizeBaseStatus', { count: inheriting })
+  }
+  return overrides.value[activeTabId.value] === undefined
+    ? t('composer.customizeUsingBase')
+    : t('composer.customizeCustomized')
+})
 
 /**
  * The current in-flight or failed upload item being tracked (max 1 for MVP).
@@ -785,8 +952,35 @@ const aiResetLabel = computed(() => {
   })
 })
 
-function selectChannel(channelId: string) {
-  selectedChannelId.value = channelId
+function defaultActiveChannelIds(): string[] {
+  return publishingStore.channels.filter((ch) => ch.status === 'ACTIVE').map((ch) => ch.id)
+}
+
+const strictestChannelId = computed(() => {
+  const selected = selectedChannels.value.filter((ch) => ch.status === 'ACTIVE')
+  let strictest: (typeof selected)[number] | null = null
+  for (const channel of selected) {
+    const current = strictest?.maxAttachments ?? Number.POSITIVE_INFINITY
+    const next = channel.maxAttachments ?? Number.POSITIVE_INFINITY
+    if (strictest === null || next < current) {
+      strictest = channel
+    }
+  }
+  return strictest?.id ?? null
+})
+
+function toggleChannel(channelId: string) {
+  selectionTouched.value = true
+  selectedChannelIds.value = selectedChannelIds.value.includes(channelId)
+    ? selectedChannelIds.value.filter((id) => id !== channelId)
+    : [...selectedChannelIds.value, channelId]
+  if (activeTabId.value === channelId && !selectedChannelIds.value.includes(channelId)) {
+    activeTabId.value = null
+  }
+}
+
+function resetOverride(channelId: string) {
+  delete overrides.value[channelId]
 }
 
 function toggleHashtagPanel(): void {
@@ -794,8 +988,8 @@ function toggleHashtagPanel(): void {
   if (isHashtagPanelOpen.value) {
     hashtags.loadTrending()
     hashtags.loadSavedSets()
-    if (postText.value.length >= 50) {
-      hashtags.analyze(postText.value)
+    if (activeText.value.length >= 50) {
+      hashtags.analyze(activeText.value)
     }
   }
 }
@@ -803,23 +997,23 @@ function toggleHashtagPanel(): void {
 function handleAddHashtag(tag: string): void {
   if (hashtags.addHashtag(tag)) {
     const block = hashtags.buildHashtagBlock()
-    const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
-    postText.value = block ? `${stripped}${block}` : stripped
+    const stripped = activeText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+    activeText.value = block ? `${stripped}${block}` : stripped
   }
 }
 
 function handleRemoveHashtag(tag: string): void {
   hashtags.removeHashtag(tag)
   const block = hashtags.buildHashtagBlock()
-  const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
-  postText.value = block ? `${stripped}${block}` : stripped
+  const stripped = activeText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+  activeText.value = block ? `${stripped}${block}` : stripped
 }
 
 function handleApplySet(set: import('@modules/publishing/services/hashtag-api').HashtagSavedSet): void {
   hashtags.applySet(set)
   const block = hashtags.buildHashtagBlock()
-  const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
-  postText.value = block ? `${stripped}${block}` : stripped
+  const stripped = activeText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+  activeText.value = block ? `${stripped}${block}` : stripped
 }
 
 async function handleSaveCurrentAsSet(tagList: string[]): Promise<void> {
@@ -834,7 +1028,7 @@ async function handleDeleteSet(setId: string): Promise<void> {
 }
 
 function handleEmojiPicker() {
-  postText.value = `${postText.value}${postText.value ? ' ' : ''}🙂`
+  activeText.value = `${activeText.value}${activeText.value ? ' ' : ''}🙂`
 }
 
 function openAiAssistant(): void {
@@ -936,7 +1130,7 @@ function setAiVersions(content: string, keepExisting = false): void {
 
 async function runAiGeneration(mode: 'generate' | 'optimize' | 'regenerate'): Promise<void> {
   const prompt = aiPrompt.value.trim()
-  const draft = postText.value.trim()
+  const draft = activeText.value.trim()
 
   if (mode === 'generate' && !prompt) {
     aiReviewError.value = t('composer.ai.errors.promptRequired')
@@ -1006,8 +1200,8 @@ async function requestAiContent(
 
 async function handleAiAssist(): Promise<void> {
   openAiAssistant()
-  if (postText.value.trim()) {
-    aiPrompt.value = postText.value.trim()
+  if (activeText.value.trim()) {
+    aiPrompt.value = activeText.value.trim()
   }
 }
 
@@ -1016,7 +1210,7 @@ function acceptAiVersion(): void {
     return
   }
 
-  postText.value = aiSelectedContent.value.trim()
+  activeText.value = aiSelectedContent.value.trim()
   closeAiAssistant()
 }
 
@@ -1100,6 +1294,12 @@ async function uploadDeferredFile(): Promise<boolean> {
 
 function resetPostForm() {
   postText.value = ''
+  overrides.value = {}
+  activeTabId.value = null
+  customizing.value = false
+  submitAttempted.value = false
+  touchedTabs.value = {}
+  hasEdited.value = false
   resetShortlinks()
   mediaError.value = null
   removeFile()
@@ -1125,9 +1325,10 @@ async function shortenPostUrls(content: string): Promise<string> {
 }
 
 async function handleSchedule() {
-  if (!canSubmit.value) return
-
-  const shouldCreateAnother = createAnother.value
+  if (!canSubmit.value) {
+    submitAttempted.value = true
+    return
+  }
 
   isSubmitting.value = true
   submitError.value = ''
@@ -1144,17 +1345,13 @@ async function handleSchedule() {
     const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {
-      await handleEditSubmit(normalizedText.value, scheduledDate, backendScheduleMode)
+      await handleEditSubmit(markdownEditor.plainTextForSubmit(), scheduledDate, backendScheduleMode)
     } else {
-      const content = await shortenPostUrls(normalizedText.value)
-      await handleCreateSubmit(content, scheduledDate, backendScheduleMode)
+      await handleCreateSubmit(scheduledDate, backendScheduleMode)
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
-    if (shouldCreateAnother) {
-      resetPostForm()
-    }
   } finally {
     isSubmitting.value = false
   }
@@ -1180,28 +1377,60 @@ async function handleEditSubmit(
 }
 
 async function handleCreateSubmit(
-  normalizedPostText: string,
   scheduledDate: Date | undefined,
   backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
-  const created = await publishingStore.schedulePost({
-    content: normalizedPostText,
+  const targets = await Promise.all(
+    selectedChannels.value.flatMap((target) => {
+      const provider = target.provider
+      if (!isSocialProvider(provider)) return []
+      return shortenPostUrls(effectiveSubmitFor(target.id)).then((content) => ({
+        socialAccountId: target.accountId,
+        provider,
+        content,
+      }))
+    }),
+  )
+  if (targets.length === 0) return
+  const result = await publishingStore.scheduleMultiChannel({
     title: 'Post from App',
-    channels: selectedProviders.value,
+    scheduleMode: backendScheduleMode,
     scheduledAt: scheduledDate?.toISOString(),
     nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
-    scheduleMode: backendScheduleMode,
     priority: priorityMode.value,
-    thumbnail: selectedAssetIsImage.value
-      ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
-      : undefined,
     assetIds: [...picker.draftAttachmentIds.value],
-    socialAccountId: selectedChannel.value?.accountId,
+    targets,
   })
+  if (result.status === 'ALL_FAILED') {
+    submitError.value = result.results
+      .map((item) => item.errorMessage)
+      .filter(Boolean)
+      .join(' ') || 'Unable to schedule posts.'
+    return
+  }
+  const failedTargets = result.results.filter((item) => !item.publicationId)
+  if (failedTargets.length > 0) {
+    submitError.value = failedTargets
+      .map((item) => `${selectedChannels.value.find((channel) => channel.accountId === item.socialAccountId)?.name ?? item.socialAccountId}: ${item.errorMessage ?? 'Unable to schedule post.'}`)
+      .join('\n')
+    const failedAccountIds = new Set(failedTargets.map((target) => target.socialAccountId))
+    selectedChannelIds.value = selectedChannels.value
+      .filter((channel) => failedAccountIds.has(channel.accountId))
+      .map((channel) => channel.id)
+    if (activeTabId.value && !selectedChannelIds.value.includes(activeTabId.value)) {
+      activeTabId.value = null
+    }
+  }
+  const firstCreated = result.results.find((item) => item.publicationId)?.publicationId
+  if (!firstCreated) return
   if (failedShortlinkUrls.value.length > 0) {
     toast.warning(`${t('shortlinks.createFailed')} ${failedShortlinkUrls.value.join(', ')}`)
   }
-  emit('created', { keepOpen: createAnother.value, publicationId: created.id })
+  emit('created', {
+    keepOpen: createAnother.value || failedTargets.length > 0,
+    publicationId: firstCreated,
+  })
+  if (failedTargets.length > 0) return
   finalizeAfterCreate(createAnother.value)
 }
 </script>
@@ -1213,7 +1442,7 @@ async function handleCreateSubmit(
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
       @click.self="emit('close')"
-      @keydown.escape="emit('close')"
+      @keydown.escape.stop="emit('close')"
     >
       <dialog
         ref="modalContainer"
@@ -1231,7 +1460,7 @@ async function handleCreateSubmit(
           <X class="size-4" />
         </button>
 
-        <div class="flex flex-col space-y-6 border-b border-border-subtle p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r lg:overflow-hidden">
+        <div class="flex flex-col space-y-6 border-b border-border-subtle p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r lg:overflow-y-auto">
           <div class="flex items-center justify-between">
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
@@ -1247,10 +1476,79 @@ async function handleCreateSubmit(
 
           <ComposerChannelSelector
             :channels="publishingStore.channels"
-            :selected-channel-id="selectedChannelId"
+            :selected-channel-ids="selectedChannelIds"
             :is-edit-mode="isEditMode"
-            @select="selectChannel"
+            @toggle="toggleChannel"
+            @add="requestChannelConnection"
           />
+
+          <ul
+            v-if="visibleChannelLimitErrors.length > 0"
+            role="alert"
+            data-testid="composer-channel-limit-errors"
+            class="space-y-1 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+          >
+            <li v-for="error in visibleChannelLimitErrors" :key="error">
+              {{ error }}
+            </li>
+          </ul>
+
+          <div v-if="!isEditMode && selectedChannels.length > 0" class="flex items-center gap-2">
+            <button
+              type="button"
+              data-testid="customize-toggle"
+              class="rounded-full border border-border-visible px-3 py-1.5 font-mono text-[10px] tracking-wide text-text-secondary transition-all hover:text-text-display"
+              :aria-pressed="customizing ? 'true' : 'false'"
+              @click="toggleCustomizing"
+            >
+              {{ t('composer.customizePerNetwork') }}
+            </button>
+          </div>
+
+          <div
+            v-if="customizing && !isEditMode && selectedChannels.length > 0"
+            data-testid="customize-tabs"
+            class="flex flex-wrap items-center gap-2"
+            role="tablist"
+          >
+            <button
+              v-for="tab in customizeTabs"
+              :key="tab.id ?? 'base'"
+              type="button"
+              data-testid="customize-tab"
+              role="tab"
+              :aria-selected="activeTabId === tab.id ? 'true' : 'false'"
+              class="flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
+              :class="activeTabId === tab.id
+                ? 'border-text-display bg-bg-primary text-text-display font-bold'
+                : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50'"
+              @click="activeTabId = tab.id"
+            >
+              <span class="max-w-[120px] truncate">{{ tab.name }}</span>
+              <span class="text-text-secondary">{{ tab.remaining }}<template v-if="tab.limit !== null"> / {{ tab.limit }}</template></span>
+              <span
+                v-if="tab.customized"
+                data-testid="customize-dot"
+                class="size-1.5 rounded-full bg-text-display"
+              />
+            </button>
+            <button
+              v-if="activeTabId !== null && overrides[activeTabId] !== undefined"
+              type="button"
+              data-testid="customize-reset"
+              class="rounded-full border border-dashed border-border-visible px-3 py-1.5 font-mono text-[10px] tracking-wide text-text-secondary transition-all hover:text-text-display"
+              @click="resetOverride(activeTabId)"
+            >
+              {{ t('composer.customizeReset') }}
+            </button>
+            <p
+              data-testid="customize-status"
+              role="status"
+              class="w-full font-mono text-[10px] tracking-wide text-text-secondary"
+            >
+              {{ customizeStatusText }}
+            </p>
+          </div>
 
           <div
             v-if="publishingStore.hasNoChannels"
@@ -1270,7 +1568,7 @@ async function handleCreateSubmit(
             </Button>
           </div>
 
-          <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
+          <div class="flex min-h-[220px] sm:min-h-[320px] lg:min-h-105 w-full shrink-0 flex-col rounded-3xl border border-border-visible bg-bg-primary/70">
             <div class="border-b border-border-subtle/70 px-3 py-2">
               <MarkdownToolbar
                 :disabled="isSubmitting"
@@ -1289,7 +1587,7 @@ async function handleCreateSubmit(
             <textarea
               id="create-post-text"
               ref="_composerTextareaEl"
-              v-model="postText"
+              v-model="activeText"
               :placeholder="$t('composer.placeholder')"
               class="min-h-[140px] sm:min-h-[180px] lg:min-h-55 w-full flex-1 resize-none bg-transparent p-4 sm:p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
               data-testid="composer-textarea"
@@ -1298,6 +1596,8 @@ async function handleCreateSubmit(
               @drop="handleComposerSurfaceDrop"
               @paste="handleComposerSurfacePaste"
               @keydown="markdownEditor.handleKeyDown"
+              @input="hasEdited = true"
+              @blur="markComposerTouched"
             ></textarea>
             <p v-if="shortlinkWarning && !isEditMode" role="status" class="border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">
               {{ t('shortlinks.createFailed') }} {{ failedShortlinkUrls.join(', ') }}
@@ -1475,9 +1775,9 @@ async function handleCreateSubmit(
 
                 <span
                   class="font-mono text-[10px]"
-                  :class="isTextTooLong ? 'text-error font-bold' : 'text-text-secondary'"
+                  :class="isCounterOverLimit ? 'text-error font-bold' : 'text-text-secondary'"
                 >
-                  {{ charsRemaining }} / {{ charLimit }}
+                  {{ counterRemaining }} / {{ counterLimit }}
                 </span>
               </div>
 
@@ -1629,7 +1929,7 @@ async function handleCreateSubmit(
                   <button
                     type="button"
                     class="rounded-full border border-border-visible bg-bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-text-body transition hover:border-text-display hover:text-text-display disabled:cursor-not-allowed disabled:opacity-60"
-                    :disabled="isAiGenerating || !postText.trim()"
+                    :disabled="isAiGenerating || !activeText.trim()"
                     @click="runAiGeneration('optimize')"
                     data-testid="composer-ai-optimize"
                   >
@@ -1795,9 +2095,9 @@ async function handleCreateSubmit(
         />
 
         <PostPreviewPanel
-          provider="linkedin"
-          :title="$t('composer.linkedinPreview')"
-          :linkedin-preview="linkedinPreview"
+          :provider="previewProvider"
+          :title="previewTitle"
+          :preview="activePreview"
         >
           <template #footer>
             <div class="border-t border-border-subtle pt-6 space-y-4">

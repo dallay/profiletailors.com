@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: ideas-001-create-ideas
-      author: profiletailors
+      author: yacosta738
       changes:
         - createTable:
             tableName: idea_board_configs

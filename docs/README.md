@@ -91,7 +91,8 @@
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
   `just setup`
-- [Portless — Local Development URLs](./portless-setup.md) - Named `.localhost` HTTPS URLs
+- [Portless — Local Development URLs](./portless-setup.md) - Named `.localhost` HTTPS URLs and local JVM trust
+- [Local Threads OAuth with WireMock](./local-threads-oauth.md) - End-to-end local Threads connection testing
 - [Gradle Build System & Conventions](./gradle-build-system.md) - Centralized composite
   build-logic & convention plugins
 - [Code Coverage Setup](./codecov-setup.md) - JaCoCo and Codecov integration
@@ -132,6 +133,7 @@
 - [Actuator Security](./monitoring/actuator-security.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
 - [Production Rollback Runbook](./runbooks/production-rollback.md)
+- [UUID Identifier Migration Runbook](./runbooks/uuid-native-identifiers.md) — Explicit-context conversion, writer shutdown, approval gates, and coordinated recovery
 - [Password Recovery Runbook](./runbooks/password-recovery.md)
 
 ## 📝 Documentation Standards

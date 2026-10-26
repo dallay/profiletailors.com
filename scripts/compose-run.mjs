@@ -18,7 +18,7 @@ if (command === 'ports') {
     ['postgresql', '5432'],
     ['mailpit', '1025'],
     ['mailpit', '8025'],
-    ['linkedin-wiremock', '8080'],
+    ['social-api-wiremock', '8080'],
     ['prometheus', '9090'],
     ['grafana', '3000'],
   ]

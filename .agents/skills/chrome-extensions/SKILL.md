@@ -16,6 +16,7 @@ metadata:
   family: typescript
   source: local
   version: 2026-09-28
+  opencode/autoinvoke: "false"
 ---
 
 # Chrome Extensions

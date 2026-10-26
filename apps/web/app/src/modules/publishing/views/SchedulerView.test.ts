@@ -254,8 +254,8 @@ describe('SchedulerView', () => {
     store.activity = []
     store.channels = [
       {
-        id: 'acc-1',
-        accountId: 'acc-1',
+        id: '788c8103-35f1-5899-b15a-6ca994253c99',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         name: 'LinkedIn',
         provider: 'linkedin',
         avatar: '',
@@ -316,7 +316,7 @@ describe('SchedulerView', () => {
     const auth = useAuthStore()
     const workspace = useWorkspaceStore()
     Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-    workspace.setActiveWorkspaceId('workspace-1')
+    workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
     vi.spyOn(store, 'fetchRecurringSchedules').mockResolvedValue([])
     const subscribe = vi.spyOn(store, 'subscribePublicationEvents').mockResolvedValue(null)
     const unsubscribe = vi.spyOn(store, 'unsubscribePublicationEvents').mockImplementation(() => {})
@@ -334,8 +334,8 @@ describe('SchedulerView', () => {
     const onInvalidation = subscribe.mock.calls[0]?.[0]
     expect(onInvalidation).toBeTypeOf('function')
     onInvalidation?.({
-      workspaceId: 'workspace-1',
-      publicationId: 'pub-1',
+      workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+      publicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
       changeType: 'publication.status-changed',
       occurredAt: '2026-09-25T12:00:00.000Z',
     })
@@ -350,7 +350,7 @@ describe('SchedulerView', () => {
     const auth = useAuthStore()
     const workspace = useWorkspaceStore()
     Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-    workspace.setActiveWorkspaceId('workspace-1')
+    workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
     vi.spyOn(store, 'fetchRecurringSchedules').mockResolvedValue([])
     const subscribe = vi.spyOn(store, 'subscribePublicationEvents').mockResolvedValue(null)
 
@@ -358,7 +358,7 @@ describe('SchedulerView', () => {
     await flushPromises()
     expect(subscribe).toHaveBeenCalledTimes(1)
 
-    workspace.setActiveWorkspaceId('workspace-2')
+    workspace.setActiveWorkspaceId('c1d6493d-5117-5741-a405-50309e8bfc77')
     await flushPromises()
     expect(subscribe).toHaveBeenCalledTimes(2)
 
@@ -459,8 +459,8 @@ describe('SchedulerView', () => {
     const store = usePublishingStore()
     store.channels = [
       {
-        id: 'acc-1',
-        accountId: 'acc-1',
+        id: '788c8103-35f1-5899-b15a-6ca994253c99',
+        accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         name: 'Threads profile',
         provider: 'threads',
         avatar: '',
@@ -486,7 +486,7 @@ describe('SchedulerView', () => {
     const scheduledAt = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0, 0)
     store.publications = [
       {
-        id: 'pub-week-thumb',
+        id: 'b642a89c-c558-56a0-9b68-844c557242e7',
         content: 'Post with image in week view',
         channels: ['linkedin'],
         scheduledAt: scheduledAt.toISOString(),
@@ -575,7 +575,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: `pub-tz-${tz}`,
+          id: crypto.randomUUID(),
           content: `Post scheduled for ${tz}`,
           channels: ['linkedin'],
           scheduledAt,
@@ -611,7 +611,7 @@ describe('SchedulerView', () => {
     const scheduledAt = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0, 0)
     store.publications = [
       {
-        id: 'pub-week-side-by-side',
+        id: 'c609e006-4c7e-54d0-ac39-10806f98674a',
         content: 'Side by side layout test',
         channels: ['linkedin'],
         scheduledAt: scheduledAt.toISOString(),
@@ -646,7 +646,7 @@ describe('SchedulerView', () => {
     vi.spyOn(store, 'deletePost').mockRejectedValue(new Error('Network error'))
     store.publications = [
       {
-        id: 'del-error',
+        id: '464d77e1-1243-56ef-beb7-f4c916175f43',
         content: 'To be deleted',
         channels: ['linkedin'],
         scheduledAt: '2026-06-15T10:00:00.000Z',
@@ -688,7 +688,7 @@ describe('SchedulerView', () => {
     const futureDate = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
     store.publications = [
       {
-        id: 'pub-drag',
+        id: 'a154e161-9521-5adb-b9c3-03e70379de4f',
         content: 'Draggable post',
         channels: ['linkedin'],
         scheduledAt: futureDate,
@@ -709,7 +709,7 @@ describe('SchedulerView', () => {
   it('opens detail modal from postId in the scheduler URL state', async () => {
     const store = usePublishingStore()
     const pub: Publication = {
-      id: 'pub-deep-link',
+      id: 'e22182b1-4b6e-56a8-825d-89888d23157a',
       content: 'Deep linked post',
       channels: ['linkedin'],
       scheduledAt: '2026-06-25T10:00:00Z',
@@ -718,7 +718,10 @@ describe('SchedulerView', () => {
     }
     store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-deep-link' })
+    const wrapper = mountView({
+      date: '2026-06-25',
+      postId: 'e22182b1-4b6e-56a8-825d-89888d23157a',
+    })
     await flushPromises()
 
     expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
@@ -728,7 +731,7 @@ describe('SchedulerView', () => {
     const wrapper = mountView({ date: '2026-06-25' })
     await flushPromises()
     const pub: Publication = {
-      id: 'pub-url-open',
+      id: '1bb13edf-eaf3-5b61-a5c1-aef25483ebf4',
       content: 'Open via URL state',
       channels: ['linkedin'],
       scheduledAt: '2026-06-25T10:00:00Z',
@@ -740,13 +743,15 @@ describe('SchedulerView', () => {
     vm.openPostDetail(pub)
     await flushPromises()
 
-    expect(mockController.openPostDetail).toHaveBeenCalledWith('pub-url-open')
+    expect(mockController.openPostDetail).toHaveBeenCalledWith(
+      '1bb13edf-eaf3-5b61-a5c1-aef25483ebf4',
+    )
   })
 
   it('opens CreatePostModal in edit mode when PostDetailModal emits edit', async () => {
     const store = usePublishingStore()
     const pub: Publication = {
-      id: 'pub-edit-flow',
+      id: '1807f930-2c97-5f31-b9cf-263501218962',
       content: 'Editable post',
       channels: ['linkedin'],
       scheduledAt: '2026-06-25T10:00:00Z',
@@ -755,7 +760,10 @@ describe('SchedulerView', () => {
     }
     store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-edit-flow' })
+    const wrapper = mountView({
+      date: '2026-06-25',
+      postId: '1807f930-2c97-5f31-b9cf-263501218962',
+    })
     await flushPromises()
 
     const editBtn = wrapper.find('[data-testid="detail-edit"]')
@@ -771,7 +779,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-other',
+          id: '3b3b9820-59bc-53dd-8b71-bf129eb34391',
           content: 'Some other post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -780,7 +788,10 @@ describe('SchedulerView', () => {
         },
       ]
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-nonexistent' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '8d95892a-98a4-5a02-95bf-82ef511d72fe',
+      })
       await flushPromises()
 
       expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
@@ -790,7 +801,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-deleted-emit',
+          id: '5b7753ef-e664-5750-b295-89b1595ae34d',
           content: 'Deleted via modal',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -799,7 +810,10 @@ describe('SchedulerView', () => {
         },
       ]
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-deleted-emit' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '5b7753ef-e664-5750-b295-89b1595ae34d',
+      })
       await flushPromises()
 
       await wrapper.find('[data-testid="detail-deleted"]').trigger('click')
@@ -812,7 +826,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-close-emit',
+          id: '6473d638-ce2f-5940-8c86-0690ceeac8ff',
           content: 'Closed via modal',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -821,7 +835,10 @@ describe('SchedulerView', () => {
         },
       ]
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-close-emit' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '6473d638-ce2f-5940-8c86-0690ceeac8ff',
+      })
       await flushPromises()
 
       await wrapper.find('[data-testid="detail-close"]').trigger('click')
@@ -834,7 +851,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-reschedule-emit',
+          id: 'c0e422a3-0a0b-53c4-884b-ca7d16481cc5',
           content: 'Rescheduled via modal',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -843,7 +860,10 @@ describe('SchedulerView', () => {
         },
       ]
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-reschedule-emit' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: 'c0e422a3-0a0b-53c4-884b-ca7d16481cc5',
+      })
       await flushPromises()
 
       await wrapper.find('[data-testid="detail-reschedule"]').trigger('click')
@@ -856,7 +876,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-retried-emit',
+          id: '56c0efbf-0c91-5ad6-a3c9-ecba2299f98e',
           content: 'Retried via modal',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -865,7 +885,10 @@ describe('SchedulerView', () => {
         },
       ]
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-retried-emit' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '56c0efbf-0c91-5ad6-a3c9-ecba2299f98e',
+      })
       await flushPromises()
 
       await wrapper.find('[data-testid="detail-retried"]').trigger('click')
@@ -877,7 +900,7 @@ describe('SchedulerView', () => {
     it('closes the post detail modal when the currently open publication is deleted', async () => {
       const store = usePublishingStore()
       const pub: Publication = {
-        id: 'pub-delete-open',
+        id: '6d45c5e0-5163-5b6b-a451-ea2a5eabe866',
         content: 'To delete while open',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
@@ -887,16 +910,19 @@ describe('SchedulerView', () => {
       store.publications = [pub]
       vi.spyOn(store, 'deletePost').mockResolvedValue(undefined as never)
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-delete-open' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '6d45c5e0-5163-5b6b-a451-ea2a5eabe866',
+      })
       await flushPromises()
 
       const vm = wrapper.vm as unknown as {
         handleDeletePublication: (id: string) => Promise<void>
       }
-      await vm.handleDeletePublication('pub-delete-open')
+      await vm.handleDeletePublication('6d45c5e0-5163-5b6b-a451-ea2a5eabe866')
       await flushPromises()
 
-      expect(store.deletePost).toHaveBeenCalledWith('pub-delete-open')
+      expect(store.deletePost).toHaveBeenCalledWith('6d45c5e0-5163-5b6b-a451-ea2a5eabe866')
       expect(mockController.closePostDetail).toHaveBeenCalled()
     })
 
@@ -904,7 +930,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-open',
+          id: '0de4716d-3049-5c61-a576-9f3e91390f0b',
           content: 'Currently open',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -912,7 +938,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-unrelated',
+          id: '8f3ab6f2-5be3-56e9-8a75-910c0de6dad9',
           content: 'Not open',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T11:00:00Z',
@@ -922,17 +948,20 @@ describe('SchedulerView', () => {
       ]
       vi.spyOn(store, 'deletePost').mockResolvedValue(undefined as never)
 
-      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-open' })
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: '0de4716d-3049-5c61-a576-9f3e91390f0b',
+      })
       await flushPromises()
       ;(mockController.closePostDetail as ReturnType<typeof vi.fn>).mockClear()
 
       const vm = wrapper.vm as unknown as {
         handleDeletePublication: (id: string) => Promise<void>
       }
-      await vm.handleDeletePublication('pub-unrelated')
+      await vm.handleDeletePublication('8f3ab6f2-5be3-56e9-8a75-910c0de6dad9')
       await flushPromises()
 
-      expect(store.deletePost).toHaveBeenCalledWith('pub-unrelated')
+      expect(store.deletePost).toHaveBeenCalledWith('8f3ab6f2-5be3-56e9-8a75-910c0de6dad9')
       expect(mockController.closePostDetail).not.toHaveBeenCalled()
     })
 
@@ -940,7 +969,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = []
 
-      mountView({ date: '2026-06-25', postId: 'missing-post' })
+      mountView({ date: '2026-06-25', postId: 'e72a9cbe-b819-5893-9257-baf740adac3b' })
       await flushPromises()
 
       expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
@@ -950,7 +979,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'visible-post',
+          id: 'cfc438a2-da78-5401-a457-98ff72c47608',
           content: 'Still visible',
           channels: ['linkedin'],
           scheduledAt: '2026-06-25T10:00:00Z',
@@ -959,7 +988,7 @@ describe('SchedulerView', () => {
         },
       ]
 
-      mountView({ date: '2026-06-25', postId: 'visible-post' })
+      mountView({ date: '2026-06-25', postId: 'cfc438a2-da78-5401-a457-98ff72c47608' })
       await flushPromises()
 
       expect(mockController.closePostDetail).not.toHaveBeenCalled()
@@ -975,7 +1004,7 @@ describe('SchedulerView', () => {
       }
       __revalidationMock.request.mockClear()
 
-      mountView({ date: '2026-06-25', postId: 'post-stale' })
+      mountView({ date: '2026-06-25', postId: '0fd7cee3-6ff0-5b10-b5f1-4b33af3c582c' })
       await flushPromises()
       const initialCalls = __revalidationMock.request.mock.calls.length
       expect(initialCalls).toBeGreaterThanOrEqual(1)
@@ -1059,10 +1088,12 @@ describe('SchedulerView', () => {
       }) => void
     }
 
-    await vm.handleHeaderFilterChange({ channelIds: ['acc-1'] })
+    await vm.handleHeaderFilterChange({ channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'] })
     await flushPromises()
 
-    expect(mockController.setChannelIds).toHaveBeenCalledWith(['acc-1'])
+    expect(mockController.setChannelIds).toHaveBeenCalledWith([
+      '788c8103-35f1-5899-b15a-6ca994253c99',
+    ])
   })
 
   it('opens day view and updates URL date when openDayView is called', async () => {
@@ -1111,7 +1142,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-month',
+          id: 'dc2014ce-6494-520c-8fd7-fa7677640441',
           content: 'Month view post',
           channels: ['linkedin'],
           scheduledAt: new Date().toISOString(),
@@ -1144,7 +1175,7 @@ describe('SchedulerView', () => {
 
       store.publications = [
         {
-          id: 'pub-queued',
+          id: 'd3367f8c-6c71-5324-9598-6a16c40a3058',
           content: 'Queued post',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1158,7 +1189,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-published',
+          id: '24838748-19ea-5869-ab38-40cedeb317ce',
           content: 'Published post',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1193,7 +1224,7 @@ describe('SchedulerView', () => {
 
       store.publications = [
         {
-          id: 'pub-channel-1',
+          id: '08d5f245-e521-5ad3-97f3-7e6ab3b9362c',
           content: 'Channel 1 post',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1205,10 +1236,10 @@ describe('SchedulerView', () => {
           ).toISOString(),
           status: 'QUEUED',
           priority: false,
-          accountId: 'acc-1',
+          accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         },
         {
-          id: 'pub-channel-2',
+          id: '57ac0791-ec7d-53fb-8c04-a5801e8a1772',
           content: 'Channel 2 post',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1220,11 +1251,14 @@ describe('SchedulerView', () => {
           ).toISOString(),
           status: 'QUEUED',
           priority: false,
-          accountId: 'acc-2',
+          accountId: '28353a84-fcee-5f3a-93b6-4c1bd639921e',
         },
       ]
 
-      const wrapper = mountView({ date: todayStr, channelIds: ['acc-1'] })
+      const wrapper = mountView({
+        date: todayStr,
+        channelIds: ['788c8103-35f1-5899-b15a-6ca994253c99'],
+      })
       await flushPromises()
 
       const channel1Card = wrapper
@@ -1245,7 +1279,7 @@ describe('SchedulerView', () => {
 
       store.publications = [
         {
-          id: 'pub-searchable',
+          id: 'bd611a84-4e00-5c2a-aa3c-f8a614e012cd',
           content: 'This post mentions DDD patterns',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1259,7 +1293,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-not-searchable',
+          id: '46583bc8-a3f1-5785-87fc-b699300c82cf',
           content: 'This post has no special content',
           channels: ['linkedin'],
           scheduledAt: new Date(
@@ -1294,7 +1328,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-list',
+          id: '1b0b2f6c-7b80-524a-b46b-723978425532',
           content: 'List view post',
           channels: ['linkedin'],
           scheduledAt: new Date().toISOString(),
@@ -1326,7 +1360,7 @@ describe('SchedulerView', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'pub-queued-list',
+          id: '83a0eb92-2f54-512e-805e-9d4f8fa3715b',
           content: 'Queued in list',
           channels: ['linkedin'],
           scheduledAt: new Date().toISOString(),
@@ -1334,7 +1368,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-published-list',
+          id: 'f238c16b-5273-57b5-b40e-c1248b02c056',
           content: 'Published in list',
           channels: ['linkedin'],
           scheduledAt: new Date().toISOString(),
@@ -1437,7 +1471,7 @@ describe('SchedulerView', () => {
 
       store.publications = [
         {
-          id: 'pub-overflow-1',
+          id: 'd35894bd-db5a-5c7d-a4c1-0ee32419b5d1',
           content: 'First post in slot',
           channels: ['linkedin'],
           scheduledAt: sameHour.toISOString(),
@@ -1445,7 +1479,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-overflow-2',
+          id: '2bbb828c-7bdc-5aff-b424-42678791eb0b',
           content: 'Second post in slot',
           channels: ['linkedin'],
           scheduledAt: sameHour2.toISOString(),
@@ -1453,7 +1487,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-overflow-3',
+          id: 'b0ea4ac0-11a7-58e2-83f5-2c380b797e2c',
           content: 'Third post in slot',
           channels: ['linkedin'],
           scheduledAt: sameHour3.toISOString(),
@@ -1480,7 +1514,7 @@ describe('SchedulerView', () => {
 
       store.publications = [
         {
-          id: 'pub-no-overflow-1',
+          id: 'a804ec08-743c-50f4-8a31-f93022665e73',
           content: 'First post in slot',
           channels: ['linkedin'],
           scheduledAt: sameHour.toISOString(),
@@ -1488,7 +1522,7 @@ describe('SchedulerView', () => {
           priority: false,
         },
         {
-          id: 'pub-no-overflow-2',
+          id: 'b19a7665-180a-51cd-abec-e39345936b29',
           content: 'Second post in slot',
           channels: ['linkedin'],
           scheduledAt: sameHour2.toISOString(),

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 
 /**
  * PostgreSQL-backed tests for [R2dbcMediaAssetRepository]. Exercises the real schema constraints
@@ -31,16 +32,8 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
     override val postgres = postgresContainer
 
     private lateinit var mediaRepository: R2dbcMediaAssetRepository
-    private var workspaceCounter = 0
 
-    /**
-     * Use unique workspace ids for each seed set so assertions can target exactly
-     * the rows created by the current test.
-     */
-    private fun nextWorkspaceId(): String {
-        workspaceCounter += 1
-        return "ws-test-$workspaceCounter"
-    }
+    private fun nextWorkspaceId(): String = UUID.randomUUID().toString()
 
     @BeforeEach
     fun setUp() = runTest {
@@ -54,7 +47,7 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
             VALUES (:workspaceId, 'Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -67,7 +60,7 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
             VALUES (:workspaceId, :fileHash, :storageKey, 'image/png', 42, 'READY')
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .bind("storageKey", "media/$workspaceId/$fileHash")
             .fetch()
@@ -81,13 +74,13 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
         seedWorkspace(workspaceId)
         seedBlob(workspaceId, HASH_A)
         seedBlob(workspaceId, HASH_B)
-        insertAsset(workspaceId = workspaceId, assetId = "asset-a", fileHash = HASH_A, status = "READY")
-        insertAsset(workspaceId = workspaceId, assetId = "asset-b", fileHash = HASH_B, status = "READY")
+        insertAsset(workspaceId = workspaceId, assetId = ASSET_A, fileHash = HASH_A, status = "READY")
+        insertAsset(workspaceId = workspaceId, assetId = ASSET_B, fileHash = HASH_B, status = "READY")
 
         val active = mediaRepository.findActiveByWorkspaceAndHash(workspaceId, HASH_A)
 
         active.shouldNotBeNull()
-        active.assetId shouldBe "asset-a"
+        active.assetId shouldBe ASSET_A
         active.status shouldBe MediaAssetStatus.READY
     }
 
@@ -98,8 +91,8 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
         seedBlob(workspaceId, HASH_A)
         // Only DELETED + FAILED rows reference HASH_A — the lookup must return null so a
         // re-upload can proceed without colliding with soft-deleted history.
-        insertAsset(workspaceId = workspaceId, assetId = "asset-deleted", fileHash = HASH_A, status = "DELETED")
-        insertAsset(workspaceId = workspaceId, assetId = "asset-failed", fileHash = HASH_A, status = "FAILED")
+        insertAsset(workspaceId = workspaceId, assetId = ASSET_DELETED, fileHash = HASH_A, status = "DELETED")
+        insertAsset(workspaceId = workspaceId, assetId = ASSET_FAILED, fileHash = HASH_A, status = "FAILED")
 
         val active = mediaRepository.findActiveByWorkspaceAndHash(workspaceId, HASH_A)
 
@@ -114,7 +107,7 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
 
         val created = mediaRepository.create(
             MediaAsset(
-                assetId = "asset-licence",
+                assetId = ASSET_LICENCE,
                 workspaceId = workspaceId,
                 sourceType = MediaSourceType.EXTERNAL,
                 fileHash = HASH_A,
@@ -135,7 +128,7 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val read = mediaRepository.findByWorkspaceAndId(workspaceId, "asset-licence")
+        val read = mediaRepository.findByWorkspaceAndId(workspaceId, ASSET_LICENCE)
 
         read.shouldNotBeNull()
         created.licence shouldBe "unsplash"
@@ -155,8 +148,8 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
             )
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("fileHash", fileHash)
             .bind("status", status)
             .bind("createdAt", Instant.now().atOffset(java.time.ZoneOffset.UTC))
@@ -166,6 +159,12 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     companion object {
+        private const val ASSET_A = "ac4cf984-8ab6-569f-8cb8-93bea5654e34"
+        private const val ASSET_B = "3c1154b6-1e18-5724-b57b-4c32641d035e"
+        private const val ASSET_DELETED = "9797fdda-42f6-59d2-9860-da5e4ed69053"
+        private const val ASSET_FAILED = "551222eb-6564-50a8-a5c4-b500dd308771"
+        private const val ASSET_LICENCE = "6ff9a8b3-58d1-5c5c-bdd1-391ab77de04e"
+
         private const val HASH_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         private const val HASH_B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 

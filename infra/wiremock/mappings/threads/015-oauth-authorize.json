@@ -1,0 +1,22 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/oauth/authorize",
+    "queryParameters": {
+      "client_id": { "matches": ".+" },
+      "redirect_uri": { "matches": ".+" },
+      "scope": { "matches": ".+" },
+      "response_type": { "equalTo": "code" }
+    }
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "{{#assign 'redirectUri'}}{{#if request.query.redirect_uri}}{{{request.query.redirect_uri}}}{{else}}https://pt-app.localhost/integrations/threads/callback{{/if}}{{/assign}}{{#assign 'separator'}}{{#if (contains redirectUri '?')}}&{{else}}?{{/if}}{{/assign}}{{redirectUri}}{{separator}}code=local-wiremock-threads-auth-code&state={{{request.query.state}}}"
+    },
+    "transformers": [
+      "response-template"
+    ]
+  }
+}

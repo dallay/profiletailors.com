@@ -3,8 +3,11 @@ import { computed } from 'vue'
 import { Plus } from '@lucide/vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
+import { useI18n } from 'vue-i18n'
 import type { Publication, ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
 import { getProviderColor } from '@shared/lib/provider-styles'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -150,6 +153,13 @@ function onKeyDown(e: KeyboardEvent): void {
             class="h-5 w-5 shrink-0 rounded-sm object-cover opacity-85"
             :draggable="false"
           >
+          <span
+            v-if="pub.groupId"
+            data-testid="related-publication-badge"
+            class="shrink-0 rounded bg-bg-primary/30 px-1 text-[7px] leading-3 text-text-secondary"
+          >
+            {{ t('scheduler.relatedPublication') }}
+          </span>
           <ConflictBadge
             v-if="pub.hasConflict"
             variant="dot"

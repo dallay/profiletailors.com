@@ -56,7 +56,7 @@ describe('login', () => {
       accessToken: 'access-123',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       emailStatus: 'ACTIVE',
@@ -176,7 +176,7 @@ describe('register', () => {
       accessToken: 'access-456',
       tokenType: 'Bearer',
       expiresIn: 7200,
-      principalId: 'user-2',
+      principalId: 'c9199f5a-074c-5846-aed4-16f6eff2f72a',
       email: 'newuser@example.com',
       username: 'newuser',
       emailStatus: 'PENDING',
@@ -226,7 +226,7 @@ describe('refreshSession', () => {
       accessToken: 'access-refreshed',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: null,
       emailStatus: 'ACTIVE',
@@ -302,7 +302,7 @@ describe('getCurrentUserProfile', () => {
 
   it('returns current user profile with authoritative email status', async () => {
     const profile: CurrentUserProfile = {
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser (user@example.com)',
@@ -443,7 +443,7 @@ describe('createApiFetch', () => {
 
   it('returns data on successful request', async () => {
     mockFetch(
-      new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
+      new Response(JSON.stringify({ id: '9c49a19d-1574-5e8c-9196-48c9bba55351', text: 'Hello' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -457,7 +457,40 @@ describe('createApiFetch', () => {
 
     const result = await apiFetch('/api/posts/1')
 
-    expect(result).toEqual({ id: 'post-1', text: 'Hello' })
+    expect(result).toEqual({ id: '9c49a19d-1574-5e8c-9196-48c9bba55351', text: 'Hello' })
+  })
+
+  it('includes batch target outcomes in errors from all-failed responses', async () => {
+    const outcomes = [
+      {
+        socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+        status: 'FAILED',
+        errorCode: 'INVALID_CONTENT',
+      },
+    ]
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          title: 'Batch failed',
+          detail: 'Every target failed.',
+          results: outcomes,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    const apiFetch = createApiFetch({
+      getToken: () => 'access-token',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await expect(apiFetch('/api/publishing/publications/batch')).rejects.toMatchObject({
+      status: 400,
+      results: outcomes,
+    })
   })
 
   it('retries once after successful token refresh on 401', async () => {
@@ -468,10 +501,13 @@ describe('createApiFetch', () => {
         return Promise.resolve(new Response(null, { status: 401 }))
       }
       return Promise.resolve(
-        new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({ id: '9c49a19d-1574-5e8c-9196-48c9bba55351', text: 'Hello' }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
       )
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -485,7 +521,7 @@ describe('createApiFetch', () => {
 
     const result = await apiFetch('/api/posts/1')
 
-    expect(result).toEqual({ id: 'post-1', text: 'Hello' })
+    expect(result).toEqual({ id: '9c49a19d-1574-5e8c-9196-48c9bba55351', text: 'Hello' })
     expect(callCount).toBe(2)
     // First call should have used the old token
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -595,14 +631,14 @@ describe('createApiFetch', () => {
 
     const apiFetch = createApiFetch({
       getToken: () => 'token',
-      getWorkspaceId: () => 'workspace-1',
+      getWorkspaceId: () => 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       onRefresh: async () => null,
       onUnauthenticated: vi.fn(),
     })
 
     await apiFetch('/api/publishing/channels', { workspaceScoped: true })
 
-    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('workspace-1')
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('a219727d-019f-544c-95f9-ac30f00cc8b2')
   })
 
   it('prevents workspace-scoped requests when workspace is missing', async () => {
@@ -663,22 +699,24 @@ describe('createApiFetch', () => {
 
     const apiFetch = createApiFetch({
       getToken: () => 'expired-token',
-      getWorkspaceId: () => 'workspace-1',
+      getWorkspaceId: () => 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       onRefresh: async () => 'new-token',
       onUnauthenticated: vi.fn(),
     })
 
     await apiFetch('/api/publishing/channels', { workspaceScoped: true })
 
-    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('workspace-1')
-    expect(fetchHeaders(fetchMock, 1)['X-Workspace-Id']).toBe('workspace-1')
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('a219727d-019f-544c-95f9-ac30f00cc8b2')
+    expect(fetchHeaders(fetchMock, 1)['X-Workspace-Id']).toBe(
+      'a219727d-019f-544c-95f9-ac30f00cc8b2',
+    )
   })
 
   it('returns raw streaming responses with workspace and accept headers', async () => {
     const fetchMock = mockFetch(new Response('event: heartbeat\n\n', { status: 200 }))
     const apiFetch = createApiFetch({
       getToken: () => 'token',
-      getWorkspaceId: () => 'workspace-1',
+      getWorkspaceId: () => 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       onRefresh: async () => null,
       onUnauthenticated: vi.fn(),
     })
@@ -697,7 +735,7 @@ describe('createApiFetch', () => {
         headers: expect.objectContaining({
           Accept: 'text/event-stream',
           Authorization: 'Bearer token',
-          'X-Workspace-Id': 'workspace-1',
+          'X-Workspace-Id': 'a219727d-019f-544c-95f9-ac30f00cc8b2',
         }),
       }),
     )
@@ -707,7 +745,7 @@ describe('createApiFetch', () => {
     const fetchMock = mockFetch(new Response(null, { status: 204 }))
     const apiFetch = createApiFetch({
       getToken: () => 'token',
-      getWorkspaceId: () => 'workspace-1',
+      getWorkspaceId: () => 'a219727d-019f-544c-95f9-ac30f00cc8b2',
       onRefresh: async () => null,
       onUnauthenticated: vi.fn(),
     })
@@ -715,7 +753,7 @@ describe('createApiFetch', () => {
     const formData = new FormData()
     formData.append('file', new Blob(['abc'], { type: 'text/plain' }), 'sample.txt')
 
-    await apiFetch.raw('/api/media/assets/asset-1/upload', {
+    await apiFetch.raw('/api/media/assets/8bdec504-2ed1-59e4-8a4a-c068789d03d2/upload', {
       method: 'POST',
       body: formData,
       workspaceScoped: true,
@@ -724,7 +762,7 @@ describe('createApiFetch', () => {
     const headers = fetchHeaders(fetchMock)
     expect(headers.Accept).toBe('application/vnd.api.v1+json')
     expect(headers.Authorization).toBe('Bearer token')
-    expect(headers['X-Workspace-Id']).toBe('workspace-1')
+    expect(headers['X-Workspace-Id']).toBe('a219727d-019f-544c-95f9-ac30f00cc8b2')
     expect(headers['Content-Type']).toBeUndefined()
   })
 
@@ -734,7 +772,7 @@ describe('createApiFetch', () => {
     process.env.VITE_API_BASE_URL = 'https://api.example.com'
 
     const fetchMock = mockFetch(
-      new Response(JSON.stringify({ id: '1' }), {
+      new Response(JSON.stringify({ id: '50bdee96-ac89-52cd-ae8d-7d10b6ced2d3' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -812,7 +850,7 @@ describe('login — Zod validation', () => {
       accessToken: 'tok',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'p1',
+      principalId: 'cd66b912-3c45-5953-aaa7-bcee5538805c',
       email: 'user@example.com',
       username: null,
       emailStatus: 'ACTIVE',
@@ -839,7 +877,7 @@ describe('login — Zod validation', () => {
       accessToken: 'tok',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'p1',
+      principalId: 'cd66b912-3c45-5953-aaa7-bcee5538805c',
       email: 'user@example.com',
       username: null,
       emailStatus: 'ACTIVE',
@@ -893,7 +931,7 @@ describe('register — Zod validation', () => {
       accessToken: 'tok',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'p1',
+      principalId: 'cd66b912-3c45-5953-aaa7-bcee5538805c',
       email: 'newuser@example.com',
       username: null,
       emailStatus: 'PENDING',
@@ -963,13 +1001,16 @@ describe('renameWorkspace', () => {
 
   it('trims the workspace name before sending', async () => {
     const fetchMock = mockFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1', name: 'My Studio' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({ workspaceId: '11111111-1111-4111-8111-111111111111', name: 'My Studio' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
-    await renameWorkspace('  My Studio  ', 'access-token', 'ws-1')
+    await renameWorkspace('  My Studio  ', 'access-token', '11111111-1111-4111-8111-111111111111')
 
     const sentBody = JSON.parse(
       (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
@@ -981,7 +1022,9 @@ describe('renameWorkspace', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(renameWorkspace('   ', 'access-token', 'ws-1')).rejects.toThrow()
+    await expect(
+      renameWorkspace('   ', 'access-token', '11111111-1111-4111-8111-111111111111'),
+    ).rejects.toThrow()
 
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -990,22 +1033,27 @@ describe('renameWorkspace', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(renameWorkspace('a'.repeat(256), 'access-token', 'ws-1')).rejects.toThrow()
+    await expect(
+      renameWorkspace('a'.repeat(256), 'access-token', '11111111-1111-4111-8111-111111111111'),
+    ).rejects.toThrow()
 
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('sends the workspace id as a header', async () => {
     const fetchMock = mockFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1', name: 'Studio' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({ workspaceId: '11111111-1111-4111-8111-111111111111', name: 'Studio' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
-    await renameWorkspace('Studio', 'access-token', 'ws-1')
+    await renameWorkspace('Studio', 'access-token', '11111111-1111-4111-8111-111111111111')
 
-    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('ws-1')
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('11111111-1111-4111-8111-111111111111')
   })
 })
 
@@ -1023,11 +1071,11 @@ describe('verifyEmail', () => {
       accessToken: 'access-verified',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'verified@example.com',
       username: 'verified-user',
       emailStatus: 'VERIFIED',
-      workspaceId: 'ws-1',
+      workspaceId: '11111111-1111-4111-8111-111111111111',
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(tokens), {

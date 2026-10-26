@@ -6,6 +6,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseClient) :
@@ -18,7 +19,7 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
             VALUES (:principalId, :passwordHash)
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("passwordHash", passwordHash)
             .fetch()
             .rowsUpdated()
@@ -71,7 +72,7 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
             WHERE ui.principal_id = :principalId
         """.trimIndent(),
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ ->
             LocalPasswordCredentialRecord(
                 principalId = requireNotNull(row.get("principal_id", String::class.java)),
@@ -98,7 +99,7 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
             WHERE principal_id = :principalId
             """.trimIndent(),
         )
-            .bind("principalId", principalId)
+            .bind("principalId", UUID.fromString(principalId))
             .bind("passwordHash", passwordHash)
             .fetch()
             .rowsUpdated()

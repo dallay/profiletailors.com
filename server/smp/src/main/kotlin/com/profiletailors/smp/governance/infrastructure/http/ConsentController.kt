@@ -7,6 +7,7 @@ import com.profiletailors.smp.governance.application.RecordWorkspaceConsentComma
 import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCommand
 import com.profiletailors.smp.governance.domain.ConsentPurpose
 import com.profiletailors.smp.governance.domain.ConsentRecord
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
 import jakarta.validation.Valid
@@ -178,7 +179,10 @@ data class ConsentRecordResponse(
 
 private fun ConsentRecord.toResponse() = ConsentRecordResponse(
     id = id.value,
-    workspaceId = workspaceId,
+    workspaceId = when (val consentScope = scope) {
+        is ConsentScope.Workspace -> consentScope.id.toString()
+        is ConsentScope.Waitlist -> error("Workspace consent endpoint cannot expose waitlist consent")
+    },
     subjectKind = subjectReference.kind.name,
     subjectValue = subjectReference.value,
     consentType = consentType.name,

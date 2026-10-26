@@ -31,7 +31,7 @@ internal class FindExpiredRequestsJobTest {
     fun `run finds expired requests and logs count`() = runTest {
         val expiredRequest = DataSubjectRequest.create(
             CreateDataSubjectRequest(
-                id = DataSubjectRequestId("dsr-550e8400-e29b-41d4-a716-446655440000"),
+                id = DataSubjectRequestId("550e8400-e29b-41d4-a716-446655440000"),
                 requestType = RequestType.ACCESS,
                 requestedBy = "principal-1",
                 requestedByEmail = "user@example.com",

@@ -39,7 +39,7 @@ describe('useBulkImport', () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
     const scheduled: import('@modules/publishing/domain/bulk').ScheduleBulkResult = {
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       totalRows: 1,
       scheduledCount: 1,
       failedCount: 0,
@@ -47,8 +47,8 @@ describe('useBulkImport', () => {
     }
     vi.spyOn(store, 'scheduleBulk').mockResolvedValue(scheduled)
     const result = await composable.schedule('csv', 'hash123')
-    expect(result.jobId).toBe('j1')
-    expect(composable.scheduleResult.value?.jobId).toBe('j1')
+    expect(result.jobId).toBe('ba279f93-83d1-581c-b974-255cd9cd286f')
+    expect(composable.scheduleResult.value?.jobId).toBe('ba279f93-83d1-581c-b974-255cd9cd286f')
   })
 
   it('hasValidationErrors computed', async () => {
@@ -69,7 +69,7 @@ describe('useBulkImport', () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
     const jobResult: import('@modules/publishing/domain/bulk').BulkJobResult = {
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'SCHEDULED',
       totalRows: 1,
       scheduledCount: 1,
@@ -77,7 +77,7 @@ describe('useBulkImport', () => {
       rows: [],
     }
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue(jobResult)
-    const job = await composable.fetchJob('j1')
+    const job = await composable.fetchJob('ba279f93-83d1-581c-b974-255cd9cd286f')
     expect(job.status).toBe('SCHEDULED')
   })
 
@@ -88,8 +88,8 @@ describe('useBulkImport', () => {
 
   it('workspaceIdOrThrow returns id when set', () => {
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-1')
+    ws.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
     const composable = useBulkImport()
-    expect(composable.workspaceIdOrThrow()).toBe('ws-1')
+    expect(composable.workspaceIdOrThrow()).toBe('820c22d8-9ce7-5e76-867f-04bac4e53b59')
   })
 })

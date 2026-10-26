@@ -76,7 +76,7 @@ describe('useBulkImport coverage', () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
     const job = {
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'SCHEDULED' as const,
       totalRows: 1,
       scheduledCount: 1,
@@ -84,7 +84,7 @@ describe('useBulkImport coverage', () => {
       rows: [],
     }
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue(job)
-    const promise = composable.fetchJob('j1')
+    const promise = composable.fetchJob('ba279f93-83d1-581c-b974-255cd9cd286f')
     expect(composable.isPolling.value).toBe(true)
     const result = await promise
     expect(result).toEqual(job)
@@ -95,7 +95,11 @@ describe('useBulkImport coverage', () => {
   it('loadTemplates delegates and sets templates', async () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
-    const res = { templates: [{ id: 't1', name: 'Template', description: 'desc' }] }
+    const res = {
+      templates: [
+        { id: '1a09e750-8927-5c44-a05c-4220f0e82994', name: 'Template', description: 'desc' },
+      ],
+    }
     vi.spyOn(store, 'fetchBulkTemplates').mockResolvedValue(res as never)
     const result = await composable.loadTemplates()
     expect(result).toEqual(res)
@@ -106,7 +110,7 @@ describe('useBulkImport coverage', () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
     vi.spyOn(store, 'fetchBulkTemplateCsv').mockResolvedValue('csv-data' as never)
-    const result = await composable.downloadTemplateCsv('t1')
+    const result = await composable.downloadTemplateCsv('1a09e750-8927-5c44-a05c-4220f0e82994')
     expect(result).toBe('csv-data')
   })
 
@@ -114,14 +118,14 @@ describe('useBulkImport coverage', () => {
     const composable = useBulkImport()
     const store = usePublishingStore()
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'SCHEDULED',
       totalRows: 1,
       scheduledCount: 1,
       failedCount: 0,
       rows: [],
     })
-    const result = await composable.pollJob('j1', 10, 5)
+    const result = await composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 10, 5)
     expect(result.status).toBe('SCHEDULED')
   })
 
@@ -129,14 +133,14 @@ describe('useBulkImport coverage', () => {
     const composable = useBulkImport()
     const store = usePublishingStore()
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'PARTIAL',
       totalRows: 2,
       scheduledCount: 1,
       failedCount: 1,
       rows: [],
     })
-    const result = await composable.pollJob('j1', 10, 2)
+    const result = await composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 10, 2)
     expect(result.status).toBe('PARTIAL')
   })
 
@@ -144,14 +148,14 @@ describe('useBulkImport coverage', () => {
     const composable = useBulkImport()
     const store = usePublishingStore()
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'FAILED',
       totalRows: 1,
       scheduledCount: 0,
       failedCount: 1,
       rows: [],
     })
-    const result = await composable.pollJob('j1', 10, 2)
+    const result = await composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 10, 2)
     expect(result.status).toBe('FAILED')
   })
 
@@ -163,7 +167,7 @@ describe('useBulkImport coverage', () => {
       const spy = vi
         .spyOn(store, 'fetchBulkJob')
         .mockResolvedValueOnce({
-          jobId: 'j1',
+          jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
           status: 'SCHEDULING',
           totalRows: 1,
           scheduledCount: 0,
@@ -171,7 +175,7 @@ describe('useBulkImport coverage', () => {
           rows: [],
         })
         .mockResolvedValueOnce({
-          jobId: 'j1',
+          jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
           status: 'SCHEDULING',
           totalRows: 1,
           scheduledCount: 0,
@@ -179,14 +183,14 @@ describe('useBulkImport coverage', () => {
           rows: [],
         })
         .mockResolvedValueOnce({
-          jobId: 'j1',
+          jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
           status: 'SCHEDULED',
           totalRows: 1,
           scheduledCount: 1,
           failedCount: 0,
           rows: [],
         })
-      const promise = composable.pollJob('j1', 15, 3)
+      const promise = composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 15, 3)
       await vi.advanceTimersByTimeAsync(15)
       await vi.advanceTimersByTimeAsync(15)
       const result = await promise
@@ -201,16 +205,16 @@ describe('useBulkImport coverage', () => {
     const composable = useBulkImport()
     const store = usePublishingStore()
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'SCHEDULING',
       totalRows: 1,
       scheduledCount: 0,
       failedCount: 0,
       rows: [],
     })
-    await expect(composable.pollJob('j1', 10, 0)).resolves.toEqual(
-      expect.objectContaining({ jobId: 'j1' }),
-    )
+    await expect(
+      composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 10, 0),
+    ).resolves.toEqual(expect.objectContaining({ jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f' }))
   })
 
   it('pollJob with negative interval falls back to default', async () => {
@@ -220,7 +224,7 @@ describe('useBulkImport coverage', () => {
       const store = usePublishingStore()
       vi.spyOn(store, 'fetchBulkJob')
         .mockResolvedValueOnce({
-          jobId: 'j1',
+          jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
           status: 'SCHEDULING',
           totalRows: 1,
           scheduledCount: 0,
@@ -228,14 +232,14 @@ describe('useBulkImport coverage', () => {
           rows: [],
         })
         .mockResolvedValueOnce({
-          jobId: 'j1',
+          jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
           status: 'SCHEDULED',
           totalRows: 1,
           scheduledCount: 1,
           failedCount: 0,
           rows: [],
         })
-      const promise = composable.pollJob('j1', -5, 2)
+      const promise = composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', -5, 2)
       await vi.advanceTimersByTimeAsync(1500)
       const result = await promise
       expect(result.status).toBe('SCHEDULED')
@@ -248,14 +252,14 @@ describe('useBulkImport coverage', () => {
     const composable = useBulkImport()
     const store = usePublishingStore()
     vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({
-      jobId: 'j1',
+      jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f',
       status: 'SCHEDULING',
       totalRows: 1,
       scheduledCount: 0,
       failedCount: 0,
       rows: [],
     } as never)
-    const result = await composable.pollJob('j1', 5, 1)
+    const result = await composable.pollJob('ba279f93-83d1-581c-b974-255cd9cd286f', 5, 1)
     expect(result.status).toBe('SCHEDULING')
     expect(composable.jobResult.value?.status).toBe('SCHEDULING')
   })
@@ -275,8 +279,8 @@ describe('useBulkImport coverage', () => {
 
   it('workspaceIdOrThrow returns id when set via workspace store', () => {
     const ws = useWorkspaceStore()
-    ws.setActiveWorkspaceId('ws-cover')
+    ws.setActiveWorkspaceId('52c3988f-0a9d-5be4-9d5a-d9e2703d4ebe')
     const composable = useBulkImport()
-    expect(composable.workspaceIdOrThrow()).toBe('ws-cover')
+    expect(composable.workspaceIdOrThrow()).toBe('52c3988f-0a9d-5be4-9d5a-d9e2703d4ebe')
   })
 })

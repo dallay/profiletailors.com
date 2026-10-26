@@ -40,7 +40,7 @@ function makeFile(name = 'photo.jpg'): File {
 function makeUploadItem(overrides: Partial<UploadItem> = {}): UploadItem {
   return {
     tempKey: 'temp-1',
-    assetId: 'asset-1',
+    assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
     file: makeFile(),
     progress: 50,
     status: 'uploading',

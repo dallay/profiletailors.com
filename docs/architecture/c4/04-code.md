@@ -117,7 +117,12 @@ com.profiletailors.smp
 - **Handlers**: `{CommandOrQuery}Handler` (e.g., `UpdateWorkspaceMembershipStatusHandler`)
 - **Repositories**: `{Aggregate}Repository` (e.g., `WorkspaceMembershipRepository`)
 - **Adapters**: `R2dbc{Aggregate}Repository` (e.g., `R2dbcWorkspaceMembershipRepository`)
-- **Identifiers**: Mixed strategy across contexts. Most aggregates use prefixed UUID v4 strings stored as `varchar(64)` (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`, `idea-`, `nevt-`, `pjob-`, `recur-`, `htset-`, `ra-`, `cs-`, `ev-`, `ctrl-`). Some tables use raw `uuid` type without prefixes (e.g., `secure_credentials`, `platform_invitations`, `waitlist_invitations`).
+- **Identifiers**: [ADR-0029](../adr/0029-use-raw-uuid-identifiers.md) replaces prefixed identifiers: inventoried internal IDs and references use PostgreSQL `uuid` and canonical unprefixed UUID strings at API/wire boundaries. Semantic keys, provider IDs and opaque values retain their formats. Local implementation and validation do not establish production cutover. Before UUID-only deployment, complete the reviewed data migration and the [runbook checks](../../runbooks/uuid-native-identifiers.md).
+
+Consent distinguishes `WORKSPACE` and `WAITLIST` scopes through mutually exclusive references to
+real entity UUIDs. [ADR-0030](../adr/0030-separate-public-waitlist-consent-scope.md) records the
+approved decision, implemented and locally verified in `uuid-native-identifiers`. Public capture
+does not fabricate a workspace or obtain tenant access by having no workspace reference.
 
 ### Testing Conventions
 

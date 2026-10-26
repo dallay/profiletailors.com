@@ -95,7 +95,7 @@ jobs:
         run: ./gradlew :server:smp:generateLicenseReport --no-daemon --no-configuration-cache
 
       - name: Upload dependency licence inventories
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dependency-licence-inventories
           path: server/smp/build/reports/dependency-licence/
@@ -153,6 +153,7 @@ jobs:
             --exclude 'http://localhost'
             --exclude 'https://localhost'
             --exclude 'https://www.ftc.gov/business-guidance/privacy-security'
+            --exclude 'https://privacy.gov.ph/data-privacy-act/'
             --exclude-path .agents/sdd
             './**/*.md'
             './**/*.mdx'
@@ -277,7 +278,7 @@ jobs:
 
       - name: Upload BDD test report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bdd-test-report
           path: server/smp/build/reports/tests/bddFastTest/
@@ -335,7 +336,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: marketing-e2e-report
           path: apps/web/marketing/playwright-report/
@@ -377,7 +378,7 @@ jobs:
 
       - name: Upload Scheduler E2E report
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: scheduler-e2e-report-${{ matrix.shard }}
           path: apps/web/app/e2e/playwright-scheduler-report/
@@ -401,7 +402,7 @@ jobs:
         run: pnpm --filter app test:e2e:media:mocked
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: media-e2e-mocked-report
           path: apps/web/app/e2e/playwright-media-mocked-report/

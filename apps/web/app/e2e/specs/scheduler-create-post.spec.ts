@@ -64,7 +64,7 @@ test.describe('Scheduler — Create Post', () => {
     const text = `Real ID create ${Date.now()}`
     const updatedText = `${text} updated`
     const backendId = 'backend-publication-real-id'
-    const assetId = 'asset-preserved-1'
+    const assetId = '693cf186-833e-5964-ad9d-02180428c30e'
     let patchUrl = ''
     let patchBody: Record<string, unknown> | null = null
     let wasPatched = false
@@ -78,7 +78,7 @@ test.describe('Scheduler — Create Post', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             assetId: requestedAssetId,
-            workspaceId: 'workspace-001',
+            workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
             sourceType: 'UPLOADED',
             mediaType: 'image/png',
             status: 'READY',
@@ -97,7 +97,7 @@ test.describe('Scheduler — Create Post', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             assetId: requestedAssetId,
-            workspaceId: 'workspace-001',
+            workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
             sourceType: 'UPLOADED',
             mediaType: 'image/png',
             status: 'READY',
@@ -112,24 +112,23 @@ test.describe('Scheduler — Create Post', () => {
       }
       route.fallback()
     })
-    await page.route('**/api/publishing/publications', async (route) => {
+    await page.route('**/api/publishing/publications/batch', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback()
-      const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          publicationId: backendId,
-          workspaceId: 'workspace-001',
-          socialAccountId: 'sa-linkedin-001',
-          status: 'QUEUED',
-          scheduleMode: 'NOW',
-          priority: false,
-          title: 'Post from App',
-          bodyText: body.bodyText,
-          assetIds: [assetId],
-          scheduledFor: null,
-          nextSlotAfter: null,
+          status: 'ALL_CREATED',
+          results: [
+            {
+              socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+              publicationId: backendId,
+              groupId: null,
+              status: 'CREATED',
+              errorCode: null,
+              errorMessage: null,
+            },
+          ],
         }),
       })
     })
@@ -142,8 +141,8 @@ test.describe('Scheduler — Create Post', () => {
           publications: [
             {
               id: backendId,
-              workspaceId: 'workspace-001',
-              socialAccountId: 'sa-linkedin-001',
+              workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+              socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
               provider: 'linkedin',
               status: 'QUEUED',
               scheduleMode: 'NOW',
@@ -172,8 +171,8 @@ test.describe('Scheduler — Create Post', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           publicationId: backendId,
-          workspaceId: 'workspace-001',
-          socialAccountId: 'sa-linkedin-001',
+          workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+          socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
           status: 'QUEUED',
           scheduleMode: 'NOW',
           priority: false,
@@ -219,8 +218,10 @@ test.describe('Scheduler — Create Post', () => {
   }) => {
     const scheduler = new SchedulerPage(page)
     const composeModal = new ComposeModalPage(page)
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
     const backendId = 'backend-publication-mvp-core'
-    const assetId = 'asset-mvp-core-1'
+    const assetId = 'ec99c05d-c416-5452-bd98-f3f4f2b52e73'
     const longText = [
       `MVP core publishing journey ${Date.now()}`,
       'This LinkedIn post intentionally contains long copy so the preview must clamp text without hiding the selected media attachment.',
@@ -237,7 +238,7 @@ test.describe('Scheduler — Create Post', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             assetId: requestedAssetId,
-            workspaceId: 'workspace-001',
+            workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
             sourceType: 'UPLOADED',
             mediaType: 'image/png',
             status: 'READY',
@@ -253,24 +254,23 @@ test.describe('Scheduler — Create Post', () => {
       }
       route.fallback()
     })
-    await page.route('**/api/publishing/publications', async (route) => {
+    await page.route('**/api/publishing/publications/batch', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback()
-      const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          publicationId: backendId,
-          workspaceId: 'workspace-001',
-          socialAccountId: 'sa-linkedin-001',
-          status: 'QUEUED',
-          scheduleMode: body.scheduleMode ?? 'NOW',
-          priority: false,
-          title: 'Post from App',
-          bodyText: body.bodyText,
-          assetIds: [assetId],
-          scheduledFor: null,
-          nextSlotAfter: null,
+          status: 'ALL_CREATED',
+          results: [
+            {
+              socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+              publicationId: backendId,
+              groupId: null,
+              status: 'CREATED',
+              errorCode: null,
+              errorMessage: null,
+            },
+          ],
         }),
       })
     })
@@ -282,8 +282,8 @@ test.describe('Scheduler — Create Post', () => {
           publications: [
             {
               id: backendId,
-              workspaceId: 'workspace-001',
-              socialAccountId: 'sa-linkedin-001',
+              workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+              socialAccountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
               provider: 'linkedin',
               status: 'QUEUED',
               scheduleMode: 'NOW',
@@ -313,8 +313,15 @@ test.describe('Scheduler — Create Post', () => {
     await expect(linkedInPreviewPanel.getByText('...more')).toBeVisible()
     await expect(linkedInPreviewPanel.getByRole('img', { name: /^media preview$/i })).toBeVisible()
 
+    const publicationCreated = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith('/api/publishing/publications/batch'),
+    )
     await composeModal.clickScheduleNow()
+    expect((await publicationCreated).status()).toBe(201)
     await composeModal.expectHidden()
+    expect(pageErrors).toEqual([])
 
     await scheduler.switchToList()
     const postCard = page.getByRole('button', { name: /mvp core publishing journey/i }).first()

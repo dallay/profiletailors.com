@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-005-create-publication-asset-links
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: publication_asset_links

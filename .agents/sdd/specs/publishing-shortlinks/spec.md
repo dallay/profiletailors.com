@@ -6,6 +6,50 @@ Define automatic shortlink integration for creating social publications with lin
 
 ## Requirements
 
+### Requirement: Internal UUID Identifiers in Shortlinks
+
+Shortlink flows MUST accept and transmit internal owner identifiers as canonical unprefixed UUIDs.
+Invalid identifiers MUST produce a clear validation error rather than an opaque parsing exception.
+The design MUST correct the root cause of prefixed workspace `ws-...` values reaching shortlinks;
+an isolated parser hotfix does not satisfy this requirement.
+
+#### Scenario: Canonical UUID owner
+
+- GIVEN an authenticated request with a valid internal UUID owner
+- WHEN a shortlink is created or queried
+- THEN the flow MUST preserve the same canonical UUID across internal boundaries
+
+#### Scenario: Prefixed or invalid owner
+
+- GIVEN an internal owner identifier with a prefix or invalid UUID syntax
+- WHEN the shortlink flow validates the identifier
+- THEN it MUST reject the request with an identifiable format error
+- AND it MUST NOT create or query a shortlink
+
+#### Scenario: Root cause corrected
+
+- GIVEN a workspace reaches shortlinks through the authentication context
+- WHEN the integrated flow executes
+- THEN the workspace MUST arrive as a canonical internal UUID
+- AND an integration test MUST cover the complete path, not only the parser
+
+### Requirement: Shortlinks Compatibility During Transition
+
+Transitional reads and writes MUST follow the conditional coordinated stopped-writer cutover in
+the [publishing identifier migration contract](../publishing/spec.md#requirement-lossless-identifier-migration-and-conditional-recovery).
+Legacy consumers use legacy formats before conversion; coordinated consumers use raw UUIDs within
+v1 afterward. Legacy writers MUST NOT write to the converted schema. No rolling compatibility,
+maintenance window or production approval is assumed. If the coordinated conditions cannot be met,
+release MUST remain blocked pending a separate plan, not an invented fallback implementation.
+
+#### Scenario: Selected rollout
+
+- GIVEN shortlink clients or data use different representations before transition
+- WHEN the rollout plan is prepared
+- THEN the design MUST specify accepted formats at each stage and compatibility verification
+- AND it MUST define recovery without data loss or ambiguous ownership
+- AND recovery MUST account for new UUID-only writes rather than promise automatic reversal
+
 ### Requirement: Automatic Shortlink Replacement at Publication Creation
 
 The composer MUST automatically shorten every distinct destination URL found in the post content at the moment the user submits the publication. Deduplication is scoped to that single post and does not imply deduplication across publications. The composer MUST NOT require an opt-in, a manual preview, or a manual decision step (such as `Use shortlink` / `Keep original URL`); shortening is an implementation detail of the submit action. The composer MUST shorten each distinct URL exactly once and MUST replace every occurrence of that URL in the content with the same shortlink. The composer MUST submit the publication with the already-shortened content so the post persisted in the system carries the shortlinks.

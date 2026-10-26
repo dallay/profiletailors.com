@@ -112,7 +112,14 @@ class RecurringScheduleHandlersTest {
         val result = runBlocking { handler.handle(command) }
 
         assertNotNull(result)
-        coVerify { repo.create(match { it.status == RecurringScheduleStatus.ACTIVE }) }
+        coVerify {
+            repo.create(
+                match {
+                    java.util.UUID.fromString(it.id).toString() == it.id && it.status == RecurringScheduleStatus.ACTIVE
+                },
+            )
+        }
+        coVerify { pubRepo.createDraft(match { java.util.UUID.fromString(it.id).toString() == it.id }) }
     }
 
     @Test

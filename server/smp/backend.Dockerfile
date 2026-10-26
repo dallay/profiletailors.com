@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.27@sha256:bde3983e9c939224420ddaf6b784cc30e09b035a4dea01f581230c50809f372e
+# syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 #
 # Multi-arch Dockerfile for the Profile Tailors backend (server/smp).
 #
@@ -19,7 +19,7 @@
 #     --push .
 
 # ── Stage 1: build the executable jar ────────────────────────────────────
-FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble@sha256:735baf2edc6cd6485240144a84fa4db142b9a6f47b4eb4080f31058d200f9813 AS builder
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble@sha256:ba0f0e1a33864105e1d454e88105c617ab40f71062db1f306bf58be32a3f8e5e AS builder
 
 WORKDIR /workspace
 
@@ -42,7 +42,7 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 # On each target platform the base image is automatically the matching
 # variant. Temurin 25-jre-noble ships multi-arch (linux/amd64,
 # linux/arm64).
-FROM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
+FROM eclipse-temurin:25-jre-noble@sha256:3f2223fe04b750aa5a8179e29b5c9a1ddf7665fc9bb08bfe11ad01d143bc13a5 AS runtime
 
 USER root
 

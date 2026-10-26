@@ -204,12 +204,12 @@ describe('useCalendarUrl — navigation intent', () => {
   it('parses postId from the query so detail modal state can be restored from a URL', () => {
     const route = createMockRoute({
       name: 'scheduler-calendar-week',
-      query: { postId: 'pub-123' },
+      query: { postId: '98ca48ea-946a-5aa1-841d-a006b233a3b2' },
     })
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
 
-    expect(ctrl.state.value.postId).toBe('pub-123')
+    expect(ctrl.state.value.postId).toBe('98ca48ea-946a-5aa1-841d-a006b233a3b2')
   })
 
   it('openPostDetail pushes postId into the scheduler URL query', async () => {
@@ -220,7 +220,7 @@ describe('useCalendarUrl — navigation intent', () => {
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
 
-    await ctrl.openPostDetail('pub-123')
+    await ctrl.openPostDetail('98ca48ea-946a-5aa1-841d-a006b233a3b2')
 
     expect(router.push).toHaveBeenCalledTimes(1)
     expect(router.replace).not.toHaveBeenCalled()
@@ -230,7 +230,7 @@ describe('useCalendarUrl — navigation intent', () => {
       query: {
         date: '2026-07-10',
         status: 'queued',
-        postId: 'pub-123',
+        postId: '98ca48ea-946a-5aa1-841d-a006b233a3b2',
       },
     })
   })
@@ -238,7 +238,7 @@ describe('useCalendarUrl — navigation intent', () => {
   it('closePostDetail removes postId with replace by default', async () => {
     const route = createMockRoute({
       name: 'scheduler-calendar-week',
-      query: { date: '2026-07-10', postId: 'pub-123' },
+      query: { date: '2026-07-10', postId: '98ca48ea-946a-5aa1-841d-a006b233a3b2' },
     })
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
@@ -254,7 +254,7 @@ describe('useCalendarUrl — navigation intent', () => {
   it('closePostDetail supports push semantics when options.replace is explicitly false', async () => {
     const route = createMockRoute({
       name: 'scheduler-calendar-week',
-      query: { date: '2026-07-10', postId: 'pub-123' },
+      query: { date: '2026-07-10', postId: '98ca48ea-946a-5aa1-841d-a006b233a3b2' },
     })
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
@@ -272,11 +272,11 @@ describe('useCalendarUrl — navigation intent', () => {
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
 
-    await ctrl.openPostDetail('  pub-999  ')
+    await ctrl.openPostDetail('  10594502-76b0-5455-9086-8237d8ba8576  ')
 
     expect(router.push).toHaveBeenCalledTimes(1)
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query.postId).toBe('pub-999')
+    expect(call.query.postId).toBe('10594502-76b0-5455-9086-8237d8ba8576')
   })
 
   it('openPostDetail preserves existing filters and channel selections in the query', async () => {
@@ -287,7 +287,7 @@ describe('useCalendarUrl — navigation intent', () => {
     const router = createMockRouter()
     const ctrl = createCalendarUrlController(route, router)
 
-    await ctrl.openPostDetail('pub-xyz')
+    await ctrl.openPostDetail('7ff9e5ed-fbfc-5ff9-8a5d-88627c88eb2f')
 
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(call).toMatchObject({
@@ -295,7 +295,7 @@ describe('useCalendarUrl — navigation intent', () => {
       query: {
         status: 'queued',
         'channels[]': ['acc-1', 'acc-2'],
-        postId: 'pub-xyz',
+        postId: '7ff9e5ed-fbfc-5ff9-8a5d-88627c88eb2f',
       },
     })
   })

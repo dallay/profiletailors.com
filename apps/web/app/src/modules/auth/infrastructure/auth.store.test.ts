@@ -33,11 +33,11 @@ const fakeTokens: AuthTokens = {
   accessToken: 'access-hydrated',
   tokenType: 'Bearer',
   expiresIn: 3600,
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'user@example.com',
   username: 'testuser',
   emailStatus: 'VERIFIED',
-  workspaceId: 'ws-1',
+  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
 }
 
 // ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ describe('Auth store — hydrateSession', () => {
   it('restores session from refresh token cookie and trusts profile email status', async () => {
     mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'VERIFIED' })
     mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
@@ -72,7 +72,7 @@ describe('Auth store — hydrateSession', () => {
     expect(auth.isAuthenticated).toBe(true)
     expect(auth.sessionChecked).toBe(true)
     expect(auth.accessToken).toBe('access-hydrated')
-    expect(auth.user?.principalId).toBe('user-1')
+    expect(auth.user?.principalId).toBe('18f3c8ec-b5fd-5d86-ac83-465965479890')
     expect(auth.user?.emailStatus).toBe('PENDING')
     expect(auth.isEmailVerified).toBe(false)
     expect(mockRefreshSession).toHaveBeenCalledOnce()
@@ -116,7 +116,7 @@ describe('Auth store — hydrateSession', () => {
   it('persists workspaceId from tokens when no workspace is selected', async () => {
     mockRefreshSession.mockResolvedValue(fakeTokens)
     mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
@@ -131,13 +131,13 @@ describe('Auth store — hydrateSession', () => {
 
     await auth.hydrateSession()
 
-    expect(workspace.activeWorkspaceId).toBe('ws-1')
+    expect(workspace.activeWorkspaceId).toBe('820c22d8-9ce7-5e76-867f-04bac4e53b59')
   })
 
   it('applies workspaceId from tokens even when a workspace is already selected', async () => {
     mockRefreshSession.mockResolvedValue(fakeTokens)
     mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
@@ -149,7 +149,7 @@ describe('Auth store — hydrateSession', () => {
     const workspace = useWorkspaceStore()
 
     // User already selected a different workspace (e.g. from previous account)
-    workspace.setActiveWorkspaceId('ws-existing')
+    workspace.setActiveWorkspaceId('e90e78f2-caf5-5675-83d8-ba865fedae33')
 
     await auth.hydrateSession()
 
@@ -160,7 +160,7 @@ describe('Auth store — hydrateSession', () => {
   it('resends verification for the authenticated user and exposes status states', async () => {
     mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
     mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
@@ -181,7 +181,7 @@ describe('Auth store — hydrateSession', () => {
   it('records resend verification errors', async () => {
     mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
     mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
@@ -203,7 +203,7 @@ describe('Auth store — hydrateSession', () => {
   it('fails resend verification when no user email is available', async () => {
     const auth = useAuthStore()
     auth.user = {
-      principalId: 'user-1',
+      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: '',
       username: 'testuser',
       displayIdentity: 'testuser',

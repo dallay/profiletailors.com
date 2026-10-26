@@ -14,6 +14,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityRegistry
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -45,6 +46,7 @@ class PublicationCreationService(
     private val mediaAssetResolver: MediaAssetResolver,
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
+    private val providerCapabilityRegistry: ProviderCapabilityRegistry? = null,
 ) {
     data class PublishingIdentity(val workspaceId: String, val principalId: String)
 
@@ -80,7 +82,7 @@ class PublicationCreationService(
         val resolvedAssets = resolveAssets(workspaceId, combinedAssetIds, externalAssets)
         val now = clock.instant()
         val draft = PublicationDraft(
-            id = "pub-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             authorPrincipalId = principalId,
             provider = socialAccount.provider,
@@ -94,7 +96,11 @@ class PublicationCreationService(
             scheduledFor = scheduledFor,
         )
         PublicationLifecyclePolicy.validateForCreation(draft, now)
-        providerCapabilityValidator.validate(
+        resolveCapabilityValidator(
+            socialAccount.provider,
+            providerCapabilityRegistry,
+            providerCapabilityValidator,
+        ).validate(
             ProviderCapabilityValidationInput(
                 provider = socialAccount.provider,
                 socialAccount = socialAccount,
@@ -122,7 +128,7 @@ class PublicationCreationService(
             throw PublicationValidationException("media_url blocked: $url")
         }
         PublicationAsset(
-            id = "asset-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             sourceType = AssetSourceType.EXTERNAL_URL,
             mediaType = inferMediaType(url),

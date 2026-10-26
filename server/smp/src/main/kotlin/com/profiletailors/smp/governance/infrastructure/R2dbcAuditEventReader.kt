@@ -11,6 +11,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcAuditEventReader(private val databaseClient: DatabaseClient, private val objectMapper: ObjectMapper) :
@@ -63,32 +64,36 @@ class R2dbcAuditEventReader(private val databaseClient: DatabaseClient, private 
         pageRequest: AuditEventPageRequest,
     ): DatabaseClient.GenericExecuteSpec {
         var spec = databaseClient.sql(sql)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("limit", pageRequest.limit)
 
         if (filter.targetType != null) spec = spec.bind("targetType", filter.targetType)
         if (filter.action != null) spec = spec.bind("action", filter.action)
         if (filter.eventType != null) spec = spec.bind("eventType", filter.eventType)
-        if (filter.actorPrincipalId != null) spec = spec.bind("actorPrincipalId", filter.actorPrincipalId)
+        if (filter.actorPrincipalId !=
+            null
+        ) {
+            spec = spec.bind("actorPrincipalId", UUID.fromString(filter.actorPrincipalId))
+        }
         if (filter.createdAfter != null) spec = spec.bind("createdAfter", filter.createdAfter)
         if (filter.createdBefore != null) spec = spec.bind("createdBefore", filter.createdBefore)
         if (pageRequest.cursor != null) {
             spec = spec
                 .bind("cursorCreatedAt", pageRequest.cursor.createdAt)
-                .bind("cursorId", pageRequest.cursor.id)
+                .bind("cursorId", UUID.fromString(pageRequest.cursor.id))
         }
         return spec
     }
 
     private fun mapRow(row: io.r2dbc.spi.Row): AuditEventItem = AuditEventItem(
-        id = requireNotNull(row.get("id", String::class.java)),
+        id = requireNotNull(row.get("id", UUID::class.java)).toString(),
         eventType = requireNotNull(row.get("event_type", String::class.java)),
         action = row.get("action", String::class.java),
         requestName = row.get("request_name", String::class.java),
         requestPath = row.get("request_path", String::class.java),
         permission = row.get("permission", String::class.java),
-        actorPrincipalId = row.get("actor_principal_id", String::class.java),
-        workspaceId = row.get("workspace_id", String::class.java),
+        actorPrincipalId = row.get("actor_principal_id", UUID::class.java)?.toString(),
+        workspaceId = row.get("workspace_id", UUID::class.java)?.toString(),
         targetType = row.get("target_type", String::class.java),
         targetId = row.get("target_id", String::class.java),
         outcome = row.get("outcome", String::class.java),

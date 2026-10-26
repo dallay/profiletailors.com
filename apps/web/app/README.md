@@ -15,7 +15,7 @@ Acts as the core user application surface (`https://pt-app.localhost`). It consu
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
+- **Runtime & Language**: Node.js (`>=24.22.1`), TypeScript 6.0
 - **Framework & State**: Vue 3.5, Pinia 4.0, Vue Router 5.2
 - **UI & Styling**: Tailwind CSS 4.3, Reka UI (Radix Vue), shadcn-vue, Lucide Vue
 - **Internationalization**: Vue I18n 11.4 (English & Spanish)
@@ -26,7 +26,7 @@ Acts as the core user application surface (`https://pt-app.localhost`). It consu
 
 ### Prerequisites
 
-- Node.js `>= 24.19.0`
+- Node.js `>= 24.22.1`
 - pnpm `>= 11.8.0`
 - `just` task runner (`>= 1.30`)
 

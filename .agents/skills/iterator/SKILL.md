@@ -10,6 +10,7 @@ metadata:
   family: none
   source: local
   version: 2026-09-28
+  opencode/autoinvoke: "false"
 ---
 
 # Iterator

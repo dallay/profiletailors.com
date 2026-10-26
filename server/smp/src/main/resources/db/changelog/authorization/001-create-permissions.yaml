@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-001-create-permissions
-      author: yuniel acosta
+      author: yacosta738
       changes:
         - createTable:
             tableName: permissions

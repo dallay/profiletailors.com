@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-004-create-consent-records
-      author: sdd-apply
+      author: yacosta738
       changes:
         - createTable:
             tableName: consent_records

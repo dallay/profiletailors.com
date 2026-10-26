@@ -11,6 +11,36 @@ authorization.
 
 ## Requirements
 
+### Requirement: Native UUID Identity and Authorized Workspace Scope
+
+Internal principal, workspace and consent identifiers MUST use canonical unprefixed UUIDs. Role
+names, permissions, purposes and policy versions remain semantic keys. Historical nominal examples
+such as `ws-123` are not valid UUID contract inputs. The API retains
+`application/vnd.api.v1+json`, existing endpoints, permissions, status codes and idempotency.
+
+The controller MUST construct `WORKSPACE` scope from the authorized context. It MUST NOT accept a
+client-supplied `WAITLIST` scope or interpret a null workspace as permission to query public consent.
+
+#### Scenario: Tenant query excludes WAITLIST consent
+
+- GIVEN public `WAITLIST` consent and an authorized workspace, even with the same UUID as the list
+- WHEN the user queries consent through tenant endpoints
+- THEN the response MUST NOT include public consent
+
+#### Scenario: Tenant withdrawal preserves WAITLIST consent
+
+- GIVEN active public consent for a subject, purpose and version, with no equivalent workspace consent
+- WHEN the user requests withdrawal through the tenant endpoint
+- THEN the existing absent-consent response MUST remain `404`
+- AND the public record and its events MUST remain intact
+
+#### Scenario: Public capture grants no tenant privileges
+
+- GIVEN valid public capture in an existing waitlist
+- WHEN consent evidence is recorded
+- THEN the scope MUST be `WAITLIST` with the real list UUID
+- AND capture MUST NOT create a workspace or grant authentication, membership or workspace permissions
+
 ### Requirement: Authentication Context Binding
 
 The system SHALL derive `principalId` and `workspaceId` from the Spring Security `ResourceContext`
@@ -18,10 +48,10 @@ for all HTTP requests. Controllers MUST NOT accept these as explicit request par
 
 #### Scenario: Authenticated user gets consent records
 
-- GIVEN a valid JWT bearer token with `principalId: alice` and `workspaceId: ws-123`
+- GIVEN a valid JWT bearer token with `principalId: 11111111-1111-4111-8111-111111111111` and `workspaceId: 22222222-2222-4222-8222-222222222222`
 - WHEN `GET /api/governance/consent` is invoked
-- THEN the handler SHALL use `ResourceContextProvider.require().principalId` → `alice`
-- AND `ResourceContextProvider.require().workspaceId` → `ws-123`
+- THEN the handler SHALL use `ResourceContextProvider.require().principalId` → `11111111-1111-4111-8111-111111111111`
+- AND `ResourceContextProvider.require().workspaceId` → `22222222-2222-4222-8222-222222222222`
 - AND no explicit path/query parameters for `principalId` or `workspaceId`
 
 #### Scenario: Missing security context throws structured error
@@ -42,22 +72,22 @@ MUST NOT have this permission.
 
 #### Scenario: Owner can list workspace consent records
 
-- GIVEN a principal with role `OWNER` in workspace `ws-123`
+- GIVEN a principal with role `OWNER` in workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `GET /api/governance/consent` is invoked
-- THEN `WorkspaceAuthorizationDecider.isAuthorized(ws-123, principal, "workspace:consent:read")`
+- THEN `WorkspaceAuthorizationDecider.isAuthorized(22222222-2222-4222-8222-222222222222, principal, "workspace:consent:read")`
   SHALL return `true`
 - AND records SHALL be returned
 
 #### Scenario: Member is denied access to consent records
 
-- GIVEN a principal with role `MEMBER` in workspace `ws-123`
+- GIVEN a principal with role `MEMBER` in workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `GET /api/governance/consent` is invoked
 - THEN the system SHALL return `403 Forbidden` with Problem Details
 - AND `detail` SHALL include `workspace:consent:read`
 
 #### Scenario: History endpoint requires same permission
 
-- GIVEN an `ADMIN` principal with valid context for workspace `ws-123`
+- GIVEN an `ADMIN` principal with valid context for workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `GET /api/governance/consent/history?subjectReference=alice@example.com` is invoked
 - THEN authorization SHALL pass (ADMIN has `workspace:consent:read`)
 - AND history SHALL be returned
@@ -71,10 +101,10 @@ endpoint SHALL accept `workspaceId` as a request parameter.
 
 #### Scenario: Cannot access records outside own workspace
 
-- GIVEN a principal in workspace `ws-123`
+- GIVEN a principal in workspace `22222222-2222-4222-8222-222222222222`
 - WHEN any consent query is executed
-- THEN repository SHALL filter by `workspaceId = ws-123`
-- AND records from `ws-456` SHALL NOT be returned
+- THEN repository SHALL filter by `workspaceId = 22222222-2222-4222-8222-222222222222`
+- AND records from `33333333-3333-4333-8333-333333333333` SHALL NOT be returned
 
 ---
 
@@ -94,7 +124,7 @@ metadata is inferred from the HTTP status (`201` indicates a new record was crea
 
 #### Scenario: First-time consent recording returns 201
 
-- GIVEN no existing consent for `alice@example.com`, purpose `MARKETING`, workspace `ws-123`
+- GIVEN no existing consent for `alice@example.com`, purpose `MARKETING`, workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `POST /api/governance/consent` with valid payload is invoked
 - THEN status `201 Created` SHALL be returned
 - AND the body is the recorded consent record
@@ -116,7 +146,7 @@ modifying existing evidence. The original consent record SHALL be preserved with
 
 #### Scenario: Successful withdrawal returns 200
 
-- GIVEN an `ACTIVE` consent record for `alice@example.com`, purpose `MARKETING`, workspace `ws-123`
+- GIVEN an `ACTIVE` consent record for `alice@example.com`, purpose `MARKETING`, workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `POST /api/governance/consent/withdraw` with matching criteria is invoked
 - THEN status `200 OK` SHALL be returned
 - AND the existing record status SHALL be set to `WITHDRAWN`
@@ -138,14 +168,14 @@ authenticated workspace, with optional filters for `subjectKind` and `purpose`.
 
 #### Scenario: List all records without filters
 
-- GIVEN workspace `ws-123` has 5 active consent records
+- GIVEN workspace `22222222-2222-4222-8222-222222222222` has 5 active consent records
 - WHEN `GET /api/governance/consent` is invoked
 - THEN all 5 records SHALL be returned in the response
 - AND each record SHALL include `id`, `subjectReference`, `subjectKind`, `purpose`, `consentedAt`
 
 #### Scenario: Filter by subjectKind and purpose
 
-- GIVEN workspace `ws-123` has records for `USER` and `CONTACT`, purposes `MARKETING` and
+- GIVEN workspace `22222222-2222-4222-8222-222222222222` has records for `USER` and `CONTACT`, purposes `MARKETING` and
   `ANALYTICS`
 - WHEN `GET /api/governance/consent?subjectKind=USER&purpose=MARKETING` is invoked
 - THEN only records matching BOTH criteria SHALL be returned
@@ -177,7 +207,7 @@ decisions.
 
 #### Scenario: Consent recorded updates waitlist
 
-- GIVEN a `WAITLIST` entry exists for `alice@example.com` in workspace `ws-123`
+- GIVEN a `WAITLIST` entry exists for `alice@example.com` in workspace `22222222-2222-4222-8222-222222222222`
 - WHEN `POST /api/governance/consent` records consent for purpose `MARKETING`
 - THEN the waitlist adapter SHALL be notified of the consent decision
 - AND the entry SHALL reflect the consent status
@@ -255,16 +285,16 @@ repository query methods.
 
 #### Scenario: findActiveByWorkspace returns correct records
 
-- GIVEN two consent records exist in Postgres for workspace `ws-123`
-- AND one record exists for workspace `ws-456`
-- WHEN `findActiveByWorkspace(ws-123)` is called
+- GIVEN two consent records exist in Postgres for workspace `22222222-2222-4222-8222-222222222222`
+- AND one record exists for workspace `33333333-3333-4333-8333-333333333333`
+- WHEN `findActiveByWorkspace(22222222-2222-4222-8222-222222222222)` is called
 - THEN exactly 2 records SHALL be returned
-- AND no record from `ws-456` SHALL be included
+- AND no record from `33333333-3333-4333-8333-333333333333` SHALL be included
 
 #### Scenario: findHistoricalByIdentity returns ordered history
 
-- GIVEN multiple state changes exist for `alice@example.com` in workspace `ws-123`
-- WHEN `findHistoricalByIdentity(ws-123, alice@example.com, null)` is called
+- GIVEN multiple state changes exist for `alice@example.com` in workspace `22222222-2222-4222-8222-222222222222`
+- WHEN `findHistoricalByIdentity(22222222-2222-4222-8222-222222222222, alice@example.com, null)` is called
 - THEN records SHALL be returned ordered by `consentedAt` ascending
 
 ---

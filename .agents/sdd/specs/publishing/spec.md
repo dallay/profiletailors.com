@@ -9,6 +9,99 @@ publishing as the first implemented provider slice.
 
 ## Requirements
 
+### Requirement: Canonical Native UUID Internal Identifiers
+
+Internal identifiers for publications, social accounts and other inventoried entities/aggregates
+MUST use native UUID values. Database and API/wire serialization MUST use canonical UUIDs without
+textual prefixes. References and foreign keys MUST identify the same entity after conversion.
+Provider IDs, tokens and opaque keys are excluded and MUST retain their own semantics and formats.
+API v1 retains `application/vnd.api.v1+json` with raw internal UUIDs.
+
+#### Scenario: Conversion and canonicalization
+
+- GIVEN a valid internal identifier in the input format permitted by the rollout stage
+- WHEN the system converts and serializes the identifier
+- THEN database and API/wire output MUST contain one canonical unprefixed UUID
+
+#### Scenario: Invalid format
+
+- GIVEN an internal identifier that does not satisfy the accepted UUID format
+- WHEN an endpoint or consumer processes the identifier
+- THEN it MUST return or propagate a clear validation error
+- AND it MUST NOT treat the value as another identifier class or perform a mutation
+
+#### Scenario: References and workspace
+
+- GIVEN related publications and social accounts within a workspace
+- WHEN their internal identifiers are queried or filtered
+- THEN references and foreign keys MUST identify the correct entities
+- AND filters and authorization MUST preserve workspace isolation
+
+#### Scenario: API, clients and output surfaces
+
+- GIVEN a response, URL, log, message or event includes an internal identifier
+- WHEN that value is published or consumed
+- THEN its representation MUST follow the agreed canonical UUID contract
+- AND APIs, clients and consumers MUST use the same contract
+
+#### Scenario: External or opaque identifier
+
+- GIVEN a provider ID, token, idempotency key or other opaque key
+- WHEN the system processes it alongside an internal identifier
+- THEN it MUST preserve the value's defined classification and format
+- AND it MUST NOT convert the value into an internal UUID because of textual similarity
+
+### Requirement: Lossless Identifier Migration and Conditional Recovery
+
+The transition MUST migrate internal data and references without loss, collisions or cross-linked
+associations. The design MUST define rollout, consumer/client coordination, verification,
+advancement criteria, partial-migration handling and rollback. Data transition MUST be resolved
+before incompatible reads or writes are activated.
+
+The selected local plan is a conditional coordinated stopped-writer cutover, not an approved
+production rollout. Legacy data and writers use legacy representations before conversion;
+converted data and coordinated UUID-only consumers use raw UUIDs afterward within API v1. Legacy
+writers MUST NOT write to the converted schema. No maintenance window, downtime, rolling
+compatibility or production approval is assumed. If operators cannot satisfy the coordinated
+stopped-writer conditions, release MUST remain blocked pending a separately approved plan; this
+contract does not provide a fallback compatibility implementation.
+
+Production advancement MUST require approved coordination, representative backup/restore evidence,
+preflight checks and validated postconditions. Recovery MUST preserve data and identity. Before
+incompatible new writes, coordinated restore requires a verified backup and compatible application
+state. After new UUID-only writes, the plan MUST NOT promise automatic reverse conversion or
+lossless restoration of an older backup; operators MUST stop writers and use reviewed forward-fix
+or coordinated recovery that accounts for those writes.
+
+#### Scenario: Migrated data integrity
+
+- GIVEN inventoried historical data and existing relationships
+- WHEN the selected migration executes
+- THEN every entity and relationship MUST retain its correct UUID identity
+- AND collisions, orphaned records and invalid conversions MUST be detected before advancement
+
+#### Scenario: Rollout and rollback
+
+- GIVEN a deployment stage with partially migrated data or consumers
+- WHEN advancement or rollback is required
+- THEN the design MUST define observable advancement and recovery criteria
+- AND recovery MUST preserve data without loss, collisions or ambiguous interpretation
+
+#### Scenario: Compatibility decision
+
+- GIVEN clients or consumers still exchange the legacy representation
+- WHEN the coordinated transition is prepared
+- THEN the plan MUST specify read/write formats per stage, client coordination and legacy retirement
+- AND deliberate incompatibilities MUST be documented before deployment
+- AND release MUST remain blocked if the stopped-writer conditions cannot be met
+
+#### Scenario: Verification by slices
+
+- GIVEN each inventoried persistence, application, API or consumer slice
+- WHEN that slice is integrated
+- THEN integration tests MUST verify actual serialization and affected references
+- AND API/workspace slices MUST verify authentication, filters and isolation
+
 ### Requirement: Workspace-Resolved Provider Catalog API
 
 `GET /api/publishing/channels/providers` MUST return workspace catalog. Entries MUST include
