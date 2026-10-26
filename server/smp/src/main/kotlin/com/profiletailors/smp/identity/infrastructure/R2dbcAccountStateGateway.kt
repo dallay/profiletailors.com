@@ -6,13 +6,14 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class R2dbcAccountStateGateway(private val databaseClient: DatabaseClient) : AccountStateGateway {
     override suspend fun findAccountState(principalId: String): UserAccountState? = databaseClient.sql(
         "SELECT account_state FROM principals WHERE id = :principalId AND principal_type = 'USER'",
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .map { row, _ -> UserAccountState.valueOf(requireNotNull(row.get("account_state", String::class.java))) }
         .one()
         .awaitSingleOrNull()
@@ -25,7 +26,7 @@ class R2dbcAccountStateGateway(private val databaseClient: DatabaseClient) : Acc
         "UPDATE principals SET account_state = :replacement " +
             "WHERE id = :principalId AND principal_type = 'USER' AND account_state = :expected",
     )
-        .bind("principalId", principalId)
+        .bind("principalId", UUID.fromString(principalId))
         .bind("expected", expected.name)
         .bind("replacement", replacement.name)
         .fetch()

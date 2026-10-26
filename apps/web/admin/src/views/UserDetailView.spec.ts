@@ -6,7 +6,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import { createI18n } from 'vue-i18n'
 
 const mockUser = {
-  principalId: 'user-1',
+  principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'user@example.com',
   displayIdentity: 'User Example',
   principalType: 'USER',
@@ -65,7 +65,10 @@ async function createView() {
       },
     },
   })
-  await router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
+  await router.push({
+    name: 'user-detail',
+    params: { principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890' },
+  })
   const wrapper = mount(UserDetailView, {
     global: {
       plugins: [router, i18n],
@@ -124,11 +127,13 @@ describe('UserDetailView', () => {
       ?.trigger('click')
     await flushPromises()
     const mutationRequest = mockRequest.mock.calls.find(
-      (call) => call[0] === '/api/admin/users/user-1/disable',
+      (call) => call[0] === '/api/admin/users/18f3c8ec-b5fd-5d86-ac83-465965479890/disable',
     )
-    expect(mutationRequest?.[0]).toBe('/api/admin/users/user-1/disable')
+    expect(mutationRequest?.[0]).toBe(
+      '/api/admin/users/18f3c8ec-b5fd-5d86-ac83-465965479890/disable',
+    )
     expect(mutationRequest?.[1]?.headers).toEqual({
-      'Idempotency-Key': 'admin-user-disable-user-1-request-id',
+      'Idempotency-Key': 'admin-user-disable-18f3c8ec-b5fd-5d86-ac83-465965479890-request-id',
     })
   })
 

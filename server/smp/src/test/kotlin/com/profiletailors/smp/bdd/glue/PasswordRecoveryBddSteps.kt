@@ -167,12 +167,12 @@ class PasswordRecoveryBddSteps {
 
     @Given("the account has a password credential")
     fun theAccountHasAPasswordCredential() = runBlocking {
-        assertEquals(1L, bddDatabaseSupport.countPasswordCredentials("principal-1"))
+        assertEquals(1L, bddDatabaseSupport.countPasswordCredentials(BddDatabaseSupport.PRINCIPAL_ID))
     }
 
     @Given("the account has no local password credential")
     fun theAccountHasNoLocalPasswordCredential() = runBlocking {
-        assertEquals(0L, bddDatabaseSupport.countPasswordCredentials("principal-1"))
+        assertEquals(0L, bddDatabaseSupport.countPasswordCredentials(BddDatabaseSupport.PRINCIPAL_ID))
     }
 
     @Given("the account authenticates only through an external provider")
@@ -194,7 +194,7 @@ class PasswordRecoveryBddSteps {
     @Given("the account has an active password reset token")
     fun theAccountHasAnActivePasswordResetToken() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -202,7 +202,7 @@ class PasswordRecoveryBddSteps {
     @Given("a valid unused password reset token exists for the account")
     fun aValidUnusedPasswordResetTokenExistsForTheAccount() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -210,7 +210,7 @@ class PasswordRecoveryBddSteps {
     @Given("a valid unused password reset token exists")
     fun aValidUnusedPasswordResetTokenExists() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -218,7 +218,7 @@ class PasswordRecoveryBddSteps {
     @Given("a password reset token expired one minute ago")
     fun aPasswordResetTokenExpiredOneMinuteAgo() = runBlocking {
         bddDatabaseSupport.seedExpiredPasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -229,7 +229,7 @@ class PasswordRecoveryBddSteps {
     @Given("a password reset token has already been used")
     fun aPasswordResetTokenHasAlreadyBeenUsed() = runBlocking {
         bddDatabaseSupport.seedUsedPasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -309,24 +309,24 @@ class PasswordRecoveryBddSteps {
      */
     @Given("the account has a current password {string}")
     fun theAccountHasCurrentPassword(password: String) = runBlocking {
-        bddDatabaseSupport.updatePasswordHash("principal-1", "hashed:$password")
+        bddDatabaseSupport.updatePasswordHash(BddDatabaseSupport.PRINCIPAL_ID, "hashed:$password")
     }
 
     @Given("a local account has active refresh sessions on multiple devices")
     fun aLocalAccountHasActiveRefreshSessionsOnMultipleDevices() = runBlocking {
-        bddDatabaseSupport.seedRefreshSession("principal-1", "lookup-1", "secret-1")
-        bddDatabaseSupport.seedRefreshSession("principal-1", "lookup-2", "secret-2")
+        bddDatabaseSupport.seedRefreshSession(BddDatabaseSupport.PRINCIPAL_ID, "lookup-1", "secret-1")
+        bddDatabaseSupport.seedRefreshSession(BddDatabaseSupport.PRINCIPAL_ID, "lookup-2", "secret-2")
     }
 
     @Given("a local account has an active access token and refresh token")
     fun aLocalAccountHasActiveAccessTokenAndRefreshToken() = runBlocking {
-        bddDatabaseSupport.seedRefreshSession("principal-1", "lookup-1", "secret-1")
+        bddDatabaseSupport.seedRefreshSession(BddDatabaseSupport.PRINCIPAL_ID, "lookup-1", "secret-1")
     }
 
     @Given("a local account requested two password reset links")
     fun aLocalAccountRequestedTwoPasswordResetLinks() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -334,9 +334,9 @@ class PasswordRecoveryBddSteps {
     @Given("the first token was invalidated when the second token was created")
     fun theFirstTokenWasInvalidatedWhenTheSecondTokenWasCreated() = runBlocking {
         previousRawToken = bddDatabaseSupport.lastRawToken()
-        bddDatabaseSupport.invalidateAllActivePasswordResetTokens("principal-1")
+        bddDatabaseSupport.invalidateAllActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -348,7 +348,7 @@ class PasswordRecoveryBddSteps {
 
     @Given("the principal has a current password hash {string}")
     fun thePrincipalHasCurrentPasswordHash(hash: String) = runBlocking {
-        bddDatabaseSupport.updatePasswordHash("principal-1", hash)
+        bddDatabaseSupport.updatePasswordHash(BddDatabaseSupport.PRINCIPAL_ID, hash)
     }
 
     @When("the visitor requests a password reset for {string}")
@@ -400,7 +400,7 @@ class PasswordRecoveryBddSteps {
 
     @When("the password reset request is submitted from disallowed origin {string}")
     fun thePasswordResetRequestIsSubmittedFromDisallowedOrigin(origin: String) {
-        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID) }
         latestResult = webTestClient.post()
             .uri("/api/auth/reset-password")
             .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
@@ -461,7 +461,7 @@ class PasswordRecoveryBddSteps {
     @When("the user submits malformed JSON to the reset password endpoint")
     fun theUserSubmitsMalformedJsonToTheResetPasswordEndpoint() {
         latestStatusCode = null
-        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID) }
         latestResult = webTestClient.post()
             .uri("/api/auth/reset-password")
             .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
@@ -528,8 +528,8 @@ class PasswordRecoveryBddSteps {
     @And("an audit event should record the principal identifier")
     fun anAuditEventShouldRecordThePrincipalIdentifier() {
         val fact = completedPasswordResetAuditFact()
-        assertEquals("principal-1", fact.targetId)
-        assertEquals("principal-1", fact.actorPrincipalId)
+        assertEquals(BddDatabaseSupport.PRINCIPAL_ID, fact.targetId)
+        assertEquals(BddDatabaseSupport.PRINCIPAL_ID, fact.actorPrincipalId)
         assertEquals(null, fact.workspaceId)
     }
 
@@ -574,7 +574,7 @@ class PasswordRecoveryBddSteps {
      */
     @And("the event should not contain the password hash")
     fun theEventShouldNotContainThePasswordHash() = runBlocking {
-        assertAuditExcludes(requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1")))
+        assertAuditExcludes(requireNotNull(bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)))
     }
 
     /**
@@ -599,13 +599,13 @@ class PasswordRecoveryBddSteps {
 
     @And("the account should have exactly one active password reset token")
     fun theAccountShouldHaveExactlyOneActivePasswordResetToken() = runBlocking {
-        val count = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val count = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1L, count)
     }
 
     @And("a password reset token should be created for the account")
     fun aPasswordResetTokenShouldBeCreatedForTheAccount() = runBlocking {
-        val count = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val count = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertTrue(count > 0, "Expected at least one password reset token")
     }
 
@@ -691,7 +691,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the account should be resolved using {string}")
     fun theAccountShouldBeResolvedUsing(email: String) = runBlocking {
-        val count = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val count = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertTrue(count > 0, "Expected at least one password reset token for $email")
     }
 
@@ -712,20 +712,20 @@ class PasswordRecoveryBddSteps {
 
     @And("the account password hash should be updated")
     fun theAccountPasswordHashShouldBeUpdated() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertNotNull(hash)
         assertTrue(hash != "hashed:OldSecurePassword123!")
     }
 
     @And("the password reset token should be marked as used")
     fun thePasswordResetTokenShouldBeMarkedAsUsed() = runBlocking {
-        val used = bddDatabaseSupport.countUsedPasswordResetTokens("principal-1")
+        val used = bddDatabaseSupport.countUsedPasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertTrue(used > 0, "Expected at least one used token")
     }
 
     @And("all refresh sessions for the account should be revoked")
     fun allRefreshSessionsForTheAccountShouldBeRevoked() = runBlocking {
-        val active = bddDatabaseSupport.countActiveRefreshSessions("principal-1")
+        val active = bddDatabaseSupport.countActiveRefreshSessions(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(0, active, "Expected zero active refresh sessions but got $active")
     }
 
@@ -758,37 +758,37 @@ class PasswordRecoveryBddSteps {
 
     @And("the token should remain unusable")
     fun theTokenShouldRemainUnusable() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(0, active, "Expected no active tokens but got $active")
     }
 
     @And("the account password should remain unchanged")
     fun theAccountPasswordShouldRemainUnchanged() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(passwordHashBeforeReset, hash)
     }
 
     @And("the reset token should remain unused")
     fun theResetTokenShouldRemainUnused() = runBlocking {
-        val used = bddDatabaseSupport.countUsedPasswordResetTokens("principal-1")
+        val used = bddDatabaseSupport.countUsedPasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(0, used, "Expected zero used tokens but got $used")
     }
 
     @And("the password should remain unchanged")
     fun thePasswordShouldRemainUnchanged() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(passwordHashAfterSuccessfulReset ?: passwordHashBeforeReset, hash)
     }
 
     @And("no password should be changed")
     fun noPasswordShouldBeChanged() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(passwordHashBeforeReset, hash)
     }
 
     @And("no session should be revoked")
     fun noSessionShouldBeRevoked() = runBlocking {
-        assertEquals(0, bddDatabaseSupport.countUsedPasswordResetTokens("principal-1"))
+        assertEquals(0, bddDatabaseSupport.countUsedPasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID))
     }
 
     @And("the password reset should succeed")
@@ -813,7 +813,7 @@ class PasswordRecoveryBddSteps {
 
     @And("every refresh session for the account should be revoked")
     fun everyRefreshSessionForTheAccountShouldBeRevoked() = runBlocking {
-        val active = bddDatabaseSupport.countActiveRefreshSessions("principal-1")
+        val active = bddDatabaseSupport.countActiveRefreshSessions(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(0, active)
     }
 
@@ -875,7 +875,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the plaintext password should not be persisted")
     fun thePlaintextPasswordShouldNotBePersisted() = runBlocking {
-        val storedHash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val storedHash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         val requiredHash = requireNotNull(storedHash)
         assertTrue(requiredHash != "NewSecurePassword123!")
         assertTrue(BCrypt.checkpw("NewSecurePassword123!", requiredHash))
@@ -883,7 +883,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the stored credential should contain a password hash")
     fun theStoredCredentialShouldContainAPasswordHash() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertNotNull(hash)
     }
 
@@ -925,13 +925,13 @@ class PasswordRecoveryBddSteps {
 
     @And("the original password hash should remain unchanged")
     fun theOriginalPasswordHashShouldRemainUnchanged() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals("hashed:OldSecurePassword123!", hash)
     }
 
     @And("existing refresh sessions should remain active")
     fun existingRefreshSessionsShouldRemainActive() = runBlocking {
-        val active = bddDatabaseSupport.countActiveRefreshSessions("principal-1")
+        val active = bddDatabaseSupport.countActiveRefreshSessions(BddDatabaseSupport.PRINCIPAL_ID)
         assertTrue(active > 0, "Expected at least one active refresh session but got $active")
     }
 
@@ -1198,19 +1198,19 @@ class PasswordRecoveryBddSteps {
 
     @And("the password reset tokens for the account should be unusable")
     fun thePasswordResetTokensForTheAccountShouldBeUnusable() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(0, active)
     }
 
     @And("two previous password reset tokens should be unusable")
     fun twoPreviousPasswordResetTokensShouldBeUnusable() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, active)
     }
 
     @And("only the latest password reset token should be active")
     fun onlyTheLatestPasswordResetTokenShouldBeActive() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, active)
     }
 
@@ -1222,19 +1222,19 @@ class PasswordRecoveryBddSteps {
     @And("the previous password reset token should be invalidated")
     fun thePreviousPasswordResetTokenShouldBeInvalidated() = runBlocking {
         // There should be exactly one active token after the new request.
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, active)
     }
 
     @And("a new password reset token should be created")
     fun aNewPasswordResetTokenShouldBeCreated() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertTrue(active > 0)
     }
 
     @And("only the new token should remain usable")
     fun onlyTheNewTokenShouldRemainUsable() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, active)
     }
 
@@ -1354,7 +1354,7 @@ class PasswordRecoveryBddSteps {
 
     @And("all superseded tokens should be unusable")
     fun allSupersededTokensShouldBeUnusable() = runBlocking {
-        val active = bddDatabaseSupport.countActivePasswordResetTokens("principal-1")
+        val active = bddDatabaseSupport.countActivePasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, active)
     }
 
@@ -1406,7 +1406,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the password should match only the successful request")
     fun thePasswordShouldMatchOnlyTheSuccessfulRequest() = runBlocking {
-        val hash = requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1"))
+        val hash = requireNotNull(bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID))
         assertTrue(
             BCrypt.checkpw("FirstPassword123!", hash) || BCrypt.checkpw("SecondPassword123!", hash),
         )
@@ -1414,7 +1414,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the token should be marked as used exactly once")
     fun theTokenShouldBeMarkedAsUsedExactlyOnce() = runBlocking {
-        val used = bddDatabaseSupport.countUsedPasswordResetTokens("principal-1")
+        val used = bddDatabaseSupport.countUsedPasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, used)
     }
 
@@ -1437,7 +1437,7 @@ class PasswordRecoveryBddSteps {
 
     @And("exactly one password should be persisted")
     fun exactlyOnePasswordShouldBePersisted() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val hash = bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
         assertNotNull(hash)
     }
 
@@ -1449,7 +1449,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the token should be consumed once")
     fun theTokenShouldBeConsumedOnce() = runBlocking {
-        val used = bddDatabaseSupport.countUsedPasswordResetTokens("principal-1")
+        val used = bddDatabaseSupport.countUsedPasswordResetTokens(BddDatabaseSupport.PRINCIPAL_ID)
         assertEquals(1, used)
     }
 
@@ -1468,7 +1468,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the current password is {string}")
     fun theCurrentPasswordIs(password: String) = runBlocking {
-        val storedHash = requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1"))
+        val storedHash = requireNotNull(bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID))
         assertTrue(BCrypt.checkpw(password, storedHash))
     }
 
@@ -1481,7 +1481,7 @@ class PasswordRecoveryBddSteps {
     @And("the password reset token expires at {string}")
     fun thePasswordResetTokenExpiresAt(time: String) = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
             expiresAt = java.time.Instant.parse(time),
         )
@@ -1490,7 +1490,7 @@ class PasswordRecoveryBddSteps {
     @And("the password reset token expires at {string} and invalid day")
     fun thePasswordResetTokenExpiresAtEdge(time: String) = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
             expiresAt = java.time.Instant.parse(time),
         )
@@ -1499,7 +1499,7 @@ class PasswordRecoveryBddSteps {
     @And("the password reset token expires at a known time")
     fun thePasswordResetTokenExpiresAtAKnownTime() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -1515,7 +1515,7 @@ class PasswordRecoveryBddSteps {
     @And("a previously issued reset token exists")
     fun aPreviouslyIssuedResetTokenExists() = runBlocking {
         bddDatabaseSupport.seedActivePasswordResetToken(
-            principalId = "principal-1",
+            principalId = BddDatabaseSupport.PRINCIPAL_ID,
             email = "user@example.com",
         )
     }
@@ -1527,7 +1527,7 @@ class PasswordRecoveryBddSteps {
         runBlocking {
             passwordResetEmailConsumer.consume(
                 com.profiletailors.smp.identity.domain.PasswordResetRequested(
-                    principalId = "principal-1",
+                    principalId = BddDatabaseSupport.PRINCIPAL_ID,
                     email = "user@example.com",
                     rawResetToken = "bdd-sensitive-raw-token",
                 ),
@@ -1598,14 +1598,14 @@ class PasswordRecoveryBddSteps {
     private fun submitResetPassword(rawToken: String, newPassword: String) {
         latestStatusCode = null
         previousResetPasswordStatus = lastResetPasswordStatus
-        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID) }
         latestResult = executeResetPassword(rawToken, newPassword)
         lastResetPasswordStatus = latestResult?.status?.value() ?: -1
         resetPasswordStatuses += lastResetPasswordStatus
         lastResetPasswordBody = latestResult?.responseBody?.toString(Charsets.UTF_8) ?: ""
         if (lastResetPasswordStatus == 204) {
             passwordHashAfterSuccessfulReset = runBlocking {
-                bddDatabaseSupport.lookupPasswordHash("principal-1")
+                bddDatabaseSupport.lookupPasswordHash(BddDatabaseSupport.PRINCIPAL_ID)
             }
         }
     }

@@ -1,0 +1,92 @@
+change: uuid-native-identifiers
+current_phase: archive
+completed: [explore, propose, spec, design, tasks, apply, verify, qa, archive]
+next: none
+updated: 2026-10-26
+apply_progress: apply-progress.md
+verification:
+  focused_backend_tests: passed_58_native_postgres_regressions
+  postgres_integration: passed_506_without_skips
+  tdd_red_green: not_claimed
+  static_diff_check: passed_git_diff_check
+  initial_failure_regressions: passed_identity_5_invitation_18_retry_1_worker_10_principal_lookup_6
+  backend_full_gate: passed_3315_standard_tests_zero_failures_two_documentation_skips
+  backend_bdd_fast: passed_325_without_skips
+  backend_bdd_postgres: passed_325_without_skips
+  backend_build: passed_just_backend_build_including_kover_verify
+  shared_kotlin_tests: passed_waitlist_59_notifications_78
+  web_unit_tests: passed_dashboard_2005_admin_148_marketing_163_shared_web_74
+  web_types_lint_build: passed_dashboard_admin_marketing
+  admin_e2e: passed_15_without_skips
+  scheduler_e2e: passed_93_skipped_1
+  media_mocked_e2e: passed_37_skipped_4
+  marketing_e2e: passed_540_without_skips
+  sql_regression_harness: passed_34_rejections_with_rollback_native_notifications_waitlist_scopes_93_fks_405_indexes
+  sql_independent_review: final_lens_clean_mirror_clean_with_notifications_and_waitlist
+  runtime_independent_review: final_lens_clean_mirror_clean_waitlist_tenant_boundaries
+  critical_chromium: passed_43_without_skips
+  observable_acceptance: passed_packaged_backend_real_astro_browser_disposable_postgresql_and_authorized_tenant_http
+  uuid_liquibase_execution: passed_disposable_postgresql_seeded_legacy_rows_430_rows_89_validated_fks_collision_orphan_and_approval_guards_verified
+  production_sql: prepared_and_tested_on_disposable_database_not_executed_in_production
+  rollout: not_authorized_or_verified
+artifact_policy: openspec-only
+scope_status: local_candidate_accepted_with_warnings_archived
+external_evidence: not_applicable
+status: archived_local_candidate_with_warnings_production_blocked
+executive_summary: "Independent verification and QA both PASS WITH WARNINGS for the scoped local candidate. Technical evidence is 25/30 compliant and 5/30 partial: four operational rehearsal limitations and one dedicated malformed-shortlinks HTTP coverage gap. All 21 local tasks are reconciled. Five main specifications are synchronized and the lifecycle closes at archive without production approval. Historical TDD limitations, browser omissions and external evidence retention limits remain visible. Production SQL, deployment, commit and push remain unperformed."
+artifacts:
+  proposal: proposal.md
+  specs:
+    - specs/publishing/spec.md
+    - specs/publishing-shortlinks/spec.md
+    - specs/media-library/spec.md
+    - specs/consent-scopes/spec.md
+    - specs/governance-consent-api/spec.md
+  design: design.md
+  tasks: tasks.md
+  verify: verify-report.md
+  qa: qa-report.md
+  archive: archive-report.md
+artifact_reconciliation:
+  status: synchronized_and_archived_local_candidate_only
+  items:
+    - "Task 1.3 remains resolved: retain application/vnd.api.v1+json and use unprefixed UUIDs for internal identifiers within the same API version."
+    - "Apply can proceed in reviewable local slices on the existing branch/worktree; future PR partition/chain strategy is not a technical gate."
+    - "User authorized branch, commit, push, and PR only after all required tests and builds pass; .gitignore remains excluded. Production SQL and deployment are not authorized."
+    - "SQL was prepared and rehearsed only on disposable databases. Production SQL and pre/postcondition validation remain operator responsibilities under separate approval; production cutover remains blocked."
+    - "The current inventory covers 174 entries across 74 tables, optional notifications and both WAITLIST references. Tasks 1.1 and 1.2 are complete; earlier pending prose in historical planning/progress artifacts does not override the final reports."
+    - "ADR-0029 supersedes ADR-0005 without rewriting its historical decision text; structured logs and nominal Kotlin types replace prefixes as diagnostics/guards."
+    - "Prepare reviewed SQL with backup, preflight, validation, order, and rollback/forward-fix; do not execute production SQL in this session."
+    - "Keep rollout gate and all required tests intact; do not assume downtime or version coexistence."
+next_recommended: none
+archive:
+  date: 2026-10-26
+  location: .agents/sdd/changes/archive/2026-10-26-uuid-native-identifiers
+  verification_verdict: PASS WITH WARNINGS
+  qa_verdict: PASS WITH WARNINGS
+  local_tasks_complete: 21
+  local_tasks_total: 21
+  compliant_scenarios: 25
+  partial_scenarios: 5
+  failing_scenarios: 0
+  production_approved: false
+  production_sql_executed: false
+  deployed: false
+  committed: false
+  pushed: false
+  history_policy: frozen_after_transfer
+decision_required:
+  contract: public_waitlist_consent_scope
+  needed: false
+  status: approved_waitlist_scope_separate_from_workspace
+  current: "workspaceId = waitlist:<key> no identifica un workspace UUID real"
+  alternatives:
+    - "Ámbito WAITLIST separado de workspace, con históricos/eventos/consultas/retirada reconciliados"
+    - "Workspace tenant real para cada waitlist, con propiedad y mapping aprobados"
+  forbidden_shortcuts:
+    - "Inventar un UUID de workspace sin entidad tenant real"
+    - "Desactivar consentimiento o debilitar guards para obtener un gate verde"
+  evidence:
+    user_choice: "Ámbito WAITLIST (Recommended)"
+    adr: docs/architecture/adr/0030-separate-public-waitlist-consent-scope.md
+    spec: specs/consent-scopes/spec.md

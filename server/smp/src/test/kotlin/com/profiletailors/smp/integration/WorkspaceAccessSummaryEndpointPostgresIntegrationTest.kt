@@ -40,7 +40,7 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSum
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
             .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
-            .header("X-Workspace-Id", "workspace-1")
+            .header("X-Workspace-Id", "d3d9800f-120a-501e-ad01-401e54e8f766")
             .exchange()
             .expectStatus().isUnauthorized
     }

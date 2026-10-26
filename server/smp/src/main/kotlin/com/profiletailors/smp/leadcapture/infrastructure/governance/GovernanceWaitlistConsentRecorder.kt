@@ -5,11 +5,13 @@ import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistCon
 import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.smp.governance.application.RecordConsentCommand
 import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
+import java.util.UUID
 
 @Component
 internal class GovernanceWaitlistConsentRecorder(private val recordConsentHandler: RecordConsentHandler) :
@@ -17,14 +19,14 @@ internal class GovernanceWaitlistConsentRecorder(private val recordConsentHandle
 
     override fun record(request: WaitlistConsentRecordRequest) {
         val subject = SubjectReference.anonymous(anonymousSubjectHash(request.normalizedEmail))
-        val workspaceId = "waitlist:${request.waitlistKey.value}"
+        val scope = ConsentScope.Waitlist(UUID.fromString(request.waitlistId.value))
         val locale = request.locale?.value ?: DEFAULT_LOCALE
         val source = request.source.value
 
         runBlocking {
             recordConsentHandler.handle(
                 RecordConsentCommand(
-                    workspaceId = workspaceId,
+                    scope = scope,
                     subjectReference = subject,
                     consentType = ConsentType.CONSENT,
                     purpose = EARLY_ACCESS_PURPOSE,
@@ -37,7 +39,7 @@ internal class GovernanceWaitlistConsentRecorder(private val recordConsentHandle
             if (request.consent.marketing) {
                 recordConsentHandler.handle(
                     RecordConsentCommand(
-                        workspaceId = workspaceId,
+                        scope = scope,
                         subjectReference = subject,
                         consentType = ConsentType.CONSENT,
                         purpose = MARKETING_PURPOSE,

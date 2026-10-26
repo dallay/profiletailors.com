@@ -66,17 +66,17 @@ class R2dbcPasswordResetNotificationFailureRepositoryPostgresTest : PostgresData
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
             VALUES (:id, 'USER', 'local:terminal@example.com', NULL, 'terminal')
             """.trimIndent(),
-        ).bind("id", PRINCIPAL_ID).fetch().rowsUpdated().awaitSingle()
+        ).bind("id", java.util.UUID.fromString(PRINCIPAL_ID)).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
             VALUES (:id, 'terminal@example.com', 'terminal')
             """.trimIndent(),
-        ).bind("id", PRINCIPAL_ID).fetch().rowsUpdated().awaitSingle()
+        ).bind("id", java.util.UUID.fromString(PRINCIPAL_ID)).fetch().rowsUpdated().awaitSingle()
     }
 
     private companion object {
-        const val PRINCIPAL_ID = "principal-terminal-failure"
+        const val PRINCIPAL_ID = "335d2382-8bf2-5b34-a9c9-714737a93a93"
 
         @Container
         @JvmStatic

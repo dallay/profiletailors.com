@@ -21,6 +21,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.transaction.reactive.executeAndAwait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -37,13 +38,13 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'local:provider-test@example.com', NULL, 'provider-test')
+            VALUES ('00000000-0000-0000-0000-000000000430', 'USER', 'local:provider-test@example.com', NULL, 'provider-test')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Provider Test Workspace', 'ACTIVE', NULL)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Provider Test Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         connections = R2dbcSocialConnectionRepository(databaseClient)
@@ -55,8 +56,8 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
     fun `upserts Threads connection and account without secrets in read models`() = runTest {
         val connection = connections.upsert(
             SocialConnection(
-                id = "soconn-threads",
-                workspaceId = "workspace-1",
+                id = "00000000-0000-0000-0000-00000000049c",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.THREADS,
                 providerConnectionRef = "threads-profile-1",
                 status = SocialConnectionStatus.ACTIVE,
@@ -65,9 +66,9 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
         )
         val account = accounts.upsert(
             SocialAccount(
-                id = "soacc-threads",
+                id = "00000000-0000-0000-0000-000000000492",
                 socialConnectionId = connection.id,
-                workspaceId = "workspace-1",
+                workspaceId = "00000000-0000-0000-0000-00000000049d",
                 provider = SocialProvider.THREADS,
                 providerAccountId = "threads-profile-1",
                 kind = SocialAccountKind.PERSONAL_PROFILE,
@@ -76,15 +77,15 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
             ),
         )
 
-        val loadedConnection = connections.findByWorkspaceAndId("workspace-1", connection.id)
-        val loadedAccount = accounts.findByWorkspaceAndId("workspace-1", account.id)
+        val loadedConnection = connections.findByWorkspaceAndId("00000000-0000-0000-0000-00000000049d", connection.id)
+        val loadedAccount = accounts.findByWorkspaceAndId("00000000-0000-0000-0000-00000000049d", account.id)
 
         assertEquals(SocialProvider.THREADS, loadedConnection?.provider)
         assertEquals("credential-reference-only", loadedConnection?.credentialReference)
         assertEquals(SocialProvider.THREADS, loadedAccount?.provider)
         assertEquals("threads-profile-1", loadedAccount?.providerAccountId)
         assertNull(loadedAccount?.avatarUrl)
-        val readModel = channelReads.listByWorkspace("workspace-1").single()
+        val readModel = channelReads.listByWorkspace("00000000-0000-0000-0000-00000000049d").single()
         assertEquals(SocialProvider.THREADS, readModel.provider)
         assertEquals("Threads profile", readModel.displayName)
         assertNotNull(loadedConnection)
@@ -93,19 +94,26 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
 
     @Test
     fun `disconnect deletes account owned content and preserves other connections and workspaces`() = runTest {
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-2', 'Other', 'ACTIVE')")
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status)
+            VALUES ('00000000-0000-0000-0000-00000000049e', 'Other', 'ACTIVE')
+            """.trimIndent(),
+        )
             .fetch().rowsUpdated().awaitSingle()
-        seedContent("removed-1", "removed", "workspace-1")
-        seedContent("removed-2", "removed", "workspace-1")
-        seedContent("retained", "retained", "workspace-1")
-        seedContent("other-workspace", "other-workspace", "workspace-2")
+        seedContent("removed-1", "removed", "00000000-0000-0000-0000-00000000049d")
+        seedContent("removed-2", "removed", "00000000-0000-0000-0000-00000000049d")
+        seedContent("retained", "retained", "00000000-0000-0000-0000-00000000049d")
+        seedContent("other-workspace", "other-workspace", "00000000-0000-0000-0000-00000000049e")
 
         transactionalOperator.executeAndAwait {
-            accounts.deleteByConnectionId("removed")
-            connections.deleteByWorkspaceAndId("workspace-1", "removed")
+            accounts.deleteByConnectionId(contentId("removed").toString())
+            connections.deleteByWorkspaceAndId("00000000-0000-0000-0000-00000000049d", contentId("removed").toString())
         }
 
-        assertNull(connections.findByWorkspaceAndId("workspace-1", "removed"))
+        assertNull(
+            connections.findByWorkspaceAndId("00000000-0000-0000-0000-00000000049d", contentId("removed").toString()),
+        )
         listOf(
             "social_accounts",
             "social_content_posts",
@@ -116,16 +124,17 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
             "social_content_reply_commands",
         ).forEach { table ->
             val ids = databaseClient.sql("SELECT id FROM $table ORDER BY id")
-                .map { row, _ -> requireNotNull(row.get("id", String::class.java)) }
+                .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)) }
                 .all().collectList().awaitSingle()
-            assertEquals(listOf("other-workspace", "retained"), ids, table)
+            assertEquals(setOf(contentId("other-workspace"), contentId("retained")), ids.toSet(), table)
+            assertEquals(2, ids.size, table)
         }
     }
 
     private suspend fun seedAccount(id: String, connectionId: String, workspaceId: String) {
         connections.upsert(
             SocialConnection(
-                id = connectionId,
+                id = contentId(connectionId).toString(),
                 workspaceId = workspaceId,
                 provider = SocialProvider.THREADS,
                 providerConnectionRef = connectionId,
@@ -134,8 +143,8 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
         )
         accounts.upsert(
             SocialAccount(
-                id = id,
-                socialConnectionId = connectionId,
+                id = contentId(id).toString(),
+                socialConnectionId = contentId(connectionId).toString(),
                 workspaceId = workspaceId,
                 provider = SocialProvider.THREADS,
                 providerAccountId = id,
@@ -159,14 +168,14 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
             INSERT INTO social_content_posts
                 (id, workspace_id, social_account_id, provider, external_post_id, published_at,
                  origin, lifecycle, expires_at)
-            VALUES (:id, :workspaceId, :id, 'THREADS', :id, CURRENT_TIMESTAMP,
+            VALUES (:id, :workspaceId, :id, 'THREADS', :externalId, CURRENT_TIMESTAMP,
                     'IMPORTED', 'PUBLISHED', CURRENT_TIMESTAMP + INTERVAL '1 hour')
             """,
             """
             INSERT INTO social_content_comments
                 (id, workspace_id, post_id, provider, external_comment_id, actor_external_id,
                  created_at, state, expires_at)
-            VALUES (:id, :workspaceId, :id, 'THREADS', :id, :id,
+            VALUES (:id, :workspaceId, :id, 'THREADS', :externalId, :externalId,
                     CURRENT_TIMESTAMP, 'VISIBLE', CURRENT_TIMESTAMP + INTERVAL '1 hour')
             """,
             """
@@ -176,18 +185,25 @@ class ProviderAwareConnectionRepositoryPostgresTest : PostgresDatabaseTestBase()
             """
             INSERT INTO social_content_webhook_events
                 (id, workspace_id, provider_event_id, social_account_id, received_at, payload_cache_key)
-            VALUES (:id, :workspaceId, :id, :id, CURRENT_TIMESTAMP, :id)
+            VALUES (:id, :workspaceId, :externalId, :id, CURRENT_TIMESTAMP, :externalId)
             """,
             """
             INSERT INTO social_content_reply_commands
                 (id, workspace_id, social_account_id, parent_external_comment_id, idempotency_key, body, status)
-            VALUES (:id, :workspaceId, :id, :id, :id, 'Reply', 'PENDING')
+            VALUES (:id, :workspaceId, :id, :externalId, :externalId, 'Reply', 'PENDING')
             """,
         ).forEach { sql ->
-            databaseClient.sql(sql.trimIndent()).bind("id", id).bind("workspaceId", workspaceId)
-                .fetch().rowsUpdated().awaitSingle()
+            var statement = databaseClient.sql(sql.trimIndent())
+                .bind("id", contentId(id))
+                .bind("workspaceId", UUID.fromString(workspaceId))
+            if (sql.contains(":externalId")) {
+                statement = statement.bind("externalId", id)
+            }
+            statement.fetch().rowsUpdated().awaitSingle()
         }
     }
+
+    private fun contentId(key: String): UUID = UUID.nameUUIDFromBytes(key.toByteArray(Charsets.UTF_8))
 
     companion object {
         @Container

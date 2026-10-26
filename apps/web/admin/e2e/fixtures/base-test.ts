@@ -21,7 +21,9 @@ export async function setupOwnerSession(
   })
   await loginAs(page, OWNER_PRINCIPAL.email)
   await page.goto('/waitlist')
-  await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+  await expect(
+    page.getByRole('main').getByRole('heading', { name: heading, level: 1 }),
+  ).toBeVisible()
   return { state }
 }
 

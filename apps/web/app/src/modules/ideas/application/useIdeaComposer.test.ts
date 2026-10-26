@@ -5,8 +5,8 @@ import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 
 function makeIdea(overrides: Partial<Idea> = {}): Idea {
   return {
-    id: 'idea-1',
-    workspaceId: 'ws-1',
+    id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     title: 'Original title',
     notes: 'Some notes',
     tags: ['kotlin', 'testing'],
@@ -264,7 +264,10 @@ describe('useIdeaComposer', () => {
     composer.columnId.value = 'done'
     composer.title.value = 'Original title'
     await composer.save()
-    expect(updateIdea).toHaveBeenCalledWith('idea-1', expect.objectContaining({ columnId: 'done' }))
+    expect(updateIdea).toHaveBeenCalledWith(
+      '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+      expect.objectContaining({ columnId: 'done' }),
+    )
   })
 
   it('reset restores initial draft', () => {

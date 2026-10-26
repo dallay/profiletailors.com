@@ -26,9 +26,9 @@ const { reportTakedown, approveTakedown, rejectTakedown, listTakedownReports } =
 // ---------------------------------------------------------------------------
 
 const defaultReport: TakedownReportResponse = {
-  reportId: 'rpt-1',
-  workspaceId: 'ws-1',
-  assetId: 'ast-1',
+  reportId: '68f1061d-8371-5dd2-91ec-672c02a62e4a',
+  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+  assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
   reporterEmail: 'reporter@example.com',
   reason: 'Copyright infringement',
   status: 'REPORTED',
@@ -53,7 +53,7 @@ describe('governance-api', () => {
       mockApiFetch.mockResolvedValue(defaultReport)
 
       const result = await reportTakedown({
-        assetId: 'ast-1',
+        assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
         reason: 'Copyright infringement',
       })
 
@@ -68,7 +68,7 @@ describe('governance-api', () => {
       mockApiFetch.mockResolvedValue(defaultReport)
 
       await reportTakedown({
-        assetId: 'ast-1',
+        assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
         reason: 'Copyright infringement',
         mediaReferenceUrl: 'https://example.com/original',
       })
@@ -76,7 +76,7 @@ describe('governance-api', () => {
       expect(mockApiFetch).toHaveBeenCalledTimes(1)
       const body = JSON.parse(mockApiFetch.mock.calls[0]![1]!.body as string)
       expect(body).toMatchObject({
-        assetId: 'ast-1',
+        assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
         reason: 'Copyright infringement',
         mediaReferenceUrl: 'https://example.com/original',
       })
@@ -88,7 +88,7 @@ describe('governance-api', () => {
       mockApiFetch.mockResolvedValue(defaultReport)
 
       await reportTakedown({
-        assetId: 'ast-1',
+        assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d',
         reason: 'Copyright issue',
         mediaReferenceUrl: '',
       })
@@ -102,7 +102,9 @@ describe('governance-api', () => {
     it('throws 401 error when not authenticated', async () => {
       mockAuthState.isAuthenticated = false
 
-      await expect(reportTakedown({ assetId: 'ast-1', reason: 'Whatever' })).rejects.toMatchObject({
+      await expect(
+        reportTakedown({ assetId: '3418af10-5c90-5f8e-b0e5-95cb97592c2d', reason: 'Whatever' }),
+      ).rejects.toMatchObject({
         status: 401,
       })
 
@@ -118,10 +120,10 @@ describe('governance-api', () => {
       const approved = { ...defaultReport, status: 'APPROVED' as const }
       mockApiFetch.mockResolvedValue(approved)
 
-      const result = await approveTakedown('rpt-1')
+      const result = await approveTakedown('68f1061d-8371-5dd2-91ec-672c02a62e4a')
 
       expect(mockApiFetch).toHaveBeenCalledWith(
-        '/api/governance/takedown/reports/rpt-1/approve',
+        '/api/governance/takedown/reports/68f1061d-8371-5dd2-91ec-672c02a62e4a/approve',
         expect.objectContaining({ method: 'POST', workspaceScoped: true }),
       )
       expect(result).toEqual(approved)
@@ -141,7 +143,9 @@ describe('governance-api', () => {
     it('throws 401 error when not authenticated', async () => {
       mockAuthState.isAuthenticated = false
 
-      await expect(approveTakedown('rpt-1')).rejects.toMatchObject({ status: 401 })
+      await expect(approveTakedown('68f1061d-8371-5dd2-91ec-672c02a62e4a')).rejects.toMatchObject({
+        status: 401,
+      })
       expect(mockApiFetch).not.toHaveBeenCalled()
     })
   })
@@ -158,10 +162,12 @@ describe('governance-api', () => {
       }
       mockApiFetch.mockResolvedValue(dismissed)
 
-      const result = await rejectTakedown('rpt-1', { rejectionReason: 'Not valid' })
+      const result = await rejectTakedown('68f1061d-8371-5dd2-91ec-672c02a62e4a', {
+        rejectionReason: 'Not valid',
+      })
 
       expect(mockApiFetch).toHaveBeenCalledWith(
-        '/api/governance/takedown/reports/rpt-1/reject',
+        '/api/governance/takedown/reports/68f1061d-8371-5dd2-91ec-672c02a62e4a/reject',
         expect.objectContaining({ method: 'POST', workspaceScoped: true }),
       )
       expect(mockApiFetch).toHaveBeenCalledTimes(1)
@@ -173,7 +179,9 @@ describe('governance-api', () => {
     it('throws 401 error when not authenticated', async () => {
       mockAuthState.isAuthenticated = false
 
-      await expect(rejectTakedown('rpt-1', { rejectionReason: 'No' })).rejects.toMatchObject({
+      await expect(
+        rejectTakedown('68f1061d-8371-5dd2-91ec-672c02a62e4a', { rejectionReason: 'No' }),
+      ).rejects.toMatchObject({
         status: 401,
       })
       expect(mockApiFetch).not.toHaveBeenCalled()

@@ -57,16 +57,16 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
                 .bind("source", invitation.source.name)
                 .bindNullableString("sourceReferenceId", invitation.sourceReferenceId)
                 .bind("target", invitation.target.name)
-                .bindNullableString("workspaceId", invitation.workspaceId)
+                .bindNullableUuid("workspaceId", invitation.workspaceId)
                 .bind("invitedEmailNormalized", invitation.invitedEmailNormalized)
                 .bind(CANDIDATE_KEY_PARAMETER, candidateKey)
                 .bind("tokenHash", invitation.tokenHash)
                 .bind("status", invitation.status.name)
-                .bind("issuedBy", invitation.issuedBy)
+                .bind("issuedBy", UUID.fromString(invitation.issuedBy))
                 .bind("createdAt", OffsetDateTime.ofInstant(invitation.createdAt, ZoneOffset.UTC))
                 .bind("expiresAt", OffsetDateTime.ofInstant(invitation.expiresAt, ZoneOffset.UTC))
                 .bindNullableInstant("acceptedAt", invitation.acceptedAt)
-                .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
+                .bindNullableUuid("acceptedPrincipalId", invitation.acceptedPrincipalId)
                 .bind("version", invitation.version)
                 .then()
                 .awaitSingleOrNull()
@@ -84,7 +84,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
     override suspend fun hasActiveInvitationFor(email: String, workspaceId: String, asOf: Instant): Boolean =
         databaseClient.sql(HAS_ACTIVE_INVITATION_FOR)
             .bind("email", email)
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("asOf", OffsetDateTime.ofInstant(asOf, ZoneOffset.UTC))
             .map { _, _ -> true }
             .one()
@@ -98,8 +98,8 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .bindNullableString("candidateKey", candidateKey)
             .bind("tokenHash", invitation.tokenHash)
             .bindNullableInstant("acceptedAt", invitation.acceptedAt)
-            .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
-            .bindNullableString("workspaceId", invitation.workspaceId)
+            .bindNullableUuid("acceptedPrincipalId", invitation.acceptedPrincipalId)
+            .bindNullableUuid("workspaceId", invitation.workspaceId)
             .bind("version", invitation.version)
             .bind("id", invitation.id.value)
             .bind("expectedVersion", expectedVersion)
@@ -108,6 +108,12 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .awaitSingle()
         return rowsUpdated == 1L
     }
+
+    private fun DatabaseClient.GenericExecuteSpec.bindNullableUuid(
+        name: String,
+        value: String?,
+    ): DatabaseClient.GenericExecuteSpec =
+        if (value == null) bindNull(name, UUID::class.java) else bind(name, UUID.fromString(value))
 
     private fun Readable.toInvitation(): Invitation = Invitation(
         id = InvitationId(requireNotNull(get("id", UUID::class.java))),

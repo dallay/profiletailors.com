@@ -135,7 +135,7 @@ class ScheduleBulkHandler(
         idempotency: BulkIdempotency,
         totalRows: Int,
     ): BulkImportJob = BulkImportJob(
-        id = "bulk-${UUID.randomUUID()}",
+        id = UUID.randomUUID().toString(),
         workspaceId = access.workspaceId,
         principalId = access.principalId,
         idempotencyKey = idempotency.idempotencyKey,
@@ -230,7 +230,7 @@ class ScheduleBulkHandler(
     }
 
     private fun mapInvalidRow(validated: BulkRowValidation, jobId: String): BulkImportRow = BulkImportRow(
-        id = "brow-${UUID.randomUUID()}",
+        id = UUID.randomUUID().toString(),
         jobId = jobId,
         rowIndex = validated.rowIndex,
         status = BulkRowStatus.FAILED,
@@ -253,7 +253,7 @@ class ScheduleBulkHandler(
 
     private fun mapScheduledRow(validated: BulkRowValidation, jobId: String, publicationId: String): BulkImportRow =
         BulkImportRow(
-            id = "brow-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             jobId = jobId,
             rowIndex = validated.rowIndex,
             status = BulkRowStatus.SCHEDULED,
@@ -277,7 +277,7 @@ class ScheduleBulkHandler(
 
     private fun mapFailedRow(validated: BulkRowValidation, jobId: String, importError: ImportError): BulkImportRow =
         BulkImportRow(
-            id = "brow-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             jobId = jobId,
             rowIndex = validated.rowIndex,
             status = BulkRowStatus.FAILED,

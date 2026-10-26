@@ -99,7 +99,7 @@ class CreateRecurringScheduleHandler(
         val occurrences = rule.occurrences(start, until)
         require(occurrences.isNotEmpty()) { "The recurrence rule produces no occurrences." }
         val schedule = RecurringSchedule(
-            id = "recur-${UUID.randomUUID()}", workspaceId = workspaceId, createdBy = principal.principalId,
+            id = UUID.randomUUID().toString(), workspaceId = workspaceId, createdBy = principal.principalId,
             templatePostId = source.id, recurrenceRule = rule, timezone = zone.id,
             nextScheduledAt = occurrences.first().toInstant(), status = RecurringScheduleStatus.ACTIVE,
             createdAt = now, updatedAt = now,
@@ -109,7 +109,7 @@ class CreateRecurringScheduleHandler(
             occurrences.map { occurrence ->
                 val publication = PublicationLifecyclePolicy.queue(
                     PublicationDraft(
-                        id = "pub-${UUID.randomUUID()}", workspaceId = workspaceId,
+                        id = UUID.randomUUID().toString(), workspaceId = workspaceId,
                         authorPrincipalId = principal.principalId, provider = source.provider,
                         socialAccountId = source.socialAccountId, status = PublicationStatus.DRAFT,
                         scheduleMode = ScheduleMode.SCHEDULED_AT, priority = source.priority,

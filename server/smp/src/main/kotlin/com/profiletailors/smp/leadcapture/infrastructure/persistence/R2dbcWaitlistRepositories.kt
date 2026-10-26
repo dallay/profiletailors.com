@@ -26,6 +26,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Repository
 class R2dbcWaitlistRepository(private val databaseClient: DatabaseClient) : WaitlistRepository {
@@ -141,7 +142,7 @@ class R2dbcWaitlistEntryRepository(
             WHERE waitlist_id = :waitlistId AND normalized_email = :normalizedEmail
             """.trimIndent(),
         )
-            .bind("waitlistId", waitlistId.value)
+            .bind("waitlistId", UUID.fromString(waitlistId.value))
             .bind("normalizedEmail", email.value)
             .map { row, _ -> row.toWaitlistEntry() }
             .one()
@@ -179,8 +180,8 @@ class R2dbcWaitlistEntryRepository(
     private fun DatabaseClient.GenericExecuteSpec.bindEntry(
         entry: WaitlistEntry,
         withdrawalToken: WithdrawalToken?,
-    ): DatabaseClient.GenericExecuteSpec = bind("id", entry.id.value)
-        .bind("waitlistId", entry.waitlistId.value)
+    ): DatabaseClient.GenericExecuteSpec = bind("id", UUID.fromString(entry.id.value))
+        .bind("waitlistId", UUID.fromString(entry.waitlistId.value))
         .bind("emailOriginal", entry.email.value)
         .bind("normalizedEmail", entry.normalizedEmail.value)
         .bind("source", entry.source.value)

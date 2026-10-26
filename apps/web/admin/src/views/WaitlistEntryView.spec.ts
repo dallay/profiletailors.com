@@ -21,7 +21,7 @@ const mockEntry = {
   version: 3,
   invitationHistory: [
     {
-      id: 'inv-1',
+      id: '12865a82-4941-50b1-ac48-0704d2344044',
       status: 'ACTIVE',
       issuedAt: '2024-01-02T00:00:00Z',
       expiresAt: '2024-01-09T00:00:00Z',
@@ -186,7 +186,7 @@ describe('WaitlistEntryView', () => {
             ...mockEntry,
             invitationHistory: [
               {
-                id: 'inv-1',
+                id: '12865a82-4941-50b1-ac48-0704d2344044',
                 status: 'USED',
                 issuedAt: '2024-01-02T00:00:00Z',
                 expiresAt: '2024-01-09T00:00:00Z',

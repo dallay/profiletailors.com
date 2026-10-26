@@ -121,8 +121,8 @@ describe('SettingsView channel connection CTA', () => {
     const publishing = usePublishingStore()
     publishing.channels = [
       {
-        id: 'linkedin-1',
-        accountId: 'linkedin-1',
+        id: '855a8f00-b75e-5c77-a3c7-2759b1386155',
+        accountId: '855a8f00-b75e-5c77-a3c7-2759b1386155',
         name: 'Profile Tailors',
         provider: 'linkedin',
         avatar: '',
@@ -145,8 +145,8 @@ describe('SettingsView channel connection CTA', () => {
     const publishing = usePublishingStore()
     publishing.channels = [
       {
-        id: 'mastodon-1',
-        accountId: 'mastodon-1',
+        id: '70d60acd-fa3e-5f4d-9342-0bde95d78901',
+        accountId: '70d60acd-fa3e-5f4d-9342-0bde95d78901',
         name: 'Mastodon account',
         provider: 'mastodon' as never,
         avatar: '',
@@ -169,8 +169,8 @@ describe('SettingsView channel connection CTA', () => {
     const publishing = usePublishingStore()
     publishing.channels = [
       {
-        id: 'linkedin-2',
-        accountId: 'linkedin-2',
+        id: '1671f342-232c-5163-9780-e3f4f14ad525',
+        accountId: '1671f342-232c-5163-9780-e3f4f14ad525',
         name: 'Profile Tailors',
         provider: 'linkedin',
         avatar: '',
@@ -223,9 +223,12 @@ describe('SettingsView channel connection CTA', () => {
     vi.useFakeTimers()
     try {
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
       workspace.setWorkspaceName('Current name')
-      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+      renameWorkspaceMock.mockResolvedValue({
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+        name: 'Studio PT',
+      })
 
       const wrapper = mountSettings()
       await flushPromises()
@@ -255,9 +258,12 @@ describe('SettingsView channel connection CTA', () => {
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
     try {
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setActiveWorkspaceId('820c22d8-9ce7-5e76-867f-04bac4e53b59')
       workspace.setWorkspaceName('Current name')
-      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+      renameWorkspaceMock.mockResolvedValue({
+        workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+        name: 'Studio PT',
+      })
 
       const wrapper = mountSettings()
       await flushPromises()

@@ -136,10 +136,10 @@ describe('AcceptInvitationView', () => {
 
   it('announces redirection with a native output element after acceptance', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -164,10 +164,10 @@ describe('AcceptInvitationView', () => {
 
   it('submits the token from props and exposes the resolved workspace id', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -183,15 +183,15 @@ describe('AcceptInvitationView', () => {
     await flushPromises()
 
     expect(accept).toHaveBeenCalledWith('raw-token', null)
-    expect(state.workspaceId).toBe('ws-abc')
+    expect(state.workspaceId).toBe('ef541e38-d4a8-5714-9348-8bb19f5055db')
   })
 
   it('hydrates the auth session and redirects to dashboard after successful acceptance', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -216,10 +216,10 @@ describe('AcceptInvitationView', () => {
 
   it('redirects to login when the session was not established by the cookie', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,
@@ -337,10 +337,10 @@ describe('AcceptInvitationView', () => {
 
   it('never renders or echoes the raw token in DOM attributes or visible text', async () => {
     accept.mockImplementation(async () => {
-      state.workspaceId = 'ws-abc'
+      state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
       return {
-        workspaceId: 'ws-abc',
+        workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
         membershipStatus: 'ACTIVE',
         errorCode: null,
         errorStatus: null,

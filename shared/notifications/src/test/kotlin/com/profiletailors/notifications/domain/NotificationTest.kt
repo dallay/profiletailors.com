@@ -1,9 +1,13 @@
 package com.profiletailors.notifications.domain
 
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 internal class NotificationTest {
@@ -55,17 +59,41 @@ internal class NotificationTest {
     }
 
     @Test
-    fun `NotificationId rejects blank values`() {
-        assertFailsWith<IllegalArgumentException> { NotificationId("") }
-        assertFailsWith<IllegalArgumentException> { NotificationId("   ") }
+    fun `NotificationId preserves canonical UUID values`() {
+        val value = "01234567-89ab-cdef-0123-456789abcdef"
+        assertEquals(value, NotificationId(value).value)
     }
 
     @Test
-    fun `NotificationId generate produces a non-blank unique value`() {
+    fun `NotificationId generates canonical UUID values without a prefix`() {
+        val value = NotificationId.generate().value
+        assertEquals(UUID.fromString(value).toString(), value)
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "",
+            "   ",
+            "ntf-01234567-89ab-cdef-0123-456789abcdef",
+            "not-a-uuid",
+            "1-1-1-1-1",
+            "0123456789abcdef0123456789abcdef",
+            "01234567-89AB-CDEF-0123-456789ABCDEF",
+            " 01234567-89ab-cdef-0123-456789abcdef",
+            "01234567-89ab-cdef-0123-456789abcdef ",
+            "01234567-89ab-cdef-0123-456789abcdeg",
+        ],
+    )
+    fun `NotificationId rejects noncanonical UUID values`(value: String) {
+        assertFailsWith<IllegalArgumentException> { NotificationId(value) }
+    }
+
+    @Test
+    fun `NotificationId generate produces unique values`() {
         val first = NotificationId.generate().value
         val second = NotificationId.generate().value
-        assert(first.startsWith("ntf-"))
-        assert(first != second)
+        assertNotEquals(first, second)
     }
 
     @Test

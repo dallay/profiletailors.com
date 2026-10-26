@@ -314,7 +314,7 @@ describe('BulkImportModal', () => {
   it('handleSchedule emits scheduled on success', async () => {
     mockValidateResult.value = { rows: [] }
     mockHasValidationErrors.value = false
-    mockSchedule.mockResolvedValueOnce({ jobId: 'job-123' })
+    mockSchedule.mockResolvedValueOnce({ jobId: '5fdada22-df0f-5d4d-8ec2-5cce159542db' })
     const wrapper = mountModal()
     const textarea = document.body.querySelector(
       '[data-testid="bulk-csv-textarea"]',
@@ -331,7 +331,7 @@ describe('BulkImportModal', () => {
     await wrapper.vm.$nextTick()
     await new Promise((r) => setTimeout(r, 0))
     expect(mockSchedule).toHaveBeenCalledWith('csv content')
-    expect(wrapper.emitted('scheduled')?.[0]).toEqual(['job-123'])
+    expect(wrapper.emitted('scheduled')?.[0]).toEqual(['5fdada22-df0f-5d4d-8ec2-5cce159542db'])
     wrapper.unmount()
   })
 
@@ -380,12 +380,16 @@ describe('BulkImportModal', () => {
   })
 
   it('displays schedule result when scheduleResult present', async () => {
-    mockScheduleResult.value = { jobId: 'job-xyz', scheduledCount: 2, totalRows: 3 }
+    mockScheduleResult.value = {
+      jobId: 'c9c28770-2814-5595-b14e-78129c7c6788',
+      scheduledCount: 2,
+      totalRows: 3,
+    }
     const wrapper = mountModal()
     await wrapper.vm.$nextTick()
     expect(
       document.body.querySelector('[data-testid="bulk-schedule-result"]')?.textContent,
-    ).toContain('job-xyz')
+    ).toContain('c9c28770-2814-5595-b14e-78129c7c6788')
     wrapper.unmount()
   })
 
@@ -399,7 +403,7 @@ describe('BulkImportModal', () => {
 
   it('watch clears validateResult scheduleResult and error when csvText changes', async () => {
     mockValidateResult.value = { rows: [] }
-    mockScheduleResult.value = { jobId: 'j1' } as never
+    mockScheduleResult.value = { jobId: 'ba279f93-83d1-581c-b974-255cd9cd286f' } as never
     mockError.value = 'err'
     const wrapper = mountModal()
     const textarea = document.body.querySelector(

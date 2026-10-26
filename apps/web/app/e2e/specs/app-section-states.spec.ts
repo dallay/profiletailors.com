@@ -127,9 +127,9 @@ test.describe('App section states @frontend', () => {
             : {
                 json: [
                   {
-                    reportId: 'report-1',
-                    workspaceId: 'workspace-001',
-                    assetId: 'asset-1',
+                    reportId: '17e8782b-5668-5483-a319-82b4ad37c145',
+                    workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+                    assetId: '8bdec504-2ed1-59e4-8a4a-c068789d03d2',
                     reporterEmail: 'reporter@example.com',
                     reason: 'Copyright infringement',
                     status: 'REPORTED',

@@ -29,7 +29,7 @@ internal class NotificationsSchemaInitializer(private val databaseClient: Databa
     companion object {
         private const val CREATE_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS notifications (
-                id VARCHAR(255) PRIMARY KEY,
+                id UUID PRIMARY KEY,
                 idempotency_key VARCHAR(500) UNIQUE NOT NULL,
                 channel VARCHAR(50) NOT NULL,
                 recipient VARCHAR(500) NOT NULL,

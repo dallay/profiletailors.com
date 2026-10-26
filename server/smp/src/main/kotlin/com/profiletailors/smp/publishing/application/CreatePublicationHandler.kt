@@ -100,7 +100,7 @@ internal class CreatePublicationHandler(
 
         val now = clock.instant()
         val draft = PublicationDraft(
-            id = "pub-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             authorPrincipalId = principalCtx.principalId,
             provider = socialAccount.provider,

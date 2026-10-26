@@ -300,7 +300,7 @@ export class MockPublicationPostProvider implements IMockPublicationPostProvider
   }
 }
 
-const MOCK_WORKSPACE_ID = 'workspace-001'
+const MOCK_WORKSPACE_ID = '6325c45c-5fdd-5be5-84c2-54f866dfd70e'
 
 function contentType(headers: Record<string, string> = {}): Record<string, string> {
   return { 'content-type': 'application/vnd.api.v1+json', ...headers }
@@ -397,7 +397,7 @@ export class MediaRouteState {
   }
 
   seedAsset(input: Partial<MockMediaAsset> = {}): MockMediaAsset {
-    const assetId = input.assetId ?? `asset-${this.assets.length + 1}-${Date.now()}`
+    const assetId = input.assetId ?? crypto.randomUUID()
     const asset: MockMediaAsset = {
       assetId,
       workspaceId: input.workspaceId ?? MOCK_WORKSPACE_ID,
@@ -693,8 +693,8 @@ export function defaultChannelsPayload(maxAttachments: number | null) {
   return {
     channels: [
       {
-        id: 'sa-linkedin-001',
-        accountId: 'sa-linkedin-001',
+        id: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+        accountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
         workspaceId: MOCK_WORKSPACE_ID,
         name: 'Dev User',
         provider: 'linkedin',
@@ -795,7 +795,6 @@ export async function registerMediaMocks(
       }
 
       const asset = state.seedAsset({
-        assetId: `unsplash-${externalId}`,
         sourceType: 'EXTERNAL',
         mediaType: 'image/jpeg',
         originalFilename: `${externalId}.jpg`,
@@ -889,10 +888,12 @@ export async function registerMediaMocks(
     await route.fulfill(
       json(201, {
         status: 'ALL_CREATED',
-        results: targets.map((target, index) => ({
+        results: targets.map((target) => ({
           socialAccountId:
-            typeof target.socialAccountId === 'string' ? target.socialAccountId : 'sa-linkedin-001',
-          publicationId: `mock-publication-${Date.now()}-${index}`,
+            typeof target.socialAccountId === 'string'
+              ? target.socialAccountId
+              : 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+          publicationId: crypto.randomUUID(),
           groupId: null,
           status: 'CREATED',
           errorCode: null,
@@ -922,11 +923,12 @@ export async function registerMediaMocks(
       return
     }
     const body = parsePostData(request)
+    const publicationId = crypto.randomUUID()
     const publication = {
-      id: `mock-publication-${Date.now()}`,
-      publicationId: `mock-publication-${Date.now()}`,
+      id: publicationId,
+      publicationId,
       workspaceId: body?.workspaceId ?? MOCK_WORKSPACE_ID,
-      socialAccountId: body?.socialAccountId ?? 'sa-linkedin-001',
+      socialAccountId: body?.socialAccountId ?? 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
       provider: body?.provider ?? 'linkedin',
       status: 'QUEUED',
       scheduleMode: body?.scheduleMode ?? 'NOW',
@@ -1027,8 +1029,8 @@ export async function applySeededChannelsToStore(
   maxAttachments: number | null = null,
 ): Promise<void> {
   const channel: SeededPublishingChannel = {
-    id: 'sa-linkedin-001',
-    accountId: 'sa-linkedin-001',
+    id: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
+    accountId: 'fa6f01a4-0c74-553d-a3b4-49ab3bed24ed',
     name: 'Dev User',
     provider: 'linkedin',
     avatar: '',

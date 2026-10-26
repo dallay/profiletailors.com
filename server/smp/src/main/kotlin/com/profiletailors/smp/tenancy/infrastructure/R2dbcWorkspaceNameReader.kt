@@ -4,6 +4,7 @@ import com.profiletailors.smp.tenancy.application.WorkspaceNameReader
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 internal class R2dbcWorkspaceNameReader(private val databaseClient: DatabaseClient) : WorkspaceNameReader {
@@ -15,7 +16,7 @@ internal class R2dbcWorkspaceNameReader(private val databaseClient: DatabaseClie
               AND status = 'ACTIVE'
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .map { row, _ -> requireNotNull(row.get("name", String::class.java)) }
         .one()
         .awaitSingleOrNull()

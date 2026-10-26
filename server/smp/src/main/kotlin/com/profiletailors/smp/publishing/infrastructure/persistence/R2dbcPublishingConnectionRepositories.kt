@@ -17,6 +17,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient) : SocialConnectionRepository {
@@ -51,8 +52,8 @@ class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient
             WHERE workspace_id = :workspaceId AND id = :id
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("id", connectionId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("id", UUID.fromString(connectionId))
             .map { row, _ -> row.toSocialConnection() }
             .one()
             .awaitSingleOrNull()
@@ -61,8 +62,8 @@ class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient
         databaseClient.sql(
             "DELETE FROM social_connections WHERE workspace_id = :workspaceId AND id = :id",
         )
-            .bind("workspaceId", workspaceId)
-            .bind("id", connectionId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("id", UUID.fromString(connectionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -115,8 +116,8 @@ class R2dbcSocialAccountRepository(
             WHERE workspace_id = :workspaceId AND id = :id
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("id", accountId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("id", UUID.fromString(accountId))
             .map { row, _ -> row.toSocialAccount() }
             .one()
             .awaitSingleOrNull()
@@ -131,7 +132,7 @@ class R2dbcSocialAccountRepository(
         LIMIT 1
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .map { row, _ -> row.toSocialAccount() }
         .one()
         .awaitSingleOrNull()
@@ -145,7 +146,7 @@ class R2dbcSocialAccountRepository(
         ORDER BY sa.created_at ASC
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
         .map { row, _ -> row.toSocialAccount() }
         .all()
         .collectList()
@@ -164,7 +165,7 @@ class R2dbcSocialAccountRepository(
             )
             """.trimIndent(),
         )
-            .bind("connectionId", connectionId)
+            .bind("connectionId", UUID.fromString(connectionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -183,14 +184,14 @@ class R2dbcSocialAccountRepository(
                 )
                 """.trimIndent(),
             )
-                .bind("connectionId", connectionId)
+                .bind("connectionId", UUID.fromString(connectionId))
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
         }
         // Workspace payload caches retain their existing TTL; they have no account FK.
         databaseClient.sql("DELETE FROM social_accounts WHERE social_connection_id = :connectionId")
-            .bind("connectionId", connectionId)
+            .bind("connectionId", UUID.fromString(connectionId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -229,14 +230,14 @@ class R2dbcConnectedSocialChannelReadRepository(private val databaseClient: Data
               AND c.status IN ($placeholders)
             ORDER BY c.connected_at DESC NULLS LAST, a.created_at DESC
             """.trimIndent(),
-        ).bind("workspaceId", workspaceId)
+        ).bind("workspaceId", UUID.fromString(workspaceId))
         effectiveStatuses.forEachIndexed { index, status ->
             spec = spec.bind("status$index", status.name)
         }
         return spec.map { row, _ ->
             ConnectedSocialChannel(
-                socialAccountId = requireNotNull(row.get("social_account_id", String::class.java)),
-                connectionId = requireNotNull(row.get("connection_id", String::class.java)),
+                socialAccountId = requireNotNull(row.get("social_account_id", UUID::class.java)).toString(),
+                connectionId = requireNotNull(row.get("connection_id", UUID::class.java)).toString(),
                 provider = SocialProvider.valueOf(requireNotNull(row.get("provider", String::class.java))),
                 accountKind = SocialAccountKind.valueOf(requireNotNull(row.get("account_type", String::class.java))),
                 displayName = requireNotNull(row.get("display_name", String::class.java)),
@@ -254,8 +255,8 @@ class R2dbcConnectedSocialChannelReadRepository(private val databaseClient: Data
 }
 
 private fun Readable.toSocialConnection(): SocialConnection = SocialConnection(
-    id = requireNotNull(get("id", String::class.java)),
-    workspaceId = requireNotNull(get("workspace_id", String::class.java)),
+    id = requireNotNull(get("id", UUID::class.java)).toString(),
+    workspaceId = requireNotNull(get("workspace_id", UUID::class.java)).toString(),
     provider = SocialProvider.valueOf(requireNotNull(get("provider", String::class.java))),
     providerConnectionRef = requireNotNull(get("provider_connection_ref", String::class.java)),
     status = SocialConnectionStatus.valueOf(requireNotNull(get("status", String::class.java))),
@@ -266,9 +267,9 @@ private fun Readable.toSocialConnection(): SocialConnection = SocialConnection(
 )
 
 private fun Readable.toSocialAccount(): SocialAccount = SocialAccount(
-    id = requireNotNull(get("id", String::class.java)),
-    socialConnectionId = requireNotNull(get("social_connection_id", String::class.java)),
-    workspaceId = requireNotNull(get("workspace_id", String::class.java)),
+    id = requireNotNull(get("id", UUID::class.java)).toString(),
+    socialConnectionId = requireNotNull(get("social_connection_id", UUID::class.java)).toString(),
+    workspaceId = requireNotNull(get("workspace_id", UUID::class.java)).toString(),
     provider = SocialProvider.valueOf(requireNotNull(get("provider", String::class.java))),
     providerAccountId = requireNotNull(get("provider_account_id", String::class.java)),
     kind = SocialAccountKind.valueOf(requireNotNull(get("account_type", String::class.java))),
@@ -282,8 +283,8 @@ private fun Readable.toSocialAccount(): SocialAccount = SocialAccount(
 private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindSocialConnection(
     connection: SocialConnection,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = this
-    .bind("id", connection.id)
-    .bind("workspaceId", connection.workspaceId)
+    .bind("id", UUID.fromString(connection.id))
+    .bind("workspaceId", UUID.fromString(connection.workspaceId))
     .bind("provider", connection.provider.name)
     .bind("providerConnectionRef", connection.providerConnectionRef)
     .bind("status", connection.status.name)
@@ -294,9 +295,9 @@ private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bin
 private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindSocialAccount(
     account: SocialAccount,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = this
-    .bind("id", account.id)
-    .bind("socialConnectionId", account.socialConnectionId)
-    .bind("workspaceId", account.workspaceId)
+    .bind("id", UUID.fromString(account.id))
+    .bind("socialConnectionId", UUID.fromString(account.socialConnectionId))
+    .bind("workspaceId", UUID.fromString(account.workspaceId))
     .bind("provider", account.provider.name)
     .bind("providerAccountId", account.providerAccountId)
     .bind("accountType", account.kind.name)

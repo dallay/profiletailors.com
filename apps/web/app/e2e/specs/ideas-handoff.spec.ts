@@ -33,8 +33,8 @@ async function mockBoard(page: import('@playwright/test').Page) {
         body: JSON.stringify({
           ideas: [
             {
-              id: 'idea-1',
-              workspaceId: 'workspace-1',
+              id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+              workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
               title: 'Handoff idea',
               notes: 'Notes #kafka',
               tags: ['kafka', 'testing'],
@@ -56,8 +56,8 @@ async function mockBoard(page: import('@playwright/test').Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'idea-new',
-          workspaceId: 'workspace-1',
+          id: 'b5489022-b2f9-5268-a83c-1006bb72857d',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
           title: body.title ?? 'Untitled',
           notes: body.notes ?? null,
           tags: body.tags ?? [],
@@ -80,8 +80,8 @@ async function mockBoard(page: import('@playwright/test').Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'idea-1',
-          workspaceId: 'workspace-1',
+          id: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
           title: 'Handoff idea',
           notes: 'Notes #kafka',
           tags: ['kafka', 'testing'],
@@ -97,13 +97,13 @@ async function mockBoard(page: import('@playwright/test').Page) {
     }
     if (req.method() === 'PATCH') {
       const body = JSON.parse(req.postData() ?? '{}')
-      const id = url.split('/').pop()?.split('?')[0] ?? 'idea-1'
+      const id = url.split('/').pop()?.split('?')[0] ?? '0ca69867-76ef-5e75-a8c3-3933fb8faec4'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           id,
-          workspaceId: 'workspace-1',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
           title: body.title ?? 'Handoff idea',
           notes: body.notes ?? 'Notes #kafka',
           tags: body.tags ?? ['kafka', 'testing'],
@@ -121,7 +121,10 @@ async function mockBoard(page: import('@playwright/test').Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ ideaId: 'idea-1', publicationId: 'pub-legacy' }),
+        body: JSON.stringify({
+          ideaId: '0ca69867-76ef-5e75-a8c3-3933fb8faec4',
+          publicationId: '3750c70a-19ae-5017-8b39-bc2b8b638465',
+        }),
       })
       return
     }
@@ -141,8 +144,8 @@ async function mockPublishingWithChannels(
         body: JSON.stringify({
           channels: [
             {
-              socialAccountId: 'acc-1',
-              connectionId: 'c-1',
+              socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+              connectionId: 'fbdc2c13-d186-5d45-8c3e-f12225cd1bd8',
               provider: 'linkedin',
               accountKind: 'PERSONAL_PROFILE',
               displayName: 'Author',
@@ -162,23 +165,20 @@ async function mockPublishingWithChannels(
       })
     }
   })
-  await page.route('**/api/publishing/publications', async (route, req) => {
+  await page.route('**/api/publishing/publications/batch', async (route, req) => {
     if (req.method() === 'POST') {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          publicationId: 'pub-handoff-1',
-          workspaceId: 'workspace-1',
-          socialAccountId: 'acc-1',
-          status: 'QUEUED',
-          scheduleMode: 'NOW',
-          priority: false,
-          title: 'Post from App',
-          bodyText: 'Handoff idea\n\nNotes #kafka\n\n#testing',
-          assetIds: [],
-          scheduledFor: null,
-          nextSlotAfter: null,
+          status: 'ALL_CREATED',
+          results: [
+            {
+              publicationId: '3a3d62ac-b4eb-5308-9afc-c8e18b29b48e',
+              socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
+              status: 'CREATED',
+            },
+          ],
         }),
       })
       return
@@ -196,6 +196,10 @@ async function mockPublishingWithChannels(
 
 test.describe('Ideas Handoff', { tag: '@frontend' }, () => {
   test('handoff prefill dedupes hashtags and associates without moving', async ({ page }) => {
+    const moveRequests: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.endsWith('/move')) moveRequests.push(request.url())
+    })
     await seedAuth(page)
     await mockBoard(page)
     await mockPublishingWithChannels(page, true)
@@ -209,40 +213,149 @@ test.describe('Ideas Handoff', { tag: '@frontend' }, () => {
     await expect(createPostBtn).toBeVisible()
     await expect(createPostBtn).toBeEnabled()
     await createPostBtn.click()
-    const publishingModal = page
-      .locator('[data-testid="composer-textarea"], [data-testid="create-post-modal"]')
-      .first()
-    await expect(page.locator('text=Create Post').first().or(publishingModal)).toBeVisible({
-      timeout: 10000,
-    })
     const textarea = page.getByTestId('composer-textarea')
-    if (await textarea.isVisible()) {
-      await expect(textarea).toHaveValue(/Handoff idea[\s\S]*Notes #kafka[\s\S]*#testing/)
-      const val = await textarea.inputValue()
-      expect(val.toLowerCase().match(/#kafka/g)?.length).toBe(1)
-    }
-    if (await page.getByRole('button', { name: /schedule now/i }).isVisible()) {
-      await page.getByRole('button', { name: /schedule now/i }).click()
-      await expect(page.getByText(/converted/i).first())
-        .toBeVisible({ timeout: 5000 })
-        .catch(() => {})
-    }
+    await expect(textarea).toHaveCount(1)
+    await expect(textarea).toBeVisible()
+    await expect(textarea).toHaveValue('Handoff idea\n\nNotes #kafka\n\n#testing')
+    const val = await textarea.inputValue()
+    expect(val.toLowerCase().match(/#kafka/g)?.length).toBe(1)
+    const channel = page.getByTestId('channel-button')
+    await expect(channel).toHaveAttribute('aria-pressed', 'false')
+    await channel.click()
+    await expect(channel).toHaveAttribute('aria-pressed', 'true')
+    const publicationRequestPromise = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/publishing/publications/batch' &&
+        request.method() === 'POST',
+    )
+    const associationRequestPromise = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/ideas/0ca69867-76ef-5e75-a8c3-3933fb8faec4' &&
+        request.method() === 'PATCH',
+    )
+    await page.getByRole('button', { name: /^schedule now$/i }).click()
+    expect((await publicationRequestPromise).postDataJSON()).toMatchObject({
+      bodyText: val,
+      targets: [
+        { socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99', bodyText: val, assetIds: [] },
+      ],
+    })
+    expect((await associationRequestPromise).postDataJSON()).toEqual({
+      convertedToPublicationId: '3a3d62ac-b4eb-5308-9afc-c8e18b29b48e',
+    })
+    await expect(
+      page.getByText('Idea converted. Publication: 3a3d62ac-b4eb-5308-9afc-c8e18b29b48e', {
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(textarea).not.toBeVisible()
+    expect(moveRequests).toEqual([])
     await expect(page.getByText('Handoff idea')).toBeVisible()
   })
 
-  test('empty channel guard disables create post and shows CTA', async ({ page }) => {
-    await seedAuth(page)
-    await mockBoard(page)
-    await mockPublishingWithChannels(page, false)
-    await safeGoto(page, '/ideas')
-    await setConsentReceipt(page, { categories: { necessary: true, analytics: false } })
-    await page.reload()
-    await page.getByRole('button', { name: /handoff idea/i }).click()
-    const createPostBtn = page.getByTestId('composer-create-post')
-    await expect(createPostBtn).toBeDisabled()
-    await expect(page.getByTestId('composer-no-channels-cta')).toBeVisible()
-    await expect(page.getByTestId('composer-no-channels-cta')).not.toHaveCSS('width', /px/)
-  })
+  for (const locale of ['en', 'es']) {
+    test(`empty channel guard and CTA adapt to mobile and desktop in ${locale}`, async ({
+      page,
+    }) => {
+      await page.addInitScript((language) => {
+        localStorage.setItem('pt_settings_v1', JSON.stringify({ locale: language, theme: 'dark' }))
+      }, locale)
+      await seedAuth(page)
+      await mockBoard(page)
+      await mockPublishingWithChannels(page, false)
+      await safeGoto(page, '/ideas')
+      await setConsentReceipt(page, { categories: { necessary: true, analytics: false } })
+      await page.reload()
+      await expect(page.locator('html')).toHaveAttribute('lang', locale)
+      await page.getByRole('button', { name: /handoff idea/i }).click()
+      const modal = page.getByTestId('idea-composer-modal')
+      const cta = modal.getByTestId('composer-no-channels-cta')
+      await expect(modal.getByTestId('composer-create-post')).toBeDisabled()
+      await expect(cta).toHaveText(
+        locale === 'en'
+          ? 'Connect a channel to enable publishing'
+          : 'Conecta un canal para habilitar la publicación',
+      )
+      const widths: number[] = []
+      const modalLayouts: Array<{
+        viewportWidth: number
+        scrollWidth: number
+        clientWidth: number
+      }> = []
+      for (const width of [360, 1280]) {
+        await page.setViewportSize({ width, height: 900 })
+        await expect(cta).toBeVisible()
+        await expect
+          .poll(async () =>
+            modal.evaluate((element) => {
+              const bounds = element.getBoundingClientRect()
+              return {
+                withinViewport: bounds.left >= 0 && bounds.right <= window.innerWidth,
+              }
+            }),
+          )
+          .toMatchObject({ withinViewport: true })
+        const bounds = await modal.boundingBox()
+        expect(bounds).not.toBeNull()
+        if (!bounds) throw new Error('Idea composer has no layout bounds')
+        widths.push(bounds.width)
+        const ctaLayout = await cta.evaluate((element) => {
+          const bounds = element.getBoundingClientRect()
+          const parent = element.closest('[data-testid="idea-composer-modal"]')
+          if (!parent) throw new Error('CTA must be inside the idea composer')
+          const parentBounds = parent.getBoundingClientRect()
+          return {
+            fits: bounds.left >= parentBounds.left && bounds.right <= parentBounds.right,
+            noOverflow: element.scrollWidth <= element.clientWidth,
+            height: bounds.height,
+          }
+        })
+        expect(ctaLayout.fits).toBe(true)
+        expect(ctaLayout.noOverflow).toBe(true)
+        expect(ctaLayout.height).toBeGreaterThan(0)
+        const modalLayout = await modal.evaluate((element) => ({
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        }))
+        const footerLayout = await modal.evaluate((element) => {
+          const footer = element.querySelector('[data-slot="dialog-footer"]')
+          if (!footer) throw new Error('Idea composer footer is missing')
+          const boundsFor = (target: Element) => {
+            const bounds = target.getBoundingClientRect()
+            return {
+              left: bounds.left,
+              top: bounds.top,
+              right: bounds.right,
+              bottom: bounds.bottom,
+              width: bounds.width,
+              height: bounds.height,
+            }
+          }
+          return {
+            modal: boundsFor(element),
+            footer: boundsFor(footer),
+            buttons: Array.from(footer.querySelectorAll('button'), (button) => ({
+              label: button.textContent?.trim(),
+              disabled: button.disabled,
+              ...boundsFor(button),
+            })),
+          }
+        })
+        console.log(
+          'idea-footer-layout',
+          JSON.stringify({ locale, viewportWidth: width, ...modalLayout, ...footerLayout }),
+        )
+        modalLayouts.push({ viewportWidth: width, ...modalLayout })
+      }
+      expect(widths[1]).toBeGreaterThan(widths[0] ?? 0)
+      for (const modalLayout of modalLayouts) {
+        expect(
+          modalLayout.scrollWidth,
+          JSON.stringify({ locale, modalLayouts }),
+        ).toBeLessThanOrEqual(modalLayout.clientWidth)
+      }
+    })
+  }
 
   test('keyboard: Escape with dirty shows guard, focus trapped', async ({ page }) => {
     await seedAuth(page)
@@ -268,7 +381,9 @@ test.describe('Ideas Handoff', { tag: '@frontend' }, () => {
     await setConsentReceipt(page, { categories: { necessary: true, analytics: false } })
     await page.reload()
     const convertResponse = await page.request
-      .post('/api/ideas/idea-1/convert', { headers: { 'X-Workspace-Id': 'workspace-1' } })
+      .post('/api/ideas/0ca69867-76ef-5e75-a8c3-3933fb8faec4/convert', {
+        headers: { 'X-Workspace-Id': 'a219727d-019f-544c-95f9-ac30f00cc8b2' },
+      })
       .catch(() => null)
     void convertResponse
     await expect(page.getByText('Handoff idea')).toBeVisible()

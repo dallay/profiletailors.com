@@ -201,6 +201,8 @@ processing_activities:
         reason: Insert and lookup implementation without deletion or anonymisation
       - path: shared/lead-capture/waitlist/src/main/kotlin/com/profiletailors/leadcapture/waitlist/domain/WaitlistConsent.kt
         reason: Separate consent model
+      - path: docs/architecture/adr/0030-separate-public-waitlist-consent-scope.md
+        reason: WAITLIST scope is implemented and locally verified separately from the tenant; no legal approval or production activation is claimed
       - path: apps/web/marketing/src/components/EarlyAccessStatus.astro
         reason: Default fallback shown when WAITLIST_ENABLED=false
       - path: apps/web/marketing/src/components/Hero.astro

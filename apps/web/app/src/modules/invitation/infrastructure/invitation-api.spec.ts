@@ -33,16 +33,22 @@ describe('acceptInvitationRequest', () => {
 
   it('posts token to the invitation endpoint with required headers and credentials', async () => {
     const fetchMock = stubFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1', membershipStatus: 'ACTIVE' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+          membershipStatus: 'ACTIVE',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
     const result = await acceptInvitationRequest('raw-token-123')
 
     expect(result).toEqual({
-      workspaceId: 'ws-1',
+      workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
       membershipStatus: 'ACTIVE',
       errorCode: null,
       errorStatus: null,
@@ -63,10 +69,16 @@ describe('acceptInvitationRequest', () => {
   it('uses custom API base URL when configured', async () => {
     process.env.VITE_API_BASE_URL = 'https://api.example.com'
     const fetchMock = stubFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1', membershipStatus: 'ACTIVE' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+          membershipStatus: 'ACTIVE',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
     await acceptInvitationRequest('tok')
@@ -78,7 +90,7 @@ describe('acceptInvitationRequest', () => {
   it('uses same-origin path when API base is empty string', async () => {
     process.env.VITE_API_BASE_URL = ''
     const fetchMock = stubFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1' }), {
+      new Response(JSON.stringify({ workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -92,14 +104,20 @@ describe('acceptInvitationRequest', () => {
 
   it('returns workspace and membership from successful payload', async () => {
     stubFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-abc', membershipStatus: 'PENDING' }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({
+          workspaceId: 'ef541e38-d4a8-5714-9348-8bb19f5055db',
+          membershipStatus: 'PENDING',
+        }),
+        {
+          status: 200,
+        },
+      ),
     )
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.workspaceId).toBe('ws-abc')
+    expect(result.workspaceId).toBe('ef541e38-d4a8-5714-9348-8bb19f5055db')
     expect(result.membershipStatus).toBe('PENDING')
     expect(result.errorCode).toBeNull()
     expect(result.errorStatus).toBeNull()
@@ -273,7 +291,9 @@ describe('acceptInvitationRequest', () => {
 
   it('sends the authenticated access token as a Bearer Authorization header', async () => {
     const fetchMock = stubFetch(
-      new Response(JSON.stringify({ workspaceId: 'ws-1' }), { status: 200 }),
+      new Response(JSON.stringify({ workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59' }), {
+        status: 200,
+      }),
     )
 
     await acceptInvitationRequest('tok', 'access-token-1')

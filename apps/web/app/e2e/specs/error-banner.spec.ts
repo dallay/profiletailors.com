@@ -68,7 +68,7 @@ test.describe('Error Banner Visual States', () => {
             accessToken: 'new-token',
             tokenType: 'Bearer',
             expiresIn: 3600,
-            principalId: 'test',
+            principalId: 'fda7a274-d44c-5c34-a662-bf903a14dde4',
             email: 'new@email.com',
             username: 'newuser',
           }),

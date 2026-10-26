@@ -43,6 +43,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Suppress("LargeClass")
 class LocalAuthHandlersTest {
@@ -237,7 +238,7 @@ class LocalAuthHandlersTest {
 
         invitationGateway.rawToken shouldBe "raw-invitation-token"
         invitationGateway.email shouldBe "invitee@example.com"
-        result.tokens.workspaceId shouldBe "invited-workspace"
+        result.tokens.workspaceId shouldBe "00000000-0000-0000-0000-000000000011"
         order shouldNotContain "workspace:provision"
     }
 
@@ -503,7 +504,7 @@ class LocalAuthHandlersTest {
         assertEquals("yuniel@example.com", result.tokens.email)
         assertEquals("yuniel", result.tokens.username)
         assertEquals(EmailStatus.PENDING.name, result.tokens.emailStatus)
-        assertNotNull(result.tokens.principalId)
+        assertEquals(UUID.fromString(result.tokens.principalId).toString(), result.tokens.principalId)
         assertEquals("refresh-secret", result.refreshToken.secret)
 
         // Verify identity was created with PENDING status
@@ -1328,7 +1329,7 @@ class LocalAuthHandlersTest {
             return InvitationRegistrationContext(
                 invitationId = "invitation-1",
                 target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
-                workspaceId = "invited-workspace",
+                workspaceId = "00000000-0000-0000-0000-000000000011",
                 source = InvitationRegistrationSource.DIRECT,
             )
         }
@@ -1419,7 +1420,7 @@ class LocalAuthHandlersTest {
         ): WorkspaceProvisioningService.ProvisionedWorkspace {
             order?.add("workspace:provision")
             return WorkspaceProvisioningService.ProvisionedWorkspace(
-                workspaceId = "ws-fake-${principalId.hashCode().toUInt()}",
+                workspaceId = java.util.UUID.randomUUID().toString(),
                 name = "$displayName's Workspace",
                 membershipStatus = WorkspaceMembershipStatus.ACTIVE,
             )
@@ -1449,7 +1450,7 @@ class LocalAuthHandlersTest {
                 created = true,
                 record = ConsentRecord(
                     id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
-                    workspaceId = command.workspaceId,
+                    scope = command.scope,
                     subjectReference = command.subjectReference,
                     consentType = command.consentType,
                     purpose = command.purpose,

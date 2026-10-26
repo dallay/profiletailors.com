@@ -30,7 +30,7 @@ type DialogProps = {
 function mountDialog(overrides: Partial<DialogProps>) {
   const props: DialogProps = {
     open: true,
-    invitationId: 'inv-1',
+    invitationId: '12865a82-4941-50b1-ac48-0704d2344044',
     email: 'user@example.com',
     expectedVersion: 3,
     pending: false,

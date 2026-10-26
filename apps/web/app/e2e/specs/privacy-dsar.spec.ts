@@ -4,7 +4,6 @@
  * Covers tasks 5.1 through 5.6:
  *  5.1  ACCESS request flow (submit → PENDING → COMPLETED with data ref)
  *  5.2  EXPORT request flow (submit → COMPLETED → download link)
- *  5.3  CORRECTION request flow (email correction → propagation)
  *  5.4  DELETION request flow (sole-owner blocked → non-owner success)
  *  5.5  Rate limit (4th request rejected)
  *  5.6  Audit trail (full lifecycle generates expected API calls)
@@ -53,7 +52,7 @@ function createRequest(overrides: Partial<DsarRequest> & { type: DsarRequestType
   const now = new Date().toISOString()
   return {
     id: `req-e2e-${requestCounter}-${Date.now()}`,
-    workspaceId: 'workspace-001',
+    workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
     status: 'PENDING',
     notes: null,
     correctionData: null,
@@ -65,7 +64,7 @@ function createRequest(overrides: Partial<DsarRequest> & { type: DsarRequestType
 }
 
 /** Default mock workspace IDs used by mockAuthenticatedSession. */
-const WORKSPACE_ID = 'workspace-001'
+const WORKSPACE_ID = '6325c45c-5fdd-5be5-84c2-54f866dfd70e'
 
 /**
  * Register privacy API routes for a test.
@@ -134,14 +133,33 @@ function createPrivacyMocks() {
           }
         }
 
-        // Successful creation
-        const body = (route.request().postDataJSON() ?? {}) as Record<string, unknown>
+        const body: unknown = route.request().postDataJSON()
+        if (typeof body !== 'object' || body === null || !('type' in body)) {
+          throw new Error('Privacy request must include a request type')
+        }
+        const type = body.type
+        if (
+          type !== 'ACCESS' &&
+          type !== 'EXPORT' &&
+          type !== 'CORRECTION' &&
+          type !== 'DELETION'
+        ) {
+          throw new Error('Privacy request type is invalid')
+        }
         const newRequest = createRequest({
-          type: (body.type as DsarRequestType) ?? 'ACCESS',
-          notes: (body.notes as string) ?? null,
-          correctionData: body.correctionData
-            ? (body.correctionData as { newEmail: string | null; newUsername: string | null })
-            : null,
+          type,
+          notes: 'notes' in body && typeof body.notes === 'string' ? body.notes : null,
+          correctionData:
+            type === 'CORRECTION'
+              ? {
+                  newEmail:
+                    'newEmail' in body && typeof body.newEmail === 'string' ? body.newEmail : null,
+                  newUsername:
+                    'newUsername' in body && typeof body.newUsername === 'string'
+                      ? body.newUsername
+                      : null,
+                }
+              : null,
         })
         requests.unshift(newRequest)
 
@@ -299,7 +317,7 @@ test.describe('Privacy — DSAR Workflows', () => {
   // 5.3 — CORRECTION request flow
   // -------------------------------------------------------------------------
 
-  test('5.3: CORRECTION request flow — email change propagates, old values returned @privacy @dsar @integration', async ({
+  test('5.3: CORRECTION request flow — submits root-level email and username fields @privacy @dsar @integration', async ({
     page,
   }) => {
     const mocks = createPrivacyMocks()
@@ -322,25 +340,26 @@ test.describe('Privacy — DSAR Workflows', () => {
 
     await privacy.fillCorrectionEmail(newEmail)
     await privacy.fillCorrectionUsername(newUsername)
+    const correctionRequestPromise = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/v1/privacy/requests' &&
+        request.method() === 'POST',
+    )
     await privacy.clickSubmit()
+    const correctionRequest = await correctionRequestPromise
+    expect(correctionRequest.postDataJSON()).toEqual({ type: 'CORRECTION', newEmail, newUsername })
     await privacy.expectSuccessVisible()
 
     // Step 3: Verify the request is in the list
     await privacy.expectRequestCount(1)
     await privacy.expectRequestStatus(0, 'PENDING')
 
-    // Step 4: Verify the correction data was sent to the backend
-    // The mock created the request with correctionData — verify the row reflects it
     const created = mocks.requests[0]
     expect(created.type).toBe('CORRECTION')
     expect(created.correctionData?.newEmail).toBe(newEmail)
     expect(created.correctionData?.newUsername).toBe(newUsername)
 
-    // Step 5: Verify old values would be returned (backend contract)
-    // The POST handler should return old values; we verify the mock includes them
-    // In the real backend, correction_data would contain both old and new values
-    // For the E2E test, we verify the correction request was submitted with correct data
-    expect(created.notes).toBeNull() // No notes submitted for this test
+    expect(created.notes).toBeNull()
   })
 
   // -------------------------------------------------------------------------

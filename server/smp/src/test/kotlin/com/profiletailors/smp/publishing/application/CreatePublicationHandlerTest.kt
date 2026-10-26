@@ -96,6 +96,7 @@ class CreatePublicationHandlerTest {
 
         val result = handler.handle(command)
 
+        java.util.UUID.fromString(result.publicationId).toString() shouldBe result.publicationId
         result.title shouldBe "Title"
         result.workspaceId shouldBe workspaceId
         result.status shouldBe PublicationStatus.QUEUED

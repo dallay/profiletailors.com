@@ -73,7 +73,7 @@ Feature: Direct invitation admin commands
     And the admin response code should be "PLATFORM_ACCESS_DENIED"
 
   Scenario: Creating a direct invitation for an unknown workspace returns 404
-    When the platform operator creates a direct invitation for "direct-unknown-workspace@example.com" in workspace "workspace-missing"
+    When the platform operator creates a direct invitation for "direct-unknown-workspace@example.com" in workspace "f9300271-6a65-58c0-a68f-e4eda7332f26"
     Then the admin response status should be 404
     And the admin response code should be "WORKSPACE_NOT_FOUND"
 

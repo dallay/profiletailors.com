@@ -197,6 +197,8 @@ configurations.all {
 }
 val verifySecurityVersions =
     tasks.register("verifySecurityVersions") {
+        val expectedJackson2Version = libs.versions.jackson2.get()
+        val expectedJackson3Version = libs.versions.jackson.get()
         val classpathProvider = configurations.named("runtimeClasspath")
         // Resolving through a Provider turns the classpath into a task input, so the
         // graph wires the compile dependencies and config cache stays valid.
@@ -220,16 +222,16 @@ val verifySecurityVersions =
                     "org.apache.httpcomponents.client5:httpclient5" to "5.6.4",
                     "org.apache.httpcomponents.core5:httpcore5" to "5.4.3",
                     "org.apache.httpcomponents.core5:httpcore5-h2" to "5.4.3",
-                    "com.fasterxml.jackson:jackson-bom" to "2.22.3",
+                    "com.fasterxml.jackson:jackson-bom" to expectedJackson2Version,
                     "com.fasterxml.jackson.core:jackson-annotations" to "2.22",
-                    "com.fasterxml.jackson.core:jackson-core" to "2.22.3",
-                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.3",
-                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.3",
-                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.3",
-                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.3",
-                    "tools.jackson.core:jackson-core" to "3.2.3",
-                    "tools.jackson.core:jackson-databind" to "3.2.3",
-                    "tools.jackson.module:jackson-module-kotlin" to "3.2.3",
+                    "com.fasterxml.jackson.core:jackson-core" to expectedJackson2Version,
+                    "com.fasterxml.jackson.core:jackson-databind" to expectedJackson2Version,
+                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to expectedJackson2Version,
+                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to expectedJackson2Version,
+                    "com.fasterxml.jackson.module:jackson-module-kotlin" to expectedJackson2Version,
+                    "tools.jackson.core:jackson-core" to expectedJackson3Version,
+                    "tools.jackson.core:jackson-databind" to expectedJackson3Version,
+                    "tools.jackson.module:jackson-module-kotlin" to expectedJackson3Version,
                     "org.postgresql:postgresql" to "42.7.12",
                 )
             val violations =

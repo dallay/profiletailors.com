@@ -63,6 +63,7 @@ class IdeasCommandHandlersTest {
 
         assertEquals("First idea", result.title)
         assertEquals("raw", result.columnId)
+        java.util.UUID.fromString(result.id)
         assertEquals(0, result.orderInColumn)
         assertEquals(1, boards.upserted.size)
         assertEquals(1, ideas.created.size)

@@ -1,17 +1,21 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 
-const WORKSPACE_A_ID = 'workspace-aaa'
+const WORKSPACE_A_ID = 'cc27eb7a-8b06-5f47-8ba9-e269f8a58299'
 const WORKSPACE_A_NAME = 'Workspace Alpha'
-const WORKSPACE_B_ID = 'workspace-bbb'
+const WORKSPACE_B_ID = '2126c946-a089-5551-81a4-fa143513959e'
 const WORKSPACE_B_NAME = 'Workspace Beta'
 
-const SOCIAL_ACCOUNT_A = 'sa-linkedin-a'
-const SOCIAL_ACCOUNT_B = 'sa-linkedin-b'
+const SOCIAL_ACCOUNT_A = '252ef8cb-af75-564a-913d-241e12bbf030'
+const SOCIAL_ACCOUNT_B = '186e39ff-57c6-58df-a2ad-c730b06f7c01'
+
+const PUBLICATION_A_ID = '0e19dbd3-dd1f-5a3b-bb52-7ff643ce3310'
+const PUBLICATION_B_ID = '4d33c3d3-9fff-5d2d-acf8-23b2d135a8e3'
 
 interface WorkspaceFixture {
   id: string
   name: string
+  publicationId: string
   socialAccountId: string
   socialAccountName: string
 }
@@ -37,7 +41,7 @@ interface MockPublication {
 function buildSeedPublications(workspace: WorkspaceFixture): MockPublication[] {
   return [
     {
-      id: `pub-${workspace.id}-13h`,
+      id: workspace.publicationId,
       workspaceId: workspace.id,
       socialAccountId: workspace.socialAccountId,
       provider: 'linkedin',
@@ -192,7 +196,7 @@ async function registerWorkspaceMocks(
       scheduledFor?: string
     } | null
     const newPub: MockPublication = {
-      id: `pub-${workspace.id}-${Date.now()}`,
+      id: crypto.randomUUID(),
       workspaceId: workspace.id,
       socialAccountId: workspace.socialAccountId,
       provider: 'linkedin',
@@ -235,6 +239,7 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
       const workspace: WorkspaceFixture = {
         id: WORKSPACE_A_ID,
         name: WORKSPACE_A_NAME,
+        publicationId: PUBLICATION_A_ID,
         socialAccountId: SOCIAL_ACCOUNT_A,
         socialAccountName: 'Alpha User',
       }
@@ -277,7 +282,7 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
           const store = app?.config?.globalProperties?.$pinia?._s?.get('publishing')
           await store?.reschedulePublication(id, scheduledFor)
         },
-        { id: `pub-${WORKSPACE_A_ID}-13h`, scheduledFor: '2026-09-23T15:00:00Z' },
+        { id: PUBLICATION_A_ID, scheduledFor: '2026-09-23T15:00:00Z' },
       )
 
       await expect
@@ -299,7 +304,7 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
               )?.__vue_app__
               const store = app?.config?.globalProperties?.$pinia?._s?.get('publishing')
               return store?.publications.find((item) => item.id === id)?.scheduledAt ?? null
-            }, `pub-${WORKSPACE_A_ID}-13h`),
+            }, PUBLICATION_A_ID),
           { timeout: 15_000 },
         )
         .toBe('2026-09-23T15:00:00Z')
@@ -317,12 +322,14 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
       const workspaceA: WorkspaceFixture = {
         id: WORKSPACE_A_ID,
         name: WORKSPACE_A_NAME,
+        publicationId: PUBLICATION_A_ID,
         socialAccountId: SOCIAL_ACCOUNT_A,
         socialAccountName: 'Alpha User',
       }
       const workspaceB: WorkspaceFixture = {
         id: WORKSPACE_B_ID,
         name: WORKSPACE_B_NAME,
+        publicationId: PUBLICATION_B_ID,
         socialAccountId: SOCIAL_ACCOUNT_B,
         socialAccountName: 'Beta User',
       }
@@ -357,6 +364,7 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
       const workspace: WorkspaceFixture = {
         id: WORKSPACE_A_ID,
         name: WORKSPACE_A_NAME,
+        publicationId: PUBLICATION_A_ID,
         socialAccountId: SOCIAL_ACCOUNT_A,
         socialAccountName: 'Alpha User',
       }
@@ -390,7 +398,13 @@ test.describe('Scheduler — Cross-tab browser sync', () => {
             .fulfill({
               status: 200,
               contentType: 'text/event-stream',
-              body: 'event: publication.status-changed\ndata: {"workspaceId":"workspace-aaa","publicationId":"pub-workspace-aaa-13h","socialAccountId":"sa-linkedin-a","changeType":"publication.status-changed","occurredAt":"2026-09-23T14:00:00.000Z"}\n\n',
+              body: `event: publication.status-changed\ndata: ${JSON.stringify({
+                workspaceId: WORKSPACE_A_ID,
+                publicationId: PUBLICATION_A_ID,
+                socialAccountId: SOCIAL_ACCOUNT_A,
+                changeType: 'publication.status-changed',
+                occurredAt: '2026-09-23T14:00:00.000Z',
+              })}\n\n`,
             })
             .catch(() => {})
         }, 1500)

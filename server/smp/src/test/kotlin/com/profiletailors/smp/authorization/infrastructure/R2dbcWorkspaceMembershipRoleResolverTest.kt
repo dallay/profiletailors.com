@@ -28,39 +28,51 @@ class R2dbcWorkspaceMembershipRoleResolverTest : PostgresDatabaseTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
+            VALUES ('f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, icon)
-            VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)
+            VALUES ('d3d9800f-120a-501e-ad01-401e54e8f766', 'Profile Tailors', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('membership-1', 'workspace-1', 'principal-1', 'USER', 'ACTIVE')
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'd3d9800f-120a-501e-ad01-401e54e8f766', 'f4b0c946-5bac-5e21-a5af-5213b71804cc', 'USER', 'ACTIVE')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO permissions (id, permission_key) VALUES ('permission-1', 'workspace:access:read')",
+            """
+            INSERT INTO permissions (id, permission_key)
+            VALUES ('60461c36-6137-55f3-89ef-3d2fd2123af8', 'workspace:access:read')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('c88a1fae-af37-5aa1-b2d4-717e9e8b478c', 'member', 'WORKSPACE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO role_permissions (role_id, permission_id) VALUES ('role-1', 'permission-1')",
+            """
+            INSERT INTO role_permissions (role_id, permission_id)
+            VALUES ('c88a1fae-af37-5aa1-b2d4-717e9e8b478c', '60461c36-6137-55f3-89ef-3d2fd2123af8')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')",
+            """
+            INSERT INTO membership_roles (membership_id, role_id)
+            VALUES ('ae2517d0-e569-5439-a4ae-c515b532584d', 'c88a1fae-af37-5aa1-b2d4-717e9e8b478c')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         val facts = resolver.resolve(
             com.profiletailors.smp.tenancy.domain.WorkspaceMembership(
-                id = "membership-1",
-                workspaceId = "workspace-1",
-                principalId = "principal-1",
+                id = "ae2517d0-e569-5439-a4ae-c515b532584d",
+                workspaceId = "d3d9800f-120a-501e-ad01-401e54e8f766",
+                principalId = "f4b0c946-5bac-5e21-a5af-5213b71804cc",
                 principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
                 status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             ),

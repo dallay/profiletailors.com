@@ -659,7 +659,7 @@ class AuthorizationBddSteps {
                     .queryParam("targetType", "WORKSPACE_OWNER")
                     .queryParam("action", "workspace.owner.add")
                     .queryParam("eventType", "MUTATION")
-                    .queryParam("actorPrincipalId", "owner-1")
+                    .queryParam("actorPrincipalId", "2c19bb64-6aee-5fd7-84c8-d6b49e51e46e")
                     .queryParam("limit", 10)
                     .build()
             }
@@ -688,7 +688,11 @@ class AuthorizationBddSteps {
 
     @Given("a stubbed workspace ownership response is configured")
     fun givenStubbedWorkspaceOwnershipResponseIsConfigured() {
-        latestOwnershipResponse = WorkspaceOwnershipResult("workspace-1", listOf("owner-1", "owner-2"))
+        latestOwnershipResponse =
+            WorkspaceOwnershipResult(
+                BddDatabaseSupport.WORKSPACE_ID,
+                listOf("2c19bb64-6aee-5fd7-84c8-d6b49e51e46e", "6dd7b370-46f9-5f08-9a95-ba34f26bd8e7"),
+            )
     }
 
     @When("the client transfers workspace ownership to principal {string}")
@@ -729,8 +733,8 @@ class AuthorizationBddSteps {
     @Given("a stubbed workspace membership status response is configured")
     fun givenStubbedWorkspaceMembershipStatusResponseIsConfigured() {
         latestMembershipStatusResponse = WorkspaceMembershipStatusResult(
-            workspaceId = "workspace-1",
-            principalId = "member-2",
+            workspaceId = BddDatabaseSupport.WORKSPACE_ID,
+            principalId = "e6d7cb4c-50e4-52e7-9a54-76436681215a",
             status = WorkspaceMembershipStatus.SUSPENDED,
         )
     }

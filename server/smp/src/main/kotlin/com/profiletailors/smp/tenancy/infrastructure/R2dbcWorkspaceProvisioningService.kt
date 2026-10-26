@@ -10,12 +10,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import java.time.Clock
 import java.util.UUID
 
-/**
- * R2DBC implementation of [WorkspaceProvisioningService].
- *
- * Creates the workspace, ownership, and membership records in a single
- * transactional flow during user registration.
- */
 @Service
 class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClient, private val clock: Clock) :
     WorkspaceProvisioningService {
@@ -24,16 +18,12 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
         principalId: String,
         displayName: String,
     ): WorkspaceProvisioningService.ProvisionedWorkspace {
-        val workspaceId = "ws-${UUID.randomUUID()}"
+        val workspaceId = UUID.randomUUID()
+        val ownerPrincipalId = UUID.fromString(principalId)
         val workspaceName = "${displayName.trim().takeIf { it.isNotEmpty() } ?: "My"}'s Workspace"
         val now = clock.instant()
-        val membershipId = "wm-${UUID.randomUUID()}"
+        val membershipId = UUID.randomUUID()
 
-        // Sequential inserts — same pattern as R2dbcIdentityRegistrationGateway.
-        // R2DBC auto-commits each statement; if any insert fails the exception
-        // propagates and the caller handles the rollback at the use-case level.
-
-        // 1. Create workspace
         databaseClient.sql(
             """
             INSERT INTO workspaces (id, name, status, created_at)
@@ -48,7 +38,6 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
             .rowsUpdated()
             .awaitSingle()
 
-        // 2. Add workspace ownership
         databaseClient.sql(
             """
             INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by, created_at)
@@ -56,15 +45,14 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
-            .bind("ownerPrincipalId", principalId)
+            .bind("ownerPrincipalId", ownerPrincipalId)
             .bind("ownerPrincipalType", PrincipalType.USER.name)
-            .bind("createdBy", principalId)
+            .bind("createdBy", ownerPrincipalId)
             .bind("createdAt", now)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
 
-        // 3. Create workspace membership
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status, created_at)
@@ -73,7 +61,7 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
         )
             .bind("id", membershipId)
             .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
+            .bind("principalId", ownerPrincipalId)
             .bind("principalType", PrincipalType.USER.name)
             .bind("status", WorkspaceMembershipStatus.ACTIVE.name)
             .bind("createdAt", now)
@@ -89,14 +77,14 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
             """.trimIndent(),
         )
             .bind("membershipId", membershipId)
-            .bind("roleId", "role-owner")
+            .bind("roleId", UUID.fromString("6ce35f6c-2f1e-5702-9b59-d7a0e9402006"))
             .bind("createdAt", now)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
 
         return WorkspaceProvisioningService.ProvisionedWorkspace(
-            workspaceId = workspaceId,
+            workspaceId = workspaceId.toString(),
             name = workspaceName,
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )

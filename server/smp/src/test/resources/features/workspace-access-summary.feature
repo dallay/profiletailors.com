@@ -7,8 +7,8 @@ Feature: Workspace access summary authorization
     Given an entitled workspace member with the required workspace access permission
     When the client requests the current workspace access summary with a valid JWT
     Then the response status should be 200
-    And the response workspaceId should be "workspace-1"
-    And the response principalId should be "principal-1"
+    And the response workspaceId should be "10000000-0000-4000-8000-000000000001"
+    And the response principalId should be "20000000-0000-4000-8000-000000000001"
     And the response should include role "member"
     And the response should include permission "workspace:access:read"
     And the latest authorization decision should be allow because "ROLE_PERMISSION"

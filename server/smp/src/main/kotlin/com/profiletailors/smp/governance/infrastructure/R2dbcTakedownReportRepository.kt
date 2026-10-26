@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Suppress("StringLiteralDuplication")
 @Repository
@@ -39,10 +40,10 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
                 updated_at = EXCLUDED.updated_at
             """.trimIndent(),
         )
-            .bind("reportId", report.reportId)
-            .bind("workspaceId", report.workspaceId)
-            .bind("assetId", report.assetId)
-            .bind("reportedById", report.reportedById)
+            .bind("reportId", UUID.fromString(report.reportId))
+            .bind("workspaceId", UUID.fromString(report.workspaceId))
+            .bind("assetId", UUID.fromString(report.assetId))
+            .bind("reportedById", UUID.fromString(report.reportedById))
             .bind("reason", report.reason)
             .bind("status", report.status.name)
             .bind("reporterEmail", report.reporterEmail)
@@ -50,7 +51,11 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
             .bind("updatedAt", OffsetDateTime.ofInstant(report.updatedAt, ZoneOffset.UTC))
 
         spec = bindNullable(spec, "rejectionReason", report.rejectionReason)
-        spec = bindNullable(spec, "reviewedById", report.reviewedById)
+        spec = if (report.reviewedById != null) {
+            spec.bind("reviewedById", UUID.fromString(report.reviewedById))
+        } else {
+            spec.bindNull("reviewedById", UUID::class.java)
+        }
         spec = bindNullableInstant(spec, "reviewedAt", report.reviewedAt)
         spec = bindNullable(spec, "mediaReferenceUrl", report.mediaReferenceUrl)
 
@@ -65,8 +70,8 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
         WHERE workspace_id = :workspaceId AND report_id = :reportId
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
-        .bind("reportId", reportId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
+        .bind("reportId", UUID.fromString(reportId))
         .map { row, _ -> rowToTakedownReport(row) }
         .one()
         .awaitSingleOrNull()
@@ -79,9 +84,9 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
             WHERE workspace_id = :workspaceId AND asset_id = :assetId AND reported_by_id = :reportedById
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
-            .bind("assetId", assetId)
-            .bind("reportedById", reportedById)
+            .bind("workspaceId", UUID.fromString(workspaceId))
+            .bind("assetId", UUID.fromString(assetId))
+            .bind("reportedById", UUID.fromString(reportedById))
             .map { row, _ -> rowToTakedownReport(row) }
             .one()
             .awaitSingleOrNull()
@@ -96,7 +101,7 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
                 ORDER BY created_at DESC
                 """.trimIndent(),
             )
-                .bind("workspaceId", workspaceId)
+                .bind("workspaceId", UUID.fromString(workspaceId))
                 .bind("status", status.name)
         } else {
             databaseClient.sql(
@@ -107,7 +112,7 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
                 ORDER BY created_at DESC
                 """.trimIndent(),
             )
-                .bind("workspaceId", workspaceId)
+                .bind("workspaceId", UUID.fromString(workspaceId))
         }
 
         return query.map { row, _ -> rowToTakedownReport(row) }
@@ -122,7 +127,7 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
         WHERE report_id = :reportId
         """.trimIndent(),
     )
-        .bind("reportId", reportId)
+        .bind("reportId", UUID.fromString(reportId))
         .map { row, _ -> rowToTakedownReport(row) }
         .one()
         .awaitSingleOrNull()
@@ -188,20 +193,20 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
             bound = bound.bind("status", status.name)
         }
         if (workspaceId != null) {
-            bound = bound.bind("workspaceId", workspaceId)
+            bound = bound.bind("workspaceId", UUID.fromString(workspaceId))
         }
         return bound
     }
 
     private fun rowToTakedownReport(row: Row): TakedownReport = TakedownReport(
-        reportId = requireNotNull(row.get("report_id", String::class.java)),
-        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-        assetId = requireNotNull(row.get("asset_id", String::class.java)),
-        reportedById = requireNotNull(row.get("reported_by_id", String::class.java)),
+        reportId = requireNotNull(row.get("report_id", UUID::class.java)).toString(),
+        workspaceId = requireNotNull(row.get("workspace_id", UUID::class.java)).toString(),
+        assetId = requireNotNull(row.get("asset_id", UUID::class.java)).toString(),
+        reportedById = requireNotNull(row.get("reported_by_id", UUID::class.java)).toString(),
         reason = requireNotNull(row.get("reason", String::class.java)),
         status = TakedownReportStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
         rejectionReason = row.get("rejection_reason", String::class.java),
-        reviewedById = row.get("reviewed_by_id", String::class.java),
+        reviewedById = row.get("reviewed_by_id", UUID::class.java)?.toString(),
         reviewedAt = row.get("reviewed_at", OffsetDateTime::class.java)?.toInstant(),
         reporterEmail = requireNotNull(row.get("reporter_email", String::class.java)),
         mediaReferenceUrl = row.get("media_reference_url", String::class.java),

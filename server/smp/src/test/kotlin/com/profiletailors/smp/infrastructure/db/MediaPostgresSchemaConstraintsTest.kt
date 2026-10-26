@@ -13,6 +13,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.util.UUID
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -401,7 +402,7 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             VALUES (:workspaceId, 'Workspace', 'ACTIVE', NULL)
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.nameUUIDFromBytes(workspaceId.toByteArray()))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -424,7 +425,7 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             )
             """.trimIndent(),
         )
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.nameUUIDFromBytes(workspaceId.toByteArray()))
             .bind("fileHash", fileHash)
             .bind("status", status)
         spec =
@@ -480,8 +481,8 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             )
             """.trimIndent(),
         )
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
+            .bind("assetId", UUID.nameUUIDFromBytes(assetId.toByteArray()))
+            .bind("workspaceId", UUID.nameUUIDFromBytes(workspaceId.toByteArray()))
             .bind("sourceType", sourceType)
             .bind("status", status)
         spec = if (fileHash == null) {

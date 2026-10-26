@@ -11,6 +11,7 @@ import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
+import com.profiletailors.smp.governance.domain.ConsentScope
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
@@ -51,10 +52,10 @@ internal class WithdrawWorkspaceConsentHandlerTest {
             reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
         )
         coEvery { resourceContextProvider.require() } returns
-            ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
+            ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "00000000-0000-0000-0000-000000000001")
         coEvery { withdrawConsentHandler.handle(any()) } returns ConsentRecord(
             id = ConsentRecordId("cs-001"),
-            workspaceId = "ws-001",
+            scope = ConsentScope.Workspace(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")),
             subjectReference = SubjectReference.user("user-123"),
             consentType = ConsentType.CONSENT,
             purpose = "marketing.emails",
@@ -71,6 +72,7 @@ internal class WithdrawWorkspaceConsentHandlerTest {
 
         result.status shouldBe ConsentStatus.WITHDRAWN
         coVerify { authorizationDecider.decideDetailed(PermissionKey.of("workspace", "consent", "write")) }
+        coVerify { withdrawConsentHandler.handle(match { it.scope == result.scope }) }
     }
 
     @Test

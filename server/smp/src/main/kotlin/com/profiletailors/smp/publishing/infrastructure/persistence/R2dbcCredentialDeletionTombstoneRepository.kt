@@ -10,6 +10,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcCredentialDeletionTombstoneRepository(private val databaseClient: DatabaseClient) :
@@ -25,8 +26,8 @@ class R2dbcCredentialDeletionTombstoneRepository(private val databaseClient: Dat
         WHERE workspace_id = :workspaceId AND connection_id = :connectionId
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
-        .bind("connectionId", connectionId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
+        .bind("connectionId", UUID.fromString(connectionId))
         .map { row, _ -> row.toTombstone() }
         .one()
         .awaitSingleOrNull()
@@ -50,8 +51,8 @@ class R2dbcCredentialDeletionTombstoneRepository(private val databaseClient: Dat
                 deleted_at = EXCLUDED.deleted_at
             """.trimIndent(),
         )
-            .bind("workspaceId", tombstone.workspaceId)
-            .bind("connectionId", tombstone.connectionId)
+            .bind("workspaceId", UUID.fromString(tombstone.workspaceId))
+            .bind("connectionId", UUID.fromString(tombstone.connectionId))
             .bind("provider", tombstone.provider.name)
             .bind("providerConnectionRef", tombstone.providerConnectionRef)
             .bindNullable("credentialReference", tombstone.credentialReference, String::class.java)
@@ -67,8 +68,8 @@ class R2dbcCredentialDeletionTombstoneRepository(private val databaseClient: Dat
 }
 
 private fun Readable.toTombstone(): CredentialDeletionTombstone = CredentialDeletionTombstone(
-    workspaceId = requireNotNull(get("workspace_id", String::class.java)),
-    connectionId = requireNotNull(get("connection_id", String::class.java)),
+    workspaceId = requireNotNull(get("workspace_id", UUID::class.java)).toString(),
+    connectionId = requireNotNull(get("connection_id", UUID::class.java)).toString(),
     provider = SocialProvider.valueOf(requireNotNull(get("provider", String::class.java))),
     providerConnectionRef = requireNotNull(get("provider_connection_ref", String::class.java)),
     credentialReference = get("credential_reference", String::class.java),

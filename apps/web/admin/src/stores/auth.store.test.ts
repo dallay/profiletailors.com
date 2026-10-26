@@ -25,7 +25,7 @@ describe('useAdminAuthStore', () => {
   it('PLATFORM_OWNER has all platform permissions', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'admin@example.com',
       displayName: null,
       platformRoles: ['PLATFORM_OWNER'],
@@ -41,7 +41,7 @@ describe('useAdminAuthStore', () => {
   it('PLATFORM_OPERATOR can manage users but not operators', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'op@example.com',
       displayName: null,
       platformRoles: ['PLATFORM_OPERATOR'],
@@ -57,7 +57,7 @@ describe('useAdminAuthStore', () => {
       ['auditor@example.com', 'AUDITOR'],
     ] as const) {
       store.principal = {
-        principalId: 'test-id',
+        principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
         email,
         displayName: null,
         platformRoles: [role],
@@ -70,7 +70,7 @@ describe('useAdminAuthStore', () => {
   it('PLATFORM_OPERATOR cannot manage operators', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'op@example.com',
       displayName: null,
       platformRoles: ['PLATFORM_OPERATOR'],
@@ -83,7 +83,7 @@ describe('useAdminAuthStore', () => {
     const store = useAdminAuthStore()
     for (const role of ['PLATFORM_OPERATOR', 'AUDITOR'] as const) {
       store.principal = {
-        principalId: 'test-id',
+        principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
         email: 'operator@example.com',
         displayName: null,
         platformRoles: [role],
@@ -97,7 +97,7 @@ describe('useAdminAuthStore', () => {
     const store = useAdminAuthStore()
     for (const role of ['PLATFORM_OWNER', 'PLATFORM_OPERATOR'] as const) {
       store.principal = {
-        principalId: 'test-id',
+        principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
         email: 'operator@example.com',
         displayName: null,
         platformRoles: [role],
@@ -110,7 +110,7 @@ describe('useAdminAuthStore', () => {
   it('AUDITOR is governance read-only', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'auditor@example.com',
       displayName: null,
       platformRoles: ['AUDITOR'],
@@ -122,7 +122,7 @@ describe('useAdminAuthStore', () => {
   it('SUPPORT_AGENT holds neither governance key', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'support@example.com',
       displayName: null,
       platformRoles: ['SUPPORT_AGENT'],
@@ -134,7 +134,7 @@ describe('useAdminAuthStore', () => {
   it('SUPPORT_AGENT has no configuration permissions', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'support@example.com',
       displayName: null,
       platformRoles: ['SUPPORT_AGENT'],
@@ -146,7 +146,7 @@ describe('useAdminAuthStore', () => {
   it('SUPPORT_AGENT cannot invite candidates', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'support@example.com',
       displayName: null,
       platformRoles: ['SUPPORT_AGENT'],
@@ -158,7 +158,7 @@ describe('useAdminAuthStore', () => {
   it('AUDITOR cannot execute mutations', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'auditor@example.com',
       displayName: null,
       platformRoles: ['AUDITOR'],
@@ -172,7 +172,7 @@ describe('useAdminAuthStore', () => {
   it('multiple roles yield union of permissions', () => {
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'multi@example.com',
       displayName: null,
       platformRoles: ['AUDITOR', 'SUPPORT_AGENT'],
@@ -184,7 +184,7 @@ describe('useAdminAuthStore', () => {
 
   it('hydrateSession sets principal from 200 response', async () => {
     const mockPrincipal = {
-      principalId: 'abc-123',
+      principalId: '304a3c09-200e-557d-a2ec-f0bab01227f3',
       email: 'test@platform.example',
       displayName: 'Test Admin',
       platformRoles: ['PLATFORM_OPERATOR'],
@@ -212,7 +212,7 @@ describe('useAdminAuthStore', () => {
     )
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'old',
+      principalId: '52cef266-de0d-5049-b8dc-74b8af5eda7f',
       email: 'old@example.com',
       displayName: null,
       platformRoles: ['PLATFORM_OPERATOR'],
@@ -224,7 +224,7 @@ describe('useAdminAuthStore', () => {
 
   it('signIn stores the access token and loads the admin principal', async () => {
     const mockPrincipal = {
-      principalId: 'abc-123',
+      principalId: '304a3c09-200e-557d-a2ec-f0bab01227f3',
       email: 'test@platform.example',
       displayName: 'Test Admin',
       platformRoles: ['PLATFORM_OPERATOR'],
@@ -288,7 +288,7 @@ describe('useAdminAuthStore', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(errorResponse(500)))
     const store = useAdminAuthStore()
     store.principal = {
-      principalId: 'test-id',
+      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
       email: 'admin@example.com',
       displayName: null,
       platformRoles: ['PLATFORM_OWNER'],
@@ -296,7 +296,7 @@ describe('useAdminAuthStore', () => {
 
     await expect(store.signOut()).rejects.toMatchObject({ status: 500 })
 
-    expect(store.principal?.principalId).toBe('test-id')
+    expect(store.principal?.principalId).toBe('e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea')
   })
 })
 

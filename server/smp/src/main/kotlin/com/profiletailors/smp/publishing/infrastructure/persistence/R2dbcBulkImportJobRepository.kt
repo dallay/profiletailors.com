@@ -26,6 +26,7 @@ import org.springframework.stereotype.Repository
 import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcBulkImportJobRepository(
@@ -53,8 +54,8 @@ class R2dbcBulkImportJobRepository(
         WHERE workspace_id = :workspaceId AND id = :jobId
         """.trimIndent(),
     )
-        .bind("workspaceId", workspaceId)
-        .bind("jobId", jobId)
+        .bind("workspaceId", UUID.fromString(workspaceId))
+        .bind("jobId", UUID.fromString(jobId))
         .map { row, _ -> row.toBulkJob() }
         .one()
         .awaitSingleOrNull()
@@ -68,9 +69,9 @@ class R2dbcBulkImportJobRepository(
                 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, total_rows = EXCLUDED.total_rows, scheduled_count = EXCLUDED.scheduled_count, failed_count = EXCLUDED.failed_count, updated_at = EXCLUDED.updated_at
                 """.trimIndent(),
             )
-                .bind("id", job.id)
-                .bind("workspaceId", job.workspaceId)
-                .bind("principalId", job.principalId)
+                .bind("id", UUID.fromString(job.id))
+                .bind("workspaceId", UUID.fromString(job.workspaceId))
+                .bind("principalId", UUID.fromString(job.principalId))
                 .bind("idempotencyKey", job.idempotencyKey)
                 .bind("status", job.status.name)
                 .bind("totalRows", job.totalRows)
@@ -101,11 +102,14 @@ class R2dbcBulkImportJobRepository(
             for (row in chunk) {
                 val errorsJson = objectMapper.writeValueAsString(row.errors)
                 val mediaUrlsText = row.mediaUrls.joinToString(",")
-                spec = spec.bind("id${row.rowIndex}", row.id)
-                    .bind("jobId${row.rowIndex}", row.jobId)
+                spec = spec.bind("id${row.rowIndex}", UUID.fromString(row.id))
+                    .bind("jobId${row.rowIndex}", UUID.fromString(row.jobId))
                     .bind("rowIndex${row.rowIndex}", row.rowIndex)
                     .bind("status${row.rowIndex}", row.status.name)
-                    .bindNullable("publicationId${row.rowIndex}", row.publicationId)
+                    .let { rowSpec ->
+                        row.publicationId?.let { rowSpec.bind("publicationId${row.rowIndex}", UUID.fromString(it)) }
+                            ?: rowSpec.bindNull("publicationId${row.rowIndex}", UUID::class.java)
+                    }
                     .bind("errors${row.rowIndex}", errorsJson)
                     .bindNullable("bodyText${row.rowIndex}", row.bodyText)
                     .bindNullable("scheduledFor${row.rowIndex}", row.scheduledFor)
@@ -125,16 +129,16 @@ class R2dbcBulkImportJobRepository(
         ORDER BY row_index ASC
         """.trimIndent(),
     )
-        .bind("jobId", jobId)
+        .bind("jobId", UUID.fromString(jobId))
         .map { row, _ -> row.toBulkRow() }
         .all()
         .collectList()
         .awaitSingle()
 
     private fun Readable.toBulkJob(): BulkImportJob = BulkImportJob(
-        id = requireNotNull(get("id", String::class.java)),
-        workspaceId = requireNotNull(get("workspace_id", String::class.java)),
-        principalId = requireNotNull(get("principal_id", String::class.java)),
+        id = requireNotNull(get("id", UUID::class.java)).toString(),
+        workspaceId = requireNotNull(get("workspace_id", UUID::class.java)).toString(),
+        principalId = requireNotNull(get("principal_id", UUID::class.java)).toString(),
         idempotencyKey = requireNotNull(get("idempotency_key", String::class.java)),
         csvHash = requireNotNull(get("csv_hash", String::class.java)),
         status = BulkJobStatus.valueOf(requireNotNull(get("status", String::class.java))),
@@ -162,12 +166,12 @@ class R2dbcBulkImportJobRepository(
             }.filter { it.isNotBlank() }
         }
         return BulkImportRow(
-            id = requireNotNull(get("id", String::class.java)),
-            jobId = requireNotNull(get("job_id", String::class.java)),
+            id = requireNotNull(get("id", UUID::class.java)).toString(),
+            jobId = requireNotNull(get("job_id", UUID::class.java)).toString(),
             rowIndex = requireNotNull(get("row_index", Int::class.javaObjectType)),
             status = BulkRowStatus.valueOf(requireNotNull(get("status", String::class.java))),
             errors = errors,
-            publicationId = get("publication_id", String::class.java),
+            publicationId = get("publication_id", UUID::class.java)?.toString(),
             bodyText = get("body_text", String::class.java),
             scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
             mediaUrls = mediaUrls,

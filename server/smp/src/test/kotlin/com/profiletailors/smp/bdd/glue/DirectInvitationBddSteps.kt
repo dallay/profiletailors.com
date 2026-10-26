@@ -81,7 +81,7 @@ class DirectInvitationBddSteps {
             email = email,
             source = "DIRECT",
             sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
+            workspaceId = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
         )
         state.lastInvitationId = latestInvitationId(email)
     }
@@ -93,7 +93,7 @@ class DirectInvitationBddSteps {
             email = email,
             source = "DIRECT",
             sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
+            workspaceId = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
             createdAt = Instant.parse("2026-01-01T00:00:00Z"),
             expiresAt = Instant.parse("2026-01-02T00:00:00Z"),
         )
@@ -107,7 +107,7 @@ class DirectInvitationBddSteps {
             email = email,
             source = "DIRECT",
             sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
+            workspaceId = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
         )
         val invitationId = latestInvitationId(email)
         databaseClient.sql(
@@ -125,7 +125,7 @@ class DirectInvitationBddSteps {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
+            VALUES ('${BddDatabaseSupport.PRINCIPAL_ID}', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
@@ -135,7 +135,7 @@ class DirectInvitationBddSteps {
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username, email_status)
-            VALUES ('principal-1', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
+            VALUES ('${BddDatabaseSupport.PRINCIPAL_ID}', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
@@ -149,7 +149,7 @@ class DirectInvitationBddSteps {
             ON CONFLICT (principal_id) DO NOTHING
             """.trimIndent(),
         )
-            .bind("principalId", BddDatabaseSupport.PRINCIPAL_ID)
+            .bind("principalId", UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID))
             .bind("passwordHash", BCrypt.hashpw("bdd-existing-password", BCrypt.gensalt()))
             .fetch()
             .rowsUpdated()
@@ -157,11 +157,11 @@ class DirectInvitationBddSteps {
         databaseClient.sql(
             """
             INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES ('invitation-membership-principal-1', 'invitation-workspace', :principalId, 'USER', 'ACTIVE')
+            VALUES ('3db0f2b9-0b11-52d4-ae6f-ef184e0d144a', 'd1599da2-0bd3-5af9-82ac-3506748f2ae0', :principalId, 'USER', 'ACTIVE')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("principalId", BddDatabaseSupport.PRINCIPAL_ID)
+            .bind("principalId", UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -174,13 +174,13 @@ class DirectInvitationBddSteps {
             email = email,
             source = "DIRECT",
             sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
+            workspaceId = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
         )
         val invitationId = latestInvitationId(email)
         databaseClient.sql(
             """
             UPDATE invitations
-            SET status = 'ACCEPTED', accepted_at = NOW(), accepted_principal_id = 'principal-1',
+            SET status = 'ACCEPTED', accepted_at = NOW(), accepted_principal_id = '${BddDatabaseSupport.PRINCIPAL_ID}',
                 version = version + 1
             WHERE id = :id
             """.trimIndent(),
@@ -226,12 +226,12 @@ class DirectInvitationBddSteps {
 
     @Then("the invitation workspace should have exactly one workspace and membership for the authenticated principal")
     fun invitationWorkspaceShouldHaveExactlyOneWorkspaceAndMembership() = runBlocking {
-        assertEquals(1L, database.countWorkspaces("invitation-workspace"))
+        assertEquals(1L, database.countWorkspaces("d1599da2-0bd3-5af9-82ac-3506748f2ae0"))
         assertEquals(
             1L,
             database.countWorkspaceMemberships(
                 principalId = BddDatabaseSupport.PRINCIPAL_ID,
-                workspaceId = "invitation-workspace",
+                workspaceId = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
             ),
         )
     }
@@ -290,7 +290,7 @@ class DirectInvitationBddSteps {
 
     @When("the platform operator creates a direct invitation for {string}")
     fun operatorCreatesDirectInvitation(email: String) = runBlocking {
-        seedInvitationWorkspace("invitation-workspace")
+        seedInvitationWorkspace("d1599da2-0bd3-5af9-82ac-3506748f2ae0")
         state.lastResponse = webTestClient.post()
             .uri("/api/admin/invitations/direct")
             .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
@@ -312,7 +312,7 @@ class DirectInvitationBddSteps {
 
     @When("an unauthenticated principal creates a direct invitation for {string}")
     fun unauthenticatedCreatesDirectInvitation(email: String) = runBlocking {
-        seedInvitationWorkspace("invitation-workspace")
+        seedInvitationWorkspace("d1599da2-0bd3-5af9-82ac-3506748f2ae0")
         state.lastResponse = webTestClient.post()
             .uri("/api/admin/invitations/direct")
             .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
@@ -505,7 +505,7 @@ class DirectInvitationBddSteps {
     private fun directInvitationPayload(
         email: String,
         target: String = "EXISTING_WORKSPACE",
-        workspaceId: String? = "invitation-workspace",
+        workspaceId: String? = "d1599da2-0bd3-5af9-82ac-3506748f2ae0",
     ): String = json.writeValueAsString(
         buildMap {
             put("email", email.trim().lowercase())
@@ -555,11 +555,11 @@ class DirectInvitationBddSteps {
                     spec.bind("sourceReferenceId", sourceReferenceId)
                 }
             }
-            .bind("workspaceId", workspaceId)
+            .bind("workspaceId", UUID.fromString(workspaceId))
             .bind("email", email.trim().lowercase())
             .bind("candidateKey", candidateKey)
             .bind("tokenHash", tokenHash)
-            .bind("issuedBy", ADMIN_PRINCIPAL_ID)
+            .bind("issuedBy", UUID.fromString(ADMIN_PRINCIPAL_ID))
             .bind("createdAt", createdAt)
             .bind("expiresAt", expiresAt)
             .fetch()
@@ -576,7 +576,7 @@ class DirectInvitationBddSteps {
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", ADMIN_PRINCIPAL_ID)
+            .bind("id", UUID.fromString(ADMIN_PRINCIPAL_ID))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -590,7 +590,7 @@ class DirectInvitationBddSteps {
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
-            .bind("id", workspaceId)
+            .bind("id", UUID.fromString(workspaceId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

@@ -20,8 +20,18 @@ vi.mock('@lucide/vue', () => ({
 }))
 
 const baseWorkspaces = [
-  { workspaceId: 'ws-1', name: 'Personal', role: 'OWNER', icon: null },
-  { workspaceId: 'ws-2', name: 'Agency', role: 'EDITOR', icon: null },
+  {
+    workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+    name: 'Personal',
+    role: 'OWNER',
+    icon: null,
+  },
+  {
+    workspaceId: 'ebc2337b-7ff7-579a-9139-5415c77f040e',
+    name: 'Agency',
+    role: 'EDITOR',
+    icon: null,
+  },
 ]
 
 function mountSection(
@@ -78,7 +88,7 @@ describe('SidebarHeaderSection', () => {
 
     expect(wrapper.emitted('select')).toBeTruthy()
     const payload = wrapper.emitted('select')?.[0]?.[0] as { workspaceId: string }
-    expect(payload.workspaceId).toBe('ws-2')
+    expect(payload.workspaceId).toBe('ebc2337b-7ff7-579a-9139-5415c77f040e')
 
     // Popover closed
     expect(wrapper.find('#sidebar-workspace-menu').exists()).toBe(false)

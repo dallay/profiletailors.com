@@ -82,7 +82,7 @@ class PublicationCreationService(
         val resolvedAssets = resolveAssets(workspaceId, combinedAssetIds, externalAssets)
         val now = clock.instant()
         val draft = PublicationDraft(
-            id = "pub-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             authorPrincipalId = principalId,
             provider = socialAccount.provider,
@@ -128,7 +128,7 @@ class PublicationCreationService(
             throw PublicationValidationException("media_url blocked: $url")
         }
         PublicationAsset(
-            id = "asset-${UUID.randomUUID()}",
+            id = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
             sourceType = AssetSourceType.EXTERNAL_URL,
             mediaType = inferMediaType(url),

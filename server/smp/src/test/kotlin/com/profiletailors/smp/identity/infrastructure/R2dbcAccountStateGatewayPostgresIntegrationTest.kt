@@ -46,31 +46,43 @@ class R2dbcAccountStateGatewayPostgresIntegrationTest : PostgresIntegrationTestB
     private val gateway by lazy { R2dbcAccountStateGateway(databaseClient) }
 
     override suspend fun seedScenario() {
-        seedPrincipal("user-1")
+        seedPrincipal("d5298f21-6c5c-5672-bcac-0490740dd03a")
     }
 
     @Test
     fun `should return ACTIVE account state for a seeded user`() = runTest {
-        assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("user-1"))
+        assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `should return null account state for an unknown principal`() = runTest {
-        assertNull(gateway.findAccountState("missing"))
+        assertNull(gateway.findAccountState("3ed94c3a-fb01-58d8-9803-9c4e8f476a05"))
     }
 
     @Test
     fun `should swap account state when the expected state matches`() = runTest {
-        assertTrue(gateway.changeAccountState("user-1", UserAccountState.ACTIVE, UserAccountState.DISABLED))
+        assertTrue(
+            gateway.changeAccountState(
+                "d5298f21-6c5c-5672-bcac-0490740dd03a",
+                UserAccountState.ACTIVE,
+                UserAccountState.DISABLED,
+            ),
+        )
 
-        assertEquals(UserAccountState.DISABLED, gateway.findAccountState("user-1"))
+        assertEquals(UserAccountState.DISABLED, gateway.findAccountState("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     @Test
     fun `should keep account state when the expected state mismatches`() = runTest {
-        assertFalse(gateway.changeAccountState("user-1", UserAccountState.DISABLED, UserAccountState.ACTIVE))
+        assertFalse(
+            gateway.changeAccountState(
+                "d5298f21-6c5c-5672-bcac-0490740dd03a",
+                UserAccountState.DISABLED,
+                UserAccountState.ACTIVE,
+            ),
+        )
 
-        assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("user-1"))
+        assertEquals(UserAccountState.ACTIVE, gateway.findAccountState("d5298f21-6c5c-5672-bcac-0490740dd03a"))
     }
 
     companion object {

@@ -65,9 +65,9 @@ function makeChannelForStore(
 const mockConflictCalendarResponse: CalendarResponse = {
   publications: [
     {
-      id: 'api-pub-1',
-      workspaceId: 'ws_1',
-      socialAccountId: 'acc-li-1',
+      id: 'bcb7936f-dc82-5b11-beaf-0ea0d32c1f0f',
+      workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+      socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
       provider: 'LINKEDIN',
       status: 'SCHEDULED',
       scheduleMode: 'SCHEDULED_AT',
@@ -77,12 +77,12 @@ const mockConflictCalendarResponse: CalendarResponse = {
       assetIds: [],
       scheduledFor: '2026-06-15T20:00:00Z',
       hasConflict: true,
-      conflictingPublicationIds: ['api-pub-2'],
+      conflictingPublicationIds: ['56536a72-fc15-50ce-8787-c1ffbfcefdf3'],
     },
     {
-      id: 'api-pub-2',
-      workspaceId: 'ws_1',
-      socialAccountId: 'acc-li-1',
+      id: '56536a72-fc15-50ce-8787-c1ffbfcefdf3',
+      workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+      socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
       provider: 'LINKEDIN',
       status: 'SCHEDULED',
       scheduleMode: 'SCHEDULED_AT',
@@ -92,18 +92,18 @@ const mockConflictCalendarResponse: CalendarResponse = {
       assetIds: [],
       scheduledFor: '2026-06-15T20:10:00Z',
       hasConflict: true,
-      conflictingPublicationIds: ['api-pub-1'],
+      conflictingPublicationIds: ['bcb7936f-dc82-5b11-beaf-0ea0d32c1f0f'],
     },
   ],
   conflicts: [
     {
-      publicationId: 'api-pub-1',
-      conflictingPublicationIds: ['api-pub-2'],
+      publicationId: 'bcb7936f-dc82-5b11-beaf-0ea0d32c1f0f',
+      conflictingPublicationIds: ['56536a72-fc15-50ce-8787-c1ffbfcefdf3'],
       reason: 'OVERLAPPING_SCHEDULE',
     },
     {
-      publicationId: 'api-pub-2',
-      conflictingPublicationIds: ['api-pub-1'],
+      publicationId: '56536a72-fc15-50ce-8787-c1ffbfcefdf3',
+      conflictingPublicationIds: ['bcb7936f-dc82-5b11-beaf-0ea0d32c1f0f'],
       reason: 'OVERLAPPING_SCHEDULE',
     },
   ],
@@ -157,7 +157,7 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         schedules: [],
@@ -165,22 +165,25 @@ describe('publishing store', () => {
 
       await store.fetchRecurringSchedules()
 
-      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring', {
-        method: 'GET',
-        workspaceScoped: true,
-      })
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/v1/workspaces/a219727d-019f-544c-95f9-ac30f00cc8b2/recurring',
+        {
+          method: 'GET',
+          workspaceScoped: true,
+        },
+      )
     })
 
     it('creates a recurring schedule and adds it to local state', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       const schedule = {
-        id: 'recur-1',
-        workspaceId: 'workspace-1',
-        createdBy: 'principal-1',
-        templatePostId: 'pub-1',
+        id: 'a1dc2894-0de7-5ae9-a658-8f25f9d4b041',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        createdBy: '4dae1d83-d090-58ea-ac4b-eb99348c0689',
+        templatePostId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
         frequency: 'daily' as const,
         interval: 1,
         daysOfWeek: [],
@@ -195,7 +198,7 @@ describe('publishing store', () => {
       }
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(schedule as never)
 
-      await store.createRecurringSchedule('pub-1', {
+      await store.createRecurringSchedule('48c5787c-4ddb-5cd5-b205-cd0f99e7fc07', {
         frequency: 'daily',
         interval: 1,
         startsAt: '2026-08-01T09:00:00Z',
@@ -203,10 +206,10 @@ describe('publishing store', () => {
       })
 
       expect(apiFetch).toHaveBeenCalledWith(
-        '/api/v1/workspaces/workspace-1/recurring',
+        '/api/v1/workspaces/a219727d-019f-544c-95f9-ac30f00cc8b2/recurring',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"templatePostId":"pub-1"'),
+          body: expect.stringContaining('"templatePostId":"48c5787c-4ddb-5cd5-b205-cd0f99e7fc07"'),
         }),
       )
       expect(store.recurringSchedules).toEqual([schedule])
@@ -216,13 +219,13 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       store.recurringSchedules = [
         {
-          id: 'recur-1',
-          workspaceId: 'workspace-1',
-          createdBy: 'principal-1',
-          templatePostId: 'pub-1',
+          id: 'a1dc2894-0de7-5ae9-a658-8f25f9d4b041',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+          createdBy: '4dae1d83-d090-58ea-ac4b-eb99348c0689',
+          templatePostId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
           frequency: 'daily',
           interval: 1,
           daysOfWeek: [],
@@ -243,10 +246,12 @@ describe('publishing store', () => {
       }
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(updated as never)
 
-      await store.updateRecurringSchedule('recur-1', { status: 'PAUSED' })
+      await store.updateRecurringSchedule('a1dc2894-0de7-5ae9-a658-8f25f9d4b041', {
+        status: 'PAUSED',
+      })
 
       expect(apiFetch).toHaveBeenCalledWith(
-        '/api/v1/workspaces/workspace-1/recurring/recur-1',
+        '/api/v1/workspaces/a219727d-019f-544c-95f9-ac30f00cc8b2/recurring/a1dc2894-0de7-5ae9-a658-8f25f9d4b041',
         expect.objectContaining({
           method: 'PATCH',
           body: expect.stringContaining('"status":"PAUSED"'),
@@ -259,13 +264,13 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       store.recurringSchedules = [
         {
-          id: 'recur-1',
-          workspaceId: 'workspace-1',
-          createdBy: 'principal-1',
-          templatePostId: 'pub-1',
+          id: 'a1dc2894-0de7-5ae9-a658-8f25f9d4b041',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+          createdBy: '4dae1d83-d090-58ea-ac4b-eb99348c0689',
+          templatePostId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
           frequency: 'daily',
           interval: 1,
           daysOfWeek: [],
@@ -281,12 +286,15 @@ describe('publishing store', () => {
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined as never)
 
-      await store.cancelRecurringSchedule('recur-1')
+      await store.cancelRecurringSchedule('a1dc2894-0de7-5ae9-a658-8f25f9d4b041')
 
-      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring/recur-1', {
-        method: 'DELETE',
-        workspaceScoped: true,
-      })
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/v1/workspaces/a219727d-019f-544c-95f9-ac30f00cc8b2/recurring/a1dc2894-0de7-5ae9-a658-8f25f9d4b041',
+        {
+          method: 'DELETE',
+          workspaceScoped: true,
+        },
+      )
       expect(store.recurringSchedules[0]?.status).toBe('CANCELLED')
     })
   })
@@ -307,8 +315,8 @@ describe('publishing store', () => {
 
     it('includes socialAccountId when filterSocialAccountId is set', () => {
       const store = usePublishingStore()
-      store.filterSocialAccountId = 'acc-li-1'
-      expect(store.calendarFilters.socialAccountId).toBe('acc-li-1')
+      store.filterSocialAccountId = '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c'
+      expect(store.calendarFilters.socialAccountId).toBe('8ec9e4ac-9ec5-5c3a-8933-7af5407a797c')
     })
   })
 
@@ -320,8 +328,8 @@ describe('publishing store', () => {
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         channels: [
           {
-            socialAccountId: 'soc-1',
-            connectionId: 'conn-1',
+            socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
+            connectionId: '7fb06252-ea7d-5a8f-b3ad-726b3222f6f2',
             provider: 'LINKEDIN',
             accountKind: 'PERSONAL_PROFILE',
             displayName: 'Ada Lovelace',
@@ -341,8 +349,8 @@ describe('publishing store', () => {
       })
       expect(store.channels).toEqual([
         {
-          id: 'soc-1',
-          accountId: 'soc-1',
+          id: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
+          accountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
           name: 'Ada Lovelace',
           provider: 'linkedin',
           avatar: '',
@@ -361,8 +369,8 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         channels: [
           {
-            socialAccountId: 'soc-unknown',
-            connectionId: 'conn-unknown',
+            socialAccountId: '2216a2d2-3ffe-5659-b5a9-f1555d18ffe2',
+            connectionId: '8efcf6a1-25e3-5d9a-8116-598550729ee5',
             provider: 'MASTODON',
             accountKind: 'PERSONAL_PROFILE',
             displayName: 'Unknown Network',
@@ -386,8 +394,8 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         channels: [
           {
-            socialAccountId: 'soc-2',
-            connectionId: 'conn-2',
+            socialAccountId: 'd63e734c-cf36-5999-b9dc-66aa76d9a2d2',
+            connectionId: 'ee9210e6-21e2-536b-b170-b42edd43caae',
             provider: 'LINKEDIN',
             accountKind: 'PERSONAL_PROFILE',
             displayName: 'Grace Hopper',
@@ -430,8 +438,8 @@ describe('publishing store', () => {
 
   describe('refreshChannelAvatars', () => {
     const oldChannel = {
-      socialAccountId: 'soc-1',
-      connectionId: 'conn-1',
+      socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
+      connectionId: '7fb06252-ea7d-5a8f-b3ad-726b3222f6f2',
       provider: 'LINKEDIN',
       accountKind: 'PERSONAL_PROFILE',
       displayName: 'Ada Lovelace',
@@ -467,7 +475,7 @@ describe('publishing store', () => {
       const { apiFetch } = mockChannelsFlow(
         [{ channels: [oldChannel] }, { channels: [freshChannel] }],
         {
-          refreshedAccountIds: ['soc-1'],
+          refreshedAccountIds: ['223bd3b9-4c0a-57cd-826f-681e172f6d7d'],
           skippedAccountIds: [],
           failedAccountIds: [],
           refreshed: 1,
@@ -493,7 +501,7 @@ describe('publishing store', () => {
       authenticate()
       const { apiFetch } = mockChannelsFlow([{ channels: [oldChannel] }], {
         refreshedAccountIds: [],
-        skippedAccountIds: ['soc-1'],
+        skippedAccountIds: ['223bd3b9-4c0a-57cd-826f-681e172f6d7d'],
         failedAccountIds: [],
         refreshed: 0,
         skipped: 1,
@@ -558,12 +566,12 @@ describe('publishing store', () => {
       const apiFetch = vi
         .spyOn(auth, 'apiFetch')
         .mockResolvedValueOnce({
-          connectionId: 'conn-threads',
-          workspaceId: 'ws-1',
+          connectionId: '30aa483b-cc38-5c63-a7cf-75c4bfe26665',
+          workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
           provider: 'threads',
           status: 'connected',
           account: {
-            accountId: 'account-threads',
+            accountId: 'd48b9de6-2379-5ef3-8987-13d1effb08e7',
             providerAccountId: 'remote-threads',
             displayName: 'Threads profile',
             kind: 'PROFILE',
@@ -824,7 +832,7 @@ describe('publishing store', () => {
     it('preserves replacement connection when an old request completes', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
-      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      useWorkspaceStore().setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       let finishOld = (_response: Response) => {}
       const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw').mockImplementationOnce(
@@ -857,7 +865,7 @@ describe('publishing store', () => {
     it('ignores stale stream frames and cleanup after replacing a connected stream', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
-      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      useWorkspaceStore().setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       let finishOld = () => {}
       const onInvalidation = vi.fn()
@@ -868,7 +876,7 @@ describe('publishing store', () => {
               finishOld = () => {
                 controller.enqueue(
                   new TextEncoder().encode(
-                    'data: {"workspaceId":"workspace-1","publicationId":"pub-1","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00Z"}\n\n',
+                    'data: {"workspaceId":"a219727d-019f-544c-95f9-ac30f00cc8b2","publicationId":"48c5787c-4ddb-5cd5-b205-cd0f99e7fc07","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00Z"}\n\n',
                   ),
                 )
                 controller.close()
@@ -904,7 +912,7 @@ describe('publishing store', () => {
     it.each([404, 405])('returns unavailable for HTTP %s while preserving REST', async (status) => {
       const store = usePublishingStore()
       const auth = useAuthStore()
-      useWorkspaceStore().setActiveWorkspaceId('workspace-1')
+      useWorkspaceStore().setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       vi.spyOn(auth, 'apiFetchRaw').mockRejectedValueOnce({ status })
       vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -925,14 +933,14 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       const apiFetchRaw = vi
         .spyOn(auth, 'apiFetchRaw')
         .mockResolvedValue(
           new Response(
             sseStream([
-              'event: publication.status-changed\ndata: {"workspaceId":"workspace-1","publicationId":"pub-1","socialAccountId":"acc-1","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+              'event: publication.status-changed\ndata: {"workspaceId":"a219727d-019f-544c-95f9-ac30f00cc8b2","publicationId":"48c5787c-4ddb-5cd5-b205-cd0f99e7fc07","socialAccountId":"788c8103-35f1-5899-b15a-6ca994253c99","changeType":"publication.status-changed","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
             ]),
           ),
         )
@@ -948,9 +956,9 @@ describe('publishing store', () => {
       })
       expect(onInvalidation).toHaveBeenCalledOnce()
       expect(onInvalidation).toHaveBeenCalledWith({
-        workspaceId: 'workspace-1',
-        publicationId: 'pub-1',
-        socialAccountId: 'acc-1',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        publicationId: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
+        socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
         changeType: 'publication.status-changed',
         occurredAt: '2026-09-25T12:00:00.000Z',
       })
@@ -961,14 +969,14 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
-      workspace.setActiveWorkspaceId('workspace-1')
+      workspace.setActiveWorkspaceId('a219727d-019f-544c-95f9-ac30f00cc8b2')
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       vi.spyOn(auth, 'apiFetchRaw').mockResolvedValue(
         new Response(
           sseStream([
-            'event: publication.updated\ndata: {"workspaceId":"workspace-2","publicationId":"pub-9","changeType":"publication.updated","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
+            'event: publication.updated\ndata: {"workspaceId":"c1d6493d-5117-5741-a405-50309e8bfc77","publicationId":"5907d0e4-0390-51bb-8711-85387d7562f0","changeType":"publication.updated","occurredAt":"2026-09-25T12:00:00.000Z"}\n\n',
             'event: heartbeat\ndata: {}\n\n',
-            'event: publication.updated\ndata: {"workspaceId":"workspace-1","changeType":"bogus"}\n\n',
+            'event: publication.updated\ndata: {"workspaceId":"a219727d-019f-544c-95f9-ac30f00cc8b2","changeType":"bogus"}\n\n',
           ]),
         ),
       )
@@ -1021,8 +1029,8 @@ describe('publishing store', () => {
 
       store.channels = [
         {
-          id: 'soc-real-1',
-          accountId: 'soc-real-1',
+          id: '967ffe2a-bc25-520e-9b99-5ff1de10474f',
+          accountId: '967ffe2a-bc25-520e-9b99-5ff1de10474f',
           name: 'Real Profile 1',
           provider: 'linkedin',
           avatar: '',
@@ -1039,8 +1047,8 @@ describe('publishing store', () => {
 
       store.channels = [
         {
-          id: 'soc-inactive-1',
-          accountId: 'soc-inactive-1',
+          id: 'a64c6bd6-8a2e-55c8-9f98-fa7b7105b0ae',
+          accountId: 'a64c6bd6-8a2e-55c8-9f98-fa7b7105b0ae',
           name: 'Inactive 1',
           provider: 'linkedin',
           avatar: '',
@@ -1048,8 +1056,8 @@ describe('publishing store', () => {
           status: 'EXPIRED',
         },
         {
-          id: 'soc-inactive-2',
-          accountId: 'soc-inactive-2',
+          id: '57b084d6-4aed-51ce-a930-2485e7475a37',
+          accountId: '57b084d6-4aed-51ce-a930-2485e7475a37',
           name: 'Inactive 2',
           provider: 'linkedin',
           avatar: '',
@@ -1099,8 +1107,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'ch-trim-1',
-          accountId: 'ch-trim-1',
+          id: '07e93669-ed44-5dbc-8517-fe337a8328be',
+          accountId: '07e93669-ed44-5dbc-8517-fe337a8328be',
           name: 'Trim Test',
           provider: 'linkedin',
           avatar: '',
@@ -1128,8 +1136,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'ch-trim-2',
-          accountId: 'ch-trim-2',
+          id: '0c783f9a-304d-5a13-9c37-3ad293aa8116',
+          accountId: '0c783f9a-304d-5a13-9c37-3ad293aa8116',
           name: 'Trim Test 2',
           provider: 'linkedin',
           avatar: '',
@@ -1157,8 +1165,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'ch-trim-3',
-          accountId: 'ch-trim-3',
+          id: '63c71adf-16fb-5a1f-b897-17d9a9d83ce0',
+          accountId: '63c71adf-16fb-5a1f-b897-17d9a9d83ce0',
           name: 'Trim Test 3',
           provider: 'linkedin',
           avatar: '',
@@ -1189,9 +1197,9 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         publications: [
           {
-            id: 'pub-calendar',
-            workspaceId: 'workspace-1',
-            socialAccountId: 'soc-li',
+            id: '05ee3d72-bb3f-5c06-9522-546b7d41d294',
+            workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
             provider: 'LINKEDIN',
             status: 'QUEUED',
             scheduleMode: 'SCHEDULED_AT',
@@ -1202,7 +1210,7 @@ describe('publishing store', () => {
             scheduledFor: '2026-06-20T14:00:00Z',
             hasConflict: false,
             conflictingPublicationIds: [],
-            groupId: 'batch-calendar',
+            groupId: '01348fd0-7362-5e46-9926-6fb0022954d0',
           },
         ],
         conflicts: [],
@@ -1211,9 +1219,10 @@ describe('publishing store', () => {
 
       await store.fetchCalendar('2026-06-20', '2026-06-20')
 
-      expect(store.publications.find((item) => item.id === 'pub-calendar')?.groupId).toBe(
-        'batch-calendar',
-      )
+      expect(
+        store.publications.find((item) => item.id === '05ee3d72-bb3f-5c06-9522-546b7d41d294')
+          ?.groupId,
+      ).toBe('01348fd0-7362-5e46-9926-6fb0022954d0')
     })
 
     it('sends one batch request with account-specific content and inserts successful publications', async () => {
@@ -1221,22 +1230,22 @@ describe('publishing store', () => {
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
-        makeChannelForStore('soc-li'),
-        makeChannelForStore('soc-th', { provider: 'threads' }),
+        makeChannelForStore('b0837209-7042-5a29-bddf-5020da6580db'),
+        makeChannelForStore('792ec8df-cf55-5d48-8077-39eb3c7bb67c', { provider: 'threads' }),
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         status: 'ALL_CREATED',
         results: [
           {
-            socialAccountId: 'soc-li',
-            publicationId: 'pub-li',
-            groupId: 'batch-1',
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+            publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+            groupId: 'd7040dcb-a574-549e-b1ac-b45c786d5e10',
             status: 'CREATED',
           },
           {
-            socialAccountId: 'soc-th',
-            publicationId: 'pub-th',
-            groupId: 'batch-1',
+            socialAccountId: '792ec8df-cf55-5d48-8077-39eb3c7bb67c',
+            publicationId: '261ef19a-4b40-52ca-8850-86ae31fdc4c3',
+            groupId: 'd7040dcb-a574-549e-b1ac-b45c786d5e10',
             status: 'CREATED',
           },
         ],
@@ -1246,10 +1255,18 @@ describe('publishing store', () => {
         title: 'Post from App',
         scheduleMode: 'NOW',
         priority: false,
-        assetIds: ['asset-1'],
+        assetIds: ['8bdec504-2ed1-59e4-8a4a-c068789d03d2'],
         targets: [
-          { socialAccountId: 'soc-li', provider: 'linkedin', content: 'LinkedIn copy' },
-          { socialAccountId: 'soc-th', provider: 'threads', content: 'Threads copy' },
+          {
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+            provider: 'linkedin',
+            content: 'LinkedIn copy',
+          },
+          {
+            socialAccountId: '792ec8df-cf55-5d48-8077-39eb3c7bb67c',
+            provider: 'threads',
+            content: 'Threads copy',
+          },
         ],
       })
 
@@ -1263,26 +1280,35 @@ describe('publishing store', () => {
       )
       expect(result.results).toHaveLength(2)
       expect(
-        store.publications.filter((item) => ['pub-li', 'pub-th'].includes(item.id)),
+        store.publications.filter((item) =>
+          ['fc18a1ef-cca8-5cf8-a32a-27629468a359', '261ef19a-4b40-52ca-8850-86ae31fdc4c3'].includes(
+            item.id,
+          ),
+        ),
       ).toHaveLength(2)
       expect(
         store.publications
-          .filter((item) => ['pub-li', 'pub-th'].includes(item.id))
+          .filter((item) =>
+            [
+              'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+              '261ef19a-4b40-52ca-8850-86ae31fdc4c3',
+            ].includes(item.id),
+          )
           .map((item) => item.groupId),
-      ).toEqual(['batch-1', 'batch-1'])
+      ).toEqual(['d7040dcb-a574-549e-b1ac-b45c786d5e10', 'd7040dcb-a574-549e-b1ac-b45c786d5e10'])
     })
 
     it('preserves per-target failures when every target fails with the endpoint 400 response', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      store.channels = [makeChannelForStore('soc-li')]
+      store.channels = [makeChannelForStore('b0837209-7042-5a29-bddf-5020da6580db')]
       vi.spyOn(auth, 'apiFetch').mockRejectedValue(
         Object.assign(new Error('Batch failed'), {
           status: 400,
           results: [
             {
-              socialAccountId: 'soc-li',
+              socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
               status: 'FAILED',
               errorCode: 'INVALID_CONTENT',
               errorMessage: 'Rejected',
@@ -1294,21 +1320,31 @@ describe('publishing store', () => {
       const result = await store.scheduleMultiChannel({
         scheduleMode: 'NOW',
         priority: false,
-        targets: [{ socialAccountId: 'soc-li', provider: 'linkedin', content: 'Rejected content' }],
+        targets: [
+          {
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+            provider: 'linkedin',
+            content: 'Rejected content',
+          },
+        ],
       })
 
       expect(result).toEqual({
         status: 'ALL_FAILED',
         results: [
           {
-            socialAccountId: 'soc-li',
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
             status: 'FAILED',
             errorCode: 'INVALID_CONTENT',
             errorMessage: 'Rejected',
           },
         ],
       })
-      expect(store.publications.some((item) => item.accountId === 'soc-li')).toBe(false)
+      expect(
+        store.publications.some(
+          (item) => item.accountId === 'b0837209-7042-5a29-bddf-5020da6580db',
+        ),
+      ).toBe(false)
     })
 
     it('inserts successful targets and preserves per-target failures on partial response', async () => {
@@ -1316,14 +1352,22 @@ describe('publishing store', () => {
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
-        makeChannelForStore('soc-li'),
-        makeChannelForStore('soc-th', { provider: 'threads' }),
+        makeChannelForStore('b0837209-7042-5a29-bddf-5020da6580db'),
+        makeChannelForStore('792ec8df-cf55-5d48-8077-39eb3c7bb67c', { provider: 'threads' }),
       ]
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         status: 'PARTIAL',
         results: [
-          { socialAccountId: 'soc-li', publicationId: 'pub-li', status: 'CREATED' },
-          { socialAccountId: 'soc-th', status: 'BAD_REQUEST', errorCode: 'CAPABILITY_VIOLATION' },
+          {
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+            publicationId: 'fc18a1ef-cca8-5cf8-a32a-27629468a359',
+            status: 'CREATED',
+          },
+          {
+            socialAccountId: '792ec8df-cf55-5d48-8077-39eb3c7bb67c',
+            status: 'BAD_REQUEST',
+            errorCode: 'CAPABILITY_VIOLATION',
+          },
         ],
       })
 
@@ -1331,15 +1375,29 @@ describe('publishing store', () => {
         scheduleMode: 'NOW',
         priority: false,
         targets: [
-          { socialAccountId: 'soc-li', provider: 'linkedin', content: 'LinkedIn copy' },
-          { socialAccountId: 'soc-th', provider: 'threads', content: 'Threads copy' },
+          {
+            socialAccountId: 'b0837209-7042-5a29-bddf-5020da6580db',
+            provider: 'linkedin',
+            content: 'LinkedIn copy',
+          },
+          {
+            socialAccountId: '792ec8df-cf55-5d48-8077-39eb3c7bb67c',
+            provider: 'threads',
+            content: 'Threads copy',
+          },
         ],
       })
 
       expect(result.status).toBe('PARTIAL')
       expect(result.results[1]?.errorCode).toBe('CAPABILITY_VIOLATION')
-      expect(store.publications.some((item) => item.id === 'pub-li')).toBe(true)
-      expect(store.publications.some((item) => item.accountId === 'soc-th')).toBe(false)
+      expect(
+        store.publications.some((item) => item.id === 'fc18a1ef-cca8-5cf8-a32a-27629468a359'),
+      ).toBe(true)
+      expect(
+        store.publications.some(
+          (item) => item.accountId === '792ec8df-cf55-5d48-8077-39eb3c7bb67c',
+        ),
+      ).toBe(false)
     })
   })
 
@@ -1354,11 +1412,11 @@ describe('publishing store', () => {
         channels: ['linkedin'],
         scheduleMode: 'NOW',
         priority: false,
-        assetIds: ['asset-local-1'],
+        assetIds: ['7bdd618f-709c-51db-bf4b-a83cff7d3917'],
       })
 
-      expect(result.assetIds).toEqual(['asset-local-1'])
-      expect(store.publications[0]?.assetIds).toEqual(['asset-local-1'])
+      expect(result.assetIds).toEqual(['7bdd618f-709c-51db-bf4b-a83cff7d3917'])
+      expect(store.publications[0]?.assetIds).toEqual(['7bdd618f-709c-51db-bf4b-a83cff7d3917'])
     })
 
     it.each([
@@ -1371,17 +1429,17 @@ describe('publishing store', () => {
         const store = usePublishingStore()
         const auth = useAuthStore()
         Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-        store.channels = [makeChannelForStore('soc-create')]
+        store.channels = [makeChannelForStore('f2f58fae-2804-5c15-bacd-feb0c8b94592')]
         vi.spyOn(auth, 'apiFetch').mockResolvedValue({
           publicationId: `backend-${scheduleMode}`,
-          workspaceId: 'workspace-1',
-          socialAccountId: 'soc-create',
+          workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+          socialAccountId: 'f2f58fae-2804-5c15-bacd-feb0c8b94592',
           status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
           scheduleMode,
           priority: true,
           title: 'Server title',
           bodyText: 'Server body',
-          assetIds: ['asset-server'],
+          assetIds: ['af778fd0-cff9-523f-87ee-2f4ef06f082a'],
           scheduledFor,
           nextSlotAfter,
         })
@@ -1393,17 +1451,17 @@ describe('publishing store', () => {
           nextSlotAfter: '2026-06-20T14:00:00Z',
           scheduleMode,
           priority: false,
-          socialAccountId: 'soc-create',
+          socialAccountId: 'f2f58fae-2804-5c15-bacd-feb0c8b94592',
         })
 
         expect(result).toMatchObject({
           id: `backend-${scheduleMode}`,
           content: 'Server body',
-          accountId: 'soc-create',
+          accountId: 'f2f58fae-2804-5c15-bacd-feb0c8b94592',
           status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
           scheduleMode,
           scheduledAt: scheduledFor ?? nextSlotAfter ?? '',
-          assetIds: ['asset-server'],
+          assetIds: ['af778fd0-cff9-523f-87ee-2f4ef06f082a'],
           priority: true,
         })
         expect(store.publications[0]?.id).toBe(`backend-${scheduleMode}`)
@@ -1414,17 +1472,17 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      store.channels = [makeChannelForStore('9f06a3c8-account')]
+      store.channels = [makeChannelForStore('46470503-e51f-5663-9254-ee26fb4cec70')]
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         publicationId: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
-        workspaceId: 'workspace-1',
-        socialAccountId: '9f06a3c8-account',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '46470503-e51f-5663-9254-ee26fb4cec70',
         status: 'QUEUED',
         scheduleMode: 'NOW',
         priority: false,
         title: 'Post from App',
         bodyText: 'Real NOW response',
-        assetIds: ['real-media-asset-id'],
+        assetIds: ['cdb1a004-9ef3-5f17-a8fa-e83d0177d4ee'],
         scheduledFor: '2026-07-02T15:25:38.050321Z',
         nextSlotAfter: null,
       })
@@ -1434,14 +1492,14 @@ describe('publishing store', () => {
         channels: ['linkedin'],
         scheduleMode: 'NOW',
         priority: false,
-        socialAccountId: '9f06a3c8-account',
+        socialAccountId: '46470503-e51f-5663-9254-ee26fb4cec70',
       })
 
       expect(result).toMatchObject({
         id: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
         scheduleMode: 'NOW',
         scheduledAt: '2026-07-02T15:25:38.050321Z',
-        assetIds: ['real-media-asset-id'],
+        assetIds: ['cdb1a004-9ef3-5f17-a8fa-e83d0177d4ee'],
       })
       expect(Number.isNaN(new Date(result.scheduledAt).getTime())).toBe(false)
     })
@@ -1450,7 +1508,7 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      store.channels = [makeChannelForStore('soc-create')]
+      store.channels = [makeChannelForStore('f2f58fae-2804-5c15-bacd-feb0c8b94592')]
       const before = store.publications.map((publication) => publication.id)
       vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('create failed'))
 
@@ -1471,8 +1529,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'soc-real-1',
-          accountId: 'soc-real-1',
+          id: '967ffe2a-bc25-520e-9b99-5ff1de10474f',
+          accountId: '967ffe2a-bc25-520e-9b99-5ff1de10474f',
           name: 'Real Profile 1',
           provider: 'linkedin',
           avatar: '',
@@ -1480,8 +1538,8 @@ describe('publishing store', () => {
           status: 'ACTIVE',
         },
         {
-          id: 'soc-real-2',
-          accountId: 'soc-real-2',
+          id: '2def2d73-5e00-5cc3-8433-90151129e799',
+          accountId: '2def2d73-5e00-5cc3-8433-90151129e799',
           name: 'Real Profile 2',
           provider: 'linkedin',
           avatar: '',
@@ -1497,11 +1555,11 @@ describe('publishing store', () => {
         channels: ['linkedin'],
         scheduledAt: '2026-06-20T14:00:00Z',
         priority: false,
-        socialAccountId: 'soc-real-2',
+        socialAccountId: '2def2d73-5e00-5cc3-8433-90151129e799',
       })
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
-      expect(body.socialAccountId).toBe('soc-real-2')
+      expect(body.socialAccountId).toBe('2def2d73-5e00-5cc3-8433-90151129e799')
       expect(body.socialAccountId).not.toBe('account-linkedin-mock')
       expect(apiFetch.mock.calls[0]?.[1]).toMatchObject({ workspaceScoped: true })
     })
@@ -1512,8 +1570,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'soc-fallback-1',
-          accountId: 'soc-fallback-1',
+          id: '6b422edb-a477-5029-a5d7-8dab871e08e9',
+          accountId: '6b422edb-a477-5029-a5d7-8dab871e08e9',
           name: 'Fallback Profile',
           provider: 'linkedin',
           avatar: '',
@@ -1521,8 +1579,8 @@ describe('publishing store', () => {
           status: 'ACTIVE',
         },
         {
-          id: 'soc-fallback-2',
-          accountId: 'soc-fallback-2',
+          id: '55309ec2-3276-542e-bbe4-cd6e82daf38d',
+          accountId: '55309ec2-3276-542e-bbe4-cd6e82daf38d',
           name: 'Other Profile',
           provider: 'linkedin',
           avatar: '',
@@ -1531,9 +1589,9 @@ describe('publishing store', () => {
         },
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'backend-fallback',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-fallback-1',
+        publicationId: 'efbe853b-156c-561d-ac5a-8b5bbae18cb0',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '6b422edb-a477-5029-a5d7-8dab871e08e9',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
@@ -1553,8 +1611,8 @@ describe('publishing store', () => {
       })
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
-      expect(body.socialAccountId).toBe('soc-fallback-1')
-      expect(result.accountId).toBe('soc-fallback-1')
+      expect(body.socialAccountId).toBe('6b422edb-a477-5029-a5d7-8dab871e08e9')
+      expect(result.accountId).toBe('6b422edb-a477-5029-a5d7-8dab871e08e9')
     })
 
     it('uses the selected connected Threads account id for authenticated scheduling', async () => {
@@ -1563,8 +1621,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'soc-linkedin-1',
-          accountId: 'soc-linkedin-1',
+          id: 'a4460b80-fdad-5d78-9508-79dafefe6bee',
+          accountId: 'a4460b80-fdad-5d78-9508-79dafefe6bee',
           name: 'LinkedIn Profile',
           provider: 'linkedin',
           avatar: '',
@@ -1572,8 +1630,8 @@ describe('publishing store', () => {
           status: 'ACTIVE',
         },
         {
-          id: 'soc-threads-1',
-          accountId: 'soc-threads-1',
+          id: '1a1c7887-6761-541b-8256-911451482b17',
+          accountId: '1a1c7887-6761-541b-8256-911451482b17',
           name: 'Threads Profile',
           provider: 'threads',
           avatar: '',
@@ -1582,9 +1640,9 @@ describe('publishing store', () => {
         },
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'backend-threads-1',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-threads-1',
+        publicationId: 'f7d251cb-5faa-59e9-a0c0-8d47b6b28618',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '1a1c7887-6761-541b-8256-911451482b17',
         status: 'QUEUED',
         scheduleMode: 'NOW',
         priority: false,
@@ -1600,12 +1658,12 @@ describe('publishing store', () => {
         title: 'Title',
         channels: ['threads'],
         priority: false,
-        socialAccountId: 'soc-threads-1',
+        socialAccountId: '1a1c7887-6761-541b-8256-911451482b17',
       })
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
-      expect(body.socialAccountId).toBe('soc-threads-1')
-      expect(result.accountId).toBe('soc-threads-1')
+      expect(body.socialAccountId).toBe('1a1c7887-6761-541b-8256-911451482b17')
+      expect(result.accountId).toBe('1a1c7887-6761-541b-8256-911451482b17')
     })
 
     it('throws for authenticated scheduling when the selected provider channel is not connected', async () => {
@@ -1614,8 +1672,8 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'soc-linkedin-1',
-          accountId: 'soc-linkedin-1',
+          id: 'a4460b80-fdad-5d78-9508-79dafefe6bee',
+          accountId: 'a4460b80-fdad-5d78-9508-79dafefe6bee',
           name: 'LinkedIn Profile',
           provider: 'linkedin',
           avatar: '',
@@ -1631,7 +1689,7 @@ describe('publishing store', () => {
           title: 'Title',
           channels: ['threads'],
           priority: false,
-          socialAccountId: 'soc-threads-1',
+          socialAccountId: '1a1c7887-6761-541b-8256-911451482b17',
         }),
       ).rejects.toThrow('Connect a social profile before scheduling authenticated posts.')
       expect(apiFetch).not.toHaveBeenCalled()
@@ -1692,7 +1750,9 @@ describe('publishing store', () => {
       expect(store.publications).toHaveLength(2)
       expect(store.publications[0]?.content).toBe('First post content')
       expect(store.publications[0]?.hasConflict).toBe(true)
-      expect(store.publications[0]?.conflictingPublicationIds).toEqual(['api-pub-2'])
+      expect(store.publications[0]?.conflictingPublicationIds).toEqual([
+        '56536a72-fc15-50ce-8787-c1ffbfcefdf3',
+      ])
 
       expect(store.conflicts).toHaveLength(2)
       expect(store.activity).toHaveLength(1)
@@ -1706,9 +1766,9 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         publications: [
           {
-            id: 'api-pub-draft',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-li-1',
+            id: '438b5dc0-db64-5675-a885-aebc17c296c6',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
             provider: 'UNKNOWN',
             status: 'SOMETHING_NEW',
             scheduleMode: 'SCHEDULED_AT',
@@ -1741,9 +1801,9 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         publications: [
           {
-            id: 'api-pub-blocked',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-li-1',
+            id: '74ea302d-b8c6-532e-bd64-83934685aa51',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
             provider: 'linkedin',
             status: 'BLOCKED',
             scheduleMode: 'SCHEDULED_AT',
@@ -1756,9 +1816,9 @@ describe('publishing store', () => {
             blockedReason: 'LinkedIn account requires reconnect',
           },
           {
-            id: 'api-pub-failed',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-li-1',
+            id: '04c496ee-833f-548d-8f57-6fdd510fe5ca',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
             provider: 'linkedin',
             status: 'FAILED',
             scheduleMode: 'SCHEDULED_AT',
@@ -1778,12 +1838,12 @@ describe('publishing store', () => {
       await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
 
       expect(store.publications[0]).toMatchObject({
-        id: 'api-pub-blocked',
+        id: '74ea302d-b8c6-532e-bd64-83934685aa51',
         status: 'BLOCKED',
         blockedReason: 'LinkedIn account requires reconnect',
       })
       expect(store.publications[1]).toMatchObject({
-        id: 'api-pub-failed',
+        id: '04c496ee-833f-548d-8f57-6fdd510fe5ca',
         status: 'FAILED',
         errorCode: 'LINKEDIN_VALIDATION_ERROR',
       })
@@ -1796,9 +1856,9 @@ describe('publishing store', () => {
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
         publications: [
           {
-            id: 'api-pub-blocked-raw',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-li-1',
+            id: 'ed000f79-ab3e-5c37-a483-4bb6b71b75af',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
             provider: 'linkedin',
             status: 'BLOCKED',
             scheduleMode: 'SCHEDULED_AT',
@@ -1812,9 +1872,9 @@ describe('publishing store', () => {
             blockedReason: 'com.example.ReconnectRequiredException token=secret',
           },
           {
-            id: 'api-pub-failed-raw',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-li-1',
+            id: '3fe2488b-1366-56f2-ad36-af6aa20578a8',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
             provider: 'linkedin',
             status: 'FAILED',
             scheduleMode: 'SCHEDULED_AT',
@@ -1847,7 +1907,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.publications = [
         {
-          id: 'failed-pub',
+          id: '8d57c44a-0cc3-5837-9d3d-219ca18ed5d0',
           content: 'Retry this post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -1858,9 +1918,9 @@ describe('publishing store', () => {
         },
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'failed-pub',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: '8d57c44a-0cc3-5837-9d3d-219ca18ed5d0',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'QUEUED',
         scheduleMode: 'NOW',
         priority: false,
@@ -1874,16 +1934,19 @@ describe('publishing store', () => {
         publishedAt: null,
       })
 
-      const result = await store.retryPublication('failed-pub')
+      const result = await store.retryPublication('8d57c44a-0cc3-5837-9d3d-219ca18ed5d0')
 
-      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/failed-pub/retry', {
-        method: 'POST',
-        body: JSON.stringify({
-          scheduleMode: 'NOW',
-          priority: false,
-        }),
-        workspaceScoped: true,
-      })
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/publishing/publications/8d57c44a-0cc3-5837-9d3d-219ca18ed5d0/retry',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            scheduleMode: 'NOW',
+            priority: false,
+          }),
+          workspaceScoped: true,
+        },
+      )
       expect(result.status).toBe('QUEUED')
       expect(result.errorCode).toBeUndefined()
       expect(store.publications[0]?.status).toBe('QUEUED')
@@ -1897,7 +1960,7 @@ describe('publishing store', () => {
 
       store.publications = [
         {
-          id: 'unauth-failed-pub',
+          id: '8d1eec5e-e1a3-5555-b77f-fa2700ef41cc',
           content: 'Offline retry test',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -1908,7 +1971,7 @@ describe('publishing store', () => {
       ]
 
       try {
-        const result = await store.retryPublication('unauth-failed-pub')
+        const result = await store.retryPublication('8d1eec5e-e1a3-5555-b77f-fa2700ef41cc')
 
         // No API call should be made when unauthenticated
         expect(apiFetch).not.toHaveBeenCalled()
@@ -1929,7 +1992,7 @@ describe('publishing store', () => {
       // Set initial local publications
       store.publications = [
         {
-          id: 'local-1',
+          id: '494209e5-e5d9-5eee-b2fd-4848e29511de',
           content: 'Local post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-10T12:00:00Z',
@@ -1941,7 +2004,9 @@ describe('publishing store', () => {
       await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
 
       // Should still have the local publication
-      expect(store.publications.some((p) => p.id === 'local-1')).toBe(true)
+      expect(store.publications.some((p) => p.id === '494209e5-e5d9-5eee-b2fd-4848e29511de')).toBe(
+        true,
+      )
     })
 
     it('applies local filters in fallback mode and clears api-only state', async () => {
@@ -1950,28 +2015,28 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
-          id: 'queued-linkedin',
+          id: 'f8023dcb-93ef-5736-ba0b-febc6bc0853d',
           content: 'Architecture notes',
           channels: ['linkedin'],
-          accountId: 'acc-1',
+          accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
           scheduledAt: '2026-06-10T12:00:00Z',
           status: 'QUEUED',
           priority: false,
         },
         {
-          id: 'published-linkedin',
+          id: '41e6b357-faa8-50c0-b061-ff9eaed5144f',
           content: 'Architecture shipped',
           channels: ['linkedin'],
-          accountId: 'acc-1',
+          accountId: '788c8103-35f1-5899-b15a-6ca994253c99',
           scheduledAt: '2026-06-11T12:00:00Z',
           status: 'PUBLISHED',
           priority: false,
         },
         {
-          id: 'queued-instagram',
+          id: 'dd61f582-9041-5094-8c8b-2ac7edbde956',
           content: 'Visual post',
           channels: ['instagram'],
-          accountId: 'acc-2',
+          accountId: '28353a84-fcee-5f3a-93b6-4c1bd639921e',
           scheduledAt: '2026-06-12T12:00:00Z',
           status: 'QUEUED',
           priority: false,
@@ -1980,19 +2045,21 @@ describe('publishing store', () => {
       store.activity = [{ date: '2026-06-10', density: 'HIGH', count: 3 }]
       store.conflicts = [
         {
-          publicationId: 'queued-linkedin',
-          conflictingPublicationIds: ['published-linkedin'],
+          publicationId: 'f8023dcb-93ef-5736-ba0b-febc6bc0853d',
+          conflictingPublicationIds: ['41e6b357-faa8-50c0-b061-ff9eaed5144f'],
           reason: 'OVERLAPPING_SCHEDULE',
         },
       ]
       store.filterChannel = 'linkedin'
-      store.filterSocialAccountId = 'acc-1'
+      store.filterSocialAccountId = '788c8103-35f1-5899-b15a-6ca994253c99'
       store.filterTag = 'arch'
       store.filterPostType = 'queued'
 
       await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
 
-      expect(store.publications.map((pub) => pub.id)).toEqual(['queued-linkedin'])
+      expect(store.publications.map((pub) => pub.id)).toEqual([
+        'f8023dcb-93ef-5736-ba0b-febc6bc0853d',
+      ])
       expect(store.activity).toEqual([])
       expect(store.conflicts).toEqual([])
     })
@@ -2005,9 +2072,9 @@ describe('publishing store', () => {
       const freshResponse = {
         publications: [
           {
-            id: 'api-fresh',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-1',
+            id: 'd3a963cc-0fe6-5e8c-9a59-e4827ecf9164',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
             provider: 'LINKEDIN',
             status: 'QUEUED',
             scheduleMode: 'SCHEDULED_AT',
@@ -2025,9 +2092,9 @@ describe('publishing store', () => {
       const staleResponse = {
         publications: [
           {
-            id: 'api-stale',
-            workspaceId: 'ws_1',
-            socialAccountId: 'acc-1',
+            id: 'b8ad09d5-33f5-5c20-88bf-a10a6dd8f9ea',
+            workspaceId: '9f6f84fe-2465-5955-ae9f-801107241c33',
+            socialAccountId: '788c8103-35f1-5899-b15a-6ca994253c99',
             provider: 'LINKEDIN',
             status: 'QUEUED',
             scheduleMode: 'SCHEDULED_AT',
@@ -2039,7 +2106,7 @@ describe('publishing store', () => {
             conflictingPublicationIds: [],
           },
         ],
-        conflicts: [{ id: 'stale-conflict' }],
+        conflicts: [{ id: '2512c06c-161a-59fb-9d20-c420584ae194' }],
         activity: [{ date: '2026-06-01', density: 'HIGH' }],
       }
 
@@ -2069,7 +2136,7 @@ describe('publishing store', () => {
 
       // The store should reflect the NEWER call's payload; the older response
       // must NOT have overwritten it.
-      expect(store.publications.map((p) => p.id)).toEqual(['api-fresh'])
+      expect(store.publications.map((p) => p.id)).toEqual(['d3a963cc-0fe6-5e8c-9a59-e4827ecf9164'])
       expect(store.conflicts).toEqual([])
       expect(store.activity).toEqual([{ date: '2026-06-10', density: 'LOW' }])
       // Sanity: apiFetch was invoked twice.
@@ -2081,13 +2148,15 @@ describe('publishing store', () => {
     it('creates a publication in local state', async () => {
       const store = usePublishingStore()
       const result = await store.quickCreatePost({
-        socialAccountId: 'acc-li-1',
+        socialAccountId: '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c',
         title: 'Quick',
         bodyText: 'Quick post content',
         scheduledFor: '2026-06-20T14:00:00Z',
       })
 
-      expect(result.id).toBeTruthy()
+      expect(result.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      )
       expect(result.content).toBe('Quick post content')
       expect(result.channels).toContain('linkedin')
       // Should be added to the beginning of the list
@@ -2099,9 +2168,9 @@ describe('publishing store', () => {
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'backend-quick-1',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'acc-li-99',
+        publicationId: '21dacb75-39e2-5365-b8b2-0e4d95d137b6',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: 'cbc4a596-9ae8-5479-b6da-8bd52442012d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: true,
@@ -2113,7 +2182,7 @@ describe('publishing store', () => {
       })
 
       const result = await store.quickCreatePost({
-        socialAccountId: 'acc-li-99',
+        socialAccountId: 'cbc4a596-9ae8-5479-b6da-8bd52442012d',
         title: 'Quick Auth',
         bodyText: 'Authenticated quick create',
         scheduledFor: '2026-06-20T14:00:00Z',
@@ -2123,7 +2192,7 @@ describe('publishing store', () => {
       expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/quick-create', {
         method: 'POST',
         body: JSON.stringify({
-          socialAccountId: 'acc-li-99',
+          socialAccountId: 'cbc4a596-9ae8-5479-b6da-8bd52442012d',
           title: 'Quick Auth',
           bodyText: 'Authenticated quick create',
           scheduledFor: '2026-06-20T14:00:00Z',
@@ -2132,15 +2201,15 @@ describe('publishing store', () => {
         workspaceScoped: true,
       })
       expect(result).toMatchObject({
-        id: 'backend-quick-1',
+        id: '21dacb75-39e2-5365-b8b2-0e4d95d137b6',
         content: 'Authenticated quick create normalized',
-        accountId: 'acc-li-99',
+        accountId: 'cbc4a596-9ae8-5479-b6da-8bd52442012d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         scheduledAt: '2026-06-20T14:05:00Z',
         assetIds: ['quick-asset'],
       })
-      expect(store.publications[0]?.id).toBe('backend-quick-1')
+      expect(store.publications[0]?.id).toBe('21dacb75-39e2-5365-b8b2-0e4d95d137b6')
     })
 
     it('propagates authenticated quick-create failure without local insertion', async () => {
@@ -2152,7 +2221,7 @@ describe('publishing store', () => {
 
       await expect(
         store.quickCreatePost({
-          socialAccountId: 'acc-li-99',
+          socialAccountId: 'cbc4a596-9ae8-5479-b6da-8bd52442012d',
           bodyText: 'Never inserted',
           scheduledFor: '2026-06-20T14:00:00Z',
         }),
@@ -2169,7 +2238,7 @@ describe('publishing store', () => {
       // Add a publication
       store.publications = [
         {
-          id: 'pub-1',
+          id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
           content: 'Test',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2185,7 +2254,9 @@ describe('publishing store', () => {
       const originalDate = store.publications[0]?.scheduledAt
 
       // Attempt reschedule — should throw but NOT mutate state
-      await expect(store.reschedulePublication('pub-1', '2026-06-16T10:00:00Z')).rejects.toThrow()
+      await expect(
+        store.reschedulePublication('48c5787c-4ddb-5cd5-b205-cd0f99e7fc07', '2026-06-16T10:00:00Z'),
+      ).rejects.toThrow()
 
       // State should be rolled back
       expect(store.publications[0]?.scheduledAt).toBe(originalDate)
@@ -2197,7 +2268,7 @@ describe('publishing store', () => {
 
       store.publications = [
         {
-          id: 'pub-1',
+          id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
           content: 'Test',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2209,7 +2280,10 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
 
-      await store.reschedulePublication('pub-1', '2026-06-16T10:00:00Z')
+      await store.reschedulePublication(
+        '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
+        '2026-06-16T10:00:00Z',
+      )
 
       expect(store.publications[0]?.scheduledAt).toBe('2026-06-16T10:00:00Z')
     })
@@ -2220,7 +2294,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
-          id: 'pub-local',
+          id: 'dd2a566b-c458-5fbf-8f9d-7d4d6841a2e6',
           content: 'Test',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2229,7 +2303,10 @@ describe('publishing store', () => {
         },
       ]
 
-      const result = await store.reschedulePublication('pub-local', '2026-06-16T10:00:00Z')
+      const result = await store.reschedulePublication(
+        'dd2a566b-c458-5fbf-8f9d-7d4d6841a2e6',
+        '2026-06-16T10:00:00Z',
+      )
 
       expect(result?.scheduledAt).toBe('2026-06-16T10:00:00Z')
       expect(store.publications[0]?.scheduledAt).toBe('2026-06-16T10:00:00Z')
@@ -2250,7 +2327,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.publications = [
         {
-          id: 'patch-preserve-assets',
+          id: '590dd085-25e2-553e-9b7d-6618a6488c91',
           content: 'Original body',
           title: 'Original title',
           channels: ['linkedin'],
@@ -2258,25 +2335,28 @@ describe('publishing store', () => {
           scheduleMode: 'SCHEDULED_AT',
           status: 'QUEUED',
           priority: false,
-          accountId: 'soc-1',
-          assetIds: ['asset-a', 'asset-b'],
+          accountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
+          assetIds: [
+            'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+            '13001fc9-a24f-54d3-bde1-cfa79074593c',
+          ],
         },
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'patch-preserve-assets',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: '590dd085-25e2-553e-9b7d-6618a6488c91',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
         title: 'Original title',
         bodyText: 'Changed body',
-        assetIds: ['asset-a', 'asset-b'],
+        assetIds: ['f464d618-0f38-5b38-adda-9cf4a0b674eb', '13001fc9-a24f-54d3-bde1-cfa79074593c'],
         scheduledFor: '2026-06-15T20:00:00Z',
         nextSlotAfter: null,
       })
 
-      await store.updatePost('patch-preserve-assets', { content: 'Changed body' })
+      await store.updatePost('590dd085-25e2-553e-9b7d-6618a6488c91', { content: 'Changed body' })
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
       expect(body).not.toHaveProperty('assetIds')
@@ -2288,20 +2368,23 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.publications = [
         {
-          id: 'patch-replace-assets',
+          id: 'faed9dc9-1fab-5189-8be3-a824de11ffe3',
           content: 'Original body',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
           status: 'QUEUED',
           priority: false,
-          accountId: 'soc-1',
-          assetIds: ['asset-a', 'asset-b'],
+          accountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
+          assetIds: [
+            'f464d618-0f38-5b38-adda-9cf4a0b674eb',
+            '13001fc9-a24f-54d3-bde1-cfa79074593c',
+          ],
         },
       ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'patch-replace-assets',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: 'faed9dc9-1fab-5189-8be3-a824de11ffe3',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
@@ -2312,34 +2395,39 @@ describe('publishing store', () => {
         nextSlotAfter: null,
       })
 
-      await store.updatePost('patch-replace-assets', { assetIds: [] })
+      await store.updatePost('faed9dc9-1fab-5189-8be3-a824de11ffe3', { assetIds: [] })
       let body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
       expect(body.assetIds).toEqual([])
 
       apiFetch.mockResolvedValueOnce({
-        publicationId: 'patch-replace-assets',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: 'faed9dc9-1fab-5189-8be3-a824de11ffe3',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
         title: null,
         bodyText: 'Original body',
-        assetIds: ['asset-c', 'asset-d'],
+        assetIds: ['fc7156dc-b74a-5e88-9bbd-5c29635a9da8', '9c57b8a2-6b56-5681-8dd9-b77e89dc1518'],
         scheduledFor: '2026-06-15T20:00:00Z',
         nextSlotAfter: null,
       })
 
-      await store.updatePost('patch-replace-assets', { assetIds: ['asset-c', 'asset-d'] })
+      await store.updatePost('faed9dc9-1fab-5189-8be3-a824de11ffe3', {
+        assetIds: ['fc7156dc-b74a-5e88-9bbd-5c29635a9da8', '9c57b8a2-6b56-5681-8dd9-b77e89dc1518'],
+      })
       body = JSON.parse(apiFetch.mock.calls[1]?.[1]?.body as string)
-      expect(body.assetIds).toEqual(['asset-c', 'asset-d'])
+      expect(body.assetIds).toEqual([
+        'fc7156dc-b74a-5e88-9bbd-5c29635a9da8',
+        '9c57b8a2-6b56-5681-8dd9-b77e89dc1518',
+      ])
     })
 
     it('cancels a post in place', () => {
       const store = usePublishingStore()
       store.publications = [
         {
-          id: 'cancel-me',
+          id: 'b07bc02b-895e-53f8-8961-a062d353e8c1',
           content: 'Queued post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2348,7 +2436,7 @@ describe('publishing store', () => {
         },
       ]
 
-      store.cancelPost('cancel-me')
+      store.cancelPost('b07bc02b-895e-53f8-8961-a062d353e8c1')
 
       expect(store.publications[0]?.status).toBe('CANCELLED')
     })
@@ -2363,7 +2451,7 @@ describe('publishing store', () => {
 
       store.publications = [
         {
-          id: 'update-me',
+          id: '2d814948-3da7-5042-8248-9a34f8b8fb7d',
           content: 'Queued post',
           title: 'Original title',
           channels: ['linkedin'],
@@ -2371,14 +2459,14 @@ describe('publishing store', () => {
           status: 'QUEUED',
           priority: false,
           thumbnail: 'blob:old-thumb',
-          accountId: 'soc-1',
+          accountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         },
       ]
 
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'update-me',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: '2d814948-3da7-5042-8248-9a34f8b8fb7d',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'SCHEDULED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
@@ -2392,11 +2480,14 @@ describe('publishing store', () => {
         publishedAt: null,
       })
 
-      await store.updatePost('update-me', { thumbnail: 'blob:new-thumb', title: 'Updated again' })
+      await store.updatePost('2d814948-3da7-5042-8248-9a34f8b8fb7d', {
+        thumbnail: 'blob:new-thumb',
+        title: 'Updated again',
+      })
 
       expect(store.publications[0]).toMatchObject({ title: 'Updated again', status: 'SCHEDULED' })
       stubUrl.revokeObjectURL.mockClear()
-      await store.updatePost('update-me', { title: 'Title only' })
+      await store.updatePost('2d814948-3da7-5042-8248-9a34f8b8fb7d', { title: 'Title only' })
       expect(stubUrl.revokeObjectURL).not.toHaveBeenCalled()
     })
 
@@ -2406,21 +2497,21 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.publications = [
         {
-          id: 'update-fail',
+          id: '5e18a713-c93e-5353-9d71-fea5c480b47b',
           content: 'Original body',
           title: 'Original title',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
           status: 'QUEUED',
           priority: false,
-          accountId: 'soc-1',
+          accountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         },
       ]
       vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('PATCH failed'))
 
-      await expect(store.updatePost('update-fail', { content: 'Changed body' })).rejects.toThrow(
-        'PATCH failed',
-      )
+      await expect(
+        store.updatePost('5e18a713-c93e-5353-9d71-fea5c480b47b', { content: 'Changed body' }),
+      ).rejects.toThrow('PATCH failed')
       expect(store.publications[0]).toMatchObject({
         content: 'Original body',
         title: 'Original title',
@@ -2436,7 +2527,7 @@ describe('publishing store', () => {
 
       store.publications = [
         {
-          id: 'delete-me',
+          id: '3719ce22-bedf-5f86-94ba-abc17bc82bad',
           content: 'Queued post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2447,9 +2538,9 @@ describe('publishing store', () => {
       ]
 
       vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        publicationId: 'delete-me',
-        workspaceId: 'workspace-1',
-        socialAccountId: 'soc-1',
+        publicationId: '3719ce22-bedf-5f86-94ba-abc17bc82bad',
+        workspaceId: 'a219727d-019f-544c-95f9-ac30f00cc8b2',
+        socialAccountId: '223bd3b9-4c0a-57cd-826f-681e172f6d7d',
         status: 'QUEUED',
         scheduleMode: 'SCHEDULED_AT',
         priority: false,
@@ -2463,8 +2554,10 @@ describe('publishing store', () => {
         publishedAt: null,
       })
 
-      await store.updatePost('delete-me', { thumbnail: 'blob:to-delete' })
-      await store.deletePost('delete-me')
+      await store.updatePost('3719ce22-bedf-5f86-94ba-abc17bc82bad', {
+        thumbnail: 'blob:to-delete',
+      })
+      await store.deletePost('3719ce22-bedf-5f86-94ba-abc17bc82bad')
 
       expect(store.publications).toEqual([])
       expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:to-delete')
@@ -2476,7 +2569,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.publications = [
         {
-          id: 'delete-fail',
+          id: '6ed577bc-f136-5608-93e8-9f4269649f8b',
           content: 'Queued post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2486,9 +2579,11 @@ describe('publishing store', () => {
       ]
       vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('DELETE failed'))
 
-      await expect(store.deletePost('delete-fail')).rejects.toThrow('DELETE failed')
+      await expect(store.deletePost('6ed577bc-f136-5608-93e8-9f4269649f8b')).rejects.toThrow(
+        'DELETE failed',
+      )
       expect(store.publications).toHaveLength(1)
-      expect(store.publications[0]?.id).toBe('delete-fail')
+      expect(store.publications[0]?.id).toBe('6ed577bc-f136-5608-93e8-9f4269649f8b')
     })
 
     it('throws when publication is not found in deletePost', async () => {
@@ -2506,7 +2601,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
-          id: 'delete-local',
+          id: 'e4d7bcf1-bd92-5d1b-a2c8-0bc8624ca9e6',
           content: 'Queued post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2515,7 +2610,7 @@ describe('publishing store', () => {
         },
       ]
 
-      await store.deletePost('delete-local')
+      await store.deletePost('e4d7bcf1-bd92-5d1b-a2c8-0bc8624ca9e6')
 
       expect(store.publications).toEqual([])
     })
@@ -2526,7 +2621,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
-          id: 'update-local',
+          id: '675cbd8e-d47c-5731-bf69-811e027e45d6',
           content: 'Original body',
           title: 'Original title',
           channels: ['linkedin'],
@@ -2536,7 +2631,10 @@ describe('publishing store', () => {
         },
       ]
 
-      await store.updatePost('update-local', { content: 'Updated body', title: 'Updated title' })
+      await store.updatePost('675cbd8e-d47c-5731-bf69-811e027e45d6', {
+        content: 'Updated body',
+        title: 'Updated title',
+      })
 
       expect(store.publications[0]).toMatchObject({
         content: 'Updated body',
@@ -2553,7 +2651,7 @@ describe('publishing store', () => {
 
       store.publications = [
         {
-          id: 'blob-update',
+          id: '80bb873b-cfd3-5ef0-84f6-427e09272650',
           content: 'Body',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2564,15 +2662,21 @@ describe('publishing store', () => {
       ]
 
       // First update to track the blob
-      await store.updatePost('blob-update', { thumbnail: 'blob:tracked-thumb' })
+      await store.updatePost('80bb873b-cfd3-5ef0-84f6-427e09272650', {
+        thumbnail: 'blob:tracked-thumb',
+      })
 
       // Second update replaces the blob — old one should be revoked
-      await store.updatePost('blob-update', { thumbnail: 'blob:new-thumb' })
+      await store.updatePost('80bb873b-cfd3-5ef0-84f6-427e09272650', {
+        thumbnail: 'blob:new-thumb',
+      })
 
       expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:tracked-thumb')
 
       // Verify blob:new-thumb is tracked — a third replacement revokes it
-      await store.updatePost('blob-update', { thumbnail: 'blob:final-thumb' })
+      await store.updatePost('80bb873b-cfd3-5ef0-84f6-427e09272650', {
+        thumbnail: 'blob:final-thumb',
+      })
       expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:new-thumb')
     })
   })
@@ -2585,8 +2689,8 @@ describe('publishing store', () => {
 
     it('can be set and appears in calendarFilters', () => {
       const store = usePublishingStore()
-      store.filterSocialAccountId = 'acc-li-1'
-      expect(store.calendarFilters.socialAccountId).toBe('acc-li-1')
+      store.filterSocialAccountId = '8ec9e4ac-9ec5-5c3a-8933-7af5407a797c'
+      expect(store.calendarFilters.socialAccountId).toBe('8ec9e4ac-9ec5-5c3a-8933-7af5407a797c')
     })
   })
 
@@ -2599,7 +2703,7 @@ describe('publishing store', () => {
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
-          id: 'local-linkedin',
+          id: '93070516-4676-52b4-8e4a-9ea4017ec68d',
           content: 'LinkedIn post',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
@@ -2607,7 +2711,7 @@ describe('publishing store', () => {
           priority: false,
         },
         {
-          id: 'local-instagram',
+          id: '28b71ec3-64b1-5db7-8d0a-6b4a19f15a95',
           content: 'Instagram post',
           channels: ['instagram'],
           scheduledAt: '2026-06-15T21:00:00Z',
@@ -2622,7 +2726,7 @@ describe('publishing store', () => {
       await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
 
       expect(store.publications).toHaveLength(1)
-      expect(store.publications[0]?.id).toBe('local-linkedin')
+      expect(store.publications[0]?.id).toBe('93070516-4676-52b4-8e4a-9ea4017ec68d')
     })
   })
 })

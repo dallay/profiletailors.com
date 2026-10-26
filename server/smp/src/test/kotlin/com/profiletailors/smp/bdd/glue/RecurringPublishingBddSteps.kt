@@ -33,18 +33,18 @@ class RecurringPublishingBddSteps {
     @Given("a scheduled publication exists for recurring schedules")
     fun givenScheduledPublicationExistsForRecurringSchedules() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
-        bddDatabaseSupport.seedSocialConnection("social-conn-1", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("82dc702e-799e-53f0-8c44-54ae1f2bd372", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-1",
-            connectionId = "social-conn-1",
+            accountId = "fb939391-0fff-506d-a92e-b9008b859951",
+            connectionId = "82dc702e-799e-53f0-8c44-54ae1f2bd372",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-profile-1",
             accountKind = "PERSONAL_PROFILE",
             displayName = "Yuniel Acosta",
         )
         bddDatabaseSupport.seedScheduledPublication(
-            publicationId = "pub-bdd-scheduled-1",
-            socialAccountId = "social-acc-1",
+            publicationId = "f27cd516-72e0-5766-8b49-00beb6fc78c2",
+            socialAccountId = "fb939391-0fff-506d-a92e-b9008b859951",
             scheduledFor = Instant.now().plus(java.time.Duration.ofDays(7)),
             title = "Scheduled Post",
             bodyText = "Scheduled body",
@@ -53,7 +53,7 @@ class RecurringPublishingBddSteps {
 
     @When("the client creates a daily recurring schedule")
     fun whenClientCreatesDailyRecurringSchedule() {
-        val templatePostId = "pub-bdd-scheduled-1"
+        val templatePostId = "f27cd516-72e0-5766-8b49-00beb6fc78c2"
         val now = Instant.now()
         val startsAt = now.plus(java.time.Duration.ofHours(1))
         val endDate = java.time.LocalDate.now().plusDays(3)
@@ -82,7 +82,7 @@ class RecurringPublishingBddSteps {
 
     @When("the client creates a weekly recurring schedule on Monday and Wednesday")
     fun whenClientCreatesWeeklyRecurringScheduleOnMondayAndWednesday() {
-        val templatePostId = "pub-bdd-scheduled-1"
+        val templatePostId = "f27cd516-72e0-5766-8b49-00beb6fc78c2"
         val now = Instant.now()
         val startsAt = now.plus(java.time.Duration.ofHours(1))
         val endDate = java.time.LocalDate.now().plusDays(30)
@@ -112,7 +112,7 @@ class RecurringPublishingBddSteps {
 
     @When("the client creates a monthly recurring schedule on day 15")
     fun whenClientCreatesMonthlyRecurringScheduleOnDay15() {
-        val templatePostId = "pub-bdd-scheduled-1"
+        val templatePostId = "f27cd516-72e0-5766-8b49-00beb6fc78c2"
         val now = Instant.now()
         val startsAt = now.plus(java.time.Duration.ofHours(1))
         val endDate = java.time.LocalDate.now().plusMonths(6)

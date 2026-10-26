@@ -29,7 +29,12 @@ class CredentialPurgeRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
     @BeforeEach
     fun setUpRepositories() = runTest {
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-1', 'Purge', 'ACTIVE')")
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status)
+            VALUES ('00000000-0000-0000-0000-00000000049d', 'Purge', 'ACTIVE')
+            """.trimIndent(),
+        )
             .fetch().rowsUpdated().awaitSingle()
         purge = R2dbcCredentialPurgeRepository(databaseClient)
     }
@@ -88,11 +93,11 @@ class CredentialPurgeRepositoryPostgresTest : PostgresDatabaseTestBase() {
                 (id, workspace_id, provider, provider_connection_ref, status,
                  credential_reference, connected_at, last_synced_at, created_at)
             VALUES
-                (:id, 'workspace-1', :provider, :ref, :status,
+                (:id, '00000000-0000-0000-0000-00000000049d', :provider, :ref, :status,
                  :credentialReference, NOW(), NOW(), NOW())
             """.trimIndent(),
         )
-            .bind("id", id)
+            .bind("id", UUID.nameUUIDFromBytes(id.toByteArray(Charsets.UTF_8)))
             .bind("provider", provider)
             .bind("ref", "ref-$id")
             .bind("status", status)

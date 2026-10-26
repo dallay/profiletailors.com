@@ -66,7 +66,7 @@ Feature: MCP tool invocations via JSON-RPC over HTTP
 
   Scenario: Workspace isolation prevents cross-workspace access
     Given a connected LinkedIn social account exists for MCP
-    When the MCP client bound to workspace "workspace-other" calls tool "list_channels"
+    When the MCP client bound to workspace "d9d52161-9368-5a86-9f87-719d78e324c3" calls tool "list_channels"
     Then the MCP response status should be 200
     And the MCP result channels should not contain workspace-1 data
 

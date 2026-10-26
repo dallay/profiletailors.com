@@ -51,10 +51,13 @@ class R2dbcAdminInvitationQueryPostgresIntegrationTest : PostgresIntegrationTest
     private lateinit var invitationQuery: AdminInvitationQuery
 
     override suspend fun seedScenario() {
-        seedPrincipal("inv-issuer")
+        seedPrincipal("00000000-0000-0000-0000-000000000401")
         databaseClient.sql(
             "INSERT INTO workspaces (id, name, status, icon) " +
-                "VALUES ('ws-inv', 'Invitation Workspace', 'ACTIVE', NULL) ON CONFLICT DO NOTHING",
+                """
+                VALUES ('00000000-0000-0000-0000-000000000402', 'Invitation Workspace', 'ACTIVE', NULL)
+                ON CONFLICT DO NOTHING
+                """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         seedDirectInvitation(
             email = "active@example.com",
@@ -120,8 +123,8 @@ class R2dbcAdminInvitationQueryPostgresIntegrationTest : PostgresIntegrationTest
                 id, source, source_reference_id, workspace_id, invited_email_normalized,
                 candidate_key, token_hash, status, issued_by, created_at, expires_at, target
             ) VALUES (
-                :id, 'DIRECT', NULL, 'ws-inv', :email,
-                :candidateKey, :tokenHash, :status, 'inv-issuer', :createdAt, :expiresAt, 'EXISTING_WORKSPACE'
+                :id, 'DIRECT', NULL, '00000000-0000-0000-0000-000000000402', :email,
+                :candidateKey, :tokenHash, :status, '00000000-0000-0000-0000-000000000401', :createdAt, :expiresAt, 'EXISTING_WORKSPACE'
             )
             """.trimIndent(),
         )

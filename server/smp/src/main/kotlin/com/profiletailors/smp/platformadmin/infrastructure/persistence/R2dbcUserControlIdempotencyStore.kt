@@ -31,7 +31,7 @@ class R2dbcUserControlIdempotencyStore(private val databaseClient: DatabaseClien
         databaseClient.sql(INSERT_RECORD)
             .bind(OPERATOR_PRINCIPAL_ID, record.operatorPrincipalId)
             .bind(COMMAND, record.operation)
-            .bind(TARGET_PRINCIPAL_ID, record.targetPrincipalId)
+            .bind(TARGET_PRINCIPAL_ID, UUID.fromString(record.targetPrincipalId))
             .bind(IDEMPOTENCY_KEY, record.idempotencyKey)
             .bindNull(RESPONSE_JSON, String::class.java)
             .fetch()

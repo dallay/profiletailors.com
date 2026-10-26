@@ -449,7 +449,7 @@ export const useIdeasStore = defineStore('ideas', () => {
   function createLocalColumn(name: string, color?: string | null): IdeaColumn {
     const maxOrder = orderedColumns.value.length
     return {
-      id: `col-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(),
       name: name.trim(),
       color: color ?? null,
       order: maxOrder,

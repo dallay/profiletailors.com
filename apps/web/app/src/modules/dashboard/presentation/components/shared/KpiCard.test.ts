@@ -11,7 +11,7 @@ vi.mock('vue-i18n', () => ({
 
 function makeKpi(overrides: Partial<KpiMetric> = {}): KpiMetric {
   return {
-    id: 'kpi-1',
+    id: '9dc2d82c-851c-5562-932b-aa37c3fb32d5',
     label: 'dashboard.executiveOverview.totalFollowers',
     value: '24.7K',
     delta: 8,

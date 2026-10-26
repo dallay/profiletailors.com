@@ -143,7 +143,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 
 vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-1',
+    activeWorkspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
     activeWorkspace: null,
     workspaces: [],
     isLoadingWorkspaces: false,
@@ -156,8 +156,8 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   usePublishingStore: () => ({
     channels: [
       {
-        id: 'acc-linkedin',
-        accountId: 'acc-linkedin',
+        id: '050c8ed3-b558-5919-88dd-627783a9127c',
+        accountId: '050c8ed3-b558-5919-88dd-627783a9127c',
         name: 'LinkedIn',
         provider: 'linkedin',
         avatar: '',
@@ -165,8 +165,8 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
         status: 'ACTIVE',
       },
       {
-        id: 'acc-bluesky',
-        accountId: 'acc-bluesky',
+        id: '09315d12-aea0-5c24-b1e2-3f80a3138d9c',
+        accountId: '09315d12-aea0-5c24-b1e2-3f80a3138d9c',
         name: 'Bluesky',
         provider: 'twitter',
         avatar: '',
@@ -287,8 +287,8 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
     template: `
       <div>
         <button data-testid="all-channels" @click="$emit('selectAll')">All channels</button>
-        <button data-testid="channel-linkedin" @click="$emit('selectChannel', 'acc-linkedin')">LinkedIn</button>
-        <button data-testid="channel-bluesky" @click="$emit('selectChannel', 'acc-bluesky')">Bluesky</button>
+        <button data-testid="channel-linkedin" @click="$emit('selectChannel', '050c8ed3-b558-5919-88dd-627783a9127c')">LinkedIn</button>
+        <button data-testid="channel-bluesky" @click="$emit('selectChannel', '09315d12-aea0-5c24-b1e2-3f80a3138d9c')">Bluesky</button>
       </div>
     `,
   },
@@ -548,7 +548,7 @@ describe('AppShell scheduler sidebar navigation', () => {
   })
 
   it('clears channel filters without leaving scheduler when All channels is selected', async () => {
-    routeState.query = { 'channels[]': ['acc-linkedin'] }
+    routeState.query = { 'channels[]': ['050c8ed3-b558-5919-88dd-627783a9127c'] }
     const wrapper = mount(AppShell, {
       global: {
         mocks: {
@@ -575,7 +575,7 @@ describe('AppShell scheduler sidebar navigation', () => {
     await wrapper.find('[data-testid="channel-linkedin"]').trigger('click')
 
     expect(push).not.toHaveBeenCalled()
-    expect(routeState.query).toEqual({ 'channels[]': ['acc-linkedin'] })
+    expect(routeState.query).toEqual({ 'channels[]': ['050c8ed3-b558-5919-88dd-627783a9127c'] })
   })
 
   it('navigates to canonical scheduler week route with channels[] when outside scheduler', async () => {
@@ -593,7 +593,7 @@ describe('AppShell scheduler sidebar navigation', () => {
 
     expect(push).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
-      query: { 'channels[]': ['acc-bluesky'] },
+      query: { 'channels[]': ['09315d12-aea0-5c24-b1e2-3f80a3138d9c'] },
     })
   })
 

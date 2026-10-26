@@ -186,6 +186,8 @@ class CreatePublicationBatchHandlerTest {
         createdDrafts.map { it.groupId }.distinct().size shouldBe 1
         transactionCount shouldBe 1
         createdDrafts.all { it.groupId != null } shouldBe true
+        val groupId = requireNotNull(createdDrafts.first().groupId)
+        java.util.UUID.fromString(groupId).toString() shouldBe groupId
         result.results.map { it.groupId }.distinct().size shouldBe 1
         result.results.all { it.groupId == createdDrafts.first().groupId } shouldBe true
         coVerify(exactly = 2) { publicationRepository.createDraft(any<PublicationDraft>()) }
@@ -226,7 +228,8 @@ class CreatePublicationBatchHandlerTest {
 
         result.status shouldBe BatchPublicationStatus.PARTIAL
         val byAccount = result.results.associateBy { it.socialAccountId }
-        byAccount["acc-li"]?.publicationId?.startsWith("pub-") shouldBe true
+        val publicationId = requireNotNull(byAccount["acc-li"]?.publicationId)
+        java.util.UUID.fromString(publicationId).toString() shouldBe publicationId
         byAccount["acc-th"]?.publicationId shouldBe null
         byAccount["acc-th"]?.errorCode shouldBe "CAPABILITY_VIOLATION"
         coVerify(exactly = 1) { publicationRepository.createDraft(any<PublicationDraft>()) }

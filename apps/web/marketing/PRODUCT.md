@@ -41,6 +41,14 @@ Not another social media scheduler landing page. Profile Tailors is a focused, o
 - No advertising, tracking, or analytics cookies by default (minimal localStorage + theme preference only)
 - Consent is disclosed in a fixed, non-modal bottom banner that never blocks page navigation; detailed category choices open inline from "Customize" or the footer settings link
 
+### Public waitlist consent — approved decision
+
+The backend preserves legal consent evidence in a `WAITLIST` scope identified by the actual list,
+separate from any tenant workspace, as specified in [ADR-0030](../../../docs/architecture/adr/0030-separate-public-waitlist-consent-scope.md).
+Implemented locally and verified through native PostgreSQL, BDD, and a real browser-to-API-to-database
+flow on disposable infrastructure. This does not change purposes, browser receipt versions, or
+legal/operational authorization to enable production collection.
+
 ## Brand Commitments
 
 - Name: "Profile Tailors"

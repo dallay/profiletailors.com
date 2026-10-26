@@ -22,6 +22,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -50,7 +51,7 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
             databaseClient.sql(
                 """
                 CREATE TABLE IF NOT EXISTS notifications (
-                    id VARCHAR(255) PRIMARY KEY,
+                    id UUID PRIMARY KEY,
                     idempotency_key VARCHAR(500) UNIQUE NOT NULL,
                     channel VARCHAR(50) NOT NULL,
                     recipient VARCHAR(500) NOT NULL,
@@ -67,6 +68,9 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
             ).fetch().rowsUpdated().awaitSingle()
         }
     }
+
+    private fun notificationId(seed: String): String =
+        UUID.nameUUIDFromBytes("notifications:$seed".toByteArray()).toString()
 
     private fun failedNotification(
         id: String,
@@ -92,6 +96,22 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `native UUID row is readable by both list and identifier lookup`() = runTest {
+        val id = UUID.fromString(notificationId("native-row"))
+        databaseClient.sql(
+            """
+            INSERT INTO notifications
+                (id, idempotency_key, channel, recipient, template_id, payload, status, created_at, updated_at)
+            VALUES (:id, 'opaque-native-key', 'EMAIL', 'user@example.com', 'waitlist.welcome', '{}',
+                'PENDING', now(), now())
+            """.trimIndent(),
+        ).bind("id", id).fetch().rowsUpdated().awaitSingle()
+
+        assertEquals(id.toString(), query.list(NotificationFilters(), page = 0, size = 20).items.single().id)
+        assertEquals(id.toString(), query.findById(NotificationId(id.toString()))?.id)
+    }
+
+    @Test
     fun `list returns empty page when no notifications exist`() = runTest {
         val result = query.list(NotificationFilters(), page = 0, size = 20)
 
@@ -101,14 +121,14 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
 
     @Test
     fun `list returns seeded notifications with mapped fields`() = runTest {
-        writer.save(failedNotification("ntf-1"))
+        writer.save(failedNotification(notificationId("one")))
 
         val result = query.list(NotificationFilters(), page = 0, size = 20)
 
         assertEquals(1, result.totalElements)
         assertEquals(1, result.items.size)
         val summary = result.items.first()
-        assertEquals("ntf-1", summary.id)
+        assertEquals(notificationId("one"), summary.id)
         assertEquals("EMAIL", summary.channel)
         assertEquals("platform.password-recovery", summary.templateId)
         assertEquals("user@example.com", summary.recipient)
@@ -123,9 +143,9 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `list filters by status`() = runTest {
         val now = Instant.parse("2026-09-20T10:00:00Z")
-        writer.save(failedNotification("ntf-1"))
+        writer.save(failedNotification(notificationId("one")))
         writer.save(
-            failedNotification("ntf-2").copy(
+            failedNotification(notificationId("two")).copy(
                 status = NotificationStatus.SENT,
                 sentAt = now,
                 failedAt = null,
@@ -136,22 +156,22 @@ class R2dbcNotificationAdminQueryPostgresTest : PostgresDatabaseTestBase() {
         val result = query.list(NotificationFilters(status = "FAILED"), page = 0, size = 20)
 
         assertEquals(1, result.totalElements)
-        assertEquals("ntf-1", result.items.first().id)
+        assertEquals(notificationId("one"), result.items.first().id)
     }
 
     @Test
     fun `findById returns summary when notification exists`() = runTest {
-        writer.save(failedNotification("ntf-1"))
+        writer.save(failedNotification(notificationId("one")))
 
-        val result = query.findById(NotificationId("ntf-1"))
+        val result = query.findById(NotificationId(notificationId("one")))
 
         assertNotNull(result)
-        assertEquals("ntf-1", result.id)
+        assertEquals(notificationId("one"), result.id)
     }
 
     @Test
     fun `findById returns null when notification is missing`() = runTest {
-        val result = query.findById(NotificationId("ntf-missing"))
+        val result = query.findById(NotificationId(notificationId("missing")))
 
         assertNull(result)
     }

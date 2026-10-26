@@ -42,6 +42,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.util.Base64
+import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -78,7 +79,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             databaseClient.sql("DELETE FROM waitlist_withdrawal_urls").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("DELETE FROM waitlist_entries").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql(
-                "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+                "DELETE FROM waitlists WHERE key <> 'profile-tailors-launch'",
             ).fetch().rowsUpdated().awaitSingle()
         }
     }
@@ -117,7 +118,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         )
 
         assertNotNull(waitlist)
-        assertEquals("profile-tailors-launch", waitlist?.id?.value)
+        assertEquals("ea2c112c-d7f8-5e73-a4a8-ee4c372ed124", waitlist?.id?.value)
         assertEquals("profile-tailors-launch", waitlist?.key?.value)
         assertEquals("Profile Tailors Launch", waitlist?.name)
         assertEquals("profile-tailors", waitlist?.context)
@@ -191,8 +192,12 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `dedupe key is scoped per waitlist`() = runTest {
         val first =
-            testEntry(id = "entry-1", waitlistId = WaitlistId("profile-tailors-launch"), email = "user@example.com")
-        val otherWaitlistId = WaitlistId("another-launch")
+            testEntry(
+                id = "entry-1",
+                waitlistId = WaitlistId("ea2c112c-d7f8-5e73-a4a8-ee4c372ed124"),
+                email = "user@example.com",
+            )
+        val otherWaitlistId = WaitlistId("00000000-0000-0000-0000-000000000301")
         insertWaitlist(otherWaitlistId.value, "another-launch")
         val second = testEntry(id = "entry-2", waitlistId = otherWaitlistId, email = "USER@example.com")
 
@@ -214,7 +219,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         withdrawalUrlProvider.remember(entry.id, issued.raw, issued.persisted.expiresAt)
         notificationRepository.save(
             Notification(
-                id = NotificationId("welcome-entry-withdraw"),
+                id = NotificationId(notificationId("welcome-entry-withdraw")),
                 idempotencyKey = WelcomeEmail.idempotencyKeyFor(entry.id),
                 channel = NotificationChannel.EMAIL,
                 recipient = Recipient(entry.normalizedEmail.value),
@@ -242,7 +247,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertEquals(withdrawn.status, persisted?.status)
         assertEquals(withdrawn.email, persisted?.email)
         assertNull(withdrawalUrlRepository.findByEntryId(entry.id))
-        val notification = notificationRepository.findById(NotificationId("welcome-entry-withdraw"))
+        val notification = notificationRepository.findById(NotificationId(notificationId("welcome-entry-withdraw")))
         assertEquals("withdrawn-${entry.id.value}@invalid.example", notification?.recipient?.value)
         assertEquals(NotificationStatus.FAILED, notification?.status)
         assertNull(entryRepository.withdrawByToken(fingerprint.candidate, fingerprint.hash, now))
@@ -300,14 +305,17 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             expiresAt = Instant.parse("2026-10-16T00:00:00Z"),
         )
 
+    private fun notificationId(seed: String): String =
+        UUID.nameUUIDFromBytes("leadcapture:$seed".toByteArray()).toString()
+
     private fun testEntry(
         id: String,
-        waitlistId: WaitlistId = WaitlistId("profile-tailors-launch"),
+        waitlistId: WaitlistId = WaitlistId("ea2c112c-d7f8-5e73-a4a8-ee4c372ed124"),
         email: String,
     ): WaitlistEntry {
         val emailAddress = EmailAddress(email)
         return WaitlistEntry(
-            id = WaitlistEntryId(id),
+            id = WaitlistEntryId(UUID.nameUUIDFromBytes("leadcapture:entry:$id".toByteArray()).toString()),
             waitlistId = waitlistId,
             email = emailAddress,
             normalizedEmail = NormalizedEmail.from(emailAddress),
@@ -331,7 +339,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             VALUES (:id, :key, 'Another Launch', 'profile-tailors', 'ACTIVE')
             """.trimIndent(),
         )
-            .bind("id", id)
+            .bind("id", UUID.fromString(id))
             .bind("key", key)
             .fetch()
             .rowsUpdated()
@@ -341,7 +349,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     private suspend fun countEntries(waitlistId: WaitlistId): Int = databaseClient.sql(
         "SELECT COUNT(*) AS cnt FROM waitlist_entries WHERE waitlist_id = :waitlistId",
     )
-        .bind("waitlistId", waitlistId.value)
+        .bind("waitlistId", UUID.fromString(waitlistId.value))
         .map { row, _ -> (row.get("cnt") as Number).toInt() }
         .one()
         .awaitSingle()

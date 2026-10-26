@@ -77,3 +77,14 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 ## Accessibility & Inclusion
 
 WCAG 2.2 Level AA target. Automated axe-core checks gate PRs; manual screen-reader testing ongoing. Known gaps: calendar keyboard navigation, media picker drag-and-drop keyboard alternative, form validation announcements. EAA applies as a monitoring exercise at early-access stage; not yet a binding compliance obligation.
+
+## Internal identifier format
+
+Internal entity and aggregate IDs use canonical lowercase UUID strings without resource prefixes.
+The client sends IDs unchanged, including `X-Workspace-Id`, under the existing
+`application/vnd.api.v1+json` media type. Provider-owned IDs, credentials, tokens, idempotency keys,
+and opaque keys retain their own formats. There is no permanent prefixed-ID compatibility path.
+
+This contract follows [ADR-0029](../../../docs/architecture/adr/0029-use-raw-uuid-identifiers.md).
+Local implementation does not certify production data conversion. Production deployment requires
+operator-reviewed migration and production validation.

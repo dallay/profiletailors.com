@@ -19,7 +19,7 @@ vi.mock('@shared/lib/provider-styles', () => ({
 
 function makePublication(overrides: Partial<Publication> = {}): Publication {
   return {
-    id: 'pub-1',
+    id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
     content: 'Month view publication content',
     title: 'Month view publication',
     channels: ['linkedin'],
@@ -46,7 +46,9 @@ describe('CalendarCell', () => {
     await publicationChip.trigger('click')
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
-    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-1' })
+    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({
+      id: '48c5787c-4ddb-5cd5-b205-cd0f99e7fc07',
+    })
   })
 
   it('marks publications with a related batch group', () => {
@@ -55,7 +57,7 @@ describe('CalendarCell', () => {
         date: new Date('2026-06-15T00:00:00.000Z'),
         isCurrentMonth: true,
         isToday: false,
-        publications: [makePublication({ groupId: 'batch-1' })],
+        publications: [makePublication({ groupId: 'd7040dcb-a574-549e-b1ac-b45c786d5e10' })],
       },
     })
 
@@ -88,7 +90,7 @@ describe('CalendarCell', () => {
         isCurrentMonth: true,
         isToday: false,
         isPast: false,
-        publications: [makePublication({ id: 'pub-enter' })],
+        publications: [makePublication({ id: '159e3c0e-0a9e-5ce0-a35d-39577d479a52' })],
       },
     })
 
@@ -96,7 +98,9 @@ describe('CalendarCell', () => {
     await publicationChip.trigger('keydown', { key: 'Enter' })
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
-    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-enter' })
+    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({
+      id: '159e3c0e-0a9e-5ce0-a35d-39577d479a52',
+    })
     expect(wrapper.emitted('click-day')).toBeUndefined()
   })
 
@@ -107,7 +111,7 @@ describe('CalendarCell', () => {
         isCurrentMonth: true,
         isToday: false,
         isPast: false,
-        publications: [makePublication({ id: 'pub-space' })],
+        publications: [makePublication({ id: 'b649f36e-2553-5820-a7c6-a84e553da463' })],
       },
     })
 
@@ -115,13 +119,15 @@ describe('CalendarCell', () => {
     await publicationChip.trigger('keydown', { key: ' ' })
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
-    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-space' })
+    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({
+      id: 'b649f36e-2553-5820-a7c6-a84e553da463',
+    })
     expect(wrapper.emitted('click-day')).toBeUndefined()
   })
 
   it('emits click-publication with the correct publication when multiple chips are rendered', async () => {
-    const pub1 = makePublication({ id: 'pub-first', title: 'First' })
-    const pub2 = makePublication({ id: 'pub-second', title: 'Second' })
+    const pub1 = makePublication({ id: '4f64c726-4a50-5d95-b9b8-42c804215f05', title: 'First' })
+    const pub2 = makePublication({ id: 'a70ffc8d-6e5b-5e76-ad5f-63fd107a8119', title: 'Second' })
 
     const wrapper = mount(CalendarCell, {
       props: {
@@ -139,7 +145,9 @@ describe('CalendarCell', () => {
     await chips[1]!.trigger('click')
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
-    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-second' })
+    expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({
+      id: 'a70ffc8d-6e5b-5e76-ad5f-63fd107a8119',
+    })
   })
 
   it('renders the publication title in the chip text', async () => {
@@ -177,7 +185,7 @@ describe('CalendarCell', () => {
 
   it('truncates overflow publications and shows +N more indicator', () => {
     const publications = Array.from({ length: 5 }, (_, i) =>
-      makePublication({ id: `pub-${i}`, title: `Post ${i}` }),
+      makePublication({ id: crypto.randomUUID(), title: `Post ${i}` }),
     )
 
     const wrapper = mount(CalendarCell, {

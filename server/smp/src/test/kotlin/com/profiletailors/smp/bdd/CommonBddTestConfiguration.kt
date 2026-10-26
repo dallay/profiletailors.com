@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import reactor.core.publisher.Mono
 import java.time.Instant
+import java.util.UUID
 
 private class BddProviderCapabilityValidator : ProviderCapabilityValidator {
     private val validators = mapOf(
@@ -235,7 +236,7 @@ class CommonBddTestConfiguration {
                     .header("alg", "RS256")
                     .claim("sub", "mcp-subject-123")
                     .claim("iss", "https://issuer.example")
-                    .claim("principal_id", "principal-1")
+                    .claim("principal_id", BddDatabaseSupport.PRINCIPAL_ID)
                     .claim("workspace_id", extractMcpWorkspaceId(token))
                     .audience(listOf("https://api.profiletailors.com/api/mcp"))
                     .issuedAt(Instant.now().minusSeconds(60))
@@ -247,7 +248,7 @@ class CommonBddTestConfiguration {
                     .header("alg", "RS256")
                     .claim("sub", "subject-123")
                     .claim("iss", "https://issuer.example")
-                    .claim("principal_id", "principal-1")
+                    .claim("principal_id", BddDatabaseSupport.PRINCIPAL_ID)
                     .claim("email", "jwt-user@example.com")
                     .claim(
                         "emailStatus",
@@ -277,18 +278,12 @@ class CommonBddTestConfiguration {
     }
 }
 
-/**
- * Extracts the workspace ID from MCP BDD tokens.
- *
- * Convention: `mcp-reader-token` → `workspace-1` (default),
- * `mcp-ws-other-token` → `workspace-other`.
- */
 private fun extractMcpWorkspaceId(token: String): String {
     val wsPrefix = "mcp-ws-"
     if (token.startsWith(wsPrefix)) {
         val rest = token.removePrefix(wsPrefix)
         val workspacePart = rest.substringBefore("-token")
-        return "workspace-$workspacePart"
+        return UUID.fromString(workspacePart).toString()
     }
     return BddDatabaseSupport.WORKSPACE_ID
 }

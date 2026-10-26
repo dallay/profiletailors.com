@@ -44,10 +44,10 @@ class McpToolsBddSteps {
 
     @Given("a connected LinkedIn social account exists for MCP")
     fun givenConnectedLinkedInSocialAccountExistsForMcp() = runBlocking {
-        bddDatabaseSupport.seedSocialConnection("social-conn-mcp-1", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialConnection("9e5aaf61-c25f-5ae9-b772-e51ec4dc7b04", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
-            accountId = "social-acc-mcp-1",
-            connectionId = "social-conn-mcp-1",
+            accountId = "87a42707-66fe-5478-99c9-0e22a18e8fb8",
+            connectionId = "9e5aaf61-c25f-5ae9-b772-e51ec4dc7b04",
             provider = "LINKEDIN",
             providerAccountId = "linkedin-profile-mcp-1",
             accountKind = "PERSONAL_PROFILE",
@@ -129,19 +129,25 @@ class McpToolsBddSteps {
 
     @Given("a publication exists in FAILED status for MCP")
     fun givenPublicationExistsInFailedStatusForMcp() = runBlocking {
-        bddDatabaseSupport.seedFailedPublication("pub-failed-mcp-1", "social-acc-mcp-1")
+        bddDatabaseSupport.seedFailedPublication(
+            "79261625-84e7-5a3d-8032-4e62a55d60a8",
+            "87a42707-66fe-5478-99c9-0e22a18e8fb8",
+        )
     }
 
     @Given("a publication exists in CANCELLED status for MCP")
     fun givenPublicationExistsInCancelledStatusForMcp() = runBlocking {
-        bddDatabaseSupport.seedCancelledPublication("pub-cancelled-mcp-1", "social-acc-mcp-1")
+        bddDatabaseSupport.seedCancelledPublication(
+            "7f295043-25a7-5395-b157-cf21a1e48833",
+            "87a42707-66fe-5478-99c9-0e22a18e8fb8",
+        )
     }
 
     @Given("a publication exists in SCHEDULED status for MCP")
     fun givenPublicationExistsInScheduledStatusForMcp() = runBlocking {
         bddDatabaseSupport.seedScheduledPublication(
-            publicationId = "pub-scheduled-mcp-1",
-            socialAccountId = "social-acc-mcp-1",
+            publicationId = "0ef8cb4b-4a25-582f-ba3b-bf437120deba",
+            socialAccountId = "87a42707-66fe-5478-99c9-0e22a18e8fb8",
             scheduledFor = java.time.Instant.now().plusSeconds(3600),
             title = "scheduled title",
             bodyText = "scheduled body",
@@ -150,14 +156,14 @@ class McpToolsBddSteps {
 
     @When("the MCP client invokes cancel_publication for that publication")
     fun whenMcpClientInvokesCancelPublication() {
-        val args = mapOf("publicationId" to "pub-scheduled-mcp-1")
+        val args = mapOf("publicationId" to "0ef8cb4b-4a25-582f-ba3b-bf437120deba")
         latestResponse = postMcpToolCall("cancel_publication", args, MCP_WRITER_BEARER)
         parseResponseBody()
     }
 
     @When("the MCP client invokes retry_publication for that publication with scheduleMode {string}")
     fun whenMcpClientInvokesRetryPublication(mode: String) {
-        val args = mapOf("publicationId" to "pub-failed-mcp-1", "scheduleMode" to mode)
+        val args = mapOf("publicationId" to "79261625-84e7-5a3d-8032-4e62a55d60a8", "scheduleMode" to mode)
         latestResponse = postMcpToolCall("retry_publication", args, MCP_WRITER_BEARER)
         parseResponseBody()
     }
@@ -187,12 +193,12 @@ class McpToolsBddSteps {
 
     @Then("the MCP result publications should include the FAILED publication id")
     fun thenMcpResultPublicationsShouldIncludeFailedPublicationId() {
-        mcpPublicationIdsShouldInclude("pub-failed-mcp-1")
+        mcpPublicationIdsShouldInclude("79261625-84e7-5a3d-8032-4e62a55d60a8")
     }
 
     @Then("the MCP result publications should include the CANCELLED publication id")
     fun thenMcpResultPublicationsShouldIncludeCancelledPublicationId() {
-        mcpPublicationIdsShouldInclude("pub-cancelled-mcp-1")
+        mcpPublicationIdsShouldInclude("7f295043-25a7-5395-b157-cf21a1e48833")
     }
 
     @Then("the MCP result publication status should be CANCELLED")
@@ -241,13 +247,14 @@ class McpToolsBddSteps {
 
     @When("the MCP client with wrong workspace calls tool {string}")
     fun whenMcpClientWithWrongWorkspaceCallsTool(toolName: String) {
-        latestResponse = postMcpToolCall(toolName, emptyMap(), "Bearer mcp-ws-nonexistent-token")
+        latestResponse =
+            postMcpToolCall(toolName, emptyMap(), "Bearer mcp-ws-10000000-0000-4000-8000-000000000099-token")
         parseResponseBody()
     }
 
     @When("the MCP client bound to workspace {string} calls tool {string}")
     fun whenMcpClientBoundToWorkspaceCallsTool(workspace: String, toolName: String) {
-        val token = "Bearer mcp-ws-${workspace.removePrefix("workspace-")}-token"
+        val token = "Bearer mcp-ws-$workspace-token"
         latestResponse = postMcpToolCall(toolName, emptyMap(), token)
         parseResponseBody()
     }

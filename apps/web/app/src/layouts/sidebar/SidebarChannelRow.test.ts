@@ -12,8 +12,8 @@ interface SidebarChannel extends Channel {
 
 function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
   return {
-    id: 'ch-1',
-    accountId: 'ch-1',
+    id: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
+    accountId: '92c0751b-b11e-5b27-b9bd-8c4b03c253ef',
     name: 'Channel 1',
     provider: 'linkedin',
     avatar: '',

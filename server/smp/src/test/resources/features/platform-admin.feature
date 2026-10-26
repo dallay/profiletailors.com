@@ -102,7 +102,7 @@ Feature: Platform administration access control and waitlist management
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
     Then the admin response status should be 200
-    And the invitation acceptance workspace should be "invitation-workspace"
+    And the invitation acceptance workspace should be "d1599da2-0bd3-5af9-82ac-3506748f2ae0"
     And the invitation acceptance membership status should be "ACTIVE"
     And the invitation response should not contain the token
     And the invitation status should become "ACCEPTED"
@@ -117,14 +117,14 @@ Feature: Platform administration access control and waitlist management
   Scenario: Invitation acceptance is isolated from the request workspace
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
-    Then the invitation acceptance workspace should be "invitation-workspace"
+    Then the invitation acceptance workspace should be "d1599da2-0bd3-5af9-82ac-3506748f2ae0"
 
   Scenario: Authenticated existing identity accepts without duplicate records
     Given an active direct invitation exists for "jwt-user@example.com"
     And the authenticated principal has an existing credential and workspace membership
     When the authenticated principal accepts the invitation
     Then the admin response status should be 200
-    And the invitation acceptance workspace should be "invitation-workspace"
+    And the invitation acceptance workspace should be "d1599da2-0bd3-5af9-82ac-3506748f2ae0"
     And the invitation acceptance membership status should be "ACTIVE"
     And the invitation response should not contain the token
     And the invitation response should not contain "jwt-user@example.com"

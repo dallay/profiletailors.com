@@ -19,6 +19,7 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Repository
 class R2dbcNotificationAdminQueryAdapter(private val databaseClient: DatabaseClient) : NotificationAdminQuery {
@@ -95,7 +96,7 @@ class R2dbcNotificationAdminQueryAdapter(private val databaseClient: DatabaseCli
         """.trimIndent()
 
         return databaseClient.sql(sql)
-            .bind("id", notificationId.value)
+            .bind("id", UUID.fromString(notificationId.value))
             .map { row, _ -> row.toNotificationSummary() }
             .one()
             .awaitSingleOrNull()
@@ -113,7 +114,7 @@ class R2dbcNotificationAdminQueryAdapter(private val databaseClient: DatabaseCli
         val redactedPayload = redactPayload(payloadMap)
 
         return NotificationSummary(
-            id = get("id", String::class.java) ?: "",
+            id = requireNotNull(get("id", UUID::class.java)).toString(),
             channel = get("channel", String::class.java) ?: "",
             templateId = get("template_id", String::class.java) ?: "",
             recipient = get("recipient", String::class.java) ?: "",

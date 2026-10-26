@@ -14,6 +14,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Repository
 class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: DatabaseClient) :
@@ -32,7 +33,7 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
     ): Flow<ComplianceRiskAcceptance> = databaseClient.sql(SELECT_ACTIVE_BY_CONTEXT)
-        .bind("controlId", controlId.value)
+        .bind("controlId", UUID.fromString(controlId.value))
         .bind("evaluatedAt", evaluatedAt)
         .map { row, _ -> mapRiskAcceptance(row) }
         .all()
@@ -46,10 +47,10 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
      */
     override suspend fun save(riskAcceptance: ComplianceRiskAcceptance): ComplianceRiskAcceptance {
         var spec = databaseClient.sql(INSERT_RISK_ACCEPTANCE)
-            .bind("id", riskAcceptance.id.value)
-            .bind("controlId", riskAcceptance.controlId.value)
+            .bind("id", UUID.fromString(riskAcceptance.id.value))
+            .bind("controlId", UUID.fromString(riskAcceptance.controlId.value))
             .bind("riskSummary", riskAcceptance.riskSummary)
-            .bind("requestedBy", riskAcceptance.requestedBy)
+            .bind("requestedBy", UUID.fromString(riskAcceptance.requestedBy))
             .bind("expiresAt", riskAcceptance.expiresAt)
             .bind("status", riskAcceptance.status.name)
             .bind("version", riskAcceptance.version + 1)
@@ -78,8 +79,8 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
      * @return The mapped compliance risk acceptance.
      */
     private fun mapRiskAcceptance(row: Row): ComplianceRiskAcceptance = ComplianceRiskAcceptance(
-        id = ComplianceRiskAcceptanceId(requireNotNull(row.get("id", String::class.java))),
-        controlId = ComplianceControlId(requireNotNull(row.get("control_id", String::class.java))),
+        id = ComplianceRiskAcceptanceId(requireNotNull(row.get("id", UUID::class.java)).toString()),
+        controlId = ComplianceControlId(requireNotNull(row.get("control_id", UUID::class.java)).toString()),
         releaseScope = row.get("release_scope", String::class.java),
         marketScope = row.get("market_scope", String::class.java),
         environmentScope = row.get("environment_scope", String::class.java),
@@ -89,7 +90,7 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         riskSummary = requireNotNull(row.get("risk_summary", String::class.java)),
         residualRisk = row.get("residual_risk", String::class.java),
         justification = row.get("justification", String::class.java),
-        requestedBy = requireNotNull(row.get("requested_by", String::class.java)),
+        requestedBy = requireNotNull(row.get("requested_by", UUID::class.java)).toString(),
         acceptedBy = row.get("accepted_by", String::class.java),
         acceptedAt = row.get("accepted_at", OffsetDateTime::class.java)?.toInstant(),
         expiresAt = requireNotNull(row.get("expires_at", OffsetDateTime::class.java)).toInstant(),
