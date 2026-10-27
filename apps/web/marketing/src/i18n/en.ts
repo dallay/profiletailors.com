@@ -306,7 +306,7 @@ export const en = {
   waitlist: {
     formAriaLabel: 'Early access waitlist form',
     formAriaLabelFinal: 'Waitlist form at the end of the page',
-    emailLabel: 'EMAIL',
+    emailLabel: 'Email address',
     emailInput: {
       placeholder: 'you@company.com',
       ariaLabel: 'Email address',

@@ -2,7 +2,6 @@ package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -133,7 +132,7 @@ class PublishingBatchBddSteps {
 
     private inline fun <reified T> parseResponseField(field: String): T {
         val body = responseBodyText()
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         val raw = map[field]
         return when {
             raw == null -> error("Field '$field' is null in response: $body")

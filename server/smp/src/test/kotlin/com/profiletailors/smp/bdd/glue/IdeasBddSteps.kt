@@ -1,7 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -55,7 +54,7 @@ class IdeasBddSteps {
             .returnResult()
 
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         currentIdeaId = map["id"] as String?
     }
 
@@ -185,7 +184,7 @@ class IdeasBddSteps {
     @Then("the ideas response should contain at least {int} idea")
     fun assertIdeasCountAtLeast(minCount: Int) {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         val ideas = payload["ideas"] as? List<*> ?: emptyList<Any>()
         assertTrue(ideas.size >= minCount)
     }
@@ -193,21 +192,21 @@ class IdeasBddSteps {
     @Then("the idea column should be {string}")
     fun assertIdeaColumn(columnId: String) {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         assertEquals(columnId, payload["columnId"])
     }
 
     @Then("the idea title should be {string}")
     fun assertIdeaTitle(title: String) {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         assertEquals(title, payload["title"])
     }
 
     @Then("the columns response should contain {int} columns")
     fun assertColumnsCount(count: Int) {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         val columns = payload["columns"] as? List<*> ?: emptyList<Any>()
         assertEquals(count, columns.size)
     }
@@ -215,14 +214,14 @@ class IdeasBddSteps {
     @Then("the convert response should contain a publicationId")
     fun assertPublicationId() {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         assertNotNull(payload["publicationId"])
     }
 
     @Then("the idea convertedToPublicationId should be {string}")
     fun assertConvertedId(expected: String) {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        val payload: Map<String, Any?> = objectMapper.readMap(body)
         assertEquals(expected, payload["convertedToPublicationId"])
     }
 }

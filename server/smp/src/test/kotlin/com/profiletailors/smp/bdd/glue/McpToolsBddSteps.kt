@@ -2,7 +2,6 @@ package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -177,7 +176,7 @@ class McpToolsBddSteps {
     fun thenMcpCatalogShouldContainExactly(dataTable: io.cucumber.datatable.DataTable) {
         val expected = dataTable.asList(String::class.java).drop(1).toSet()
         val payload = extractToolData()
-            ?: latestResponse?.responseBody?.let { objectMapper.readValue<Map<String, Any?>>(it) }
+            ?: latestResponse?.responseBody?.let { objectMapper.readMap(it) }
 
         val toolEntries = payload?.get("tools") as? List<*>
             ?: error("Expected MCP response field 'tools' to be a list")
@@ -233,7 +232,7 @@ class McpToolsBddSteps {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: return null
         if (raw.isBlank()) return null
         val body: Map<String, Any?> = runCatching {
-            objectMapper.readValue<Map<String, Any?>>(raw)
+            objectMapper.readMap(raw)
         }.getOrNull() ?: return null
 
         @Suppress("UNCHECKED_CAST")
@@ -242,7 +241,7 @@ class McpToolsBddSteps {
         @Suppress("UNCHECKED_CAST")
         val content = result["content"] as? List<Map<String, Any?>> ?: return result
         val text = content.firstOrNull()?.get("text") as? String ?: return result
-        return runCatching { objectMapper.readValue<Map<String, Any?>>(text) }.getOrNull()
+        return runCatching { objectMapper.readMap(text) }.getOrNull()
     }
 
     @When("the MCP client with wrong workspace calls tool {string}")
@@ -302,7 +301,7 @@ class McpToolsBddSteps {
     @Then("the metadata should contain the MCP resource URI and supported scopes")
     fun thenMetadataShouldContainMcpResourceUriAndSupportedScopes() {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
-        val metadata: Map<String, Any?> = objectMapper.readValue(raw)
+        val metadata: Map<String, Any?> = objectMapper.readMap(raw)
         metadata["resource"] shouldBe "https://api.profiletailors.com/api/mcp"
         @Suppress("UNCHECKED_CAST")
         val scopes = metadata["scopes_supported"] as? List<String> ?: emptyList()
@@ -342,7 +341,7 @@ class McpToolsBddSteps {
     private fun parseResponseBody() {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) }
         responseBody = if (!raw.isNullOrBlank()) {
-            runCatching { objectMapper.readValue<Map<String, Any?>>(raw) }.getOrNull()
+            runCatching { objectMapper.readMap(raw) }.getOrNull()
         } else {
             null
         }

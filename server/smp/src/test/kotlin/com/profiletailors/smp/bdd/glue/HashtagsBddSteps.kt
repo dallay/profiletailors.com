@@ -1,7 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -77,7 +76,7 @@ class HashtagsBddSteps {
 
         val body = latestResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
         runCatching {
-            val map: Map<String, Any?> = objectMapper.readValue(body)
+            val map: Map<String, Any?> = objectMapper.readMap(body)
             currentSetId = map["id"] as? String
         }
     }
@@ -86,7 +85,7 @@ class HashtagsBddSteps {
     fun ensureSavedSetExists(name: String, hashtagsCsv: String) {
         saveHashtagSet(name, hashtagsCsv)
         val body = latestResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         currentSetId = map["id"] as? String
     }
 
@@ -183,6 +182,6 @@ class HashtagsBddSteps {
 
     private fun parseBody(): Map<String, Any?> {
         val raw = latestResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        return objectMapper.readValue(raw)
+        return objectMapper.readMap(raw)
     }
 }

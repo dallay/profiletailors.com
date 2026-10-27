@@ -1,7 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -210,7 +209,7 @@ class RecurringPublishingBddSteps {
     @Then("the recurring schedules list should contain {int} schedule")
     fun thenRecurringSchedulesListShouldContainCount(expected: Int) {
         val body = RecurringPublishingState.responseBodyText()
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
 
         @Suppress("UNCHECKED_CAST")
         val schedules = map["schedules"] as? List<*>

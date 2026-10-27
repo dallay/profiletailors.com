@@ -1,7 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
@@ -178,7 +177,7 @@ class AnalyticsBddSteps {
     @And("the overview contains {word}")
     fun overviewContainsField(field: String) {
         val body = latestAnalyticsResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         assertTrue(map.containsKey(field), "Expected field '$field' in overview response")
     }
 
@@ -253,6 +252,6 @@ class AnalyticsBddSteps {
 
     private fun responseAsMap(): Map<String, Any?> {
         val body = latestAnalyticsResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
-        return objectMapper.readValue(body)
+        return objectMapper.readMap(body)
     }
 }
