@@ -7,8 +7,8 @@ import Nav from './Nav.astro'
 
 describe('Nav language switch accessibility', () => {
   it.each([
-    { locale: 'en', code: 'ES', name: 'Switch to Spanish (ES)' },
-    { locale: 'es', code: 'EN', name: 'Cambiar a inglés (EN)' },
+    { locale: 'en', code: 'ES', name: 'ES — Switch to Spanish' },
+    { locale: 'es', code: 'EN', name: 'EN — Cambiar a inglés' },
   ] as const)('includes the visible language code exactly once in the accessible name for $locale', async ({ locale, code, name }) => {
     const container = await AstroContainer.create()
     const t = useTranslations(locale)
@@ -26,6 +26,8 @@ describe('Nav language switch accessibility', () => {
 
     expect(link?.[1].trim()).toBe(code)
     expect(accessibleName).toBe(name)
+    expect(accessibleName).toContain(code)
+    expect(accessibleName).toMatch(new RegExp(`^${code}\\b`))
     expect(accessibleName?.match(new RegExp(`\\b${code}\\b`, 'g'))).toHaveLength(1)
   })
 })
