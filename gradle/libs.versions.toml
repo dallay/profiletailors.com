@@ -22,7 +22,7 @@ resend = "4.28.0"
 awsS3 = "2.57.0"
 bucket4j = "8.10.1"
 caffeine = "3.3.1"
-sentry = "8.59.0"
+sentry = "8.61.1"
 
 # Transitive deps requiring explicit versions
 okio = "3.18.2"
