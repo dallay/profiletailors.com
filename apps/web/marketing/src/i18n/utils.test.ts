@@ -415,12 +415,12 @@ describe('i18n utils', () => {
 
     it('EN nav langSwitchLabel is in the current page language (English)', () => {
       const t = useTranslations(new URL('https://example.com/'));
-      expect(t.nav.langSwitchLabel).toBe('Switch to Spanish (ES)');
+      expect(t.nav.langSwitchLabel).toBe('ES — Switch to Spanish');
     });
 
     it('ES nav langSwitchLabel is in the current page language (Spanish)', () => {
       const t = useTranslations(new URL('https://example.com/es/'));
-      expect(t.nav.langSwitchLabel).toBe('Cambiar a inglés (EN)');
+      expect(t.nav.langSwitchLabel).toBe('EN — Cambiar a inglés');
     });
   });
 

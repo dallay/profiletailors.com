@@ -2,7 +2,6 @@ package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.profiletailors.smp.bdd.glue.BddDatabaseSupport
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
@@ -50,7 +49,7 @@ class ComplianceBddSteps {
             .returnResult()
         latestResponse = response
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
-        releaseGateBody = if (body.isNotBlank()) objectMapper.readValue(body) else null
+        releaseGateBody = if (body.isNotBlank()) objectMapper.readMap(body) else null
     }
 
     @Then("the release gate response status should be {int}")

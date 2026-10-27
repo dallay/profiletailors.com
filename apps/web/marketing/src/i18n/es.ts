@@ -3,7 +3,7 @@ export const es = {
   nav: {
     name: 'Profile Tailors',
     langSwitch: 'EN',
-    langSwitchLabel: 'Cambiar a inglés (EN)',
+    langSwitchLabel: 'EN — Cambiar a inglés',
     product: 'Producto',
     how: 'Cómo funciona',
     join: 'Unirme',
@@ -306,7 +306,7 @@ export const es = {
   waitlist: {
     formAriaLabel: 'Formulario de lista de espera de acceso anticipado',
     formAriaLabelFinal: 'Formulario de lista de espera al final de la página',
-    emailLabel: 'CORREO',
+    emailLabel: 'Correo electrónico',
     emailInput: {
       placeholder: 'tu@empresa.com',
       ariaLabel: 'Correo electrónico',

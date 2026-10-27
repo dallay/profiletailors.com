@@ -333,7 +333,7 @@ test.describe('SEO — accessible name alignment (WCAG 2.5.3 label-content-name-
       expect(text, `${url} visible text`).toBe(code)
       const ariaLabel = (await link.getAttribute('aria-label')) ?? ''
       expect(ariaLabel, `${url} aria-label missing`).toBeTruthy()
-      expect(ariaLabel, `${url} aria-label "${ariaLabel}" must contain visible "${code}"`).toContain(code)
+      expect(ariaLabel, `${url} aria-label "${ariaLabel}" must start with visible "${code}"`).toMatch(new RegExp(`^${code}\\b`))
     })
   }
 })

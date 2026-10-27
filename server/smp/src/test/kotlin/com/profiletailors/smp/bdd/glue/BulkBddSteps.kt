@@ -2,7 +2,6 @@ package com.profiletailors.smp.bdd.glue
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -125,7 +124,7 @@ class BulkBddSteps {
     @Then("validate MUST list {int} rows with {int} INVALID and no DB writes")
     fun thenValidateMustListRows(expected: Int, invalid: Int) = runTest {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         val rows = map["rows"] as? List<*> ?: emptyList<Any>()
         assertEquals(expected, rows.size, "validate rows mismatch body=$body")
         val invalidCount = rows.count { (it as? Map<*, *>)?.get("status") == "INVALID" }
@@ -146,8 +145,8 @@ class BulkBddSteps {
         assertNotNull(previousBulkResponse)
         val cur = String(latestBulkResponse?.responseBody ?: ByteArray(0))
         val prevBody = previousBulkResponse?.let { String(it.responseBody ?: ByteArray(0)) } ?: cur
-        val curMap: Map<String, Any?> = objectMapper.readValue(cur)
-        val prevMap: Map<String, Any?> = objectMapper.readValue(prevBody)
+        val curMap: Map<String, Any?> = objectMapper.readMap(cur)
+        val prevMap: Map<String, Any?> = objectMapper.readMap(prevBody)
         assertEquals(prevMap["rows"], curMap["rows"], "idempotent validate responses must match")
         val jobCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_jobs").map { r, _ ->
             (r.get(0) as Number).toLong()
@@ -158,7 +157,7 @@ class BulkBddSteps {
     @Then("it MUST return scheduledCount {int} failedCount {int} with {int} SCHEDULED publications")
     fun thenScheduleCounts(scheduled: Int, failed: Int, pubs: Int) = runBlocking {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         assertEquals(scheduled, (map["scheduledCount"] as? Number)?.toInt(), "scheduledCount mismatch $body")
         assertEquals(failed, (map["failedCount"] as? Number)?.toInt(), "failedCount mismatch $body")
         val status = latestBulkResponse?.status?.value() ?: 0
@@ -184,7 +183,7 @@ class BulkBddSteps {
         assertTrue(body.contains("bodyText,scheduledFor,timezone,media_urls,hashtags"), "header missing $body")
         val contentType = latestBulkResponse?.responseHeaders?.getFirst(HttpHeaders.CONTENT_TYPE) ?: ""
         if (contentType.contains("json") || body.trim().startsWith("{")) {
-            val map: Map<String, Any?> = objectMapper.readValue(body)
+            val map: Map<String, Any?> = objectMapper.readMap(body)
             val templates = map["templates"] as? List<*>
             assertTrue(templates != null && templates.isNotEmpty(), "templates missing $body")
         }
@@ -223,7 +222,7 @@ class BulkBddSteps {
     @Then("system MUST persist in {int}-{int} transactions and report via job status")
     fun thenPersistTransactions(a: Int, b: Int) = runBlocking {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         val totalRows = (map["totalRows"] as? Number)?.toInt() ?: 0
         assertEquals(1000, totalRows, "1000-row batch totalRows $body")
         val jobId = map["jobId"] as? String
@@ -383,7 +382,7 @@ class BulkBddSteps {
     @Then("result MUST contain {int} rows")
     fun thenResultMustContainRows(n: Int) {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         val rows = map["rows"] as? List<*> ?: emptyList<Any>()
         assertEquals(n, rows.size)
     }

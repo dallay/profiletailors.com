@@ -1,6 +1,5 @@
 package com.profiletailors.smp.bdd.glue
 
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import java.nio.charset.StandardCharsets
 
@@ -20,7 +19,7 @@ object RecurringPublishingState {
 
     fun parseRecurringResponseStatus(): String {
         val body = responseBodyText()
-        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val map: Map<String, Any?> = objectMapper.readMap(body)
         val status = when (val schedules = map["schedules"]) {
             is List<*> -> schedules.firstOrNull()?.let { (it as? Map<*, *>)?.get("status") }
             else -> map["status"]
@@ -31,7 +30,7 @@ object RecurringPublishingState {
     inline fun <reified T> parseField(field: String): T {
         val body = responseBodyText()
         return try {
-            val map: Map<String, Any?> = objectMapper.readValue(body)
+            val map: Map<String, Any?> = objectMapper.readMap(body)
             val raw = map[field]
             when {
                 raw == null && null is T ->
