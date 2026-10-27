@@ -109,17 +109,18 @@ internal class ComponentScanArchTest {
 
     @Test
     fun `should reject repository-port dependencies when HTTP infrastructure depends on them`() {
-        val predicate = object : DescribedPredicate<JavaClass>(
-            "a *Repository in the application layer",
+        val repositoryInDomainOrApplication = object : DescribedPredicate<JavaClass>(
+            "a *Repository in a domain or application layer",
         ) {
-            override fun test(input: JavaClass): Boolean = input.packageName.contains("application") &&
-                input.simpleName.endsWith("Repository")
+            override fun test(input: JavaClass): Boolean =
+                (input.packageName.contains("domain") || input.packageName.contains("application")) &&
+                    input.simpleName.endsWith("Repository")
         }
         ArchRuleDefinition.noClasses()
             .that()
             .resideInAPackage("..infrastructure.http..")
             .should()
-            .dependOnClassesThat(predicate)
+            .dependOnClassesThat(repositoryInDomainOrApplication)
             .because(
                 "controllers must dispatch to application use-case handlers or query ports, " +
                     "never bypass the application layer to call a *Repository directly",
