@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.26](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.25...landing@v0.2.26) (2026-10-27)
+
+
+### Features
+
+* **identity:** migrate internal identifiers to native UUIDs ([#1421](https://github.com/dallay/profiletailors.com/issues/1421)) ([089f399](https://github.com/dallay/profiletailors.com/commit/089f399bd3c48e343bf3a398dc48529324b8f7db))
+
 ## [0.2.25](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.24...landing@v0.2.25) (2026-10-23)
 
 
