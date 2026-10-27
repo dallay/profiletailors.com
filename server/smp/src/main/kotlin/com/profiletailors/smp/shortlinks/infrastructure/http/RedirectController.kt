@@ -6,9 +6,8 @@ import com.profiletailors.smp.shortlinks.application.LinkDisabledApplicationExce
 import com.profiletailors.smp.shortlinks.application.LinkExpiredApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkNotFoundApplicationException
 import com.profiletailors.smp.shortlinks.application.LinkQuarantinedApplicationException
+import com.profiletailors.smp.shortlinks.application.RecordLinkClickCommand
 import com.profiletailors.smp.shortlinks.application.ResolveLinkQuery
-import com.profiletailors.smp.shortlinks.domain.LinkClickRepository
-import com.profiletailors.smp.shortlinks.domain.LinkId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
@@ -20,24 +19,25 @@ import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
-class RedirectController(private val mediator: Mediator, private val clickRecorder: LinkClickRepository) {
+class RedirectController(private val mediator: Mediator) {
     private val logger = LoggerFactory.getLogger(RedirectController::class.java)
 
-    private suspend fun recordClick(linkId: LinkId) {
+    private suspend fun recordClick(linkId: UUID) {
         try {
             val recorded = withTimeoutOrNull(CLICK_RECORD_TIMEOUT_MILLIS) {
-                clickRecorder.record(linkId)
+                mediator.send(RecordLinkClickCommand(linkId))
                 true
             }
-            if (recorded == null) logger.warn(CLICK_RECORD_TIMEOUT, linkId.value)
+            if (recorded == null) logger.warn(CLICK_RECORD_TIMEOUT, linkId)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: DataAccessException) {
-            logger.warn(CLICK_RECORD_FAILURE, linkId.value, exception)
+            logger.warn(CLICK_RECORD_FAILURE, linkId, exception)
         } catch (exception: IllegalStateException) {
-            logger.warn("Failed to record click for link {}", linkId.value, exception)
+            logger.warn(CLICK_RECORD_FAILURE, linkId, exception)
         }
     }
 
@@ -47,7 +47,7 @@ class RedirectController(private val mediator: Mediator, private val clickRecord
 
         val response = try {
             val result = mediator.send(ResolveLinkQuery(domain = domain, shortCode = shortCode))
-            recordClick(LinkId(result.linkId))
+            recordClick(result.linkId)
             ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, result.destinationUrl)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
