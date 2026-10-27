@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.14](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.13...smp@v0.5.14) (2026-10-27)
+
+
+### Features
+
+* **identity:** migrate internal identifiers to native UUIDs ([#1421](https://github.com/dallay/profiletailors.com/issues/1421)) ([089f399](https://github.com/dallay/profiletailors.com/commit/089f399bd3c48e343bf3a398dc48529324b8f7db))
+
 ## [0.5.13](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.12...smp@v0.5.13) (2026-10-23)
 
 
