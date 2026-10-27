@@ -71,7 +71,7 @@ internal class RedirectControllerTest {
     }
 
     @Test
-    fun `redirects active link when click recording fails`() = runTest {
+    fun `should redirect active link when click recording fails`() = runTest {
         coEvery { mediator.send(any<ResolveLinkQuery>()) } returns
             ResolveResult("https://example.com/path", "ACTIVE", linkId)
         coEvery { mediator.send(any<RecordLinkClickCommand>()) } throws
