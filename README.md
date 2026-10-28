@@ -196,7 +196,7 @@ Docker commands separately. Run `just -l` or `make help` to list everything.
 - The marketing site uses Astro's built-in locale routing with **English as the default locale** and
   **Spanish under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and
-  `apps/web/app/src/i18n/`.
+  `apps/web/app/src/shared/i18n/`.
 - Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias.
   Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build
   configuration.
