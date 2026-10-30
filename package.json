@@ -51,7 +51,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "markdownlint-cli2": "0.23.3",
+    "markdownlint-cli2": "0.24.0",
     "portless": "0.15.8",
     "wrangler": "^4.152.0"
   }
