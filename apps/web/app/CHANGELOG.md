@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.19](https://github.com/dallay/profiletailors.com/compare/app@v0.3.18...app@v0.3.19) (2026-10-30)
+
+
+### Features
+
+* **identity:** migrate internal identifiers to native UUIDs ([#1421](https://github.com/dallay/profiletailors.com/issues/1421)) ([089f399](https://github.com/dallay/profiletailors.com/commit/089f399bd3c48e343bf3a398dc48529324b8f7db))
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod to v4.6.7 ([#1380](https://github.com/dallay/profiletailors.com/issues/1380)) ([b46ecb0](https://github.com/dallay/profiletailors.com/commit/b46ecb0bee0164504fe23e445ee5467baf8e24e9))
+* **deps:** update vue core ([#1411](https://github.com/dallay/profiletailors.com/issues/1411)) ([04848f3](https://github.com/dallay/profiletailors.com/commit/04848f31e338269490fb300bb0ca60bf2485dc5d))
+* Update OAuth endpoints and Node.js version in configuration ([#1386](https://github.com/dallay/profiletailors.com/issues/1386)) ([e2628c9](https://github.com/dallay/profiletailors.com/commit/e2628c9ab32810906aabf79983a915378768914c))
+
 ## [0.3.18](https://github.com/dallay/profiletailors.com/compare/app@v0.3.17...app@v0.3.18) (2026-10-21)
 
 
