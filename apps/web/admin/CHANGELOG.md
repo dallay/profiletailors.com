@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.18](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.17...admin@v0.0.18) (2026-10-30)
+
+
+### Features
+
+* **identity:** migrate internal identifiers to native UUIDs ([#1421](https://github.com/dallay/profiletailors.com/issues/1421)) ([089f399](https://github.com/dallay/profiletailors.com/commit/089f399bd3c48e343bf3a398dc48529324b8f7db))
+
+
+### Bug Fixes
+
+* **deps:** update vue core ([#1411](https://github.com/dallay/profiletailors.com/issues/1411)) ([04848f3](https://github.com/dallay/profiletailors.com/commit/04848f31e338269490fb300bb0ca60bf2485dc5d))
+
 ## [0.0.17](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.16...admin@v0.0.17) (2026-10-23)
 
 
