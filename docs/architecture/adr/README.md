@@ -58,6 +58,7 @@ as a historical record and a guide for current and future development.
 | 0031 | [Represent Platform Consent as an Explicit ID-Free Scope](./0031-explicit-platform-consent-scope.md) | Accepted | 2026-11-02 |
 | 0032 | [Represent Initial Bootstrap as a System Actor](./0032-bootstrap-system-actor-provenance.md) | Accepted | 2026-11-02 |
 | 0033 | [Complete Bootstrap Role Grant Within Email Verification](./0033-atomic-bootstrap-owner-grant.md) | Accepted | 2026-11-02 |
+| 0034 | [Record Bootstrap Terms Through the Governance Application Port](./0034-platform-bootstrap-uses-governance-application-port.md) | Accepted | 2026-11-02 |
 
 ## Relationship with other docs
 

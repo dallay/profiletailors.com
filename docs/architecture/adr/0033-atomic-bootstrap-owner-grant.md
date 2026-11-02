@@ -11,6 +11,7 @@
   - [ADR-0023](./0023-platformadmin-governance-application-takedown.md)
   - [ADR-0031](./0031-explicit-platform-consent-scope.md)
   - [ADR-0032](./0032-bootstrap-system-actor-provenance.md)
+  - [ADR-0034](./0034-platform-bootstrap-uses-governance-application-port.md)
   - [Email verification specification](../../../.agents/sdd/changes/initial-platform-admin-bootstrap/specs/email-verification/spec.md)
   - [Bootstrap specification](../../../.agents/sdd/changes/initial-platform-admin-bootstrap/specs/platform-admin-bootstrap/spec.md)
   - [Bootstrap design](../../../.agents/sdd/changes/initial-platform-admin-bootstrap/design.md)
