@@ -1,15 +1,10 @@
 package com.profiletailors.smp
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.platformadmin.application.BootstrapInvitationIssuer
-import com.profiletailors.smp.platformadmin.infrastructure.cli.BootstrapConsole
-import com.profiletailors.smp.platformadmin.infrastructure.cli.InteractivePlatformAdminBootstrapCli
-import com.profiletailors.smp.platformadmin.infrastructure.cli.PlatformAdminBootstrapCliConfiguration
+import com.profiletailors.smp.config.PlatformAdminBootstrapCommand
 import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
-import kotlinx.coroutines.runBlocking
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.FilterType
 import org.springframework.context.annotation.Import
@@ -65,7 +60,7 @@ class SmpApplication
 fun main(args: Array<String>) {
     dispatchSmpCommand(
         args = args,
-        bootstrap = ::runPlatformAdminBootstrap,
+        bootstrap = PlatformAdminBootstrapCommand::run,
         server = { runApplication<SmpApplication>(*it) },
     )
 }
@@ -75,25 +70,6 @@ internal fun dispatchSmpCommand(args: Array<String>, bootstrap: () -> Unit, serv
         bootstrap()
     } else {
         server(args)
-    }
-}
-
-private fun runPlatformAdminBootstrap() {
-    val console = System.console() ?: throw IllegalStateException("Platform bootstrap requires an interactive console")
-    AnnotationConfigApplicationContext(PlatformAdminBootstrapCliConfiguration::class.java).use { context ->
-        val issuer = context.getBean(BootstrapInvitationIssuer::class.java)
-        runBlocking {
-            InteractivePlatformAdminBootstrapCli(issuer, SystemBootstrapConsole(console)).run()
-        }
-    }
-}
-
-private class SystemBootstrapConsole(private val console: java.io.Console) : BootstrapConsole {
-    override fun readLine(prompt: String): String? = console.readLine("%s", prompt)
-
-    override fun writeLine(value: String) {
-        console.printf("%s%n", value)
-        console.flush()
     }
 }
 

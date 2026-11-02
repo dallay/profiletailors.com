@@ -2,7 +2,6 @@ package com.profiletailors.smp.platformadmin.infrastructure.cli
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.infrastructure.R2dbcPrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.IssueBootstrapInvitationHandler
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
@@ -44,10 +43,6 @@ class PlatformAdminBootstrapCliConfiguration {
     @Bean
     fun bootstrapAuditPublisher(databaseClient: DatabaseClient): AdministrativeAuditPublisher =
         R2dbcAdminAuditRepository(databaseClient)
-
-    @Bean
-    fun bootstrapIdentityLookup(databaseClient: DatabaseClient): PrincipalIdentityLookup =
-        R2dbcPrincipalIdentityLookup(databaseClient)
 
     @Bean
     fun bootstrapTokenGenerator(): BootstrapTokenGenerator = SecureBootstrapTokenGenerator()

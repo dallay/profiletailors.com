@@ -44,15 +44,15 @@ current_local_ref: feature/bootstrap-u07-adr-0034
 open_gates:
   - Fix the two reported BDD failures and Gradle aggregation error before merge; expose their status in the draft PR.
   - Resolve the CLI configtree secret gap and verify the packaged image TTY flow before merge.
-  - Complete backend-check, Detekt/Modulith, PostgreSQL recovery/migration, and required Admin tests before merge.
+  - Complete backend-check and PostgreSQL recovery/migration tests; focused architecture suites and Detekt now pass, but the full check timed out on a PostgreSQL connection failure.
   - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.
   - Verify and correct missing/blank invitation-token handling so every unusable-token case returns the same `BOOTSTRAP_UNAVAILABLE` problem response; verify that undeclared request fields are not accepted if strict exact-field rejection is required.
   - Complete migration upgrade/backfill verification, scoped tenant endpoint BDD, and fresh-schema closeout.
   - Verify atomic verification-token consumption, bootstrap completion, role grant, and audit rollback/recovery in PostgreSQL.
   - Verify the actual packaged `:server:smp:bootBuildImage` CLI invocation and startup isolation.
   - "Fix the two failing scenarios in the latest `just backend-bdd-fast` run (329 scenarios) and resolve the Gradle result aggregation `NoSuchFileException`."
-  - "The latest `just backend-check` had one unidentified failure and two skipped tests; identify the failure before claiming the gate passes."
-  - "`just backend-lint` passed on 2026-11-03 after fixing all 17 reported findings; identify the prior backend-check failure and resolve remaining Modulith violations."
+  - "The latest `just backend-check` timed out on a PostgreSQL connection failure in `ResourcePreviewEndpointPostgresIntegrationTest`; rerun with valid local infrastructure and account for two skipped tests."
+  - "`just backend-lint` passed on 2026-11-03 after fixing all 17 findings. Focused Modulith, hexagonal, component-scan, and modularity verification suites passed."
   - "Resolve missing local environment inputs for production/swarm config checks; rerun docs-links after its timeout."
   - "Complete legal review for ADR-0031 and ADR-0033."
 user_confirmed:
@@ -69,3 +69,5 @@ review_budget_status: size_exception_approved
 publication_status: draft_pr_requested_with_known_gates
 deployment_status: not_authorized_and_not_attempted
 latest_backend_lint: passed_2026-11-03
+focused_architecture_tests: passed_2026-11-03
+full_backend_check: timed_out_postgres_connection_failure

@@ -3,14 +3,8 @@ package com.profiletailors.smp.platformadmin.application
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.governance.application.RecordConsentCommand
-import com.profiletailors.smp.governance.application.RecordConsentHandler
-import com.profiletailors.smp.governance.application.RecordConsentOutcome
-import com.profiletailors.smp.governance.domain.ConsentRecord
-import com.profiletailors.smp.governance.domain.ConsentRecordId
-import com.profiletailors.smp.governance.domain.ConsentScope
-import com.profiletailors.smp.governance.domain.ConsentType
-import com.profiletailors.smp.governance.domain.SubjectReference
+import com.profiletailors.smp.governance.application.RecordBootstrapTermsConsentCommand
+import com.profiletailors.smp.governance.application.RecordBootstrapTermsConsentHandler
 import com.profiletailors.smp.identity.application.CurrentTermsVersionProvider
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
@@ -55,8 +49,8 @@ class CompleteBootstrapHandlerTest {
     private val order = mutableListOf<String>()
     private val eventPublisher = RecordingEventPublisher(order)
     private val transactionRunner = RecordingTransactionRunner(order)
-    private val consentSlot = io.mockk.slot<RecordConsentCommand>()
-    private val consentHandler = mockk<RecordConsentHandler>()
+    private val consentSlot = io.mockk.slot<RecordBootstrapTermsConsentCommand>()
+    private val consentHandler = mockk<RecordBootstrapTermsConsentHandler>()
     private val handler = CompleteBootstrapHandler(
         invitationRepository = repository,
         identityRegistrationGateway = identityGateway,
@@ -67,7 +61,7 @@ class CompleteBootstrapHandlerTest {
             override fun hash(rawPassword: String): String = "hashed-password"
             override fun matches(rawPassword: String, passwordHash: String): Boolean = false
         },
-        consentHandler = consentHandler,
+        recordBootstrapTermsConsentHandler = consentHandler,
         currentTermsVersionProvider = CurrentTermsVersionProvider { "terms-v1.0.0" },
         eventPublisher = eventPublisher,
         transactionRunner = transactionRunner,
@@ -76,10 +70,7 @@ class CompleteBootstrapHandlerTest {
 
     @Test
     fun `sets password records platform terms and sends existing verification event`() = runTest {
-        coEvery { consentHandler.handle(capture(consentSlot)) } returns RecordConsentOutcome(
-            created = true,
-            record = consentRecord(),
-        )
+        coEvery { consentHandler.handle(capture(consentSlot)) } returns Unit
 
         handler.handle(CompleteBootstrapCommand(rawToken, "a-strong-password", "terms-v1.0.0"))
 
@@ -87,10 +78,12 @@ class CompleteBootstrapHandlerTest {
         assertEquals("owner@example.test", identityGateway.createdEmail)
         assertEquals(EmailStatus.PENDING, identityGateway.createdEmailStatus)
         assertEquals("hashed-password", credentialGateway.createdHash)
-        assertEquals(ConsentScope.Platform, consentSlot.captured.scope)
-        assertEquals(ConsentType.CONTRACT_ACCEPTANCE, consentSlot.captured.consentType)
-        assertEquals("terms.acceptance", consentSlot.captured.purpose)
-        assertEquals("terms-v1.0.0", consentSlot.captured.policyVersion)
+        assertEquals(
+            UUID.fromString(requireNotNull(identityGateway.createdPrincipalId)),
+            consentSlot.captured.principalId,
+        )
+        assertEquals("terms-v1.0.0", consentSlot.captured.termsVersion)
+        assertEquals(now, consentSlot.captured.occurredAt)
         assertEquals(1, eventPublisher.events.size)
         assertTrue(eventPublisher.events.single() is com.profiletailors.smp.identity.domain.UserRegistered)
         assertEquals(listOf("transaction:start", "transaction:commit", "event:publish"), order)
@@ -98,7 +91,7 @@ class CompleteBootstrapHandlerTest {
 
     @Test
     fun `stale terms version makes no mutation`() = runTest {
-        coEvery { consentHandler.handle(any()) } returns RecordConsentOutcome(true, consentRecord())
+        coEvery { consentHandler.handle(any()) } returns Unit
 
         assertThrows(StaleBootstrapTermsException::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -113,7 +106,7 @@ class CompleteBootstrapHandlerTest {
 
     @Test
     fun `existing account cannot be elevated through bootstrap`() = runTest {
-        coEvery { consentHandler.handle(any()) } returns RecordConsentOutcome(true, consentRecord())
+        coEvery { consentHandler.handle(any()) } returns Unit
         identityLookup.facts = identityFacts()
 
         assertThrows(BootstrapUnavailableException::class.java) {
@@ -126,18 +119,6 @@ class CompleteBootstrapHandlerTest {
         assertEquals(null, credentialGateway.createdHash)
         assertTrue(eventPublisher.events.isEmpty())
     }
-
-    private fun consentRecord() = ConsentRecord(
-        id = ConsentRecordId(UUID.randomUUID().toString()),
-        scope = ConsentScope.Platform,
-        subjectReference = SubjectReference.user(UUID.randomUUID().toString()),
-        consentType = ConsentType.CONTRACT_ACCEPTANCE,
-        purpose = "terms.acceptance",
-        policyVersion = "terms-v1.0.0",
-        source = "bootstrap",
-        locale = "en",
-        givenAt = now,
-    )
 
     private fun identityFacts() = PrincipalIdentityFacts(
         principalId = UUID.randomUUID().toString(),
@@ -170,6 +151,7 @@ class CompleteBootstrapHandlerTest {
     }
 
     private class FakeIdentityRegistrationGateway : IdentityRegistrationGateway {
+        var createdPrincipalId: String? = null
         var createdEmail: String? = null
         var createdEmailStatus: EmailStatus? = null
         var verificationToken: EmailVerificationTokenData? = null
@@ -183,6 +165,7 @@ class CompleteBootstrapHandlerTest {
             displayIdentity: String,
             emailStatus: EmailStatus,
         ) {
+            createdPrincipalId = principalId
             createdEmail = email
             createdEmailStatus = emailStatus
         }

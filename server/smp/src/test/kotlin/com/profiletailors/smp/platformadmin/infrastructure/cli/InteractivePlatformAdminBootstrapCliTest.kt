@@ -3,6 +3,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.cli
 import com.profiletailors.smp.platformadmin.application.BootstrapInvitationIssuer
 import com.profiletailors.smp.platformadmin.application.BootstrapInvitationLink
 import com.profiletailors.smp.platformadmin.application.IssueBootstrapInvitationCommand
+import com.profiletailors.smp.platformadmin.application.contracts.BootstrapConsole
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

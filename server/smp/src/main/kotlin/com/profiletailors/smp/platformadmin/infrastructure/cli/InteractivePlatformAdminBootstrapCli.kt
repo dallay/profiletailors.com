@@ -2,17 +2,14 @@ package com.profiletailors.smp.platformadmin.infrastructure.cli
 
 import com.profiletailors.smp.platformadmin.application.BootstrapInvitationIssuer
 import com.profiletailors.smp.platformadmin.application.IssueBootstrapInvitationCommand
-
-interface BootstrapConsole {
-    fun readLine(prompt: String): String?
-    fun writeLine(value: String)
-}
+import com.profiletailors.smp.platformadmin.application.contracts.BootstrapCli
+import com.profiletailors.smp.platformadmin.application.contracts.BootstrapConsole
 
 class InteractivePlatformAdminBootstrapCli(
     private val invitationIssuer: BootstrapInvitationIssuer,
     private val console: BootstrapConsole,
-) {
-    suspend fun run() {
+) : BootstrapCli {
+    override suspend fun run() {
         val email = console.readLine(EMAIL_PROMPT) ?: return
         val confirmedEmail = console.readLine(CONFIRM_EMAIL_PROMPT) ?: return
         val replacementConfirmation = console.readLine(REPLACEMENT_PROMPT) ?: return

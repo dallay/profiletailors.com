@@ -6,11 +6,8 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.governance.application.RecordConsentCommand
-import com.profiletailors.smp.governance.application.RecordConsentHandler
-import com.profiletailors.smp.governance.domain.ConsentScope
-import com.profiletailors.smp.governance.domain.ConsentType
-import com.profiletailors.smp.governance.domain.SubjectReference
+import com.profiletailors.smp.governance.application.RecordBootstrapTermsConsentCommand
+import com.profiletailors.smp.governance.application.RecordBootstrapTermsConsentHandler
 import com.profiletailors.smp.identity.application.CurrentTermsVersionProvider
 import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
@@ -44,7 +41,7 @@ internal class CompleteBootstrapHandler(
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val passwordHasher: PasswordHasher,
-    private val consentHandler: RecordConsentHandler,
+    private val recordBootstrapTermsConsentHandler: RecordBootstrapTermsConsentHandler,
     private val currentTermsVersionProvider: CurrentTermsVersionProvider,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val transactionRunner: AtomicTransactionRunner,
@@ -99,15 +96,11 @@ internal class CompleteBootstrapHandler(
             emailStatus = EmailStatus.PENDING,
         )
         localPasswordCredentialGateway.create(principalId.toString(), passwordHash)
-        consentHandler.handle(
-            RecordConsentCommand(
-                scope = ConsentScope.Platform,
-                subjectReference = SubjectReference.user(principalId.toString()),
-                consentType = ConsentType.CONTRACT_ACCEPTANCE,
-                purpose = TERMS_ACCEPTANCE_PURPOSE,
-                policyVersion = currentTermsVersion,
-                source = CONSENT_SOURCE,
-                locale = CONSENT_LOCALE,
+        recordBootstrapTermsConsentHandler.handle(
+            RecordBootstrapTermsConsentCommand(
+                principalId = principalId,
+                termsVersion = currentTermsVersion,
+                occurredAt = now,
             ),
         )
         val verificationToken = EmailVerificationTokenHasher.generate(now)
@@ -155,8 +148,5 @@ internal class CompleteBootstrapHandler(
 
     private companion object {
         private const val MIN_PASSWORD_LENGTH = 12
-        private const val TERMS_ACCEPTANCE_PURPOSE = "terms.acceptance"
-        private const val CONSENT_SOURCE = "bootstrap"
-        private const val CONSENT_LOCALE = "en"
     }
 }
