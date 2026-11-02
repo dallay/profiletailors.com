@@ -4,16 +4,17 @@
 
 - **Persistence:** OpenSpec-only
 - **Tracker branch:** `feature/initial-platform-admin-bootstrap`, based on `main`
-- **Current unit:** U02, based on U01 commit `7fe2f7d9` at `feature/bootstrap-u01-planning`; local ref: `feature/bootstrap-u02-history`
-- **Position:** `2/16` monorepo units; D01 is a separate deployment-repository unit
-- **Base check:** `main` is an ancestor of the tracker branch; U01 is the current `HEAD`
+- **Completed unit:** U03 planning/history sync; based on U02 commit `961a9381d798c5b068cc2cdb70df195663d12973` at `feature/bootstrap-u02-history`; local ref: `feature/bootstrap-u03-planning-sync`
+- **Unit history:** U01 `7fe2f7d9a41bee56a894c2c8a80d679c425e6251` at `feature/bootstrap-u01-planning`; U02 `961a9381d798c5b068cc2cdb70df195663d12973` at `feature/bootstrap-u02-history`
+- **Position:** `3/23` monorepo units; D01 is a separate deployment-repository unit
+- **Base check:** `main` is an ancestor of the tracker branch; the U03 commit is the current tracker `HEAD`
 - **Delivery:** `feature-branch-chain`, with local conventional commits authorized per unit
-- **Review workload:** The verified candidate is approximately 3,360 changed lines, excluding planning/ADR files and the `.gitignore` modification. U11/U14 estimates remain provisional. See `tasks.md` for all 16 unit estimates and D01.
-- **Apply status:** Partial. Implementation remains in progress across the approved chain. U02 reconciles the work history and verification status; it does not claim implementation completion or product acceptance.
+- **Review workload:** The implementation candidate is approximately 3,360 changed lines, excluding planning/ADR files and the pre-existing `.gitignore` modification. The current forecast is approximately 5,000 monorepo lines plus D01 at approximately 90 lines. See `tasks.md` for all 23 monorepo units and D01; stop any unit above 400 changed lines.
+- **Apply status:** Partial. U01, U02, and U03 are complete; implementation remains in progress across the approved chain. U03 reconciles planning and evidence; it does not claim implementation completion or product acceptance.
 - **Publication / deployment:** No push, PR, live checks, or VPS deployment
 - **Acceptance:** Not claimed; technical verification and product acceptance remain separate
 
-U02 does not change source or `.gitignore`. Its commit is limited to `exploration.md`, `apply-progress.md`, `tasks.md`, and `state.yaml`. Candidate source and other working-tree changes remain unstaged.
+U03 changes only `design.md`, `tasks.md`, `state.yaml`, and `apply-progress.md`. `.gitignore` is pre-existing and remains unstaged. Candidate source and all other working-tree changes remain unstaged.
 
 ## Completed tasks
 
@@ -70,8 +71,9 @@ The BDD gate is **not passing**. An earlier run timed out before producing final
 | `pnpm exec biome check .` from `apps/web/admin` | Passed | 69 files checked, no fixes applied. |
 | Admin mocked Playwright | Passed | 16 tests; the wrapper ran the complete mocked lane despite the supplied grep argument. |
 | `just backend-bdd-fast` | Failed | 329 scenarios, 2 failures, then `NoSuchFileException` during Gradle result aggregation; details above. |
-| `just backend-check` | Failed | Detekt reported 22 issues in changed code; `ModularStructureTest` failed with platformadmin-to-`governance::domain` and root-to-non-exposed-platformadmin-CLI-infrastructure dependencies; 3,353 tests completed with 1 failure and 2 skipped. |
-| `just backend-test-postgres` | Running when last checked; no result claimed | The task had not completed at the last status check. |
+| `just backend-check` | Failed | Latest captured result had one unidentified failure and two skipped tests; the failure was not identified in the available summary. |
+| `just backend-lint` | Failed | Latest report contains 17 findings; assignments and rule names are listed in `tasks.md`. |
+| `just backend-test-postgres` | No result claimed | An earlier run was still running when last checked; no completion result is available. |
 | `just infra-up` | Not run | Not required for the focused Testcontainers tests. |
 | `:server:smp:bootBuildImage` | Not run | Actual packaged image/TTY invocation remains an open gate. |
 | `just docs-lint` | Failed | 71 pre-existing markdownlint findings in 8 `.agents/rpi/plan/tasks/` files; changed docs were not among them. |
@@ -189,10 +191,10 @@ artifacts.
 
 ## Deviations and risks
 
-- **Transaction owner:** `VerifyEmailHandler` retains its existing identity-owned `AtomicTransactionRunner` and invokes the identity-owned completion port within that R2DBC transaction. The platformadmin grant handler performs database work in the existing transaction rather than opening a nested platformadmin-owned runner. This preserves the required atomic writes, but it differs from the design document's wording that the platformadmin coordinator owns the runner; reconcile before closure.
-- **Review workload:** the former `size-exception` plan is superseded by `feature-branch-chain`. Keep each monorepo unit within 400 changed lines; the verified candidate is approximately 3,360 lines across 16 units plus separate D01.
-- **Out-of-scope artifact drift:** `design.md` still contains the former `size-exception` and no-commit wording. U02 is limited to the four assigned artifacts, so `design.md` remains unchanged and requires a separately authorized follow-up.
-- **Backend checks:** `just backend-check` did not pass. `ModularStructureTest` reports forbidden platformadmin dependencies on `governance::domain` from `CompleteBootstrapHandler` and `GovernanceBootstrapTermsConsentVerifier`, a platformadmin dependency on `identity::infrastructure` from the CLI configuration's `R2dbcPrincipalIdentityLookup`, and root-module dependencies on non-exposed CLI infrastructure types from `SmpApplication.kt`. Detekt reported 22 issues, including `LongMethod`, `ThrowsCount`, `TooManyFunctions`, `FunctionNameMaxLength`, `MaxLineLength`, `StringShouldBeRawString`, `UnnecessaryParentheses`, `UnderscoresInNumericLiterals`, and `ClassOrdering`. No suppressions were added.
+- **Transaction owner:** `VerifyEmailHandler` retains its existing identity-owned `AtomicTransactionRunner` and invokes the identity-owned completion port within that R2DBC transaction. The platformadmin grant handler participates in the existing transaction without opening a nested runner. `design.md` now records identity as transaction owner; PostgreSQL rollback/recovery remains unverified.
+- **Review workload:** the current strategy is `feature-branch-chain`, not `size-exception`. The verified implementation candidate is approximately 3,360 changed lines; the current forecast is approximately 5,000 monorepo lines plus D01 at approximately 90 lines. Keep each monorepo unit within 400 changed lines.
+- **Planning status:** U03 reconciles `design.md` with the accepted application-port, config-wiring, actor-attribution, and local-commit decisions. ADR-0034 is the narrow application-port decision; ADR-0023 remains unchanged.
+- **Backend checks:** the latest `just backend-check` had one unidentified failure and two skipped tests; the captured summary does not identify the failure. The latest `just backend-lint` report has 17 findings assigned in `tasks.md`. Do not claim either gate passes, weaken architecture rules, or add suppressions. The accepted architecture prohibits `platformadmin -> governance::domain`; consent uses the narrow application port in ADR-0034, and root CLI dispatch routes through wiring-only `com.profiletailors.smp.config`.
 - **Migration context:** governance `008` and platform-admin `013` are gated by `@uuid-native-identifiers`. Production operations must apply them only after the approved UUID cutover procedure; default `prod` startup does not apply them.
 - **CLI secret source:** production Compose mounts `SMP_DB_PASSWORD` as `/run/secrets/SMP_DB_PASSWORD` and exposes it through `SPRING_CONFIG_IMPORT=configtree:/run/secrets/`. The isolated `AnnotationConfigApplicationContext` does not process Spring Boot config-data imports, while the CLI configuration currently requires the value as an environment placeholder. The actual container command is therefore blocked until the CLI reads the mounted secret directly or loads the configtree through a safe, explicit mechanism.
 - **Request schema:** the DTO declares only the three approved bootstrap fields and the admin client sends only those fields. Backend rejection of extra JSON fields has not been tested; confirm the deployed Jackson behavior against the “accepts exactly” contract before closure.
@@ -208,7 +210,7 @@ artifacts.
 - [ ] Diagnose and fix the two failing Cucumber scenarios and Gradle result aggregation, then rerun the full fast BDD lane.
 - [ ] Prove conditional token consumption, completion, consent, owner grant, and audit rollback/recovery with PostgreSQL.
 - [ ] Verify supported-schema upgrade/backfill and fresh PostgreSQL initialization with no owner/workspace/membership rows.
-- [ ] Resolve the 22 Detekt findings and `ModularStructureTest` failures without weakening architecture rules or adding suppressions.
+- [ ] Resolve the latest 17 `just backend-lint` findings and identify the one failure from the latest `just backend-check`; keep architecture rules unchanged.
 - [ ] Fix the CLI configtree secret gap; build `:server:smp:bootBuildImage` and verify the exact TTY-only invocation, startup isolation, and one terminal link.
 - [ ] Resolve the missing local environment inputs for `just production-config` and `just swarm-config`; rerun both checks.
 - [ ] Rerun docs-link validation, which timed out; complete final diff/secret/suppression checks.

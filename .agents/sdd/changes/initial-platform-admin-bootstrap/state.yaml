@@ -7,27 +7,35 @@ artifact_policy: openspec-only
 scope_status: feature_branch_chain_in_progress
 delivery_strategy: feature-branch-chain
 review_budget: 400
-estimated_changed_lines: 3360
+estimated_changed_lines: 5000
+estimated_external_changed_lines: 90
 feature_branch: feature/initial-platform-admin-bootstrap
 base_branch: main
-layer_position: 2/16
-monorepo_units: 16
+layer_position: 3/23
+monorepo_units: 23
 external_units: 1
-last_completed_unit: U02
-previous_local_commit: 7fe2f7d9
-previous_local_ref: feature/bootstrap-u01-planning
-current_local_ref: feature/bootstrap-u02-history
+last_completed_unit: U03
+completed_local_units:
+  U01:
+    commit: 7fe2f7d9a41bee56a894c2c8a80d679c425e6251
+    ref: feature/bootstrap-u01-planning
+  U02:
+    commit: 961a9381d798c5b068cc2cdb70df195663d12973
+    ref: feature/bootstrap-u02-history
+previous_local_commit: 961a9381d798c5b068cc2cdb70df195663d12973
+previous_local_ref: feature/bootstrap-u02-history
+current_local_ref: feature/bootstrap-u03-planning-sync
+next_local_ref: feature/bootstrap-u04-consent-actors
 open_gates:
   - Count each exact staged unit before committing; stop if any unit exceeds 400 changed lines.
   - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.
   - Verify and correct missing/blank invitation-token handling so every unusable-token case returns the same `BOOTSTRAP_UNAVAILABLE` problem response; verify that undeclared request fields are not accepted if strict exact-field rejection is required.
   - Complete migration upgrade/backfill verification, scoped tenant endpoint BDD, and fresh-schema closeout.
   - Verify atomic verification-token consumption, bootstrap completion, role grant, and audit rollback/recovery in PostgreSQL.
-  - Reconcile the design wording for transaction ownership: identity currently owns verification's runner and calls the platformadmin port inside that transaction.
   - Verify the actual packaged `:server:smp:bootBuildImage` CLI invocation and startup isolation.
-  - "Fix the two failing scenarios in `just backend-bdd-fast` (329 scenarios) and rerun after the Gradle result aggregation `NoSuchFileException`."
-  - "`just backend-test-postgres` was still running when last checked; no result is claimed."
-  - "Resolve the `ModularStructureTest` violations and 22 Detekt findings without weakening architecture rules or adding suppressions."
+  - "Fix the two failing scenarios in the latest `just backend-bdd-fast` run (329 scenarios) and resolve the Gradle result aggregation `NoSuchFileException`."
+  - "The latest `just backend-check` had one unidentified failure and two skipped tests; identify the failure before claiming the gate passes."
+  - "Resolve the latest 17 `just backend-lint` findings without weakening architecture rules or adding suppressions."
   - "Resolve missing local environment inputs for production/swarm config checks; rerun docs-links after its timeout."
   - "Complete legal review for ADR-0031 and ADR-0033."
 user_confirmed:
@@ -40,5 +48,5 @@ user_confirmed:
   - Attribute bootstrap issuance/replacement and owner grant to SYSTEM_BOOTSTRAP without a human principal UUID; never use the recipient as actor.
 observed_apply_status: partial_in_progress_feature_branch_chain
 observed_changed_lines: 3360
-review_budget_status: exceeded
+review_budget_status: high_forecast_controlled_by_feature_branch_chain
 deployment_status: not_authorized_and_not_attempted
