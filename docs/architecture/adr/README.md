@@ -54,7 +54,9 @@ as a historical record and a guide for current and future development.
 | 0026 | [Remove Automated Skill Doctor and Registry Generator](./0026-remove-automated-skill-doctor.md) | Accepted | 2026-09-30 |
 | 0027 | [Conditional Sentry Error-Tracking Boundary](./0027-conditional-sentry-error-tracking-boundary.md) | Accepted | 2026-10-02 |
 | 0028 | [Defer Shortlinks Capabilities Beyond Core V1](./0028-defer-shortlinks-beyond-core-v1.md) | Accepted | 2026-10-04 |
-| 0030 | [Separate Public WAITLIST Consent from Tenant Workspaces](./0030-separate-public-waitlist-consent-scope.md) | Accepted | 2026-10-26 |
+| 0030 | [Separate Public WAITLIST Consent from Tenant Workspaces](./0030-separate-public-waitlist-consent-scope.md) | Superseded | 2026-10-26 |
+| 0031 | [Represent Platform Consent as an Explicit ID-Free Scope](./0031-explicit-platform-consent-scope.md) | Accepted | 2026-11-02 |
+| 0032 | [Represent Initial Bootstrap as a System Actor](./0032-bootstrap-system-actor-provenance.md) | Accepted | 2026-11-02 |
 
 ## Relationship with other docs
 
