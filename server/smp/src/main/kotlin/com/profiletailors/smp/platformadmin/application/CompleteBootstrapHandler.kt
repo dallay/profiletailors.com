@@ -20,11 +20,13 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.normalizeUsername
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
+import com.profiletailors.smp.platformadmin.domain.BootstrapInvitation
 import com.profiletailors.smp.platformadmin.domain.BootstrapInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.BootstrapTokenDigest
 import com.profiletailors.smp.platformadmin.domain.BootstrapUnavailableException
 import com.profiletailors.smp.platformadmin.domain.StaleBootstrapTermsException
 import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 
 data class CompleteBootstrapCommand(
@@ -56,56 +58,11 @@ internal class CompleteBootstrapHandler(
 
         val tokenHash = BootstrapTokenDigest.hash(command.invitationToken)
         val passwordHash = passwordHasher.hash(command.password)
-        val registration = transactionRunner.runAtomically {
-            invitationRepository.lock()
-            if (invitationRepository.hasActiveOwner()) throw BootstrapUnavailableException()
-            val invitation = invitationRepository.findByTokenHash(tokenHash) ?: throw BootstrapUnavailableException()
-            val now = clock.instant()
-            if (!invitation.canClaim(now)) throw BootstrapUnavailableException()
-            if (
-                principalIdentityLookup.findByEmail(invitation.email) != null ||
-                localPasswordCredentialGateway.findByEmail(invitation.email) != null
-            ) {
-                throw BootstrapUnavailableException()
-            }
-
-            val principalId = UUID.randomUUID()
-            if (!invitationRepository.claim(tokenHash, principalId, now)) throw BootstrapUnavailableException()
-            val username = normalizeUsername(null, invitation.email)
-            identityRegistrationGateway.createUserIdentity(
-                principalId = principalId.toString(),
-                subject = "local:${invitation.email}",
-                email = invitation.email,
-                username = username,
-                provider = null,
-                displayIdentity = username,
-                emailStatus = EmailStatus.PENDING,
-            )
-            localPasswordCredentialGateway.create(principalId.toString(), passwordHash)
-            consentHandler.handle(
-                RecordConsentCommand(
-                    scope = ConsentScope.Platform,
-                    subjectReference = SubjectReference.user(principalId.toString()),
-                    consentType = ConsentType.CONTRACT_ACCEPTANCE,
-                    purpose = TERMS_ACCEPTANCE_PURPOSE,
-                    policyVersion = currentTermsVersion,
-                    source = CONSENT_SOURCE,
-                    locale = CONSENT_LOCALE,
-                ),
-            )
-            val verificationToken = EmailVerificationTokenHasher.generate(now)
-            identityRegistrationGateway.createEmailVerificationToken(
-                email = invitation.email,
-                tokenHash = verificationToken.tokenHash,
-                expiresAt = verificationToken.expiresAt,
-            )
-            BootstrapRegistration(
-                principalId = principalId.toString(),
-                email = invitation.email,
-                username = username,
-                rawVerificationToken = verificationToken.rawToken,
-            )
-        }
+        val registration = registerBootstrapOwner(
+            tokenHash = tokenHash,
+            passwordHash = passwordHash,
+            currentTermsVersion = currentTermsVersion,
+        )
 
         eventPublisher.publish(
             UserRegistered(
@@ -116,6 +73,77 @@ internal class CompleteBootstrapHandler(
             ),
         )
         return CompleteBootstrapResult
+    }
+
+    private suspend fun registerBootstrapOwner(
+        tokenHash: String,
+        passwordHash: String,
+        currentTermsVersion: String,
+    ): BootstrapRegistration = transactionRunner.runAtomically {
+        invitationRepository.lock()
+        val invitation = findInvitation(tokenHash)
+        val now = clock.instant()
+        ensureInvitationCanBeClaimed(invitation, now)
+        ensureEmailIsAvailable(invitation.email)
+
+        val principalId = UUID.randomUUID()
+        claimInvitation(tokenHash, principalId, now)
+        val username = normalizeUsername(null, invitation.email)
+        identityRegistrationGateway.createUserIdentity(
+            principalId = principalId.toString(),
+            subject = "local:${invitation.email}",
+            email = invitation.email,
+            username = username,
+            provider = null,
+            displayIdentity = username,
+            emailStatus = EmailStatus.PENDING,
+        )
+        localPasswordCredentialGateway.create(principalId.toString(), passwordHash)
+        consentHandler.handle(
+            RecordConsentCommand(
+                scope = ConsentScope.Platform,
+                subjectReference = SubjectReference.user(principalId.toString()),
+                consentType = ConsentType.CONTRACT_ACCEPTANCE,
+                purpose = TERMS_ACCEPTANCE_PURPOSE,
+                policyVersion = currentTermsVersion,
+                source = CONSENT_SOURCE,
+                locale = CONSENT_LOCALE,
+            ),
+        )
+        val verificationToken = EmailVerificationTokenHasher.generate(now)
+        identityRegistrationGateway.createEmailVerificationToken(
+            email = invitation.email,
+            tokenHash = verificationToken.tokenHash,
+            expiresAt = verificationToken.expiresAt,
+        )
+        BootstrapRegistration(
+            principalId = principalId.toString(),
+            email = invitation.email,
+            username = username,
+            rawVerificationToken = verificationToken.rawToken,
+        )
+    }
+
+    private suspend fun findInvitation(tokenHash: String): BootstrapInvitation {
+        if (invitationRepository.hasActiveOwner()) throw BootstrapUnavailableException()
+        return invitationRepository.findByTokenHash(tokenHash) ?: throw BootstrapUnavailableException()
+    }
+
+    private fun ensureInvitationCanBeClaimed(invitation: BootstrapInvitation, now: Instant) {
+        if (!invitation.canClaim(now)) throw BootstrapUnavailableException()
+    }
+
+    private suspend fun ensureEmailIsAvailable(email: String) {
+        if (
+            principalIdentityLookup.findByEmail(email) != null ||
+            localPasswordCredentialGateway.findByEmail(email) != null
+        ) {
+            throw BootstrapUnavailableException()
+        }
+    }
+
+    private suspend fun claimInvitation(tokenHash: String, principalId: UUID, now: Instant) {
+        if (!invitationRepository.claim(tokenHash, principalId, now)) throw BootstrapUnavailableException()
     }
 
     private data class BootstrapRegistration(

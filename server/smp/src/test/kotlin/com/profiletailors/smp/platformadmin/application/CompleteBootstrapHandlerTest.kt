@@ -63,9 +63,9 @@ class CompleteBootstrapHandlerTest {
         localPasswordCredentialGateway = credentialGateway,
         principalIdentityLookup = identityLookup,
         passwordHasher = object : PasswordHasher {
+            override val algorithm: String = "test"
             override fun hash(rawPassword: String): String = "hashed-password"
             override fun matches(rawPassword: String, passwordHash: String): Boolean = false
-            override val algorithm: String = "test"
         },
         consentHandler = consentHandler,
         currentTermsVersionProvider = CurrentTermsVersionProvider { "terms-v1.0.0" },

@@ -10,6 +10,10 @@ import java.time.Instant
 import java.util.UUID
 
 class PlatformRoleAssignmentTest {
+    private val now = Instant.parse("2026-07-30T10:00:00Z")
+    private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
+    private val targetId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000002")
+
     @Test
     fun `bootstrap owner assignment has no human actor identity`() {
         val assignment = PlatformRoleAssignment(
@@ -24,10 +28,6 @@ class PlatformRoleAssignmentTest {
         assertNull(assignment.assignedBy)
         assertEquals(AdminActorKind.SYSTEM_BOOTSTRAP, assignment.actorKind)
     }
-
-    private val now = Instant.parse("2026-07-30T10:00:00Z")
-    private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
-    private val targetId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000002")
 
     private fun assignment(role: PlatformRole = PlatformRole.PLATFORM_OPERATOR) = PlatformRoleAssignment(
         id = PlatformRoleAssignmentId.generate(),

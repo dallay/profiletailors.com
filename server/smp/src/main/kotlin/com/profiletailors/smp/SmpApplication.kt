@@ -55,7 +55,7 @@ import org.springframework.stereotype.Service as SpringService
             pattern = [
                 "com\\.profiletailors\\.smp\\.integration\\..*",
                 "com\\.profiletailors\\.smp\\.bdd\\..*",
-                "com\\.profiletailors\\.smp\\.platformadmin\\.infrastructure\\.cli\\..*",
+                """com\.profiletailors\.smp\.platformadmin\.infrastructure\.cli\..*""",
             ],
         ),
     ],

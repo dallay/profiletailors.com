@@ -49,21 +49,30 @@ class IssueBootstrapInvitationHandler(
     override suspend fun handle(command: IssueBootstrapInvitationCommand): BootstrapInvitationLink {
         val email = command.email.trim().lowercase()
         val confirmedEmail = command.confirmedEmail.trim().lowercase()
+        validateCommand(email, confirmedEmail)
+
+        val (token, expiresAt) = issueInvitation(email, command.replacementConfirmed)
+
+        return BootstrapInvitationLink(
+            email = email,
+            link = "$adminPublicOrigin/bootstrap#${token.rawToken}",
+            expiresAt = expiresAt,
+        )
+    }
+
+    private fun validateCommand(email: String, confirmedEmail: String) {
         require(EMAIL_PATTERN.matches(email) && email == confirmedEmail)
         require(adminPublicOrigin.isNotBlank())
+    }
 
-        val (token, expiresAt) = transactionRunner.runAtomically {
+    private suspend fun issueInvitation(email: String, replacementConfirmed: Boolean) =
+        transactionRunner.runAtomically {
             repository.lock()
-            if (repository.hasActiveOwner()) throw PlatformOwnerAlreadyExistsException()
-            if (identityLookup.findByEmail(email) != null) throw ExistingBootstrapAccountException()
+            ensureNoActiveOwner()
+            ensureEmailIsAvailable(email)
             val current = repository.findCurrent()
-            if (current?.status == BootstrapInvitationStatus.CLAIMED ||
-                current?.status == BootstrapInvitationStatus.COMPLETED
-            ) {
-                throw BootstrapUnavailableException()
-            }
+            ensureInvitationCanBeReplaced(current, replacementConfirmed)
             val currentPending = current?.status == BootstrapInvitationStatus.PENDING
-            if (currentPending && !command.replacementConfirmed) throw ActiveBootstrapInvitationException()
 
             val generated = tokenGenerator.generate()
             val expiration = clock.instant().plus(INVITATION_TTL)
@@ -96,11 +105,23 @@ class IssueBootstrapInvitationHandler(
             generated to expiration
         }
 
-        return BootstrapInvitationLink(
-            email = email,
-            link = "$adminPublicOrigin/bootstrap#${token.rawToken}",
-            expiresAt = expiresAt,
-        )
+    private suspend fun ensureNoActiveOwner() {
+        if (repository.hasActiveOwner()) throw PlatformOwnerAlreadyExistsException()
+    }
+
+    private suspend fun ensureEmailIsAvailable(email: String) {
+        if (identityLookup.findByEmail(email) != null) throw ExistingBootstrapAccountException()
+    }
+
+    private fun ensureInvitationCanBeReplaced(current: BootstrapInvitation?, replacementConfirmed: Boolean) {
+        if (current?.status == BootstrapInvitationStatus.CLAIMED ||
+            current?.status == BootstrapInvitationStatus.COMPLETED
+        ) {
+            throw BootstrapUnavailableException()
+        }
+        if (current?.status == BootstrapInvitationStatus.PENDING && !replacementConfirmed) {
+            throw ActiveBootstrapInvitationException()
+        }
     }
 
     private companion object {

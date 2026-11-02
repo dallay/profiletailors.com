@@ -2,7 +2,7 @@
 
 ## Review Workload Forecast
 
-Estimated changed lines: ~5,300 monorepo from `main`; current uncommitted candidate ~3,360
+Estimated changed lines: ~5,000 monorepo from `main`; implementation and planning commits are local, with the working-tree review exceptions limited to `.gitignore` and the pending lint-fix commit.
 400-line budget risk: High
 Chained PRs recommended: No
 Chain strategy: size-exception
@@ -41,7 +41,7 @@ Paths: `D=docs/architecture/adr`; `C=.agents/sdd/changes/initial-platform-admin-
 ## Phase 4: Acceptance Gates and Follow-up
 
 - [ ] 4.1 Fix both `just backend-bdd-fast` failures (tenant-consent `BadSqlGrammarException`; bootstrap owner-grant `AssertionError`) and Gradle aggregation `NoSuchFileException`; pass fast and PostgreSQL BDD using `T/bdd/{BddDatabaseSupport.kt,PlatformAdminBddSteps.kt}`, `T/bdd/glue/{ConsentScopeBddSteps.kt,PlatformAdminBootstrapBddSteps.kt}`, `F/{governance-consent-scopes.feature,platformadmin/bootstrap.feature}`.
-- [ ] 4.2 Identify the current `just backend-check` failure; account for two skips and pass. Resolve 17 Detekt findings and Modulith boundary violations; pass `just backend-lint`, `ModularStructureTest`, `ModularityVerificationTest`, `HexagonalArchTest`, `ComponentScanArchTest`. No suppressions, baseline changes, or rule weakening. Findings: U10 `PlatformRoleAssignmentTest/ClassOrdering`; U11 `BootstrapInvitation/UnnecessaryParentheses`×3; U12 advisory-lock/`UnderscoresInNumericLiterals`; U14 `IssueBootstrapInvitationHandler/ThrowsCount`; U16 `CompleteBootstrapHandler/LongMethod+ThrowsCount`, test/ClassOrdering; U17 `VerifyEmailHandler/ThrowsCount`; U21 `SmpApplication/StringShouldBeRawString`; U22 CLI/`TooManyFunctions+FunctionNameMaxLength`×2; U24 cleanup/`LongMethod`, BDD/`MaxLineLength+StringShouldBeRawString`.
+- [ ] 4.2 `just backend-lint` passed on 2026-11-03 after fixing the 17 Detekt findings without suppressions. Identify the prior `just backend-check` failure, account for two skipped tests, and resolve Modulith boundary violations; pass `ModularStructureTest`, `ModularityVerificationTest`, `HexagonalArchTest`, and `ComponentScanArchTest` without rule weakening.
 - [ ] 4.3 Pass `just backend-test-postgres` with migration/backfill, fresh-schema, conditional token-consumption, completion, consent, owner-grant, audit rollback/recovery; rerun `just docs-links` after timeout.
 - [ ] 4.4 Complete legal review for ADR-0031/0033. Track official origin/CORS as a separate repository change in `profiletailors-deploy` (`production/{.env.example,docker-compose.yml}`, `tests/cloudflare-tunnel-config-validation.sh`, `docs/operations.md`); repo is outside this PR and must not be edited now. No live CORS/DNS claims.
 

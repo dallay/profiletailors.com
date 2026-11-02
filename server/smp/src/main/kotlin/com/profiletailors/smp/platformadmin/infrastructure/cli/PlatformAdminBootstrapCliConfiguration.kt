@@ -19,6 +19,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Import
 import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.transaction.ReactiveTransactionManager
@@ -26,43 +27,18 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Clock
 
 @Configuration(proxyBeanMethods = false)
+@Import(PlatformAdminBootstrapDatabaseConfiguration::class)
 class PlatformAdminBootstrapCliConfiguration {
-    @Bean
-    fun bootstrapConnectionFactory(
-        @Value("\${SMP_R2DBC_URL}") url: String,
-        @Value("\${SMP_DB_USERNAME}") username: String,
-        @Value("\${SMP_DB_PASSWORD}") password: String,
-    ): ConnectionFactory {
-        val options = ConnectionFactoryOptions.parse(url)
-            .mutate()
-            .option(ConnectionFactoryOptions.USER, username)
-            .option(ConnectionFactoryOptions.PASSWORD, password)
-            .build()
-        return ConnectionFactories.get(options)
-    }
-
-    @Bean
-    fun bootstrapDatabaseClient(connectionFactory: ConnectionFactory): DatabaseClient =
-        DatabaseClient.create(connectionFactory)
-
-    @Bean
-    fun bootstrapTransactionManager(connectionFactory: ConnectionFactory): ReactiveTransactionManager =
-        R2dbcTransactionManager(connectionFactory)
-
-    @Bean
-    fun bootstrapTransactionalOperator(transactionManager: ReactiveTransactionManager): TransactionalOperator =
-        TransactionalOperator.create(transactionManager)
-
-    @Bean
-    fun bootstrapAtomicTransactionRunner(operator: TransactionalOperator): AtomicTransactionRunner =
+    @Bean("bootstrapAtomicTransactionRunner")
+    fun bootstrapTransactionRunner(operator: TransactionalOperator): AtomicTransactionRunner =
         R2dbcPlatformAdminBootstrapTransactionRunner(operator)
 
     @Bean
     fun bootstrapInvitationRepository(databaseClient: DatabaseClient): BootstrapInvitationRepository =
         R2dbcPlatformBootstrapInvitationRepository(databaseClient)
 
-    @Bean
-    fun bootstrapRoleAssignmentRepository(databaseClient: DatabaseClient): PlatformRoleAssignmentRepository =
+    @Bean("bootstrapRoleAssignmentRepository")
+    fun bootstrapRoleAssignmentRepo(databaseClient: DatabaseClient): PlatformRoleAssignmentRepository =
         R2dbcPlatformRoleAssignmentRepository(databaseClient)
 
     @Bean
@@ -97,4 +73,33 @@ class PlatformAdminBootstrapCliConfiguration {
         clock = clock,
         adminPublicOrigin = adminPublicOrigin,
     )
+}
+
+@Configuration(proxyBeanMethods = false)
+class PlatformAdminBootstrapDatabaseConfiguration {
+    @Bean
+    fun bootstrapConnectionFactory(
+        @Value("\${SMP_R2DBC_URL}") url: String,
+        @Value("\${SMP_DB_USERNAME}") username: String,
+        @Value("\${SMP_DB_PASSWORD}") password: String,
+    ): ConnectionFactory {
+        val options = ConnectionFactoryOptions.parse(url)
+            .mutate()
+            .option(ConnectionFactoryOptions.USER, username)
+            .option(ConnectionFactoryOptions.PASSWORD, password)
+            .build()
+        return ConnectionFactories.get(options)
+    }
+
+    @Bean
+    fun bootstrapDatabaseClient(connectionFactory: ConnectionFactory): DatabaseClient =
+        DatabaseClient.create(connectionFactory)
+
+    @Bean
+    fun bootstrapTransactionManager(connectionFactory: ConnectionFactory): ReactiveTransactionManager =
+        R2dbcTransactionManager(connectionFactory)
+
+    @Bean
+    fun bootstrapTransactionalOperator(transactionManager: ReactiveTransactionManager): TransactionalOperator =
+        TransactionalOperator.create(transactionManager)
 }

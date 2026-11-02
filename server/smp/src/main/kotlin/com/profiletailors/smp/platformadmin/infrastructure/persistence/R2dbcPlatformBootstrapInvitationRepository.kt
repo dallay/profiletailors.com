@@ -88,7 +88,7 @@ class R2dbcPlatformBootstrapInvitationRepository(private val databaseClient: Dat
     )
 
     companion object {
-        private const val BOOTSTRAP_ADVISORY_LOCK = 5788059102132218708L
+        private const val BOOTSTRAP_ADVISORY_LOCK = 5_788_059_102_132_218_708L
         private const val INVITATION_COLUMNS = """
             email_normalized, token_hash, expires_at, created_at, status,
             claimed_principal_id, claimed_at, completed_at

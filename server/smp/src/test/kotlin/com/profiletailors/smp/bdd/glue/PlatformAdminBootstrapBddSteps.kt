@@ -104,7 +104,7 @@ class PlatformAdminBootstrapBddSteps {
         bootstrapStatus = complete.status.value()
         check(emailSender.awaitDelivery())
         val message = emailSender.messages.single().content.text
-        val verificationLink = Regex("https://app\\.profiletailors\\.com/verify-email\\?token=([^\\s]+)")
+        val verificationLink = Regex("""https://app\.profiletailors\.com/verify-email\?token=([^\s]+)""")
             .find(message)
         verificationToken = requireNotNull(verificationLink?.groupValues?.get(1))
 
@@ -176,7 +176,10 @@ class PlatformAdminBootstrapBddSteps {
         assertEquals(
             0L,
             databaseClient.sql(
-                "SELECT COUNT(*) FROM consent_records WHERE subject_value = :principalId AND purpose = 'age-eligibility.18-plus'",
+                """
+                SELECT COUNT(*) FROM consent_records
+                WHERE subject_value = :principalId AND purpose = 'age-eligibility.18-plus'
+                """.trimIndent(),
             ).bind("principalId", principalId)
                 .map { row, _ -> requireNotNull(row.get(0, Long::class.javaObjectType)) }.one().awaitSingle(),
         )

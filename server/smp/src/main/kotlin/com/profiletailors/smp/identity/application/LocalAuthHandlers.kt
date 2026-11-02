@@ -19,6 +19,7 @@ import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 internal data class AuthSessionContext(
@@ -466,10 +467,7 @@ internal class VerifyEmailHandler(
         val storedToken = identityRegistrationGateway.verifyEmailToken(tokenHash)
             ?: throw InvalidVerificationTokenException()
 
-        when {
-            storedToken.usedAt != null -> throw UsedVerificationTokenException()
-            !now.isBefore(storedToken.expiresAt) -> throw ExpiredVerificationTokenException()
-        }
+        ensureVerificationTokenUsable(storedToken, now)
 
         val identityFacts = transactionRunner.runAtomically {
             if (!identityRegistrationGateway.markTokenUsed(tokenHash, now)) {
@@ -495,6 +493,13 @@ internal class VerifyEmailHandler(
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
             ),
         )
+    }
+}
+
+private fun ensureVerificationTokenUsable(token: EmailVerificationTokenData, now: Instant) {
+    when {
+        token.usedAt != null -> throw UsedVerificationTokenException()
+        !now.isBefore(token.expiresAt) -> throw ExpiredVerificationTokenException()
     }
 }
 

@@ -52,7 +52,7 @@ open_gates:
   - Verify the actual packaged `:server:smp:bootBuildImage` CLI invocation and startup isolation.
   - "Fix the two failing scenarios in the latest `just backend-bdd-fast` run (329 scenarios) and resolve the Gradle result aggregation `NoSuchFileException`."
   - "The latest `just backend-check` had one unidentified failure and two skipped tests; identify the failure before claiming the gate passes."
-  - "Resolve the latest 17 `just backend-lint` findings without weakening architecture rules or adding suppressions."
+  - "`just backend-lint` passed on 2026-11-03 after fixing all 17 reported findings; identify the prior backend-check failure and resolve remaining Modulith violations."
   - "Resolve missing local environment inputs for production/swarm config checks; rerun docs-links after its timeout."
   - "Complete legal review for ADR-0031 and ADR-0033."
 user_confirmed:
@@ -68,3 +68,4 @@ observed_changed_lines: 3360
 review_budget_status: size_exception_approved
 publication_status: draft_pr_requested_with_known_gates
 deployment_status: not_authorized_and_not_attempted
+latest_backend_lint: passed_2026-11-03

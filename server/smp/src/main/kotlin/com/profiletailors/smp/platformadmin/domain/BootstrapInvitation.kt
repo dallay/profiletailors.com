@@ -23,9 +23,9 @@ data class BootstrapInvitation(
     init {
         require(email.isNotBlank() && email == email.trim().lowercase())
         require(tokenHash.isNotBlank())
-        require((status == BootstrapInvitationStatus.PENDING) == (claimedPrincipalId == null))
-        require((status == BootstrapInvitationStatus.PENDING) == (claimedAt == null))
-        require((status == BootstrapInvitationStatus.COMPLETED) == (completedAt != null))
+        require(status == BootstrapInvitationStatus.PENDING == (claimedPrincipalId == null))
+        require(status == BootstrapInvitationStatus.PENDING == (claimedAt == null))
+        require(status == BootstrapInvitationStatus.COMPLETED == (completedAt != null))
     }
 
     fun canClaim(at: Instant): Boolean = status == BootstrapInvitationStatus.PENDING && at.isBefore(expiresAt)
