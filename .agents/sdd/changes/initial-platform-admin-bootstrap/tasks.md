@@ -11,14 +11,14 @@ Chain strategy: feature-branch-chain
 
 ## Local Delivery Contract
 
-Tracker: `feature/initial-platform-admin-bootstrap` based on `main`. At re-plan start, the candidate was uncommitted. Commit U01–U16 sequentially on the tracker using one authorized conventional commit per unit (`docs(sdd)` U01–02; `docs(architecture)` U03–04; `feat(platform-admin)` U05–16); set the listed local `feature/...` ref at each unit commit. Bases: `main`, then each immediate predecessor ref. No GitHub Stack metadata. Keep `.gitignore` unstaged. Record refs/commits as materialized. No push/PR/live checks/VPS deployment.
+Tracker: `feature/initial-platform-admin-bootstrap` based on `main`. At re-plan start, the source candidate was uncommitted. U01 is committed locally as `7fe2f7d9` at `feature/bootstrap-u01-planning`. Commit U01–U16 sequentially on the tracker using one authorized conventional commit per unit (`docs(sdd)` U01–02; `docs(architecture)` U03–04; `feat(platform-admin)` U05–16); set the listed local `feature/...` ref at each unit commit. Bases: `main`, then each immediate predecessor ref. U02 is based on U01 and uses `feature/bootstrap-u02-history`. No GitHub Stack metadata. Keep `.gitignore` unstaged. Record refs/commits as materialized. No push/PR/live checks/VPS deployment.
 
 ## Suggested Work Units
 
 | Unit | Base → local ref | Lines | Goal / files |
 |---|---|---:|---|
 | U01 | `main` → `feature/bootstrap-u01-planning` | 217 | Reconcile `C/{proposal.md,design.md,state.yaml,tasks.md}` with approved strategy and authorization. |
-| U02 | U01 → `feature/bootstrap-u02-history` | 330 | Reconcile history/status in `C/{exploration.md,apply-progress.md}`. |
+| U02 | U01 → `feature/bootstrap-u02-history` | 330 | Reconcile history/status in `C/{exploration.md,apply-progress.md,tasks.md,state.yaml}`. |
 | U03 | U02 → `feature/bootstrap-u03-consent` | 328 | Consent/actor decisions: `docs/architecture/adr/{0030-separate-public-waitlist-consent-scope.md,0031-explicit-platform-consent-scope.md,0032-bootstrap-system-actor-provenance.md,README.md}`; `C/specs/consent-scopes/spec.md`. Index ADR-0031/0032. |
 | U04 | U03 → `feature/bootstrap-u04-bootstrap-contracts` | 327 | Bootstrap decisions/contracts: `docs/architecture/adr/{0033-atomic-bootstrap-owner-grant.md,README.md}`; `C/specs/{platform-admin-bootstrap,invitations,email-verification}/spec.md`. Append ADR-0033 in a repeated README update. |
 | U05 | U04 → `feature/bootstrap-u05-schema` | 190 | Schema: `SR/db/changelog/{db.changelog-master.yaml,governance/008-platform-consent-scope.{sql,yaml},platform-admin/{012-system-bootstrap-actors,013-bootstrap-invitations}.{sql,yaml}}`; `ST/infrastructure/db/LiquibaseBaselineChangelogTest.kt`. |
