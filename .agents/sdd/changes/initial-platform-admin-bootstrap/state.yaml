@@ -11,11 +11,11 @@ estimated_changed_lines: 5300
 estimated_external_changed_lines: 90
 feature_branch: feature/initial-platform-admin-bootstrap
 base_branch: main
-layer_position: 5/24
+layer_position: 6/24
 monorepo_units: 24
 external_units: 1
-last_completed_unit: U04
-current_unit: U05-plan-rebaseline
+last_completed_unit: U05-plan-rebaseline
+current_unit: U06-ADR0033-specs
 completed_local_units:
   U01:
     commit: 7fe2f7d9a41bee56a894c2c8a80d679c425e6251
@@ -29,10 +29,13 @@ completed_local_units:
   U04:
     commit: 28802e5e4807977f1b327cdc8becb0f37de1a8e1
     ref: feature/bootstrap-u04-consent-actors
-previous_local_commit: 28802e5e4807977f1b327cdc8becb0f37de1a8e1
-previous_local_ref: feature/bootstrap-u04-consent-actors
-current_local_ref: feature/bootstrap-u05-plan-rebaseline
-next_local_ref: feature/bootstrap-u06-adr-0033
+  U05:
+    commit: 197793d2606354ed54bead64d1d2350639cfd022
+    ref: feature/bootstrap-u05-plan-rebaseline
+previous_local_commit: 197793d2606354ed54bead64d1d2350639cfd022
+previous_local_ref: feature/bootstrap-u05-plan-rebaseline
+current_local_ref: feature/bootstrap-u06-adr-0033
+next_local_ref: feature/bootstrap-u07-adr-0034
 open_gates:
   - Count each exact staged unit before committing; stop if any unit exceeds 400 changed lines.
   - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.

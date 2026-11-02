@@ -4,18 +4,18 @@
 
 - **Persistence:** OpenSpec-only
 - **Tracker branch:** `feature/initial-platform-admin-bootstrap`, based on `main`
-- **Completed unit:** U04 consent-scope and system-actor decisions; commit `28802e5e4807977f1b327cdc8becb0f37de1a8e1` at `feature/bootstrap-u04-consent-actors`
-- **Current unit:** U05 plan/status rebaseline; ref `feature/bootstrap-u05-plan-rebaseline`, based on U04
-- **Unit history:** U01 `7fe2f7d9a41bee56a894c2c8a80d679c425e6251` at `feature/bootstrap-u01-planning`; U02 `961a9381d798c5b068cc2cdb70df195663d12973` at `feature/bootstrap-u02-history`; U03 `e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67` at `feature/bootstrap-u03-planning-sync`; U04 `28802e5e4807977f1b327cdc8becb0f37de1a8e1` at `feature/bootstrap-u04-consent-actors`
-- **Position:** `5/24` monorepo units; D01 is a separate deployment-repository unit after U24
-- **Base check:** `main` is an ancestor of the tracker branch; U04 is the verified parent of the U05 plan-sync unit
+- **Completed unit:** U05 plan/status rebaseline; commit `197793d2606354ed54bead64d1d2350639cfd022` at `feature/bootstrap-u05-plan-rebaseline`
+- **Current unit:** U06 ADR-0033 and delta specifications; ref `feature/bootstrap-u06-adr-0033`, based on U05
+- **Unit history:** U01 `7fe2f7d9a41bee56a894c2c8a80d679c425e6251` at `feature/bootstrap-u01-planning`; U02 `961a9381d798c5b068cc2cdb70df195663d12973` at `feature/bootstrap-u02-history`; U03 `e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67` at `feature/bootstrap-u03-planning-sync`; U04 `28802e5e4807977f1b327cdc8becb0f37de1a8e1` at `feature/bootstrap-u04-consent-actors`; U05 `197793d2606354ed54bead64d1d2350639cfd022` at `feature/bootstrap-u05-plan-rebaseline`
+- **Position:** `6/24` monorepo units; D01 is a separate deployment-repository unit after U24
+- **Base check:** `main` is an ancestor of the tracker branch; U05 is the verified parent of the U06 ADR/spec unit
 - **Delivery:** `feature-branch-chain`, with local conventional commits authorized per unit
 - **Review workload:** The implementation candidate is approximately 3,360 changed lines, excluding planning/ADR files and the pre-existing `.gitignore` modification. The current forecast is approximately 5,300 monorepo lines plus D01 at approximately 90 lines. See `tasks.md` for all 24 monorepo units and D01; stop any unit above 400 changed lines.
-- **Apply status:** Partial. U01-U04 are complete; U05 is the current planning/status rebaseline unit. Implementation remains in progress across the approved chain and resumes at U06. U05 does not claim implementation completion or product acceptance.
+- **Apply status:** Partial. U01-U05 are complete; U06 is the current ADR/spec unit. Implementation remains in progress across the approved chain and resumes at U07. No product acceptance is claimed.
 - **Publication / deployment:** No push, PR, live checks, or VPS deployment
 - **Acceptance:** Not claimed; technical verification and product acceptance remain separate
 
-U05 changes only `.agents/sdd/changes/initial-platform-admin-bootstrap/{design.md,tasks.md,state.yaml,apply-progress.md}`. The source candidate and the pre-existing `.gitignore` modification remain unstaged; `.gitignore` is untouched by U05.
+U06 changes only `docs/architecture/adr/{0033-atomic-bootstrap-owner-grant.md,README.md}` and `.agents/sdd/changes/initial-platform-admin-bootstrap/{specs/platform-admin-bootstrap/spec.md,specs/invitations/spec.md,specs/email-verification/spec.md,tasks.md,state.yaml,apply-progress.md}`. Only ADR index row 0033 is staged; row 0034 and all source candidates remain unstaged. The pre-existing `.gitignore` modification remains unstaged and untouched.
 
 ## Completed tasks
 
@@ -30,6 +30,7 @@ U05 changes only `.agents/sdd/changes/initial-platform-admin-bootstrap/{design.m
 - [x] 4.2 Admin `/bootstrap` recipient flow with fragment removal before request, current Terms review/acceptance, and no age field.
 - [x] 5.2 Product, API/architecture, operations, and OpenSpec artifacts updated. VPS and live DNS/CORS verification remain excluded.
 - [x] U05 plan/status rebaseline: reconcile the design forecast, 24-unit chain, U01-U04 commit history, current architecture constraints, and open gates.
+- [x] 1.2 U06 ADR-0033 and platform-admin-bootstrap, invitations, and email-verification delta specifications; add only ADR index row 0033, keep ADR-0023 unchanged.
 
 ## RED → GREEN evidence
 
@@ -80,7 +81,8 @@ The BDD gate is **not passing**. An earlier run timed out before producing final
 | `:server:smp:bootBuildImage` | Not run | Actual packaged image/TTY invocation remains an open gate. |
 | `just docs-lint` | Failed | 71 pre-existing markdownlint findings in 8 `.agents/rpi/plan/tasks/` files; changed docs were not among them. |
 | Targeted markdownlint (`pnpm exec markdownlint-cli2 --no-globs ...`) | Passed | 7 changed documentation files checked; the OpenSpec directory remains excluded by repository configuration. |
-| `just docs-links` | Timed out | Lychee cache refresh and repo-wide link scan did not complete within 120 seconds; no pass is claimed. |
+| U05 docs-links attempt | Timed out | The earlier scan exceeded 120 seconds; the U06 pre-commit hook later passed its repository link check. |
+| U06 documentation checks | Passed | 370 changed lines; staged diff check passed; pre-commit hooks passed Markdown lint for 7 files and link validation for 40/40 links; all 8 targeted relative links resolve; no ADR-0034 forward link; ADR-0023 unchanged and row 0034 unstaged. |
 | `just production-config` | Blocked | `infra/apps/smp/production/.env` is absent. No environment file was created. |
 | `just swarm-config` | Blocked | `infra/apps/smp/swarm/.env` lacks `DASHBOARD_IMAGE`. No environment file was created. |
 | VPS deployment / live DNS / live CORS | Not run | Explicitly out of scope and not authorized. |
@@ -216,6 +218,5 @@ artifacts.
 - [ ] Resolve the latest 17 `just backend-lint` findings and identify the one failure from the latest `just backend-check`; keep architecture rules unchanged.
 - [ ] Fix the CLI configtree secret gap; build `:server:smp:bootBuildImage` and verify the exact TTY-only invocation, startup isolation, and one terminal link.
 - [ ] Resolve the missing local environment inputs for `just production-config` and `just swarm-config`; rerun both checks.
-- [ ] Rerun docs-link validation, which timed out; complete final diff/secret/suppression checks.
 - [ ] Complete legal review for ADR-0031 and ADR-0033.
 - [ ] Do not deploy or perform live DNS/CORS validation without separate authorization.

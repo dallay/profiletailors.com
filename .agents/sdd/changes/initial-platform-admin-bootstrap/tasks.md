@@ -11,7 +11,7 @@ Chained PRs recommended: Yes
 Chain strategy: feature-branch-chain
 400-line budget risk: High
 
-U01=`7fe2f7d9a41bee56a894c2c8a80d679c425e6251`@`feature/bootstrap-u01-planning`;U02=`961a9381d798c5b068cc2cdb70df195663d12973`@`feature/bootstrap-u02-history`;U03=`e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67`@`feature/bootstrap-u03-planning-sync`;U04=`28802e5e4807977f1b327cdc8becb0f37de1a8e1`@`feature/bootstrap-u04-consent-actors`. U05 plan-sync ref `feature/bootstrap-u05-plan-rebaseline`, based on U04. U01-U04 are complete; U05 is current. Local conventional commits are authorized per unit; no push/PR/live/VPS. Keep source candidate and the pre-existing `.gitignore` modification unstaged and leave `.gitignore` untouched.
+U01=`7fe2f7d9a41bee56a894c2c8a80d679c425e6251`@`feature/bootstrap-u01-planning`;U02=`961a9381d798c5b068cc2cdb70df195663d12973`@`feature/bootstrap-u02-history`;U03=`e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67`@`feature/bootstrap-u03-planning-sync`;U04=`28802e5e4807977f1b327cdc8becb0f37de1a8e1`@`feature/bootstrap-u04-consent-actors`. U05 plan-sync ref `feature/bootstrap-u05-plan-rebaseline`, based on U04. U01-U05 are complete; U06 is current. Local conventional commits are authorized per unit; no push/PR/live/VPS. Keep source candidates and the pre-existing `.gitignore` modification unstaged and leave `.gitignore` untouched.
 
 Aliases: `C=.agents/sdd/changes/initial-platform-admin-bootstrap`;`D=docs/architecture/adr`;`K=server/smp/src/main/kotlin/com/profiletailors/smp`;`T=server/smp/src/test/kotlin/com/profiletailors/smp`;`R=server/smp/src/main/resources`;`A=apps/web/admin`.
 
@@ -46,7 +46,7 @@ TDD: RED test → GREEN fix → REFACTOR; tests first.
 ## Phase 1: Planning, Contracts, Schema
 
 - [x] 1.1 U05 (≤220): Reconcile `C/{tasks.md,state.yaml,apply-progress.md,design.md}`; record U01-U04 commits, U04 as the base, the 24-unit sequence, and open gates.
-- [ ] 1.2 U06 (≤323): Add `D/0033-atomic-bootstrap-owner-grant.md`, `C/specs/{platform-admin-bootstrap,invitations,email-verification}/spec.md`, `D/README.md` row 0033; links resolve within U06/prior only.
+- [x] 1.2 U06 (≤323): Add `D/0033-atomic-bootstrap-owner-grant.md`, `C/specs/{platform-admin-bootstrap,invitations,email-verification}/spec.md`, `D/README.md` row 0033; links resolve within U06/prior only.
 - [ ] 1.3 U07 (≤145): Add `D/0034-platform-bootstrap-uses-governance-application-port.md`, `D/README.md` row 0034; cross-link ADR-0033, keep ADR-0023 unchanged, verify links.
 - [ ] 1.4 U08 (≤186): Add `R/db/changelog/{db.changelog-master.yaml,governance/008-platform-consent-scope.*,platform-admin/{012-system-bootstrap-actors,013-bootstrap-invitations}.*}`; test `T/infrastructure/db/LiquibaseBaselineChangelogTest.kt` upgrade/fresh.
 
