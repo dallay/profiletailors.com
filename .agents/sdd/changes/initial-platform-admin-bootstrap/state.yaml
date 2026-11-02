@@ -7,14 +7,15 @@ artifact_policy: openspec-only
 scope_status: feature_branch_chain_in_progress
 delivery_strategy: feature-branch-chain
 review_budget: 400
-estimated_changed_lines: 5000
+estimated_changed_lines: 5300
 estimated_external_changed_lines: 90
 feature_branch: feature/initial-platform-admin-bootstrap
 base_branch: main
-layer_position: 3/23
-monorepo_units: 23
+layer_position: 5/24
+monorepo_units: 24
 external_units: 1
-last_completed_unit: U03
+last_completed_unit: U04
+current_unit: U05-plan-rebaseline
 completed_local_units:
   U01:
     commit: 7fe2f7d9a41bee56a894c2c8a80d679c425e6251
@@ -22,10 +23,16 @@ completed_local_units:
   U02:
     commit: 961a9381d798c5b068cc2cdb70df195663d12973
     ref: feature/bootstrap-u02-history
-previous_local_commit: 961a9381d798c5b068cc2cdb70df195663d12973
-previous_local_ref: feature/bootstrap-u02-history
-current_local_ref: feature/bootstrap-u03-planning-sync
-next_local_ref: feature/bootstrap-u04-consent-actors
+  U03:
+    commit: e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67
+    ref: feature/bootstrap-u03-planning-sync
+  U04:
+    commit: 28802e5e4807977f1b327cdc8becb0f37de1a8e1
+    ref: feature/bootstrap-u04-consent-actors
+previous_local_commit: 28802e5e4807977f1b327cdc8becb0f37de1a8e1
+previous_local_ref: feature/bootstrap-u04-consent-actors
+current_local_ref: feature/bootstrap-u05-plan-rebaseline
+next_local_ref: feature/bootstrap-u06-adr-0033
 open_gates:
   - Count each exact staged unit before committing; stop if any unit exceeds 400 changed lines.
   - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.

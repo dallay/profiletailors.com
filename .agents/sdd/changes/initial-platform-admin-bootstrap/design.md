@@ -58,11 +58,11 @@ The latest `just backend-check` result had one unidentified failure and two skip
 
 The latest `just backend-lint` report contains 17 findings. The task plan assigns them to work units; fix them without suppressions, baseline changes, or weakened rules. The latest `just backend-bdd-fast` run completed 329 scenarios with two failures, then Gradle result aggregation reported `NoSuchFileException`. The PostgreSQL recovery path and the actual `bootBuildImage`/TTY invocation remain unverified. The CLI's isolated context still has a configtree secret gap. Production and Swarm config checks remain blocked by missing local environment inputs, and `just docs-links` timed out.
 
-The implementation candidate is approximately 3,360 changed lines. The current delivery forecast is approximately 5,000 monorepo lines plus D01 at approximately 90 lines; use the 23-unit feature-branch chain and stop any unit whose staged additions plus deletions exceed 400 lines.
+The implementation candidate is approximately 3,360 changed lines. The current delivery forecast is approximately 5,300 monorepo lines plus D01 at approximately 90 lines; use 24 monorepo units in the feature-branch chain and stop any unit whose staged additions plus deletions exceed 400 lines.
 
 ## Migration / Rollout
 
-Apply forward-only actor and `PLATFORM` consent migrations before CLI use. Configure origin, matching CORS, and API base per installation. Deliver as 23 monorepo units plus separate D01, at most 400 changed lines per unit, with authorized local conventional commits under `feature-branch-chain`. No push, PR, live checks, or VPS deployment.
+Apply forward-only actor and `PLATFORM` consent migrations before CLI use. Configure origin, matching CORS, and API base per installation. Deliver as 24 monorepo units plus separate D01, at most 400 changed lines per unit, with authorized local conventional commits under `feature-branch-chain`. No push, PR, live checks, or VPS deployment.
 
 ## Open Questions
 
