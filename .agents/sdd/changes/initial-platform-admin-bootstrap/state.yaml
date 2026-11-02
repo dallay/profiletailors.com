@@ -1,0 +1,37 @@
+change: initial-platform-admin-bootstrap
+current_phase: tasks
+completed: [explore, propose, spec, design, tasks]
+next: apply
+updated: 2026-11-02
+artifact_policy: openspec-only
+scope_status: replan_selected_local_commits_authorized
+delivery_strategy: feature-branch-chain
+review_budget: 400
+estimated_changed_lines: 4562
+feature_branch: feature/initial-platform-admin-bootstrap
+base_branch: main
+layer_position: 1/16
+monorepo_units: 16
+external_units: 1
+open_gates:
+  - Count each exact staged unit before committing; stop if any unit exceeds 400 changed lines.
+  - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.
+  - Verify and correct missing/blank invitation-token handling so every unusable-token case returns the same `BOOTSTRAP_UNAVAILABLE` problem response; verify that undeclared request fields are not accepted if strict exact-field rejection is required.
+  - Complete migration upgrade/backfill verification, scoped tenant endpoint BDD, and fresh-schema closeout.
+  - Verify atomic verification-token consumption, bootstrap completion, role grant, and audit rollback/recovery in PostgreSQL.
+  - Reconcile the design wording for transaction ownership: identity currently owns verification's runner and calls the platformadmin port inside that transaction.
+  - Verify the actual packaged `:server:smp:bootBuildImage` CLI invocation and startup isolation.
+  - Complete BDD and required backend/admin broad quality gates; record exact results.
+  - Resolve the `ModularStructureTest` violations and 22 Detekt findings without weakening architecture rules or adding suppressions.
+user_confirmed:
+  - Profile Tailors admin URL is https://admin.profiletailors.com; self-hosted installations configure their own origin.
+  - Bootstrap invitation is delivered only through one-time interactive terminal output; existing email verification keeps its normal email delivery.
+  - Reject an email already associated with an account without mutation.
+  - Require current terms acceptance and record it as ID-free PLATFORM consent without workspace/membership.
+  - Do not require age-eligibility confirmation for bootstrap; preserve customer-registration behavior. This is not a legal-compliance assessment.
+  - Use feature-branch-chain with authorized local conventional commits per unit; no push, PR opening, or VPS deployment is authorized.
+  - Attribute bootstrap issuance/replacement and owner grant to SYSTEM_BOOTSTRAP without a human principal UUID; never use the recipient as actor.
+observed_apply_status: partial_paused_for_replan
+observed_changed_lines: 3360
+review_budget_status: exceeded
+deployment_status: not_authorized_and_not_attempted
