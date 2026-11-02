@@ -22,7 +22,7 @@ class RefreshSessionOriginValidationWebFilter(
 ) : WebFilter {
 
     private val allowedOrigins = CorsConfiguration().apply {
-        allowedOriginPatterns = corsProperties.allowedOrigins
+        allowedOriginPatterns = corsProperties.effectiveAllowedOrigins
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {

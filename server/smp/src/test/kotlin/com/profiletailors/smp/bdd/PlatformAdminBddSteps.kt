@@ -539,8 +539,8 @@ class PlatformAdminBddSteps {
         val id = UUID.randomUUID()
         databaseClient.sql(
             """
-            INSERT INTO platform_role_assignments (id, principal_id, role, assigned_at, assigned_by, version)
-            VALUES ('$id', '$ADMIN_PRINCIPAL_ID'::uuid, '$role', NOW(), '$ADMIN_PRINCIPAL_ID'::uuid, 0)
+            INSERT INTO platform_role_assignments (id, principal_id, role, assigned_at, assigned_by, actor_kind, version)
+            VALUES ('$id', '$ADMIN_PRINCIPAL_ID'::uuid, '$role', NOW(), '$ADMIN_PRINCIPAL_ID'::uuid, 'HUMAN', 0)
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()

@@ -39,6 +39,7 @@ private const val WORKSPACE_HEADER_NAME = "X-Workspace-Id"
 @ConfigurationProperties(prefix = "app.security.cors")
 data class CorsConfigurationProperties(
     val allowedOrigins: List<String> = emptyList(),
+    val adminPublicOrigin: String = "",
     val allowedMethods: List<String> = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
     val allowedHeaders: List<String> =
         listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME),
@@ -46,6 +47,9 @@ data class CorsConfigurationProperties(
     val allowCredentials: Boolean = false,
     val maxAge: Long = 1800,
 ) {
+    val effectiveAllowedOrigins: List<String> =
+        (allowedOrigins + listOfNotNull(adminPublicOrigin.takeIf { it.isNotBlank() })).distinct()
+
     companion object {
         val REQUIRED_CORS_HEADERS: List<String> =
             listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME)
@@ -92,7 +96,7 @@ class IdentitySecurityConfiguration {
     @Bean
     fun corsConfigurationSource(corsProperties: CorsConfigurationProperties): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOriginPatterns = corsProperties.allowedOrigins
+        configuration.allowedOriginPatterns = corsProperties.effectiveAllowedOrigins
         configuration.allowedMethods = corsProperties.allowedMethods
         val allowedHeaders = corsProperties.allowedHeaders.toMutableList()
         allowedHeaders.addAll(CorsConfigurationProperties.REQUIRED_CORS_HEADERS)
@@ -146,6 +150,7 @@ class IdentitySecurityConfiguration {
                 "/api/media/assets/*/preview",
                 "/api/media/assets/*/content",
                 "/api/media/proxy",
+                "/api/bootstrap/requirements",
                 "/{shortCode:[0-9A-Za-z]{1,32}}",
             ).permitAll()
                 .pathMatchers(
@@ -161,6 +166,7 @@ class IdentitySecurityConfiguration {
                     "/api/auth/resend-verification",
                     "/api/auth/forgot-password",
                     "/api/auth/reset-password",
+                    "/api/bootstrap/complete",
                 ).permitAll()
                 .pathMatchers(
                     HttpMethod.POST,

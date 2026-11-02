@@ -20,6 +20,7 @@ set +a
 : "${SMP_IMAGE:?Set SMP_IMAGE in swarm/.env}"
 : "${DASHBOARD_IMAGE:?Set DASHBOARD_IMAGE in swarm/.env}"
 : "${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}"
+: "${SMP_ADMIN_PUBLIC_ORIGIN:?Set SMP_ADMIN_PUBLIC_ORIGIN in swarm/.env}"
 
 if [ "$(docker info --format '{{.Swarm.LocalNodeState}}')" != "active" ]; then
     echo "This Docker engine is not part of an active Swarm."

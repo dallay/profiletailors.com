@@ -2,6 +2,11 @@ package com.profiletailors.smp.bdd.glue
 
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.smp.governance.application.RecordConsentCommand
+import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentScope
+import com.profiletailors.smp.governance.domain.ConsentType
+import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.leadcapture.infrastructure.governance.GovernanceWaitlistConsentRecorder
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
@@ -26,6 +31,9 @@ class ConsentScopeBddSteps {
 
     @Autowired
     private lateinit var client: WebTestClient
+
+    @Autowired
+    private lateinit var recordConsentHandler: RecordConsentHandler
 
     private val firstId = UUID.fromString(BddDatabaseSupport.WORKSPACE_ID)
     private val secondId = UUID.fromString("00000000-0000-0000-0000-000000000192")
@@ -92,6 +100,59 @@ class ConsentScopeBddSteps {
                     "policyVersion" to "2026-10-26",
                 ),
             ).exchange().expectStatus().isNotFound
+    }
+
+    @Given("platform Terms consent exists for the workspace user")
+    fun recordPlatformTermsConsent() = runBlocking {
+        recordConsentHandler.handle(
+            RecordConsentCommand(
+                scope = ConsentScope.Platform,
+                subjectReference = SubjectReference.user(BddDatabaseSupport.PRINCIPAL_ID),
+                consentType = ConsentType.CONTRACT_ACCEPTANCE,
+                purpose = "terms.acceptance",
+                policyVersion = "terms-v1.0.0",
+                source = "bootstrap",
+                locale = "en",
+            ),
+        )
+    }
+
+    @When("the tenant queries and attempts to withdraw platform Terms consent")
+    fun queryAndWithdrawPlatformTermsConsent() {
+        client.get().uri("/api/governance/consent?subjectKind=USER&purpose=terms.acceptance")
+            .headers(::tenantHeaders).exchange().expectStatus().isOk.expectBody().json("[]")
+        client.get().uri { builder ->
+            builder.path("/api/governance/consent/history")
+                .queryParam("subjectKind", "USER")
+                .queryParam("subjectValue", BddDatabaseSupport.PRINCIPAL_ID)
+                .queryParam("purpose", "terms.acceptance")
+                .build()
+        }.headers(::tenantHeaders).exchange().expectStatus().isOk.expectBody().json("[]")
+        client.post().uri("/api/governance/consent/withdraw").headers(::tenantHeaders)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                mapOf(
+                    "subjectKind" to "USER",
+                    "subjectValue" to BddDatabaseSupport.PRINCIPAL_ID,
+                    "purpose" to "terms.acceptance",
+                    "policyVersion" to "terms-v1.0.0",
+                ),
+            ).exchange().expectStatus().isNotFound
+    }
+
+    @Then("the platform Terms consent remains active")
+    fun verifyPlatformConsentRemainsActive() = runBlocking {
+        val count = databaseClient.sql(
+            """
+            SELECT COUNT(*) FROM consent_records
+            WHERE scope_kind = 'PLATFORM' AND workspace_id IS NULL AND waitlist_id IS NULL
+              AND subject_value = :principalId AND purpose = 'terms.acceptance' AND status = 'ACTIVE'
+            """.trimIndent(),
+        ).bind("principalId", UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID))
+            .map { row, _ -> requireNotNull(row.get(0, Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+        assertEquals(1L, count)
     }
 
     @Then("each public list has one active consent and one scoped event")

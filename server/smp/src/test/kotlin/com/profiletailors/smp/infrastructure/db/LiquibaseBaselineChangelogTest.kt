@@ -95,6 +95,29 @@ class LiquibaseBaselineChangelogTest {
         changelog shouldContain "idempotency_key"
     }
 
+    @Test
+    fun `platform consent migration backfills explicit scope and preserves event agreement`() {
+        val changelog = resourceText("db/changelog/governance/008-platform-consent-scope.sql")
+
+        changelog shouldContain "SET scope_kind = CASE"
+        changelog shouldContain "WHEN workspace_id IS NOT NULL AND waitlist_id IS NULL THEN 'WORKSPACE'"
+        changelog shouldContain "WHEN workspace_id IS NULL AND waitlist_id IS NOT NULL THEN 'WAITLIST'"
+        changelog shouldContain "IS DISTINCT FROM (c.scope_kind, c.workspace_id, c.waitlist_id)"
+        changelog shouldContain "ck_consent_records_scope"
+        changelog shouldContain "ck_consent_record_events_scope"
+        changelog shouldContain "uq_consent_active_platform"
+    }
+
+    @Test
+    fun `bootstrap actor migration backfills historical actors as human`() {
+        val changelog = resourceText("db/changelog/platform-admin/012-system-bootstrap-actors.sql")
+
+        changelog shouldContain "UPDATE platform_role_assignments SET actor_kind = 'HUMAN'"
+        changelog shouldContain "UPDATE platform_admin_audit_events SET actor_kind = 'HUMAN'"
+        changelog shouldContain "actor_kind = 'SYSTEM_BOOTSTRAP'"
+        changelog shouldContain "operator_principal_id IS NULL"
+    }
+
     private fun assertHasTable(path: String, tableName: String) {
         resourceText(path) shouldContain "tableName: $tableName"
     }
@@ -118,6 +141,9 @@ class LiquibaseBaselineChangelogTest {
         "db/changelog/authorization/006-create-workspace-entitlements.yaml",
         "db/changelog/authorization/007-create-workspace-target-scopes.yaml",
         "db/changelog/governance/001-create-audit-events.yaml",
+        "db/changelog/governance/008-platform-consent-scope.yaml",
+        "db/changelog/platform-admin/012-system-bootstrap-actors.yaml",
+        "db/changelog/platform-admin/013-bootstrap-invitations.yaml",
         "db/changelog/credentials/002-create-api-key-credentials.yaml",
         "db/changelog/publishing/001-create-social-connections.yaml",
         "db/changelog/publishing/002-create-social-accounts.yaml",

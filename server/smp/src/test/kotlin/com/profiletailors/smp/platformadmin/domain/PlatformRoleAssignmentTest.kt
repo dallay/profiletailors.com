@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -9,6 +10,20 @@ import java.time.Instant
 import java.util.UUID
 
 class PlatformRoleAssignmentTest {
+    @Test
+    fun `bootstrap owner assignment has no human actor identity`() {
+        val assignment = PlatformRoleAssignment(
+            id = PlatformRoleAssignmentId(UUID.randomUUID()),
+            principalId = UUID.randomUUID(),
+            role = PlatformRole.PLATFORM_OWNER,
+            assignedAt = Instant.parse("2026-11-02T10:00:00Z"),
+            assignedBy = null,
+            actorKind = AdminActorKind.SYSTEM_BOOTSTRAP,
+        )
+
+        assertNull(assignment.assignedBy)
+        assertEquals(AdminActorKind.SYSTEM_BOOTSTRAP, assignment.actorKind)
+    }
 
     private val now = Instant.parse("2026-07-30T10:00:00Z")
     private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")

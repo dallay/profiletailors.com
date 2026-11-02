@@ -18,7 +18,7 @@ interface IdentityRegistrationGateway {
 
     suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData?
 
-    suspend fun markTokenUsed(tokenHash: String, now: Instant)
+    suspend fun markTokenUsed(tokenHash: String, now: Instant): Boolean
 
     suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus)
 

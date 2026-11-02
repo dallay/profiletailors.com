@@ -58,9 +58,11 @@ Target URL: `https://pt-admin.localhost` (or `http://localhost:5174` fallback).
 
 | Variable | Required | Description | Default |
 | --- | --- | --- | --- |
-| `VITE_API_BASE_URL` | No | Build-time base URL for backend administrative endpoints | `http://localhost:7638` |
+| `VITE_API_BASE_URL` | No | Build-time base URL for bootstrap and backend administrative endpoints | `http://localhost:7638` |
 
-For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so the backend deployment must also include both `https://app.profiletailors.com` and `https://admin.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGINS` before the new admin build is published.
+For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so configure `SMP_ADMIN_PUBLIC_ORIGIN=https://admin.profiletailors.com` and include it with `https://app.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGINS` before publishing the admin build. Self-hosted installations must set their own admin origin and API base URL.
+
+The public `/bootstrap` route only completes a terminal-issued first-owner invitation. It does not expose invitation issuance or status. The route clears the one-use URL fragment before it sends an API request, displays the backend's current Terms version, requires acceptance, and does not request age confirmation. After password setup, the existing email-verification message and `/api/auth/verify-email` flow remain in use.
 
 ## Project structure
 

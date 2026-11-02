@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
@@ -70,7 +71,8 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
         .bind("principalId", a.principalId)
         .bind("role", a.role.name)
         .bind("assignedAt", OffsetDateTime.ofInstant(a.assignedAt, ZoneOffset.UTC))
-        .bind("assignedBy", a.assignedBy)
+        .bindNullable("assignedBy", a.assignedBy, UUID::class.java)
+        .bind("actorKind", a.actorKind.name)
         .bindNullable(
             "revokedAt",
             a.revokedAt?.let {
@@ -86,7 +88,8 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
         principalId = requireNotNull(get("principal_id", UUID::class.java)),
         role = PlatformRole.valueOf(requireNotNull(get("role", String::class.java))),
         assignedAt = requireNotNull(get("assigned_at", OffsetDateTime::class.java)).toInstant(),
-        assignedBy = requireNotNull(get("assigned_by", UUID::class.java)),
+        assignedBy = get("assigned_by", UUID::class.java),
+        actorKind = AdminActorKind.valueOf(requireNotNull(get("actor_kind", String::class.java))),
         revokedAt = get("revoked_at", OffsetDateTime::class.java)?.toInstant(),
         revokedBy = get("revoked_by", UUID::class.java),
         version = requireNotNull(get("version", Long::class.java)),
@@ -94,21 +97,21 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
 
     companion object {
         private const val SELECT_BY_ID = """
-            SELECT id, principal_id, role, assigned_at, assigned_by, revoked_at, revoked_by, version
+            SELECT id, principal_id, role, assigned_at, assigned_by, actor_kind, revoked_at, revoked_by, version
             FROM platform_role_assignments WHERE id = :id
         """
         private const val SELECT_ACTIVE_BY_PRINCIPAL = """
-            SELECT id, principal_id, role, assigned_at, assigned_by, revoked_at, revoked_by, version
+            SELECT id, principal_id, role, assigned_at, assigned_by, actor_kind, revoked_at, revoked_by, version
             FROM platform_role_assignments WHERE principal_id = :principalId AND revoked_at IS NULL
         """
         private const val SELECT_ALL_ACTIVE = """
-            SELECT id, principal_id, role, assigned_at, assigned_by, revoked_at, revoked_by, version
+            SELECT id, principal_id, role, assigned_at, assigned_by, actor_kind, revoked_at, revoked_by, version
             FROM platform_role_assignments WHERE revoked_at IS NULL
         """
         private const val INSERT = """
             INSERT INTO platform_role_assignments
-              (id, principal_id, role, assigned_at, assigned_by, revoked_at, revoked_by, version)
-            VALUES (:id, :principalId, :role, :assignedAt, :assignedBy, :revokedAt, :revokedBy, :version)
+              (id, principal_id, role, assigned_at, assigned_by, actor_kind, revoked_at, revoked_by, version)
+            VALUES (:id, :principalId, :role, :assignedAt, :assignedBy, :actorKind, :revokedAt, :revokedBy, :version)
         """
         private const val UPDATE = """
             UPDATE platform_role_assignments

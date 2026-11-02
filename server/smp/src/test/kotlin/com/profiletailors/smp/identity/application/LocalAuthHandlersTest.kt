@@ -921,6 +921,7 @@ class LocalAuthHandlersTest {
         val principalLookup = FakePrincipalIdentityLookup(
             principalFacts = identityFacts(),
         )
+        val bootstrapCompletion = BootstrapVerificationCompletionPort { _, _, _ -> order.add("bootstrap:complete") }
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = VerifyEmailHandler(
             identityRegistrationGateway = identityGateway,
@@ -929,6 +930,7 @@ class LocalAuthHandlersTest {
             refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
             clock = fixedClock,
             transactionRunner = transactionRunner,
+            bootstrapCompletionPort = bootstrapCompletion,
         )
 
         handler.handle(VerifyEmailCommand("raw-token"))
@@ -939,6 +941,7 @@ class LocalAuthHandlersTest {
                 "tx:start",
                 "markTokenUsed",
                 "updateEmailStatus",
+                "bootstrap:complete",
                 "tx:commit",
                 "jwt:issue",
                 "refresh:create",
@@ -1225,9 +1228,10 @@ class LocalAuthHandlersTest {
             return createdToken?.takeIf { it.tokenHash == tokenHash }
         }
 
-        override suspend fun markTokenUsed(tokenHash: String, now: Instant) {
+        override suspend fun markTokenUsed(tokenHash: String, now: Instant): Boolean {
             order?.add("markTokenUsed")
             createdToken = createdToken?.copy(usedAt = now)
+            return true
         }
 
         override suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus) {

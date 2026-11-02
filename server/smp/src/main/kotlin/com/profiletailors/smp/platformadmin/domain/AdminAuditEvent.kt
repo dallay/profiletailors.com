@@ -5,6 +5,12 @@ import java.time.Instant
 import java.util.UUID
 
 @ValueObject
+enum class AdminActorKind {
+    HUMAN,
+    SYSTEM_BOOTSTRAP,
+}
+
+@ValueObject
 enum class AdminAuditAction {
     PLATFORM_ROLE_ASSIGNED,
     PLATFORM_ROLE_REVOKED,
@@ -22,6 +28,9 @@ enum class AdminAuditAction {
     NOTIFICATION_RETRIED,
     TAKEDOWN_APPROVED,
     TAKEDOWN_REJECTED,
+    BOOTSTRAP_INVITATION_ISSUED,
+    BOOTSTRAP_INVITATION_REPLACED,
+    BOOTSTRAP_OWNER_GRANTED,
 }
 
 @ValueObject
@@ -34,8 +43,9 @@ enum class AdminAuditResult {
 data class AdminAuditEvent(
     val eventId: UUID,
     val occurredAt: Instant,
-    val operatorPrincipalId: UUID,
+    val operatorPrincipalId: UUID?,
     val operatorPlatformRoles: Set<PlatformRole>,
+    val actorKind: AdminActorKind = AdminActorKind.HUMAN,
     val action: AdminAuditAction,
     val targetType: String,
     val targetId: String,
@@ -46,4 +56,21 @@ data class AdminAuditEvent(
     val sourceIpHash: String? = null,
     val userAgentSummary: String? = null,
     val metadata: Map<String, String> = emptyMap(),
-)
+) {
+    init {
+        when (actorKind) {
+            AdminActorKind.HUMAN -> require(operatorPrincipalId != null)
+            AdminActorKind.SYSTEM_BOOTSTRAP -> require(
+                operatorPrincipalId == null && operatorPlatformRoles.isEmpty() && action in SYSTEM_BOOTSTRAP_ACTIONS,
+            )
+        }
+    }
+
+    private companion object {
+        private val SYSTEM_BOOTSTRAP_ACTIONS = setOf(
+            AdminAuditAction.BOOTSTRAP_INVITATION_ISSUED,
+            AdminAuditAction.BOOTSTRAP_INVITATION_REPLACED,
+            AdminAuditAction.BOOTSTRAP_OWNER_GRANTED,
+        )
+    }
+}

@@ -40,5 +40,5 @@ chmod 600 \
     "${secrets_dir}/resend-api-key"
 
 echo "Production configuration prepared in ${production_dir}."
-echo "Set PUBLIC_ORIGIN and image names in ${environment_file}."
+echo "Set PUBLIC_ORIGIN, SMP_ADMIN_PUBLIC_ORIGIN, and image names in ${environment_file}."
 echo "Add the LinkedIn, Threads, and Resend credentials under ${secrets_dir} before enabling those integrations."

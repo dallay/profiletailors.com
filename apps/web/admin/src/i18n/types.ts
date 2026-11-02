@@ -59,6 +59,21 @@ export type MessageSchema = {
     accessDeniedMessage: string
     notAuthenticated: string
   }
+  bootstrap: {
+    title: string
+    description: string
+    loading: string
+    requirementsUnavailable: string
+    termsVersion: string
+    termsAcceptance: string
+    password: string
+    passwordHelp: string
+    submit: string
+    submitting: string
+    unavailable: string
+    genericError: string
+    emailVerification: string
+  }
   dashboard: {
     title: string
     subtitle: string
@@ -165,6 +180,7 @@ export type MessageSchema = {
     eventId: string
     occurredAt: string
     operator: string
+    systemBootstrap: string
     action: string
     targetType: string
     targetId: string

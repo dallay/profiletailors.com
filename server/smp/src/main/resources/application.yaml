@@ -112,6 +112,7 @@ app:
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:}  # comma-separated, empty = no CORS access
+      admin-public-origin: ${SMP_ADMIN_PUBLIC_ORIGIN:}
       allow-credentials: ${SMP_CORS_ALLOW_CREDENTIALS:true}
     local-jwt:
       secret: ${SMP_LOCAL_JWT_SECRET:}
@@ -150,6 +151,8 @@ media:
     enabled: ${SMP_MEDIA_DEDUP_ENABLED:true}
 
 platform:
+  admin:
+    public-origin: ${SMP_ADMIN_PUBLIC_ORIGIN:}
   workspace-context:
     header-name: ${SMP_WORKSPACE_HEADER_NAME:X-Workspace-Id}
   storage:

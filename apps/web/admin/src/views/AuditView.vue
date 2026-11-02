@@ -12,6 +12,8 @@ const authStore = useAdminAuthStore()
 interface AuditEvent {
   eventId: string
   occurredAt: string
+  actorKind: 'HUMAN' | 'SYSTEM_BOOTSTRAP'
+  operatorPrincipalId: string | null
   action: string
   targetType: string
   targetId: string
@@ -84,6 +86,7 @@ onBeforeUnmount(() => activeRequest?.abort())
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('audit.occurredAt') }}</th>
+            <th scope="col" class="py-2 pr-4">{{ t('audit.operator') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('audit.action') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('audit.targetType') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('audit.targetId') }}</th>
@@ -97,6 +100,9 @@ onBeforeUnmount(() => activeRequest?.abort())
             class="border-b border-border-subtle hover:bg-bg-surface"
           >
             <td class="py-2 pr-4 text-text-secondary">{{ formatDateTime(event.occurredAt, locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">
+              {{ event.actorKind === 'SYSTEM_BOOTSTRAP' ? t('audit.systemBootstrap') : event.operatorPrincipalId }}
+            </td>
             <td class="py-2 pr-4 font-mono text-text-body text-xs">{{ event.action }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ event.targetType }}</td>
             <td class="max-w-32 truncate py-2 pr-4 font-mono text-text-secondary text-xs">{{ event.targetId }}</td>

@@ -19,6 +19,15 @@ class ConsentScopeTest {
     }
 
     @Test
+    fun `platform scope has no entity identifier`() {
+        val platform = ConsentScope.Platform
+
+        assertEquals(ConsentScope.Platform, platform)
+        assertNotEquals<ConsentScope>(ConsentScope.Workspace(UUID(0L, 0L)), platform)
+        assertNotEquals<ConsentScope>(ConsentScope.Waitlist(UUID(0L, 0L)), platform)
+    }
+
+    @Test
     fun `withdrawal retains the waitlist identity and leaves original consent unchanged`() {
         val scope = ConsentScope.Waitlist(UUID.fromString("00000000-0000-0000-0000-000000000101"))
         val record = ConsentRecord(

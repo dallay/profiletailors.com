@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-013-bootstrap-invitations
+      author: profiletailors
+      dbms: postgresql
+      context: "@uuid-native-identifiers"
+      runInTransaction: true
+      changes:
+        - sqlFile:
+            path: 013-bootstrap-invitations.sql
+            relativeToChangelogFile: true
+            splitStatements: false

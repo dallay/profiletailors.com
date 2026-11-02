@@ -247,19 +247,42 @@ class R2dbcConsentRepository(
     )
 
     private fun DatabaseClient.GenericExecuteSpec.bindScope(scope: ConsentScope): DatabaseClient.GenericExecuteSpec =
-        when (scope) {
-            is ConsentScope.Workspace -> bind("workspaceId", scope.id).bindNull("waitlistId", UUID::class.java)
-            is ConsentScope.Waitlist -> bindNull("workspaceId", UUID::class.java).bind("waitlistId", scope.id)
+        bind("scopeKind", scope.kind()).let { spec ->
+            when (scope) {
+                is ConsentScope.Workspace -> spec.bind("workspaceId", scope.id).bindNull("waitlistId", UUID::class.java)
+                is ConsentScope.Waitlist -> spec.bindNull("workspaceId", UUID::class.java).bind("waitlistId", scope.id)
+                ConsentScope.Platform -> spec.bindNull("workspaceId", UUID::class.java)
+                    .bindNull("waitlistId", UUID::class.java)
+            }
         }
 
     private fun mapScope(row: Row): ConsentScope {
         val workspaceId = row.get("workspace_id", UUID::class.java)
         val waitlistId = row.get("waitlist_id", UUID::class.java)
-        return when {
-            workspaceId != null && waitlistId == null -> ConsentScope.Workspace(workspaceId)
-            workspaceId == null && waitlistId != null -> ConsentScope.Waitlist(waitlistId)
-            else -> error("Consent must belong to exactly one workspace or waitlist")
+        return when (requireNotNull(row.get("scope_kind", String::class.java))) {
+            "WORKSPACE" -> if (workspaceId != null && waitlistId == null) {
+                ConsentScope.Workspace(workspaceId)
+            } else {
+                error("Workspace consent has an invalid entity reference")
+            }
+            "WAITLIST" -> if (workspaceId == null && waitlistId != null) {
+                ConsentScope.Waitlist(waitlistId)
+            } else {
+                error("Waitlist consent has an invalid entity reference")
+            }
+            "PLATFORM" -> if (workspaceId == null && waitlistId == null) {
+                ConsentScope.Platform
+            } else {
+                error("Platform consent cannot reference an entity")
+            }
+            else -> error("Unknown consent scope kind")
         }
+    }
+
+    private fun ConsentScope.kind(): String = when (this) {
+        is ConsentScope.Workspace -> "WORKSPACE"
+        is ConsentScope.Waitlist -> "WAITLIST"
+        ConsentScope.Platform -> "PLATFORM"
     }
 
     private fun bindNullable(
@@ -286,14 +309,15 @@ class R2dbcConsentRepository(
 
     companion object {
         private const val SCOPE_FILTER =
-            "workspace_id IS NOT DISTINCT FROM :workspaceId AND waitlist_id IS NOT DISTINCT FROM :waitlistId"
+            "scope_kind = :scopeKind AND workspace_id IS NOT DISTINCT FROM :workspaceId " +
+                "AND waitlist_id IS NOT DISTINCT FROM :waitlistId"
 
         private const val INSERT_ACTIVE = """
             INSERT INTO consent_records (
-                id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type, purpose,
+                id, scope_kind, workspace_id, waitlist_id, subject_kind, subject_value, consent_type, purpose,
                 policy_version, source, locale, status, given_at, created_at
             ) VALUES (
-                :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType, :purpose,
+                :id, :scopeKind, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType, :purpose,
                 :policyVersion, :source, :locale, :status, :givenAt,
                 CURRENT_TIMESTAMP
             )
@@ -311,11 +335,11 @@ class R2dbcConsentRepository(
 
         private const val INSERT_EVENT = """
             INSERT INTO consent_record_events (
-                id, consent_id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
+                id, consent_id, scope_kind, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
                 purpose, policy_version, source, locale, status, given_at, withdrawn_at,
                 withdrawal_reason, event_at
             ) VALUES (
-                :eventId, :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
+                :eventId, :id, :scopeKind, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
                 :purpose, :policyVersion, :source, :locale, :status, :givenAt, :withdrawnAt,
                 :withdrawalReason, :eventAt
             )
@@ -346,11 +370,11 @@ class R2dbcConsentRepository(
 
         private const val UPSERT_CONSENT = """
             INSERT INTO consent_records (
-                id, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
+                id, scope_kind, workspace_id, waitlist_id, subject_kind, subject_value, consent_type,
                 purpose, policy_version, source, locale, status, given_at,
                 withdrawn_at, withdrawal_reason, created_at
             ) VALUES (
-                :id, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
+                :id, :scopeKind, :workspaceId, :waitlistId, :subjectKind, :subjectValue, :consentType,
                 :purpose, :policyVersion, :source, :locale, :status, :givenAt,
                 :withdrawnAt, :withdrawalReason, CURRENT_TIMESTAMP
             )
@@ -361,6 +385,7 @@ class R2dbcConsentRepository(
                 version = consent_records.version + 1
             WHERE consent_records.workspace_id IS NOT DISTINCT FROM EXCLUDED.workspace_id
               AND consent_records.waitlist_id IS NOT DISTINCT FROM EXCLUDED.waitlist_id
+              AND consent_records.scope_kind = EXCLUDED.scope_kind
         """
     }
 }

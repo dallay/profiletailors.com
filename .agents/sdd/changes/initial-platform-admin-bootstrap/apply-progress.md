@@ -3,19 +3,15 @@
 ## Handoff status
 
 - **Persistence:** OpenSpec-only
-- **Tracker branch:** `feature/initial-platform-admin-bootstrap`, based on `main`
-- **Completed unit:** U05 plan/status rebaseline; commit `197793d2606354ed54bead64d1d2350639cfd022` at `feature/bootstrap-u05-plan-rebaseline`
-- **Current unit:** U06 ADR-0033 and delta specifications; ref `feature/bootstrap-u06-adr-0033`, based on U05
-- **Unit history:** U01 `7fe2f7d9a41bee56a894c2c8a80d679c425e6251` at `feature/bootstrap-u01-planning`; U02 `961a9381d798c5b068cc2cdb70df195663d12973` at `feature/bootstrap-u02-history`; U03 `e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67` at `feature/bootstrap-u03-planning-sync`; U04 `28802e5e4807977f1b327cdc8becb0f37de1a8e1` at `feature/bootstrap-u04-consent-actors`; U05 `197793d2606354ed54bead64d1d2350639cfd022` at `feature/bootstrap-u05-plan-rebaseline`
-- **Position:** `6/24` monorepo units; D01 is a separate deployment-repository unit after U24
-- **Base check:** `main` is an ancestor of the tracker branch; U05 is the verified parent of the U06 ADR/spec unit
-- **Delivery:** `feature-branch-chain`, with local conventional commits authorized per unit
-- **Review workload:** The implementation candidate is approximately 3,360 changed lines, excluding planning/ADR files and the pre-existing `.gitignore` modification. The current forecast is approximately 5,300 monorepo lines plus D01 at approximately 90 lines. See `tasks.md` for all 24 monorepo units and D01; stop any unit above 400 changed lines.
-- **Apply status:** Partial. U01-U05 are complete; U06 is the current ADR/spec unit. Implementation remains in progress across the approved chain and resumes at U07. No product acceptance is claimed.
-- **Publication / deployment:** No push, PR, live checks, or VPS deployment
+- **PR branch:** `feature/bootstrap-u07-adr-0034`, based on `main`
+- **Local history:** U01–U07 are committed on the branch; U07 is `055274c01fb7d5e6681b7a6c1452609e38d15c75`
+- **Delivery:** One user-approved `size-exception` PR regardless of size; no further unit branches are planned.
+- **Review workload:** The implementation candidate is approximately 3,360 changed lines; the full monorepo PR is forecast at approximately 5,300 lines. The user will review the full scope.
+- **Apply status:** Partial. The code candidate remains uncommitted. A draft PR is requested for owner review with backend, BDD, CLI/image, and migration gates clearly listed; it is not merge-ready. No product acceptance is claimed.
+- **Publication / deployment:** One draft PR is authorized now. No push or PR has been made yet; VPS deployment and live DNS/CORS remain unauthorized.
 - **Acceptance:** Not claimed; technical verification and product acceptance remain separate
 
-U06 changes only `docs/architecture/adr/{0033-atomic-bootstrap-owner-grant.md,README.md}` and `.agents/sdd/changes/initial-platform-admin-bootstrap/{specs/platform-admin-bootstrap/spec.md,specs/invitations/spec.md,specs/email-verification/spec.md,tasks.md,state.yaml,apply-progress.md}`. Only ADR index row 0033 is staged; row 0034 and all source candidates remain unstaged. The pre-existing `.gitignore` modification remains unstaged and untouched.
+U01–U07 are local commits in the branch history. The remaining implementation, tests, configuration, and documentation are in the worktree for the single PR. The pre-existing `.gitignore` modification is unrelated and must remain unstaged and untouched.
 
 ## Completed tasks
 
@@ -197,8 +193,8 @@ artifacts.
 ## Deviations and risks
 
 - **Transaction owner:** `VerifyEmailHandler` retains its existing identity-owned `AtomicTransactionRunner` and invokes the identity-owned completion port within that R2DBC transaction. The platformadmin grant handler participates in the existing transaction without opening a nested runner. `design.md` now records identity as transaction owner; PostgreSQL rollback/recovery remains unverified.
-- **Review workload:** the current strategy is `feature-branch-chain`, not `size-exception`. The verified implementation candidate is approximately 3,360 changed lines; the current forecast is approximately 5,300 monorepo lines plus D01 at approximately 90 lines. Keep each of the 24 monorepo units within 400 changed lines.
-- **Planning status:** U03 reconciled the initial application-port, config-wiring, actor-attribution, and local-commit decisions; U04 recorded consent scope and system actor decisions; U05 rebaselines the plan and work-unit history. Governance consent uses the DTO-only application port in ADR-0034; ADR-0023 remains unchanged. CLI composition uses the wiring-only `com.profiletailors.smp.config` exception and does not add a platformadmin infrastructure import to `SmpApplication`.
+- **Review workload:** the user superseded the branch-chain plan and approved one full-scope size-exception PR. The verified implementation candidate is approximately 3,360 changed lines; the full monorepo PR forecast is approximately 5,300 lines. The user will review the full scope.
+- **Planning status:** U01–U07 remain local commits in the single PR branch history. Governance consent uses the DTO-only application port in ADR-0034; ADR-0023 remains unchanged. CLI composition uses the wiring-only `com.profiletailors.smp.config` exception and does not add a platformadmin infrastructure import to `SmpApplication`.
 - **Backend checks:** the latest `just backend-check` had one unidentified failure and two skipped tests; the captured summary does not identify the failure. The latest `just backend-lint` report has 17 findings assigned in `tasks.md`. Do not claim either gate passes, weaken architecture rules, or add suppressions. The accepted architecture prohibits `platformadmin -> governance::domain`; consent uses the narrow application port in ADR-0034, and root CLI dispatch routes through wiring-only `com.profiletailors.smp.config`.
 - **Migration context:** governance `008` and platform-admin `013` are gated by `@uuid-native-identifiers`. Production operations must apply them only after the approved UUID cutover procedure; default `prod` startup does not apply them.
 - **CLI secret source:** production Compose mounts `SMP_DB_PASSWORD` as `/run/secrets/SMP_DB_PASSWORD` and exposes it through `SPRING_CONFIG_IMPORT=configtree:/run/secrets/`. The isolated `AnnotationConfigApplicationContext` does not process Spring Boot config-data imports, while the CLI configuration currently requires the value as an environment placeholder. The actual container command is therefore blocked until the CLI reads the mounted secret directly or loads the configtree through a safe, explicit mechanism.
@@ -208,7 +204,7 @@ artifacts.
 - **BDD:** two scenarios fail in the full fast suite; no product acceptance is claimed.
 - **Image:** the actual `bootBuildImage` image and TTY invocation have not been tested.
 - **Legal review:** ADR-0031 and ADR-0033 still require separate legal review; this implementation does not establish compliance.
-- **Publication and deployment:** local conventional commits per unit are authorized. No push, PR, live checks, VPS deployment, or live DNS/CORS verification occurred.
+- **Publication and deployment:** one draft PR is authorized now for owner review. No push or PR has been made yet. VPS deployment and live DNS/CORS verification remain unauthorized.
 
 ## Remaining work
 

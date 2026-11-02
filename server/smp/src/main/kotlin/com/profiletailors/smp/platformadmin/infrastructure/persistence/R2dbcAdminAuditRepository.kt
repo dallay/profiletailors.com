@@ -8,6 +8,7 @@ import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSum
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.model.validatePagination
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
@@ -35,8 +36,9 @@ class R2dbcAdminAuditRepository(
         databaseClient.sql(INSERT_EVENT)
             .bind("eventId", event.eventId)
             .bind("occurredAt", OffsetDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC))
-            .bind("operatorPrincipalId", event.operatorPrincipalId)
+            .bindNullable("operatorPrincipalId", event.operatorPrincipalId, UUID::class.java)
             .bind("operatorPlatformRoles", event.operatorPlatformRoles.map { it.name }.toTypedArray())
+            .bind("actorKind", event.actorKind.name)
             .bind("action", event.action.name)
             .bind("targetType", event.targetType)
             .bind("targetId", event.targetId)
@@ -95,7 +97,7 @@ class R2dbcAdminAuditRepository(
 
         val countSql = "SELECT COUNT(*) FROM platform_admin_audit_events $where"
         val dataSql = """
-            SELECT event_id, occurred_at, operator_principal_id, operator_platform_roles,
+            SELECT event_id, occurred_at, operator_principal_id, operator_platform_roles, actor_kind,
                    action, target_type, target_id, result, reason, correlation_id, request_id
             FROM platform_admin_audit_events $where
             ORDER BY occurred_at DESC LIMIT :size OFFSET :offset
@@ -126,8 +128,9 @@ class R2dbcAdminAuditRepository(
     private fun Readable.toSummary() = AdminAuditEventSummary(
         eventId = requireNotNull(get("event_id", UUID::class.java)),
         occurredAt = requireNotNull(get("occurred_at", OffsetDateTime::class.java)).toInstant(),
-        operatorPrincipalId = requireNotNull(get("operator_principal_id", UUID::class.java)),
+        operatorPrincipalId = get("operator_principal_id", UUID::class.java),
         operatorPlatformRoles = requireNotNull(get("operator_platform_roles", Array<String>::class.java)).toList(),
+        actorKind = AdminActorKind.valueOf(requireNotNull(get("actor_kind", String::class.java))),
         action = requireNotNull(get("action", String::class.java)),
         targetType = requireNotNull(get("target_type", String::class.java)),
         targetId = requireNotNull(get("target_id", String::class.java)),
@@ -140,16 +143,16 @@ class R2dbcAdminAuditRepository(
     companion object {
         private const val INSERT_EVENT = """
             INSERT INTO platform_admin_audit_events
-              (event_id, occurred_at, operator_principal_id, operator_platform_roles,
+              (event_id, occurred_at, operator_principal_id, operator_platform_roles, actor_kind,
                action, target_type, target_id, result, reason, correlation_id, request_id,
                source_ip_hash, user_agent_summary, metadata)
             VALUES
-              (:eventId, :occurredAt, :operatorPrincipalId, :operatorPlatformRoles,
+              (:eventId, :occurredAt, :operatorPrincipalId, :operatorPlatformRoles, :actorKind,
                :action, :targetType, :targetId, :result, :reason, :correlationId, :requestId,
                :sourceIpHash, :userAgentSummary, :metadata)
         """
         private const val SELECT_BY_ID = """
-            SELECT event_id, occurred_at, operator_principal_id, operator_platform_roles,
+            SELECT event_id, occurred_at, operator_principal_id, operator_platform_roles, actor_kind,
                    action, target_type, target_id, result, reason, correlation_id, request_id
             FROM platform_admin_audit_events WHERE event_id = :eventId
         """

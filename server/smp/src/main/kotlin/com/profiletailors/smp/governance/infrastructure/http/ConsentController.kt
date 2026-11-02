@@ -182,6 +182,7 @@ private fun ConsentRecord.toResponse() = ConsentRecordResponse(
     workspaceId = when (val consentScope = scope) {
         is ConsentScope.Workspace -> consentScope.id.toString()
         is ConsentScope.Waitlist -> error("Workspace consent endpoint cannot expose waitlist consent")
+        ConsentScope.Platform -> error("Workspace consent endpoint cannot expose platform consent")
     },
     subjectKind = subjectReference.kind.name,
     subjectValue = subjectReference.value,

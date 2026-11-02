@@ -11,6 +11,7 @@ import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyInProgressException
 import com.profiletailors.smp.platformadmin.application.handler.UserControlStateConflictException
+import com.profiletailors.smp.platformadmin.domain.BootstrapUnavailableException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -23,6 +24,7 @@ import com.profiletailors.smp.platformadmin.domain.NotificationNotFoundForRetryE
 import com.profiletailors.smp.platformadmin.domain.NotificationNotRetryableException
 import com.profiletailors.smp.platformadmin.domain.NotificationRetryConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
+import com.profiletailors.smp.platformadmin.domain.StaleBootstrapTermsException
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
@@ -42,6 +44,14 @@ import java.net.URI
 class AdminProblemDetailsHandler {
 
     private val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java)
+
+    @ExceptionHandler(BootstrapUnavailableException::class)
+    fun handle(ex: BootstrapUnavailableException): ProblemDetail =
+        problem(HttpStatus.BAD_REQUEST, "BOOTSTRAP_UNAVAILABLE", ex.message)
+
+    @ExceptionHandler(StaleBootstrapTermsException::class)
+    fun handle(ex: StaleBootstrapTermsException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "TERMS_VERSION_OUTDATED", ex.message)
 
     @ExceptionHandler(PlatformAccessDeniedException::class)
     fun handle(ex: PlatformAccessDeniedException, exchange: ServerWebExchange? = null): ProblemDetail {

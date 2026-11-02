@@ -88,6 +88,39 @@ const locales = {
       'Debes iniciar sesión para acceder a esta página.',
     ],
   },
+  bootstrap: {
+    title: ['Set Up Platform Access', 'Configurar acceso a la plataforma'],
+    description: [
+      'Create a password and accept the current Terms to finish setting up your platform account.',
+      'Crea una contraseña y acepta los Términos actuales para completar la configuración de tu cuenta de plataforma.',
+    ],
+    loading: ['Loading requirements…', 'Cargando requisitos…'],
+    requirementsUnavailable: [
+      'Bootstrap is unavailable. Try again later.',
+      'La configuración inicial no está disponible. Inténtalo más tarde.',
+    ],
+    termsVersion: ['Current Terms version: {version}', 'Versión actual de los Términos: {version}'],
+    termsAcceptance: [
+      'I have reviewed and accept the current Terms of Service.',
+      'He revisado y acepto los Términos del Servicio actuales.',
+    ],
+    password: ['Create password', 'Crear contraseña'],
+    passwordHelp: ['Use at least 12 characters.', 'Usa al menos 12 caracteres.'],
+    submit: ['Set Password', 'Configurar contraseña'],
+    submitting: ['Setting password…', 'Configurando contraseña…'],
+    unavailable: [
+      'Invitation unavailable. Check the link or ask the operator for a new one.',
+      'La invitación no está disponible. Revisa el enlace o solicita uno nuevo al operador.',
+    ],
+    genericError: [
+      'Unable to complete setup. Try again later.',
+      'No se pudo completar la configuración. Inténtalo más tarde.',
+    ],
+    emailVerification: [
+      'Check your email for the verification link.',
+      'Revisa tu correo electrónico para encontrar el enlace de verificación.',
+    ],
+  },
   dashboard: {
     title: ['Dashboard', 'Panel'],
     subtitle: [
@@ -238,6 +271,7 @@ const locales = {
     eventId: ['Event ID', 'ID de evento'],
     occurredAt: ['Occurred At', 'Ocurrido el'],
     operator: ['Operator', 'Operador'],
+    systemBootstrap: ['System (bootstrap)', 'Sistema (configuración inicial)'],
     action: ['Action', 'Acción'],
     targetType: ['Target Type', 'Tipo de objetivo'],
     targetId: ['Target ID', 'ID de objetivo'],

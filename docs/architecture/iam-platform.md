@@ -263,6 +263,17 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 | `POST /api/auth/resend-verification`                    | Resend verification email                                                                                                 | ✅ Implemented |
 | API-key replacement                                     | Replace an active API key with cutover (no overlap)                                                                       | ✅ Implemented |
 
+### Initial platform-owner bootstrap
+
+| Endpoint | Purpose | Exposure |
+|---|---|---|
+| `GET /api/bootstrap/requirements` | Return only the current Terms version | Public |
+| `POST /api/bootstrap/complete` | Set the invited recipient's password and record current `PLATFORM` Terms acceptance | Public, token-gated |
+
+Invitation issuance is available only through the explicit `platform-admin-bootstrap` container
+command. No public issuance, invitation-status, or readiness endpoint exists. Email verification
+continues through `POST /api/auth/verify-email`.
+
 ### What it proves
 
 - Repo-local principal materialization for USER, SERVICE_ACCOUNT, and API_KEY types

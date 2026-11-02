@@ -281,6 +281,16 @@ container storage.
 
 ### CORS & Networking
 
+#### `SMP_ADMIN_PUBLIC_ORIGIN`
+
+- **Type:** HTTPS origin
+- **Description:** Per-installation public origin for the platform-admin SPA and terminal-issued bootstrap links.
+- **Risk:** LOW (origin misconfiguration can prevent bootstrap completion)
+- **Example:** `https://admin.profiletailors.com`
+- **Generation:** Set the origin served by the installation's admin SPA.
+- **Rotation:** Update the admin build target and backend environment together.
+- **Access:** Infrastructure admins, deployment automation.
+
 #### `SMP_CORS_ALLOWED_ORIGINS`
 
 - **Type:** Comma-separated URLs
