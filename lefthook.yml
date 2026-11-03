@@ -97,6 +97,12 @@ pre-push:
       run: 'echo "gitleaks-range disabled — gitleaks protect runs on pre-commit and CI gates on push"'
       skip: true
 
+    # GitGuardian (ggshield): scan commits about to be pushed for secrets
+    # https://docs.gitguardian.com/ggshield-docs/integrations/git-hooks/pre-push
+    ggshield:
+      run: 'if command -v ggshield >/dev/null 2>&1; then ggshield secret scan pre-push "$@"; else echo "ggshield not installed, skipping pre-push scan"; fi'
+      fail_text: 'GitGuardian secret scan found potential secrets. Inspect findings before pushing.'
+
     # Backend tests before push.
     # The "postgres" tag excludes Postgres integration tests that require Docker/Testcontainers
     # and are currently failing (pre-existing issue).
