@@ -42,11 +42,11 @@ class CompleteBootstrapHandlerTest {
         expiresAt = now.plusSeconds(1800),
         createdAt = now.minusSeconds(60),
     )
-    private val repository = FakeBootstrapInvitationRepository(invitation)
-    private val identityGateway = FakeIdentityRegistrationGateway()
+    private val order = mutableListOf<String>()
+    private val repository = FakeBootstrapInvitationRepository(invitation, order)
+    private val identityGateway = FakeIdentityRegistrationGateway(order)
     private val credentialGateway = FakePasswordCredentialGateway()
     private val identityLookup = FixedPrincipalIdentityLookup(null)
-    private val order = mutableListOf<String>()
     private val eventPublisher = RecordingEventPublisher(order)
     private val transactionRunner = RecordingTransactionRunner(order)
     private val consentSlot = io.mockk.slot<RecordBootstrapTermsConsentCommand>()
@@ -72,9 +72,13 @@ class CompleteBootstrapHandlerTest {
     fun `sets password records platform terms and sends existing verification event`() = runTest {
         coEvery { consentHandler.handle(capture(consentSlot)) } returns Unit
 
-        handler.handle(CompleteBootstrapCommand(rawToken, "a-strong-password", "terms-v1.0.0"))
+        handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v1.0.0"))
 
         assertTrue(repository.claimed)
+        assertEquals(
+            listOf("identity:create", "invitation:claim"),
+            order.filter { it == "identity:create" || it == "invitation:claim" },
+        )
         assertEquals("owner@example.test", identityGateway.createdEmail)
         assertEquals(EmailStatus.PENDING, identityGateway.createdEmailStatus)
         assertEquals("hashed-password", credentialGateway.createdHash)
@@ -86,7 +90,10 @@ class CompleteBootstrapHandlerTest {
         assertEquals(now, consentSlot.captured.occurredAt)
         assertEquals(1, eventPublisher.events.size)
         assertTrue(eventPublisher.events.single() is com.profiletailors.smp.identity.domain.UserRegistered)
-        assertEquals(listOf("transaction:start", "transaction:commit", "event:publish"), order)
+        assertEquals(
+            listOf("transaction:start", "identity:create", "invitation:claim", "transaction:commit", "event:publish"),
+            order,
+        )
     }
 
     @Test
@@ -95,7 +102,7 @@ class CompleteBootstrapHandlerTest {
 
         assertThrows(StaleBootstrapTermsException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(CompleteBootstrapCommand(rawToken, "a-strong-password", "terms-v0.9"))
+                handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v0.9"))
             }
         }
 
@@ -111,7 +118,7 @@ class CompleteBootstrapHandlerTest {
 
         assertThrows(BootstrapUnavailableException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(CompleteBootstrapCommand(rawToken, "a-strong-password", "terms-v1.0.0"))
+                handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v1.0.0"))
             }
         }
 
@@ -130,8 +137,10 @@ class CompleteBootstrapHandlerTest {
         username = "owner",
     )
 
-    private class FakeBootstrapInvitationRepository(private val invitation: BootstrapInvitation) :
-        BootstrapInvitationRepository {
+    private class FakeBootstrapInvitationRepository(
+        private val invitation: BootstrapInvitation,
+        private val order: MutableList<String>,
+    ) : BootstrapInvitationRepository {
         var claimed = false
 
         override suspend fun lock() = Unit
@@ -142,6 +151,7 @@ class CompleteBootstrapHandlerTest {
             invitation.takeIf { it.tokenHash == tokenHash }
 
         override suspend fun claim(tokenHash: String, principalId: UUID, now: Instant): Boolean {
+            order.add("invitation:claim")
             claimed = invitation.tokenHash == tokenHash && invitation.canClaim(now)
             return claimed
         }
@@ -150,7 +160,8 @@ class CompleteBootstrapHandlerTest {
         override suspend fun complete(principalId: UUID, now: Instant): Boolean = false
     }
 
-    private class FakeIdentityRegistrationGateway : IdentityRegistrationGateway {
+    private class FakeIdentityRegistrationGateway(private val order: MutableList<String>) :
+        IdentityRegistrationGateway {
         var createdPrincipalId: String? = null
         var createdEmail: String? = null
         var createdEmailStatus: EmailStatus? = null
@@ -165,6 +176,7 @@ class CompleteBootstrapHandlerTest {
             displayIdentity: String,
             emailStatus: EmailStatus,
         ) {
+            order.add("identity:create")
             createdPrincipalId = principalId
             createdEmail = email
             createdEmailStatus = emailStatus

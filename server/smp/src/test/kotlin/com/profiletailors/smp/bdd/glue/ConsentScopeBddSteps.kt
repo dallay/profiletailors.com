@@ -148,7 +148,7 @@ class ConsentScopeBddSteps {
             WHERE scope_kind = 'PLATFORM' AND workspace_id IS NULL AND waitlist_id IS NULL
               AND subject_value = :principalId AND purpose = 'terms.acceptance' AND status = 'ACTIVE'
             """.trimIndent(),
-        ).bind("principalId", UUID.fromString(BddDatabaseSupport.PRINCIPAL_ID))
+        ).bind("principalId", BddDatabaseSupport.PRINCIPAL_ID)
             .map { row, _ -> requireNotNull(row.get(0, Long::class.javaObjectType)) }
             .one()
             .awaitSingle()

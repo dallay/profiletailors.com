@@ -84,7 +84,6 @@ internal class CompleteBootstrapHandler(
         ensureEmailIsAvailable(invitation.email)
 
         val principalId = UUID.randomUUID()
-        claimInvitation(tokenHash, principalId, now)
         val username = normalizeUsername(null, invitation.email)
         identityRegistrationGateway.createUserIdentity(
             principalId = principalId.toString(),
@@ -95,6 +94,7 @@ internal class CompleteBootstrapHandler(
             displayIdentity = username,
             emailStatus = EmailStatus.PENDING,
         )
+        claimInvitation(tokenHash, principalId, now)
         localPasswordCredentialGateway.create(principalId.toString(), passwordHash)
         recordBootstrapTermsConsentHandler.handle(
             RecordBootstrapTermsConsentCommand(

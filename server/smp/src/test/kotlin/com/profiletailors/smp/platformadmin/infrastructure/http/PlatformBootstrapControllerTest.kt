@@ -43,7 +43,7 @@ class PlatformBootstrapControllerTest {
                 """
                 {
                   "invitationToken": "single-use-token",
-                  "password": "a-strong-password",
+                  "password": "bootstrap-test-password",
                   "acceptedTermsVersion": "terms-v1.0.0"
                 }
                 """.trimIndent(),
@@ -56,7 +56,7 @@ class PlatformBootstrapControllerTest {
             mediator.send(
                 match<CompleteBootstrapCommand> {
                     it.invitationToken == "single-use-token" &&
-                        it.password == "a-strong-password" &&
+                        it.password == "bootstrap-test-password" &&
                         it.acceptedTermsVersion == "terms-v1.0.0"
                 },
             )
@@ -73,7 +73,7 @@ class PlatformBootstrapControllerTest {
                 """
                 {
                   "invitationToken": "invalid-token",
-                  "password": "a-strong-password",
+                  "password": "bootstrap-test-password",
                   "acceptedTermsVersion": "terms-v1.0.0"
                 }
                 """.trimIndent(),

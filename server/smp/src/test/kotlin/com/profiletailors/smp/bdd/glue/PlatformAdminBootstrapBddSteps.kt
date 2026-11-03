@@ -166,7 +166,7 @@ class PlatformAdminBootstrapBddSteps {
               AND subject_kind = 'USER' AND subject_value = :principalId
               AND purpose = 'terms.acceptance' AND policy_version = 'terms-v1.0.0'
             """.trimIndent(),
-        ).bind("principalId", principalId!!)
+        ).bind("principalId", principalId!!.toString())
             .map { row, _ -> requireNotNull(row.get(0, Long::class.javaObjectType)) }
             .one()
             .awaitSingle()
@@ -180,7 +180,7 @@ class PlatformAdminBootstrapBddSteps {
                 SELECT COUNT(*) FROM consent_records
                 WHERE subject_value = :principalId AND purpose = 'age-eligibility.18-plus'
                 """.trimIndent(),
-            ).bind("principalId", principalId)
+            ).bind("principalId", principalId.toString())
                 .map { row, _ -> requireNotNull(row.get(0, Long::class.javaObjectType)) }.one().awaitSingle(),
         )
     }
