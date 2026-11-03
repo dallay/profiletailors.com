@@ -36,11 +36,7 @@ function onConfirm() {
 const dialog = ref<HTMLDialogElement | null>(null)
 
 function onDialogCancel(event: Event) {
-  if (props.pending) {
-    event.preventDefault()
-    return
-  }
-  emit('close')
+  if (props.pending) event.preventDefault()
 }
 
 async function syncDialog(open: boolean) {
@@ -61,7 +57,7 @@ onMounted(() => syncDialog(props.open))
       aria-modal="true"
       :aria-label="t('directInvitations.revokeDialog.title')"
       @cancel="onDialogCancel"
-      @close="emit('close')"
+      @close="onCancel"
     >
       <button
         type="button"
