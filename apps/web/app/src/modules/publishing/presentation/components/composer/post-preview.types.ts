@@ -12,7 +12,7 @@ export type PostPreviewMedia = {
   name?: string | null
 }
 
-export type LinkedInPreviewModel = {
+export type PostPreviewModel = {
   authorName: string
   authorHandle: string
   authorAvatarUrl?: string | null
@@ -21,5 +21,3 @@ export type LinkedInPreviewModel = {
   placeholderText: string
   media?: PostPreviewMedia | null
 }
-
-export type ThreadsPreviewModel = LinkedInPreviewModel

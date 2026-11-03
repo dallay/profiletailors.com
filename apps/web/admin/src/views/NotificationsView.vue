@@ -163,7 +163,7 @@ onBeforeUnmount(() => activeRequest?.abort())
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="mb-4 text-error">{{ error }}</div>
     <template v-else>
-      <p v-if="successMessage" role="status" class="mb-4 text-sm text-success">{{ successMessage }}</p>
+      <output v-if="successMessage" class="mb-4 block text-sm text-success">{{ successMessage }}</output>
       <p v-if="rows.length === 0" class="text-text-secondary">{{ t('notifications.empty') }}</p>
       <template v-else>
         <Table :aria-label="t('notifications.title')" class="admin-table">

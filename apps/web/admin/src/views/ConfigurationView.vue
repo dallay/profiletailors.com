@@ -111,7 +111,7 @@ onMounted(fetchCurrentMode)
         </button>
       </div>
 
-      <p v-if="successMessage" role="status" class="text-sm text-success">{{ successMessage }}</p>
+      <output v-if="successMessage" class="block text-sm text-success">{{ successMessage }}</output>
     </template>
     <ConfirmDialog
       v-model:open="confirmOpen"

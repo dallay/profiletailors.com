@@ -4,9 +4,7 @@ fun interface OperationalEventSink {
     fun emit(event: OperationalEvent)
 }
 
-object NoOpOperationalEventSink : OperationalEventSink {
-    override fun emit(event: OperationalEvent) = Unit
-}
+val NoOpOperationalEventSink: OperationalEventSink = OperationalEventSink { }
 
 fun OperationalEventSink.emit(
     severity: Severity,

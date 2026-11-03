@@ -38,7 +38,7 @@ export async function createShortlink(
   return response
 }
 
-export async function listWorkspaceShortlinkMetrics(
+export function listWorkspaceShortlinkMetrics(
   cursor: string | null,
 ): Promise<WorkspaceLinkMetricsPage> {
   const auth = useAuthStore()

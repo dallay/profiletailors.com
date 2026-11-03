@@ -78,14 +78,79 @@ function stripInlineMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '$1')
 }
 
-const HTML_UNSAFE_PATTERN = /<(script|style)[\s\S]*?<\/\1[^>]*>|<\/?[a-z][a-z0-9]*[^>]*>?/gi
+const ACTIVE_CONTENT_ELEMENTS = new Set(['script', 'style'])
+
+type ScannedTag = {
+  closing: boolean
+  end: number
+  name: string
+  selfClosing: boolean
+}
+
+function isTagNameStart(char: string): boolean {
+  return char >= 'a' && char <= 'z'
+}
+
+function isTagNameCharacter(char: string): boolean {
+  return isTagNameStart(char) || (char >= '0' && char <= '9')
+}
+
+function scanTag(lower: string, open: number): ScannedTag | null {
+  const closing = lower[open + 1] === '/'
+  const nameStart = open + (closing ? 2 : 1)
+  if (!isTagNameStart(lower[nameStart] ?? '')) return null
+  let nameEnd = nameStart
+  while (isTagNameCharacter(lower[nameEnd] ?? '')) nameEnd += 1
+  const close = lower.indexOf('>', nameEnd)
+  return {
+    closing,
+    end: close === -1 ? nameEnd : close + 1,
+    name: lower.slice(nameStart, nameEnd),
+    selfClosing: close !== -1 && lower[close - 1] === '/',
+  }
+}
+
+function findActiveContentEnd(lower: string, name: string, from: number): number {
+  const marker = `</${name}`
+  const closeStart = lower.indexOf(marker, from)
+  if (closeStart === -1) return from
+  const close = lower.indexOf('>', closeStart + marker.length)
+  return close === -1 ? lower.length : close + 1
+}
+
+function stripMarkup(lower: string, text: string): string {
+  let result = ''
+  let cursor = 0
+  while (cursor < text.length) {
+    const open = text.indexOf('<', cursor)
+    if (open === -1) return result + text.slice(cursor)
+    result += text.slice(cursor, open)
+    const tag = scanTag(lower, open)
+    if (tag === null) {
+      result += '<'
+      cursor = open + 1
+      continue
+    }
+    if (!(tag.closing || tag.selfClosing) && ACTIVE_CONTENT_ELEMENTS.has(tag.name)) {
+      const activeContentEnd = findActiveContentEnd(lower, tag.name, tag.end)
+      if (activeContentEnd > tag.end) {
+        cursor = activeContentEnd
+        continue
+      }
+    }
+    cursor = tag.end
+  }
+  return result
+}
 
 function stripHtmlTags(text: string): string {
-  let previous = text
   let current = text
+  let currentLower = current.toLowerCase()
+  let previous: string
   do {
     previous = current
-    current = current.replace(HTML_UNSAFE_PATTERN, '')
+    current = stripMarkup(currentLower, current)
+    currentLower = current.toLowerCase()
   } while (current !== previous)
   return current
 }

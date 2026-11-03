@@ -29,7 +29,7 @@ async function submit(): Promise<void> {
   const normalizedPassword = password.value
 
   if (!normalizedEmail) errors.value.email = 'emailRequired'
-  else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) errors.value.email = 'emailInvalid'
+  else if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalizedEmail)) errors.value.email = 'emailInvalid'
   if (!normalizedPassword.trim()) errors.value.password = 'passwordRequired'
 
   if (Object.keys(errors.value).length > 0) {
@@ -43,16 +43,18 @@ async function submit(): Promise<void> {
     await authStore.signIn(normalizedEmail, normalizedPassword)
     await router.replace(resolveRedirect(route.query.redirect))
   } catch (error) {
-    formError.value = error instanceof ApiRequestError && error.status === 403
-      ? 'accessDeniedMessage'
-      : error instanceof ApiRequestError && error.status === 401
-        ? 'invalidCredentials'
-        : 'loginError'
+    formError.value = loginErrorKey(error)
     await nextTick()
     errorAlert.value?.focus()
   } finally {
     pending.value = false
   }
+}
+
+function loginErrorKey(error: unknown): string {
+  if (error instanceof ApiRequestError && error.status === 403) return 'accessDeniedMessage'
+  if (error instanceof ApiRequestError && error.status === 401) return 'invalidCredentials'
+  return 'loginError'
 }
 
 function resolveRedirect(value: unknown): string {

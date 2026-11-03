@@ -63,7 +63,7 @@ watch(() => workspaceStore.activeWorkspaceId, () => {
       <p class="mt-2 text-sm text-text-secondary">{{ t('shortlinks.clicks') }}</p>
     </header>
     <p v-if="error" role="alert" class="rounded-xl border border-error/30 p-4 text-error">{{ t('shortlinks.listError') }}</p>
-    <p v-else-if="isLoading" role="status" class="text-sm text-text-secondary">{{ t('common.loading') }}</p>
+    <output v-else-if="isLoading" class="block text-sm text-text-secondary">{{ t('common.loading') }}</output>
     <p v-else-if="links.length === 0" class="rounded-xl border border-border-visible p-4">{{ t('shortlinks.empty') }}</p>
     <div v-else class="overflow-x-auto rounded-xl border border-border-visible">
       <table class="w-full text-left text-sm">

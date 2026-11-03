@@ -22,7 +22,7 @@ class SecurityResponseHeadersWebFilter : WebFilter {
             if (isSecureRequest(exchange)) {
                 headers.putIfAbsent("Strict-Transport-Security", listOf(STRICT_TRANSPORT_SECURITY))
             }
-            Mono.empty<Void>()
+            Mono.empty()
         }
         return chain.filter(exchange)
     }

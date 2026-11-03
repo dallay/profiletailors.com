@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { defineComponent, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Table } from '@profiletailors/vue-ui'
@@ -92,6 +92,17 @@ async function fetchUser() {
 }
 
 onMounted(fetchUser)
+
+const Field = defineComponent({
+  props: { label: { type: String, required: true }, value: { type: String, required: true } },
+  setup(props) {
+    return () =>
+      h('div', { class: 'admin-card p-4' }, [
+        h('p', { class: 'label-mono mb-1 text-text-secondary' }, props.label),
+        h('p', { class: 'text-sm text-text-body' }, props.value),
+      ])
+  },
+})
 </script>
 <template>
   <div class="admin-page p-5 sm:p-8">
@@ -164,19 +175,3 @@ onMounted(fetchUser)
     />
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-const Field = defineComponent({
-  props: { label: { type: String, required: true }, value: { type: String, required: true } },
-  template: `
-    <div class="admin-card p-4">
-      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
-      <p class="text-sm text-text-body">{{ value }}</p>
-    </div>
-  `,
-})
-
-export { Field }
-</script>

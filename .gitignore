@@ -85,7 +85,6 @@ node_modules/
 .claude/commands/
 .claude/skills
 .claude/skills.bak
-.claude/skills/
 .codex/commands
 .codex/commands.bak
 .codex/config.toml
@@ -98,14 +97,12 @@ node_modules/
 .cursor/mcp.json
 .cursor/skills
 .cursor/skills.bak
-.cursor/skills/
 .gemini/commands
 .gemini/commands.bak
 .gemini/commands/
 .gemini/settings.json
 .gemini/skills
 .gemini/skills.bak
-.gemini/skills/
 .github/commands
 .github/commands.bak
 .github/copilot-instructions.md
@@ -117,7 +114,6 @@ node_modules/
 .opencode/command/
 .opencode/skills
 .opencode/skills.bak
-.opencode/skills/
 .vscode/mcp.json
 /.mcp.json
 /AGENTS.md

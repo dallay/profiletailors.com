@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAdminAuthStore } from '@/stores/auth.store'
+import { useAdminAuthStore, type PlatformPermission } from '@/stores/auth.store'
 
 describe('useAdminAuthStore', () => {
   beforeEach(() => {
@@ -119,7 +119,27 @@ describe('useAdminAuthStore', () => {
     expect(store.hasPermission('platform.governance.manage')).toBe(false)
   })
 
-  it('SUPPORT_AGENT holds neither governance key', () => {
+  it.each<{
+    title: string
+    denied: PlatformPermission[]
+    allowed: PlatformPermission[]
+  }>([
+    {
+      title: 'SUPPORT_AGENT holds neither governance key',
+      denied: ['platform.governance.read', 'platform.governance.manage'],
+      allowed: [],
+    },
+    {
+      title: 'SUPPORT_AGENT has no configuration permissions',
+      denied: ['platform.configuration.read', 'platform.configuration.manage'],
+      allowed: [],
+    },
+    {
+      title: 'SUPPORT_AGENT cannot invite candidates',
+      denied: ['platform.waitlist.invite'],
+      allowed: ['platform.users.read'],
+    },
+  ])('$title', ({ denied, allowed }) => {
     const store = useAdminAuthStore()
     store.principal = {
       principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
@@ -127,32 +147,12 @@ describe('useAdminAuthStore', () => {
       displayName: null,
       platformRoles: ['SUPPORT_AGENT'],
     }
-    expect(store.hasPermission('platform.governance.read')).toBe(false)
-    expect(store.hasPermission('platform.governance.manage')).toBe(false)
-  })
-
-  it('SUPPORT_AGENT has no configuration permissions', () => {
-    const store = useAdminAuthStore()
-    store.principal = {
-      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
-      email: 'support@example.com',
-      displayName: null,
-      platformRoles: ['SUPPORT_AGENT'],
+    for (const permission of denied) {
+      expect(store.hasPermission(permission)).toBe(false)
     }
-    expect(store.hasPermission('platform.configuration.read')).toBe(false)
-    expect(store.hasPermission('platform.configuration.manage')).toBe(false)
-  })
-
-  it('SUPPORT_AGENT cannot invite candidates', () => {
-    const store = useAdminAuthStore()
-    store.principal = {
-      principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
-      email: 'support@example.com',
-      displayName: null,
-      platformRoles: ['SUPPORT_AGENT'],
+    for (const permission of allowed) {
+      expect(store.hasPermission(permission)).toBe(true)
     }
-    expect(store.hasPermission('platform.waitlist.invite')).toBe(false)
-    expect(store.hasPermission('platform.users.read')).toBe(true)
   })
 
   it('AUDITOR cannot execute mutations', () => {

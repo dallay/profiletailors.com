@@ -86,7 +86,7 @@ function invitationTargetLabel(target: string) {
   return translated === key ? target : translated
 }
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
 
 const emailValid = computed(() => emailRegex.test(form.email.trim()))
 const workspaceRequired = computed(() => form.target === 'EXISTING_WORKSPACE')

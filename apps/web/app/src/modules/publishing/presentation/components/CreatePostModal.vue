@@ -34,10 +34,9 @@ import PostPreviewPanel from '@modules/publishing/presentation/components/compos
 import HashtagSuggestionPanel from '@modules/publishing/presentation/components/composer/HashtagSuggestionPanel.vue'
 import { useHashtagSuggestions } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
 import type {
-  LinkedInPreviewModel,
   PostPreviewMedia,
+  PostPreviewModel,
   PreviewProvider,
-  ThreadsPreviewModel,
 } from '@modules/publishing/presentation/components/composer/post-preview.types'
 import { Button } from '@profiletailors/vue-ui/shell/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -803,7 +802,7 @@ const previewTitle = computed(() =>
   previewProvider.value === 'threads' ? t('composer.threadsPreview') : t('composer.linkedinPreview'),
 )
 
-function previewModelFor(channelId: string | null): LinkedInPreviewModel {
+function previewModelFor(channelId: string | null): PostPreviewModel {
   const channel = channelId
     ? (selectedChannels.value.find((entry) => entry.id === channelId) ?? null)
     : (selectedChannels.value[0] ?? null)
@@ -822,7 +821,7 @@ function previewModelFor(channelId: string | null): LinkedInPreviewModel {
   }
 }
 
-const activePreview = computed<LinkedInPreviewModel | ThreadsPreviewModel>(() =>
+const activePreview = computed<PostPreviewModel>(() =>
   previewModelFor(activeTabId.value),
 )
 
@@ -1541,22 +1540,22 @@ async function handleCreateSubmit(
             >
               {{ t('composer.customizeReset') }}
             </button>
-            <p
+            <output
               data-testid="customize-status"
-              role="status"
-              class="w-full font-mono text-[10px] tracking-wide text-text-secondary"
+              class="block w-full font-mono text-[10px] tracking-wide text-text-secondary"
             >
               {{ customizeStatusText }}
-            </p>
+            </output>
           </div>
 
           <div
             v-if="publishingStore.hasNoChannels"
             data-testid="composer-no-channels"
-            role="status"
+            aria-live="polite"
+            aria-atomic="true"
             class="flex flex-col gap-3 rounded-xl border border-border-visible bg-bg-primary/70 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <p class="text-sm text-text-secondary">{{ $t('scheduler.noChannelTitle') }}</p>
+            <output class="block text-sm text-text-secondary">{{ $t('scheduler.noChannelTitle') }}</output>
             <Button
               type="button"
               variant="outline"
@@ -1599,9 +1598,9 @@ async function handleCreateSubmit(
               @input="hasEdited = true"
               @blur="markComposerTouched"
             ></textarea>
-            <p v-if="shortlinkWarning && !isEditMode" role="status" class="border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">
+            <output v-if="shortlinkWarning && !isEditMode" class="block border-t border-border-subtle/70 px-4 py-3 text-xs text-text-secondary">
               {{ t('shortlinks.createFailed') }} {{ failedShortlinkUrls.join(', ') }}
-            </p>
+            </output>
 
             <div class="border-t border-border-subtle/70 px-4 py-4">
               <div class="flex flex-wrap items-center gap-3">

@@ -312,15 +312,15 @@ describe('DirectInvitationsView', () => {
   it('re-queries page 0 when status filter or email search changes', async () => {
     const wrapper = mountView()
     await flushPromises()
-    expect(listCalls().length).toBe(1)
+    expect(listCalls()).toHaveLength(1)
     await wrapper.get('[data-testid="direct-invitations-status-filter"]').setValue('ACTIVE')
     await flushPromises()
-    expect(listCalls().length).toBe(2)
+    expect(listCalls()).toHaveLength(2)
     expect(listCalls()[1]?.[0]).toContain('status=ACTIVE')
     expect(listCalls()[1]?.[0]).toContain('page=0')
     await wrapper.get('[data-testid="direct-invitations-search"]').setValue('ops@')
     await flushPromises()
-    expect(listCalls().length).toBe(3)
+    expect(listCalls()).toHaveLength(3)
     expect(listCalls()[2]?.[0]).toContain('email=ops%40')
     expect(listCalls()[2]?.[0]).toContain('page=0')
     wrapper.unmount()
@@ -394,7 +394,7 @@ describe('DirectInvitationsView', () => {
       '/api/admin/invitations/12865a82-4941-50b1-ac48-0704d2344044/direct-resend',
       expect.objectContaining({ method: 'POST' }),
     )
-    expect(listCalls().length).toBe(2)
+    expect(listCalls()).toHaveLength(2)
     wrapper.unmount()
   })
 
@@ -423,7 +423,7 @@ describe('DirectInvitationsView', () => {
     expect(revokeCall).toBeDefined()
     const revokeInit = revokeCall?.[1] as RequestInit
     expect(JSON.parse(revokeInit.body as string)).toMatchObject({ expectedVersion: 2 })
-    expect(listCalls().length).toBe(2)
+    expect(listCalls()).toHaveLength(2)
     wrapper.unmount()
   })
 
@@ -437,7 +437,7 @@ describe('DirectInvitationsView', () => {
     }
     const wrapper = mountView()
     await flushPromises()
-    expect(listCalls().length).toBe(0)
+    expect(listCalls()).toHaveLength(0)
     expect(wrapper.find('[data-testid="direct-invitations-list"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('platform role')
     wrapper.unmount()

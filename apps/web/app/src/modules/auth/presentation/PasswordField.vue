@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   id: string
   label: string
   modelValue: string
   name?: string
-  autocomplete?: string
+  newPassword?: boolean
   error?: string
   readonly?: boolean
-}>(), { name: 'password', autocomplete: 'current-password', error: undefined, readonly: false })
+}>(), { name: 'password', newPassword: false, error: undefined, readonly: false })
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const visible = ref(false)
 const input = ref<HTMLInputElement | null>(null)
+const autocomplete = computed(() => (props.newPassword ? 'new-password' : 'current-password'))
 const { t } = useI18n()
 defineExpose({ focus: () => input.value?.focus() })
 </script>

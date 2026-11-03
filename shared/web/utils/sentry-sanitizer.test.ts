@@ -98,6 +98,29 @@ describe('sanitizeSentryPayload', () => {
     })
   })
 
+  it('strips parameters from every line of a multiline URL field', () => {
+    const event = { href: '/oauth/callback?note=kept\nnext#fragment' }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.href).toBe('/oauth/callback\nnext')
+  })
+
+  it('strips secrets from every line of a multiline URL field', () => {
+    const event = {
+      url: 'https://app.profiletailors.com/a?token=first\nhttps://app.profiletailors.com/b?token=second',
+    }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.url).toBe('https://app.profiletailors.com/a\nhttps://app.profiletailors.com/b')
+  })
+
+  it('redacts valid IPv4 addresses and leaves invalid IPv4 candidates unchanged', () => {
+    const event = { message: 'valid 203.0.113.42 invalid 999.999.999.999' }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.message).toBe('valid [redacted] invalid 999.999.999.999')
+  })
+
   it('drops invalid user identifiers and falls back for malformed URLs', () => {
     const withoutId = { user: { email: 'person@example.com' } }
     expect(sanitizeSentryPayload(withoutId)).toBe(true)

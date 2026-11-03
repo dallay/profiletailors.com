@@ -346,12 +346,12 @@ describe('AppShell scheduler sidebar navigation', () => {
       if (outcome === 'abort') router.beforeResolve(() => false)
       const navigation = router.push('/lazy').catch((error: unknown) => error)
       await flushPromises()
-      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
       if (outcome === 'error') rejectImport(new Error('Import failed'))
       else resolveImport(page)
       await navigation
       await nextTick()
-      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      expect(wrapper.find('main output').exists()).toBe(false)
       wrapper.unmount()
     },
   )
@@ -396,20 +396,20 @@ describe('AppShell scheduler sidebar navigation', () => {
     })
     void router.push('/abandoned')
     await flushPromises()
-    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
 
     await router.push('/')
     await nextTick()
     expect(router.currentRoute.value.path).toBe('/')
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('main output').exists()).toBe(false)
 
     const nextNavigation = router.push('/next')
     await flushPromises()
-    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
     resolveNext(page)
     await nextNavigation
     await nextTick()
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('main output').exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -444,15 +444,15 @@ describe('AppShell scheduler sidebar navigation', () => {
       const secondNavigation = router.push('/second')
       await duplicateCompletion
       await flushPromises()
-      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
       resolveFirst(page)
       await firstNavigation
       await nextTick()
-      expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+      expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
       resolveSecond(page)
       await secondNavigation
       await nextTick()
-      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      expect(wrapper.find('main output').exists()).toBe(false)
       wrapper.unmount()
     },
   )
@@ -476,15 +476,15 @@ describe('AppShell scheduler sidebar navigation', () => {
     const wrapper = mount(AppShell, options)
     const navigation = router.push('/lazy')
     await flushPromises()
-    expect(wrapper.get('[role="status"]').text()).toBe('nav.loadingSection')
+    expect(wrapper.get('main output').text()).toBe('nav.loadingSection')
     wrapper.unmount()
     resolveImport(page)
     await navigation
     const remounted = mount(AppShell, options)
-    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    expect(remounted.find('main output').exists()).toBe(false)
     await router.push('/')
     await flushPromises()
-    expect(remounted.find('[role="status"]').exists()).toBe(false)
+    expect(remounted.find('main output').exists()).toBe(false)
     remounted.unmount()
   })
 

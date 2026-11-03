@@ -42,7 +42,7 @@ class RedirectController(private val mediator: Mediator) {
     }
 
     @GetMapping("/{shortCode:[0-9A-Za-z]{1,32}}")
-    suspend fun redirect(@PathVariable shortCode: String, request: ServerHttpRequest): ResponseEntity<Void> {
+    suspend fun redirect(@PathVariable shortCode: String, request: ServerHttpRequest): ResponseEntity<Unit> {
         val domain = request.headers.host?.hostString ?: ""
 
         val response = try {
@@ -51,7 +51,7 @@ class RedirectController(private val mediator: Mediator) {
             ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, result.destinationUrl)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .build<Void>()
+                .build<Unit>()
         } catch (_: LinkNotFoundApplicationException) {
             ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         } catch (_: LinkExpiredApplicationException) {

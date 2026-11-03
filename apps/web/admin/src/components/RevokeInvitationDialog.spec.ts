@@ -68,7 +68,7 @@ describe('RevokeInvitationDialog', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
 
     const escapeWrapper = mountDialog({ expectedVersion: 3 })
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await escapeWrapper.get('dialog').trigger('cancel')
     expect(escapeWrapper.emitted('close')).toBeTruthy()
     wrapper.unmount()
     escapeWrapper.unmount()
@@ -111,6 +111,13 @@ describe('RevokeInvitationDialog', () => {
     await wrapper.get('[data-testid="revoke-dialog-confirm"]').trigger('click')
     await flushPromises()
     expect(wrapper.emitted('confirm')?.[0]).toEqual([0])
+    wrapper.unmount()
+  })
+
+  it('emits close from the native close event', async () => {
+    const wrapper = mountDialog({ expectedVersion: 3 })
+    await wrapper.get('dialog').trigger('close')
+    expect(wrapper.emitted('close')).toBeTruthy()
     wrapper.unmount()
   })
 })

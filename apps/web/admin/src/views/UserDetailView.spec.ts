@@ -161,6 +161,6 @@ describe('UserDetailView', () => {
       .filter((button) =>
         ['Disable account', 'Enable account', 'Revoke sessions'].includes(button.text()),
       )
-    expect(buttons.length).toBe(0)
+    expect(buttons).toHaveLength(0)
   })
 })

@@ -143,7 +143,7 @@ describe('NotificationsView', () => {
         headers: { 'X-Idempotency-Key': 'retry-key-1' },
       }),
     )
-    expect(wrapper.find('[role="status"]').text()).toBe('Retry scheduled.')
+    expect(wrapper.find('output').text()).toBe('Retry scheduled.')
   })
 
   it('shows an error when the initial fetch fails', async () => {
