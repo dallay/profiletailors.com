@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, defineComponent, h, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { EmptyState, PaginationControls, Table } from '@profiletailors/vue-ui'
@@ -215,6 +215,27 @@ async function confirmCancel() {
 watch([statusFilter, search, waitlistKeyFilter, joinedFrom, joinedTo, invitedFrom, invitedTo], () => { page.value = 0; fetchEntries() })
 onMounted(() => {
   Promise.all([fetchEntries(), fetchSummary()])
+})
+
+const STATUS_CLASSES: Record<string, string> = {
+  PENDING: 'bg-warning/15 text-warning',
+  INVITED: 'bg-text-secondary/15 text-text-secondary',
+  CONVERTED: 'bg-success/15 text-success',
+  CANCELLED: 'bg-text-secondary/15 text-text-secondary',
+}
+
+const StatusBadge = defineComponent({
+  props: { status: { type: String, required: true } },
+  setup(props) {
+    return () => {
+      const cls = STATUS_CLASSES[props.status] ?? 'bg-text-secondary/15 text-text-secondary'
+      const statusKey = props.status.toLowerCase()
+      const label =
+        (statusKey in messages.en.waitlist.statuses && t(`waitlist.statuses.${statusKey}`)) ||
+        props.status
+      return h('span', { class: `status-badge ${cls}` }, { default: () => label })
+    }
+  },
 })
 </script>
 
@@ -449,35 +470,3 @@ onMounted(() => {
     />
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent, h } from 'vue'
-
-const STATUS_CLASSES: Record<string, string> = {
-  PENDING: 'bg-warning/15 text-warning',
-  INVITED: 'bg-text-secondary/15 text-text-secondary',
-  CONVERTED: 'bg-success/15 text-success',
-  CANCELLED: 'bg-text-secondary/15 text-text-secondary',
-}
-
-const StatusBadge = defineComponent({
-  props: { status: { type: String, required: true } },
-  setup(props) {
-const { t, locale } = useI18n()
-    return () => {
-      const cls = STATUS_CLASSES[props.status] ?? 'bg-text-secondary/15 text-text-secondary'
-      const statusKey = props.status.toLowerCase()
-      const label =
-        (statusKey in messages.en.waitlist.statuses && t(`waitlist.statuses.${statusKey}`)) ||
-        props.status
-      return h(
-        'span',
-        { class: `status-badge ${cls}` },
-        { default: () => label },
-      )
-    }
-  },
-})
-
-export { StatusBadge }
-</script>

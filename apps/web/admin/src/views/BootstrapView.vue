@@ -92,13 +92,13 @@ function isBootstrapRequirements(value: unknown): value is { currentTermsVersion
         <p class="text-sm text-text-secondary">{{ t('bootstrap.description') }}</p>
       </header>
 
-      <p v-if="loading" role="status" data-testid="bootstrap-loading" class="text-sm text-text-secondary">
+      <output v-if="loading" data-testid="bootstrap-loading" class="block text-sm text-text-secondary">
         {{ t('bootstrap.loading') }}
-      </p>
+      </output>
 
-      <p v-else-if="completed" role="status" data-testid="bootstrap-complete" class="rounded-2xl border border-border-visible px-4 py-3 text-sm text-text-body">
+      <output v-else-if="completed" data-testid="bootstrap-complete" class="block rounded-2xl border border-border-visible px-4 py-3 text-sm text-text-body">
         {{ t('bootstrap.emailVerification') }}
-      </p>
+      </output>
 
       <template v-else>
         <p v-if="error === 'requirementsUnavailable'" role="alert" data-testid="bootstrap-requirements-error" class="mb-5 text-sm text-error">

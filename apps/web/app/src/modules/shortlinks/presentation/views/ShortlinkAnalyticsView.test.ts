@@ -153,10 +153,10 @@ describe('ShortlinkAnalyticsView', () => {
 
     const wrapper = mount(ShortlinkAnalyticsView)
     await nextTick()
-    expect(wrapper.get('[role="status"]').text()).toBe('common.loading')
+    expect(wrapper.get('output').text()).toBe('common.loading')
     resolvePage?.({ links: [], nextCursor: null })
     await flushPromises()
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('output').exists()).toBe(false)
   })
 
   it('shows the empty state when no links are returned', async () => {

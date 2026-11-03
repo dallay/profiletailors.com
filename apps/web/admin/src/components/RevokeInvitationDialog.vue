@@ -42,16 +42,17 @@ onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
 
 <template>
   <Teleport to="body">
-    <div
+    <dialog
       v-if="open"
-      class="admin-modal fixed inset-0 z-50 flex items-center justify-center px-4"
-      role="dialog"
+      open
+      class="admin-modal fixed inset-0 m-0 h-full max-h-none w-full max-w-none border-0 bg-transparent p-0 text-inherit z-50 flex items-center justify-center px-4"
       aria-modal="true"
       :aria-label="t('directInvitations.revokeDialog.title')"
     >
-      <div
-        class="admin-modal-overlay absolute inset-0 bg-black/70"
-        aria-hidden="true"
+      <button
+        type="button"
+        class="admin-modal-overlay absolute inset-0 border-0 p-0 bg-black/70"
+        :aria-label="t('common.cancel')"
         @click="onCancel"
       />
       <div class="admin-modal-panel relative z-10 w-full max-w-md rounded-xl border border-border-subtle bg-bg-surface p-6 shadow-2xl">
@@ -91,6 +92,6 @@ onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   </Teleport>
 </template>

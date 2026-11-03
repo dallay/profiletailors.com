@@ -406,9 +406,9 @@ onBeforeUnmount(() => {
             isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
           ]"
         >
-          <div v-if="pendingNavigation" role="status" aria-live="polite" class="mb-4 text-sm text-text-secondary">
+          <output v-if="pendingNavigation" class="mb-4 block text-sm text-text-secondary">
             {{ t('nav.loadingSection') }}
-          </div>
+          </output>
           <RouterView v-slot="{ Component }">
             <Suspense timeout="0">
               <div
@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
                 <component :is="Component" />
               </div>
               <template #fallback>
-                <div role="status" aria-live="polite" class="mx-auto w-full max-w-7xl space-y-6">
+                <div aria-live="polite" aria-atomic="true" class="mx-auto w-full max-w-7xl space-y-6">
                   <span class="sr-only">{{ t('nav.loadingSection') }}</span>
                   <div class="h-9 w-48 animate-pulse rounded-lg bg-bg-surface" />
                   <div class="h-4 w-80 max-w-full animate-pulse rounded bg-bg-surface" />

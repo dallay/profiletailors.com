@@ -14,9 +14,9 @@ vi.mock('vue-i18n', () => ({
   useI18n: (): { t: (key: string) => string } => ({ t: (key: string): string => key }),
 }))
 
-import type { ThreadsPreviewModel } from './post-preview.types'
+import type { PostPreviewModel } from './post-preview.types'
 
-function buildPreview(overrides: Partial<ThreadsPreviewModel> = {}): ThreadsPreviewModel {
+function buildPreview(overrides: Partial<PostPreviewModel> = {}): PostPreviewModel {
   return {
     authorName: 'WireMock Threads User',
     authorHandle: 'threads-user',
@@ -29,7 +29,7 @@ function buildPreview(overrides: Partial<ThreadsPreviewModel> = {}): ThreadsPrev
   }
 }
 
-function mountPreview(preview: ThreadsPreviewModel = buildPreview()): VueWrapper {
+function mountPreview(preview: PostPreviewModel = buildPreview()): VueWrapper {
   return mount(ThreadsPostPreview, {
     props: {
       preview,

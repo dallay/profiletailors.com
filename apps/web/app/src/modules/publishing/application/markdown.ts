@@ -78,14 +78,15 @@ function stripInlineMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '$1')
 }
 
-const HTML_UNSAFE_PATTERN = /<(script|style)[\s\S]*?<\/\1[^>]*>|<\/?[a-z][a-z0-9]*[^>]*>?/gi
+const ACTIVE_CONTENT_PATTERN = /<(script|style)[\s\S]*?<\/\1[^>]*>/gi
+const HTML_TAG_PATTERN = /<\/?[a-z][a-z0-9]*[^>]*>?/gi
 
 function stripHtmlTags(text: string): string {
   let previous = text
   let current = text
   do {
     previous = current
-    current = current.replace(HTML_UNSAFE_PATTERN, '')
+    current = current.replace(ACTIVE_CONTENT_PATTERN, '').replace(HTML_TAG_PATTERN, '')
   } while (current !== previous)
   return current
 }

@@ -3,10 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Heart, MessageCircle, Repeat2, Send } from '@lucide/vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
-import type { ThreadsPreviewModel } from './post-preview.types'
+import type { PostPreviewModel } from './post-preview.types'
 
 const props = defineProps<{
-  preview: ThreadsPreviewModel
+  preview: PostPreviewModel
 }>()
 
 const { t } = useI18n()

@@ -14,9 +14,9 @@ vi.mock('vue-i18n', () => ({
   useI18n: (): { t: (key: string) => string } => ({ t: (key: string): string => key }),
 }))
 
-import type { LinkedInPreviewModel } from './post-preview.types'
+import type { PostPreviewModel } from './post-preview.types'
 
-function buildPreview(overrides: Partial<LinkedInPreviewModel> = {}): LinkedInPreviewModel {
+function buildPreview(overrides: Partial<PostPreviewModel> = {}): PostPreviewModel {
   return {
     authorName: 'Profile Tailors',
     authorHandle: 'profiletailors',
@@ -29,7 +29,7 @@ function buildPreview(overrides: Partial<LinkedInPreviewModel> = {}): LinkedInPr
   }
 }
 
-function mountPreview(preview: LinkedInPreviewModel = buildPreview()): VueWrapper {
+function mountPreview(preview: PostPreviewModel = buildPreview()): VueWrapper {
   return mount(LinkedInPostPreview, {
     props: {
       preview,

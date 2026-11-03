@@ -115,29 +115,14 @@ describe('WaitlistEntryView', () => {
   })
 
   describe('consent fields', () => {
-    it('renders consent fields when present', async () => {
-      const wrapper = createWrapper()
-      await flushPromises()
-      expect(wrapper.text()).toContain('Consent Details')
-    })
-
-    it('renders consent version value', async () => {
-      const wrapper = createWrapper()
-      await flushPromises()
-      expect(wrapper.text()).toContain('v1.0')
-    })
-
-    it('renders early access consent value', async () => {
-      const wrapper = createWrapper()
-      await flushPromises()
-      expect(wrapper.text()).toContain('Yes')
-    })
-
-    it('renders marketing consent value', async () => {
-      const wrapper = createWrapper()
-      await flushPromises()
-      expect(wrapper.text()).toContain('No')
-    })
+    it.each(['Consent Details', 'v1.0', 'Yes', 'No'])(
+      'renders consent content %s',
+      async (expected) => {
+        const wrapper = createWrapper()
+        await flushPromises()
+        expect(wrapper.text()).toContain(expected)
+      },
+    )
   })
 
   describe('metadata summary', () => {
@@ -210,7 +195,7 @@ describe('WaitlistEntryView', () => {
       expect(resendButton).toBeDefined()
       await resendButton?.trigger('click')
       await flushPromises()
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+      expect(wrapper.find('dialog').exists()).toBe(true)
     })
   })
 })

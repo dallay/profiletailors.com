@@ -45,7 +45,7 @@ class PlatformBootstrapController(private val mediator: Mediator) {
             ApiResponse(responseCode = "400", description = "Bootstrap invitation unavailable"),
         ],
     )
-    suspend fun complete(@Valid @RequestBody request: CompleteBootstrapRequest): ResponseEntity<Void> {
+    suspend fun complete(@Valid @RequestBody request: CompleteBootstrapRequest): ResponseEntity<Unit> {
         mediator.send(
             CompleteBootstrapCommand(
                 invitationToken = request.invitationToken,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { defineComponent, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Table } from '@profiletailors/vue-ui'
@@ -145,6 +145,17 @@ async function errorMessage(res: Response): Promise<string> {
 }
 
 onMounted(fetchEntry)
+
+const Field = defineComponent({
+  props: { label: { type: String, required: true }, value: { type: String, required: true } },
+  setup(props) {
+    return () =>
+      h('div', { class: 'admin-card p-4' }, [
+        h('p', { class: 'label-mono mb-1 text-text-secondary' }, props.label),
+        h('p', { class: 'text-sm text-text-body' }, props.value),
+      ])
+  },
+})
 </script>
 
 <template>
@@ -247,12 +258,12 @@ onMounted(fetchEntry)
       </Table>
     </div>
 
-    <div
+    <dialog
       v-if="showRevokeDialog"
-      role="dialog"
+      open
       aria-modal="true"
       aria-labelledby="revoke-dialog-title"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/60 p-4 text-inherit z-50"
       @keydown.esc="showRevokeDialog = false"
     >
       <div class="admin-card w-full max-w-md p-6">
@@ -277,14 +288,14 @@ onMounted(fetchEntry)
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
 
-    <div
+    <dialog
       v-if="showResendDialog"
-      role="dialog"
+      open
       aria-modal="true"
       aria-labelledby="resend-dialog-title"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/60 p-4 text-inherit z-50"
       @keydown.esc="showResendDialog = false"
     >
       <div class="admin-card w-full max-w-md p-6">
@@ -311,22 +322,6 @@ onMounted(fetchEntry)
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-const Field = defineComponent({
-  props: { label: { type: String, required: true }, value: { type: String, required: true } },
-  template: `
-    <div class="admin-card p-4">
-      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
-      <p class="text-sm text-text-body">{{ value }}</p>
-    </div>
-  `,
-})
-
-export { Field }
-</script>

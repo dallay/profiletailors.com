@@ -9,6 +9,7 @@ class BestEffortOperationalEventSink(private val delegate: OperationalEventSink)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Exception) {
+            return
         }
     }
 }

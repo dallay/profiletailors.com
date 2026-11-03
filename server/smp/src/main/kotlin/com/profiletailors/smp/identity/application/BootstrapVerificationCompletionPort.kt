@@ -6,6 +6,5 @@ fun interface BootstrapVerificationCompletionPort {
     suspend fun completeVerifiedPrincipal(principalId: String, email: String, verifiedAt: Instant)
 }
 
-object NoOpBootstrapVerificationCompletionPort : BootstrapVerificationCompletionPort {
-    override suspend fun completeVerifiedPrincipal(principalId: String, email: String, verifiedAt: Instant) = Unit
-}
+val NoOpBootstrapVerificationCompletionPort: BootstrapVerificationCompletionPort =
+    BootstrapVerificationCompletionPort { _, _, _ -> }

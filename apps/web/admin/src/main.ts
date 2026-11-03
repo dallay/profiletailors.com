@@ -38,4 +38,8 @@ async function main() {
   }
 }
 
-main().catch(console.error)
+try {
+  await main()
+} catch (error) {
+  console.error(error)
+}

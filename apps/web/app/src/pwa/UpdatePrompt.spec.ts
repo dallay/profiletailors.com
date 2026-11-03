@@ -18,16 +18,16 @@ describe('UpdatePrompt', () => {
   it('announces the update message without including its controls in the status', async () => {
     const wrapper = mount(UpdatePrompt)
 
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('output').exists()).toBe(false)
 
     window.dispatchEvent(new Event('pwa:need-refresh'))
     await wrapper.vm.$nextTick()
 
-    const announcement = wrapper.find('[role="status"]')
+    const announcement = wrapper.find('output')
     expect(announcement.text()).toBe('pwa.update.message')
-    expect(announcement.element.tagName).toBe('P')
+    expect(announcement.element.tagName).toBe('OUTPUT')
     expect(wrapper.findAll('button')).toHaveLength(2)
-    expect(wrapper.find('[role="status"] button').exists()).toBe(false)
+    expect(wrapper.find('output button').exists()).toBe(false)
 
     wrapper.unmount()
   })

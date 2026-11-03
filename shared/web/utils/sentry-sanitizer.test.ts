@@ -98,6 +98,20 @@ describe('sanitizeSentryPayload', () => {
     })
   })
 
+  it('preserves multiline URL fields while stripping fragments from the final line', () => {
+    const event = { href: '/oauth/callback?note=kept\nnext#fragment' }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.href).toBe('/oauth/callback?note=kept\nnext')
+  })
+
+  it('redacts valid IPv4 addresses and leaves invalid IPv4 candidates unchanged', () => {
+    const event = { message: 'valid 203.0.113.42 invalid 999.999.999.999' }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.message).toBe('valid [redacted] invalid 999.999.999.999')
+  })
+
   it('drops invalid user identifiers and falls back for malformed URLs', () => {
     const withoutId = { user: { email: 'person@example.com' } }
     expect(sanitizeSentryPayload(withoutId)).toBe(true)

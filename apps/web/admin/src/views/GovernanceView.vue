@@ -68,7 +68,7 @@ async function fetchReports() {
     if (statusFilter.value) params.set('status', statusFilter.value)
     if (workspaceFilter.value) params.set('workspaceId', workspaceFilter.value)
     const res = await authStore.request(`/api/admin/takedown-reports?${params}`, { signal: controller.signal })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Takedown report list failed with status ${res.status}`)
     result.value = await res.json()
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return
@@ -86,7 +86,7 @@ async function fetchReportDetail(reportId: string) {
   error.value = null
   try {
     const res = await authStore.request(`/api/admin/takedown-reports/${reportId}`, { signal: controller.signal })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Takedown report ${reportId} failed with status ${res.status}`)
     report.value = await res.json()
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return
@@ -110,7 +110,7 @@ async function approveReport(reportId: string) {
         'Idempotency-Key': idempotencyKey,
       },
     })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Takedown report ${reportId} approval failed with status ${res.status}`)
     report.value = await res.json()
   } catch {
     error.value = t('common.error')
@@ -137,7 +137,7 @@ async function rejectReport(reportId: string, reason: string) {
       },
       body: JSON.stringify({ rejectionReason: reason }),
     })
-    if (!res.ok) throw new Error()
+    if (!res.ok) throw new Error(`Takedown report ${reportId} rejection failed with status ${res.status}`)
     report.value = await res.json()
   } catch {
     error.value = t('common.error')

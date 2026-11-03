@@ -5,16 +5,12 @@ import { Info } from '@lucide/vue'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
 import ThreadsPostPreview from './ThreadsPostPreview.vue'
-import type {
-  LinkedInPreviewModel,
-  PreviewProvider,
-  ThreadsPreviewModel,
-} from './post-preview.types'
+import type { PostPreviewModel, PreviewProvider } from './post-preview.types'
 
 const props = defineProps<{
   provider: PreviewProvider
   title: string
-  preview: LinkedInPreviewModel | ThreadsPreviewModel
+  preview: PostPreviewModel
 }>()
 
 const { t } = useI18n()

@@ -1,9 +1,17 @@
 const URL_PATTERN = /https?:\/\/[^\s<>]+/g
-const TRAILING_PUNCTUATION = /[.,!?;:]+$/
+const TRAILING_PUNCTUATION = new Set(['.', ',', '!', '?', ';', ':'])
+
+function splitTrailingPunctuation(match: string): { body: string; punctuation: string } {
+  let end = match.length
+  while (end > 0 && TRAILING_PUNCTUATION.has(match.charAt(end - 1))) {
+    end -= 1
+  }
+  return { body: match.slice(0, end), punctuation: match.slice(end) }
+}
 
 function normalizeUrlMatch(match: string): { url: string; suffix: string } {
-  const punctuation = match.match(TRAILING_PUNCTUATION)?.[0] ?? ''
-  let url = match.slice(0, match.length - punctuation.length)
+  const { body, punctuation } = splitTrailingPunctuation(match)
+  let url = body
   let closingParentheses = ''
   while (url.endsWith(')') && url.split(')').length > url.split('(').length) {
     url = url.slice(0, -1)

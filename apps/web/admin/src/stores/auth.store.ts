@@ -132,11 +132,9 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
   }
 
   function refreshSession(): Promise<AuthTokens | null> {
-    if (!refreshPromise) {
-      refreshPromise = performRefresh().finally(() => {
-        refreshPromise = null
-      })
-    }
+    refreshPromise ??= performRefresh().finally(() => {
+      refreshPromise = null
+    })
     return refreshPromise
   }
 

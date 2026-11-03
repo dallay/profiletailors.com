@@ -66,7 +66,7 @@ const inventorySchema = z.object({
   DPO_contact: z.string().nullable().optional(),
   status: z.enum(['draft', 'active']).optional(),
   production_release_status: z.enum(['blocked', 'approved']).optional(),
-  last_verified_on: z.string().date().optional(),
+  last_verified_on: z.iso.date().optional(),
   processing_activities: z.array(processingActivitySchema).min(1),
 })
 

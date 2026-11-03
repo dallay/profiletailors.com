@@ -47,12 +47,17 @@ const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 const URL_PATTERN = /https?:\/\/[^\s<>"'`]+/gi
 const BEARER_PATTERN = /\bBearer\s+[^\s,;]+/gi
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g
-const CREDENTIAL_VALUE_PATTERN =
-  /\b((?:password|passwd|passphrase|access[\s_-]?token|refresh[\s_-]?token|id[\s_-]?token|token|api[\s_-]?key|client[\s_-]?secret|encryption[\s_-]?key|secret|authorization|cookie|set[\s_-]?cookie|pt[\s_-]?refresh|code|oauth[\s_-]?code)\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi
-const IPV4_PATTERN =
-  /\b(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\b/g
+const CREDENTIAL_VALUE_PATTERNS = [
+  /\b((?:password|passwd|passphrase|token)\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi,
+  /\b((?:secret|authorization|cookie|code)\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi,
+  /\b((?:access|refresh|id)[\s_-]?token\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi,
+  /\b((?:api[\s_-]?key|client[\s_-]?secret|encryption[\s_-]?key)\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi,
+  /\b((?:set[\s_-]?cookie|pt[\s_-]?refresh|oauth[\s_-]?code)\s*[:=]\s*)["']?[^"'\s,;&]+["']?/gi,
+]
+const IPV4_CANDIDATE_PATTERN = /\b\d{1,3}(?:\.\d{1,3}){3}\b/g
 const IPV6_CANDIDATE_PATTERN = /(?<![0-9a-f:])[0-9a-f:]{2,}(?![0-9a-f:])/gi
-const URL_PUNCTUATION_PATTERN = /[),.!?;:]+$/
+const URL_TRAILING_PUNCTUATION = new Set([')', ',', '.', '!', '?', ';', ':'])
+const LINE_TERMINATORS = new Set(['\n', '\r', '\u2028', '\u2029'])
 
 export function sanitizeSentryPayload<T extends object>(payload: T): boolean {
   return sanitizeObject(payload, new WeakSet(), '')
@@ -61,9 +66,9 @@ export function sanitizeSentryPayload<T extends object>(payload: T): boolean {
 export interface RedactableSpan {
   trace_id: string
   span_id: string
-  parent_span_id?: string | undefined
+  parent_span_id?: string
   start_timestamp: number
-  end_timestamp?: number | undefined
+  end_timestamp?: number
   status: 'ok' | 'error'
   is_segment: boolean
 }
@@ -71,10 +76,10 @@ export interface RedactableSpan {
 export interface RedactedSpan {
   trace_id: string
   span_id: string
-  parent_span_id?: string | undefined
+  parent_span_id?: string
   name: 'redacted'
   start_timestamp: number
-  end_timestamp?: number | undefined
+  end_timestamp?: number
   status: 'ok' | 'error'
   is_segment: boolean
   attributes: Record<string, never>
@@ -100,33 +105,34 @@ function sanitizeObject(value: object, visited: WeakSet<object>, parentKey: stri
 
   for (const propertyKey of Reflect.ownKeys(value)) {
     if (typeof propertyKey !== 'string') continue
-
-    const key = normalizeKey(propertyKey)
-    if (isSensitiveField(key) || isSensitivePayload(key)) {
-      if (!Reflect.deleteProperty(value, propertyKey)) return false
-      continue
-    }
-
-    if (HTTP_DATA_PARENT_NAMES.has(parentKey) && REQUEST_DATA_NAMES.has(key)) {
-      if (!Reflect.deleteProperty(value, propertyKey)) return false
-      continue
-    }
-
-    const child: unknown = Reflect.get(value, propertyKey)
-    if (key === 'user') {
-      if (!sanitizeUser(child, visited)) return false
-    } else if (key === 'headers') {
-      if (!sanitizeHeaders(child, visited)) return false
-    } else if (key === 'tags') {
-      if (!sanitizeTags(child, visited)) return false
-    } else if (typeof child === 'string') {
-      if (!Reflect.set(value, propertyKey, sanitizeText(child, key))) return false
-    } else if (isObject(child) && !sanitizeObject(child, visited, key)) {
-      return false
-    }
+    if (!sanitizeProperty(value, propertyKey, visited, parentKey)) return false
   }
 
   return true
+}
+
+function sanitizeProperty(
+  target: object,
+  propertyKey: string,
+  visited: WeakSet<object>,
+  parentKey: string,
+): boolean {
+  const key = normalizeKey(propertyKey)
+  if (isSensitiveField(key) || isSensitivePayload(key)) {
+    return Reflect.deleteProperty(target, propertyKey)
+  }
+  if (HTTP_DATA_PARENT_NAMES.has(parentKey) && REQUEST_DATA_NAMES.has(key)) {
+    return Reflect.deleteProperty(target, propertyKey)
+  }
+
+  const child: unknown = Reflect.get(target, propertyKey)
+  if (key === 'user') return sanitizeUser(child, visited)
+  if (key === 'headers') return sanitizeHeaders(child, visited)
+  if (key === 'tags') return sanitizeTags(child, visited)
+  if (typeof child === 'string') {
+    return Reflect.set(target, propertyKey, sanitizeText(child, key))
+  }
+  return !isObject(child) || sanitizeObject(child, visited, key)
 }
 
 function sanitizeUser(value: unknown, visited: WeakSet<object>): boolean {
@@ -191,31 +197,64 @@ function sanitizeTags(value: unknown, visited: WeakSet<object>): boolean {
 function sanitizeText(value: string, key = ''): string {
   const withoutAbsoluteUrlParameters = value.replace(URL_PATTERN, sanitizeUrl)
   const withoutRelativeUrlParameters = URL_FIELD_NAMES.has(key)
-    ? withoutAbsoluteUrlParameters.replace(/[?#].*$/, '')
+    ? stripUrlParameters(withoutAbsoluteUrlParameters)
     : withoutAbsoluteUrlParameters
 
-  return withoutRelativeUrlParameters
-    .replace(BEARER_PATTERN, '[redacted]')
-    .replace(JWT_PATTERN, '[redacted]')
-    .replace(IPV4_PATTERN, '[redacted]')
+  const withoutBearerTokens = withoutRelativeUrlParameters.replace(BEARER_PATTERN, '[redacted]')
+  const withoutJwtTokens = withoutBearerTokens.replace(JWT_PATTERN, '[redacted]')
+  const withoutIpAddresses = withoutJwtTokens
+    .replace(IPV4_CANDIDATE_PATTERN, redactIpv4Candidate)
     .replace(IPV6_CANDIDATE_PATTERN, (candidate) =>
       isIpv6Literal(candidate) ? '[redacted]' : candidate,
     )
-    .replace(CREDENTIAL_VALUE_PATTERN, (_match, prefix: string) => `${prefix}[redacted]`)
-    .replace(EMAIL_PATTERN, '[redacted]')
-    .slice(0, MAX_STRING_LENGTH)
+  const withoutCredentialValues = CREDENTIAL_VALUE_PATTERNS.reduce(
+    (sanitized, pattern) =>
+      sanitized.replace(pattern, (_match, prefix: string) => `${prefix}[redacted]`),
+    withoutIpAddresses,
+  )
+
+  return withoutCredentialValues.replace(EMAIL_PATTERN, '[redacted]').slice(0, MAX_STRING_LENGTH)
 }
 
 function sanitizeUrl(value: string): string {
-  const trailingPunctuation = URL_PUNCTUATION_PATTERN.exec(value)?.[0] ?? ''
-  const address = trailingPunctuation ? value.slice(0, -trailingPunctuation.length) : value
+  const { address, punctuation } = splitTrailingPunctuation(value)
 
   try {
     const url = new URL(address)
-    return `${url.origin}${url.pathname}${trailingPunctuation}`
+    return `${url.origin}${url.pathname}${punctuation}`
   } catch {
-    return `${address.replace(/[?#].*$/, '')}${trailingPunctuation}`
+    return `${stripUrlParameters(address)}${punctuation}`
   }
+}
+
+function stripUrlParameters(value: string): string {
+  let lastLineTerminator = -1
+  for (let index = 0; index < value.length; index += 1) {
+    if (LINE_TERMINATORS.has(value[index] ?? '')) lastLineTerminator = index
+  }
+
+  for (let index = lastLineTerminator + 1; index < value.length; index += 1) {
+    const character = value[index]
+    if (character === '?' || character === '#') return value.slice(0, index)
+  }
+
+  return value
+}
+
+function splitTrailingPunctuation(value: string): { address: string; punctuation: string } {
+  let splitIndex = value.length
+  while (splitIndex > 0 && URL_TRAILING_PUNCTUATION.has(value[splitIndex - 1] ?? '')) {
+    splitIndex -= 1
+  }
+
+  return { address: value.slice(0, splitIndex), punctuation: value.slice(splitIndex) }
+}
+
+function redactIpv4Candidate(candidate: string): string {
+  const octets = candidate.split('.')
+  const isValid = octets.every((octet) => /^(0|[1-9]\d{0,2})$/.test(octet) && Number(octet) <= 255)
+
+  return isValid ? '[redacted]' : candidate
 }
 
 function isSensitiveField(key: string): boolean {

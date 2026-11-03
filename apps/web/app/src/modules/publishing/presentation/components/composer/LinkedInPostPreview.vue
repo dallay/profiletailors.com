@@ -3,10 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Globe, MessageCircle, Repeat2, Send, ThumbsUp } from '@lucide/vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
-import type { LinkedInPreviewModel } from './post-preview.types'
+import type { PostPreviewModel } from './post-preview.types'
 
 const props = defineProps<{
-  preview: LinkedInPreviewModel
+  preview: PostPreviewModel
 }>()
 
 const { t } = useI18n()

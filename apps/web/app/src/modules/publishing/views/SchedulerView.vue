@@ -825,8 +825,8 @@ watch(
     <div
       v-if="publishingStore.hasReconnectRequiredChannels"
       class="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3"
-      role="status"
       aria-live="polite"
+      aria-atomic="true"
     >
       <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
         Reconnect Required

@@ -117,24 +117,14 @@ describe('AuthView orchestration', () => {
     )
   })
 
-  it('falls back to root for protocol-relative redirect after login', async (): Promise<void> => {
-    route.query = { redirect: '//evil.example/phish' }
+  it.each([
+    ['protocol-relative', '//evil.example/phish', '/'],
+    ['absolute', 'https://evil.example/phish', '/'],
+    ['internal', '/invitations/accept?token=x', '/invitations/accept?token=x'],
+  ])('resolves %s redirect after login', async (_label, redirect, expected): Promise<void> => {
+    route.query = { redirect }
     const wrapper = mountView()
     await wrapper.get('[data-testid="login-success"]').trigger('click')
-    expect(replace).toHaveBeenCalledWith('/')
-  })
-
-  it('falls back to root for absolute redirect after login', async (): Promise<void> => {
-    route.query = { redirect: 'https://evil.example/phish' }
-    const wrapper = mountView()
-    await wrapper.get('[data-testid="login-success"]').trigger('click')
-    expect(replace).toHaveBeenCalledWith('/')
-  })
-
-  it('keeps internal redirect after login', async (): Promise<void> => {
-    route.query = { redirect: '/invitations/accept?token=x' }
-    const wrapper = mountView()
-    await wrapper.get('[data-testid="login-success"]').trigger('click')
-    expect(replace).toHaveBeenCalledWith('/invitations/accept?token=x')
+    expect(replace).toHaveBeenCalledWith(expected)
   })
 })
