@@ -1,0 +1,21 @@
+name: GitGuardian scan
+
+on:
+  push:
+    branches: [main, develop, deploy]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: gitguardian-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: GitGuardian scan
+    uses: dallay/common-actions/.github/workflows/gitguardian-scan.yml@8dd14d86a6bf1a4673aba902e3c3e27993b0e583 # v2.9.1
+    secrets:
+      gitguardian-api-key: ${{ secrets.GITGUARDIAN_API_KEY }}
