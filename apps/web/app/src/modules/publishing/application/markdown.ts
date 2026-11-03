@@ -144,11 +144,13 @@ function stripMarkup(lower: string, text: string): string {
 }
 
 function stripHtmlTags(text: string): string {
-  let previous = text
   let current = text
+  let currentLower = current.toLowerCase()
+  let previous: string
   do {
     previous = current
-    current = stripMarkup(previous.toLowerCase(), previous)
+    current = stripMarkup(currentLower, current)
+    currentLower = current.toLowerCase()
   } while (current !== previous)
   return current
 }
