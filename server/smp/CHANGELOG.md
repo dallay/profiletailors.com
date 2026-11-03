@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.15](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.14...smp@v0.5.15) (2026-11-03)
+
+
+### Features
+
+* **platform-admin:** bootstrap initial platform owner ([#1441](https://github.com/dallay/profiletailors.com/issues/1441)) ([fd97978](https://github.com/dallay/profiletailors.com/commit/fd97978833dcf82715805b89de890d750192e101))
+
+
+### Bug Fixes
+
+* **quality:** remediate open sonarcloud findings on main ([#1448](https://github.com/dallay/profiletailors.com/issues/1448)) ([40fcd49](https://github.com/dallay/profiletailors.com/commit/40fcd498c9abfff7dc0841f4e72a91457aa37cef))
+
 ## [0.5.14](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.13...smp@v0.5.14) (2026-10-27)
 
 
