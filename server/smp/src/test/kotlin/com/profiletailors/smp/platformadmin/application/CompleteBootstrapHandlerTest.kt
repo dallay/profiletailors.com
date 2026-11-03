@@ -35,6 +35,7 @@ import java.util.UUID
 class CompleteBootstrapHandlerTest {
     private val now = Instant.parse("2026-11-02T10:00:00Z")
     private val rawToken = "one-time-bootstrap-token"
+    private val testPassword = "x".repeat(20)
     private val tokenHash = sha256(rawToken)
     private val invitation = BootstrapInvitation(
         email = "owner@example.test",
@@ -72,7 +73,7 @@ class CompleteBootstrapHandlerTest {
     fun `sets password records platform terms and sends existing verification event`() = runTest {
         coEvery { consentHandler.handle(capture(consentSlot)) } returns Unit
 
-        handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v1.0.0"))
+        handler.handle(CompleteBootstrapCommand(rawToken, testPassword, "terms-v1.0.0"))
 
         assertTrue(repository.claimed)
         assertEquals(
@@ -102,7 +103,7 @@ class CompleteBootstrapHandlerTest {
 
         assertThrows(StaleBootstrapTermsException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v0.9"))
+                handler.handle(CompleteBootstrapCommand(rawToken, testPassword, "terms-v0.9"))
             }
         }
 
@@ -118,7 +119,7 @@ class CompleteBootstrapHandlerTest {
 
         assertThrows(BootstrapUnavailableException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(CompleteBootstrapCommand(rawToken, "bootstrap-test-password", "terms-v1.0.0"))
+                handler.handle(CompleteBootstrapCommand(rawToken, testPassword, "terms-v1.0.0"))
             }
         }
 

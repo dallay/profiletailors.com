@@ -19,6 +19,7 @@ class PlatformBootstrapControllerTest {
     private val client = WebTestClient.bindToController(controller)
         .controllerAdvice(AdminProblemDetailsHandler())
         .build()
+    private val testPassword = "x".repeat(20)
 
     @Test
     fun `requirements exposes only current terms version`() {
@@ -43,7 +44,7 @@ class PlatformBootstrapControllerTest {
                 """
                 {
                   "invitationToken": "single-use-token",
-                  "password": "bootstrap-test-password",
+                  "password": "$testPassword",
                   "acceptedTermsVersion": "terms-v1.0.0"
                 }
                 """.trimIndent(),
@@ -56,7 +57,7 @@ class PlatformBootstrapControllerTest {
             mediator.send(
                 match<CompleteBootstrapCommand> {
                     it.invitationToken == "single-use-token" &&
-                        it.password == "bootstrap-test-password" &&
+                        it.password == testPassword &&
                         it.acceptedTermsVersion == "terms-v1.0.0"
                 },
             )
@@ -73,7 +74,7 @@ class PlatformBootstrapControllerTest {
                 """
                 {
                   "invitationToken": "invalid-token",
-                  "password": "bootstrap-test-password",
+                  "password": "$testPassword",
                   "acceptedTermsVersion": "terms-v1.0.0"
                 }
                 """.trimIndent(),
