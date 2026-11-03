@@ -343,6 +343,27 @@ History-oriented local run:
 gitleaks git . --config .gitleaks.toml --log-opts="--all"
 ```
 
+### GitGuardian (ggshield)
+
+GitGuardian CLI (`ggshield`) scans commits about to be pushed for hardcoded secrets, API tokens, and credentials via Git hooks.
+
+Local pre-push hook scan:
+
+```bash
+ggshield secret scan pre-push
+```
+
+The pre-push hook is automatically configured in `lefthook.yml`. If `ggshield` is installed on the developer machine, it executes before every `git push`. If not installed, the hook skips gracefully.
+
+To install and authenticate `ggshield`:
+
+```bash
+pip install ggshield
+ggshield auth login
+```
+
+Alternatively, set the `GITGUARDIAN_API_KEY` environment variable in your local environment.
+
 ### Trivy
 
 Filesystem and config scan:
