@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.27](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.26...landing@v0.2.27) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#1439](https://github.com/dallay/profiletailors.com/issues/1439)) ([100808e](https://github.com/dallay/profiletailors.com/commit/100808e4b90abee04c342698a38ac53758718351))
+
 ## [0.2.26](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.25...landing@v0.2.26) (2026-10-27)
 
 
