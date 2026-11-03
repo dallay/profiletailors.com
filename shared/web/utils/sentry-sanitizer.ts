@@ -228,17 +228,18 @@ function sanitizeUrl(value: string): string {
 }
 
 function stripUrlParameters(value: string): string {
-  let lastLineTerminator = -1
-  for (let index = 0; index < value.length; index += 1) {
-    if (LINE_TERMINATORS.has(value[index] ?? '')) lastLineTerminator = index
+  let result = ''
+  let cursor = 0
+  while (cursor < value.length) {
+    const character = value[cursor] ?? ''
+    if (character === '?' || character === '#') {
+      while (cursor < value.length && !LINE_TERMINATORS.has(value[cursor] ?? '')) cursor += 1
+      continue
+    }
+    result += character
+    cursor += 1
   }
-
-  for (let index = lastLineTerminator + 1; index < value.length; index += 1) {
-    const character = value[index]
-    if (character === '?' || character === '#') return value.slice(0, index)
-  }
-
-  return value
+  return result
 }
 
 function splitTrailingPunctuation(value: string): { address: string; punctuation: string } {

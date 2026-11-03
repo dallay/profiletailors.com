@@ -98,11 +98,20 @@ describe('sanitizeSentryPayload', () => {
     })
   })
 
-  it('preserves multiline URL fields while stripping fragments from the final line', () => {
+  it('strips parameters from every line of a multiline URL field', () => {
     const event = { href: '/oauth/callback?note=kept\nnext#fragment' }
 
     expect(sanitizeSentryPayload(event)).toBe(true)
-    expect(event.href).toBe('/oauth/callback?note=kept\nnext')
+    expect(event.href).toBe('/oauth/callback\nnext')
+  })
+
+  it('strips secrets from every line of a multiline URL field', () => {
+    const event = {
+      url: 'https://app.profiletailors.com/a?token=first\nhttps://app.profiletailors.com/b?token=second',
+    }
+
+    expect(sanitizeSentryPayload(event)).toBe(true)
+    expect(event.url).toBe('https://app.profiletailors.com/a\nhttps://app.profiletailors.com/b')
   })
 
   it('redacts valid IPv4 addresses and leaves invalid IPv4 candidates unchanged', () => {

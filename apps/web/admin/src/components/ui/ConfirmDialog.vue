@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, useId, watch } from 'vue'
 import Button from '@/components/ui/AdminButton.vue'
+import { syncModalDialog } from '@/lib/modal-dialog'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -31,15 +32,7 @@ function preventDismissWhileBusy(event: Event) {
 
 async function syncDialog(open: boolean) {
   await nextTick()
-  if (!dialog.value) return
-  if (open && !dialog.value.open) {
-    if (typeof dialog.value.showModal === 'function') dialog.value.showModal()
-    else dialog.value.setAttribute('open', '')
-  }
-  if (!open && dialog.value.open) {
-    if (typeof dialog.value.close === 'function') dialog.value.close()
-    else dialog.value.removeAttribute('open')
-  }
+  syncModalDialog(dialog.value, open)
 }
 
 watch(() => props.open, syncDialog)

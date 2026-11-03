@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { defineComponent, h, onMounted, ref } from 'vue'
+import { defineComponent, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Table } from '@profiletailors/vue-ui'
 import { formatDateTime } from '@/lib/formatters'
+import { syncModalDialog } from '@/lib/modal-dialog'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
@@ -53,6 +54,18 @@ const canResend = authStore.hasPermission('platform.invitations.resend')
 const resending = ref(false)
 const resendError = ref<string | null>(null)
 const showResendDialog = ref(false)
+const revokeDialog = ref<HTMLDialogElement | null>(null)
+const resendDialog = ref<HTMLDialogElement | null>(null)
+
+watch(showRevokeDialog, async (open) => {
+  await nextTick()
+  syncModalDialog(revokeDialog.value, open)
+})
+
+watch(showResendDialog, async (open) => {
+  await nextTick()
+  syncModalDialog(resendDialog.value, open)
+})
 
 async function fetchEntry() {
   loading.value = true
@@ -259,14 +272,14 @@ const Field = defineComponent({
     </div>
 
     <dialog
-      v-if="showRevokeDialog"
-      open
+      ref="revokeDialog"
       aria-modal="true"
       aria-labelledby="revoke-dialog-title"
       class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/60 p-4 text-inherit z-50"
-      @keydown.esc="showRevokeDialog = false"
+      @cancel="showRevokeDialog = false"
+      @close="showRevokeDialog = false"
     >
-      <div class="admin-card w-full max-w-md p-6">
+      <div v-if="showRevokeDialog" class="admin-card w-full max-w-md p-6">
         <h2 id="revoke-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
           {{ t('waitlist.revokeConfirmTitle') }}
         </h2>
@@ -291,14 +304,14 @@ const Field = defineComponent({
     </dialog>
 
     <dialog
-      v-if="showResendDialog"
-      open
+      ref="resendDialog"
       aria-modal="true"
       aria-labelledby="resend-dialog-title"
       class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/60 p-4 text-inherit z-50"
-      @keydown.esc="showResendDialog = false"
+      @cancel="showResendDialog = false"
+      @close="showResendDialog = false"
     >
-      <div class="admin-card w-full max-w-md p-6">
+      <div v-if="showResendDialog" class="admin-card w-full max-w-md p-6">
         <h2 id="resend-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
           {{ t('waitlist.resendDialog.title') }}
         </h2>

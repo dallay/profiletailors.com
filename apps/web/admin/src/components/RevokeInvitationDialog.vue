@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { syncModalDialog } from '@/lib/modal-dialog'
 
 type Props = {
   open: boolean
@@ -32,22 +33,35 @@ function onConfirm() {
   emit('confirm', safeVersion.value)
 }
 
-function onWindowKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') onCancel()
+const dialog = ref<HTMLDialogElement | null>(null)
+
+function onDialogCancel(event: Event) {
+  if (props.pending) {
+    event.preventDefault()
+    return
+  }
+  emit('close')
 }
 
-onMounted(() => window.addEventListener('keydown', onWindowKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
+async function syncDialog(open: boolean) {
+  await nextTick()
+  syncModalDialog(dialog.value, open)
+}
+
+watch(() => props.open, syncDialog)
+onMounted(() => syncDialog(props.open))
 </script>
 
 <template>
   <Teleport to="body">
     <dialog
       v-if="open"
-      open
+      ref="dialog"
       class="admin-modal fixed inset-0 m-0 h-full max-h-none w-full max-w-none border-0 bg-transparent p-0 text-inherit z-50 flex items-center justify-center px-4"
       aria-modal="true"
       :aria-label="t('directInvitations.revokeDialog.title')"
+      @cancel="onDialogCancel"
+      @close="emit('close')"
     >
       <button
         type="button"

@@ -174,6 +174,11 @@ describe('stripMarkdownToPlainText', () => {
     )
   })
 
+  it('does not rebuild an active content opener out of removed tags', () => {
+    expect(stripMarkdownToPlainText('<<b>script>alert(1)')).not.toContain('<script')
+    expect(stripMarkdownToPlainText('<img src="x"><script>alert(1)</' + 'script>')).toBe('')
+  })
+
   it('removes multiline script blocks without leaking their content', () => {
     expect(stripMarkdownToPlainText('<script>\nalert(1)\n</' + 'script>safe')).toBe('safe')
   })
