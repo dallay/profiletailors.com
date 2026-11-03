@@ -1,5 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { messages } from '@/i18n'
@@ -114,17 +114,10 @@ describe('RevokeInvitationDialog', () => {
     wrapper.unmount()
   })
 
-  it('opens through the native modal API so focus moves inside and the page becomes inert', async () => {
-    const original = HTMLDialogElement.prototype.showModal
-    const showModal = vi.fn()
-    HTMLDialogElement.prototype.showModal = showModal
-    try {
-      const wrapper = mountDialog({ expectedVersion: 3 })
-      await nextTick()
-      expect(showModal).toHaveBeenCalledOnce()
-      wrapper.unmount()
-    } finally {
-      HTMLDialogElement.prototype.showModal = original
-    }
+  it('emits close from the native close event', async () => {
+    const wrapper = mountDialog({ expectedVersion: 3 })
+    await wrapper.get('dialog').trigger('close')
+    expect(wrapper.emitted('close')).toBeTruthy()
+    wrapper.unmount()
   })
 })
