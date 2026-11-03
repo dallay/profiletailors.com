@@ -103,6 +103,20 @@ class RefreshSessionOriginValidationWebFilterTest {
     }
 
     @Test
+    fun `cors includes the configured platform admin origin`() {
+        val source = IdentitySecurityConfiguration().corsConfigurationSource(
+            CorsConfigurationProperties(
+                allowedOrigins = listOf("https://app.example.test"),
+                adminPublicOrigin = "https://admin.profiletailors.com",
+            ),
+        )
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
+
+        source.getCorsConfiguration(exchange)?.checkOrigin("https://admin.profiletailors.com") shouldBe
+            "https://admin.profiletailors.com"
+    }
+
+    @Test
     fun `rejects logout request with cookie and no origin metadata`() {
         val exchange = MockServerWebExchange.from(
             MockServerHttpRequest.post("/api/auth/logout")

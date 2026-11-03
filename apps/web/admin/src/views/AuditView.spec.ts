@@ -10,6 +10,8 @@ const mockAuditLogsResult = {
     {
       eventId: 'd19d943f-2733-5c44-8d01-035e3a6fc167',
       occurredAt: '2024-06-01T12:00:00Z',
+      actorKind: 'HUMAN',
+      operatorPrincipalId: '00000000-0000-0000-0000-000000000001',
       action: 'USER_DISABLE',
       targetType: 'USER',
       targetId: 'c9199f5a-074c-5846-aed4-16f6eff2f72a',
@@ -19,6 +21,8 @@ const mockAuditLogsResult = {
       eventId: 'cf652be5-2706-5be7-a561-4d4c6eaf3686',
       occurredAt: '2024-06-01T11:00:00Z',
       action: 'ROLE_ASSIGN',
+      actorKind: 'SYSTEM_BOOTSTRAP',
+      operatorPrincipalId: null,
       targetType: 'USER',
       targetId: 'f3e49830-1c3c-5cef-9d9e-c82479cd4088',
       result: 'REJECTED',
@@ -52,6 +56,8 @@ async function createView() {
           title: 'Audit Logs',
           empty: 'No audit logs found',
           occurredAt: 'Occurred At',
+          operator: 'Actor',
+          systemBootstrap: 'System (bootstrap)',
           action: 'Action',
           filterByAction: 'Filter by action...',
           targetType: 'Target Type',
@@ -112,6 +118,7 @@ describe('AuditView', () => {
     expect(wrapper.text()).toContain('Succeeded')
     expect(wrapper.text()).toContain('ROLE_ASSIGN')
     expect(wrapper.text()).toContain('Rejected')
+    expect(wrapper.text()).toContain('System (bootstrap)')
   })
 
   it('shows error message when request fails', async () => {

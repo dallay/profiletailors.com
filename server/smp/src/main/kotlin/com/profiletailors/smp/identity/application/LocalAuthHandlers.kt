@@ -19,6 +19,7 @@ import com.profiletailors.smp.identity.domain.UserAccountState
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 internal data class AuthSessionContext(
@@ -309,7 +310,6 @@ internal class RegisterUserHandler(
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
         private const val MIN_PASSWORD_LENGTH = 12
         private const val AGE_ELIGIBILITY_PURPOSE = "age-eligibility.18-plus"
-        private const val CURRENT_TERMS_VERSION = "terms-v1.0.0"
         private const val AGE_ELIGIBILITY_POLICY_VERSION = CURRENT_TERMS_VERSION
         private const val TERMS_ACCEPTANCE_PURPOSE = "terms.acceptance"
         private const val CONSENT_SOURCE = "registration"
@@ -457,6 +457,8 @@ internal class VerifyEmailHandler(
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
     private val clock: Clock,
     private val transactionRunner: AtomicTransactionRunner,
+    private val bootstrapCompletionPort: BootstrapVerificationCompletionPort =
+        NoOpBootstrapVerificationCompletionPort,
 ) : CommandWithResultHandler<VerifyEmailCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: VerifyEmailCommand): LocalAuthSessionResult {
@@ -465,18 +467,18 @@ internal class VerifyEmailHandler(
         val storedToken = identityRegistrationGateway.verifyEmailToken(tokenHash)
             ?: throw InvalidVerificationTokenException()
 
-        when {
-            storedToken.usedAt != null -> throw UsedVerificationTokenException()
-            !now.isBefore(storedToken.expiresAt) -> throw ExpiredVerificationTokenException()
-        }
+        ensureVerificationTokenUsable(storedToken, now)
 
-        transactionRunner.runAtomically {
-            identityRegistrationGateway.markTokenUsed(tokenHash, now)
+        val identityFacts = transactionRunner.runAtomically {
+            if (!identityRegistrationGateway.markTokenUsed(tokenHash, now)) {
+                throw UsedVerificationTokenException()
+            }
             identityRegistrationGateway.updateEmailStatus(storedToken.email, EmailStatus.VERIFIED)
+            val facts = principalIdentityLookup.findByEmail(storedToken.email)
+                ?: error("Identity not found for email '${storedToken.email}' during verification.")
+            bootstrapCompletionPort.completeVerifiedPrincipal(facts.principalId, storedToken.email, now)
+            facts
         }
-
-        val identityFacts = principalIdentityLookup.findByEmail(storedToken.email)
-            ?: error("Identity not found for email '${storedToken.email}' after verification.")
 
         return issueAuthSession(
             AuthSessionContext(
@@ -491,6 +493,13 @@ internal class VerifyEmailHandler(
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
             ),
         )
+    }
+}
+
+private fun ensureVerificationTokenUsable(token: EmailVerificationTokenData, now: Instant) {
+    when {
+        token.usedAt != null -> throw UsedVerificationTokenException()
+        !now.isBefore(token.expiresAt) -> throw ExpiredVerificationTokenException()
     }
 }
 

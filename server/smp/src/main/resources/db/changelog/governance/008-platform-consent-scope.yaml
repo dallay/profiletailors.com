@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-008-platform-consent-scope
+      author: profiletailors
+      dbms: postgresql
+      context: "@uuid-native-identifiers"
+      runInTransaction: true
+      changes:
+        - sqlFile:
+            path: 008-platform-consent-scope.sql
+            relativeToChangelogFile: true
+            splitStatements: false

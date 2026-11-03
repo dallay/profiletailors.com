@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.web.reactive.server.WebTestClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -34,6 +36,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
     ],
 )
 @Import(TestStorageConfiguration::class)
+@AutoConfigureWebTestClient
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -41,6 +44,9 @@ class SmpApplicationTests {
 
     @Autowired
     private lateinit var applicationContext: ApplicationContext
+
+    @Autowired
+    private lateinit var webTestClient: WebTestClient
 
     @Test
     fun contextLoads() {
@@ -109,6 +115,27 @@ class SmpApplicationTests {
         check(policies.size == 1) {
             "Expected exactly one RegistrationPolicy bean, found ${policies.keys}"
         }
+    }
+
+    @Test
+    fun bootstrapRequirementsArePublicAndExposeOnlyCurrentTermsVersion() {
+        webTestClient.get().uri("/api/bootstrap/requirements")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.currentTermsVersion").isEqualTo("terms-v1.0.0")
+            .jsonPath("$.invitation").doesNotExist()
+            .jsonPath("$.email").doesNotExist()
+    }
+
+    @Test
+    fun normalApplicationContextDoesNotLoadBootstrapCliConfiguration() {
+        check(!applicationContext.containsBean("bootstrapConnectionFactory"))
+        check(
+            applicationContext.getBeansOfType(
+                com.profiletailors.smp.platformadmin.application.IssueBootstrapInvitationHandler::class.java,
+            ).isEmpty(),
+        )
     }
 
     companion object {

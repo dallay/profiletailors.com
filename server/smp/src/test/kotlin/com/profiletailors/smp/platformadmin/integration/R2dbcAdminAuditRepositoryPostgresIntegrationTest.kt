@@ -6,6 +6,7 @@ import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
@@ -98,6 +99,26 @@ class R2dbcAdminAuditRepositoryPostgresIntegrationTest : PostgresIntegrationTest
         assertEquals("granted by admin", summary.reason)
         assertEquals("corr-1", summary.correlationId)
         assertEquals("req-1", summary.requestId)
+    }
+
+    @Test
+    fun `publish preserves bootstrap system actor without a human principal`() = runTest {
+        val systemEvent = event().copy(
+            eventId = UUID.fromString("88888888-9999-aaaa-bbbb-cccccccccccc"),
+            operatorPrincipalId = null,
+            operatorPlatformRoles = emptySet(),
+            actorKind = AdminActorKind.SYSTEM_BOOTSTRAP,
+            action = AdminAuditAction.BOOTSTRAP_INVITATION_ISSUED,
+        )
+
+        auditPublisher.publish(systemEvent)
+
+        val persisted = adminAuditQuery.findById(systemEvent.eventId)
+
+        assertNotNull(persisted)
+        assertNull(persisted!!.operatorPrincipalId)
+        assertEquals(emptyList<String>(), persisted.operatorPlatformRoles)
+        assertEquals(AdminActorKind.SYSTEM_BOOTSTRAP, persisted.actorKind)
     }
 
     @Test

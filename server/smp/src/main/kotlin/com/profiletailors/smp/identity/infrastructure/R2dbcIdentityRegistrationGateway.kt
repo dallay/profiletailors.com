@@ -88,20 +88,18 @@ class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClien
         .one()
         .awaitSingleOrNull()
 
-    override suspend fun markTokenUsed(tokenHash: String, now: Instant) {
-        databaseClient.sql(
-            """
+    override suspend fun markTokenUsed(tokenHash: String, now: Instant): Boolean = databaseClient.sql(
+        """
             UPDATE email_verification_tokens
             SET used_at = :now
-            WHERE token_hash = :tokenHash
-            """.trimIndent(),
-        )
-            .bind("tokenHash", tokenHash)
-            .bind("now", now)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
+            WHERE token_hash = :tokenHash AND used_at IS NULL AND expires_at > :now
+        """.trimIndent(),
+    )
+        .bind("tokenHash", tokenHash)
+        .bind("now", now)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle() == 1L
 
     override suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus) {
         databaseClient.sql(

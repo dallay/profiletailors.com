@@ -1218,6 +1218,7 @@ class BddDatabaseSupport(
 
     private fun cleanupStatements(): List<String> = consentCleanupStatements + shortLinksCleanupStatements() + listOf(
         "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM platform_admin_bootstrap_invitations",
         "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",
         "DELETE FROM platform_role_assignments",
@@ -1281,7 +1282,9 @@ class BddDatabaseSupport(
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
-        // Identity
+    ) + identityCleanupStatements()
+
+    private fun identityCleanupStatements(): List<String> = listOf(
         "DELETE FROM password_reset_notification_failures",
         "DELETE FROM password_reset_tokens",
         "DELETE FROM user_identities",

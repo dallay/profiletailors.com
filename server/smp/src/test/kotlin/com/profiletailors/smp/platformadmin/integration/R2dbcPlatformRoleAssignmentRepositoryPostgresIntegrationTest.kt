@@ -4,6 +4,7 @@ import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
@@ -61,9 +62,9 @@ class R2dbcPlatformRoleAssignmentRepositoryPostgresIntegrationTest : PostgresInt
         databaseClient.sql(
             """
             INSERT INTO platform_role_assignments
-              (id, principal_id, role, assigned_at, assigned_by, revoked_at, revoked_by, version)
+              (id, principal_id, role, assigned_at, assigned_by, actor_kind, revoked_at, revoked_by, version)
             VALUES
-              ('22222222-3333-4444-5555-666666666666', :principalId, 'SUPPORT_AGENT', :assignedAt, :assignedBy, NULL, NULL, 0)
+              ('22222222-3333-4444-5555-666666666666', :principalId, 'SUPPORT_AGENT', :assignedAt, :assignedBy, 'HUMAN', NULL, NULL, 0)
             """.trimIndent(),
         )
             .bind("principalId", principalId)
@@ -95,6 +96,23 @@ class R2dbcPlatformRoleAssignmentRepositoryPostgresIntegrationTest : PostgresInt
         assertEquals(operatorId, found.assignedBy)
         assertEquals(assignedAt, found.assignedAt)
         assertNull(found.revokedAt)
+    }
+
+    @Test
+    fun `save persists bootstrap owner assignment without a human actor`() = runTest {
+        val assignment = PlatformRoleAssignment(
+            id = PlatformRoleAssignmentId.generate(),
+            principalId = principalId,
+            role = PlatformRole.PLATFORM_OWNER,
+            assignedAt = assignedAt,
+            assignedBy = null,
+            actorKind = AdminActorKind.SYSTEM_BOOTSTRAP,
+        )
+
+        val saved = roleRepository.save(assignment)
+
+        assertNull(saved.assignedBy)
+        assertEquals(AdminActorKind.SYSTEM_BOOTSTRAP, saved.actorKind)
     }
 
     @Test

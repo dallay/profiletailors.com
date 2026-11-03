@@ -1,11 +1,22 @@
 package com.profiletailors.smp.governance.application
 
+import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
+import java.util.UUID
+
+data class RecordBootstrapTermsConsentCommand(
+    val principalId: UUID,
+    val termsVersion: String,
+    val occurredAt: Instant,
+) : Command
+
+data class CheckBootstrapTermsConsentQuery(val principalId: UUID, val termsVersion: String) : Query<Boolean>
 
 /** HTTP command whose workspace is resolved from the authenticated resource context. */
 data class RecordWorkspaceConsentCommand(

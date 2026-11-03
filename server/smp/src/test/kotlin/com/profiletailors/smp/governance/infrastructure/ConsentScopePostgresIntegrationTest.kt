@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
+import org.springframework.dao.DataIntegrityViolationException
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Clock
@@ -83,6 +84,90 @@ class ConsentScopePostgresIntegrationTest : PostgresDatabaseTestBase() {
         assertNull(event.workspaceId)
         assertEquals(firstWaitlist.id, event.waitlistId)
         assertEquals(UUID.fromString(outcome.record.id.value), event.consentId)
+    }
+
+    @Test
+    fun `platform scope persists explicitly without an entity identifier and records idempotently`() = runTest {
+        val scope = ConsentScope.Platform
+        val first = handler.handle(command(scope))
+        val repeated = handler.handle(command(scope))
+        val projection = databaseClient.sql(
+            "SELECT scope_kind, workspace_id, waitlist_id FROM consent_records WHERE id = :id",
+        ).bind("id", UUID.fromString(first.record.id.value)).map { row, _ ->
+            ConsentScopeRow(
+                requireNotNull(row.get("scope_kind", String::class.java)),
+                row.get("workspace_id", UUID::class.java),
+                row.get("waitlist_id", UUID::class.java),
+            )
+        }.one().awaitSingle()
+        val event = databaseClient.sql(
+            "SELECT scope_kind, workspace_id, waitlist_id FROM consent_record_events WHERE consent_id = :id",
+        ).bind("id", UUID.fromString(first.record.id.value)).map { row, _ ->
+            ConsentScopeRow(
+                requireNotNull(row.get("scope_kind", String::class.java)),
+                row.get("workspace_id", UUID::class.java),
+                row.get("waitlist_id", UUID::class.java),
+            )
+        }.one().awaitSingle()
+
+        assertTrue(first.created)
+        assertFalse(repeated.created)
+        assertEquals(first.record.id, repeated.record.id)
+        assertEquals(ConsentScopeRow("PLATFORM", null, null), projection)
+        assertEquals(projection, event)
+        assertTrue(handler.handle(command(workspace)).created)
+    }
+
+    @Test
+    fun `platform history and withdrawal remain separate from workspace consent`() = runTest {
+        val platform = handler.handle(command(ConsentScope.Platform)).record
+        val tenant = handler.handle(command(workspace)).record
+        val withdrawn = withdraw(ConsentScope.Platform)
+        val platformHistory = repository.findHistoricalByIdentity(
+            ConsentScope.Platform,
+            subject,
+            "waitlist.early_access",
+        ).toList()
+        val platformEvents = databaseClient.sql(
+            "SELECT status FROM consent_record_events WHERE scope_kind = 'PLATFORM' ORDER BY event_at",
+        ).map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
+            .all()
+            .collectList()
+            .awaitSingle()
+
+        assertEquals(ConsentScope.Platform, platform.scope)
+        assertEquals(platform.id, withdrawn.id)
+        assertEquals(listOf(withdrawn), platformHistory)
+        assertEquals(listOf(tenant), repository.findActiveByScope(workspace).toList())
+        assertEquals(listOf("ACTIVE", "WITHDRAWN"), platformEvents)
+    }
+
+    @Test
+    fun `platform event cannot claim workspace scope for its projection`() = runTest {
+        val record = handler.handle(command(ConsentScope.Platform)).record
+
+        assertThrows<DataIntegrityViolationException> {
+            kotlinx.coroutines.runBlocking {
+                databaseClient.sql(
+                    """
+                    INSERT INTO consent_record_events (
+                        id, consent_id, scope_kind, workspace_id, waitlist_id, subject_kind, subject_value,
+                        consent_type, purpose, policy_version, source, locale, status, given_at,
+                        withdrawn_at, withdrawal_reason, event_at
+                    )
+                    SELECT :eventId, consent_id, 'WORKSPACE', :workspaceId, NULL, subject_kind, subject_value,
+                           consent_type, purpose, policy_version, source, locale, status, given_at,
+                           withdrawn_at, withdrawal_reason, event_at
+                    FROM consent_record_events WHERE consent_id = :consentId LIMIT 1
+                    """.trimIndent(),
+                ).bind("eventId", UUID.randomUUID())
+                    .bind("workspaceId", workspace.id)
+                    .bind("consentId", UUID.fromString(record.id.value))
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
+            }
+        }
     }
 
     @Test
@@ -203,13 +288,19 @@ class ConsentScopePostgresIntegrationTest : PostgresDatabaseTestBase() {
         val column = when (scope) {
             is ConsentScope.Workspace -> "workspace_id"
             is ConsentScope.Waitlist -> "waitlist_id"
+            ConsentScope.Platform -> error("Platform consent has no entity identifier")
+        }
+        val scopeId = when (scope) {
+            is ConsentScope.Workspace -> scope.id
+            is ConsentScope.Waitlist -> scope.id
+            ConsentScope.Platform -> error("Platform consent has no entity identifier")
         }
         return databaseClient.sql(
             """
             SELECT workspace_id, waitlist_id, consent_id, status FROM consent_record_events
             WHERE $column = :id ORDER BY event_at
             """.trimIndent(),
-        ).bind("id", scope.id).map { row, _ ->
+        ).bind("id", scopeId).map { row, _ ->
             ConsentEvent(
                 row.get("workspace_id", UUID::class.java),
                 row.get("waitlist_id", UUID::class.java),
@@ -225,6 +316,8 @@ class ConsentScopePostgresIntegrationTest : PostgresDatabaseTestBase() {
         val consentId: UUID,
         val status: String,
     )
+
+    private data class ConsentScopeRow(val scopeKind: String, val workspaceId: UUID?, val waitlistId: UUID?)
 
     companion object {
         @Container

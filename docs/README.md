@@ -56,6 +56,8 @@
 - [Production Docker Swarm](./infrastructure/production-docker-swarm.md) - Swarm deployment
 - [Cloudflare Deployment](./infrastructure/cloudflare-deployment.md) - Release-driven Pages deployment
 - [Self-Hosting](./infrastructure/self-hosting.md) - Self-host operator guide
+- [Platform Admin Bootstrap](./infrastructure/platform-admin-bootstrap.md) - Private first-owner
+  issuance, recipient completion, and installation configuration
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
   Operator procedures for publishing safe-off, stale visibility, and rollback (DALLAY-555/557)
 - [Private Beta Operator Checklist](./infrastructure/private-beta-operator-checklist.md) - On-call

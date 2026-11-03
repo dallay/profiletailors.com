@@ -38,7 +38,8 @@ Nothing-inspired aesthetic signals that minimalism is a feature, not a limitatio
 ## Operating Context
 
 - Three web surfaces, all inheriting the same root design system: marketing (Astro, public),
-  app (Vue SPA, authenticated), admin (Vue SPA, operator-only, no public URL)
+  app (Vue SPA, authenticated), and admin (Vue SPA, operator-only) with a token-scoped public
+  bootstrap completion route only
 - Backend is a Spring Boot 4 reactive service (Kotlin, WebFlux, R2DBC) with hexagonal architecture
 - EU/UK/ES legal frameworks apply (GDPR, EAA monitoring status, Spanish governing law); consent
   management spans marketing and app via a shared layer

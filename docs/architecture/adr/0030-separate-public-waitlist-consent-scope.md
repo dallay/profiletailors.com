@@ -1,11 +1,12 @@
 # ADR-0030: Separate Public WAITLIST Consent from Tenant Workspaces
 
-- Status: Accepted
+- Status: Superseded by ADR-0031
 - Date: 2026-10-26
+- Last revised: 2026-11-02
 - Decision owners: Project owner
 - Scope: `server/smp` governance/leadcapture and `shared/lead-capture/waitlist`
 - Supersedes: None
-- Superseded by: None
+- Superseded by: ADR-0031
 - Related:
   - [ADR-0029](./0029-use-raw-uuid-identifiers.md)
   - [UUID design](../../../.agents/sdd/changes/archive/2026-10-26-uuid-native-identifiers/design.md)

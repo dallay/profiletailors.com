@@ -12,11 +12,11 @@ Vue 3 SPA (Vue Router 5, Pinia), shadcn-vue + Tailwind CSS 4, vue-i18n, Zod, Vit
 
 ## Users
 
-Platform operator (Yuniel Acosta, the sole admin at early-access stage). Used for internal waitlist management, user administration, and audit review. No public URL — internal-only surface.
+Platform operator (Yuniel Acosta, the sole admin at early-access stage). Used for internal waitlist management, user administration, and audit review. The only public route is `/bootstrap`, which accepts terminal-issued recipient invitations and does not expose issuance or status.
 
 ## Product Purpose
 
-Give the operator the tools to manage early-access operations: review waitlist signups, inspect user accounts, manage platform permissions, and audit system activity. This is an operations tool, not a user-facing product.
+Give the operator the tools to manage early-access operations: review waitlist signups, inspect user accounts, manage platform permissions, and audit system activity. The token-scoped `/bootstrap` route completes the first platform-owner setup. This remains an operations tool, not a user-facing product.
 
 ## Positioning
 
@@ -25,6 +25,7 @@ Internal tooling with the same visual language as the dashboard app. No differen
 ## Operating Context
 
 - Accessed via a separate portless app (`pt-admin.localhost`) — distinct from the user-facing dashboard app
+- The production admin origin is configured per installation; bootstrap links use `SMP_ADMIN_PUBLIC_ORIGIN`
 - Requires platform-level permission (`platform.*` scope) in addition to regular auth
 - Separate auth store (`useAdminAuthStore`) from the main app
 - Permission gates on every route (e.g., `platform.dashboard.read`, `platform.users.read`, `platform.waitlist.read`, `platform.audit.read`)
@@ -41,8 +42,9 @@ Internal tooling with the same visual language as the dashboard app. No differen
 
 **Constraints:**
 
-- No user self-service, no onboarding flows, no email sending
-- No public-facing surface — this app is not discoverable
+- No customer self-service or public platform administration
+- `/bootstrap` is limited to invitation recipient completion; it does not issue invitations or expose invitation status
+- The bootstrap invitation is delivered only through one-time terminal output; verification email delivery remains unchanged
 - No multi-admin support at early-access stage
 
 ## Brand Commitments

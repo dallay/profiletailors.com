@@ -1,6 +1,7 @@
 package com.profiletailors.smp
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.config.PlatformAdminBootstrapCommand
 import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -49,6 +50,7 @@ import org.springframework.stereotype.Service as SpringService
             pattern = [
                 "com\\.profiletailors\\.smp\\.integration\\..*",
                 "com\\.profiletailors\\.smp\\.bdd\\..*",
+                """com\.profiletailors\.smp\.platformadmin\.infrastructure\.cli\..*""",
             ],
         ),
     ],
@@ -56,5 +58,19 @@ import org.springframework.stereotype.Service as SpringService
 class SmpApplication
 
 fun main(args: Array<String>) {
-    runApplication<SmpApplication>(*args)
+    dispatchSmpCommand(
+        args = args,
+        bootstrap = PlatformAdminBootstrapCommand::run,
+        server = { runApplication<SmpApplication>(*it) },
+    )
 }
+
+internal fun dispatchSmpCommand(args: Array<String>, bootstrap: () -> Unit, server: (Array<String>) -> Unit) {
+    if (args.contentEquals(arrayOf(PLATFORM_ADMIN_BOOTSTRAP_COMMAND))) {
+        bootstrap()
+    } else {
+        server(args)
+    }
+}
+
+private const val PLATFORM_ADMIN_BOOTSTRAP_COMMAND = "platform-admin-bootstrap"

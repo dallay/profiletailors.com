@@ -9,14 +9,48 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
+import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.governance.domain.ConsentScope
+import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
 private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
 private val CONSENT_WRITE_PERMISSION = PermissionKey.of("workspace", "consent", "write")
+private const val BOOTSTRAP_TERMS_ACCEPTANCE_PURPOSE = "terms.acceptance"
+private const val BOOTSTRAP_CONSENT_SOURCE = "bootstrap"
+private const val BOOTSTRAP_CONSENT_LOCALE = "en"
+
+@Service
+class RecordBootstrapTermsConsentHandler(private val repository: ConsentRepository) {
+    suspend fun handle(command: RecordBootstrapTermsConsentCommand) {
+        repository.recordActiveReturning(
+            ConsentRecord(
+                id = ConsentRecordId(UUID.randomUUID().toString()),
+                scope = ConsentScope.Platform,
+                subjectReference = SubjectReference.user(command.principalId.toString()),
+                consentType = ConsentType.CONTRACT_ACCEPTANCE,
+                purpose = BOOTSTRAP_TERMS_ACCEPTANCE_PURPOSE,
+                policyVersion = command.termsVersion,
+                source = BOOTSTRAP_CONSENT_SOURCE,
+                locale = BOOTSTRAP_CONSENT_LOCALE,
+                givenAt = command.occurredAt,
+            ),
+        )
+    }
+}
+
+@Service
+class CheckBootstrapTermsConsentHandler(private val repository: ConsentRepository) {
+    suspend fun handle(query: CheckBootstrapTermsConsentQuery): Boolean = repository.existsActive(
+        scope = ConsentScope.Platform,
+        subjectReference = SubjectReference.user(query.principalId.toString()),
+        purpose = BOOTSTRAP_TERMS_ACCEPTANCE_PURPOSE,
+        policyVersion = query.termsVersion,
+    )
+}
 
 private suspend fun authorizeWorkspaceConsentRead(authorizationDecider: WorkspaceAuthorizationDecider) {
     val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)

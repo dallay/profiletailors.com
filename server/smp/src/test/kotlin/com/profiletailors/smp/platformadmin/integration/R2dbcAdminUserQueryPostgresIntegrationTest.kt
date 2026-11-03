@@ -88,9 +88,9 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO platform_role_assignments " +
-                "(id, principal_id, role, assigned_at, assigned_by, version) " +
+                "(id, principal_id, role, assigned_at, assigned_by, actor_kind, version) " +
                 "VALUES (:id, :principalId, 'PLATFORM_OPERATOR', " +
-                "CURRENT_TIMESTAMP, :assignedBy, 0)",
+                "CURRENT_TIMESTAMP, :assignedBy, 'HUMAN', 0)",
         )
             .bind("id", UUID.randomUUID())
             .bind("principalId", UUID.fromString("00000000-0000-0000-0000-000000000001"))

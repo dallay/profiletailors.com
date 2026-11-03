@@ -1,0 +1,77 @@
+change: initial-platform-admin-bootstrap
+current_phase: apply
+completed: [explore, propose, spec, design, tasks]
+next: apply
+updated: 2026-11-02
+artifact_policy: openspec-only
+scope_status: single_pr_approved_gates_open
+delivery_strategy: size-exception
+review_budget: 400
+estimated_changed_lines: 5300
+estimated_external_changed_lines: 90
+feature_branch: feature/bootstrap-u07-adr-0034
+base_branch: main
+layer_position: single-pr
+monorepo_units: 1
+external_units: 1
+last_completed_unit: U07-ADR0034-port
+current_unit: single-pr-completion
+completed_local_units:
+  U01:
+    commit: 7fe2f7d9a41bee56a894c2c8a80d679c425e6251
+    ref: feature/bootstrap-u01-planning
+  U02:
+    commit: 961a9381d798c5b068cc2cdb70df195663d12973
+    ref: feature/bootstrap-u02-history
+  U03:
+    commit: e46a23f758f6d1269b2c9fc4ffdca3a9b8a8fd67
+    ref: feature/bootstrap-u03-planning-sync
+  U04:
+    commit: 28802e5e4807977f1b327cdc8becb0f37de1a8e1
+    ref: feature/bootstrap-u04-consent-actors
+  U05:
+    commit: 197793d2606354ed54bead64d1d2350639cfd022
+    ref: feature/bootstrap-u05-plan-rebaseline
+  U06:
+    commit: ea31ef949d8a3e8e8927b44e6ee5344a86f34964
+    ref: feature/bootstrap-u06-adr-0033
+  U07:
+    commit: 055274c01fb7d5e6681b7a6c1452609e38d15c75
+    ref: feature/bootstrap-u07-adr-0034
+previous_local_commit: 055274c01fb7d5e6681b7a6c1452609e38d15c75
+previous_local_ref: feature/bootstrap-u07-adr-0034
+current_local_ref: feature/bootstrap-u07-adr-0034
+open_gates:
+  - Fix the two reported BDD failures and Gradle aggregation error before merge; expose their status in the draft PR.
+  - Resolve the CLI configtree secret gap and verify the packaged image TTY flow before merge.
+  - Complete backend-check and PostgreSQL recovery/migration tests; focused architecture suites and Detekt now pass, but the full check timed out on a PostgreSQL connection failure.
+  - Fix the isolated CLI database-password source: production Compose mounts `SMP_DB_PASSWORD` as a configtree secret, but the explicit non-Boot CLI context currently resolves it only as an environment placeholder.
+  - Verify and correct missing/blank invitation-token handling so every unusable-token case returns the same `BOOTSTRAP_UNAVAILABLE` problem response; verify that undeclared request fields are not accepted if strict exact-field rejection is required.
+  - Complete migration upgrade/backfill verification, scoped tenant endpoint BDD, and fresh-schema closeout.
+  - Verify atomic verification-token consumption, bootstrap completion, role grant, and audit rollback/recovery in PostgreSQL.
+  - Verify the actual packaged `:server:smp:bootBuildImage` CLI invocation and startup isolation.
+  - "Fix the two failing scenarios in the latest `just backend-bdd-fast` run (329 scenarios) and resolve the Gradle result aggregation `NoSuchFileException`."
+  - "The latest `just backend-check` timed out on a PostgreSQL connection failure in `ResourcePreviewEndpointPostgresIntegrationTest`; rerun with valid local infrastructure and account for two skipped tests."
+  - "`just backend-lint` passed on 2026-11-03 after fixing all 17 findings. Focused Modulith, hexagonal, component-scan, and modularity verification suites passed."
+  - "Resolve missing local environment inputs for production/swarm config checks; rerun docs-links after its timeout."
+  - "Complete legal review for ADR-0031 and ADR-0033."
+user_confirmed:
+  - Profile Tailors admin URL is https://admin.profiletailors.com; self-hosted installations configure their own origin.
+  - Bootstrap invitation is delivered only through one-time interactive terminal output; existing email verification keeps its normal email delivery.
+  - Reject an email already associated with an account without mutation.
+  - Require current terms acceptance and record it as ID-free PLATFORM consent without workspace/membership.
+  - Do not require age-eligibility confirmation for bootstrap; preserve customer-registration behavior. This is not a legal-compliance assessment.
+  - User approved one full-scope size-exception PR regardless of size for review; current head is `feature/bootstrap-u07-adr-0034` based on `main`.
+  - Attribute bootstrap issuance/replacement and owner grant to SYSTEM_BOOTSTRAP without a human principal UUID; never use the recipient as actor.
+observed_apply_status: partial_single_pr_gates_open
+review_budget_status: size_exception_approved
+publication_status: draft_pr_opened_with_remote_checks_pending
+pull_request: 1441
+pull_request_url: https://github.com/dallay/profiletailors.com/pull/1441
+deployment_status: not_authorized_and_not_attempted
+latest_backend_lint: passed_2026-11-03
+focused_architecture_tests: passed_2026-11-03
+full_backend_check: timed_out_postgres_connection_failure
+observed_changed_lines: 5074
+remote_check_status: link_checker_and_gitguardian_failed_other_checks_running
+branch_status: behind_main

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-012-system-bootstrap-actors
+      author: profiletailors
+      dbms: postgresql
+      runInTransaction: true
+      changes:
+        - sqlFile:
+            path: 012-system-bootstrap-actors.sql
+            relativeToChangelogFile: true
+            splitStatements: false

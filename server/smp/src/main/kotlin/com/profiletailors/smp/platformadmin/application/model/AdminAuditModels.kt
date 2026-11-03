@@ -1,13 +1,15 @@
 package com.profiletailors.smp.platformadmin.application.model
 
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import java.time.Instant
 import java.util.UUID
 
 data class AdminAuditEventSummary(
     val eventId: UUID,
     val occurredAt: Instant,
-    val operatorPrincipalId: UUID,
+    val operatorPrincipalId: UUID?,
     val operatorPlatformRoles: List<String>,
+    val actorKind: AdminActorKind,
     val action: String,
     val targetType: String,
     val targetId: String,

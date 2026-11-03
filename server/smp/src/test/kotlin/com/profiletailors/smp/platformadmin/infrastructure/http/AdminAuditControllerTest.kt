@@ -9,6 +9,7 @@ import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.domain.AdminActorKind
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -145,6 +146,7 @@ class AdminAuditControllerTest {
         occurredAt = clock,
         operatorPrincipalId = operatorId,
         operatorPlatformRoles = listOf("PLATFORM_OWNER"),
+        actorKind = AdminActorKind.HUMAN,
         action = "INVITATION_REVOKED",
         targetType = "WaitlistInvitation",
         targetId = "00000000-0000-0000-0000-0000000000a1",

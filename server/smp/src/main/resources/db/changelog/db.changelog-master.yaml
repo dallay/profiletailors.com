@@ -191,3 +191,9 @@ databaseChangeLog:
       file: db/changelog/qa/001-seed-test-data.yaml
   - include:
       file: db/changelog/uuid-native-identifiers/001-uuid-native-identifiers.yaml
+  - include:
+      file: db/changelog/governance/008-platform-consent-scope.yaml
+  - include:
+      file: db/changelog/platform-admin/012-system-bootstrap-actors.yaml
+  - include:
+      file: db/changelog/platform-admin/013-bootstrap-invitations.yaml
