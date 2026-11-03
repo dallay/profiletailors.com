@@ -6,7 +6,7 @@
 - **PR branch:** `feature/bootstrap-u07-adr-0034`, based on `main`
 - **Local history:** U01–U07 are committed on the branch; U07 is `055274c01fb7d5e6681b7a6c1452609e38d15c75`
 - **Delivery:** One user-approved `size-exception` PR regardless of size; no further unit branches are planned.
-- **Review workload:** The implementation candidate was approximately 3,360 changed lines. The pushed branch diff from `main` is 5,070 changed lines across 112 files; the user will review the full scope.
+- **Review workload:** The pushed branch diff from `main` is 5,074 changed lines across 112 files; the user will review the full scope.
 - **Apply status:** Partial. The module-boundary correction is committed locally. Draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open for owner review with remaining backend, BDD, CLI/image, and migration gates clearly listed; it is not merge-ready. No product acceptance is claimed.
 - **Publication / deployment:** The branch was pushed and one draft PR was opened. Pre-push Detekt, Spotless, SMP tests excluding PostgreSQL/BDD, and shared Detekt passed. VPS deployment and live DNS/CORS remain unauthorized.
 - **Acceptance:** Not claimed; technical verification and product acceptance remain separate
@@ -204,7 +204,7 @@ artifacts.
 - **BDD:** the latest rerun timed out. Its output showed the tenant-consent `BadSqlGrammarException` and bootstrap owner-grant `AssertionError`; the full lane did not finish, so no complete result is claimed.
 - **Image:** the actual `bootBuildImage` image and TTY invocation have not been tested.
 - **Legal review:** ADR-0031 and ADR-0033 still require separate legal review; this implementation does not establish compliance.
-- **Publication and deployment:** branch `feature/bootstrap-u07-adr-0034` is pushed and draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open. The pre-push hooks passed after fixing Detekt and Modulith issues. At the last remote check, most GitHub checks were still running, GitGuardian Security Checks showed failure with no reason exposed by the connected check output, and GitHub reported the branch behind `main`. The broader backend check and BDD/PostgreSQL evidence remain incomplete. VPS deployment and live DNS/CORS verification remain unauthorized.
+- **Publication and deployment:** branch `feature/bootstrap-u07-adr-0034` is pushed and draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open. The pre-push hooks passed after fixing Detekt and Modulith issues. At the latest remote snapshot, `link-checker` failed on two unchanged SonarSource URLs returning HTTP 500, and GitGuardian Security Checks also failed without a reason exposed by the connected check output; other CI/security jobs were still running. GitHub reports the branch behind `main`. The broader backend check and BDD/PostgreSQL evidence remain incomplete. VPS deployment and live DNS/CORS verification remain unauthorized.
 
 ## Remaining work
 

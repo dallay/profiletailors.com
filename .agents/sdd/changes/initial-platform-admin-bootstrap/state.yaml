@@ -72,6 +72,6 @@ deployment_status: not_authorized_and_not_attempted
 latest_backend_lint: passed_2026-11-03
 focused_architecture_tests: passed_2026-11-03
 full_backend_check: timed_out_postgres_connection_failure
-observed_changed_lines: 5070
-remote_check_status: in_progress_with_gitguardian_failure
+observed_changed_lines: 5074
+remote_check_status: link_checker_and_gitguardian_failed_other_checks_running
 branch_status: behind_main
