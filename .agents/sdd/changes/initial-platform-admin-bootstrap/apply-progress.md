@@ -6,9 +6,9 @@
 - **PR branch:** `feature/bootstrap-u07-adr-0034`, based on `main`
 - **Local history:** U01–U07 are committed on the branch; U07 is `055274c01fb7d5e6681b7a6c1452609e38d15c75`
 - **Delivery:** One user-approved `size-exception` PR regardless of size; no further unit branches are planned.
-- **Review workload:** The implementation candidate is approximately 3,360 changed lines; the full monorepo PR is forecast at approximately 5,300 lines. The user will review the full scope.
-- **Apply status:** Partial. The module-boundary correction is in the worktree and is being committed locally. A draft PR is requested for owner review with remaining backend, BDD, CLI/image, and migration gates clearly listed; it is not merge-ready. No product acceptance is claimed.
-- **Publication / deployment:** One draft PR is authorized now. Detekt and focused architecture gates pass, but the latest full pre-push backend test timed out with a PostgreSQL connection failure. No push or PR has been made yet; VPS deployment and live DNS/CORS remain unauthorized.
+- **Review workload:** The implementation candidate was approximately 3,360 changed lines. The pushed branch diff from `main` is 5,070 changed lines across 112 files; the user will review the full scope.
+- **Apply status:** Partial. The module-boundary correction is committed locally. Draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open for owner review with remaining backend, BDD, CLI/image, and migration gates clearly listed; it is not merge-ready. No product acceptance is claimed.
+- **Publication / deployment:** The branch was pushed and one draft PR was opened. Pre-push Detekt, Spotless, SMP tests excluding PostgreSQL/BDD, and shared Detekt passed. VPS deployment and live DNS/CORS remain unauthorized.
 - **Acceptance:** Not claimed; technical verification and product acceptance remain separate
 
 U01–U07 are local commits in the branch history. The remaining implementation, tests, configuration, and documentation are in the worktree for the single PR. The pre-existing `.gitignore` modification is unrelated and must remain unstaged and untouched.
@@ -193,7 +193,7 @@ artifacts.
 ## Deviations and risks
 
 - **Transaction owner:** `VerifyEmailHandler` retains its existing identity-owned `AtomicTransactionRunner` and invokes the identity-owned completion port within that R2DBC transaction. The platformadmin grant handler participates in the existing transaction without opening a nested runner. `design.md` now records identity as transaction owner; PostgreSQL rollback/recovery remains unverified.
-- **Review workload:** the user superseded the branch-chain plan and approved one full-scope size-exception PR. The verified implementation candidate is approximately 3,360 changed lines; the full monorepo PR forecast is approximately 5,300 lines. The user will review the full scope.
+- **Review workload:** the user superseded the branch-chain plan and approved one full-scope size-exception PR. The pushed branch diff is 5,070 changed lines across 112 files; the user will review the full scope.
 - **Planning status:** U01–U07 remain local commits in the single PR branch history. Governance consent uses the DTO-only application port in ADR-0034; ADR-0023 remains unchanged. CLI composition uses the wiring-only `com.profiletailors.smp.config` exception and does not add a platformadmin infrastructure import to `SmpApplication`.
 - **Backend checks:** `just backend-lint` passed on 2026-11-03 after all 17 reported Detekt findings were fixed without suppressions. The focused `ModularStructureTest`, `ModularityVerificationTest`, `HexagonalArchTest`, and `ComponentScanArchTest` suites passed on 2026-11-03 after removing the governance-domain, identity-infrastructure, and root-to-platformadmin-infrastructure edges. No architecture rule, `ModuleMetadata`, ADR-0023, or lint configuration changed. The two skipped `ModularStructureTest` cases are its existing manual module-printing and documentation-generation tests; the blocking verification cases ran. The `just backend-check` attempt on 2026-11-03 did not complete within 600 seconds and reported PostgreSQL connection failures in `ResourcePreviewEndpointPostgresIntegrationTest` because no connection was available at the configured localhost endpoint. The prior check failure remains unidentified from its saved summary.
 - **Migration context:** governance `008` and platform-admin `013` are gated by `@uuid-native-identifiers`. Production operations must apply them only after the approved UUID cutover procedure; default `prod` startup does not apply them.
@@ -204,7 +204,7 @@ artifacts.
 - **BDD:** the latest rerun timed out. Its output showed the tenant-consent `BadSqlGrammarException` and bootstrap owner-grant `AssertionError`; the full lane did not finish, so no complete result is claimed.
 - **Image:** the actual `bootBuildImage` image and TTY invocation have not been tested.
 - **Legal review:** ADR-0031 and ADR-0033 still require separate legal review; this implementation does not establish compliance.
-- **Publication and deployment:** one draft PR is authorized now for owner review. The first push attempt was blocked by the pre-push Detekt findings; those findings are now fixed, but no push or PR has been made yet. VPS deployment and live DNS/CORS verification remain unauthorized.
+- **Publication and deployment:** branch `feature/bootstrap-u07-adr-0034` is pushed and draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open. The pre-push hooks passed after fixing Detekt and Modulith issues. At the last remote check, most GitHub checks were still running, GitGuardian Security Checks showed failure with no reason exposed by the connected check output, and GitHub reported the branch behind `main`. The broader backend check and BDD/PostgreSQL evidence remain incomplete. VPS deployment and live DNS/CORS verification remain unauthorized.
 
 ## Remaining work
 

@@ -64,10 +64,14 @@ user_confirmed:
   - User approved one full-scope size-exception PR regardless of size for review; current head is `feature/bootstrap-u07-adr-0034` based on `main`.
   - Attribute bootstrap issuance/replacement and owner grant to SYSTEM_BOOTSTRAP without a human principal UUID; never use the recipient as actor.
 observed_apply_status: partial_single_pr_gates_open
-observed_changed_lines: 3360
 review_budget_status: size_exception_approved
-publication_status: draft_pr_requested_with_known_gates
+publication_status: draft_pr_opened_with_remote_checks_pending
+pull_request: 1441
+pull_request_url: https://github.com/dallay/profiletailors.com/pull/1441
 deployment_status: not_authorized_and_not_attempted
 latest_backend_lint: passed_2026-11-03
 focused_architecture_tests: passed_2026-11-03
 full_backend_check: timed_out_postgres_connection_failure
+observed_changed_lines: 5070
+remote_check_status: in_progress_with_gitguardian_failure
+branch_status: behind_main

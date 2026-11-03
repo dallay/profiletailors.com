@@ -2,14 +2,14 @@
 
 ## Review Workload Forecast
 
-Estimated changed lines: ~5,000 monorepo from `main`; implementation and planning commits are local, with the working-tree review exceptions limited to `.gitignore` and the pending lint-fix commit.
+Observed branch diff: 5,070 changed lines across 112 files from `main`; the pre-existing `.gitignore` change is not in the PR.
 400-line budget risk: High
 Chained PRs recommended: No
 Chain strategy: size-exception
 Delivery strategy: size-exception
 Decision needed before apply: No
 
-User approves one full-scope draft PR from `feature/bootstrap-u07-adr-0034` to `main`, regardless of size, for direct review. Open it with known failed and unverified gates listed in the PR description; do not present it as merge-ready. No more unit branches/commits. No Co-Authored-By. No VPS deployment.
+User approves one full-scope draft PR from `feature/bootstrap-u07-adr-0034` to `main`, regardless of size, for direct review. Draft PR [#1441](https://github.com/dallay/profiletailors.com/pull/1441) is open. Known local and remote check failures, pending checks, and unverified gates are listed in the PR description; do not present it as merge-ready. No more unit branches/commits. No Co-Authored-By. No VPS deployment.
 
 | Unit | Goal | Likely PR | Notes |
 |---|---|---|---|
