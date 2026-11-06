@@ -51,7 +51,7 @@
     "vaul-vue": "^0.4.1",
     "vee-validate": "^4.15.1",
     "vue": "3.5.44",
-    "vue-i18n": "11.4.16",
+    "vue-i18n": "11.4.18",
     "vue-input-otp": "^0.4.0",
     "vue-router": "5.4.0",
     "vue-sonner": "^2.0.9",
@@ -79,7 +79,7 @@
     "vite-plugin-pwa": "^2.0.0",
     "vite-plugin-vue-devtools": "8.2.1",
     "vitest": "^5.0.5",
-    "vue-tsc": "3.3.13"
+    "vue-tsc": "3.3.14"
   },
   "engines": {
     "node": ">=24.22.2"
