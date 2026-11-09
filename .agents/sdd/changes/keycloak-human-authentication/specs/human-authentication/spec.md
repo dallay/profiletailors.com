@@ -37,7 +37,7 @@ After cutover, Keycloak MUST be the sole authority for human login, signup and c
 
 ### Requirement: Stable Local Principal Resolution
 
-Profile Tailors MUST retain ownership of the local principal and product/account state. A successfully authenticated Keycloak identity MUST resolve to a stable local principal through a uniquely identified external identity whose key includes the validated issuer and subject. Profile Tailors MUST NOT merge or link accounts using email equality alone. Local principal provisioning MUST remain manual and human signup MUST remain invite-only. If identity resolution is ambiguous, unverified under the approved linking policy, or otherwise unsafe, access MUST fail closed and MUST NOT alter existing links or principals.
+Profile Tailors MUST retain ownership of the local principal and product/account state. A successfully authenticated Keycloak identity MUST resolve through a persisted external-identity association from its validated `(issuer, sub)` pair to an already existing `principal_id`. The `(issuer, sub)` pair MUST uniquely identify the external identity association. This association MUST remain separate from `principals.subject` and `principals.provider`; linking an external identity MUST NOT replace or change either local-principal identity value. Profile Tailors MUST NOT select, link, or merge local principals using email equality. Local principal provisioning MUST remain manual and human signup MUST remain invite-only. Missing, ambiguous, disabled, or disallowed identity mappings MUST fail closed without changing existing links or principals. After a unique link resolves the local principal, authentication MUST continue only when that principal passes existing local authentication and account eligibility. Resource and platform authorization MUST be evaluated under local rules when the principal requests the protected resource.
 
 #### Scenario: Existing linked identity resolves consistently
 
@@ -45,6 +45,13 @@ Profile Tailors MUST retain ownership of the local principal and product/account
 - WHEN that identity authenticates
 - THEN the same local principal MUST be resolved
 - AND local account, product, workspace, platform-permission, and audit identity MUST remain associated with that principal
+
+#### Scenario: External identity link preserves local principal identity
+
+- GIVEN a validated Keycloak `(issuer, sub)` identity is linked to an existing local `principal_id`
+- WHEN Profile Tailors persists or resolves the external-identity association
+- THEN the association MUST map that `(issuer, sub)` pair to the existing `principal_id`
+- AND `principals.subject` and `principals.provider` MUST remain unchanged
 
 #### Scenario: Email equality cannot merge accounts
 
@@ -59,6 +66,36 @@ Profile Tailors MUST retain ownership of the local principal and product/account
 - WHEN the Keycloak callback is processed
 - THEN the BFF MUST NOT establish an authenticated relying-party session
 - AND existing local identities and authorization state MUST remain unchanged
+
+#### Scenario: Missing identity mapping fails closed
+
+- GIVEN a validated Keycloak `(issuer, sub)` identity has no persisted external-identity association
+- WHEN the Keycloak callback is processed
+- THEN the BFF MUST NOT establish an authenticated relying-party session
+- AND Profile Tailors MUST NOT select or create a local principal from email or other profile claims
+
+#### Scenario: Disabled or disallowed identity mapping fails closed
+
+- GIVEN a Keycloak identity has a missing, disabled, or disallowed external-identity association
+- WHEN the Keycloak callback is processed
+- THEN the BFF MUST NOT establish an authenticated relying-party session
+- AND Profile Tailors MUST NOT select a different principal based on email
+
+#### Scenario: Linked principal must pass local authentication and account eligibility
+
+- GIVEN a validated Keycloak identity resolves through its unique external-identity association to a local principal
+- AND that local principal fails an existing local authentication or account eligibility rule
+- WHEN the BFF evaluates whether to establish a relying-party session
+- THEN Profile Tailors MUST NOT establish the session
+- AND email claims MUST NOT change which local principal is evaluated
+
+#### Scenario: Linked principal remains selected when Keycloak email matches another principal
+
+- GIVEN a validated Keycloak identity resolves through its unique external-identity association to local principal A
+- AND its email matches local principal B
+- WHEN the callback resolves the authenticated principal
+- THEN Profile Tailors MUST select only principal A
+- AND it MUST NOT select, link, or merge principal B based on the email match
 
 ### Requirement: Local Authorization Remains Authoritative
 
@@ -76,6 +113,13 @@ Keycloak identity claims and realm or client roles MUST NOT, by themselves, gran
 - GIVEN a human has a Keycloak realm or client role but lacks the corresponding local platform permission
 - WHEN the human requests a platform-admin operation
 - THEN Profile Tailors MUST deny the operation
+
+#### Scenario: Local authorization is evaluated for each protected resource request
+
+- GIVEN a human has a relying-party session for a locally eligible principal
+- AND that principal lacks authorization for the requested protected resource
+- WHEN the human requests that resource
+- THEN Profile Tailors MUST deny the request under the applicable local authorization rules
 
 ### Requirement: No Local Human Password Authentication After Cutover
 
