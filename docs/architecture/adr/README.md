@@ -34,7 +34,7 @@ as a historical record and a guide for current and future development.
 | 0006 | [Resource Creation via POST](./0006-resource-creation-via-post.md)                       | Accepted | 2026-06-21 |
 | 0007 | [Astro & Vue Frontend Split](./0007-astro-and-vue-frontend-split.md)                     | Accepted | 2026-06-21 |
 | 0008 | [Application-Level Multi-tenancy](./0008-application-level-multi-tenancy.md)             | Accepted | 2026-06-21 |
-| 0009 | [JWT & HttpOnly Cookie Authentication](./0009-jwt-and-httponly-cookie-authentication.md) | Accepted | 2026-06-21 |
+| 0009 | [JWT & HttpOnly Cookie Authentication](./0009-jwt-and-httponly-cookie-authentication.md) | Superseded | 2026-06-21 |
 | 0010 | [Shared Kernel Governance](./0010-shared-kernel-governance.md)                           | Accepted | 2026-06-21 |
 | 0011 | [Reusable Lead Capture Waitlist Capability](./0011-reusable-lead-capture-waitlist.md)    | Accepted | 2026-06-25 |
 | 0012 | [AGPL-3.0 Commercial Strategy](./0012-agpl-commercial-strategy.md)                       | Accepted | 2026-07-17 |
@@ -59,6 +59,7 @@ as a historical record and a guide for current and future development.
 | 0032 | [Represent Initial Bootstrap as a System Actor](./0032-bootstrap-system-actor-provenance.md) | Accepted | 2026-11-02 |
 | 0033 | [Complete Bootstrap Role Grant Within Email Verification](./0033-atomic-bootstrap-owner-grant.md) | Accepted | 2026-11-02 |
 | 0034 | [Record Bootstrap Terms Through the Governance Application Port](./0034-platform-bootstrap-uses-governance-application-port.md) | Accepted | 2026-11-02 |
+| 0035 | [Delegate Human Authentication to Keycloak Through a Reactive BFF](./0035-keycloak-human-authentication-bff.md) | Accepted | 2026-11-09 |
 
 ## Relationship with other docs
 
