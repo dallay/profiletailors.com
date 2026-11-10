@@ -9,7 +9,7 @@
 | Chained PRs recommended | No |
 | Chain strategy | size-exception |
 | Work-unit balance | Work Units 1–5 are internal implementation sequencing only; they are not separate PRs. |
-| Current slice | Unit 1: identity and consumer inventory |
+| Current slice | Unit 2: backend BFF and security |
 | Delivery boundary | One PR: trunk=`main`; base=`main`; branch=`feature/keycloak-auth-migration`; issue=none |
 | Size-exception approval | The user explicitly approves one PR above the default 400 changed-line budget. Rationale: the user prefers one coherent PR and accepts the review-size risk. This replaces the earlier `feature-branch-chain` strategy. |
 | PR timing | Create one PR only after implementation, verification, and QA are complete. Do not create it now. |
