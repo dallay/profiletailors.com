@@ -4,6 +4,7 @@ CREATE TEMP TABLE uuid_columns (table_name text, column_name text, entity_table 
 INSERT INTO uuid_columns VALUES
     ('principals', 'id', 'principals', 'id'),
     ('user_identities', 'principal_id', 'principals', 'id'),
+    ('external_identity_links', 'principal_id', 'principals', 'id'),
     ('local_password_credentials', 'principal_id', 'principals', 'id'),
     ('email_verification_tokens', 'id', 'email_verification_tokens', 'id'),
     ('password_reset_tokens', 'id', 'password_reset_tokens', 'id'),
