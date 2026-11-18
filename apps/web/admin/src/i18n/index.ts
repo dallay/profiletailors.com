@@ -60,6 +60,10 @@ const locales = {
     signIn: ['Sign In', 'Iniciar sesión'],
     signOut: ['Sign Out', 'Cerrar sesión'],
     platformAdmin: ['Platform Administration', 'Administración de plataforma'],
+    adminSsoDescription: [
+      'Continue to secure administrator sign-in. Admin access requires password and one-time code verification.',
+      'Continúa con el acceso seguro de administración. El acceso requiere contraseña y verificación con un código de un solo uso.',
+    ],
     email: ['Email', 'Correo electrónico'],
     passwordLabel: ['Password', 'Contraseña'],
     emailRequired: ['Enter your email address.', 'Introduce tu correo electrónico.'],

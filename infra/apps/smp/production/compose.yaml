@@ -84,6 +84,10 @@ services:
         target: SMP_THREADS_CLIENT_SECRET
       - source: resend_api_key
         target: SMP_RESEND_API_KEY
+      - source: keycloak_pt_app_client_secret
+        target: KEYCLOAK_PT_APP_CLIENT_SECRET
+      - source: keycloak_pt_admin_client_secret
+        target: KEYCLOAK_PT_ADMIN_CLIENT_SECRET
     volumes:
       - media_data:/var/lib/profiletailors/media
     read_only: true
@@ -158,3 +162,7 @@ secrets:
     file: ./secrets/threads-client-secret
   resend_api_key:
     file: ./secrets/resend-api-key
+  keycloak_pt_app_client_secret:
+    file: ./secrets/keycloak-pt-app-client-secret
+  keycloak_pt_admin_client_secret:
+    file: ./secrets/keycloak-pt-admin-client-secret

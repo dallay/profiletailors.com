@@ -1,10 +1,13 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.ProvisionExternalIdentityLinkCommand
+import com.profiletailors.smp.platformadmin.application.ProvisionExternalIdentityLinkHandler
+import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyConflictException
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
 import com.profiletailors.smp.platformadmin.application.command.DisableUserCommand
 import com.profiletailors.smp.platformadmin.application.command.EnableUserCommand
@@ -27,6 +30,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -38,11 +42,47 @@ import java.time.Instant
 class AdminUserController(
     private val userQuery: AdminUserQuery,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val auditHook: AuditHook,
     private val userControlHandlers: UserControlHandlers,
     private val userControlIdempotencyService: UserControlIdempotencyService,
+    private val identityLinkHandler: ProvisionExternalIdentityLinkHandler,
 ) {
+    @PostMapping("/{principalId}/identity-link")
+    suspend fun provisionIdentityLink(
+        @PathVariable principalId: String,
+        @RequestHeader("Idempotency-Key") idempotencyKey: String,
+        @RequestBody request: ExternalIdentityLinkRequest,
+    ): ResponseEntity<ExternalIdentityLinkCreated> {
+        requireIdempotencyKey(idempotencyKey)
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val command = ProvisionExternalIdentityLinkCommand(
+            operatorPrincipalId = operator.principalId,
+            operatorRoles = operator.roles,
+            targetPrincipalId = principalId,
+            issuer = request.issuer,
+            subject = request.subject,
+        )
+        if (PlatformPermission.USERS_MANAGE !in operator.roles.effectivePermissions()) {
+            identityLinkHandler.rejectPermission(command)
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_MANAGE)
+        }
+        val result = userControlIdempotencyService.execute(
+            operator.principalId,
+            "identity_link",
+            principalId,
+            idempotencyKey,
+            IdentityLinkIdempotencyResult::class.java,
+        ) {
+            identityLinkHandler.handle(command)
+            IdentityLinkIdempotencyResult(principalId, request.issuer, request.subject)
+        }
+        if (result.issuer != request.issuer || result.subject != request.subject) {
+            throw UserControlIdempotencyConflictException()
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(ExternalIdentityLinkCreated(result.principalId))
+    }
+
     @GetMapping
     suspend fun listUsers(
         @RequestParam(defaultValue = "0") page: Int,
@@ -202,7 +242,7 @@ class AdminUserController(
     }
 
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 
@@ -211,3 +251,9 @@ class AdminUserController(
         const val IDEMPOTENCY_KEY_MAX_LENGTH = 128
     }
 }
+
+data class ExternalIdentityLinkRequest(val issuer: String, val subject: String)
+
+data class ExternalIdentityLinkCreated(val principalId: String)
+
+private data class IdentityLinkIdempotencyResult(val principalId: String, val issuer: String, val subject: String)

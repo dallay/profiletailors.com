@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
 import com.profiletailors.smp.platformadmin.application.model.ADMIN_PAGE_MAX_SIZE
@@ -24,7 +24,7 @@ import java.util.UUID
 class AdminAuditController(
     private val auditQuery: AdminAuditQuery,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
 ) {
     @GetMapping
     suspend fun listEvents(
@@ -70,7 +70,7 @@ class AdminAuditController(
     }
 
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 }

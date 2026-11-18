@@ -166,7 +166,7 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
 
     private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
         ResourceContextProvider {
-        override fun current(): ResourceContext = resourceContext
+        override suspend fun current(): ResourceContext = resourceContext
     }
 
     private class StubWorkspaceMembershipLookup(private val memberships: Map<String, WorkspaceMembership>) :

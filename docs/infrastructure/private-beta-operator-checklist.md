@@ -73,12 +73,11 @@ the databasechangelog max version lags behind the image, or `lease_expires_at` i
 
 | Check | Command | Healthy signal |
 |---|---|---|
-| Local login | `curl -fsS -X POST https://api.profiletailors.com/api/auth/login -H 'Content-Type: application/json' -H 'Accept: application/vnd.api.v1+json' -d '{"email":"…","password":"…"}'` (only with a test fixture) | `200 OK` with `access_token` and `refresh_token`; no `401`/`403`/network error |
-| Refresh cookie issuance | Tail backend logs for `Issued refresh token …` (no body) | One line per successful login |
-| JWT issuer resolves | `curl -fsS https://api.profiletailors.com/.well-known/jwks.json` | `200 OK` with `keys` array |
+| Pre-cutover local login only | Use the local `/api/auth/login` test-fixture check only while the approved hard cutover is incomplete. This is not the Keycloak BFF login check. | Before cutover, a fixture login returns `200 OK` with the legacy token response. After cutover, remove this check and use the Keycloak BFF readiness procedure. |
+| Pre-cutover refresh issuance only | Before cutover, confirm refresh-token issuance without logging token data. | One issuance event per successful fixture login. After cutover, remove this check; do not expect human refresh-token issuance from the local-auth flow. |
+| Pre-cutover local JWT issuer resolves | Use `curl -fsS https://api.profiletailors.com/.well-known/jwks.json` only while local authentication remains enabled. | Before cutover, `200 OK` with a `keys` array. After cutover, validate the configured Keycloak issuer through the BFF readiness procedure. |
 
-**Escalate when:** login fails for any test account with a `401` and no recent deploy,
-`jwks.json` returns non-200, or refresh-token issuance silently stops.
+**Escalate before cutover when:** a fixture login fails with `401` and no recent deploy, the local `jwks.json` endpoint returns non-200, or refresh-token issuance stops. After cutover, use the Keycloak BFF readiness and incident procedures; do not treat local-login or local-JWKS failure as a health signal.
 
 ### 6. Waitlist flow
 

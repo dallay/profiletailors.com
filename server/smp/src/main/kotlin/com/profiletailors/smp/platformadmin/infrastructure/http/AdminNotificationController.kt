@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.notifications.domain.NotificationId
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.command.RetryNotificationCommand
@@ -45,7 +45,7 @@ class AdminNotificationController(
     private val notificationQuery: NotificationAdminQuery,
     private val retryHandler: RetryNotificationHandler,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
 ) {
 
     @Operation(
@@ -219,7 +219,7 @@ class AdminNotificationController(
     }
 
     private suspend fun resolveOperator(): OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 

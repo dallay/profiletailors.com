@@ -1,0 +1,5 @@
+change: keycloak-human-authentication
+current_phase: apply
+completed: [explore, propose, spec, design, tasks, apply]
+next: verify
+updated: 2026-11-18

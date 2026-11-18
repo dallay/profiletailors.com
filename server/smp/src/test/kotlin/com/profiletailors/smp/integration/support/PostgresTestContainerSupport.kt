@@ -64,6 +64,7 @@ object PostgresDatabaseCleanup {
     val statements: List<String> = listOf(
         "DELETE FROM consent_record_events",
         "DELETE FROM consent_records",
+        "DELETE FROM external_identity_links",
         "DELETE FROM shortlink_idempotency",
         "DELETE FROM link_clicks",
         "DELETE FROM links",

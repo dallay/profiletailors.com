@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
 import org.springframework.http.HttpStatus
@@ -14,11 +14,11 @@ import org.springframework.web.bind.annotation.RestController
 class AdminSessionController(
     private val operatorAccessResolver: OperatorAccessResolver,
     private val userQuery: AdminUserQuery,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
 ) {
     @GetMapping
     suspend fun getSession(): ResponseEntity<AdminSessionResponse> {
-        val ctx = requestContextStore.currentPrincipalContext()
+        val ctx = principalContextProvider.current()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
         val operator = operatorAccessResolver.resolve(ctx)

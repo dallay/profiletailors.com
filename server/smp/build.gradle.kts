@@ -87,6 +87,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.r2dbc)
     implementation(libs.spring.boot.starter.liquibase)
     implementation(libs.spring.boot.starter.oauth2.resource.server)
+    implementation(libs.spring.boot.starter.security.oauth2.client)
     implementation("org.springframework.security:spring-security-oauth2-jose")
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.webflux)

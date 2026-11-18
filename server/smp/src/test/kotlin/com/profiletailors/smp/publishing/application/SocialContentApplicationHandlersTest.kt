@@ -313,7 +313,7 @@ class SocialContentApplicationHandlersTest {
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        override suspend fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
     }
 
     private class RecordingActorRepository(private val result: SocialContentActor?) : SocialContentActorRepository {

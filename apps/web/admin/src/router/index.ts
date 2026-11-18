@@ -114,13 +114,20 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+let sessionHydration: Promise<void> | null = null
+
+router.beforeEach(async (to) => {
   const authStore = useAdminAuthStore()
 
   if (to.meta.public) return true
 
+  if (authStore.accessDenied) return { name: 'access-denied' }
+
+  sessionHydration ??= authStore.hydrateSession()
+  await sessionHydration
+
   if (!authStore.isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    return { name: 'login', query: { redirect: safeReturnPath(to.fullPath) } }
   }
 
   if (!authStore.hasPlatformAccess) {
@@ -135,3 +142,11 @@ router.beforeEach((to) => {
 })
 
 export default router
+
+function safeReturnPath(value: string): string {
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/'
+  const destination = new URL(value, window.location.origin)
+  return destination.origin === window.location.origin
+    ? `${destination.pathname}${destination.search}${destination.hash}`
+    : '/'
+}

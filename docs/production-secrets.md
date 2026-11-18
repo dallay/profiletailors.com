@@ -79,6 +79,34 @@ Secrets are grouped by risk level and rotation frequency:
 
 ### Authentication & Authorization
 
+#### `KEYCLOAK_PT_APP_CLIENT_SECRET` and `KEYCLOAK_PT_ADMIN_CLIENT_SECRET`
+
+- **Type:** Keycloak confidential-client secrets.
+- **Description:** Server-side credentials for the separate `pt-app` dashboard client and
+  `pt-admin` platform-admin client. Keep both values outside frontend builds and browser
+  configuration.
+- **Risk:** HIGH.
+- **Generation:** Provision each confidential client in the approved Keycloak realm and obtain its
+  secret through the identity-provider administration process. Do not use a shared secret for both
+  clients.
+- **Rotation:** Rotate the corresponding client secret in Keycloak and the backend secret store as
+  one coordinated change. Verify each client callback before closing the rotation.
+- **Access:** Infrastructure administrators and deployment automation only.
+- **Deployment:** Production Compose reads the matching file sources from
+  `infra/apps/smp/production/secrets/`. Swarm uses separate versioned external secrets configured by
+  `SWARM_KEYCLOAK_PT_APP_CLIENT_SECRET` and `SWARM_KEYCLOAK_PT_ADMIN_CLIENT_SECRET`. Both templates
+  mount the secrets at Spring's `configtree:/run/secrets/` keys. Prepare commands create empty local
+  source files only; provision both actual credentials before enabling OIDC. Swarm deployment
+  rejects missing or empty source files.
+
+#### `KEYCLOAK_ISSUER_URI`
+
+- **Type:** HTTPS issuer URL; not a secret.
+- **Description:** OIDC issuer for the Keycloak realm. The application configuration currently has
+  the approved default `https://keycloak.ahome.quest/realms/pt`.
+- **Deployment:** Confirm issuer discovery, TLS, and realm identity during the test-realm readiness
+  gate. Do not treat the configured URL as evidence that the realm is deployed or reachable.
+
 #### `SMP_LOCAL_JWT_SECRET`
 
 - **Type:** Base64-encoded string (≥256 bits / 32 bytes)
@@ -288,6 +316,10 @@ container storage.
 - **Risk:** LOW (origin misconfiguration can prevent bootstrap completion)
 - **Example:** `https://admin.profiletailors.com`
 - **Generation:** Set the origin served by the installation's admin SPA.
+- **Deployment requirement:** Required for production Compose and Swarm startup. Set it in the
+  corresponding deployment `.env` to the exact public admin origin and include that origin in
+  `SMP_CORS_ALLOWED_ORIGINS`. The deployment templates already fail configuration when it is
+  missing. This setting is separate from the Keycloak callback host, which is the backend API origin.
 - **Rotation:** Update the admin build target and backend environment together.
 - **Access:** Infrastructure admins, deployment automation.
 
@@ -385,6 +417,11 @@ Before deploying to production, verify:
   only with complete Threads configuration (client ID, client secret, HTTPS redirect URI) plus
   Meta App Review evidence for `threads_basic` + `threads_content_publish`.
 - [ ] `SMP_CORS_ALLOWED_ORIGINS` includes only production frontend and admin URLs.
+- [ ] `SMP_ADMIN_PUBLIC_ORIGIN` is set to the deployed admin origin and is included in
+  `SMP_CORS_ALLOWED_ORIGINS`.
+- [ ] If enabling Keycloak BFF authentication, the deployment supplies separate
+  `KEYCLOAK_PT_APP_CLIENT_SECRET` and `KEYCLOAK_PT_ADMIN_CLIENT_SECRET` values through a protected
+  runtime secret mechanism and verifies rendered configuration and application startup.
 - [ ] Persistent object storage is configured; local container storage is disabled.
 - [ ] `SMP_LIQUIBASE_CONTEXTS=prod` is set for deployment.
 

@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminDashboardSummary
@@ -19,14 +19,14 @@ import java.time.Clock
 class AdminDashboardController(
     private val waitlistQuery: AdminWaitlistQuery,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val clock: Clock,
 ) {
     @GetMapping
     suspend fun getDashboard(
         @RequestParam(defaultValue = "30") periodDays: Int,
     ): ResponseEntity<AdminDashboardSummary> {
-        val ctx = requestContextStore.currentPrincipalContext()
+        val ctx = principalContextProvider.current()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val operator = operatorAccessResolver.resolve(ctx)
 

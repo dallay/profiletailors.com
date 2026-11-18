@@ -3,6 +3,7 @@ package com.profiletailors.smp.bdd.fast
 import com.profiletailors.smp.bdd.SocialContentBddTestConfiguration
 import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
+import com.profiletailors.smp.bdd.support.TestOidcClientRegistrations
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import io.cucumber.spring.CucumberContextConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -36,6 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "app.security.cors.allowed-origins=http://localhost",
+        "app.security.cors.admin-public-origin=https://admin.test",
         "spring.main.allow-bean-definition-overriding=true",
         "spring.ai.mcp.server.enabled=true",
         BddTestProperties.LINKEDIN_CLIENT_ID,
@@ -64,6 +66,7 @@ class CucumberSpringConfiguration {
             registry.add("bdd.liquibase.jdbc-url", postgres::getJdbcUrl)
             registry.add("bdd.liquibase.username", postgres::getUsername)
             registry.add("bdd.liquibase.password", postgres::getPassword)
+            TestOidcClientRegistrations.register(registry)
         }
     }
 }

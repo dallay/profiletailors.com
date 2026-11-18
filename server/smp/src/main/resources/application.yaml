@@ -1,5 +1,14 @@
 server:
   port: ${SMP_BACKEND_PORT:7638}
+  reactive:
+    session:
+      timeout: 30m
+      cookie:
+        name: SESSION
+        path: /
+        secure: true
+        http-only: true
+        same-site: lax
 
 shortlinks:
   public-host: ${SMP_SHORTLINKS_PUBLIC_HOST:go.profiletailors.com}
@@ -55,6 +64,27 @@ spring:
         publishing->tenancy::application
   security:
     oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:https://keycloak.ahome.quest/realms/pt}
+        registration:
+          pt-app:
+            provider: keycloak
+            client-id: pt-app
+            client-secret: ${KEYCLOAK_PT_APP_CLIENT_SECRET:}
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: https://api.profiletailors.com/login/oauth2/code/pt-app
+            scope: openid,profile,email
+          pt-admin:
+            provider: keycloak
+            client-id: pt-admin
+            client-secret: ${KEYCLOAK_PT_ADMIN_CLIENT_SECRET:}
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: https://api.profiletailors.com/login/oauth2/code/pt-admin
+            scope: openid,profile,email
       resourceserver:
         jwt:
           issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost/profiletailors-local}

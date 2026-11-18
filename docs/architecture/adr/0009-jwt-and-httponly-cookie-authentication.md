@@ -1,11 +1,12 @@
 # ADR-0009: JWT & HttpOnly Cookie Authentication
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-06-21
 - Decision owners: Principal Architect
 - Scope: Security
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR-0035](./0035-keycloak-human-authentication-bff.md)
+- Last revised: 2026-11-09
 
 ## Context
 

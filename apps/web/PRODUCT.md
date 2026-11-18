@@ -41,6 +41,11 @@ Nothing-inspired aesthetic signals that minimalism is a feature, not a limitatio
   app (Vue SPA, authenticated), and admin (Vue SPA, operator-only) with a token-scoped public
   bootstrap completion route only
 - Backend is a Spring Boot 4 reactive service (Kotlin, WebFlux, R2DBC) with hexagonal architecture
+- The approved post-cutover human browser-authentication model uses separate dashboard (`pt-app`)
+  and admin (`pt-admin`) BFF login initiations. Provider tokens do not enter browser JavaScript;
+  authenticated browser state uses an HttpOnly session cookie, with CSRF protection on unsafe
+  requests. This contract does not verify Keycloak realm or client configuration, callbacks, DNS,
+  or deployment readiness
 - EU/UK/ES legal frameworks apply (GDPR, EAA monitoring status, Spanish governing law); consent
   management spans marketing and app via a shared layer
 - EU data residency: Oracle Cloud Frankfurt; CDN: Cloudflare global edge
@@ -53,8 +58,9 @@ Nothing-inspired aesthetic signals that minimalism is a feature, not a limitatio
   legal docs (privacy, ToS, cookies, AUP, accessibility statement)
 - **App:** calendar-driven scheduler (week/day/month + list); create, edit, delete, reorder posts;
   media library; ideas capture; governance takedown workflow; settings (profile, workspace,
-  integrations, API keys); auth flows (login, register, password reset, email verify, LinkedIn
-  callback)
+  integrations, API keys); human login and logout use the Keycloak-backed BFF. Local password
+  registration, password reset, and email-verification flows are pre-cutover behavior only and are
+  not part of the post-cutover human-authentication contract
 - **Admin:** dashboard, waitlist review, user administration, audit log review; permission-gated
   routes (`platform.*` scope)
 - **Constraints:** LinkedIn and Threads are the connected platforms at early-access stage (Threads in verification); publishing is gated

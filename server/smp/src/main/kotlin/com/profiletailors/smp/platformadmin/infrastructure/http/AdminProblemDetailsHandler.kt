@@ -2,6 +2,8 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.governance.application.AdminTakedownNotReviewableException
 import com.profiletailors.smp.governance.application.AdminTakedownReportNotFoundException
+import com.profiletailors.smp.identity.application.ExternalIdentityLinkConflictException
+import com.profiletailors.smp.identity.application.ExternalIdentityLinkTargetNotFoundException
 import com.profiletailors.smp.identity.application.InvalidPrincipalStatusTransitionException
 import com.profiletailors.smp.identity.application.PrincipalNotFoundException
 import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
@@ -91,6 +93,14 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(PrincipalNotFoundException::class)
     fun handle(ex: PrincipalNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "USER_PRINCIPAL_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(ExternalIdentityLinkTargetNotFoundException::class)
+    fun handleIdentityTargetNotFound(): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "USER_PRINCIPAL_NOT_FOUND", "Target principal was not found.")
+
+    @ExceptionHandler(ExternalIdentityLinkConflictException::class)
+    fun handleIdentityLinkConflict(): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "IDENTITY_LINK_CONFLICT", "Identity link already exists.")
 
     @ExceptionHandler(InvalidPrincipalStatusTransitionException::class)
     fun handle(ex: InvalidPrincipalStatusTransitionException): ProblemDetail =

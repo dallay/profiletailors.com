@@ -6,7 +6,7 @@ import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
-const mockRefreshSession = vi.fn()
+const mockGetBffSession = vi.fn()
 const mockGetCurrentUserProfile = vi.fn()
 const mockResendVerification = vi.fn()
 
@@ -18,12 +18,12 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
       },
       { raw: async () => new Response(null, { status: 204 }) },
     ),
-  refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
-  getCurrentUserProfile: (...args: unknown[]) => mockGetCurrentUserProfile(...args),
+  getBffSession: (...args: unknown[]) => mockGetBffSession(...args),
+  logoutBffSession: vi.fn(),
+  buildBffLoginUrl: (returnTo: string) =>
+    `/oauth2/authorization/pt-app?returnTo=${encodeURIComponent(returnTo)}`,
   resendVerification: (...args: unknown[]) => mockResendVerification(...args),
-  login: vi.fn(),
   register: vi.fn(),
-  logoutSession: vi.fn(),
 }))
 
 // ---------------------------------------------------------------------------
@@ -47,14 +47,13 @@ describe('Auth store — hydrateSession', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    mockRefreshSession.mockReset()
+    mockGetBffSession.mockReset()
     mockGetCurrentUserProfile.mockReset()
     mockResendVerification.mockReset()
   })
 
-  it('restores session from refresh token cookie and trusts profile email status', async () => {
-    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'VERIFIED' })
-    mockGetCurrentUserProfile.mockResolvedValue({
+  it('restores the authenticated user from the BFF session profile', async () => {
+    mockGetBffSession.mockResolvedValue({
       principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
@@ -71,15 +70,15 @@ describe('Auth store — hydrateSession', () => {
 
     expect(auth.isAuthenticated).toBe(true)
     expect(auth.sessionChecked).toBe(true)
-    expect(auth.accessToken).toBe('access-hydrated')
+    expect(auth.accessToken).toBeNull()
     expect(auth.user?.principalId).toBe('18f3c8ec-b5fd-5d86-ac83-465965479890')
     expect(auth.user?.emailStatus).toBe('PENDING')
     expect(auth.isEmailVerified).toBe(false)
-    expect(mockRefreshSession).toHaveBeenCalledOnce()
+    expect(mockGetBffSession).toHaveBeenCalledOnce()
   })
 
-  it('marks sessionChecked even when no active session (expired cookie)', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+  it('marks sessionChecked when the BFF session is unauthenticated', async () => {
+    mockGetBffSession.mockRejectedValue({ status: 401 })
 
     const auth = useAuthStore()
 
@@ -87,11 +86,11 @@ describe('Auth store — hydrateSession', () => {
 
     expect(auth.isAuthenticated).toBe(false)
     expect(auth.sessionChecked).toBe(true)
-    expect(mockRefreshSession).toHaveBeenCalledOnce()
+    expect(mockGetBffSession).toHaveBeenCalledOnce()
   })
 
-  it('marks unreachable when refreshSession throws network error', async () => {
-    mockRefreshSession.mockRejectedValue(new TypeError('Failed to fetch'))
+  it('marks the session unreachable when the BFF cannot be reached', async () => {
+    mockGetBffSession.mockRejectedValue(new TypeError('Failed to fetch'))
 
     const auth = useAuthStore()
 
@@ -102,8 +101,8 @@ describe('Auth store — hydrateSession', () => {
     expect(auth.bootstrapState).toBe('unreachable')
   })
 
-  it('marks sessionChecked when refreshSession throws', async () => {
-    mockRefreshSession.mockRejectedValue(new Error('network error'))
+  it('marks sessionChecked after a non-network BFF session error', async () => {
+    mockGetBffSession.mockRejectedValue(new Error('session error'))
 
     const auth = useAuthStore()
 
@@ -113,8 +112,14 @@ describe('Auth store — hydrateSession', () => {
     expect(auth.sessionChecked).toBe(true)
   })
 
-  it('persists workspaceId from tokens when no workspace is selected', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+  it('does not derive workspace authorization from the session profile', async () => {
+    mockGetBffSession.mockResolvedValue({
+      principalId: fakeTokens.principalId,
+      email: fakeTokens.email,
+      username: fakeTokens.username,
+      displayIdentity: 'testuser',
+      emailStatus: 'VERIFIED',
+    })
     mockGetCurrentUserProfile.mockResolvedValue({
       principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
@@ -127,39 +132,15 @@ describe('Auth store — hydrateSession', () => {
     const { useWorkspaceStore } = await import('@modules/workspace/infrastructure/workspace.store')
     const workspace = useWorkspaceStore()
 
-    expect(workspace.activeWorkspaceId).toBeNull()
-
-    await auth.hydrateSession()
-
-    expect(workspace.activeWorkspaceId).toBe('820c22d8-9ce7-5e76-867f-04bac4e53b59')
-  })
-
-  it('applies workspaceId from tokens even when a workspace is already selected', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
-    mockGetCurrentUserProfile.mockResolvedValue({
-      principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
-      email: 'user@example.com',
-      username: 'testuser',
-      displayIdentity: 'testuser',
-      emailStatus: 'VERIFIED',
-    })
-
-    const auth = useAuthStore()
-    const { useWorkspaceStore } = await import('@modules/workspace/infrastructure/workspace.store')
-    const workspace = useWorkspaceStore()
-
-    // User already selected a different workspace (e.g. from previous account)
     workspace.setActiveWorkspaceId('e90e78f2-caf5-5675-83d8-ba865fedae33')
 
     await auth.hydrateSession()
 
-    // Token's workspaceId should overwrite — it is the authoritative context
-    expect(workspace.activeWorkspaceId).toBe(fakeTokens.workspaceId)
+    expect(workspace.activeWorkspaceId).toBe('e90e78f2-caf5-5675-83d8-ba865fedae33')
   })
 
   it('resends verification for the authenticated user and exposes status states', async () => {
-    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
-    mockGetCurrentUserProfile.mockResolvedValue({
+    mockGetBffSession.mockResolvedValue({
       principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',
@@ -179,8 +160,7 @@ describe('Auth store — hydrateSession', () => {
   })
 
   it('records resend verification errors', async () => {
-    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
-    mockGetCurrentUserProfile.mockResolvedValue({
+    mockGetBffSession.mockResolvedValue({
       principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       email: 'user@example.com',
       username: 'testuser',

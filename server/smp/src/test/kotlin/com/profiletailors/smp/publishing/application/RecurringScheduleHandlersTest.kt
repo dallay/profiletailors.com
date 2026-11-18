@@ -167,7 +167,7 @@ class RecurringScheduleHandlersTest {
     }
 
     private class FakeResourceProvider(private val wid: String) : ResourceContextProvider {
-        override fun current(): ResourceContext? = ResourceContext(
+        override suspend fun current(): ResourceContext? = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = wid,
         )

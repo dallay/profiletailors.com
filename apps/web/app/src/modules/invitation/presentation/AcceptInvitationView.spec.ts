@@ -5,6 +5,7 @@ import AcceptInvitationView from './AcceptInvitationView.vue'
 
 const accept = vi.hoisted(() => vi.fn())
 const hydrateSession = vi.hoisted(() => vi.fn())
+const startBffLogin = vi.hoisted(() => vi.fn())
 const routerReplace = vi.hoisted(() => vi.fn())
 
 const authState = reactive({
@@ -72,6 +73,7 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     hydrateSession,
+    startBffLogin,
     get accessToken() {
       return authState.accessToken
     },
@@ -109,6 +111,7 @@ describe('AcceptInvitationView', () => {
     authState.hydrated = false
     accept.mockReset()
     hydrateSession.mockReset()
+    startBffLogin.mockReset()
     routerReplace.mockReset()
     load.mockReset()
   })
@@ -182,7 +185,7 @@ describe('AcceptInvitationView', () => {
     await flushPromises()
     await flushPromises()
 
-    expect(accept).toHaveBeenCalledWith('raw-token', null)
+    expect(accept).toHaveBeenCalledWith('raw-token')
     expect(state.workspaceId).toBe('ef541e38-d4a8-5714-9348-8bb19f5055db')
   })
 
@@ -214,7 +217,7 @@ describe('AcceptInvitationView', () => {
     expect(routerReplace).toHaveBeenCalledWith('/')
   })
 
-  it('redirects to login when the session was not established by the cookie', async () => {
+  it('redirects to BFF login when the session was not established by the cookie', async () => {
     accept.mockImplementation(async () => {
       state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       state.membershipStatus = 'ACTIVE'
@@ -239,14 +242,7 @@ describe('AcceptInvitationView', () => {
     await flushPromises()
 
     expect(hydrateSession).toHaveBeenCalledOnce()
-    expect(routerReplace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: '/login',
-        query: expect.objectContaining({
-          redirect: expect.stringContaining('/invitations/accept?token='),
-        }),
-      }),
-    )
+    expect(startBffLogin).toHaveBeenCalledWith('/invitations/accept?token=raw-token')
   })
 
   it('shows the canonical invalid copy when the backend rejects with that code', async () => {

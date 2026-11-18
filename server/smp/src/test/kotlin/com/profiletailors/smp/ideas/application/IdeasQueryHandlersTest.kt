@@ -177,7 +177,7 @@ class IdeasQueryHandlersTest {
     )
 
     private class FixedResourceContextProvider(private val workspaceId: String?) : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(
+        override suspend fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )

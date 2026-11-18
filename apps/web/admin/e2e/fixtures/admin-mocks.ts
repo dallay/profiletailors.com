@@ -4,7 +4,6 @@ import {
   OWNER_PRINCIPAL,
   SUPPORT_PRINCIPAL,
   makeEntry,
-  mockTokens,
   toListItem,
   toSummary,
   type BulkResultEntry,
@@ -15,12 +14,14 @@ import {
 export interface AdminMockOptions {
   roles?: string[]
   entries?: MockWaitlistEntry[]
-  loginStatus?: number
 }
 
 export interface AdminMockState {
   entries: MockWaitlistEntry[]
   bulkCalls: string[][]
+  authorizationRequests: Array<{ path: string; returnTo: string }>
+  logoutRequests: Array<{ csrfToken: string | null }>
+  unsafeRequests: Array<{ path: string; csrfToken: string | null }>
 }
 
 function jsonResponse(status: number, body: unknown) {
@@ -46,47 +47,51 @@ export async function registerAdminMocks(
   const state: AdminMockState = {
     entries: options.entries ?? defaultEntries(),
     bulkCalls: [],
+    authorizationRequests: [],
+    logoutRequests: [],
+    unsafeRequests: [],
   }
-  const loginStatus = options.loginStatus ?? 200
 
-  // Refresh behaves like the real HttpOnly-cookie session: once any login
-  // succeeds in the test, reloads rehydrate through refresh + session.
-  // Tests start logged out because no login has happened yet, so the first
-  // refresh intentionally reports no session.
   let sessionStarted = false
   const principalEmail = roles.includes('PLATFORM_OWNER')
     ? OWNER_PRINCIPAL.email
     : SUPPORT_PRINCIPAL.email
 
-  await page.route('**/api/auth/refresh', (route) => {
+  await page.route('**/oauth2/authorization/pt-admin**', async (route) => {
+    const url = new URL(route.request().url())
+    const returnTo = url.searchParams.get('returnTo') ?? '/'
+    state.authorizationRequests.push({ path: url.pathname, returnTo })
+    sessionStarted = true
+    await route.fulfill({
+      status: 302,
+      headers: { location: new URL(returnTo, page.url()).toString() },
+    })
+  })
+
+  await page.route('**/api/admin/session', (route) => {
     if (!sessionStarted) {
       return route.fulfill(jsonResponse(401, { title: 'Unauthorized', status: 401 }))
     }
-    return route.fulfill(jsonResponse(200, mockTokens(principalEmail)))
-  })
-
-  await page.route('**/api/auth/login', (route) => {
-    if (route.request().method() !== 'POST') return route.fallback()
-    if (loginStatus !== 200) {
-      return route.fulfill(
-        jsonResponse(loginStatus, { title: 'Login failed', status: loginStatus }),
-      )
-    }
-    const body = (route.request().postDataJSON() ?? {}) as { email?: string }
-    sessionStarted = true
-    return route.fulfill(jsonResponse(200, mockTokens(body.email ?? OWNER_PRINCIPAL.email)))
-  })
-
-  await page.route('**/api/admin/session', (route) =>
-    route.fulfill(
+    return route.fulfill(
       jsonResponse(200, {
         principalId: 'e398cc5c-a565-5b7e-bea6-e52050ba0094',
         email: principalEmail,
         displayName: 'E2E Operator',
         platformRoles: roles,
       }),
-    ),
+    )
+  })
+
+  await page.route('**/api/auth/csrf', (route) =>
+    route.fulfill(jsonResponse(200, { token: 'e2e-csrf-token' })),
   )
+
+  await page.route('**/api/auth/logout', async (route) => {
+    const csrfToken = route.request().headers()['x-csrf-token'] ?? null
+    state.logoutRequests.push({ csrfToken })
+    sessionStarted = false
+    await route.fulfill({ status: 204 })
+  })
 
   await page.route('**/api/admin/waitlist-entries/summary', (route) =>
     route.fulfill(jsonResponse(200, toSummary(state.entries))),
@@ -94,6 +99,10 @@ export async function registerAdminMocks(
 
   await page.route('**/api/admin/waitlist-entries/invitations:bulk', (route) => {
     if (route.request().method() !== 'POST') return route.fallback()
+    state.unsafeRequests.push({
+      path: new URL(route.request().url()).pathname,
+      csrfToken: route.request().headers()['x-csrf-token'] ?? null,
+    })
     const body = (route.request().postDataJSON() ?? {}) as { entryIds?: string[] }
     const entryIds = body.entryIds ?? []
     state.bulkCalls.push(entryIds)

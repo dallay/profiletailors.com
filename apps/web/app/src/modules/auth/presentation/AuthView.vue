@@ -46,7 +46,7 @@ function resolveRedirect(value: unknown): string {
     <RegistrationUnavailable v-if="isRegister && capabilities.resolved && !registrationAvailable" />
     <RegisterForm v-else-if="isRegister && registrationAvailable" v-model:email="email" :invitation-token="invitationToken" @success="completeAuthentication" />
     <template v-else>
-      <LoginForm v-model:email="email" :show-forgot-password="capabilities.resolved && capabilities.passwordRecoveryEnabled" @success="completeAuthentication" />
+      <LoginForm />
       <p v-if="capabilities.resolved && capabilities.registrationEnabled" class="mt-6 text-center text-sm text-text-secondary">
         {{ t('auth.alternateLabelLogin') }}
         <RouterLink :to="{ name: 'register' }" class="ml-1 font-medium text-text-display underline underline-offset-4">{{ t('auth.alternateActionLogin') }}</RouterLink>

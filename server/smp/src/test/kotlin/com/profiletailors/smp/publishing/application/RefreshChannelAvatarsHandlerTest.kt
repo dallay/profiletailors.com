@@ -138,7 +138,10 @@ class RefreshChannelAvatarsHandlerTest {
         private val fetcher = LinkedInAvatarFetcher { pictures[it] }
         private val publisher = ChannelEventPublisher { events += it }
         private val contexts = object : ResourceContextProvider {
-            override fun current(): ResourceContext? = ResourceContext(ResourceContextType.WORKSPACE, "workspace-1")
+            override suspend fun current(): ResourceContext? = ResourceContext(
+                ResourceContextType.WORKSPACE,
+                "workspace-1",
+            )
         }
 
         fun handler(): RefreshChannelAvatarsHandler = RefreshChannelAvatarsHandler(

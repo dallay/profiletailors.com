@@ -38,14 +38,14 @@ describe('useAcceptInvitationStore', () => {
     mockAcceptInvitationRequest.mockReset()
   })
 
-  it('passes the authenticated access token to the invitation api', async () => {
+  it('submits the invitation token through the BFF invitation api', async () => {
     mockAcceptInvitationRequest.mockResolvedValue(successResult())
 
     const store = useAcceptInvitationStore()
 
-    await store.accept('valid-token', 'access-token-1')
+    await store.accept('valid-token')
 
-    expect(mockAcceptInvitationRequest).toHaveBeenCalledWith('valid-token', 'access-token-1')
+    expect(mockAcceptInvitationRequest).toHaveBeenCalledWith('valid-token')
   })
 
   it('exposes initial state', () => {

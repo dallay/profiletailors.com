@@ -30,12 +30,12 @@
 <body>
   <div class="frame">
     <p class="eyebrow">ER · IDENTITY BOUNDED CONTEXT</p>
-    <h1>Principals, identities &amp; credential reset flows</h1>
-    <p class="lede">5 tables. <code style="font-family:var(--font-mono);">principals</code> is the focal aggregate — every authenticated actor (human or service) is one. <code style="font-family:var(--font-mono);">user_identities</code> extends it with email/username. Password reset flows hang off <code style="font-family:var(--font-mono);">user_identities</code> via cascade delete.</p>
+    <h1>Principals, identities &amp; external links</h1>
+    <p class="lede">6 tables. <code style="font-family:var(--font-mono);">principals</code> is the focal aggregate — every authenticated actor (human or service) is one. <code style="font-family:var(--font-mono);">user_identities</code> extends it with email/username. <code style="font-family:var(--font-mono);">external_identity_links</code> maps an external issuer/subject pair to a principal. Password reset flows hang off <code style="font-family:var(--font-mono);">user_identities</code> via cascade delete.</p>
 
-    <svg viewBox="0 0 1080 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-identity-title erd-identity-desc">
+    <svg viewBox="0 0 1080 780" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-identity-title erd-identity-desc">
       <title id="erd-identity-title">Profile Tailors · identity bounded context entity-relationship diagram</title>
-      <desc id="erd-identity-desc">ER diagram showing principals as the focal aggregate root with 1:1 user_identities, optional 1:1 local_password_credentials, and token flows for email_verification_tokens and password_reset_tokens. user_identities has FK to principals via principal_id, local_password_credentials has FK to principals via principal_id, password_reset_tokens cascades from user_identities, and email_verification_tokens is keyed by email rather than principal.</desc>
+      <desc id="erd-identity-desc">ER diagram showing principals as the focal aggregate root with 1:1 user_identities, optional 1:1 local_password_credentials, 1:N external_identity_links, and token flows for email_verification_tokens and password_reset_tokens. user_identities has FK to principals via principal_id, local_password_credentials has FK to principals via principal_id, external_identity_links has FK to principals via principal_id with a composite primary key of issuer and subject, password_reset_tokens cascades from user_identities, and email_verification_tokens is keyed by email rather than principal.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
       </defs>
@@ -123,6 +123,30 @@
 
       <text x="756" y="316" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">FK principal_id 0..1:1 · BCrypt hash</text>
 
+      <rect x="740" y="380" width="280" height="190" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="740" y="380" width="280" height="40" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="740" y="412" width="280" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="740" y1="420" x2="1020" y2="420" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="756" y="400" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · EXTERNAL LINK</text>
+      <text x="756" y="416" fill="#1A1A1A" font-size="14" font-weight="600" font-family="'Space Grotesk', sans-serif">external_identity_links</text>
+
+      <text x="756" y="444" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># issuer</text>
+      <text x="1004" y="444" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(2048)</text>
+
+      <text x="756" y="464" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># subject</text>
+      <text x="1004" y="464" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+
+      <text x="756" y="484" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ principal_id</text>
+      <text x="1004" y="484" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+
+      <text x="756" y="504" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">link_status</text>
+      <text x="1004" y="504" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(16)</text>
+
+      <text x="756" y="524" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1004" y="524" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="756" y="550" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK (issuer, subject) · FK principal_id 1:N</text>
+
       <!-- ============================================ -->
       <!-- ENTITY: email_verification_tokens           -->
       <!-- ============================================ -->
@@ -186,14 +210,14 @@
       <!-- ============================================ -->
       <!-- ENTITY: password_reset_notification_failures (compact callout) -->
       <!-- ============================================ -->
-      <rect x="800" y="480" width="220" height="140" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="800" y="480" width="220" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
-      <line x1="800" y1="512" x2="1020" y2="512" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="816" y="500" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SUPPORT</text>
-      <text x="816" y="530" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif">…reset failures</text>
-      <text x="816" y="552" fill="#525252" font-size="9" font-family="'Space Mono', monospace">→ token_id · failure_category</text>
-      <text x="816" y="572" fill="#525252" font-size="9" font-family="'Space Mono', monospace">attempt_count · last_error</text>
-      <text x="816" y="596" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">tracks notification delivery</text>
+      <rect x="800" y="600" width="220" height="140" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="800" y="600" width="220" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
+      <line x1="800" y1="632" x2="1020" y2="632" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="816" y="620" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SUPPORT</text>
+      <text x="816" y="650" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif">…reset failures</text>
+      <text x="816" y="672" fill="#525252" font-size="9" font-family="'Space Mono', monospace">→ token_id · failure_category</text>
+      <text x="816" y="692" fill="#525252" font-size="9" font-family="'Space Mono', monospace">attempt_count · last_error</text>
+      <text x="816" y="716" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">tracks notification delivery</text>
 
       <!-- ============================================ -->
       <!-- RELATIONSHIPS                                 -->
@@ -221,13 +245,18 @@
       <text x="339" y="366" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- 4. password_reset_notification_failures → password_reset_tokens (1:N) -->
-      <line x1="800" y1="540" x2="740" y2="540" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="752" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="759" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="730" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="737" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="800" y1="660" x2="740" y2="660" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="752" y="648" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="759" y="658" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="730" y="648" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="737" y="658" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
-      <!-- 5. email_verification_tokens ↔ user_identities via email (logical) — no FK, dashed note -->
+      <line x1="740" y1="440" x2="680" y2="270" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="696" y="330" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="703" y="340" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="712" y="418" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="719" y="428" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
       <path d="M 200,440 V 380" fill="none" stroke="#525252" stroke-width="0.8" stroke-dasharray="4,3"/>
       <rect x="160" y="388" width="80" height="14" rx="2" fill="#F5F5F0"/>
       <text x="200" y="398" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">matched by email</text>

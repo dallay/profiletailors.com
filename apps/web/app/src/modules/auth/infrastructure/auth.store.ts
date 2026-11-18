@@ -5,11 +5,10 @@ import {
   type AuthTokens,
   type CurrentUserProfile,
   type RegisterPayload,
+  buildBffLoginUrl,
   createApiFetch,
-  getCurrentUserProfile,
-  login,
-  logoutSession,
-  refreshSession,
+  getBffSession,
+  logoutBffSession,
   register,
   resendVerification,
   verifyEmail as verifyEmailRequest,
@@ -72,7 +71,6 @@ export const useAuthStore = defineStore('auth', () => {
   const workspace = useWorkspaceStore()
 
   // Access token lives ONLY in memory — never persisted to localStorage
-  const _accessToken = ref<string | null>(null)
   const user = ref<AuthUser | null>(null)
   const isLoading = ref(false)
   const isRefreshingProfile = ref(false)
@@ -86,8 +84,8 @@ export const useAuthStore = defineStore('auth', () => {
   // Computed
   // ---------------------------------------------------------------------------
 
-  const isAuthenticated = computed(() => Boolean(_accessToken.value))
-  const accessToken = computed(() => _accessToken.value)
+  const isAuthenticated = computed(() => user.value !== null)
+  const accessToken = computed(() => null)
   const isEmailVerified = computed(() => user.value?.emailStatus === 'VERIFIED')
 
   const defaultDisplayName = 'PT'
@@ -120,19 +118,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Use this instead of raw fetch for any authenticated API call.
-   * Handles Bearer injection + silent 401 retry with token rotation.
+   * Uses the HttpOnly BFF session cookie for authenticated requests.
    */
   const authenticatedApiFetch = createApiFetch({
-    getToken: () => _accessToken.value,
+    getToken: () => null,
     getWorkspaceId: () => workspace.activeWorkspaceId,
-    onRefresh: async () => {
-      const tokens = await refreshSession()
-      if (tokens) {
-        _applyTokens(tokens)
-        return tokens.accessToken
-      }
-      return null
-    },
+    onRefresh: async () => null,
     onUnauthenticated: () => _clearSession(),
   })
   const apiFetch = authenticatedApiFetch
@@ -143,7 +134,6 @@ export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
 
   function _applyTokens(tokens: AuthTokens) {
-    _accessToken.value = tokens.accessToken
     user.value = mapTokensToUser(tokens)
 
     // If the backend returned a workspace ID, always apply it
@@ -154,7 +144,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function _clearSession() {
-    _accessToken.value = null
     user.value = null
     error.value = null
     resendVerificationStatus.value = 'idle'
@@ -167,24 +156,13 @@ export const useAuthStore = defineStore('auth', () => {
   // Actions
   // ---------------------------------------------------------------------------
 
-  async function loginWithPassword(payload: { email: string; password: string }) {
+  function startBffLogin(returnTo?: string) {
     isLoading.value = true
     error.value = null
-
-    try {
-      const tokens = await login(payload)
-      _applyTokens(tokens)
-      await _loadProfile()
-      bootstrapState.value = 'authenticated'
-      return tokens
-    } catch (error_) {
-      const apiError = error_ as ApiError
-      error.value = apiError.detail ?? 'Unable to sign in.'
-      throw error_
-    } finally {
-      isLoading.value = false
-      sessionChecked.value = true
-    }
+    sessionChecked.value = true
+    const destination =
+      returnTo ?? new URLSearchParams(window.location.search).get('redirect') ?? '/'
+    window.location.assign(buildBffLoginUrl(destination))
   }
 
   async function registerWithPassword(payload: RegisterPayload): Promise<AuthTokens> {
@@ -219,16 +197,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     _hydratePromise = (async () => {
       try {
-        const tokens = await refreshSession()
-
-        if (!tokens) {
-          // No active session — that's fine (401 swallowed)
-          _clearSession()
-          return
-        }
-
-        _applyTokens(tokens)
-        await _loadProfile()
+        const profile = await getBffSession()
+        user.value = mapProfileToUser(profile, user.value)
         bootstrapState.value = 'authenticated'
       } catch (e) {
         // Network failure ≠ no session. Keep explicit unreachable so the
@@ -249,7 +219,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshProfile() {
-    if (!_accessToken.value) {
+    if (!user.value) {
       _clearSession()
       return null
     }
@@ -257,7 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
     isRefreshingProfile.value = true
 
     try {
-      const profile = await getCurrentUserProfile(_accessToken.value)
+      const profile = await getBffSession()
       user.value = mapProfileToUser(profile, user.value)
       error.value = null
       sessionChecked.value = true
@@ -276,9 +246,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    // Tell the server to invalidate the refresh-token session (clears cookie too)
-    await logoutSession()
-    _clearSession()
+    try {
+      await logoutBffSession()
+    } finally {
+      _clearSession()
+    }
   }
 
   async function resendVerificationEmail() {
@@ -335,12 +307,12 @@ export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
 
   async function _loadProfile() {
-    if (!_accessToken.value) return
+    if (!user.value) return
 
     isRefreshingProfile.value = true
 
     try {
-      const profile = await getCurrentUserProfile(_accessToken.value)
+      const profile = await getBffSession()
       user.value = mapProfileToUser(profile, user.value)
       error.value = null
     } catch {
@@ -368,7 +340,7 @@ export const useAuthStore = defineStore('auth', () => {
     isEmailVerified,
     isLoading,
     isRefreshingProfile,
-    loginWithPassword,
+    startBffLogin,
     logout,
     refreshProfile,
     registerWithPassword,

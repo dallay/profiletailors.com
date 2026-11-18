@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
+import type { CurrentUserProfile } from '@modules/auth/infrastructure/auth-api'
 
-const mockRefreshSession = vi.fn()
+const mockGetBffSession = vi.fn()
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
@@ -13,11 +13,11 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
       },
       { raw: async () => new Response(null, { status: 204 }) },
     ),
-  refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
-  getCurrentUserProfile: vi.fn().mockResolvedValue(null),
-  login: vi.fn(),
+  getBffSession: (...args: unknown[]) => mockGetBffSession(...args),
+  logoutBffSession: vi.fn(),
+  buildBffLoginUrl: (returnTo: string) =>
+    `/oauth2/authorization/pt-app?returnTo=${encodeURIComponent(returnTo)}`,
   register: vi.fn(),
-  logoutSession: vi.fn(),
   fetchPublicCapabilities: vi.fn(),
 }))
 
@@ -31,27 +31,23 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
   }),
 }))
 
-const fakeTokens: AuthTokens = {
-  accessToken: 'access-hydrated',
-  tokenType: 'Bearer',
-  expiresIn: 3600,
+const fakeProfile: CurrentUserProfile = {
   principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'user@example.com',
   username: 'testuser',
-  emailStatus: 'ACTIVE',
-  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+  emailStatus: 'VERIFIED',
 }
 
 describe('router real guard navigation', { timeout: 15000 }, () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    mockRefreshSession.mockReset()
+    mockGetBffSession.mockReset()
     vi.resetModules()
   })
 
   it('redirects unreachable session from requiresAuth to /offline instead of /login', async () => {
-    mockRefreshSession.mockRejectedValue(new TypeError('Failed to fetch'))
+    mockGetBffSession.mockRejectedValue(new TypeError('Failed to fetch'))
     const { default: router } = await import('./index')
 
     await router.push('/scheduler/calendar/week')
@@ -62,7 +58,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('redirects unauthenticated user from canonical scheduler route to /login', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     const { default: router } = await import('./index')
 
     await router.push('/scheduler/calendar/week')
@@ -73,7 +69,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('redirects authenticated user away from /login to /', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
     const { default: router } = await import('./index')
     const auth = useAuthStore()
     await auth.hydrateSession()
@@ -85,7 +81,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('redirects an authenticated user away from guest-only forgot password', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
     const { default: router } = await import('./index')
 
     await router.push('/forgot-password')
@@ -95,7 +91,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('allows an authenticated user to open reset password with its capability', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     const { default: router } = await import('./index')
 
     await router.push('/reset-password?token=opaque-capability')
@@ -106,7 +102,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('redirects unauthenticated user from the relocated /media route to /login', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     const { default: router } = await import('./index')
 
     await router.push('/media')
@@ -117,7 +113,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('preserves /register so the route can render its fail-closed state in place', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     const { default: router } = await import('./index')
 
     await router.push('/register?email=user@example.com')
@@ -129,7 +125,7 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
   })
 
   it('allows navigation to /register when registration is enabled', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     mockPublicCapabilitiesLoad.mockResolvedValue(undefined)
     vi.doMock('@modules/auth/infrastructure/public-capabilities.store', () => ({
       usePublicCapabilitiesStore: () => ({

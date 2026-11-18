@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-011-create-external-identity-links
+      author: yacosta738
+      changes:
+        - createTable:
+            tableName: external_identity_links
+            columns:
+              - column:
+                  name: issuer
+                  type: varchar(2048)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_external_identity_links_principal
+                    references: principals(id)
+              - column:
+                  name: link_status
+                  type: varchar(16)
+                  defaultValue: DISABLED
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: external_identity_links
+            columnNames: issuer, subject
+            constraintName: pk_external_identity_links
+        - sql:
+            sql: >
+              ALTER TABLE external_identity_links
+              ADD CONSTRAINT chk_external_identity_links_status
+              CHECK (link_status IN ('APPROVED', 'DISABLED', 'DISALLOWED'))

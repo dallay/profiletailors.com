@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.command.BulkInviteWaitlistEntriesCommand
 import com.profiletailors.smp.platformadmin.application.command.BulkInviteWaitlistEntriesResult
@@ -39,7 +39,7 @@ class AdminWaitlistController(
     private val bulkInviteHandler: BulkInviteWaitlistEntriesHandler,
     private val cancelHandler: CancelWaitlistEntryHandler,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val waitlistQueryTelemetry: WaitlistQueryTelemetry,
 ) {
 
@@ -156,7 +156,7 @@ class AdminWaitlistController(
     }
 
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 

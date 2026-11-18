@@ -142,5 +142,5 @@ class WorkspaceSocialContentCalendarQueryHandler(
 
 typealias SocialContentCalendarRequest = WorkspaceSocialContentCalendarQuery
 
-private fun currentWorkspaceScope(resourceContextProvider: ResourceContextProvider): WorkspaceScope =
+private suspend fun currentWorkspaceScope(resourceContextProvider: ResourceContextProvider): WorkspaceScope =
     WorkspaceScope(requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId))

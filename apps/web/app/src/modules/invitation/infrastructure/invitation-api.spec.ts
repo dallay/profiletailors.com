@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { acceptInvitationRequest } from './invitation-api'
 
 function stubFetch(response: Response) {
-  const fetchMock = vi.fn(() => Promise.resolve(response))
+  const fetchMock = vi.fn((url: string) =>
+    Promise.resolve(
+      url.endsWith('/api/auth/csrf')
+        ? new Response(JSON.stringify({ token: 'csrf-proof' }), { status: 200 })
+        : response,
+    ),
+  )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
@@ -13,7 +19,7 @@ function stubFetchThrows(error: unknown) {
   return fetchMock
 }
 
-function getFetchArgs(mock: ReturnType<typeof vi.fn>, index = 0) {
+function getFetchArgs(mock: ReturnType<typeof vi.fn>, index = 1) {
   const args = mock.mock.calls[index] as [string, RequestInit] | undefined
   if (!args) throw new Error('fetch not called')
   return { url: args[0], init: args[1] }
@@ -54,7 +60,7 @@ describe('acceptInvitationRequest', () => {
       errorStatus: null,
     })
 
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     const { url, init } = getFetchArgs(fetchMock)
     expect(url).toBe('http://localhost:7638/api/invitations/accept')
     expect(init.method).toBe('POST')
@@ -289,18 +295,27 @@ describe('acceptInvitationRequest', () => {
     expect(result.errorStatus).toBe(403)
   })
 
-  it('sends the authenticated access token as a Bearer Authorization header', async () => {
-    const fetchMock = stubFetch(
-      new Response(JSON.stringify({ workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59' }), {
-        status: 200,
-      }),
-    )
+  it('uses the BFF session and CSRF proof without sending a bearer token', async () => {
+    const fetchMock = vi.fn((url: string) => {
+      if (url.endsWith('/api/auth/csrf')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ token: 'csrf-proof' }), { status: 200 }),
+        )
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ workspaceId: 'workspace-1' }), { status: 200 }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
 
-    await acceptInvitationRequest('tok', 'access-token-1')
+    await acceptInvitationRequest('tok')
 
-    const { init } = getFetchArgs(fetchMock)
-    const headers = init.headers as Record<string, string>
-
-    expect(headers.Authorization).toBe('Bearer access-token-1')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:7638/api/auth/csrf')
+    const { init } = getFetchArgs(fetchMock, 1)
+    const headers = new Headers(init.headers)
+    expect(init.credentials).toBe('include')
+    expect(headers.get('X-CSRF-TOKEN')).toBe('csrf-proof')
+    expect(headers.has('Authorization')).toBe(false)
   })
 })

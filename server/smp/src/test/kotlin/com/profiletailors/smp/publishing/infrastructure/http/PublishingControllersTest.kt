@@ -54,6 +54,7 @@ import com.profiletailors.smp.publishing.infrastructure.http.RecurringScheduleCo
 import com.profiletailors.smp.publishing.infrastructure.http.RecurringSchedulePatchRequest
 import com.profiletailors.smp.publishing.infrastructure.http.RecurringScheduleRequest
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -238,7 +239,7 @@ class PublishingControllersTest {
     }
 
     @Test
-    fun `constructs SSE stream scoped to active workspace`() {
+    fun `constructs SSE stream scoped to active workspace`() = runTest {
         val controller = PublishingChannelController(
             mediator = CapturingMediator(),
             resourceContextProvider = FixedResourceContextProvider("workspace-1"),
@@ -270,10 +271,10 @@ class PublishingControllersTest {
             ),
         )
 
-        val firstEvent = controller.streamEvents().filter { it.event() != "heartbeat" }.blockFirst()
+        val firstEvent = controller.streamEvents().filter { it.event() != "heartbeat" }.next().awaitSingle()
 
-        assertEquals("connected-channel.updated", firstEvent?.event())
-        assertEquals("account-1", firstEvent?.data()?.socialAccountId)
+        assertEquals("connected-channel.updated", firstEvent.event())
+        assertEquals("account-1", firstEvent.data()?.socialAccountId)
     }
 
     @Test
@@ -742,7 +743,7 @@ class PublishingControllersTest {
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(
+        override suspend fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )

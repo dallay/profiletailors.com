@@ -113,6 +113,19 @@ security-relevant surface bucket wins.
 | `sonar-pr`                | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
 | `summary`                 | Always                                  | Explains what ran and where findings appear |
 
+#### Semgrep rule packs
+
+Both Semgrep PR jobs load `.semgrep/config.yml` for path exclusions and add the registry rule
+packs that match the scanned scope:
+
+| Job                | Rule packs                                                                    |
+|--------------------|-------------------------------------------------------------------------------|
+| `semgrep-backend`  | `p/kotlin`, `p/dockerfile`, `p/github-actions`, `p/secrets`                   |
+| `semgrep-frontend` | `p/javascript`, `p/typescript`, `p/dockerfile`, `p/github-actions`, `p/secrets` |
+
+The scan must exit successfully and must produce the SARIF file. A failed scan blocks the job;
+findings are published to GitHub code scanning instead of failing the job.
+
 ### Scheduled deep lane: `.github/workflows/security-deep.yml`
 
 The deep lane exists to answer a different question: **what broader security drift or latent issues
@@ -297,6 +310,22 @@ If Sonar is not fully configured:
 - the workflow must say so explicitly
 - the summary must explain why it skipped
 - the repository should not pretend centralized reporting is active
+
+### Pinned Python runtime for the Semgrep CLI
+
+Both Semgrep lanes install the CLI through `pip`, which requires a pinned interpreter:
+
+- `actions/setup-python` with `python-version: '3.11'`
+- the pinned CLI release: `semgrep==1.126.0`
+
+The `ubuntu-latest` runner image default Python is not a supported contract for this step.
+Semgrep 1.126.0 publishes wheels for CPython 3.9, 3.10, and 3.11 only, and its transitive
+`protobuf` dependency does not support CPython 3.14. Installing the pinned CLI on the image
+default aborts the scanner at import time, before any file is analyzed.
+
+The PR lane records the scanner exit code and requires a SARIF output file. Findings remain
+reported through SARIF without changing the lane's existing finding-gate behavior. If Semgrep exits
+without producing SARIF, the job fails with an explicit error instead of a missing-artifact message.
 
 ## Local Usage
 

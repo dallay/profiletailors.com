@@ -182,27 +182,19 @@ describe('useAdminAuthStore', () => {
     expect(store.hasPermission('platform.waitlist.invite')).toBe(false)
   })
 
-  it('hydrateSession sets principal from 200 response', async () => {
+  it('hydrates typed admin session from the server', async () => {
     const mockPrincipal = {
       principalId: '304a3c09-200e-557d-a2ec-f0bab01227f3',
       email: 'test@platform.example',
       displayName: 'Test Admin',
       platformRoles: ['PLATFORM_OPERATOR'],
     }
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((input: RequestInfo | URL) => {
-        const path = String(input)
-        if (path.endsWith('/api/auth/refresh')) {
-          return Promise.resolve(jsonResponse({ accessToken: 'refresh-token' }))
-        }
-        return Promise.resolve(jsonResponse(mockPrincipal))
-      }),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(mockPrincipal)))
     const store = useAdminAuthStore()
     await store.hydrateSession()
     expect(store.principal).toEqual(mockPrincipal)
     expect(store.isAuthenticated).toBe(true)
+    expect('accessToken' in store).toBe(false)
   })
 
   it('hydrateSession clears principal on non-200 response', async () => {
@@ -222,70 +214,45 @@ describe('useAdminAuthStore', () => {
     expect(store.isAuthenticated).toBe(false)
   })
 
-  it('signIn stores the access token and loads the admin principal', async () => {
-    const mockPrincipal = {
-      principalId: '304a3c09-200e-557d-a2ec-f0bab01227f3',
-      email: 'test@platform.example',
-      displayName: 'Test Admin',
-      platformRoles: ['PLATFORM_OPERATOR'],
-    }
-    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
-      const path = String(input)
-      if (path.endsWith('/api/auth/login')) {
-        return Promise.resolve(jsonResponse({ accessToken: 'access-token' }))
-      }
-      return Promise.resolve(jsonResponse(mockPrincipal))
-    })
+  it('starts pt-admin login and keeps only a same-origin return path', () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { assign, origin: 'http://localhost' })
+    const store = useAdminAuthStore()
+    store.signIn('/waitlist?status=pending')
+    expect(assign).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '/oauth2/authorization/pt-admin?returnTo=%2Fwaitlist%3Fstatus%3Dpending',
+      ),
+    )
+  })
+
+  it('replaces an external return destination with the admin root', () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { assign, origin: 'http://localhost' })
+    const store = useAdminAuthStore()
+    store.signIn('//attacker.example/admin')
+    expect(assign).toHaveBeenCalledWith(expect.stringContaining('returnTo=%2F'))
+  })
+
+  it('sends CSRF proof on unsafe session requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ token: 'csrf-proof' }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
     vi.stubGlobal('fetch', fetchMock)
-
     const store = useAdminAuthStore()
-    await store.signIn('admin@example.com', 'correct horse battery staple')
-
-    expect(store.accessToken).toBe('access-token')
-    expect(store.principal).toEqual(mockPrincipal)
-    const sessionRequest = fetchMock.mock.calls[1]
-    const sessionUrl = new URL(sessionRequest?.[0] as string, 'http://localhost')
-    expect(sessionUrl.pathname).toBe('/api/admin/session')
-    expect(sessionRequest?.[1]?.credentials).toBe('include')
-    expect(new Headers(sessionRequest?.[1]?.headers).get('Authorization')).toBe(
-      'Bearer access-token',
+    await store.request('/api/admin/operators', { method: 'POST', body: '{}' })
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('X-CSRF-TOKEN')).toBe(
+      'csrf-proof',
     )
   })
 
-  it('coalesces concurrent refreshes before retrying protected requests', async () => {
-    let protectedRequestCount = 0
-    let refreshRequestCount = 0
-    let resolveRefresh: (response: Response) => void = () => {}
-    const refreshResponse = new Promise<Response>((resolve) => {
-      resolveRefresh = resolve
-    })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((input: RequestInfo | URL) => {
-        const path = String(input)
-        if (path.endsWith('/api/auth/refresh')) {
-          refreshRequestCount += 1
-          return refreshResponse
-        }
-        protectedRequestCount += 1
-        if (protectedRequestCount <= 2) return Promise.resolve(errorResponse(401))
-        return Promise.resolve(jsonResponse({ ok: true }))
-      }),
-    )
-    const store = useAdminAuthStore()
-
-    const requests = [store.request('/api/admin/one'), store.request('/api/admin/two')]
-    await vi.waitFor(() => expect(refreshRequestCount).toBe(1))
-    resolveRefresh(jsonResponse({ accessToken: 'refreshed-token' }))
-    const responses = await Promise.all(requests)
-
-    expect(responses.every((response) => response.ok)).toBe(true)
-    expect(refreshRequestCount).toBe(1)
-    expect(protectedRequestCount).toBe(4)
-  })
-
-  it('preserves the session and propagates an unsuccessful logout response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(errorResponse(500)))
+  it('sends CSRF proof with logout and clears the local session', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ token: 'csrf-proof' }))
+      .mockResolvedValueOnce(jsonResponse({}))
+    vi.stubGlobal('fetch', fetchMock)
     const store = useAdminAuthStore()
     store.principal = {
       principalId: 'e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea',
@@ -293,10 +260,12 @@ describe('useAdminAuthStore', () => {
       displayName: null,
       platformRoles: ['PLATFORM_OWNER'],
     }
-
-    await expect(store.signOut()).rejects.toMatchObject({ status: 500 })
-
-    expect(store.principal?.principalId).toBe('e7249f5c-a5d6-5aa3-8ed7-2ab683b159ea')
+    await store.signOut()
+    expect(fetchMock.mock.calls[1]?.[0]).toContain('/api/auth/logout')
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('X-CSRF-TOKEN')).toBe(
+      'csrf-proof',
+    )
+    expect(store.principal).toBeNull()
   })
 })
 
@@ -305,13 +274,5 @@ function jsonResponse(body: unknown): Response {
     ok: true,
     status: 200,
     json: async () => body,
-  } as Response
-}
-
-function errorResponse(status: number): Response {
-  return {
-    ok: false,
-    status,
-    json: async () => ({}),
   } as Response
 }

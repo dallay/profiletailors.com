@@ -16,7 +16,7 @@ const push = vi.fn().mockResolvedValue(undefined)
 const replace = vi.fn().mockResolvedValue(undefined)
 const authState = reactive({
   isAuthenticated: true,
-  accessToken: 'test-token',
+  accessToken: 'test-token' as string | null,
   displayName: 'Test User',
   user: { email: 'test@example.com', emailStatus: 'VERIFIED' as string | null },
   userInitials: 'TU',
@@ -31,6 +31,7 @@ const resendVerificationEmail = vi.fn().mockImplementation(async () => {
 const publishingActions = vi.hoisted(() => ({
   connectProviderPersonalProfile: vi.fn().mockResolvedValue(undefined),
 }))
+const loadWorkspacesMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 
 vi.mock('vue-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('vue-router')>()),
@@ -147,7 +148,7 @@ vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
     activeWorkspace: null,
     workspaces: [],
     isLoadingWorkspaces: false,
-    loadWorkspaces: vi.fn().mockResolvedValue(undefined),
+    loadWorkspaces: loadWorkspacesMock,
     setActiveWorkspaceId: vi.fn(),
   }),
 }))
@@ -690,5 +691,42 @@ describe('AppShell scheduler sidebar navigation', () => {
     expect(wrapper.find('[role="alert"]').isVisible()).toBe(true)
 
     consoleErrorSpy.mockRestore()
+  })
+})
+
+describe('AppShell workspace bootstrap', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    authState.isAuthenticated = true
+    authState.accessToken = null
+    authState.user.emailStatus = 'VERIFIED'
+    authState.resendVerificationStatus = 'idle'
+    authState.resendVerificationError = null
+  })
+
+  it('loads workspaces for an authenticated session without an access token', async () => {
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    await flushPromises()
+
+    expect(loadWorkspacesMock).toHaveBeenCalledWith(null)
+
+    wrapper.unmount()
+  })
+
+  it('does not load workspaces for an unauthenticated session', async () => {
+    authState.isAuthenticated = false
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    await flushPromises()
+
+    expect(loadWorkspacesMock).not.toHaveBeenCalled()
+
+    wrapper.unmount()
   })
 })

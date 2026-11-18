@@ -76,34 +76,8 @@ export const SUPPORT_PRINCIPAL = {
   platformRoles: ['SUPPORT_AGENT'],
 }
 
-export function mockTokens(email: string) {
-  return {
-    accessToken: `e2e-access-token-for-${email}`,
-    tokenType: 'Bearer',
-    expiresIn: 900,
-    principalId:
-      email === OWNER_PRINCIPAL.email ? OWNER_PRINCIPAL.principalId : SUPPORT_PRINCIPAL.principalId,
-    email,
-    username: email.split('@')[0] ?? email,
-    emailStatus: 'VERIFIED',
-    workspaceId: null,
-  }
-}
-
-export async function loginAs(
-  page: Page,
-  email: string,
-  password = 'E2eTestPass123!',
-): Promise<void> {
+export async function loginAs(page: Page): Promise<void> {
   await page.goto('/login')
-  await page.getByTestId('admin-login-email').fill(email)
-  await page.getByTestId('admin-login-password').fill(password)
-  await Promise.all([
-    page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' && response.url().includes('/api/auth/login'),
-    ),
-    page.getByRole('button', { name: /sign in|iniciar sesión/i }).click(),
-  ])
+  await page.getByTestId('admin-login-button').click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'))
 }

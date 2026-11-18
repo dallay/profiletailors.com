@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.http.server.reactive.ServerHttpRequest
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest
+import org.springframework.mock.web.server.MockServerWebExchange
 
 class LocalAuthControllerTest {
 
@@ -188,7 +190,10 @@ class LocalAuthControllerTest {
         mediator.logoutResult = LogoutUserSessionResult()
         val controller = controller(mediator)
 
-        val response = controller.logout(requestWithCookie("pt_refresh", "refresh-lookup.refresh-secret"))
+        val response = controller.logout(
+            requestWithCookie("pt_refresh", "refresh-lookup.refresh-secret"),
+            MockServerWebExchange.from(MockServerHttpRequest.post("/api/auth/logout").build()),
+        )
 
         assertEquals(204, response.statusCode.value())
         assertTrue(response.headers["Set-Cookie"]?.first()?.contains("Max-Age=0") == true)

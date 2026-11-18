@@ -104,7 +104,7 @@ const resendVerificationFeedback = computed(() => {
 watch(
   () => [auth.isAuthenticated, auth.accessToken] as const,
   ([isAuthenticated, accessToken]) => {
-    if (!isAuthenticated || !accessToken) return
+    if (!isAuthenticated) return
 
     workspace.loadWorkspaces(accessToken).catch((err) => {
       console.warn('Unable to load workspaces', err)

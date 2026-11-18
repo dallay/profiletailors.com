@@ -28,7 +28,12 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 - Users connect one or more LinkedIn or Threads accounts via OAuth
 - Content creation and scheduling happen in-browser; publishing executes server-side via stored OAuth tokens
 - Dashboard state (workspace, theme, sidebar) persists in localStorage
-- Session is maintained via HttpOnly refresh cookie (`pt_refresh`)
+- After human-authentication cutover, the dashboard starts human login through its separate `pt-app`
+  BFF initiation. Provider tokens never enter browser JavaScript; the BFF session uses an HttpOnly
+  cookie, and unsafe session-authenticated requests require CSRF protection
+- Local password login, registration, password recovery, email verification, and refresh-token
+  behavior are pre-cutover behavior only. They are not available as post-cutover human-authentication
+  flows; the cutover must not retain a local-human-credential transition window
 - EU data residency: Oracle Cloud Frankfurt; CDN: Cloudflare global edge
 - Analytics loading is gated by user consent (banner → localStorage → `window.__PT_CONSENT_ANALYTICS`)
 
@@ -44,7 +49,13 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 - Shortlinks: when creating and submitting a new publication, automatically shorten each distinct URL in the post content. Shortening is best-effort: failed URLs remain unchanged and the composer shows a non-blocking warning. Existing publications are not rewritten when edited. Users can review recorded redirect counts in authenticated, paginated workspace analytics.
 - Governance: content takedown request workflow
 - Settings: profile, workspace, integrations (LinkedIn and Threads OAuth), API keys
-- Auth flows: login, register, forgot-password, reset-password, verify-email, provider callback (LinkedIn, Threads)
+- Auth flows: Keycloak-backed human login and logout through the dashboard BFF; LinkedIn and Threads
+  callbacks remain separate integration flows. Local password registration, recovery, verification,
+  and refresh behavior apply only before human-authentication cutover
+- Invitation acceptance: an operator must provision the local principal and approved OIDC identity
+  link before Keycloak access. The invitee then signs in through the BFF and accepts the workspace
+  invitation. Invitation data and OIDC claims do not create or link accounts, and email equality
+  does not link principals
 
 **Constraints:**
 
@@ -72,7 +83,8 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 2. Consistent conventions — every surface follows the same component language, spacing, and interaction model
 3. Consent is structural — analytics cannot load without a valid consent receipt; the app degrades gracefully
 4. Errors are specific — copy explains what went wrong and what to do; never generic "something went wrong"
-5. Auth is secure by default — HttpOnly cookies, no token in URL, session hydration on every load
+5. Auth is secure by default — HttpOnly BFF session cookies, no provider token in browser JavaScript,
+   CSRF protection for unsafe requests, and session hydration on every load
 
 ## Accessibility & Inclusion
 

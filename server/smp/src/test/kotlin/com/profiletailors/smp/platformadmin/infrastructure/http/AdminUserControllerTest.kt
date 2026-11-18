@@ -1,12 +1,14 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.smp.identity.application.ExternalIdentityLinkConflictException
 import com.profiletailors.smp.identity.domain.UserAccountState
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.ProvisionExternalIdentityLinkHandler
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyCodec
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyRecord
 import com.profiletailors.smp.platformadmin.application.UserControlIdempotencyService
@@ -24,7 +26,12 @@ import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
 import java.util.UUID
@@ -38,10 +45,203 @@ class AdminUserControllerTest {
     private val userQuery = mockk<AdminUserQuery>()
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
     private val userControlHandlers = mockk<UserControlHandlers>()
+    private val userControlIdempotencyStore = FakeUserControlIdempotencyStore()
     private val userControlIdempotencyService =
-        UserControlIdempotencyService(FakeUserControlIdempotencyStore(), FakeUserControlIdempotencyCodec())
+        UserControlIdempotencyService(userControlIdempotencyStore, FakeUserControlIdempotencyCodec())
     private val auditPublisher = mockk<AdministrativeAuditPublisher>()
     private val auditHook = mockk<com.profiletailors.smp.audit.domain.AuditHook>(relaxed = true)
+    private val identityLinkHandler = mockk<ProvisionExternalIdentityLinkHandler>(relaxed = true)
+
+    @BeforeEach
+    fun resetIdempotencyStore() {
+        userControlIdempotencyStore.clear()
+    }
+
+    @Test
+    fun `identity link endpoint requires idempotency key and returns created`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .post()
+            .uri("/api/admin/users/$userId/identity-link")
+            .header("Idempotency-Key", "link-key")
+            .bodyValue(mapOf("issuer" to "https://keycloak.ahome.quest/realms/pt", "subject" to "subject-1"))
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo(userId)
+
+        coVerify { identityLinkHandler.handle(match { it.targetPrincipalId == userId && it.subject == "subject-1" }) }
+        assertEquals(userId, userControlIdempotencyStore.lastClaimedRecord?.targetPrincipalId)
+    }
+
+    @Test
+    fun `identity link endpoint maps changed identity for reused idempotency key to safe problem details`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        identityLinkRequest("safe-conflict-key", "https://keycloak.ahome.quest/realms/pt", "subject-1")
+            .expectStatus().isCreated
+
+        identityLinkRequest("safe-conflict-key", "https://keycloak.ahome.quest/realms/pt", "subject-2")
+            .expectStatus().isEqualTo(409)
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("IDEMPOTENCY_KEY_REUSED")
+            .jsonPath("$.detail").isEqualTo("Idempotency key was already used for another user control request.")
+
+        coVerify(exactly = 1) { identityLinkHandler.handle(any()) }
+    }
+
+    @Test
+    fun `identity link endpoint replays identical request without invoking handler twice`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        val body = mapOf("issuer" to "https://keycloak.ahome.quest/realms/pt", "subject" to "subject-1")
+
+        repeat(2) {
+            webClient()
+                .post()
+                .uri("/api/admin/users/$userId/identity-link")
+                .header("Idempotency-Key", "link-replay-key")
+                .bodyValue(body)
+                .exchange()
+                .expectStatus().isCreated
+                .expectBody()
+                .jsonPath("$.principalId").isEqualTo(userId)
+        }
+
+        coVerify(exactly = 1) { identityLinkHandler.handle(any()) }
+    }
+
+    @Test
+    fun `identity link endpoint rejects changed subject for a reused key`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        identityLinkRequest("subject-conflict-key", "https://keycloak.ahome.quest/realms/pt", "subject-1")
+            .expectStatus().isCreated
+        identityLinkRequest("subject-conflict-key", "https://keycloak.ahome.quest/realms/pt", "subject-2")
+            .expectStatus().isEqualTo(409)
+
+        coVerify(exactly = 1) { identityLinkHandler.handle(any()) }
+    }
+
+    @Test
+    fun `identity link endpoint rejects changed issuer for a reused key`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        identityLinkRequest("issuer-conflict-key", "https://keycloak.ahome.quest/realms/pt", "subject-1")
+            .expectStatus().isCreated
+        identityLinkRequest("issuer-conflict-key", "https://keycloak.example/realms/pt", "subject-1")
+            .expectStatus().isEqualTo(409)
+
+        coVerify(exactly = 1) { identityLinkHandler.handle(any()) }
+    }
+
+    @Test
+    fun `identity link endpoint checks manage permission before replaying cached result`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        identityLinkRequest("permission-replay-key", "https://keycloak.ahome.quest/realms/pt", "subject-1")
+            .expectStatus().isCreated
+
+        grantRoles(listOf(PlatformRole.SUPPORT_AGENT))
+        identityLinkRequest("permission-replay-key", "https://keycloak.ahome.quest/realms/pt", "subject-1")
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 1) { identityLinkHandler.handle(any()) }
+    }
+
+    private fun identityLinkRequest(key: String, issuer: String, subject: String) = webClient()
+        .post()
+        .uri("/api/admin/users/$userId/identity-link")
+        .header("Idempotency-Key", key)
+        .bodyValue(mapOf("issuer" to issuer, "subject" to subject))
+        .exchange()
+
+    @Test
+    fun `identity link conflict response omits the owner principal id and stays generic`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        val firstOwnerPrincipalId = "00000000-0000-0000-0000-0000000000a1"
+        val secondOwnerPrincipalId = "00000000-0000-0000-0000-0000000000b2"
+
+        coEvery { identityLinkHandler.handle(any()) } throws ExternalIdentityLinkConflictException(
+            DuplicateKeyException(
+                "duplicate key value violates unique constraint pk_external_identity_links " +
+                    "owner principal $firstOwnerPrincipalId",
+            ),
+        )
+        val firstBody = identityLinkRequest(
+            "conflict-owner-key-one",
+            "https://keycloak.ahome.quest/realms/pt",
+            "subject-1",
+        )
+            .expectStatus().isEqualTo(409)
+            .expectBody(String::class.java)
+            .returnResult()
+            .responseBody
+
+        coEvery { identityLinkHandler.handle(any()) } throws ExternalIdentityLinkConflictException(
+            DuplicateKeyException(
+                "duplicate key value violates unique constraint pk_external_identity_links " +
+                    "owner principal $secondOwnerPrincipalId",
+            ),
+        )
+        val secondBody = identityLinkRequest(
+            "conflict-owner-key-two",
+            "https://keycloak.ahome.quest/realms/pt",
+            "subject-1",
+        )
+            .expectStatus().isEqualTo(409)
+            .expectBody(String::class.java)
+            .returnResult()
+            .responseBody
+
+        val document = jacksonObjectMapper().readTree(requireNotNull(firstBody))
+        assertEquals("IDENTITY_LINK_CONFLICT", document.path("code").asText())
+        assertEquals("Identity link already exists.", document.path("detail").asText())
+        assertEquals("urn:profiletailors:error:IDENTITY_LINK_CONFLICT", document.path("type").asText())
+        assertEquals(409, document.path("status").asInt())
+        assertFalse(requireNotNull(firstBody).contains(firstOwnerPrincipalId))
+        assertFalse(requireNotNull(firstBody).contains(secondOwnerPrincipalId))
+        assertFalse(requireNotNull(secondBody).contains(firstOwnerPrincipalId))
+        assertFalse(requireNotNull(secondBody).contains(secondOwnerPrincipalId))
+        assertEquals(firstBody, secondBody)
+    }
+
+    @Test
+    fun `identity link endpoint rejects missing idempotency key without disclosing internals`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        val body = webClient()
+            .post()
+            .uri("/api/admin/users/$userId/identity-link")
+            .bodyValue(mapOf("issuer" to "https://keycloak.ahome.quest/realms/pt", "subject" to "subject-1"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody(String::class.java)
+            .returnResult()
+            .responseBody
+
+        assertTrue(body.isNullOrBlank())
+    }
+
+    @Test
+    fun `identity link endpoint rejects an invalid idempotency key with a problem detail body`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        val body = webClient()
+            .post()
+            .uri("/api/admin/users/$userId/identity-link")
+            .header("Idempotency-Key", "")
+            .bodyValue(mapOf("issuer" to "https://keycloak.ahome.quest/realms/pt", "subject" to "subject-1"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody(String::class.java)
+            .returnResult()
+            .responseBody
+
+        val document = jacksonObjectMapper().readTree(requireNotNull(body))
+        assertEquals("VALIDATION_ERROR", document.path("code").asText())
+        assertEquals("urn:profiletailors:error:VALIDATION_ERROR", document.path("type").asText())
+        assertEquals(400, document.path("status").asInt())
+        assertEquals("Bad Request", document.path("title").asText())
+    }
 
     @Test
     fun `listUsers returns 401 without principal context`() {
@@ -336,10 +536,11 @@ class AdminUserControllerTest {
             AdminUserController(
                 userQuery = userQuery,
                 operatorAccessResolver = operatorAccessResolver,
-                requestContextStore = FakeRequestContextStore(principal),
+                principalContextProvider = FakePrincipalContextProvider(principal),
                 auditHook = auditHook,
                 userControlHandlers = userControlHandlers,
                 userControlIdempotencyService = userControlIdempotencyService,
+                identityLinkHandler = identityLinkHandler,
 
             ),
         )
@@ -392,29 +593,52 @@ class AdminUserControllerTest {
     )
 
     private class FakeUserControlIdempotencyStore : UserControlIdempotencyStore {
+        private val records = mutableMapOf<Pair<UUID, String>, UserControlIdempotencyRecord>()
+        var lastClaimedRecord: UserControlIdempotencyRecord? = null
+            private set
+
+        fun clear() {
+            records.clear()
+            lastClaimedRecord = null
+        }
+
         override suspend fun find(operatorPrincipalId: UUID, idempotencyKey: String): UserControlIdempotencyRecord? =
-            null
+            records[operatorPrincipalId to idempotencyKey]
 
-        override suspend fun claim(record: UserControlIdempotencyRecord): Boolean = true
+        override suspend fun claim(record: UserControlIdempotencyRecord): Boolean {
+            lastClaimedRecord = record
+            if (record.operation != "identity_link") return true
+            val key = record.operatorPrincipalId to record.idempotencyKey
+            if (key in records) return false
+            records[key] = record
+            return true
+        }
 
-        override suspend fun complete(operatorPrincipalId: UUID, idempotencyKey: String, responseJson: String) = Unit
+        override suspend fun complete(operatorPrincipalId: UUID, idempotencyKey: String, responseJson: String) {
+            val key = operatorPrincipalId to idempotencyKey
+            val record = records[key] ?: return
+            records[key] = record.copy(responseJson = responseJson)
+        }
 
-        override suspend fun remove(operatorPrincipalId: UUID, idempotencyKey: String) = Unit
+        override suspend fun remove(operatorPrincipalId: UUID, idempotencyKey: String) {
+            records.remove(operatorPrincipalId to idempotencyKey)
+        }
     }
 
     private class FakeUserControlIdempotencyCodec : UserControlIdempotencyCodec {
-        override fun encode(value: Any): String = value.toString()
+        private val values = mutableMapOf<String, Any>()
 
-        override fun <T : Any> decode(responseJson: String, responseType: Class<T>): T = error("not used")
+        override fun encode(value: Any): String {
+            val key = UUID.randomUUID().toString()
+            values[key] = value
+            return key
+        }
+
+        override fun <T : Any> decode(responseJson: String, responseType: Class<T>): T =
+            responseType.cast(values.getValue(responseJson))
     }
 
-    private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {
-        override fun currentPrincipalContext(): PrincipalContext? = principal
-        override fun setPrincipalContext(context: PrincipalContext?) = Unit
-        override fun currentResourceContext(): ResourceContext? = null
-        override fun setResourceContext(context: ResourceContext?) = Unit
-        override fun currentRequestPath(): String? = null
-        override fun setRequestPath(path: String?) = Unit
-        override fun clear() = Unit
+    private class FakePrincipalContextProvider(private val principal: PrincipalContext?) : PrincipalContextProvider {
+        override suspend fun current(): PrincipalContext? = principal
     }
 }

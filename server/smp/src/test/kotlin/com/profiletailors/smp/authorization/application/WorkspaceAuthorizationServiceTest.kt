@@ -324,7 +324,7 @@ class WorkspaceAuthorizationServiceTest {
 
     private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
         ResourceContextProvider {
-        override fun current(): ResourceContext = resourceContext
+        override suspend fun current(): ResourceContext = resourceContext
     }
 
     private class FixedWorkspaceMembershipResolver(private val membership: WorkspaceMembership?) :

@@ -5,7 +5,6 @@ import AuthView from './AuthView.vue'
 
 const routeState = vi.hoisted(() => ({ name: 'login', query: {} as Record<string, unknown> }))
 const route = reactive(routeState)
-const replace = vi.hoisted(() => vi.fn())
 const load = vi.hoisted(() => vi.fn())
 const capabilityState = vi.hoisted(() => ({
   resolved: false,
@@ -13,7 +12,7 @@ const capabilityState = vi.hoisted(() => ({
   invitationAcceptanceEnabled: false,
 }))
 const capabilities = reactive(capabilityState)
-vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ replace }) }))
+vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({}) }))
 vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
   usePublicCapabilitiesStore: () => ({
     load,
@@ -48,10 +47,7 @@ function mountView(): ReturnType<typeof mount> {
     global: {
       stubs: {
         LoginForm: {
-          props: ['email'],
-          emits: ['update:email', 'success'],
-          template:
-            '<div data-testid="login"><button @click="$emit(\'update:email\', \'kept@example.com\')">email</button><button data-testid="login-success" @click="$emit(\'success\')">ok</button></div>',
+          template: '<div data-testid="login"><button>Continue with pt-app</button></div>',
         },
         RegisterForm: {
           name: 'RegisterForm',
@@ -77,7 +73,6 @@ describe('AuthView orchestration', () => {
     capabilities.registrationEnabled = false
     capabilities.invitationAcceptanceEnabled = false
     load.mockReset()
-    replace.mockReset()
   })
 
   it('renders login immediately without waiting for capabilities', (): void => {
@@ -94,14 +89,13 @@ describe('AuthView orchestration', () => {
     expect(wrapper.find('[data-testid="register"]').exists()).toBe(false)
   })
 
-  it('preserves only email when switching from login to registration', async (): Promise<void> => {
+  it('renders BFF login as a separate flow from invitation registration', async (): Promise<void> => {
     capabilities.resolved = true
     capabilities.registrationEnabled = true
     const wrapper = mountView()
-    await wrapper.get('button').trigger('click')
     route.name = 'register'
     await wrapper.vm.$nextTick()
-    expect(wrapper.get('[data-testid="register"]').text()).toBe('kept@example.com')
+    expect(wrapper.find('[data-testid="register"]').exists()).toBe(true)
   })
 
   it('allows invitation registration while public registration is disabled', (): void => {
@@ -115,16 +109,5 @@ describe('AuthView orchestration', () => {
     expect(wrapper.getComponent({ name: 'RegisterForm' }).props('invitationToken')).toBe(
       'raw-token',
     )
-  })
-
-  it.each([
-    ['protocol-relative', '//evil.example/phish', '/'],
-    ['absolute', 'https://evil.example/phish', '/'],
-    ['internal', '/invitations/accept?token=x', '/invitations/accept?token=x'],
-  ])('resolves %s redirect after login', async (_label, redirect, expected): Promise<void> => {
-    route.query = { redirect }
-    const wrapper = mountView()
-    await wrapper.get('[data-testid="login-success"]').trigger('click')
-    expect(replace).toHaveBeenCalledWith(expected)
   })
 })

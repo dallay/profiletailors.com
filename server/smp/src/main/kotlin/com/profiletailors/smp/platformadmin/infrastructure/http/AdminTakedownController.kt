@@ -1,8 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.governance.application.AdminTakedownReport
 import com.profiletailors.smp.governance.application.AdminTakedownReportDetail
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyService
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminTakedownController(
     private val handlers: AdminTakedownHandlers,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val configurationIdempotencyService: ConfigurationIdempotencyService,
 ) {
     @GetMapping
@@ -96,7 +96,7 @@ class AdminTakedownController(
     }
 
     private suspend fun resolveOperator(): OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 

@@ -2,6 +2,12 @@
 
 ## Overview
 
+This document describes the existing local-password bootstrap procedure. It is not a procedure for
+the Keycloak BFF cutover. After cutover, do not use this flow to establish human credentials; the
+Keycloak migration requires an operator-provisioned local principal and approved external-identity
+association before enabling Keycloak access. The replacement operational procedure is not yet
+documented and remains a cutover documentation gap.
+
 The initial platform owner is created through a private, interactive container command. The command
 prints one invitation link to the terminal. It does not send the invitation by email. The recipient
 sets a password and accepts the current Terms at the admin `/bootstrap` route. The existing email
@@ -17,6 +23,11 @@ Set `SMP_ADMIN_PUBLIC_ORIGIN` to the public admin origin for the installation. F
 the value is `https://admin.profiletailors.com`. A self-hosted installation must use its own origin.
 Include the admin origin in `SMP_CORS_ALLOWED_ORIGINS`. Build the admin SPA with its installation's
 `VITE_API_BASE_URL`.
+
+For Keycloak BFF deployment, this admin origin is not either OIDC callback. The callbacks target the
+backend API origin and must be registered separately for `pt-app` and `pt-admin`. See the
+[production Docker Compose](./production-docker-compose.md) or
+[production Docker Swarm](./production-docker-swarm.md) readiness gates.
 
 Before using bootstrap, apply the accepted platform-consent, system-actor, and bootstrap-invitation
 migrations. The consent and invitation changesets are gated by the explicit

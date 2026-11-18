@@ -135,9 +135,7 @@ graph TB
   Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy,
   Publishing, Tenancy.
 - **Cross-Cutting Module**: Config.
-- **Key Features**: Reactive programming with Kotlin coroutines, Bearer JWT access-token authentication with an HttpOnly refresh-token cookie,
-  non-blocking R2DBC access, internal in-process event publishing via Reactor (`ChannelEventPublisher`),
-  Spring Modulith modular monolith.
+- **Key Features**: Reactive programming with Kotlin coroutines, Keycloak OIDC browser authentication through the Spring Security BFF (migration in progress), retained pre-cutover local bearer/refresh authentication, non-blocking R2DBC access, internal in-process event publishing via Reactor (`ChannelEventPublisher`), Spring Modulith modular monolith.
 
 ### Data Containers
 
@@ -155,7 +153,7 @@ graph TB
 - **Technology**: Caffeine local in-memory cache via `shared:shield:ratelimit`
 - **Deployment**: Embedded JVM in-memory, one bucket store per SMP replica
 - **Purpose**: Rate-limit state storage for Bucket4j in the single-backend-replica 0.1.0 topology.
-- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). The JWT access token is validated statelessly from the `Authorization: Bearer` header, while only the refresh token is stored in an HttpOnly cookie.
+- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). The legacy pre-cutover local-auth flow validates JWT access tokens from the `Authorization: Bearer` header and stores refresh tokens in HttpOnly cookies. Human browser authentication is migrating to the Keycloak BFF; deployed readiness and hard-cutover gates remain separate.
 - **Future scaling**: a distributed bucket backend (Redis first, Hazelcast as fallback) is deferred until SMP runs more than one backend replica receiving the same public traffic (dallay/profiletailors.com#380). No Redis implementation exists yet.
 
 #### Event Bus (In-Process Event Dispatch)
@@ -310,7 +308,7 @@ resolution, and MUST NOT be adopted by only raising the replica count.
 ### Caching Strategy
 
 - Caffeine per-JVM store for Bucket4j rate limiting (`shared:shield:ratelimit`); correct for the 0.1.0 single-backend-replica topology, not a global limiter once replicas scale
-- The SPA keeps the short-lived JWT access token in memory and sends it in the `Authorization: Bearer` header; only the refresh token is stored in an HttpOnly cookie
+- The pre-cutover local-auth SPA keeps a short-lived JWT access token in memory and sends it in the `Authorization: Bearer` header; the refresh token uses an HttpOnly cookie. Human browser authentication is migrating to the Keycloak BFF.
 
 ---
 
@@ -323,7 +321,7 @@ resolution, and MUST NOT be adopted by only raising the replica count.
 - ✅ Admin Application (Vue 3 SPA, operator-only)
 - ✅ API Application (Spring Boot 4, all bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
-- ✅ Authentication (JWT + API Key)
+- 🔄 Human authentication migration to Keycloak BFF; local JWT and API-key authentication remain available before hard cutover
 - ✅ Lead Capture Waitlist (public endpoint, persistence, marketing form integration)
 - ✅ LinkedIn integration (early-access publishing)
 

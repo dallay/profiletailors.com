@@ -735,7 +735,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest : PublicationTransact
     }
 
     private class FixedResourceContextProvider : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(
+        override suspend fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = "00000000-0000-0000-0000-00000000049d",
         )

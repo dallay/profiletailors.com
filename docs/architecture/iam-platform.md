@@ -1,6 +1,6 @@
 # IAM Platform Architecture
 
-**Last Updated: 2026-10-04
+**Last Updated: 2026-11-16**
 
 ## Overview
 
@@ -12,6 +12,12 @@ The architecture separates six concerns into bounded contexts: **who** the actor
 **where** they operate (Tenancy), **what** they may do (Authorization), **how** they prove
 themselves (Credentials), **why** the system decided what it did (Governance), and **how** those
 concerns wire together (Platform). Each context follows hexagonal architecture with CQRS dispatch.
+
+Human browser authentication is migrating to Keycloak through the Spring Security BFF defined by
+[ADR-0035](adr/0035-keycloak-human-authentication-bff.md). This migration does not change
+Profile Tailors' authority over local principal identity or authorization. The deployed realm,
+OTP behavior, callback routing, session-cookie behavior, and hard cutover remain unverified
+operational gates; local human authentication remains available before cutover.
 
 ---
 
@@ -26,10 +32,18 @@ they are allowed to do.
 
 - Own the principal taxonomy (USER, SERVICE_ACCOUNT, API_KEY, SYSTEM, INTEGRATION, AGENT)
 - Materialize authenticated principals from validated credentials through repo-local seams
-- Manage user registration, email verification lifecycle, and local user sessions
+- Manage local user identity and account state independently of authentication-provider identity
+- Resolve validated external identities through a separate association keyed by `(issuer, subject)`
 - Provide `AuthenticatedPrincipal` to downstream contexts, never raw framework token types
 
-**Key models**: `Principal`, `PrincipalType`, `User`, `EmailStatus`, `EmailVerificationPolicy`
+**Key models**: `Principal`, `PrincipalType`, `User`, `ExternalIdentityLink`, `EmailStatus`,
+`EmailVerificationPolicy`
+
+An external identity link maps one unique `(issuer, subject)` pair to an existing local
+`principal_id` through a foreign key to `principals.id`. The local principal remains authoritative
+for account and product state, authorization, and audit identity. The association does not replace
+or modify `principals.subject` or `principals.provider`. Multiple external identity links may point
+to one principal; `principal_id` is not unique in the association.
 
 **Distinctions**:
 
@@ -101,12 +115,16 @@ they are allowed to do.
 
 **Responsibilities**:
 
-- Issue and validate JWT access tokens for USER principals
-- Manage refresh credentials for local USER browser sessions (HttpOnly cookies)
-- Handle bearer-based service-account authentication against authoritative backend state
+- Retain local JWT access tokens and refresh credentials for human users only during the pre-cutover
+  migration period
+- Establish Keycloak-authenticated human browser sessions through the reactive BFF after successful
+  external-identity resolution
+- Keep provider tokens server-side and separate browser sessions from machine credentials
+- Retire non-MCP bearer, API-key, and service-account authentication at hard cutover; retain the
+  separate MCP authentication contract, which authenticates MCP requests with its own bearer JWT
+  and never accepts a human BFF session
 - Manage API-key lifecycle: issuance, verification, revocation, and replacement cutover
 - Support authoritative revocation enforcement for all credential paths
-- Preserve a path for future external federation without redefining core semantics
 
 **Key models**: `AccessToken`, `RefreshCredential`, `ApiKeyCredential`,
 `ServiceAccountCredential`, `CredentialState`
@@ -115,10 +133,11 @@ they are allowed to do.
 
 | Credential             | Transport                                 | Storage                                               |
 |------------------------|-------------------------------------------|-------------------------------------------------------|
-| JWT access token       | `Authorization: Bearer` header            | Frontend memory only                                  |
-| Refresh credential     | `HttpOnly` + `SameSite` + `Secure` cookie | Backend authoritative state                           |
-| Service-account bearer | `Authorization: Bearer` header            | Backend authoritative state                           |
-| API key                | Custom header or parameter                | Backend authoritative state (verifier, not plaintext) |
+| Human BFF session      | `Secure`, `HttpOnly`, `SameSite=Lax` cookie | Backend session; beta is in-memory and single-replica |
+| Legacy human JWT       | `Authorization: Bearer` header            | Frontend memory; pre-cutover only                     |
+| Legacy refresh token   | `HttpOnly` + `SameSite` + `Secure` cookie | Backend authoritative state; pre-cutover only         |
+| Service-account bearer | `Authorization: Bearer` header           | Backend authoritative state during migration          |
+| MCP bearer JWT         | `Authorization: Bearer` header            | MCP issuer, audience, workspace, and scope validation   |
 
 ---
 
@@ -173,7 +192,7 @@ Every authenticated actor recognized by the platform is represented as one of si
 
 | Type              | Purpose                                        | Phase One                     |
 |-------------------|------------------------------------------------|-------------------------------|
-| `USER`            | Human users with browser sessions              | ✅ Implemented (JWT + refresh) |
+| `USER`            | Human users with browser sessions              | 🔄 Keycloak BFF migration; local JWT + refresh remain pre-cutover |
 | `SERVICE_ACCOUNT` | Non-human actors with bearer credentials       | ✅ Implemented                 |
 | `API_KEY`         | Non-human actors with key-based authentication | ✅ Implemented                 |
 | `SYSTEM`          | Internal system-to-system actors               | 🔲 Deferred                   |
@@ -263,6 +282,11 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 | `POST /api/auth/resend-verification`                    | Resend verification email                                                                                                 | ✅ Implemented |
 | API-key replacement                                     | Replace an active API key with cutover (no overlap)                                                                       | ✅ Implemented |
 
+The local human-authentication endpoints above describe the pre-cutover flow. At hard cutover,
+Keycloak owns human authentication through the BFF; local human password and refresh-token paths
+must be retired. The BFF uses `GET /api/auth/csrf` for CSRF tokens and the admin identity-link
+workflow is `POST /api/admin/users/{principalId}/identity-link`, governed by ADR-0036.
+
 ### Initial platform-owner bootstrap
 
 | Endpoint | Purpose | Exposure |
@@ -299,8 +323,8 @@ continues through `POST /api/auth/verify-email`.
 | Permission format                      | `<domain>:<resource>:<action>` strings            | Enum-based, integer bitfields                   | Explicit, extensible, debuggable — no enum recompilation for new permissions                     |
 | Scope semantics                        | Reduction-only, after base-permission allow       | Scope-first, context-wide filters               | Prevents scope escape: a scope can never manufacture access the base permission does not grant   |
 | Resource context                       | Explicit `X-Workspace-Id` header                  | Derived from JWT claims, inferred from URL      | Cannot be forged or confused; stays in tenancy context, not mixed into credentials               |
-| JWT for USER, bearer+key for non-human | Multiple credential paths, single principal model | Unified token format for all principal types    | Each credential path has appropriate security properties; entity model stays stable              |
-| Refresh cookie                         | `HttpOnly` + `SameSite` + `Secure`                | `localStorage`, `sessionStorage`, opaque tokens | XSS-resistant; refresh credential never exposed to JavaScript                                    |
+| Keycloak BFF for human browser auth   | Reactive OIDC login and relying-party session; local JWT/refresh retained pre-cutover | SPA bearer tokens | Keeps provider tokens server-side while preserving the local principal and authorization model |
+| External identity association         | Unique `(issuer, subject)` maps to existing `principal_id`; multiple links per principal are allowed | Email-based lookup or principal replacement | Preserves local principal authority and prevents email-based linking |
 | Email verification                     | Gating at feature level, not auth level           | Block login until verified                      | Users can authenticate but are gated from sensitive features until verified                      |
 
 ---
@@ -327,10 +351,13 @@ These capabilities are part of the durable platform model but explicitly deferre
 ## Related Documents
 
 - [Component Diagram](c4/03-component.md) — C4 Level 3 view of bounded contexts
-- [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md)
+- [ADR-0035: Keycloak Human Authentication BFF](adr/0035-keycloak-human-authentication-bff.md)
+- [ADR-0036: Restricted External Identity Link Provisioning](adr/0036-restricted-external-identity-link-provisioning.md)
+- [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md) (superseded for human authentication)
+- [Login Flow Architecture](login-flow.md)
 - [Architecture Overview](README.md)
 - [.agents/sdd/specs/](../../.agents/sdd/specs/) — Detailed Gherkin specifications per context
 
 ---
 
-Last Updated: 2026-10-04
+Last Updated: 2026-11-16

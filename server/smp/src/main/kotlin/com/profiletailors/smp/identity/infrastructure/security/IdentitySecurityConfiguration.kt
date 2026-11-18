@@ -10,10 +10,12 @@ import com.profiletailors.smp.credentials.application.FederatedTokenValidator
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
+import com.profiletailors.smp.identity.application.ExternalIdentityResolutionService
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.identity.infrastructure.OidcAuthenticatedPrincipalResolver
 import kotlinx.coroutines.reactor.mono
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -21,20 +23,78 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
-import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
+import org.springframework.security.oauth2.client.userinfo.ReactiveOAuth2UserService
+import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint
+import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
+import org.springframework.web.server.session.CookieWebSessionIdResolver
+import org.springframework.web.server.session.DefaultWebSessionManager
+import org.springframework.web.server.session.InMemoryWebSessionStore
+import org.springframework.web.server.session.WebSessionIdResolver
+import org.springframework.web.server.session.WebSessionManager
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 private const val WORKSPACE_HEADER_NAME = "X-Workspace-Id"
+private const val BFF_CSRF_HEADER_NAME = "X-CSRF-TOKEN"
+private const val BFF_SESSION_IDLE_MINUTES = 30L
+
+internal fun bffSessionCsrfMatcher() = ServerWebExchangeMatcher { exchange ->
+    val unsafeMethod = exchange.request.method !in setOf(
+        HttpMethod.GET,
+        HttpMethod.HEAD,
+        HttpMethod.OPTIONS,
+        HttpMethod.TRACE,
+    )
+    val hasBffSession = exchange.request.cookies.containsKey(IdentitySecurityConfiguration.BFF_SESSION_COOKIE_NAME)
+    if (unsafeMethod && hasBffSession) {
+        ServerWebExchangeMatcher.MatchResult.match()
+    } else {
+        ServerWebExchangeMatcher.MatchResult.notMatch()
+    }
+}
+
+@Configuration
+class BffSessionConfiguration {
+    @Bean
+    fun webSessionIdResolver(): WebSessionIdResolver = CookieWebSessionIdResolver().apply {
+        setCookieName(IdentitySecurityConfiguration.BFF_SESSION_COOKIE_NAME)
+        addCookieInitializer { cookie ->
+            cookie.path("/")
+                .secure(true)
+                .httpOnly(true)
+                .sameSite("Lax")
+        }
+    }
+
+    @Bean
+    fun webSessionManager(sessionIdResolver: WebSessionIdResolver): WebSessionManager =
+        DefaultWebSessionManager().apply {
+            setSessionIdResolver(sessionIdResolver)
+            setSessionStore(
+                InMemoryWebSessionStore().apply {
+                    defaultMaxIdleTime = Duration.ofMinutes(BFF_SESSION_IDLE_MINUTES)
+                },
+            )
+        }
+
+    @Bean
+    fun bffLoginSuccessHandler(
+        @Value("\${app.email.public-app-url}") publicAppUrl: String,
+        @Value("\${app.security.cors.admin-public-origin:}") adminPublicOrigin: String,
+    ): ServerAuthenticationSuccessHandler = BffLoginSuccessHandler(publicAppUrl, adminPublicOrigin)
+}
 
 @ConfigurationProperties(prefix = "app.security.cors")
 data class CorsConfigurationProperties(
@@ -52,7 +112,7 @@ data class CorsConfigurationProperties(
 
     companion object {
         val REQUIRED_CORS_HEADERS: List<String> =
-            listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME)
+            listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME, BFF_CSRF_HEADER_NAME)
     }
 }
 
@@ -66,7 +126,6 @@ class IdentitySecurityConfiguration {
      * signature stays under SonarQube's 7-parameter limit.
      */
     data class IdentityWebFilters(
-        val apiKeyAuthentication: WebFilter,
         val authenticatedPrincipalContext: WebFilter,
         val refreshSessionOriginValidation: WebFilter,
         val revokedCredentialAudit: WebFilter,
@@ -74,14 +133,11 @@ class IdentitySecurityConfiguration {
 
     @Bean
     fun identityWebFilters(
-        apiKeyAuthenticationWebFilter: WebFilter,
         refreshSessionProperties: RefreshSessionProperties,
         revokedCredentialAuditWebFilter: WebFilter,
-        requestContextStore: RequestContextStore,
         corsProperties: CorsConfigurationProperties,
     ): IdentityWebFilters = IdentityWebFilters(
-        apiKeyAuthentication = apiKeyAuthenticationWebFilter,
-        authenticatedPrincipalContext = AuthenticatedPrincipalContextWebFilter(requestContextStore),
+        authenticatedPrincipalContext = AuthenticatedPrincipalContextWebFilter(),
         refreshSessionOriginValidation = RefreshSessionOriginValidationWebFilter(
             corsProperties = corsProperties,
             refreshSessionProperties = refreshSessionProperties,
@@ -124,70 +180,42 @@ class IdentitySecurityConfiguration {
         ApiKeyPrincipalAuthenticationConverter(apiKeyCredentialStateLookup, apiKeyAuthenticatedPrincipalMaterializer)
 
     @Bean
-    fun apiKeyAuthenticationWebFilter(
+    fun oidcPrincipalResolver(
+        externalIdentityResolutionService: ExternalIdentityResolutionService,
+        @Value("\${spring.security.oauth2.client.provider.keycloak.issuer-uri}") issuer: String,
+    ): OidcAuthenticatedPrincipalResolver = OidcAuthenticatedPrincipalResolver(
+        externalIdentityResolutionService,
+        issuer,
+    )
+
+    @Bean
+    fun localPrincipalOidcUserService(
+        oidcAuthenticatedPrincipalResolver: OidcAuthenticatedPrincipalResolver,
+    ): ReactiveOAuth2UserService<OidcUserRequest, OidcUser> =
+        LocalPrincipalOidcUserService(oidcAuthenticatedPrincipalResolver)
+
+    @Bean
+    fun identitySecurityChains(
+        jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,
         apiKeyPrincipalAuthenticationConverter: ApiKeyPrincipalAuthenticationConverter,
+        filters: IdentityWebFilters,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
-    ): WebFilter = ApiKeyAuthenticationWebFilter(apiKeyPrincipalAuthenticationConverter, authenticationEntryPoint)
+        bffLoginSuccessHandler: ServerAuthenticationSuccessHandler,
+        adminMfaFilter: AdminMfaFilter,
+    ): IdentitySecurityChains = IdentitySecurityChains(
+        jwtPrincipalAuthenticationConverter,
+        apiKeyPrincipalAuthenticationConverter,
+        filters,
+        authenticationEntryPoint,
+        bffLoginSuccessHandler,
+        adminMfaFilter,
+    )
 
     @Bean
     fun securityWebFilterChain(
         http: ServerHttpSecurity,
-        jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,
-        filters: IdentityWebFilters,
-        authenticationEntryPoint: ServerAuthenticationEntryPoint,
-    ): SecurityWebFilterChain = http
-        // The API remains stateless. JWT bearer tokens and API keys do not need CSRF protection,
-        // while refresh/logout are protected explicitly by RefreshSessionOriginValidationWebFilter
-        // because they rely on the HttpOnly refresh-session cookie.
-        .csrf { it.disable() }
-        .cors { }
-        .authorizeExchange {
-            it.pathMatchers(
-                HttpMethod.GET,
-                "/actuator/health",
-                "/actuator/health/**",
-                "/api/capabilities/public",
-                "/api/media/assets/*/preview",
-                "/api/media/assets/*/content",
-                "/api/media/proxy",
-                "/api/bootstrap/requirements",
-                "/{shortCode:[0-9A-Za-z]{1,32}}",
-            ).permitAll()
-                .pathMatchers(
-                    HttpMethod.POST,
-                    "/api/auth/verify-email",
-                ).permitAll()
-                .pathMatchers(
-                    HttpMethod.POST,
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/auth/refresh",
-                    "/api/auth/logout",
-                    "/api/auth/resend-verification",
-                    "/api/auth/forgot-password",
-                    "/api/auth/reset-password",
-                    "/api/bootstrap/complete",
-                ).permitAll()
-                .pathMatchers(
-                    HttpMethod.POST,
-                    "/api/waitlists/*/entries",
-                ).permitAll()
-                .anyExchange().authenticated()
-        }
-        .exceptionHandling { exceptions ->
-            exceptions.authenticationEntryPoint(authenticationEntryPoint)
-        }
-        .oauth2ResourceServer { oauth2 ->
-            oauth2.authenticationEntryPoint(authenticationEntryPoint)
-            oauth2.jwt { jwt ->
-                jwt.jwtAuthenticationConverter(jwtPrincipalAuthenticationConverter)
-            }
-        }
-        .addFilterBefore(filters.refreshSessionOriginValidation, SecurityWebFiltersOrder.AUTHENTICATION)
-        .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
-        .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
-        .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)
-        .build()
+        identitySecurityChains: IdentitySecurityChains,
+    ): SecurityWebFilterChain = identitySecurityChains.legacyChain(http)
 
     @Bean
     fun revokedCredentialAuditWebFilter(auditHook: AuditHook): WebFilter = RevokedCredentialAuditWebFilter(auditHook)
@@ -297,6 +325,7 @@ class IdentitySecurityConfiguration {
     }
 
     companion object {
+        internal const val BFF_SESSION_COOKIE_NAME = "SESSION"
         internal fun Throwable.findServiceAccountCredentialException(): ServiceAccountCredentialNotActiveException? {
             var current: Throwable? = this
             while (current != null) {
@@ -324,4 +353,19 @@ class IdentitySecurityConfiguration {
             "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
         internal const val WORKSPACE_ACCESS_PERMISSION = "workspace:access:read"
     }
+}
+
+@Configuration
+class AdminAndFreshMfaFilterConfiguration {
+    @Bean
+    fun adminMfaFilter(
+        @Value("\${spring.security.oauth2.client.provider.keycloak.issuer-uri}") issuer: String,
+    ): AdminMfaFilter = AdminMfaFilter(issuer)
+}
+
+class AdminMfaFilter(expectedIssuer: String) {
+    private val delegate = AdminAndFreshMfaAuthorizationWebFilter(expectedIssuer)
+    val webFilter: WebFilter = delegate
+
+    fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> = delegate.filter(exchange, chain)
 }

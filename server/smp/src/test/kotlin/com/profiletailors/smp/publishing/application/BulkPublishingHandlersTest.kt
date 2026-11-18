@@ -22,7 +22,6 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -75,7 +74,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
         coEvery { bulkImportJobRepository.saveRows(any()) } answers {
@@ -121,7 +121,7 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, "ws-other")
+        coEvery { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, "ws-other")
         val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nHi,2026-02-01T12:00:00Z,UTC,,"
         assertThrows<BulkWorkspaceMismatchException> {
             scheduleHandler.handle(ScheduleBulkCommand(workspaceId = workspaceId, csvText = csv, csvHash = csv))
@@ -134,7 +134,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
         coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit
@@ -174,7 +175,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
         coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns null
@@ -190,7 +192,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         val existingJob = BulkImportJob(
             id = "bulk-existing",
             workspaceId = workspaceId,
@@ -288,7 +291,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
         coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit
@@ -318,7 +322,8 @@ class BulkPublishingHandlersTest {
         val principalId = "u-1"
         coEvery { principalContextProvider.require() } returns
             PrincipalContext(principalId, PrincipalType.USER, principalId)
-        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { resourceContextProvider.require() } returns
+            ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
         coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
         coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
         coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit

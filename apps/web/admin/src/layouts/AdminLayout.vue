@@ -85,8 +85,12 @@ const pageTitle = computed(() => {
 const navPort = computed(() => ({ groups: navGroups.value }))
 
 watch(
-  () => authStore.isAuthenticated,
-  (isAuthenticated) => {
+  () => ({ isAuthenticated: authStore.isAuthenticated, accessDenied: authStore.accessDenied }),
+  ({ isAuthenticated, accessDenied }) => {
+    if (accessDenied) {
+      void router.replace({ name: 'access-denied' })
+      return
+    }
     if (!isAuthenticated) void router.replace({ name: 'login' })
   },
 )

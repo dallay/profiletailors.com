@@ -150,11 +150,13 @@ All Ideas Canvas endpoints use `version = "1"` and require
 
 ## Platform admin user controls
 
-The platform-admin user control endpoints are part of the existing v1 media-type contract. Clients may send `Accept: application/vnd.api.v1+json`; requests without an explicit version fall back to the configured default version (`1`). Disable, enable, and refresh-session revocation commands additionally require an `Idempotency-Key` header. See [`platform-admin-user-administration.md`](./platform-admin-user-administration.md) for the complete route, authorization, replay, audit, and rollback contract.
+The platform-admin user control endpoints are part of the existing v1 media-type contract. Clients may send `Accept: application/vnd.api.v1+json`; requests without an explicit version fall back to the configured default version (`1`). Disable, enable, refresh-session revocation, and external identity-link provisioning commands require an `Idempotency-Key` header. See [`platform-admin-user-administration.md`](./platform-admin-user-administration.md) for the complete route, authorization, replay, audit, and rollback contract.
 
 ## Usage
 
-### HTTP Client (Recommended)
+### Legacy local-auth example (pre-cutover only)
+
+This example applies only while the approved Keycloak BFF hard cutover is incomplete. It documents the legacy local-auth endpoint; it is not the human sign-in flow for the Keycloak BFF deployment.
 
 ```bash
 curl -X POST http://localhost:7638/api/auth/login \

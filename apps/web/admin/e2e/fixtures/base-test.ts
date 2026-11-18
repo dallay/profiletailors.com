@@ -19,7 +19,7 @@ export async function setupOwnerSession(
     ...options,
     roles: options.roles ?? [...OWNER_PRINCIPAL.platformRoles],
   })
-  await loginAs(page, OWNER_PRINCIPAL.email)
+  await loginAs(page)
   await page.goto('/waitlist')
   await expect(
     page.getByRole('main').getByRole('heading', { name: heading, level: 1 }),
@@ -29,5 +29,5 @@ export async function setupOwnerSession(
 
 export async function setupSupportSession(page: Page): Promise<void> {
   await registerAdminMocks(page, { roles: [...SUPPORT_PRINCIPAL.platformRoles] })
-  await loginAs(page, SUPPORT_PRINCIPAL.email)
+  await loginAs(page)
 }

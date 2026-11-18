@@ -174,7 +174,7 @@ class PublishingProviderCatalogHandlersTest {
     }
 
     private fun workspaceContextProvider(): ResourceContextProvider = object : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(
+        override suspend fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = "workspace-1",
         )

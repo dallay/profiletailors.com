@@ -21,7 +21,7 @@ internal class GetLinkHandlerTest {
 
     @Test
     fun `does not access a link outside the active workspace`() = runBlocking {
-        every { resourceContextProvider.require() } returns ResourceContext(
+        coEvery { resourceContextProvider.require() } returns ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )

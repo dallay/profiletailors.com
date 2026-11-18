@@ -10,7 +10,7 @@ Visual catalog of every PostgreSQL table in `server/smp` and what it stores. 12 
 
 | Bounded context | Tables | Anchor aggregate | Diagram |
 |---|---|---|---|
-| **identity** | 5 | `principals` | [`erd-identity.html`](./erd-identity.html) |
+| **identity** | 6 | `principals` | [`erd-identity.html`](./erd-identity.html) |
 | **credentials** | 3 | `api_key_credentials` | [`erd-credentials.html`](./erd-credentials.html) |
 | **tenancy** | 3 | `workspaces` | [`erd-tenancy.html`](./erd-tenancy.html) |
 | **authorization** | 7 | `roles` (RBAC core + 3 workspace-scoped extensions) | [`erd-authorization.html`](./erd-authorization.html) |
@@ -22,7 +22,7 @@ Visual catalog of every PostgreSQL table in `server/smp` and what it stores. 12 
 | **platform-admin + privacy** | 5 | `platform_role_assignments` + `data_subject_requests` | [`erd-platform-privacy.html`](./erd-platform-privacy.html) |
 | **MCP + lead-capture + ideas + hashtags** | 6 | `idempotency_records`, `waitlists`, `ideas`, `hashtag_saved_sets` | [`erd-misc.html`](./erd-misc.html) |
 
-**Total: 60 tables across 13 bounded contexts.** Two contexts (publishing, governance) split into multiple diagrams because each has more than 8 tables.
+**Total: 61 tables across 13 bounded contexts.** Two contexts (publishing, governance) split into multiple diagrams because each has more than 8 tables.
 
 ---
 
@@ -96,4 +96,4 @@ Update the affected diagram when any of the following change:
 - A new cross-context FK appears
 - The focal aggregate of a bounded context shifts
 
-The diagrams are an executable artifact: they are generated from the Liquibase changelogs in `server/smp/src/main/resources/db/changelog/`. If the source-of-truth XML drifts from these diagrams, regenerate from the migrations — do not hand-edit the HTML to match code.
+The diagrams are maintained artifacts: no generator exists in this repository, so a diagram is edited by hand and must be updated in the same change as the migration that adds, renames, or re-points a table. Verify every column name, type, primary key, and foreign key against the Liquibase changelogs in `server/smp/src/main/resources/db/changelog/` before publishing the edit, and keep the table counts in the context map above consistent with the diagrams.

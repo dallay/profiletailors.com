@@ -1,8 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.RateLimit
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationCommand
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceResult
@@ -21,7 +21,7 @@ import java.time.Duration
 @RequestMapping("/api/invitations")
 class InvitationAcceptanceController(
     private val acceptInvitationHandler: AcceptInvitationHandler,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val acceptAttemptRateLimit: RateLimit,
     private val clock: Clock,
 ) {
@@ -30,7 +30,7 @@ class InvitationAcceptanceController(
         @RequestBody request: AcceptInvitationRequest,
         exchange: ServerWebExchange,
     ): ResponseEntity<InvitationAcceptanceResult> {
-        val principal = requestContextStore.currentPrincipalContext()
+        val principal = principalContextProvider.current()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (principal.principalType != PrincipalType.USER) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()

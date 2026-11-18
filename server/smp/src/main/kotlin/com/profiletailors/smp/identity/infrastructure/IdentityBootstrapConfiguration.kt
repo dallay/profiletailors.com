@@ -5,6 +5,8 @@ import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.ExternalIdentityLinkGateway
+import com.profiletailors.smp.identity.application.ExternalIdentityLinkProvisioningService
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.MinimumDurationPasswordRecoveryTimingEqualizer
 import com.profiletailors.smp.identity.application.PasswordHasher
@@ -14,6 +16,7 @@ import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.infrastructure.security.LocalJwtProperties
 import com.profiletailors.smp.identity.infrastructure.security.NimbusLocalJwtIssuer
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -58,6 +61,17 @@ class IdentityBootstrapConfiguration {
     fun apiKeyAuthenticatedPrincipalMaterializer(
         principalIdentityLookup: PrincipalIdentityLookup,
     ): ApiKeyAuthenticatedPrincipalMaterializer = ApiKeyAuthenticatedPrincipalMaterializer(principalIdentityLookup)
+
+    @Bean
+    fun externalLinkProvisioner(
+        externalIdentityLinkGateway: ExternalIdentityLinkGateway,
+        principalIdentityLookup: PrincipalIdentityLookup,
+        @Value("\${spring.security.oauth2.client.provider.keycloak.issuer-uri}") expectedIssuer: String,
+    ): ExternalIdentityLinkProvisioningService = ExternalIdentityLinkProvisioningService(
+        externalIdentityLinkGateway = externalIdentityLinkGateway,
+        principalIdentityLookup = principalIdentityLookup,
+        expectedIssuer = expectedIssuer,
+    )
 
     @Bean
     fun passwordHasher(): PasswordHasher = BCryptPasswordHasher()

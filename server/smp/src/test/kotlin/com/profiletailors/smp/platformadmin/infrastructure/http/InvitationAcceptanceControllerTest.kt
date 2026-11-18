@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.RateLimit
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceResult
 import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
@@ -25,11 +25,11 @@ import kotlin.test.assertTrue
 
 class InvitationAcceptanceControllerTest {
     private val acceptInvitationHandler = mockk<AcceptInvitationHandler>()
-    private val requestContextStore = mockk<RequestContextStore>()
+    private val principalContextProvider = mockk<PrincipalContextProvider>()
 
     @Test
     fun `accept returns safe invitation result for authenticated principal`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principalWithEmailAttribute()
+        coEvery { principalContextProvider.current() } returns principalWithEmailAttribute()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult(
                 workspaceId = "workspace-123",
@@ -62,7 +62,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept uses subject when authenticated email claim is absent`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult("workspace-123", "ACTIVE")
 
@@ -81,7 +81,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept returns 401 without an authenticated principal`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns null
+        coEvery { principalContextProvider.current() } returns null
 
         webClient()
             .post()
@@ -94,7 +94,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept rejects an authenticated non-user principal without calling the handler`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal().copy(
+        coEvery { principalContextProvider.current() } returns principal().copy(
             principalType = PrincipalType.SERVICE_ACCOUNT,
         )
 
@@ -111,7 +111,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept returns 400 for a blank token without calling the handler`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
 
         webClient()
             .post()
@@ -126,7 +126,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept returns 429 with safe code when per-key throttle denies without calling the handler`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
         val denied = RateLimit { _, _, _ -> false }
 
         webClient(rateLimit = denied)
@@ -146,7 +146,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept throttle key binds principal without token material`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult("workspace-123", "ACTIVE")
         val throttleKey = slot<String>()
@@ -171,7 +171,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept throttles distinct guesses sharing principal bucket`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult("workspace-123", "ACTIVE")
         val sharedBucket = object : RateLimit {
@@ -208,7 +208,7 @@ class InvitationAcceptanceControllerTest {
 
     @Test
     fun `accept throttle locks attempt bounds to ten per ten minutes`() {
-        coEvery { requestContextStore.currentPrincipalContext() } returns principal()
+        coEvery { principalContextProvider.current() } returns principal()
         coEvery { acceptInvitationHandler.handle(any()) } returns
             InvitationAcceptanceResult("workspace-123", "ACTIVE")
         val throttleWindow = slot<Duration>()
@@ -239,7 +239,7 @@ class InvitationAcceptanceControllerTest {
         .bindToController(
             InvitationAcceptanceController(
                 acceptInvitationHandler = acceptInvitationHandler,
-                requestContextStore = requestContextStore,
+                principalContextProvider = principalContextProvider,
                 acceptAttemptRateLimit = rateLimit,
                 clock = Clock.fixed(Instant.parse("2026-09-17T10:00:00Z"), ZoneOffset.UTC),
             ),

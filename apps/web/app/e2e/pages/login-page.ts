@@ -19,6 +19,10 @@ export class LoginPage {
     return this.page.locator('button[type="submit"]')
   }
 
+  get signInButton(): Locator {
+    return this.page.getByRole('button', { name: /sign in|iniciar sesión/i })
+  }
+
   get errorBanner(): Locator {
     return this.page.getByRole('alert')
   }
@@ -57,6 +61,10 @@ export class LoginPage {
 
   async submit(): Promise<void> {
     await this.submitButton.click()
+  }
+
+  async startBffLogin(): Promise<void> {
+    await this.signInButton.click()
   }
 
   async login(email: string, password: string): Promise<void> {
