@@ -3,6 +3,7 @@ package com.profiletailors.common.domain.context
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 internal class ContextProvidersTest {
 
@@ -21,11 +22,10 @@ internal class ContextProvidersTest {
             override suspend fun current(): PrincipalContext? = null
         }
 
-        try {
+        assertThrows<MissingPrincipalContextException> {
             provider.require()
-            throw AssertionError("Expected MissingPrincipalContextException")
-        } catch (e: MissingPrincipalContextException) {
-            assertThat(e.message).isEqualTo("Authenticated principal context is required.")
+        }.also {
+            assertThat(it.message).isEqualTo("Authenticated principal context is required.")
         }
     }
 
@@ -59,11 +59,10 @@ internal class ContextProvidersTest {
             override suspend fun current(): ResourceContext? = null
         }
 
-        try {
+        assertThrows<MissingResourceContextException> {
             provider.require()
-            throw AssertionError("Expected MissingResourceContextException")
-        } catch (e: MissingResourceContextException) {
-            assertThat(e.message).isEqualTo("Resolved resource context is required.")
+        }.also {
+            assertThat(it.message).isEqualTo("Resolved resource context is required.")
         }
     }
 
@@ -93,11 +92,10 @@ internal class ContextProvidersTest {
             override suspend fun current(): String? = null
         }
 
-        try {
+        assertThrows<MissingRequestPathException> {
             provider.require()
-            throw AssertionError("Expected MissingRequestPathException")
-        } catch (e: MissingRequestPathException) {
-            assertThat(e.message).isEqualTo("Resolved request path is required.")
+        }.also {
+            assertThat(it.message).isEqualTo("Resolved request path is required.")
         }
     }
 
