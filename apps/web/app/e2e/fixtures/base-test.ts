@@ -35,7 +35,7 @@
 import { test as base, expect } from '@bgotink/playwright-coverage'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resetSession } from './auth-helpers'
+import { mockCsrfToken, resetSession } from './auth-helpers'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -50,6 +50,7 @@ export const test = base.extend<{
       url: '**/api/**',
       update: UPDATE_HAR,
     })
+    await mockCsrfToken(page)
     await use(page)
   },
 

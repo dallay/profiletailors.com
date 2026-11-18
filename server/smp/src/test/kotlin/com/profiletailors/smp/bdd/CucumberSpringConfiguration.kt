@@ -68,6 +68,7 @@ class CucumberSpringConfiguration {
             registry.add("bdd.liquibase.username", postgres::getUsername)
             registry.add("bdd.liquibase.password", postgres::getPassword)
             registry.add("spring.security.oauth2.client.provider.keycloak.issuer-uri") { issuer }
+            registry.add("spring.security.oauth2.client.registration.pt-app.provider") { "keycloak" }
             registry.add("spring.security.oauth2.client.registration.pt-app.client-id") {
                 TestOidcProvider.APP_CLIENT_ID
             }
@@ -80,6 +81,7 @@ class CucumberSpringConfiguration {
             registry.add("spring.security.oauth2.client.registration.pt-app.redirect-uri") {
                 "{baseUrl}/login/oauth2/code/{registrationId}"
             }
+            registry.add("spring.security.oauth2.client.registration.pt-admin.provider") { "keycloak" }
             registry.add("spring.security.oauth2.client.registration.pt-admin.client-id") {
                 TestOidcProvider.ADMIN_CLIENT_ID
             }

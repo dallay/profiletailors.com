@@ -82,7 +82,8 @@ Required environment:
 
 - `E2E_MEDIA_EMAIL`
 - `E2E_MEDIA_PASSWORD`
-- backend + app runtime that satisfies the existing real media smoke setup
+- a configured local Keycloak BFF callback and `pt-app` OAuth client
+- backend + app runtime that satisfies the real media smoke setup
 
 From repo root:
 
@@ -114,6 +115,15 @@ This runs:
 2. `app-test-e2e-media-real`
 
 ## Troubleshooting
+
+### Real media authentication requires Keycloak BFF configuration
+
+`E2E_MEDIA_EMAIL` and `E2E_MEDIA_PASSWORD` alone cannot authenticate the local real-media lane. The
+BFF authorization flow requires an SMP `pt-app` OAuth client and a Keycloak-allowed callback URL.
+The repository currently sets that callback to `https://api.profiletailors.com/login/oauth2/code/pt-app`.
+The CI dashboard jobs do not provision Keycloak or provide these settings. Do not use the legacy
+`POST /api/auth/login` flow or a mocked session for real-media tests. Configure a supported local
+BFF callback and IdP-backed browser flow before enabling real-media authentication.
 
 ### Provider-panel scenarios do not need Pinia mutation
 

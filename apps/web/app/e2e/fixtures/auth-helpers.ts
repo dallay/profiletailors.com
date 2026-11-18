@@ -7,7 +7,7 @@
  */
 
 import type { Page, Route } from '@playwright/test'
-import { VALID_CREDENTIALS, APP_URL } from './test-data'
+import { APP_URL } from './test-data'
 
 interface SessionOverrides {
   accessToken?: string
@@ -29,39 +29,53 @@ const API_HEADERS: Record<string, string> = {
 
 const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 
-/**
- * Authenticates through the login form and waits for navigation to complete.
- *
- * @param page - The Playwright page used for authentication.
- * @param credentials - The email and password submitted to the login form.
- * @returns An object containing the access token returned by the login endpoint.
- * @throws Error if the login endpoint responds with a failure status.
- */
+const BFF_SESSION_PROFILE = {
+  principalId: 'ba4bd2ec-6c51-5f21-a2e2-b4588292c4d4',
+  email: 'dev@profiletailors.com',
+  username: 'dev',
+  displayIdentity: 'Dev User',
+} as const
+
+export interface BffSessionOverrides {
+  principalId?: string
+  email?: string
+  username?: string
+  displayIdentity?: string
+}
+
+export async function mockCsrfToken(page: Page, token = 'e2e-csrf-token'): Promise<void> {
+  await page.route('**/api/auth/csrf', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ token, headerName: 'X-CSRF-TOKEN', parameterName: '_csrf' }),
+    })
+  })
+}
+
+export async function mockBffSession(
+  page: Page,
+  overrides: BffSessionOverrides = {},
+): Promise<void> {
+  await page.route('**/api/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/vnd.api.v1+json',
+      body: JSON.stringify({ ...BFF_SESSION_PROFILE, ...overrides }),
+    })
+  })
+  await mockCsrfToken(page)
+}
+
 export async function authenticateAs(
   page: Page,
-  credentials: { email: string; password: string } = VALID_CREDENTIALS,
-): Promise<{ accessToken: string }> {
-  await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
-  await page.getByLabel(/email/i).fill(credentials.email)
-  await page.getByLabel(/^(password|contraseña)$/i).fill(credentials.password)
-  const loginResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname === '/api/auth/login',
-  )
-  await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
-
-  const loginResponse = await loginResponsePromise
-  if (!loginResponse.ok()) {
-    const problem = await loginResponse.text()
-    throw new Error(`Login failed with ${loginResponse.status()}: ${problem}`)
-  }
-
-  const tokens = (await loginResponse.json()) as { accessToken: string }
-
-  // Wait for navigation to dashboard
-  await page.waitForURL('**/')
-  return tokens
+  overrides: BffSessionOverrides = {},
+): Promise<void> {
+  await mockBffSession(page, overrides)
+  await page.goto(APP_URL.dashboard, { waitUntil: 'domcontentloaded' })
+  await page
+    .getByRole('heading', { level: 2, name: /welcome back|bienvenido/i })
+    .waitFor({ state: 'visible', timeout: 15_000 })
 }
 
 /**
@@ -415,6 +429,7 @@ export async function mockCurrentWorkspace(
  * - refresh endpoint (always succeeds with valid tokens)
  * - /api/auth/me (returns user profile)
  * - /api/tenancy/workspaces (returns workspace list)
+ * - /api/auth/csrf (returns the CSRF proof required by mutating requests)
  *
  * Does NOT set a refresh token cookie — tests that reload should do that separately.
  *
@@ -451,6 +466,7 @@ export async function mockAuthenticatedSession(
     workspaceId,
   })
   await mockCurrentWorkspace(page, { workspaceId })
+  await mockCsrfToken(page)
 }
 
 /**
