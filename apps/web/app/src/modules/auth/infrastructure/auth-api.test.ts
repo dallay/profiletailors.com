@@ -18,6 +18,7 @@ import {
   getBffSession,
   logoutBffSession,
   buildBffLoginUrl,
+  fetchWorkspaces,
   type AuthTokens,
   type CurrentUserProfile,
 } from './auth-api'
@@ -1217,6 +1218,54 @@ describe('fetchPublicCapabilities', () => {
       title: 'Service Unavailable',
       status: 503,
     })
+  })
+})
+
+describe('fetchWorkspaces', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('requests workspaces with cookies and no Authorization header when no token is given', async () => {
+    const workspaces = [
+      {
+        workspaceId: '11111111-1111-4111-8111-111111111111',
+        name: 'Studio',
+        role: 'OWNER',
+        icon: null,
+      },
+    ]
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(workspaces), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await fetchWorkspaces()
+
+    expect(result).toEqual(workspaces)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/tenancy/workspaces',
+      expect.objectContaining({
+        method: 'GET',
+        credentials: 'include',
+      }),
+    )
+    expect(fetchHeaders(fetchMock).Authorization).toBeUndefined()
+  })
+
+  it('sends a bearer Authorization header when a token is given', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await fetchWorkspaces('access-token')
+
+    expect(fetchHeaders(fetchMock).Authorization).toBe('Bearer access-token')
   })
 })
 

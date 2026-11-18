@@ -319,7 +319,7 @@ export type WorkspaceSummary = {
  * Fetch all workspaces the authenticated user belongs to.
  * Does NOT require an X-Workspace-Id header — lists across all contexts.
  */
-export async function fetchWorkspaces(token: string): Promise<WorkspaceSummary[]> {
+export async function fetchWorkspaces(token?: string | null): Promise<WorkspaceSummary[]> {
   return request<WorkspaceSummary[]>('/api/tenancy/workspaces', { method: 'GET' }, token)
 }
 

@@ -64,10 +64,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * Fetch all workspaces for the authenticated user.
    * Auto-selects the first workspace if none is currently selected.
    */
-  async function loadWorkspaces(accessToken: string) {
+  async function loadWorkspaces(token?: string | null) {
     isLoadingWorkspaces.value = true
     try {
-      const list = await fetchWorkspaces(accessToken)
+      const list = await fetchWorkspaces(token)
       workspaces.value = list
 
       // Auto-select if nothing selected yet, or if the selected one is no longer in the list
