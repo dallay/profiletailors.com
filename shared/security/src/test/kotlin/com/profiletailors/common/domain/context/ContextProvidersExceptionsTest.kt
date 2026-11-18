@@ -18,24 +18,24 @@ class ContextProvidersExceptionsTest {
     }
 
     @Test
-    fun `ResourceContextProvider require should throw if current is null`() {
+    fun `ResourceContextProvider require should throw if current is null`() = runBlocking {
         val provider = object : ResourceContextProvider {
-            override fun current(): ResourceContext? = null
+            override suspend fun current(): ResourceContext? = null
         }
 
         assertThrows<MissingResourceContextException> {
-            provider.require()
+            runBlocking { provider.require() }
         }
     }
 
     @Test
-    fun `RequestPathProvider require should throw if current is null`() {
+    fun `RequestPathProvider require should throw if current is null`() = runBlocking {
         val provider = object : RequestPathProvider {
-            override fun current(): String? = null
+            override suspend fun current(): String? = null
         }
 
         assertThrows<MissingRequestPathException> {
-            provider.require()
+            runBlocking { provider.require() }
         }
     }
 }

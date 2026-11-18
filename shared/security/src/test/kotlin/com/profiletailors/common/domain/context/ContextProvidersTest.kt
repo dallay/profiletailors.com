@@ -2,7 +2,6 @@ package com.profiletailors.common.domain.context
 
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 internal class ContextProvidersTest {
@@ -46,30 +45,33 @@ internal class ContextProvidersTest {
     }
 
     @Test
-    fun `resource provider should return null when no context`() {
+    fun `resource provider should return null when no context`() = runTest {
         val provider = object : ResourceContextProvider {
-            override fun current(): ResourceContext? = null
+            override suspend fun current(): ResourceContext? = null
         }
 
         assertThat(provider.current()).isNull()
     }
 
     @Test
-    fun `resource provider should throw when require fails`() {
+    fun `resource provider should throw when require fails`() = runTest {
         val provider = object : ResourceContextProvider {
-            override fun current(): ResourceContext? = null
+            override suspend fun current(): ResourceContext? = null
         }
 
-        assertThatThrownBy { provider.require() }
-            .isInstanceOf(MissingResourceContextException::class.java)
-            .hasMessage("Resolved resource context is required.")
+        try {
+            provider.require()
+            throw AssertionError("Expected MissingResourceContextException")
+        } catch (e: MissingResourceContextException) {
+            assertThat(e.message).isEqualTo("Resolved resource context is required.")
+        }
     }
 
     @Test
-    fun `resource provider should return context when available`() {
+    fun `resource provider should return context when available`() = runTest {
         val ctx = ResourceContext(type = ResourceContextType.GLOBAL)
         val provider = object : ResourceContextProvider {
-            override fun current(): ResourceContext? = ctx
+            override suspend fun current(): ResourceContext? = ctx
         }
 
         assertThat(provider.current()).isSameAs(ctx)
@@ -77,29 +79,32 @@ internal class ContextProvidersTest {
     }
 
     @Test
-    fun `request path provider should return null when no path`() {
+    fun `request path provider should return null when no path`() = runTest {
         val provider = object : RequestPathProvider {
-            override fun current(): String? = null
+            override suspend fun current(): String? = null
         }
 
         assertThat(provider.current()).isNull()
     }
 
     @Test
-    fun `request path provider should throw when require fails`() {
+    fun `request path provider should throw when require fails`() = runTest {
         val provider = object : RequestPathProvider {
-            override fun current(): String? = null
+            override suspend fun current(): String? = null
         }
 
-        assertThatThrownBy { provider.require() }
-            .isInstanceOf(MissingRequestPathException::class.java)
-            .hasMessage("Resolved request path is required.")
+        try {
+            provider.require()
+            throw AssertionError("Expected MissingRequestPathException")
+        } catch (e: MissingRequestPathException) {
+            assertThat(e.message).isEqualTo("Resolved request path is required.")
+        }
     }
 
     @Test
-    fun `request path provider should return path when available`() {
+    fun `request path provider should return path when available`() = runTest {
         val provider = object : RequestPathProvider {
-            override fun current(): String? = "/api/users"
+            override suspend fun current(): String? = "/api/users"
         }
 
         assertThat(provider.current()).isEqualTo("/api/users")
