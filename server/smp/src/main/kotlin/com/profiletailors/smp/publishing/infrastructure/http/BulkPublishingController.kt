@@ -120,7 +120,7 @@ class BulkPublishingController(
         return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/csv")).body(result.csv)
     }
 
-    private fun requireWorkspacePath(pathWorkspaceId: String) {
+    private suspend fun requireWorkspacePath(pathWorkspaceId: String) {
         val ctx = try {
             resourceContextProvider.requireWorkspaceContext()
         } catch (ex: IllegalStateException) {

@@ -1,10 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.notifications.domain.NotificationId
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.command.RetryNotificationCommand
@@ -315,7 +314,7 @@ internal class AdminNotificationControllerWebTestClientTest {
                 notificationQuery = notificationQuery,
                 retryHandler = retryHandler,
                 operatorAccessResolver = operatorAccessResolver,
-                requestContextStore = FakeRequestContextStore(principal),
+                principalContextProvider = FakePrincipalContextProvider(principal),
             ),
         )
         .controllerAdvice(AdminProblemDetailsHandler())
@@ -345,13 +344,7 @@ internal class AdminNotificationControllerWebTestClientTest {
         redactedPayload = mapOf("message" to "Redacted"),
     )
 
-    private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {
-        override fun currentPrincipalContext(): PrincipalContext? = principal
-        override fun setPrincipalContext(context: PrincipalContext?) = Unit
-        override fun currentResourceContext(): ResourceContext? = null
-        override fun setResourceContext(context: ResourceContext?) = Unit
-        override fun currentRequestPath(): String? = null
-        override fun setRequestPath(path: String?) = Unit
-        override fun clear() = Unit
+    private class FakePrincipalContextProvider(private val principal: PrincipalContext?) : PrincipalContextProvider {
+        override suspend fun current(): PrincipalContext? = principal
     }
 }

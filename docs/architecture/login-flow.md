@@ -1,27 +1,33 @@
 # Login Flow Architecture & Sequence Diagrams
 
-**Last Updated: 2026-09-29
-
-- **Status**: Active / Implemented
+- **Last Updated**: 2026-11-15
+- **Status**: Migration in progress; local-auth flows below are pre-cutover references
 - **Bounded Contexts**: `com.profiletailors.smp.identity`, `com.profiletailors.smp.credentials`
-- **Related Specifications**: [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md), [IAM Platform](iam-platform.md)
+- **Related Decisions**: [ADR-0035: Keycloak BFF](adr/0035-keycloak-human-authentication-bff.md), [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md) (superseded for human authentication), [IAM Platform](iam-platform.md)
 
 ---
 
 ## Overview
 
-The authentication architecture for Profile Tailors uses a dual-token strategy adhering to [ADR-0009](adr/0009-jwt-and-httponly-cookie-authentication.md):
+Human browser authentication is migrating to Keycloak through Spring Security `oauth2Login` and a backend-for-frontend (BFF), as defined by [ADR-0035](adr/0035-keycloak-human-authentication-bff.md). The dashboard and platform-admin SPA use separate OIDC clients, `pt-app` and `pt-admin`. Spring validates the OIDC response, resolves the existing local principal through the validated `(issuer, subject)` association, and establishes a relying-party session. Provider tokens remain server-side.
 
-1. **Short-Lived Access Token (JWT)**: Carried in memory by the SPA client and sent via `Authorization: Bearer <token>` header for API requests.
-2. **Long-Lived Refresh Token**: Issued via secure `HttpOnly`, `SameSite=Lax` (or Strict), `Secure` cookie, validated exclusively at `/api/auth/refresh`.
+The implementation is present, but production readiness is not implied. Keycloak realm/client configuration, OTP behavior, DNS/TLS/proxy callbacks, and deployed cookie/session/CSRF/logout behavior remain operational cutover gates. Until the approved hard cutover, legacy local authentication and non-MCP machine credentials remain available; this document does not authorize their retirement.
 
-This document details the exact sequence and component relationships for **Login**, **Silent Refresh**, and **Logout** flows.
+The detailed local login, refresh, and logout flows below are retained as **pre-cutover legacy references**. They describe `/api/auth/login`, `/api/auth/refresh`, and `/api/auth/logout`, not the post-cutover human sign-in flow.
 
-Visual companions: [login sequence](./diagrams/login-sequence.html), [login decisions](./diagrams/login-decisiones.html), [refresh, rotation and hydrate](./diagrams/login-refresh.html).
+Visual companions: [legacy login sequence](./diagrams/login-sequence.html), [legacy login decisions](./diagrams/login-decisiones.html), [legacy refresh, rotation and hydrate](./diagrams/login-refresh.html).
 
 ---
 
-## 1. Login Flow (`POST /api/auth/login`)
+## 1. Browser BFF Login Flow
+
+The dashboard initiates `/oauth2/authorization/pt-app`; the admin SPA initiates `/oauth2/authorization/pt-admin`. The login success handler returns the browser to the safe, client-specific path captured at OIDC initiation. A BFF session is then used for browser requests; unsafe requests obtain a CSRF token from `GET /api/auth/csrf` and send it in `X-CSRF-TOKEN`.
+
+For admin access, the BFF requires validated `pt-admin` authentication with `acr=2`; Profile Tailors still evaluates local platform permissions. A dashboard `pt-app` session alone does not authorize admin requests. The BFF session does not replace MCP credentials or workspace-scoped OAuth.
+
+The configured callbacks and session limits are decisions in ADR-0035. Their deployed routing, Keycloak MFA behavior, and cookie attributes must pass the readiness gates before hard cutover.
+
+## 2. Legacy Local Login Flow (Pre-Cutover Only) (`POST /api/auth/login`)
 
 When a user submits credentials via the Vue SPA dashboard:
 
@@ -81,7 +87,7 @@ sequenceDiagram
 
 ---
 
-## 2. Silent Refresh Flow (`POST /api/auth/refresh`)
+## 3. Legacy Local Silent Refresh Flow (Pre-Cutover Only) (`POST /api/auth/refresh`)
 
 When the access token in memory expires or on initial SPA load with an active session:
 
@@ -134,7 +140,7 @@ sequenceDiagram
 
 ---
 
-## 3. Logout Flow (`POST /api/auth/logout`)
+## 4. Legacy Local Logout Flow (Pre-Cutover Only) (`POST /api/auth/logout`)
 
 When a user initiates explicit logout:
 
@@ -170,7 +176,7 @@ sequenceDiagram
 
 ---
 
-## 4. Architectural Boundaries & Security Guarantees
+## 5. Legacy Local-Auth Boundaries (Pre-Cutover Only)
 
 ```mermaid
 graph TD
@@ -205,11 +211,13 @@ graph TD
     AuthController --> CookieFactory
 ```
 
-### Security Properties
+### Legacy Local-Auth Security Properties (Pre-Cutover Only)
 
-- **XSS Protection**: Access tokens reside exclusively in memory. Refresh tokens are isolated inside `HttpOnly` cookies and cannot be accessed via JavaScript `document.cookie`.
-- **CSRF Protection**: Refresh cookies carry `SameSite=Lax`/`Strict` policy and are restricted solely to `/api/auth/refresh`.
-- **Stateless Verification**: API requests evaluate JWT access tokens statelessly without DB roundtrips on protected endpoints.
-- **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
+These properties describe the legacy local-auth implementation, not the BFF session model:
 
-Last Updated: 2026-09-29
+- **Token exposure**: Access tokens reside in SPA memory. Refresh tokens use `HttpOnly` cookies.
+- **Refresh CSRF**: The legacy refresh-cookie flow applies its existing origin and cookie policy. Do not treat that policy as the BFF CSRF contract; the BFF requires the CSRF token from `GET /api/auth/csrf` on unsafe session-authenticated requests.
+- **Stateless verification**: Legacy local bearer-token API requests evaluate JWTs without database roundtrips on protected endpoints.
+- **Session rotation**: Legacy refresh requests rotate the refresh token and invalidate the prior token.
+
+The legacy local-auth routes remain available during migration. Their retirement is a separate hard-cutover action that requires completed BFF replacement, consumer remediation, and operational readiness. See [ADR-0035](adr/0035-keycloak-human-authentication-bff.md) for the controlling decision and gates.

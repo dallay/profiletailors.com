@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { apiFetch, ensureApiSuccess, readApiJson } from '@/lib/api'
+import { apiFetch, ensureApiSuccess, readApiJson, resolveApiUrl } from '@/lib/api'
 
 const ROLE_PERMISSIONS = {
   PLATFORM_OWNER: [
@@ -74,22 +74,11 @@ export type AdminPrincipal = {
   platformRoles: PlatformRole[]
 }
 
-export type AuthTokens = {
-  accessToken: string
-  tokenType: string
-  expiresIn: number
-  principalId: string
-  email: string
-  username: string | null
-  emailStatus: string
-  workspaceId: string | null
-}
-
 export const useAdminAuthStore = defineStore('admin-auth', () => {
   const principal = ref<AdminPrincipal | null>(null)
-  const accessToken = ref<string | null>(null)
+  const accessDenied = ref(false)
   const loading = ref(false)
-  let refreshPromise: Promise<AuthTokens | null> | null = null
+  let csrfToken: string | null = null
 
   const isAuthenticated = computed(() => principal.value !== null)
   const hasPlatformAccess = computed(() => (principal.value?.platformRoles.length ?? 0) > 0)
@@ -102,8 +91,6 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
   async function hydrateSession(): Promise<void> {
     loading.value = true
     try {
-      const tokens = await refreshSession()
-      if (!tokens) return
       await fetchAdminSession()
     } catch {
       clearSession()
@@ -112,72 +99,50 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
     }
   }
 
-  async function signIn(email: string, password: string): Promise<void> {
-    loading.value = true
-    try {
-      const response = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      })
-      await ensureApiSuccess(response)
-      const tokens = await readApiJson<AuthTokens>(response)
-      accessToken.value = tokens.accessToken
-      await fetchAdminSession()
-    } catch (error) {
-      clearSession()
-      throw error
-    } finally {
-      loading.value = false
-    }
-  }
-
-  function refreshSession(): Promise<AuthTokens | null> {
-    refreshPromise ??= performRefresh().finally(() => {
-      refreshPromise = null
-    })
-    return refreshPromise
-  }
-
-  async function performRefresh(): Promise<AuthTokens | null> {
-    const response = await apiFetch('/api/auth/refresh', { method: 'POST' })
-    if (response.status === 401) {
-      clearSession()
-      return null
-    }
-    await ensureApiSuccess(response)
-    const tokens = await readApiJson<AuthTokens>(response)
-    accessToken.value = tokens.accessToken
-    return tokens
+  function signIn(returnTo?: string): void {
+    accessDenied.value = false
+    const destination = safeReturnPath(returnTo)
+    window.location.assign(
+      `${resolveApiUrl('/oauth2/authorization/pt-admin')}?returnTo=${encodeURIComponent(destination)}`,
+    )
   }
 
   async function request(path: string, init: RequestInit = {}): Promise<Response> {
-    let response = await apiFetch(path, init, accessToken.value)
-    if (response.status === 401 && path !== '/api/auth/refresh') {
-      const tokens = await refreshSession()
-      if (tokens) response = await apiFetch(path, init, accessToken.value)
+    const method = (init.method ?? 'GET').toUpperCase()
+    const headers = new Headers(init.headers)
+    if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+      csrfToken ??= await fetchCsrfToken()
+      headers.set('X-CSRF-TOKEN', csrfToken)
     }
+    const response = await apiFetch(path, { ...init, headers })
+    if (response.status === 401) clearSession()
+    else if (response.status === 403) denyAdminAccess()
     return response
   }
 
   async function signOut(): Promise<void> {
-    let response: Response
     try {
-      response = await apiFetch('/api/auth/logout', { method: 'POST' }, accessToken.value)
+      const response = await request('/api/auth/logout', { method: 'POST' })
+      await ensureApiSuccess(response)
     } catch {
       clearSession()
       return
     }
-    await ensureApiSuccess(response)
     clearSession()
   }
 
   function clearSession(): void {
     principal.value = null
-    accessToken.value = null
+    csrfToken = null
+  }
+
+  function denyAdminAccess(): void {
+    accessDenied.value = true
+    clearSession()
   }
 
   async function fetchAdminSession(): Promise<void> {
-    const response = await request('/api/admin/session')
+    const response = await apiFetch('/api/admin/session')
     await ensureApiSuccess(response)
     const candidate = await readApiJson<AdminPrincipal>(response)
     principal.value = {
@@ -188,19 +153,36 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
 
   return {
     principal,
-    accessToken,
+    accessDenied,
     loading,
     isAuthenticated,
     hasPlatformAccess,
     hasPermission,
     hydrateSession,
     signIn,
-    refreshSession,
     request,
     signOut,
     clearSession,
   }
 })
+
+async function fetchCsrfToken(): Promise<string> {
+  const response = await apiFetch('/api/auth/csrf')
+  await ensureApiSuccess(response)
+  const payload = await readApiJson<{ token: string }>(response)
+  return payload.token
+}
+
+function safeReturnPath(value: string | undefined): string {
+  if (!value?.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/'
+  try {
+    const url = new URL(value, window.location.origin)
+    if (url.origin !== window.location.origin) return '/'
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return '/'
+  }
+}
 
 function computePermissions(roles: PlatformRole[]): Set<PlatformPermission> {
   const perms = new Set<PlatformPermission>()

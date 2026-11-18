@@ -28,6 +28,60 @@ The production stack differs from `infra/apps/smp/compose.yaml` in these ways:
 
 ## Usage
 
+### Keycloak BFF readiness
+
+The SMP configuration is being prepared for two separate confidential Keycloak clients:
+
+| Surface | Client | Exact backend callback |
+|---|---|---|
+| Dashboard | `pt-app` | `https://api.profiletailors.com/login/oauth2/code/pt-app` |
+| Platform admin | `pt-admin` | `https://api.profiletailors.com/login/oauth2/code/pt-admin` |
+
+The configured issuer is `https://keycloak.ahome.quest/realms/pt`. Register each exact callback on
+its matching client. Do not infer that the Keycloak realm, clients, DNS, proxy route, or TLS endpoint
+exist or are reachable from these configured values.
+
+`KEYCLOAK_PT_APP_CLIENT_SECRET` and `KEYCLOAK_PT_ADMIN_CLIENT_SECRET` are separate required runtime
+secrets. Compose mounts the file sources
+`secrets/keycloak-pt-app-client-secret` and `secrets/keycloak-pt-admin-client-secret` at the matching
+Spring `configtree:/run/secrets/` keys. Run `just production-prepare` to create empty local source
+files, then provision both values through the approved Keycloak administration process before
+starting the stack. Prepare does not create credentials. See [Production secrets](../production-secrets.md).
+
+`SMP_ADMIN_PUBLIC_ORIGIN` is required in the production `.env`; Compose fails if it is absent. Set it
+to the public origin serving the admin SPA and ensure `SMP_CORS_ALLOWED_ORIGINS` contains that origin.
+The API callback origin is separate from the admin SPA origin.
+
+The approved beta session design is in-memory on one backend replica, with a 30-minute idle timeout
+and an 8-hour absolute lifetime. The cookie is host-only, scoped to `/`, and uses `Secure`,
+`HttpOnly`, and `SameSite=Lax`. Unsafe cookie-authenticated requests, including logout, require the
+CSRF token from `GET /api/auth/csrf` in `X-CSRF-TOKEN`. These are deployment requirements, not
+evidence that deployed cookie, CSRF, session-expiry, or Keycloak logout behavior has been accepted.
+
+Do not authorize human-authentication cutover until each gate below has recorded environment-specific
+acceptance evidence:
+
+1. **Realm and clients:** Validate the Keycloak `26.3.5` realm and issuer discovery. Confirm both
+   confidential clients and exact callback registrations. Confirm `pt-app` has no minimum ACR.
+2. **Admin MFA:** Validate `pt-admin` minimum ACR 2 and the `browser-admin-mfa` flow. Acceptance must
+   prove password plus OTP, `acr=2`, step-up with missing or lower `acr_values` and an existing
+   dashboard SSO session, and a single OTP challenge. Confirm the emitted issuer, subject, audience,
+   authorized-party, and ACR claims.
+3. **DNS, TLS, and proxy:** Resolve `api.profiletailors.com` and verify valid TLS and proxy routing to
+   both exact callback paths. Confirm the proxy preserves the host and forwarded-protocol data needed
+   by the backend.
+4. **Cookies, session, CSRF, and logout:** Verify the actual cookie name, host/path scope, security
+   attributes, idle and absolute expiry, CSRF endpoint/header on unsafe requests, logout session
+   invalidation, and the approved Keycloak logout behavior in both browser clients.
+5. **External consumers:** Obtain owner confirmation that every non-MCP bearer/API-key/service-account
+   consumer and route is retired or migrated. Record route scope and disposition per
+   [the source-visible inventory](../../.agents/sdd/changes/keycloak-human-authentication/identity-and-consumer-inventory.md).
+   The inventory is not external-owner confirmation. No non-MCP machine-authentication route may
+   remain after cutover; MCP API-key and `workspace-scoped-oauth` contracts remain separate.
+
+All gates remain pending until tested and recorded. Do not claim production or DNS acceptance from
+local configuration validation or Compose smoke checks.
+
 ### Requirements
 
 - Docker Engine with the Compose plugin

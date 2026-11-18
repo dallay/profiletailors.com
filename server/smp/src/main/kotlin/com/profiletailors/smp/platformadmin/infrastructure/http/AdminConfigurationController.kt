@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyService
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminConfigurationController(
     private val registrationModeHandlers: RegistrationModeHandlers,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
     private val configurationIdempotencyService: ConfigurationIdempotencyService,
 ) {
     @GetMapping("/registration-mode")
@@ -59,7 +59,7 @@ class AdminConfigurationController(
     }
 
     private suspend fun resolveOperator(): OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 

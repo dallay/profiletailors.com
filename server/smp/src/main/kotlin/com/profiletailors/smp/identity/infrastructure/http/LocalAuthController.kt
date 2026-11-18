@@ -26,6 +26,8 @@ import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
@@ -37,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ServerWebExchange
 import java.time.Duration
 
 @Validated
@@ -103,8 +106,9 @@ class LocalAuthController(
 
     @Operation(summary = "Logout user and invalidate session")
     @PostMapping("/logout", version = "1")
-    suspend fun logout(request: ServerHttpRequest): ResponseEntity<Unit> {
+    suspend fun logout(request: ServerHttpRequest, exchange: ServerWebExchange): ResponseEntity<Unit> {
         mediator.send(LogoutUserSessionCommand(readRefreshCookie(request)))
+        exchange.session.awaitSingle().invalidate().awaitSingleOrNull()
         return ResponseEntity.noContent()
             .header(
                 HttpHeaders.SET_COOKIE,

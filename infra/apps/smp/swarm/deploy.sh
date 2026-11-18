@@ -60,6 +60,8 @@ required_secret_files=(
     linkedin-client-secret
     threads-client-secret
     resend-api-key
+    keycloak-pt-app-client-secret
+    keycloak-pt-admin-client-secret
 )
 for secret_file in "${required_secret_files[@]}"; do
     if [ ! -s "${secrets_dir}/${secret_file}" ]; then
@@ -76,6 +78,8 @@ create_secret "${SWARM_LINKEDIN_STATE_SECRET:-profiletailors_linkedin_state_v1}"
 create_secret "${SWARM_LINKEDIN_CLIENT_SECRET:-profiletailors_linkedin_client_v1}" "${secrets_dir}/linkedin-client-secret"
 create_secret "${SWARM_THREADS_CLIENT_SECRET:-profiletailors_threads_client_v1}" "${secrets_dir}/threads-client-secret"
 create_secret "${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}" "${secrets_dir}/resend-api-key"
+create_secret "${SWARM_KEYCLOAK_PT_APP_CLIENT_SECRET:-profiletailors_keycloak_pt_app_client_v1}" "${secrets_dir}/keycloak-pt-app-client-secret"
+create_secret "${SWARM_KEYCLOAK_PT_ADMIN_CLIENT_SECRET:-profiletailors_keycloak_pt_admin_client_v1}" "${secrets_dir}/keycloak-pt-admin-client-secret"
 
 service_version() {
     docker service inspect --format '{{.Version.Index}}' "${SWARM_STACK_NAME}_$1" 2>/dev/null || true

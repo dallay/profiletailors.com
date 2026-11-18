@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
@@ -29,7 +29,7 @@ class AdminOperatorController(
     private val operatorAccessResolver: OperatorAccessResolver,
     private val assignRoleHandler: AssignPlatformRoleHandler,
     private val revokeRoleHandler: RevokePlatformRoleHandler,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
 ) {
     @GetMapping
     suspend fun listOperators(): ResponseEntity<List<AdminOperatorSummary>> {
@@ -92,7 +92,7 @@ class AdminOperatorController(
     }
 
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
-        val ctx = requestContextStore.currentPrincipalContext() ?: return null
+        val ctx = principalContextProvider.current() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 

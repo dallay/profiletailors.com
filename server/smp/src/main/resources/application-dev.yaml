@@ -58,6 +58,7 @@ app:
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:https://*.localhost:[*],http://*.localhost:[*],http://localhost:[*]}
+      admin-public-origin: ${SMP_ADMIN_PUBLIC_ORIGIN:https://pt-admin.localhost}
   waitlist:
     withdrawal:
       encryption-key: ${SMP_WAITLIST_WITHDRAWAL_ENCRYPTION_KEY:V1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1c=}

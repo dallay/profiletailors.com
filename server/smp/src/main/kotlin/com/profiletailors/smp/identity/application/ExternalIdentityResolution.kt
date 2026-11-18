@@ -29,7 +29,34 @@ data class ResolvedExternalIdentity(
 interface ExternalIdentityLinkGateway {
     suspend fun findByIssuerAndSubject(issuer: String, subject: String): List<ExternalIdentityLink>
 
+    suspend fun create(issuer: String, subject: String, principalId: String)
+
     suspend fun synchronizeVerifiedEmail(principalId: String, email: String): VerifiedEmailSyncResult
+}
+
+class ExternalIdentityLinkConflictException(cause: Throwable? = null) :
+    RuntimeException("Identity link already exists.", cause)
+
+class ExternalIdentityLinkTargetNotFoundException : RuntimeException("Target principal was not found.")
+
+class ExternalIdentityLinkProvisioningService(
+    private val externalIdentityLinkGateway: ExternalIdentityLinkGateway,
+    private val principalIdentityLookup: PrincipalIdentityLookup,
+    private val expectedIssuer: String,
+) {
+    suspend fun provision(principalId: String, issuer: String, subject: String) {
+        require(principalId.isNotBlank())
+        require(issuer == expectedIssuer)
+        require(subject.isNotBlank() && subject.length <= MAX_SUBJECT_LENGTH)
+        if (principalIdentityLookup.findByPrincipalId(principalId) == null) {
+            throw ExternalIdentityLinkTargetNotFoundException()
+        }
+        externalIdentityLinkGateway.create(issuer, subject, principalId)
+    }
+
+    private companion object {
+        const val MAX_SUBJECT_LENGTH = 255
+    }
 }
 
 @Service
@@ -47,7 +74,8 @@ class ExternalIdentityResolutionService(
 
         val principal = principalIdentityLookup.findByPrincipalId(link.principalId)
             ?.takeIf {
-                it.principalType == PrincipalType.USER && it.status == PrincipalStatus.ACTIVE &&
+                it.principalType == PrincipalType.USER &&
+                    it.status == PrincipalStatus.ACTIVE &&
                     it.accountState == UserAccountState.ACTIVE
             }
             ?: return null

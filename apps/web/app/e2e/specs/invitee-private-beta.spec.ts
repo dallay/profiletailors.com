@@ -17,9 +17,6 @@
 import { test, expect } from '../fixtures/scheduler-base-test'
 import type { Page, Route } from '@playwright/test'
 import { APP_URL } from '../fixtures/test-data'
-import { mockRegisterSuccess } from '../fixtures/auth-helpers'
-import { ComposeModalPage } from '../pages/compose-modal-page'
-import { SchedulerPage } from '../pages/scheduler-page'
 
 type InvitationFailure = {
   status: number
@@ -84,8 +81,15 @@ async function assertInvitationFailure(page: Page, failure: InvitationFailure): 
 }
 
 test.describe('Invitee Private Beta Journey @integration', () => {
-  test.beforeEach(async ({ resetSession }) => {
+  test.beforeEach(async ({ page, resetSession }) => {
     await resetSession()
+    await page.route('**/api/auth/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({ token: 'e2e-csrf-proof', headerName: 'X-CSRF-TOKEN' }),
+      })
+    })
   })
 
   test('3.1 Invitee accepts an invitation and reaches the accepted workspace dashboard', async ({
@@ -156,11 +160,13 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await page.getByRole('button', { name: /accept invitation/i }).click()
     const acceptResponse = await acceptPromise
     expect(acceptResponse.ok()).toBe(true)
+    expect(acceptResponse.request().headers()['x-csrf-token']).toBe('e2e-csrf-proof')
+    expect(acceptResponse.request().headers().authorization).toBeUndefined()
 
     await expect(page).toHaveURL(/\/$/)
   })
 
-  test('3.1b Fresh invitee registers with the invitation token', async ({
+  test('3.1b Pre-provisioned invitee authenticates through pt-app before accepting', async ({
     page,
   }: {
     page: Page
@@ -177,127 +183,76 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
+    const token = 'raw-token-schedule'
+    const invitationPath = `/invitations/accept?token=${token}`
+    let acceptCount = 0
+    let acceptedPayload: { token?: string } | undefined
+    let acceptedCsrf: string | undefined
+    let callbackCompleted = false
     await page.route('**/api/invitations/accept', async (route: Route): Promise<void> => {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/problem+json',
-        body: JSON.stringify({ code: 'INVITATION_REQUIRES_LOGIN', status: 401 }),
-      })
+      acceptCount += 1
+      if (acceptCount === 2) {
+        acceptedPayload = route.request().postDataJSON() as { token?: string }
+        acceptedCsrf = route.request().headers()['x-csrf-token']
+      }
+      await route.fulfill(
+        acceptCount === 1
+          ? {
+              status: 401,
+              contentType: 'application/problem+json',
+              body: JSON.stringify({ code: 'INVITATION_REQUIRES_LOGIN', status: 401 }),
+            }
+          : {
+              status: 200,
+              contentType: 'application/vnd.api.v1+json',
+              body: JSON.stringify({
+                workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+                membershipStatus: 'ACTIVE',
+              }),
+            },
+      )
     })
-
-    let registrationPayload: Record<string, unknown> | undefined
-    await page.route('**/api/auth/register', async (route: Route): Promise<void> => {
-      registrationPayload = route.request().postDataJSON() as Record<string, unknown>
-      await route.fulfill({
-        status: 201,
-        contentType: 'application/vnd.api.v1+json',
-        body: JSON.stringify({
-          accessToken: 'invitation-access-token',
-          tokenType: 'Bearer',
-          expiresIn: 3600,
-          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
-          email: 'invitee@example.com',
-          username: 'invitee',
-          emailStatus: 'PENDING',
-          workspaceId: 'e55f35b8-4442-59cf-9e58-7d06f86e2d25',
-        }),
-      })
+    await page.route('**/oauth2/authorization/pt-app**', async (route: Route): Promise<void> => {
+      const authorizationUrl = new URL(route.request().url())
+      expect(authorizationUrl.pathname).toBe('/oauth2/authorization/pt-app')
+      expect(authorizationUrl.searchParams.get('returnTo')).toBe(invitationPath)
+      callbackCompleted = true
+      await route.fulfill({ status: 302, headers: { location: invitationPath } })
     })
-
     await page.route('**/api/auth/me', async (route: Route): Promise<void> => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/vnd.api.v1+json',
-        body: JSON.stringify({
-          principalId: '2f3c1290-243b-521c-ac23-c40164708e96',
-          email: 'invitee@example.com',
-          username: 'invitee',
-          displayIdentity: 'invitee',
-          emailStatus: 'PENDING',
-        }),
-      })
+      await route.fulfill(
+        callbackCompleted
+          ? {
+              status: 200,
+              contentType: 'application/vnd.api.v1+json',
+              body: JSON.stringify({
+                principalId: '0e3f9c21-e278-5a6a-accd-7c21f42da6db',
+                email: 'invitee-schedule@example.com',
+                username: 'invitee-schedule',
+                emailStatus: 'VERIFIED',
+                workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
+              }),
+            }
+          : {
+              status: 401,
+              contentType: 'application/problem+json',
+              body: JSON.stringify({ status: 401 }),
+            },
+      )
     })
-
-    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
+    await page.goto(`${APP_URL.dashboard}${invitationPath.slice(1)}`)
     await page.getByRole('button', { name: /accept invitation/i }).click()
-    await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-e2e/)
-
-    await page.getByLabel(/^email$/i).fill('invitee@example.com')
-    await page.getByLabel(/^password$/i).fill('Str0ng!Passw0rd')
-    await page.getByLabel(/^confirm password$/i).fill('Str0ng!Passw0rd')
-    await page.getByLabel(/age/i).check()
-    await page.getByLabel(/terms/i).check()
-    await page.getByRole('button', { name: /create account/i }).click()
-
-    await expect
-      .poll((): Record<string, unknown> | undefined => registrationPayload)
-      .toEqual(expect.objectContaining({ invitationToken: 'raw-token-e2e' }))
-    await expect(page).toHaveURL(/\/$/)
-  })
-
-  test('3.1c Fresh invitee schedules the first post in the accepted workspace', async ({
-    page,
-  }: {
-    page: Page
-  }): Promise<void> => {
-    await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/vnd.api.v1+json',
-        body: JSON.stringify({
-          registrationEnabled: false,
-          passwordRecoveryEnabled: true,
-          invitationAcceptanceEnabled: true,
-        }),
-      })
-    })
-
-    await page.route('**/api/invitations/accept', async (route: Route): Promise<void> => {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/problem+json',
-        body: JSON.stringify({ code: 'INVITATION_REQUIRES_LOGIN', status: 401 }),
-      })
-    })
-
-    await mockRegisterSuccess(page, {
-      accessToken: 'invitee-schedule-token',
-      principalId: '0e3f9c21-e278-5a6a-accd-7c21f42da6db',
-      email: 'invitee-schedule@example.com',
-      username: 'invitee-schedule',
-      emailStatus: 'PENDING',
-      workspaceId: '6325c45c-5fdd-5be5-84c2-54f866dfd70e',
-    })
-
-    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-schedule`)
+    await expect(page).toHaveURL(
+      new RegExp(`${invitationPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
+    )
+    await expect(page.getByRole('button', { name: /accept invitation/i })).toBeVisible()
     await page.getByRole('button', { name: /accept invitation/i }).click()
-    await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-schedule/)
-
-    await page.getByLabel(/^email$/i).fill('invitee-schedule@example.com')
-    await page.getByLabel(/^password$/i).fill('Str0ng!Passw0rd')
-    await page.getByLabel(/^confirm password$/i).fill('Str0ng!Passw0rd')
-    await page.getByLabel(/age/i).check()
-    await page.getByLabel(/terms/i).check()
-    await page.getByRole('button', { name: /create account/i }).click()
+    await expect.poll(() => acceptCount).toBe(2)
+    expect(acceptedPayload).toEqual({ token })
+    expect(acceptedCsrf).toBe('e2e-csrf-proof')
     await expect(page).toHaveURL(/\/$/)
-
-    const scheduler = new SchedulerPage(page)
-    const composeModal = new ComposeModalPage(page)
-    await scheduler.goto()
-    await scheduler.openMobileSidebar()
-    await scheduler.linkedInFilterButton.click()
-    await scheduler.clickNewPost()
-    await composeModal.expectVisible()
-    await composeModal.fillText('First invitee workspace post')
-    await composeModal.clickScheduleNow()
-    await composeModal.expectHidden()
-    if (await scheduler.agendaViewButton.isVisible()) {
-      await scheduler.agendaViewButton.click()
-      await expect(scheduler.mobileAgenda).toBeVisible()
-    } else {
-      await scheduler.switchToList()
-    }
-    await expect(page.getByText('First invitee workspace post').first()).toBeVisible()
+    const html = await page.content()
+    expect(html).not.toContain(token)
   })
 
   test('3.2 Empty invitation token shows the missing-token error without calling the API', async ({
@@ -484,19 +439,14 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.route('**/api/auth/refresh', async (route) => {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/problem+json',
-        body: JSON.stringify({ status: 401 }),
-      })
-    })
-
     const rawToken = 'super-secret-invitation-token-do-not-leak'
     await page.goto(`${APP_URL.dashboard}invitations/accept?token=${rawToken}`)
     await page.getByRole('button', { name: /accept invitation/i }).click()
 
-    await expect(page).toHaveURL(/\/login\?redirect=/)
+    await expect(page).toHaveURL(/\/oauth2\/authorization\/pt-app\?returnTo=/)
+    expect(new URL(page.url()).searchParams.get('returnTo')).toBe(
+      `/invitations/accept?token=${rawToken}`,
+    )
 
     const html = await page.content()
     expect(html).not.toContain(rawToken)

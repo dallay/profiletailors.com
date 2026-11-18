@@ -60,6 +60,8 @@ as a historical record and a guide for current and future development.
 | 0033 | [Complete Bootstrap Role Grant Within Email Verification](./0033-atomic-bootstrap-owner-grant.md) | Accepted | 2026-11-02 |
 | 0034 | [Record Bootstrap Terms Through the Governance Application Port](./0034-platform-bootstrap-uses-governance-application-port.md) | Accepted | 2026-11-02 |
 | 0035 | [Delegate Human Authentication to Keycloak Through a Reactive BFF](./0035-keycloak-human-authentication-bff.md) | Accepted | 2026-11-09 |
+| 0036 | [Provision External Identity Links Through Platform Administration](./0036-restricted-external-identity-link-provisioning.md) | Accepted | 2026-11-10 |
+| 0037 | [Isolate Request Context Per Reactive Subscription](./0037-isolate-request-context-per-reactive-subscription.md) | Accepted | 2026-11-10 |
 
 ## Relationship with other docs
 

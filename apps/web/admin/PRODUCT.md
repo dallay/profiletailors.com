@@ -27,6 +27,12 @@ Internal tooling with the same visual language as the dashboard app. No differen
 - Accessed via a separate portless app (`pt-admin.localhost`) — distinct from the user-facing dashboard app
 - The production admin origin is configured per installation; bootstrap links use `SMP_ADMIN_PUBLIC_ORIGIN`
 - Requires platform-level permission (`platform.*` scope) in addition to regular auth
+- After cutover, human login starts through the admin's separate `pt-admin` BFF initiation. Provider
+  tokens do not enter browser JavaScript; authenticated browser state uses an HttpOnly session
+  cookie, and unsafe session-authenticated requests require CSRF protection. This contract does not
+  verify Keycloak realm or client configuration, callbacks, DNS, or deployment readiness
+- Local password login and local credential lifecycle behavior are pre-cutover behavior only, not
+  post-cutover admin authentication
 - Separate auth store (`useAdminAuthStore`) from the main app
 - Permission gates on every route (e.g., `platform.dashboard.read`, `platform.users.read`, `platform.waitlist.read`, `platform.audit.read`)
 - Audit log surface shows system activity — sensitive; access is restricted to operator role

@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 import { useAcceptInvitationStore } from '@modules/invitation/infrastructure/accept-invitation.store'
-import { buildLoginRedirect } from './login-redirect'
 import AuthShell from '@modules/auth/presentation/AuthShell.vue'
 
 const props = defineProps<{ token: string }>()
@@ -55,9 +54,9 @@ function canonicalErrorKey(): string {
 async function handleSubmit(): Promise<void> {
   if (submitted.value || store.pending) return
   submitted.value = true
-  const result = await store.accept(props.token, auth.accessToken)
+  const result = await store.accept(props.token)
   if (result.errorCode === 'INVITATION_REQUIRES_LOGIN') {
-    await router.replace({ name: 'register', query: { invitationToken: props.token } })
+    auth.startBffLogin(route.fullPath)
     return
   }
   if (result.workspaceId) {
@@ -69,8 +68,7 @@ async function handleSubmit(): Promise<void> {
     if (auth.isAuthenticated) {
       await router.replace('/')
     } else {
-      const fullPath = buildLoginRedirect(route.path, route.query as Record<string, string>)
-      await router.replace({ path: '/login', query: { redirect: fullPath } })
+      auth.startBffLogin(route.fullPath)
     }
   }
 }

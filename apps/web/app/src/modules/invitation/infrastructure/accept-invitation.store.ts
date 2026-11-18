@@ -29,10 +29,7 @@ export const useAcceptInvitationStore = defineStore('invitation-accept', () => {
    * echoes the raw token outside the immediate API invocation; downstream renderers and
    * logs see the resolved workspace/membership/error fields only.
    */
-  async function accept(
-    token: string,
-    accessToken?: string | null,
-  ): Promise<AcceptInvitationResult> {
+  async function accept(token: string): Promise<AcceptInvitationResult> {
     if (!token || token.trim() === '') {
       errorCode.value = 'MISSING_TOKEN'
       errorStatus.value = 0
@@ -51,7 +48,7 @@ export const useAcceptInvitationStore = defineStore('invitation-accept', () => {
     membershipStatus.value = null
 
     try {
-      const result = await acceptInvitationRequest(token, accessToken)
+      const result = await acceptInvitationRequest(token)
       workspaceId.value = result.workspaceId
       membershipStatus.value = result.membershipStatus
       errorCode.value = result.errorCode

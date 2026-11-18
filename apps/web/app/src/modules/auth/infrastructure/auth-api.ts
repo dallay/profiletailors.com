@@ -58,6 +58,34 @@ export type ApiFetchOptions = RequestInit & {
   workspaceScoped?: boolean
 }
 
+let csrfToken: string | null = null
+
+export function buildBffLoginUrl(returnTo: string): string {
+  const safeReturnTo =
+    returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')
+      ? returnTo
+      : '/'
+  return `/oauth2/authorization/pt-app?returnTo=${encodeURIComponent(safeReturnTo)}`
+}
+
+export async function getBffSession(): Promise<CurrentUserProfile> {
+  return request<CurrentUserProfile>('/api/auth/me')
+}
+
+export async function getBffCsrfToken(): Promise<string> {
+  const response = await request<{ token: string }>('/api/auth/csrf')
+  csrfToken = response.token
+  return response.token
+}
+
+export async function logoutBffSession(): Promise<void> {
+  try {
+    await requestRaw('/api/auth/logout', { method: 'POST' }, null, true)
+  } finally {
+    csrfToken = null
+  }
+}
+
 /** Creates an Error that also satisfies the ApiError shape for throw sites. */
 function apiError(
   title: string,
@@ -99,7 +127,14 @@ async function requestRaw(
   path: string,
   init: RequestInit = {},
   token?: string | null,
+  csrfProtected = false,
 ): Promise<Response> {
+  const method = (init.method ?? 'GET').toUpperCase()
+  if (csrfProtected && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+    if (!csrfToken) {
+      await getBffCsrfToken()
+    }
+  }
   const hasExplicitContentType = new Headers(init.headers ?? {}).has('Content-Type')
   const isFormDataBody = typeof FormData !== 'undefined' && init.body instanceof FormData
 
@@ -110,6 +145,9 @@ async function requestRaw(
       ...(!hasExplicitContentType && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method) && csrfToken
+        ? { 'X-CSRF-TOKEN': csrfToken }
+        : {}),
       ...init.headers,
     },
   })
@@ -438,7 +476,7 @@ export function createApiFetch(opts: {
     const requestInit = withWorkspace(init)
 
     return withRetry(
-      (innerInit, innerToken) => requestRaw(path, innerInit, innerToken),
+      (innerInit, innerToken) => requestRaw(path, innerInit, innerToken, true),
       requestInit,
       token,
       opts.onRefresh,

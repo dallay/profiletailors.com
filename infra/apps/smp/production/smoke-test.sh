@@ -55,10 +55,19 @@ assert_secret_not_in_environment() {
     local container_id
     container_id="$("${compose[@]}" ps -q "$service")"
     if docker inspect "$container_id" --format '{{range .Config.Env}}{{println .}}{{end}}' |
-        grep -Eq '^(SMP_DB_PASSWORD|SMP_LOCAL_JWT_SECRET|PUBLISHING_CREDENTIALS_ENCRYPTION_KEY|SMP_MEDIA_PREVIEW_SIGNING_SECRET|SMP_LINKEDIN_STATE_SIGNING_SECRET|SMP_LINKEDIN_CLIENT_SECRET|SMP_THREADS_CLIENT_SECRET|SMP_RESEND_API_KEY)='; then
+        grep -Eq '^(SMP_DB_PASSWORD|SMP_LOCAL_JWT_SECRET|PUBLISHING_CREDENTIALS_ENCRYPTION_KEY|SMP_MEDIA_PREVIEW_SIGNING_SECRET|SMP_LINKEDIN_STATE_SIGNING_SECRET|SMP_LINKEDIN_CLIENT_SECRET|SMP_THREADS_CLIENT_SECRET|SMP_RESEND_API_KEY|KEYCLOAK_PT_APP_CLIENT_SECRET|KEYCLOAK_PT_ADMIN_CLIENT_SECRET)='; then
         echo "Service ${service} exposes a secret through its environment."
         exit 1
     fi
+}
+
+assert_keycloak_client_secrets_provisioned() {
+    for secret_file in keycloak-pt-app-client-secret keycloak-pt-admin-client-secret; do
+        if [ ! -s "${production_dir}/secrets/${secret_file}" ]; then
+            echo "Required Keycloak client secret ${production_dir}/secrets/${secret_file} is empty or missing."
+            exit 1
+        fi
+    done
 }
 
 run_checks() {
@@ -96,6 +105,7 @@ run_checks() {
     assert_read_only_rootfs backend
     assert_read_only_rootfs postgresql
     assert_secret_not_in_environment backend
+    assert_keycloak_client_secrets_provisioned
 
     echo "Production smoke test passed: dashboard=200 api=401 health=200 migrations=${migration_count} dev_seed=0."
 }

@@ -1,53 +1,61 @@
 # Apply Progress
 
+## Current Apply Slice
+
+Unit 2 identity-link provisioning verification, tasks 2.11 through 2.19. Existing BFF/security implementation and surrounding changes were present in the worktree before this slice. This update records verification evidence only; it does not activate hard cutover or modify `principal_id` semantics.
+
 ## Commands Run
 
 | Command | Result |
 |---|---|
-| `git status --short --branch` | Exit 0 before this slice's implementation; current changes are the in-progress Work Unit 1 artifacts and source/tests created in these apply slices. |
-| `just -l` | Exit 0; confirmed `backend-test-fast`, `backend-check`, and `backend-test-postgres` recipes. |
-| `docker info --format '{{.ServerVersion}}'` | Exit 0; Docker server `29.6.1` is available. |
-| Focused `ExternalIdentityLinksPostgresSchemaTest` against the original changelog | Exit 1 as expected for RED; compilation and Testcontainers setup succeeded; PostgreSQL reported SQLSTATE `42P01`, relation `external_identity_links` does not exist. |
-| Focused `ExternalIdentityResolutionServiceTest` with the fail-closed seam | Exit 1 as expected for RED; 5 tests ran, with 3 failures for approved-link resolution, unverified-email resolution, and conflict resolution. Failures were behavioral assertions, not compilation/configuration failures. |
-| Focused `ExternalIdentityResolutionServiceTest` after resolver implementation | Exit 0; all 5 tests passed. |
-| Focused `ExternalIdentityLinksPostgresSchemaTest` after migration | Exit 0 before schema tests were split into focused cases; migration initially exposed a FK type mismatch during UUID conversion. The migration now registers `external_identity_links.principal_id` in the UUID-native conversion mapping. |
-| Focused schema and R2DBC gateway PostgreSQL tests | Exit 0; migration, FK, pair uniqueness, duplicate concurrency, link lookup, verified sync, and email conflict behavior passed. |
-| `./gradlew :server:smp:spotlessKotlinApply --no-daemon` | Exit 0; applied configured Kotlin formatting. |
-| `just backend-test-fast` | Exit 0; unfiltered fast backend suite passed. |
-| `just backend-test-postgres` | Exit 0; unfiltered PostgreSQL integration suite passed. |
-| `just backend-check` | Exit 0 after the final source/test edits; includes formatting, Detekt, unfiltered backend unit tests, and unfiltered PostgreSQL integration tests. XML reports show `3368` unit tests (`0` failures, `0` errors, `2` skipped) and `522` PostgreSQL integration tests (`0` failures, `0` errors, `0` skipped). |
-| `git diff --check` | Exit 0 after the final implementation edits. |
+| `git status --short --branch`, `git diff --stat`, `git branch --show-current` | Exit 0. Branch is `feature/keycloak-auth-migration`, ahead of `origin/main` by 5. Worktree contains extensive prior modifications, staged deletions, and untracked artifacts; all were preserved. |
+| `./gradlew :server:smp:test --tests '*ProvisionExternalIdentityLinkHandlerTest' --tests '*AdminUserControllerTest' --tests '*AdminAndFreshMfaAuthorizationWebFilterTest' --tests '*ExternalIdentityLinkProvisioningServiceTest'` | Exit 0; 48 tests, 0 failures, 0 errors, 0 skipped across the four classes. |
+| `./gradlew :server:smp:postgresIntegrationTest --tests '*ExternalIdentityLinkGatewayPostgresTest' --tests '*IdentityLinkAuditAtomicityPostgresTest' --tests '*ExternalIdentityLinksPostgresSchemaTest'` | Exit 0; 10 tests, 0 failures, 0 errors, 0 skipped across the three classes. |
+| `just backend-check` | Exit 0; Spotless, Detekt, unit, and PostgreSQL tasks passed. |
+| `just backend-bdd-fast` | Exit 0; 45 suites, 339 scenarios, 0 failures, 0 errors, 0 skipped. The identity-link feature XML reports 8 scenarios, 0 failures, 0 errors, 0 skipped. |
+| `git diff HEAD -U0` scans for `@Suppress`, `@file:Suppress`, `biome-ignore`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `nolint`, `TODO`, `FIXME`, `HACK`, and explicit `any` | No new suppression directive, annotation suppression, lint bypass, TODO marker, or explicit `any` is introduced by this change. |
+| `git status --short` scans for `detekt`, `biome.json`, and `tsconfig` paths | No static-analysis baseline or configuration file is modified. |
+| `git status --short` scan for MCP-related paths | No MCP source, configuration, or contract file is modified by this change. |
+| `just -l` | Exit 0; confirmed available backend checks including `backend-check`, `backend-test-postgres`, and `backend-bdd-fast`. |
+| `./gradlew :server:smp:test --tests '*ProvisionExternalIdentityLinkHandlerTest' --tests '*ExternalIdentityLinkProvisioningServiceTest' --tests '*AdminUserControllerTest' --no-daemon` | Exit 0; targeted task execution completed. Gradle reported 37 actionable tasks, 3 executed, 34 up-to-date. The filtered result is not a broad test pass. |
+| `just backend-test-postgres` (first run) | Terminated by execution timeout after 120 seconds (exit 143); rerun without changing tests. |
+| `just backend-test-postgres` (rerun) | Exit 0; unfiltered PostgreSQL integration task `:server:smp:postgresIntegrationTest` passed. Gradle reported 33 actionable tasks, 3 executed, 30 up-to-date. |
+| `just backend-check` | Exit 1 due to Detekt `MaxLineLength` on two previously existing changed test lines: `IdentityLinkProvisioningBddSteps.kt:166` and `ProvisionExternalIdentityLinkHandlerTest.kt:27`. Backend unit and PostgreSQL tasks executed as part of the recipe, but the recipe is failed overall. |
+| `just backend-lint` after formatting those two lines | Exit 0; Detekt passed. |
 
 ## Task Evidence
 
 | Task | State | Evidence |
 |---|---|---|
-| 1.1 | Complete | `.agents/sdd/changes/keycloak-human-authentication/identity-and-consumer-inventory.md` records the earlier inventory. |
-| 1.2 | RED complete | Unit tests cover `(issuer, subject)` lookup, approved link selection, no email lookup, and missing, ambiguous, disabled, and disallowed links. The approved link resolves only its mapped existing principal. |
-| 1.3 | RED/GREEN complete | PostgreSQL schema tests prove valid link insertion, preserved `principals.subject`/`provider`, unique issuer+subject including concurrent duplicate inserts, and principal FK rejection. The test does not assert `principal_id` uniqueness or cardinality. Migration adds no principal uniqueness constraint. |
-| 1.4 | Complete | `ExternalIdentityResolutionServiceTest.kt:107-122` proves disabled/suspended local principals return no resolved identity; existing unit and PostgreSQL test outcomes prove verified-email conflict skips sync, preserves local email and mapped principal, and does not prevent identity resolution, while unverified email does not sync. `server/smp/src/test/resources/features/resource-preview.feature:17-22` already proves valid JWT authentication is independent from per-resource denial (403 for a disallowed target scope), so no redundant scenario is needed. Session refusal remains a Work Unit 2 behavior. |
-| 1.5 | GREEN complete | Liquibase migration creates `external_identity_links`, pair primary key, principal FK, link status check/default, and UUID-native `principal_id` conversion. Existing local principal fields and email uniqueness remain unchanged. |
-| 1.6 | GREEN complete | Framework-free identity-link model, application gateway/service contract, and R2DBC adapter resolve only one approved validated pair and sync only verified nonblank email. Email conflicts do not change the resolved local principal. The service checks user principal status/account eligibility and does not perform resource authorization or email-based principal selection. |
-| 1.7 | Complete | The identity model and R2DBC migration are verified by the recorded identity unit and PostgreSQL persistence tests. `just backend-check` passed after the final source/test edits, including formatting, Detekt, unfiltered unit tests, and unfiltered PostgreSQL integration tests. Session-creation gating and validated-claims trust wiring remain Work Unit 2 scope; per-resource authorization is independently evidenced by the existing resource-preview feature. |
+| 2.11 | Complete | Application handler tests cover exact target principal/linking behavior, permission denial, target absence, non-disclosing duplicate conflict, no transfer/overwrite, audit metadata without authentication artifacts, persistence failure, and cancellation. `just backend-test-postgres` passed, including `R2dbcExternalIdentityLinkGatewayPostgresTest` (duplicate and concurrent pair conflicts, single ownership retained, multiple links per principal accepted, principal local subject preserved, and no email-based resolution) plus `IdentityLinkAuditAtomicityPostgresTest` (link insert rolls back if success-audit write fails). The implementation and tests do not add `principal_id` uniqueness/cardinality enforcement. |
+| 2.14 | Complete | Same successful unfiltered PostgreSQL integration run proves unique `(issuer, subject)` behavior under duplicate and concurrent submissions and allows multiple external identity links per principal. The test confirms local principal `subject` remains unchanged; there is no constraint on the principal's number of links. |
+| 2.12 | Partial | `R2dbcExternalIdentityLinkGatewayPostgresTest` and `ExternalIdentityLinksPostgresSchemaTest` prove repeated and concurrent submissions retain the first mapping, reject duplicates, preserve the local principal subject, and do not resolve by email. Still needed: assertions that provider/user-identity fields remain unchanged on conflict and that the HTTP conflict body is indistinguishable across owners. |
+| 2.15 | Partial | Handler and filter unit tests separately prove `USERS_MANAGE`, `pt-admin` `acr=2`, fresh OTP, and audit outcomes without representative authentication artifacts. Still needed: an endpoint-level test combining authorization and step-up, plus persisted success-audit field assertions at the endpoint seam. |
+| 2.16 | Complete in code; combined endpoint evidence pending | `ProvisionExternalIdentityLinkHandler` enforces `USERS_MANAGE` and audits through `AdministrativeAuditPublisher` with `EXTERNAL_IDENTITY_LINK_PROVISIONED` and fixed reason categories. `AdminAndFreshMfaAuthorizationWebFilter` enforces admin ACR and fresh MFA. Focused handler/filter tests pass; no single endpoint-level test combines both enforcement seams. |
+| 2.17 | Previously complete; new scenario partially verified | The feature now contains nine scenarios, including missing `Idempotency-Key`. The prior full BDD run passed the original eight scenarios. In the latest filtered run, the new scenario passed; eight other identity-link scenarios were skipped. A post-change full `just backend-bdd-fast` run remains required. |
+| 2.18 | Partial | The controller validates the required `Idempotency-Key` and uses existing idempotency behavior; controller tests cover replay, changed-payload conflicts, and missing-header status. The new BDD scenario passes for a missing key. The Problem Details body assertion is present in BDD glue but the filtered execution is the only post-change evidence so far; full-suite verification remains pending. |
+| 2.19 | Partial | Existing BDD and controller tests cover status mappings and no-link mutation on rejection. Still needed: an HTTP assertion that identity-pair `409` bodies do not reveal the owning principal and a full-application Problem Details assertion for a missing header. The latest focused BDD run passed the new missing-header scenario and two matching shortlink idempotency scenarios; it skipped the remaining scenarios. |
+| 4.4 | Partial | `docs/architecture/iam-platform.md` describes the Keycloak BFF and implemented MCP bearer-JWT contract, with operational gates explicit. `docs/architecture/data-model/erd-identity.html` and its catalog now include `external_identity_links`; `README.md` records the verified manual-maintenance process because no generator exists. `just docs-lint` and `git diff --check` passed locally. A final consistency pass remains; `just docs-links` previously failed on two pre-existing FTC URL 404s outside the changed files. ADR-0035's MCP API-key requirement still conflicts with the implementation and needs an explicit decision.
 
 ## TDD Evidence
 
-| Behavior | RED | GREEN | REFACTOR |
-|---|---|---|---|
-| External identity schema | Observed SQLSTATE `42P01` for absent relation after the baseline changelog applied. | Focused PostgreSQL schema tests passed after the migration and UUID-native mapping were added. | Full unfiltered PostgreSQL suite passed after final test cleanup and formatting. |
-| Identity resolution and email sync | 3 of 5 focused unit tests failed against the fail-closed test seam; failure was the missing approved-link resolution behavior. | All 5 unit tests passed after implementing the application resolver. PostgreSQL gateway tests passed for lookup, verified email update, and conflict preservation. | `just backend-check` passed, including formatting, Detekt, unit tests, and PostgreSQL integration tests. |
+No new behavior was added during this verification slice, so no RED/GREEN cycle was performed. Existing tests were run against the in-progress implementation. The requested identity-link conflict, authorization, audit, and persistence-failure behaviors have already been test-driven in the prior apply work; no new behavioral change was introduced here.
 
-The schema RED and application RED were observed before their respective behavior implementations. The test-facing application contract was introduced as a fail-closed seam so the tests compiled without relying on nonexistent OIDC callback APIs. No OAuth callback, BFF session, or Work Unit 2 behavior was implemented. `ValidatedExternalIdentity` is publicly constructible, so Work Unit 2 must wire only verified claims obtained from Spring Security's validated OIDC boundary; constructing this model alone does not establish claim trust.
+## Delivery Boundary
 
-## Review Workload
+- **Forecast**: High.
+- **Chain strategy**: `size-exception`, approved in current `tasks.md` for one PR above 400 lines.
+- **Layer boundary**: trunk=`main`; parent=`main`; base=`main`; branch=`feature/keycloak-auth-migration`; position is the single coherent delivery boundary; issue=none.
+- **Implemented slice**: verification of Unit 2 identity-link application, persistence, authorization, audit, and BDD tasks 2.11 through 2.19. No commits, push, PR, cutover, or `principal_id` change.
+- **Budget concern**: none beyond the already-approved size exception.
 
-- Forecast: High.
-- Strategy: `feature-branch-chain`.
-- Boundary: `trunk=main`; `parent_branch=main`; `base=main`; `branch=feature/keycloak-auth-migration`; `position=1`; `issue=none`.
-- Implemented slice: Work Unit 1 external identity relation, R2DBC persistence, and application resolution/email-sync contract only.
-- Budget concern: no scope expansion into Work Unit 2.
+## Remaining Work
 
-## Remaining Tasks
-
-- [ ] 2.3–2.4: Add and implement Work Unit 2 tests and behavior for session-creation gating on local authentication/account eligibility and validated-claims trust at Spring Security's validated OIDC boundary.
-- [ ] 2.7: Verify Work Unit 2 session gating and validated-claims wiring alongside its listed backend checks. No Work Unit 1 task remains open in this apply-progress record.
+- Unit 2 BFF/security tasks 2.1–2.7 remain under gap assessment against the active design, covering client routes, safe returns, callback failure, `401` versus browser redirect, mixed credentials, chain isolation, session-creation gating, CSRF, admin LoA2, and validated-claims trust wiring.
+- Task 2.6 (retirement of local human login, refresh, signup, verification, and recovery, `pt_refresh` invalidation, and removal of BFF-to-local-token exchange) is bound to the hard cutover and stays gated.
+- Task 4.1 (separate `pt-admin` login, one-OTP step-up, and denial of direct admin API access for app-only sessions) requires admin SPA coverage.
+- Task 4.4 (auth, lifecycle, API, deployment, and operations contract sync) requires a final consistency pass over the contract documents.
+- Contract contradiction requiring an explicit decision: ADR-0035 states that "Local MCP API-key authentication MUST remain independently authenticated by Profile Tailors" and repeats an "MCP API-key exception" in tasks 4.6 and the consumer inventory, but no MCP API-key authentication exists in the codebase. `McpSecurityConfiguration` authenticates MCP requests with a bearer JWT validated for audience, workspace, and scope (`McpJwtConverter`), and no MCP API-key credential, table, or filter is present. The ADR was not rewritten to conceal the drift; the decision is whether MCP API-key authentication must still be implemented or the ADR wording must be amended to describe the MCP bearer-JWT contract. `docs/architecture/iam-platform.md` now describes the implemented MCP bearer-JWT contract instead of the unimplemented API-key one.
+- Tasks 4.5 and 4.6 remain operational gates. The repository contains no Keycloak realm, client, or flow definition: the realm is an external deployment at `https://keycloak.ahome.quest/realms/pt`, so realm, client, OTP, DNS/TLS, proxy, callback, cookie, session, CSRF, and logout readiness cannot be validated from this codebase and require operational evidence plus explicit authorization.
+- Unit 2 verification remains blocked until the remaining implementation and verification tasks are complete.
+- Hard cutover task 4.6 remains gated and MUST NOT be activated by this apply slice.

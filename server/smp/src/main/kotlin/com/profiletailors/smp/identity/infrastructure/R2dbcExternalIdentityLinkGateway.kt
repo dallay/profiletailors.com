@@ -8,12 +8,30 @@ import com.profiletailors.smp.identity.domain.ExternalIdentityLinkStatus
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
 class R2dbcExternalIdentityLinkGateway(private val databaseClient: DatabaseClient) : ExternalIdentityLinkGateway {
+    override suspend fun create(issuer: String, subject: String, principalId: String) {
+        try {
+            databaseClient.sql(
+                "INSERT INTO external_identity_links (issuer, subject, principal_id, link_status) " +
+                    "VALUES (:$ISSUER, :$SUBJECT, :principalId, 'APPROVED')",
+            )
+                .bind(ISSUER, issuer)
+                .bind(SUBJECT, subject)
+                .bind(PRINCIPAL_ID, UUID.fromString(principalId))
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+        } catch (exception: DuplicateKeyException) {
+            throw com.profiletailors.smp.identity.application.ExternalIdentityLinkConflictException(exception)
+        }
+    }
+
     override suspend fun findByIssuerAndSubject(issuer: String, subject: String): List<ExternalIdentityLink> =
         databaseClient.sql(
             """
@@ -44,7 +62,7 @@ class R2dbcExternalIdentityLinkGateway(private val databaseClient: DatabaseClien
         val existingEmail = databaseClient.sql(
             "SELECT email FROM user_identities WHERE principal_id = :principalId",
         )
-            .bind("principalId", principalUuid)
+            .bind(PRINCIPAL_ID, principalUuid)
             .map { row, _ -> UserIdentityEmail(row.get("email", String::class.java)) }
             .one()
             .awaitSingleOrNull()
@@ -55,7 +73,7 @@ class R2dbcExternalIdentityLinkGateway(private val databaseClient: DatabaseClien
                 "UPDATE user_identities SET email_status = :emailStatus WHERE principal_id = :principalId",
             )
                 .bind("emailStatus", EmailStatus.VERIFIED.name)
-                .bind("principalId", principalUuid)
+                .bind(PRINCIPAL_ID, principalUuid)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
@@ -84,7 +102,7 @@ class R2dbcExternalIdentityLinkGateway(private val databaseClient: DatabaseClien
             )
                 .bind("email", email)
                 .bind("emailStatus", EmailStatus.VERIFIED.name)
-                .bind("principalId", principalUuid)
+                .bind(PRINCIPAL_ID, principalUuid)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
@@ -99,4 +117,10 @@ class R2dbcExternalIdentityLinkGateway(private val databaseClient: DatabaseClien
     }
 
     private data class UserIdentityEmail(val email: String?)
+
+    private companion object {
+        const val PRINCIPAL_ID = "principalId"
+        const val ISSUER = "issuer"
+        const val SUBJECT = "subject"
+    }
 }

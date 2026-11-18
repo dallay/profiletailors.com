@@ -5,6 +5,7 @@ import AcceptInvitationView from './AcceptInvitationView.vue'
 
 const accept = vi.hoisted(() => vi.fn())
 const hydrateSession = vi.hoisted(() => vi.fn())
+const startBffLogin = vi.hoisted(() => vi.fn())
 const routerReplace = vi.hoisted(() => vi.fn())
 const load = vi.hoisted(() => vi.fn())
 
@@ -71,6 +72,7 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     hydrateSession,
+    startBffLogin,
     get isAuthenticated() {
       return authState.hydrated
     },
@@ -104,6 +106,7 @@ describe('AcceptInvitationView branch coverage', () => {
     authState.hydrated = false
     accept.mockReset()
     hydrateSession.mockReset()
+    startBffLogin.mockReset()
     routerReplace.mockReset()
     load.mockReset()
     document.title = ''
@@ -149,7 +152,7 @@ describe('AcceptInvitationView branch coverage', () => {
     expect(wrapper.text()).toContain('invitation.errors.invalid')
   })
 
-  it('redirects unauthenticated invitees to registration with the token', async (): Promise<void> => {
+  it('redirects unauthenticated invitees to BFF login with a safe invitation return path', async (): Promise<void> => {
     accept.mockImplementation(async () => {
       state.errorCode = 'INVITATION_REQUIRES_LOGIN'
       state.errorStatus = 401
@@ -167,10 +170,7 @@ describe('AcceptInvitationView branch coverage', () => {
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
     await flushPromises()
-    expect(routerReplace).toHaveBeenCalledWith({
-      name: 'register',
-      query: { invitationToken: 'raw-token' },
-    })
+    expect(startBffLogin).toHaveBeenCalledWith('/invitations/accept?token=raw-token')
   })
 
   it('shows rateLimited canonical copy', async () => {
@@ -335,7 +335,7 @@ describe('AcceptInvitationView branch coverage', () => {
     expect(wrapper.text()).toContain('invitation.errors.missingToken')
   })
 
-  it('swallows hydrateSession errors and still redirects to login when not authenticated', async () => {
+  it('swallows hydrateSession errors and still redirects to BFF login when not authenticated', async () => {
     accept.mockImplementation(async () => {
       state.workspaceId = 'ef541e38-d4a8-5714-9348-8bb19f5055db'
       return {
@@ -354,7 +354,7 @@ describe('AcceptInvitationView branch coverage', () => {
     await flushPromises()
     await flushPromises()
     expect(hydrateSession).toHaveBeenCalledOnce()
-    expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/login' }))
+    expect(startBffLogin).toHaveBeenCalledWith('/invitations/accept?token=raw-token')
   })
 
   it('disables submit button when pending', async () => {

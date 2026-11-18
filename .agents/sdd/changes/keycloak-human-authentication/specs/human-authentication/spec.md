@@ -97,6 +97,86 @@ Profile Tailors MUST retain ownership of the local principal and product/account
 - THEN Profile Tailors MUST select only principal A
 - AND it MUST NOT select, link, or merge principal B based on the email match
 
+### Requirement: Restricted Operator Provisioning of External Identity Links
+
+An authorized platform operator MUST be able to associate an explicitly supplied, validated
+`(issuer, subject)` identity with an already existing local `principal_id` before that identity can
+authenticate through Keycloak. The operation MUST require both the applicable local platform
+authorization and validated `pt-admin` step-up/MFA authentication state, including the admin
+authentication boundary defined by this change. The operation MUST NOT create a local principal or
+derive either identity-link value from email, an invitation token, or Keycloak self-registration.
+The unique `(issuer, subject)` constraint MUST remain authoritative. A duplicate identity link, a
+conflicting association, an invalid identity, or a missing local principal MUST fail closed and MUST
+NOT alter an existing principal or link. MCP authentication and existing local authorization rules
+MUST remain unchanged. Transfer or replacement of an already-linked subject is prohibited. A local
+principal MAY have multiple external identity links; only `(issuer, subject)` is unique.
+
+Each authenticated request to perform this provisioning operation MUST produce auditable evidence
+that makes the outcome testable. Evidence for a completed operation or a rejected duplicate/conflict
+MUST identify the operator's local principal, the target local `principal_id`, the explicitly
+supplied issuer and subject, the action, the outcome, and the occurrence time. Rejection evidence
+MUST identify a safe outcome category. Audit evidence MUST NOT contain credentials, bearer tokens,
+session identifiers, or raw authentication artifacts. The audit contract does not require recording
+requests rejected before an authenticated operator identity is established.
+
+#### Scenario: Authorized operator links a validated identity to an existing principal
+
+- GIVEN an operator has the required local platform authorization
+- AND the operator has validated `pt-admin` step-up/MFA authentication state
+- AND the supplied issuer and subject are validated
+- AND the supplied local `principal_id` identifies an existing principal
+- AND the `(issuer, subject)` pair has no existing link
+- WHEN the operator submits the identity-link operation
+- THEN the system MUST associate exactly the supplied `(issuer, subject)` pair with exactly the supplied `principal_id`
+- AND the operation MUST NOT create or modify a local principal
+- AND the audit evidence MUST identify the operator principal, target principal, issuer, subject, action, successful outcome, and occurrence time
+
+#### Scenario: Provisioning request without local authorization is denied
+
+- GIVEN an authenticated operator lacks the required local platform authorization
+- WHEN the operator submits an identity-link operation
+- THEN the system MUST deny the operation without changing principals or identity links
+- AND no successful identity-link audit outcome MUST be recorded
+
+#### Scenario: Provisioning request without validated admin step-up is denied
+
+- GIVEN an operator has local platform authorization but lacks validated `pt-admin` step-up/MFA authentication state
+- WHEN the operator submits an identity-link operation
+- THEN the system MUST deny the operation without changing principals or identity links
+- AND no successful identity-link audit outcome MUST be recorded
+
+#### Scenario: Invalid or missing target fails closed
+
+- GIVEN an authorized operator has validated `pt-admin` step-up/MFA authentication state
+- AND the supplied issuer or subject is invalid, or the supplied `principal_id` does not identify an existing principal
+- WHEN the operator submits an identity-link operation
+- THEN the system MUST reject the operation
+- AND no principal or identity link MUST be created or changed
+- AND the authenticated attempt's audit evidence MUST identify the rejected outcome without authentication artifacts
+
+#### Scenario: Duplicate or conflicting identity link fails closed
+
+- GIVEN an authorized operator has validated `pt-admin` step-up/MFA authentication state
+- AND the supplied `(issuer, subject)` pair is already linked or conflicts with the unique identity-link constraint
+- WHEN the operator submits an identity-link operation
+- THEN the system MUST reject the operation without transferring or replacing an existing link
+- AND no principal or identity link MUST be changed
+- AND the authenticated attempt's audit evidence MUST identify a duplicate or conflict outcome
+
+#### Scenario: Email and invitation data cannot select the link target
+
+- GIVEN an authorized operator submits an identity-link operation
+- WHEN the request includes email or invitation data in addition to the explicit issuer, subject, and principal ID
+- THEN the system MUST use only the explicitly supplied validated `(issuer, subject)` and existing `principal_id` for the association
+- AND email or invitation data MUST NOT create, select, or link a principal
+
+#### Scenario: Identity-link audit evidence excludes authentication artifacts
+
+- GIVEN an authenticated operator's identity-link attempt succeeds or is rejected for a duplicate or conflict
+- WHEN the audit evidence is inspected
+- THEN it MUST contain the operator and target principal IDs, issuer, subject, action, outcome, and occurrence time
+- AND it MUST NOT contain credentials, bearer tokens, session identifiers, or raw authentication artifacts
+
 ### Requirement: Local Authorization Remains Authoritative
 
 Keycloak identity claims and realm or client roles MUST NOT, by themselves, grant Profile Tailors workspace access, resource access, platform permissions, or product/account eligibility. Profile Tailors MUST authorize using its local principal, local account/product state, workspace membership, resource policy, and platform permissions. Profile Tailors MUST retain the audit identity associated with the local principal.
@@ -145,6 +225,8 @@ The backend session MUST represent the relying party's authenticated state deriv
 The approved provider is Keycloak `26.3.5` at issuer `https://keycloak.ahome.quest/realms/pt`. The dashboard and admin MUST use separate confidential OIDC clients `pt-app` and `pt-admin`. Their BFF callbacks MUST be `https://api.profiletailors.com/login/oauth2/code/pt-app` and `https://api.profiletailors.com/login/oauth2/code/pt-admin`, respectively. Real Keycloak realm/client configuration and the DNS/proxy route to `api.profiletailors.com` remain pending validation; this contract does not claim that either is deployed or reachable.
 
 For beta, relying-party sessions MUST be held in memory on one application replica, with a 30-minute idle expiry and an 8-hour absolute expiry. The host-only session cookie MUST be scoped to `/` and use `Secure`, `HttpOnly`, and `SameSite=Lax`. The exact Spring cookie name remains pending implementation verification. `GET /api/auth/csrf` MUST provide the CSRF token, and every unsafe cookie-authenticated request, including logout, MUST carry it in `X-CSRF-TOKEN`. These policies apply to both browser clients. Critical mutations MUST additionally require MFA evidence and an `auth_time` no older than 300 seconds; this requirement is separate from the admin baseline `acr=2` requirement.
+
+The critical-mutation policy applies to the route inventory in the active change design: account closure; workspace-owner add, remove, and transfer; admin user disable, enable, and session revocation; admin operator-role add and remove; admin registration-mode changes; invitation resend, revocation, direct creation/resend/revocation, waitlist invitation issue/cancel/bulk issue; takedown approval/rejection; publishing connection initiation, completion, and removal; publication creation, batch creation, cancellation, deletion, retry, quick-create, and reschedule; recurring publication creation, update, and removal; and bulk scheduling. Ordinary content edits and preference/consent changes are outside this derived scope. This route inventory is part of the contract and must be extended when a route is added to one of these high-impact contract areas.
 
 #### Scenario: Unsafe browser request without valid CSRF proof
 
@@ -214,7 +296,7 @@ For beta, relying-party sessions MUST be held in memory on one application repli
 
 ### Requirement: Administrative Authentication Requires LoA 2
 
-The `pt-admin` client MUST require `Minimum ACR Value = 2` and use the dedicated `browser-admin-mfa` flow. Keycloak MUST issue LoA 2 and `acr=2` only after successful password and OTP authentication. The BFF MUST validate the exact issuer `https://keycloak.ahome.quest/realms/pt`, a non-empty subject, the expected audience and admin client identity, and `acr=2` before granting an administrative session or access. Admin authentication MUST require LoA 2 even when the request omits `acr_values` or requests level 1, including when the browser already has a dashboard SSO session. The behavior that causes this step-up and the one-time OTP challenge MUST be acceptance-tested and MUST NOT be described as already tested. The `pt-app` client MUST NOT have a minimum ACR requirement.
+The `pt-admin` client MUST require `Minimum ACR Value = 2` and use the dedicated `browser-admin-mfa` flow. Keycloak MUST issue LoA 2 and `acr=2` only after successful password and OTP authentication. The BFF MUST consume claims only from Spring Security's successfully validated OIDC authentication and ID token. It MUST validate the exact issuer `https://keycloak.ahome.quest/realms/pt`, a non-empty `sub`, `aud` containing the configured client ID `pt-admin`, `azp` equal to `pt-admin`, and `acr=2` before granting an administrative session or access. Missing or mismatched claims MUST fail closed. The exact claim placement and emitted values in the deployed realm remain pending acceptance testing; the required application-side validation contract is not pending. Admin authentication MUST require LoA 2 even when the request omits `acr_values` or requests level 1, including when the browser already has a dashboard SSO session. The behavior that causes this step-up and the one-time OTP challenge MUST be acceptance-tested and MUST NOT be described as already tested. The `pt-app` client MUST NOT have a minimum ACR requirement.
 
 #### Scenario: Admin login follows password and OTP
 

@@ -34,7 +34,7 @@ internal class CreateLinkHandlerTest {
     private val workspaceId = "0199b1ca-0000-7000-8000-000000000001"
     private val ownerId = OwnerId.from(workspaceId)
     private val contextProvider = mockk<ResourceContextProvider> {
-        every { require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
     }
     private val linkRepository = mockk<LinkRepository>()
     private val idempotencyPort = mockk<IdempotencyPort>()

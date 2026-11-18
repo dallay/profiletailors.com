@@ -238,7 +238,7 @@ class PublishingChannelController(
      */
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun streamEvents(): Flux<ServerSentEvent<ChannelEventResponse>> {
+    suspend fun streamEvents(): Flux<ServerSentEvent<ChannelEventResponse>> {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val channelEvents = channelEventStreamRegistry.stream()
             .filter { it.workspaceId == workspaceId }
@@ -701,7 +701,7 @@ class RecurringScheduleController(
         mediator.send(DeleteRecurringScheduleCommand(id))
     }
 
-    private fun requireWorkspacePath(pathWorkspaceId: String) {
+    private suspend fun requireWorkspacePath(pathWorkspaceId: String) {
         val contextWorkspaceId = resourceContextProvider.requireWorkspaceContext().workspaceId
         if (pathWorkspaceId != contextWorkspaceId) {
             throw PublicationValidationException("Workspace path does not match the authenticated workspace.")

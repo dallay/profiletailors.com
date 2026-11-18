@@ -448,7 +448,7 @@ class ProviderConnectionHandlersTest {
 
     private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
         ResourceContextProvider {
-        override fun current(): ResourceContext = resourceContext
+        override suspend fun current(): ResourceContext = resourceContext
     }
 
     private class RecordingOAuthStateSigner(val payload: OAuthStatePayload? = null) : OAuthStateSigner {

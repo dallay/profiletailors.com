@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
-import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -45,7 +45,7 @@ import java.time.Duration
 class PublishingStaleJobsController(
     private val mediator: Mediator,
     private val operatorAccessResolver: OperatorAccessResolver,
-    private val requestContextStore: RequestContextStore,
+    private val principalContextProvider: PrincipalContextProvider,
 ) {
 
     @Operation(
@@ -84,7 +84,7 @@ class PublishingStaleJobsController(
         @RequestParam(defaultValue = DEFAULT_LEASE_STALE_THRESHOLD) leaseStaleThreshold: String,
         @RequestParam(defaultValue = DEFAULT_LIMIT) limit: Int,
     ): ResponseEntity<StaleJobsResponse> {
-        val ctx = requestContextStore.currentPrincipalContext()
+        val ctx = principalContextProvider.current()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
         val operator = operatorAccessResolver.resolve(ctx)

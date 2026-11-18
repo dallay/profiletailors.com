@@ -2,29 +2,61 @@
 
 ## ADDED Requirements
 
-### Requirement: Post-Cutover Signup Uses Keycloak
+### Requirement: Post-Cutover Invited Access Uses Keycloak
 
-After the approved human-authentication cutover is complete, human signup and credential creation MUST
-use Keycloak and MUST remain invite-only. Profile Tailors MUST NOT accept local human credentials to
-create or authenticate an account. Keycloak owns human signup, credential creation, email
-verification, and authentication. Profile Tailors continues to own local principal and product/account
-state, workspace provisioning and authorization, platform permissions, and audit. Local principal
-provisioning MUST remain manual. Successful Keycloak signup MUST resolve only to an already manually
-provisioned local principal; matching email addresses alone MUST NOT merge or link accounts. Local
-registration policy and capability reporting MUST NOT be interpreted as permission to create local
-human credentials or permit public signup after cutover. The local password-based registration,
-credential creation, email-verification, and
-authenticated-session behavior in the current registration specification applies only to
-pre-cutover operation and MUST NOT override this requirement. This requirement does not claim that
-cutover has been implemented.
+After the approved human-authentication cutover is complete, human access MUST remain invite-only and
+MUST use Keycloak for authentication, credential creation, and email verification. Keycloak MUST NOT
+allow human self-registration. Before enabling Keycloak access for a newly invited person, an operator
+MUST manually provision the local principal and use the restricted, auditable platform-admin workflow
+to associate an explicitly supplied, validated `(issuer, subject)` identity with that existing
+`principal_id`. The operator MUST have the required local platform authorization and validated
+`pt-admin` step-up/MFA authentication state. The unique issuer-and-subject constraint MUST be enforced;
+duplicate or conflicting links MUST fail closed without modifying existing links. The person MUST
+then authenticate through Keycloak and accept the
+workspace invitation. Profile Tailors MUST NOT create or link a principal from an email address,
+invitation token, or Keycloak self-registration. A missing approved `(issuer, sub) -> principal_id`
+mapping MUST fail closed. Profile Tailors continues to own local principal and product/account state,
+workspace provisioning and authorization, platform permissions, and audit. Profile Tailors MUST NOT
+accept local human credentials to create or authenticate an account. Local registration policy and
+capability reporting MUST NOT be interpreted as permission to create local human credentials or permit
+public signup after cutover. The local password-based registration, credential creation,
+email-verification, and authenticated-session behavior in the current registration specification
+applies only to pre-cutover operation and MUST NOT override this requirement. This requirement does not
+claim that cutover has been implemented.
 
-#### Scenario: Invite-only signup uses Keycloak after cutover
+#### Scenario: Operator provisions an invited person before Keycloak access
 
 - GIVEN the approved human-authentication cutover is complete
-- AND the human has a valid invitation
-- WHEN the human follows the supported signup entry
-- THEN the guest MUST enter the Keycloak-owned signup and credential-creation flow
-- AND Profile Tailors MUST NOT submit a local password registration request
+- AND a person has a pending workspace invitation
+- WHEN an operator prepares the person for Keycloak access
+- THEN the operator MUST manually provision the local principal
+- AND the operator MUST use the restricted, auditable platform-admin workflow with local platform authorization and validated `pt-admin` step-up/MFA to map the explicitly supplied validated `(issuer, subject)` identity to that existing principal
+- AND the unique issuer-and-subject constraint MUST reject duplicate or conflicting links without changing an existing link
+- AND no principal or mapping MUST be created from the person's email address or invitation token
+
+#### Scenario: Provisioning audit can be asserted for an invited person
+
+- GIVEN an authorized operator with validated `pt-admin` step-up/MFA provisions the identity link for an invited person
+- WHEN the provisioning outcome is recorded
+- THEN audit evidence MUST identify the operator principal, target `principal_id`, issuer, subject, action, outcome, and occurrence time
+- AND audit evidence MUST NOT contain credentials, bearer tokens, session identifiers, or raw authentication artifacts
+
+#### Scenario: Invited person authenticates and accepts the invitation
+
+- GIVEN the operator has manually provisioned the local principal and approved `(issuer, sub) -> principal_id` mapping
+- AND Keycloak access is enabled for the invited person
+- AND the person has a valid workspace invitation
+- WHEN the person authenticates through Keycloak and accepts the invitation
+- THEN the BFF MUST resolve the already provisioned principal through the approved mapping
+- AND Profile Tailors MUST apply the invitation to that principal under local workspace authorization
+- AND Profile Tailors MUST NOT create or link a principal during authentication or invitation acceptance
+
+#### Scenario: Keycloak does not allow human self-registration
+
+- GIVEN the approved human-authentication cutover is complete
+- WHEN a person attempts to create an account through Keycloak self-registration
+- THEN Keycloak MUST NOT create a human account
+- AND Profile Tailors MUST NOT provision or link a local principal
 
 #### Scenario: Public signup remains unavailable after cutover
 
@@ -35,11 +67,11 @@ cutover has been implemented.
 
 #### Scenario: Signup does not provision a local principal automatically
 
-- GIVEN a human completes Keycloak signup
+- GIVEN a human authenticates through Keycloak without an operator-provisioned local principal and approved identity mapping
 - AND no local principal was provisioned manually
 - WHEN the BFF resolves the authenticated identity
 - THEN authentication MUST fail closed
-- AND no local principal MUST be created from signup or email equality
+- AND no local principal MUST be created or linked from email, invitation token, or Keycloak self-registration
 
 #### Scenario: Local registration endpoint receives credentials after cutover
 

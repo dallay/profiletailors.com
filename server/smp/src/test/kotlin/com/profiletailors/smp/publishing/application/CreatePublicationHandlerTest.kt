@@ -26,7 +26,6 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -150,7 +149,7 @@ class CreatePublicationHandlerTest {
     private fun stubWorkspaceContext(workspaceId: String, principalId: String) {
         val principalCtx = PrincipalContext(principalId, PrincipalType.USER, principalId)
         coEvery { principalContextProvider.require() } returns principalCtx
-        every { resourceContextProvider.require() } returns
+        coEvery { resourceContextProvider.require() } returns
             ResourceContext(
                 type = ResourceContextType.WORKSPACE,
                 workspaceId = workspaceId,

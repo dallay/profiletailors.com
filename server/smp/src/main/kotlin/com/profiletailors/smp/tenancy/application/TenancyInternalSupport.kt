@@ -61,7 +61,7 @@ interface WorkspaceMembershipRepository {
     suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership
 }
 
-internal fun ResourceContextProvider.requireWorkspaceContext(): ResourceContext {
+internal suspend fun ResourceContextProvider.requireWorkspaceContext(): ResourceContext {
     val resourceContext = require()
     if (resourceContext.type != ResourceContextType.WORKSPACE || resourceContext.workspaceId.isNullOrBlank()) {
         throw WorkspaceOwnershipOperationRequiresWorkspaceContextException()

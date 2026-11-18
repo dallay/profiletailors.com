@@ -15,6 +15,9 @@ import {
   resolveApiUrl,
   renameWorkspace,
   verifyEmail,
+  getBffSession,
+  logoutBffSession,
+  buildBffLoginUrl,
   type AuthTokens,
   type CurrentUserProfile,
 } from './auth-api'
@@ -159,6 +162,59 @@ describe('login', () => {
       detail: 'An unexpected error occurred.',
       status: 400,
     })
+  })
+})
+
+describe('BFF authentication', () => {
+  beforeEach(() => mockImportMetaEnv({ VITE_API_BASE_URL: '' }))
+
+  it('loads the current-user session without sending a provider token', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ principalId: 'principal' }), { status: 200 }),
+    )
+
+    await getBffSession()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/me',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+    expect(fetchHeaders(fetchMock).Authorization).toBeUndefined()
+  })
+
+  it('adds a CSRF token to unsafe session requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'csrf-proof' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await logoutBffSession()
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/auth/csrf',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({ 'X-CSRF-TOKEN': 'csrf-proof' }),
+      }),
+    )
+  })
+
+  it('starts pt-app login with a safe local return destination', () => {
+    expect(buildBffLoginUrl('/scheduler?view=week')).toBe(
+      '/oauth2/authorization/pt-app?returnTo=%2Fscheduler%3Fview%3Dweek',
+    )
+    expect(buildBffLoginUrl('//attacker.example')).toBe('/oauth2/authorization/pt-app?returnTo=%2F')
+    expect(buildBffLoginUrl('https://attacker.example')).toBe(
+      '/oauth2/authorization/pt-app?returnTo=%2F',
+    )
   })
 })
 
@@ -742,7 +798,11 @@ describe('createApiFetch', () => {
   })
 
   it('does not force application/json content type for FormData bodies', async () => {
-    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'csrf-proof' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
     const apiFetch = createApiFetch({
       getToken: () => 'token',
       getWorkspaceId: () => 'a219727d-019f-544c-95f9-ac30f00cc8b2',
@@ -759,7 +819,7 @@ describe('createApiFetch', () => {
       workspaceScoped: true,
     })
 
-    const headers = fetchHeaders(fetchMock)
+    const headers = fetchHeaders(fetchMock, 1)
     expect(headers.Accept).toBe('application/vnd.api.v1+json')
     expect(headers.Authorization).toBe('Bearer token')
     expect(headers['X-Workspace-Id']).toBe('a219727d-019f-544c-95f9-ac30f00cc8b2')

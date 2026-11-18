@@ -149,6 +149,16 @@ services:
         uid: "1002"
         gid: "1001"
         mode: 0400
+      - source: keycloak_pt_app_client_secret
+        target: KEYCLOAK_PT_APP_CLIENT_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: keycloak_pt_admin_client_secret
+        target: KEYCLOAK_PT_ADMIN_CLIENT_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
     volumes:
       - type: bind
         source: ${SWARM_MEDIA_PATH:-/var/lib/profiletailors/media}
@@ -296,3 +306,9 @@ secrets:
   resend_api_key:
     external: true
     name: ${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}
+  keycloak_pt_app_client_secret:
+    external: true
+    name: ${SWARM_KEYCLOAK_PT_APP_CLIENT_SECRET:-profiletailors_keycloak_pt_app_client_v1}
+  keycloak_pt_admin_client_secret:
+    external: true
+    name: ${SWARM_KEYCLOAK_PT_ADMIN_CLIENT_SECRET:-profiletailors_keycloak_pt_admin_client_v1}

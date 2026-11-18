@@ -22,7 +22,7 @@ internal class LinkManagementOwnershipTest {
     private val linkId = UUID.fromString("0199b1ca-0000-7000-8000-000000000002")
     private val ownerId = OwnerId.from(workspaceId)
     private val resourceContextProvider = mockk<ResourceContextProvider> {
-        every { require() } returns ResourceContext(
+        coEvery { require() } returns ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )

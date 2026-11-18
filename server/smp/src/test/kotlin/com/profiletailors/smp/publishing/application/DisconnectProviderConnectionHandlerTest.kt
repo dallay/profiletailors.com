@@ -119,6 +119,6 @@ class DisconnectProviderConnectionHandlerTest {
     }
 
     private class FixedResourceContextProvider(private val context: ResourceContext) : ResourceContextProvider {
-        override fun current(): ResourceContext = context
+        override suspend fun current(): ResourceContext = context
     }
 }

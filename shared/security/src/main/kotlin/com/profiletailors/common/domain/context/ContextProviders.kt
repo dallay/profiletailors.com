@@ -19,10 +19,10 @@ interface PrincipalContextProvider {
  */
 interface ResourceContextProvider {
     /** Return the current resource context, or null if not available. */
-    fun current(): ResourceContext?
+    suspend fun current(): ResourceContext?
 
     /** Return the current resource context, or throw if not available. */
-    fun require(): ResourceContext = current() ?: throw MissingResourceContextException()
+    suspend fun require(): ResourceContext = current() ?: throw MissingResourceContextException()
 }
 
 /**
@@ -30,10 +30,10 @@ interface ResourceContextProvider {
  */
 interface RequestPathProvider {
     /** Return the current request path, or null if not available. */
-    fun current(): String?
+    suspend fun current(): String?
 
     /** Return the current request path, or throw if not available. */
-    fun require(): String = current() ?: throw MissingRequestPathException()
+    suspend fun require(): String = current() ?: throw MissingRequestPathException()
 }
 
 /** Thrown when [PrincipalContext] is required but not available. */

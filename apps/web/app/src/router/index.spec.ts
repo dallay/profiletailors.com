@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
+import type { CurrentUserProfile } from '@modules/auth/infrastructure/auth-api'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
-const mockRefreshSession = vi.fn()
+const mockGetBffSession = vi.fn()
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
@@ -16,25 +16,21 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
       },
       { raw: async () => new Response(null, { status: 204 }) },
     ),
-  refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
-  getCurrentUserProfile: vi.fn().mockResolvedValue(null),
-  login: vi.fn(),
+  getBffSession: (...args: unknown[]) => mockGetBffSession(...args),
+  logoutBffSession: vi.fn(),
+  buildBffLoginUrl: (returnTo: string) =>
+    `/oauth2/authorization/pt-app?returnTo=${encodeURIComponent(returnTo)}`,
   register: vi.fn(),
-  logoutSession: vi.fn(),
 }))
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-const fakeTokens: AuthTokens = {
-  accessToken: 'access-hydrated',
-  tokenType: 'Bearer',
-  expiresIn: 3600,
+const fakeProfile: CurrentUserProfile = {
   principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
   email: 'user@example.com',
   username: 'testuser',
-  emailStatus: 'ACTIVE',
-  workspaceId: '820c22d8-9ce7-5e76-867f-04bac4e53b59',
+  emailStatus: 'VERIFIED',
 }
 
 // ---------------------------------------------------------------------------
@@ -49,11 +45,11 @@ describe('Session hydration — restore session after page refresh', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    mockRefreshSession.mockReset()
+    mockGetBffSession.mockReset()
   })
 
-  it('hydrateSession restores session from refresh token cookie', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+  it('hydrates session from BFF profile without exposing an access token', async () => {
+    mockGetBffSession.mockResolvedValue(fakeProfile)
 
     const auth = useAuthStore()
     expect(auth.isAuthenticated).toBe(false)
@@ -62,11 +58,11 @@ describe('Session hydration — restore session after page refresh', () => {
 
     expect(auth.isAuthenticated).toBe(true)
     expect(auth.sessionChecked).toBe(true)
-    expect(auth.accessToken).toBe('access-hydrated')
+    expect(auth.accessToken).toBeNull()
   })
 
   it('hydrateSession sets sessionChecked even with no active session', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
 
     const auth = useAuthStore()
     await auth.hydrateSession()
@@ -75,8 +71,8 @@ describe('Session hydration — restore session after page refresh', () => {
     expect(auth.sessionChecked).toBe(true)
   })
 
-  it('hydrateSession clears an old in-memory session when refresh returns no tokens', async () => {
-    mockRefreshSession.mockResolvedValueOnce(fakeTokens).mockResolvedValueOnce(null)
+  it('clears an old in-memory session when BFF hydration returns unauthorized', async () => {
+    mockGetBffSession.mockResolvedValueOnce(fakeProfile).mockRejectedValueOnce({ status: 401 })
 
     const auth = useAuthStore()
     await auth.hydrateSession()
@@ -90,8 +86,8 @@ describe('Session hydration — restore session after page refresh', () => {
     expect(auth.bootstrapState).toBe('unauthenticated')
   })
 
-  it('hydrateSession sets sessionChecked when refreshSession throws', async () => {
-    mockRefreshSession.mockRejectedValue(new Error('network'))
+  it('hydrateSession sets sessionChecked when BFF hydration fails', async () => {
+    mockGetBffSession.mockRejectedValue(new Error('session error'))
 
     const auth = useAuthStore()
     await auth.hydrateSession()
@@ -104,7 +100,7 @@ describe('Session hydration — restore session after page refresh', () => {
     // This is the regression test for the bug where the guard required
     // accessToken to be non-null before calling hydrateSession.
     // After the fix, the guard only checks !sessionChecked.
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
 
     const auth = useAuthStore()
 
@@ -118,7 +114,7 @@ describe('Session hydration — restore session after page refresh', () => {
   })
 
   it('guard does NOT call hydrateSession when sessionChecked is true', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
 
     const auth = useAuthStore()
     auth.sessionChecked = true
@@ -128,8 +124,7 @@ describe('Session hydration — restore session after page refresh', () => {
       await auth.hydrateSession()
     }
 
-    // refreshSession should NOT have been called
-    expect(mockRefreshSession).not.toHaveBeenCalled()
+    expect(mockGetBffSession).not.toHaveBeenCalled()
   })
 })
 
@@ -180,12 +175,12 @@ describe('requiresAuth and isGuestOnly helpers', () => {
 describe('router guard', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    mockRefreshSession.mockReset()
+    mockGetBffSession.mockReset()
     localStorage.clear()
   })
 
   it('redirects to login when accessing requiresAuth route unauthenticated', async () => {
-    mockRefreshSession.mockResolvedValue(null)
+    mockGetBffSession.mockRejectedValue({ status: 401 })
     const auth = useAuthStore()
     const route = mockRoute('/scheduler', { requiresAuth: true })
 
@@ -203,7 +198,7 @@ describe('router guard', () => {
   })
 
   it('allows access when accessing requiresAuth route authenticated', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
     const auth = useAuthStore()
     const route = mockRoute('/scheduler/calendar/week', { requiresAuth: true })
 
@@ -215,7 +210,7 @@ describe('router guard', () => {
   })
 
   it('redirects to root when authenticated user accesses guest-only route', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+    mockGetBffSession.mockResolvedValue(fakeProfile)
     const auth = useAuthStore()
     await auth.hydrateSession()
 

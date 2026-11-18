@@ -1,6 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
@@ -100,6 +101,14 @@ class RefreshSessionOriginValidationWebFilterTest {
             corsConfigurationSource.getCorsConfiguration(exchange)?.checkOrigin(origin) shouldBe origin
         }
         corsConfigurationSource.getCorsConfiguration(exchange)?.allowCredentials shouldBe true
+    }
+
+    @Test
+    fun `cors allows the bff csrf request header`() {
+        val source = IdentitySecurityConfiguration().corsConfigurationSource(CorsConfigurationProperties())
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
+
+        source.getCorsConfiguration(exchange)?.allowedHeaders.orEmpty() shouldContain "X-CSRF-TOKEN"
     }
 
     @Test

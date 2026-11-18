@@ -32,7 +32,7 @@ class GetWorkspaceAuditEventsHandlerTest {
         val createdBefore = Instant.parse("2026-05-20T13:00:00Z")
         val handler = GetWorkspaceAuditEventsHandler(
             resourceContextProvider = object : ResourceContextProvider {
-                override fun current(): ResourceContext = ResourceContext(
+                override suspend fun current(): ResourceContext = ResourceContext(
                     type = ResourceContextType.WORKSPACE,
                     workspaceId = "workspace-1",
                 )
@@ -117,7 +117,7 @@ class GetWorkspaceAuditEventsHandlerTest {
     fun `page metadata reports no more items when reader returns within limit`() = runTest {
         val handler = GetWorkspaceAuditEventsHandler(
             resourceContextProvider = object : ResourceContextProvider {
-                override fun current(): ResourceContext = ResourceContext(
+                override suspend fun current(): ResourceContext = ResourceContext(
                     type = ResourceContextType.WORKSPACE,
                     workspaceId = "workspace-1",
                 )
@@ -143,7 +143,7 @@ class GetWorkspaceAuditEventsHandlerTest {
     fun `denies workspace audit events when cursor is invalid`() = runTest {
         val handler = GetWorkspaceAuditEventsHandler(
             resourceContextProvider = object : ResourceContextProvider {
-                override fun current(): ResourceContext = ResourceContext(
+                override suspend fun current(): ResourceContext = ResourceContext(
                     type = ResourceContextType.WORKSPACE,
                     workspaceId = "workspace-1",
                 )
@@ -169,7 +169,7 @@ class GetWorkspaceAuditEventsHandlerTest {
     fun `denies workspace audit events when permission is missing`() = runTest {
         val handler = GetWorkspaceAuditEventsHandler(
             resourceContextProvider = object : ResourceContextProvider {
-                override fun current(): ResourceContext = ResourceContext(
+                override suspend fun current(): ResourceContext = ResourceContext(
                     type = ResourceContextType.WORKSPACE,
                     workspaceId = "workspace-1",
                 )

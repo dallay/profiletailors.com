@@ -1,70 +1,67 @@
 package com.profiletailors.smp.platform.application
 
 import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingRequestPathException
 import com.profiletailors.common.domain.context.MissingResourceContextException
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.platform.infrastructure.InMemoryRequestContextStore
+import com.profiletailors.smp.platform.infrastructure.ReactorContextPrincipalContextProvider
+import com.profiletailors.smp.platform.infrastructure.ReactorContextRequestPathProvider
+import com.profiletailors.smp.platform.infrastructure.ReactorContextResourceContextProvider
+import com.profiletailors.smp.platform.infrastructure.RequestContextKeys
+import kotlinx.coroutines.reactor.ReactorContext
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import reactor.util.context.Context
 
 class RequestContextProvidersTest {
 
     @Test
-    fun `principal provider requires an existing principal context`() {
-        val store = InMemoryRequestContextStore()
-        val provider = StoreBackedPrincipalContextProvider(store)
-
-        val error = assertThrows(MissingPrincipalContextException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                provider.require()
-            }
-        }
-
-        assertEquals("Authenticated principal context is required.", error.message)
-    }
-
-    @Test
-    fun `principal provider returns stored principal context`() {
-        val store = InMemoryRequestContextStore()
-        val provider = StoreBackedPrincipalContextProvider(store)
+    fun `reactor context providers return principal resource and request path`() = runTest {
         val principal = PrincipalContext(
             principalId = "principal-1",
             principalType = PrincipalType.USER,
             subject = "user-123",
         )
-
-        store.setPrincipalContext(principal)
-
-        assertEquals(principal, kotlinx.coroutines.runBlocking { provider.require() })
-    }
-
-    @Test
-    fun `resource provider requires an existing resource context`() {
-        val store = InMemoryRequestContextStore()
-        val provider = StoreBackedResourceContextProvider(store)
-
-        val error = assertThrows(MissingResourceContextException::class.java) {
-            provider.require()
-        }
-
-        assertEquals("Resolved resource context is required.", error.message)
-    }
-
-    @Test
-    fun `resource provider returns stored resource context`() {
-        val store = InMemoryRequestContextStore()
-        val provider = StoreBackedResourceContextProvider(store)
-        val context = ResourceContext(
+        val resource = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = "workspace-1",
         )
+        val context = Context.of(RequestContextKeys.principal, principal)
+            .put(RequestContextKeys.resource, resource)
+            .put(RequestContextKeys.requestPath, "/api/media/assets")
 
-        store.setResourceContext(context)
+        withContext(ReactorContext(context)) {
+            assertSame(principal, ReactorContextPrincipalContextProvider().require())
+            assertSame(resource, ReactorContextResourceContextProvider().require())
+            assertEquals("/api/media/assets", ReactorContextRequestPathProvider().require())
+        }
+    }
 
-        assertEquals(context, provider.require())
+    @Test
+    fun `reactor context providers return null when context values are absent`() = runTest {
+        assertNull(ReactorContextPrincipalContextProvider().current())
+        assertNull(ReactorContextResourceContextProvider().current())
+        assertNull(ReactorContextRequestPathProvider().current())
+    }
+
+    @Test
+    fun `reactor context providers throw when required context values are absent`() = runTest {
+        assertThrows(MissingPrincipalContextException::class.java) {
+            kotlinx.coroutines.runBlocking { ReactorContextPrincipalContextProvider().require() }
+        }
+        assertThrows(MissingResourceContextException::class.java) {
+            kotlinx.coroutines.runBlocking { ReactorContextResourceContextProvider().require() }
+        }
+        assertThrows(MissingRequestPathException::class.java) {
+            kotlinx.coroutines.runBlocking { ReactorContextRequestPathProvider().require() }
+        }
     }
 }

@@ -15,10 +15,11 @@ vi.mock('@modules/auth/infrastructure/auth-api', async (importOriginal) => {
         },
         { raw: async () => new Response(null, { status: 204 }) },
       ),
-    refreshSession: vi.fn().mockResolvedValue(null),
+    getBffSession: vi.fn(),
     getCurrentUserProfile: vi.fn(),
-    login: vi.fn(),
-    logoutSession: vi.fn(),
+    logoutBffSession: vi.fn(),
+    buildBffLoginUrl: (returnTo: string) =>
+      `/oauth2/authorization/pt-app?returnTo=${encodeURIComponent(returnTo)}`,
     register: vi.fn(),
     resendVerification: vi.fn(),
     verifyEmail: vi.fn(),
@@ -31,10 +32,8 @@ describe('auth store verifyEmail', () => {
     vi.clearAllMocks()
   })
 
-  it('applies returned tokens and refreshes the authoritative /api/auth/me profile after verification', async () => {
-    const { verifyEmail, getCurrentUserProfile } = await import(
-      '@modules/auth/infrastructure/auth-api'
-    )
+  it('preserves the pre-cutover verification action and refreshes its BFF profile', async () => {
+    const { verifyEmail, getBffSession } = await import('@modules/auth/infrastructure/auth-api')
 
     const tokens: AuthTokens = {
       accessToken: 'verified-token',
@@ -56,16 +55,16 @@ describe('auth store verifyEmail', () => {
     }
 
     vi.mocked(verifyEmail).mockResolvedValue(tokens)
-    vi.mocked(getCurrentUserProfile).mockResolvedValue(profile)
+    vi.mocked(getBffSession).mockResolvedValue(profile)
 
     const auth = useAuthStore()
 
     await auth.verifyEmail('token-verified')
 
     expect(verifyEmail).toHaveBeenCalledWith('token-verified')
-    expect(getCurrentUserProfile).toHaveBeenCalledWith('verified-token')
+    expect(getBffSession).toHaveBeenCalledWith()
     expect(auth.isAuthenticated).toBe(true)
-    expect(auth.accessToken).toBe('verified-token')
+    expect(auth.accessToken).toBeNull()
     expect(auth.user).toMatchObject({
       principalId: '18f3c8ec-b5fd-5d86-ac83-465965479890',
       emailStatus: 'VERIFIED',
@@ -75,24 +74,15 @@ describe('auth store verifyEmail', () => {
 
   it('clearError sets error to null', async () => {
     const auth = useAuthStore()
-    // Trigger an error state via loginWithPassword failure
-    const { login } = await import('@modules/auth/infrastructure/auth-api')
-    vi.mocked(login).mockRejectedValue({ detail: 'Bad credentials' })
-    try {
-      await auth.loginWithPassword({ email: 'a@b.com', password: 'bad' })
-    } catch {
-      // expected
-    }
-    // Error should now be set
-    expect(auth.error).not.toBeNull()
-    // clearError resets it
+    auth.error = 'Existing request error'
+    expect(auth.error).toBe('Existing request error')
     auth.clearError()
     expect(auth.error).toBeNull()
   })
 
-  it('logout calls logoutSession and clears local state', async () => {
-    const { logoutSession } = await import('@modules/auth/infrastructure/auth-api')
-    vi.mocked(logoutSession).mockResolvedValue(undefined)
+  it('logout calls the BFF and clears local session state', async () => {
+    const { logoutBffSession } = await import('@modules/auth/infrastructure/auth-api')
+    vi.mocked(logoutBffSession).mockResolvedValue(undefined)
     const auth = useAuthStore()
     // Seed an authenticated session so logout has something to clear
     auth.$patch({
@@ -107,6 +97,7 @@ describe('auth store verifyEmail', () => {
 
     await auth.logout()
 
-    expect(logoutSession).toHaveBeenCalled()
+    expect(logoutBffSession).toHaveBeenCalledOnce()
+    expect(auth.isAuthenticated).toBe(false)
   })
 })

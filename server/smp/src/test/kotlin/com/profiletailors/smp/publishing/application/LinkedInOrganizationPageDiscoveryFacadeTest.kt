@@ -209,7 +209,7 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
     private data class DiscoveryCall(val scope: WorkspaceScope, val connectionId: String, val provider: SocialProvider)
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        override suspend fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
     }
 
     private class InMemoryConnectionRepository(private val connection: SocialConnection) : SocialConnectionRepository {

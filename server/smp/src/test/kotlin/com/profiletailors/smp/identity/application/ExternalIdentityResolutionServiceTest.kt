@@ -139,6 +139,8 @@ class ExternalIdentityResolutionServiceTest {
             return links
         }
 
+        override suspend fun create(issuer: String, subject: String, principalId: String) = Unit
+
         override suspend fun synchronizeVerifiedEmail(principalId: String, email: String): VerifiedEmailSyncResult {
             emailSyncs += principalId to email
             return emailSyncResult

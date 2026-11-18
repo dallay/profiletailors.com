@@ -12,7 +12,6 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
@@ -44,8 +43,8 @@ class UpdateWorkspaceIconHandlerTest {
         } returns AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
         val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
-        every { resourceContextProvider.require() } returns ctx
-        every { resourceContextProvider.current() } returns ctx
+        coEvery { resourceContextProvider.require() } returns ctx
+        coEvery { resourceContextProvider.current() } returns ctx
 
         coEvery { workspaceMutationRepository.updateIcon(workspaceId, any()) } returns true
 
@@ -74,8 +73,8 @@ class UpdateWorkspaceIconHandlerTest {
         } returns AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
         val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
-        every { resourceContextProvider.require() } returns ctx
-        every { resourceContextProvider.current() } returns ctx
+        coEvery { resourceContextProvider.require() } returns ctx
+        coEvery { resourceContextProvider.current() } returns ctx
 
         coEvery { workspaceMutationRepository.updateIcon(workspaceId, any()) } returns false
 
@@ -91,8 +90,8 @@ class UpdateWorkspaceIconHandlerTest {
             AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
         val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
-        every { resourceContextProvider.require() } returns ctx
-        every { resourceContextProvider.current() } returns ctx
+        coEvery { resourceContextProvider.require() } returns ctx
+        coEvery { resourceContextProvider.current() } returns ctx
 
         shouldThrow<IllegalArgumentException> {
             handler.handle(UpdateWorkspaceIconCommand("Invalid_Icon!"))

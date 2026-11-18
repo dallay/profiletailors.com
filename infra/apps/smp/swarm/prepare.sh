@@ -36,6 +36,8 @@ initialize_optional_secret() {
 initialize_optional_secret "${secrets_dir}/linkedin-client-secret"
 initialize_optional_secret "${secrets_dir}/threads-client-secret"
 initialize_optional_secret "${secrets_dir}/resend-api-key"
+touch "${secrets_dir}/keycloak-pt-app-client-secret"
+touch "${secrets_dir}/keycloak-pt-admin-client-secret"
 chmod 600 \
     "${secrets_dir}/db-password" \
     "${secrets_dir}/local-jwt-secret" \
@@ -44,7 +46,10 @@ chmod 600 \
     "${secrets_dir}/linkedin-state-signing-secret" \
     "${secrets_dir}/linkedin-client-secret" \
     "${secrets_dir}/threads-client-secret" \
-    "${secrets_dir}/resend-api-key"
+    "${secrets_dir}/resend-api-key" \
+    "${secrets_dir}/keycloak-pt-app-client-secret" \
+    "${secrets_dir}/keycloak-pt-admin-client-secret"
 
 echo "Swarm configuration prepared in ${swarm_dir}."
 echo "Configure ${environment_file}, label one storage node, and replace optional integration placeholders before enabling them."
+echo "Provision both Keycloak client secrets under ${secrets_dir} before enabling OIDC authentication."

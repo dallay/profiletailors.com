@@ -1,5 +1,4 @@
-import type { ApiError } from '@modules/auth/infrastructure/auth-api'
-import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
+import { getBffCsrfToken, resolveApiUrl, type ApiError } from '@modules/auth'
 
 export type AcceptInvitationApiResponse = {
   workspaceId?: string
@@ -19,19 +18,17 @@ export type AcceptInvitationResult = {
  * @param token - The raw invitation token to submit.
  * @returns The invitation acceptance result, including workspace and membership data on success or error details on failure.
  */
-export async function acceptInvitationRequest(
-  token: string,
-  accessToken?: string | null,
-): Promise<AcceptInvitationResult> {
+export async function acceptInvitationRequest(token: string): Promise<AcceptInvitationResult> {
   let response: Response
   try {
+    const csrfToken = await getBffCsrfToken()
     response = await fetch(resolveApiUrl('/api/invitations/accept'), {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/vnd.api.v1+json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        'X-CSRF-TOKEN': csrfToken,
       },
       body: JSON.stringify({ token }),
     })

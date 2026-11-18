@@ -1287,6 +1287,7 @@ class BddDatabaseSupport(
     private fun identityCleanupStatements(): List<String> = listOf(
         "DELETE FROM password_reset_notification_failures",
         "DELETE FROM password_reset_tokens",
+        "DELETE FROM external_identity_links",
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )

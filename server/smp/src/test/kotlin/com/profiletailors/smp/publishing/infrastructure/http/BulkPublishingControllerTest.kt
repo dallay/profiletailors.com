@@ -221,11 +221,11 @@ class BulkPublishingControllerTest {
     }
 
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
-        override fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        override suspend fun current(): ResourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
     }
 
     private class ThrowingResourceContextProvider(private val ex: RuntimeException) : ResourceContextProvider {
-        override fun current(): ResourceContext = throw ex
+        override suspend fun current(): ResourceContext = throw ex
     }
 
     private class CapturingMediator : Mediator {

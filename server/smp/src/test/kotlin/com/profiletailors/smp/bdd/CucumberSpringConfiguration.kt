@@ -3,6 +3,7 @@ package com.profiletailors.smp.bdd.fast
 import com.profiletailors.smp.bdd.SocialContentBddTestConfiguration
 import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
+import com.profiletailors.smp.bdd.support.TestOidcProvider
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import io.cucumber.spring.CucumberContextConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -36,6 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "app.security.cors.allowed-origins=http://localhost",
+        "app.security.cors.admin-public-origin=https://admin.test",
         "spring.main.allow-bean-definition-overriding=true",
         "spring.ai.mcp.server.enabled=true",
         BddTestProperties.LINKEDIN_CLIENT_ID,
@@ -60,10 +62,36 @@ class CucumberSpringConfiguration {
         @JvmStatic
         @DynamicPropertySource
         fun registerProperties(registry: DynamicPropertyRegistry) {
+            val issuer = TestOidcProvider.start()
             PostgresTestContainerSupport.registerProperties(registry, postgres)
             registry.add("bdd.liquibase.jdbc-url", postgres::getJdbcUrl)
             registry.add("bdd.liquibase.username", postgres::getUsername)
             registry.add("bdd.liquibase.password", postgres::getPassword)
+            registry.add("spring.security.oauth2.client.provider.keycloak.issuer-uri") { issuer }
+            registry.add("spring.security.oauth2.client.registration.pt-app.client-id") {
+                TestOidcProvider.APP_CLIENT_ID
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-app.client-secret") {
+                TestOidcProvider.APP_CLIENT_SECRET
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-app.client-authentication-method") {
+                "client_secret_basic"
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-app.redirect-uri") {
+                "{baseUrl}/login/oauth2/code/{registrationId}"
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-admin.client-id") {
+                TestOidcProvider.ADMIN_CLIENT_ID
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-admin.client-secret") {
+                TestOidcProvider.ADMIN_CLIENT_SECRET
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-admin.client-authentication-method") {
+                "client_secret_basic"
+            }
+            registry.add("spring.security.oauth2.client.registration.pt-admin.redirect-uri") {
+                "{baseUrl}/login/oauth2/code/{registrationId}"
+            }
         }
     }
 }

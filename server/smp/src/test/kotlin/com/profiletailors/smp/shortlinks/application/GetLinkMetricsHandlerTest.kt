@@ -30,7 +30,7 @@ internal class GetLinkMetricsHandlerTest {
     private val linkId = UUID.fromString("0199b1ca-0000-7000-8000-000000000002")
     private val ownerId = OwnerId(UUID.fromString(workspaceId))
     private val contexts = mockk<ResourceContextProvider> {
-        every { require() } returns ResourceContext(
+        coEvery { require() } returns ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )

@@ -1,11 +1,10 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.governance.application.AdminTakedownReport
 import com.profiletailors.smp.governance.application.AdminTakedownReportDetail
-import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyCodec
 import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyRecord
 import com.profiletailors.smp.platformadmin.application.ConfigurationIdempotencyService
@@ -204,7 +203,7 @@ class AdminTakedownControllerTest {
             AdminTakedownController(
                 handlers = handlers,
                 operatorAccessResolver = operatorAccessResolver,
-                requestContextStore = FakeRequestContextStore(principal),
+                principalContextProvider = FakePrincipalContextProvider(principal),
                 configurationIdempotencyService = configurationIdempotencyService,
             ),
         )
@@ -267,14 +266,8 @@ class AdminTakedownControllerTest {
         }
     }
 
-    private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {
-        override fun currentPrincipalContext(): PrincipalContext? = principal
-        override fun setPrincipalContext(context: PrincipalContext?) = Unit
-        override fun currentResourceContext(): ResourceContext? = null
-        override fun setResourceContext(context: ResourceContext?) = Unit
-        override fun currentRequestPath(): String? = null
-        override fun setRequestPath(path: String?) = Unit
-        override fun clear() = Unit
+    private class FakePrincipalContextProvider(private val principal: PrincipalContext?) : PrincipalContextProvider {
+        override suspend fun current(): PrincipalContext? = principal
     }
 
     companion object {

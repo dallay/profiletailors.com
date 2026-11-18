@@ -29,6 +29,8 @@ generate_secret "${secrets_dir}/linkedin-state-signing-secret"
 touch "${secrets_dir}/linkedin-client-secret"
 touch "${secrets_dir}/threads-client-secret"
 touch "${secrets_dir}/resend-api-key"
+touch "${secrets_dir}/keycloak-pt-app-client-secret"
+touch "${secrets_dir}/keycloak-pt-admin-client-secret"
 chmod 600 \
     "${secrets_dir}/db-password" \
     "${secrets_dir}/local-jwt-secret" \
@@ -37,8 +39,11 @@ chmod 600 \
     "${secrets_dir}/linkedin-state-signing-secret" \
     "${secrets_dir}/linkedin-client-secret" \
     "${secrets_dir}/threads-client-secret" \
-    "${secrets_dir}/resend-api-key"
+    "${secrets_dir}/resend-api-key" \
+    "${secrets_dir}/keycloak-pt-app-client-secret" \
+    "${secrets_dir}/keycloak-pt-admin-client-secret"
 
 echo "Production configuration prepared in ${production_dir}."
 echo "Set PUBLIC_ORIGIN, SMP_ADMIN_PUBLIC_ORIGIN, and image names in ${environment_file}."
 echo "Add the LinkedIn, Threads, and Resend credentials under ${secrets_dir} before enabling those integrations."
+echo "Provision both Keycloak client secrets under ${secrets_dir} before enabling OIDC authentication."

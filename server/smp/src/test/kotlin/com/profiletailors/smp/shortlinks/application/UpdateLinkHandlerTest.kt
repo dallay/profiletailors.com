@@ -34,7 +34,7 @@ internal class UpdateLinkHandlerTest {
     private val ownerId = OwnerId.from(workspaceId)
     private val linkId = LinkId(UUID.fromString("0199b1ca-0000-7000-8000-000000000002"))
     private val contextProvider = mockk<ResourceContextProvider> {
-        every { require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
     }
     private val linkRepository = mockk<LinkRepository>()
     private val linkCachePort = mockk<LinkCachePort>(relaxed = true)

@@ -1,4 +1,4 @@
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,50 +6,25 @@ import LoginView from '@/views/LoginView.vue'
 import { messages } from '@/i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
-const replace = vi.fn()
-
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: { redirect: '/waitlist' } }),
-  useRouter: () => ({ replace }),
 }))
 
 describe('LoginView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    replace.mockReset()
   })
 
-  it('labels the password field in the selected locale', () => {
-    expect(mountLogin('en').get('label[for="admin-login-password"]').text()).toBe('Password')
-    expect(mountLogin('es').get('label[for="admin-login-password"]').text()).toBe('Contraseña')
-  })
-
-  it('submits credentials and navigates to a safe redirect', async () => {
+  it('starts the admin BFF login with the requested return route', async () => {
     const authStore = useAdminAuthStore()
-    const signIn = vi.fn().mockResolvedValue(undefined)
+    const signIn = vi.fn()
     authStore.signIn = signIn
     const wrapper = mountLogin()
 
-    await wrapper.get('[data-testid="admin-login-email"]').setValue(' Admin@Example.com ')
-    await wrapper.get('[data-testid="admin-login-password"]').setValue(' password ')
-    await wrapper.get('[data-testid="admin-login-form"]').trigger('submit')
-    await flushPromises()
+    await wrapper.get('[data-testid="admin-login-button"]').trigger('click')
 
-    expect(signIn).toHaveBeenCalledWith('admin@example.com', ' password ')
-    expect(replace).toHaveBeenCalledWith('/waitlist')
-  })
-
-  it('shows the API error for invalid credentials', async () => {
-    const authStore = useAdminAuthStore()
-    authStore.signIn = vi.fn().mockRejectedValue(new Error('invalid'))
-    const wrapper = mountLogin()
-
-    await wrapper.get('[data-testid="admin-login-email"]').setValue('admin@example.com')
-    await wrapper.get('[data-testid="admin-login-password"]').setValue('password')
-    await wrapper.get('[data-testid="admin-login-form"]').trigger('submit')
-    await flushPromises()
-
-    expect(wrapper.get('[data-testid="admin-login-error"]').text()).toContain('Unable to sign in')
+    expect(signIn).toHaveBeenCalledWith('/waitlist')
+    expect(wrapper.find('input[type="password"]').exists()).toBe(false)
   })
 })
 

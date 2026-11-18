@@ -12,6 +12,7 @@ import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincip
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpCookie
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
@@ -108,6 +109,29 @@ class ApiKeyAuthenticationWebFilterTest {
         filter.filter(exchange, WebFilterChain { Mono.empty() }).block()
 
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.response.statusCode)
+    }
+
+    @Test
+    fun `rejects a request that combines a BFF session cookie with an API key`() = runTest {
+        val filter = MixedAuthenticationCredentialsWebFilter()
+        val exchange = MockServerWebExchange.from(
+            MockServerHttpRequest.get(IdentitySecurityConfiguration.WORKSPACE_ACCESS_PATH)
+                .cookie(HttpCookie("SESSION", "bff-session"))
+                .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
+                .build(),
+        )
+        var downstreamReached = false
+
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                downstreamReached = true
+                Mono.empty()
+            },
+        ).block()
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.response.statusCode)
+        assertEquals(false, downstreamReached)
     }
 
     private class StubApiKeyCredentialStateLookup : ApiKeyCredentialStateLookup {
