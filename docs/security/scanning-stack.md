@@ -298,6 +298,22 @@ If Sonar is not fully configured:
 - the summary must explain why it skipped
 - the repository should not pretend centralized reporting is active
 
+### Pinned Python runtime for the Semgrep CLI
+
+Both Semgrep lanes install the CLI through `pip`, which requires a pinned interpreter:
+
+- `actions/setup-python` with `python-version: '3.11'`
+- the pinned CLI release: `semgrep==1.126.0`
+
+The `ubuntu-latest` runner image default Python is not a supported contract for this step.
+Semgrep 1.126.0 publishes wheels for CPython 3.9, 3.10, and 3.11 only, and its transitive
+`protobuf` dependency does not support CPython 3.14. Installing the pinned CLI on the image
+default aborts the scanner at import time, before any file is analyzed.
+
+The PR lane records the scanner exit code and requires a SARIF output file. Findings remain
+reported through SARIF without changing the lane's existing finding-gate behavior. If Semgrep exits
+without producing SARIF, the job fails with an explicit error instead of a missing-artifact message.
+
 ## Local Usage
 
 ### Frontend Biome security contract
