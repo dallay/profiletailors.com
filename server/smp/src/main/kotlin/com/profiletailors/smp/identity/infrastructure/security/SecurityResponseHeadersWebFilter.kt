@@ -43,7 +43,7 @@ class SecurityResponseHeadersWebFilter : WebFilter {
 
     private companion object {
         private const val CONTENT_SECURITY_POLICY =
-            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
+            "default-src 'self'; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
         private const val PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=()"
         private const val STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload"
     }

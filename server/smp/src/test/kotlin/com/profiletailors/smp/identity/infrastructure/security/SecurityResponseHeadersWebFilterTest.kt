@@ -23,7 +23,7 @@ class SecurityResponseHeadersWebFilterTest {
         ).block()
 
         exchange.response.headers.getFirst("Content-Security-Policy") shouldBe
-            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
+            "default-src 'self'; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
         exchange.response.headers.getFirst("X-Frame-Options") shouldBe "DENY"
         exchange.response.headers.getFirst("X-Content-Type-Options") shouldBe "nosniff"
         exchange.response.headers.getFirst("Referrer-Policy") shouldBe "strict-origin-when-cross-origin"
