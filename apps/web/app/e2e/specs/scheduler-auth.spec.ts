@@ -1,47 +1,36 @@
 import { test, expect } from '../fixtures/scheduler-base-test'
 import { LoginPage } from '../pages/login-page'
-import { DashboardPage } from '../pages/dashboard-page'
 import { safeGoto } from '../fixtures/navigation'
-import { VALID_CREDENTIALS, APP_URL } from '../fixtures/test-data'
-import { keepSessionAlive } from '../fixtures/auth-helpers'
+import { APP_URL } from '../fixtures/test-data'
 
-/**
- * TC-01: Login and Session Persistence
- *
- * Verifies:
- * - Login form renders with correct headings
- * - Valid credentials grant access to dashboard
- * - Session persists across page reload
- *
- * Runs against HAR replay — no backend required.
- */
 test.describe('Scheduler — Authentication', () => {
   test.beforeEach(async ({ resetSession }) => {
     await resetSession()
   })
 
-  test('TC-01: login and session persistence @auth @smoke', async ({ page }) => {
+  test('TC-01: BFF login initiation @auth @smoke', async ({ page }) => {
     const loginPage = new LoginPage(page)
-    const dashboardPage = new DashboardPage(page)
-
-    // Step 1: Navigate to login
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({ status: 401, body: JSON.stringify({ status: 401 }) })
+    })
     await safeGoto(page, APP_URL.login)
 
-    // Step 2: Verify login page renders
     await expect(loginPage.heading).toBeVisible()
-    await expect(loginPage.submitButton).toBeVisible()
+    await expect(loginPage.signInButton).toBeVisible()
+    await expect(page.locator('input[type="password"]')).toHaveCount(0)
 
-    // Step 3-5: Fill credentials and submit
-    await loginPage.login(VALID_CREDENTIALS.email, VALID_CREDENTIALS.password)
+    let authorizationUrl: URL | undefined
+    await page.route('**/oauth2/authorization/pt-app**', async (route) => {
+      authorizationUrl = new URL(route.request().url())
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<title>Authorization</title>',
+      })
+    })
 
-    // Step 6: Verify redirect to dashboard
-    await dashboardPage.expectAuthenticated()
+    await loginPage.startBffLogin()
 
-    // Override refresh so session survives page reload in HAR replay mode
-    await keepSessionAlive(page)
-
-    // Step 7: Verify session persists across reload
-    await page.reload()
-    await dashboardPage.expectAuthenticated()
+    await expect.poll(() => authorizationUrl?.pathname).toBe('/oauth2/authorization/pt-app')
   })
 })
