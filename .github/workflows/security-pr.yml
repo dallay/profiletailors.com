@@ -177,14 +177,18 @@ jobs:
           scan_rc=0
           semgrep scan \
             --config .semgrep/config.yml \
-            --include server/smp/** \
-            --include shared/** \
-            --include .github/workflows/** \
-            --include .github/codeql/** \
-            --include .semgrep/** \
-            --include .gitleaks.toml \
-            --include .trivyignore \
-            --include sonar-project.properties \
+            --config p/kotlin \
+            --config p/dockerfile \
+            --config p/github-actions \
+            --config p/secrets \
+            --include 'server/smp/**' \
+            --include 'shared/**' \
+            --include '.github/workflows/**' \
+            --include '.github/codeql/**' \
+            --include '.semgrep/**' \
+            --include '.gitleaks.toml' \
+            --include '.trivyignore' \
+            --include 'sonar-project.properties' \
             --sarif \
             --output semgrep-backend.sarif || scan_rc=$?
 
@@ -226,15 +230,20 @@ jobs:
           scan_rc=0
           semgrep scan \
             --config .semgrep/config.yml \
-            --include apps/web/marketing/** \
-            --include apps/web/app/** \
-            --include apps/web/admin/** \
-            --include shared/web/** \
-            --include .github/workflows/** \
-            --include .semgrep/** \
-            --include .gitleaks.toml \
-            --include .trivyignore \
-            --include sonar-project.properties \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/dockerfile \
+            --config p/github-actions \
+            --config p/secrets \
+            --include 'apps/web/marketing/**' \
+            --include 'apps/web/app/**' \
+            --include 'apps/web/admin/**' \
+            --include 'shared/web/**' \
+            --include '.github/workflows/**' \
+            --include '.semgrep/**' \
+            --include '.gitleaks.toml' \
+            --include '.trivyignore' \
+            --include 'sonar-project.properties' \
             --sarif \
             --output semgrep-frontend.sarif || scan_rc=$?
 

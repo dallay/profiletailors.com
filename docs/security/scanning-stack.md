@@ -113,6 +113,19 @@ security-relevant surface bucket wins.
 | `sonar-pr`                | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
 | `summary`                 | Always                                  | Explains what ran and where findings appear |
 
+#### Semgrep rule packs
+
+Both Semgrep PR jobs load `.semgrep/config.yml` for path exclusions and add the registry rule
+packs that match the scanned scope:
+
+| Job                | Rule packs                                                                    |
+|--------------------|-------------------------------------------------------------------------------|
+| `semgrep-backend`  | `p/kotlin`, `p/dockerfile`, `p/github-actions`, `p/secrets`                   |
+| `semgrep-frontend` | `p/javascript`, `p/typescript`, `p/dockerfile`, `p/github-actions`, `p/secrets` |
+
+The scan must exit successfully and must produce the SARIF file. A failed scan blocks the job;
+findings are published to GitHub code scanning instead of failing the job.
+
 ### Scheduled deep lane: `.github/workflows/security-deep.yml`
 
 The deep lane exists to answer a different question: **what broader security drift or latent issues
