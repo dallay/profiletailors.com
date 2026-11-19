@@ -316,12 +316,11 @@ If Sonar is not fully configured:
 Both Semgrep lanes install the CLI through `pip`, which requires a pinned interpreter:
 
 - `actions/setup-python` with `python-version: '3.11'`
-- the pinned CLI release: `semgrep==1.126.0`
+- the pinned CLI release: `semgrep==1.184.0`
 
 The `ubuntu-latest` runner image default Python is not a supported contract for this step.
-Semgrep 1.126.0 publishes wheels for CPython 3.9, 3.10, and 3.11 only, and its transitive
-`protobuf` dependency does not support CPython 3.14. Installing the pinned CLI on the image
-default aborts the scanner at import time, before any file is analyzed.
+Semgrep 1.184.0 added Python 3.14 compatibility, resolving the `protobuf` dependency issue
+that affected earlier versions. The pinned Python 3.11 runtime ensures stable wheel resolution.
 
 The PR lane records the scanner exit code and requires a SARIF output file. Findings remain
 reported through SARIF without changing the lane's existing finding-gate behavior. If Semgrep exits

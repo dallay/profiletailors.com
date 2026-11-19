@@ -6,6 +6,8 @@
     "**/build/**",
     "tmp/**",
     ".agents/sdd/**",
+    ".agents/rpi/**",
+    ".junie/**",
     "**/CHANGELOG.md",
     "**/playwright-report/**",
     "**/playwright-scheduler-report/**",
