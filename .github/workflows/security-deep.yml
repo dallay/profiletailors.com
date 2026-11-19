@@ -97,7 +97,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install Semgrep CLI
-        run: python3 -m pip install --disable-pip-version-check semgrep==1.126.0
+        run: python3 -m pip install --disable-pip-version-check semgrep==1.184.0
       - name: Run full Semgrep scan
         run: |
           mkdir -p reports/semgrep

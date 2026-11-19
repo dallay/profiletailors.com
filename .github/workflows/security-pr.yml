@@ -171,7 +171,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install Semgrep CLI
-        run: python3 -m pip install --disable-pip-version-check semgrep==1.126.0
+        run: python3 -m pip install --disable-pip-version-check semgrep==1.184.0
       - name: Run Semgrep for backend and repo security scope
         run: |
           scan_rc=0
@@ -224,7 +224,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install Semgrep CLI
-        run: python3 -m pip install --disable-pip-version-check semgrep==1.126.0
+        run: python3 -m pip install --disable-pip-version-check semgrep==1.184.0
       - name: Run Semgrep for frontend and repo security scope
         run: |
           scan_rc=0
