@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.18](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.17...admin@v0.0.18) (2026-11-20)
+
+
+### Features
+
+* **identity:** implement Keycloak BFF human authentication and restricted identity links ([#1462](https://github.com/dallay/profiletailors.com/issues/1462)) ([246f2ac](https://github.com/dallay/profiletailors.com/commit/246f2ac8294b8bc34293b244038bbd6a27b30d66))
+* **identity:** migrate internal identifiers to native UUIDs ([#1421](https://github.com/dallay/profiletailors.com/issues/1421)) ([089f399](https://github.com/dallay/profiletailors.com/commit/089f399bd3c48e343bf3a398dc48529324b8f7db))
+* **platform-admin:** bootstrap initial platform owner ([#1441](https://github.com/dallay/profiletailors.com/issues/1441)) ([fd97978](https://github.com/dallay/profiletailors.com/commit/fd97978833dcf82715805b89de890d750192e101))
+
+
+### Bug Fixes
+
+* **deps:** update vue core ([#1411](https://github.com/dallay/profiletailors.com/issues/1411)) ([04848f3](https://github.com/dallay/profiletailors.com/commit/04848f31e338269490fb300bb0ca60bf2485dc5d))
+* **deps:** update vue ui ([#1412](https://github.com/dallay/profiletailors.com/issues/1412)) ([e840809](https://github.com/dallay/profiletailors.com/commit/e8408095b7f8213e594249c81a05bb45f6da2c91))
+* **quality:** remediate open sonarcloud findings on main ([#1448](https://github.com/dallay/profiletailors.com/issues/1448)) ([40fcd49](https://github.com/dallay/profiletailors.com/commit/40fcd498c9abfff7dc0841f4e72a91457aa37cef))
+* **sonar:** remediate 34 reliability bugs for quality gate ([#1465](https://github.com/dallay/profiletailors.com/issues/1465)) ([c625f09](https://github.com/dallay/profiletailors.com/commit/c625f09a47a16c76f2104629709f58a7c6e1c5e6))
+
 ## [0.0.17](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.16...admin@v0.0.17) (2026-10-23)
 
 
