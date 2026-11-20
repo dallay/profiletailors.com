@@ -985,10 +985,10 @@ function resetOverride(channelId: string) {
 function toggleHashtagPanel(): void {
   isHashtagPanelOpen.value = !isHashtagPanelOpen.value
   if (isHashtagPanelOpen.value) {
-    hashtags.loadTrending()
-    hashtags.loadSavedSets()
+    hashtags.loadTrending().catch(() => undefined)
+    hashtags.loadSavedSets().catch(() => undefined)
     if (activeText.value.length >= 50) {
-      hashtags.analyze(activeText.value)
+      hashtags.analyze(activeText.value).catch(() => undefined)
     }
   }
 }

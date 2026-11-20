@@ -75,9 +75,8 @@ async function handleDeleteAccount() {
 
   try {
     await closeAccount(token)
-    // On success: clear session and redirect to login
     await auth.logout()
-    router.push('/login')
+    router.push('/login').catch(() => undefined)
   } catch (err) {
     const apiError = err as { status?: number; detail?: string }
     if (apiError.status === 429) {

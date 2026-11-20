@@ -12,7 +12,7 @@ vi.mock('@/stores/auth.store', () => ({
 }))
 
 const routeParams = ref<Record<string, string>>({})
-const mockPush = vi.fn()
+const mockPush = vi.fn().mockResolvedValue(undefined)
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: routeParams.value }),
   useRouter: () => ({ push: mockPush }),
@@ -107,7 +107,7 @@ describe('GovernanceView', () => {
     mockRequest.mockReset()
     mockHasPermission.mockReset()
     mockHasPermission.mockReturnValue(true)
-    mockPush.mockReset()
+    mockPush.mockClear().mockResolvedValue(undefined)
     routeParams.value = {}
   })
 

@@ -131,7 +131,7 @@ async function confirmRetry(): Promise<void> {
 
 watch([statusFilter, channelFilter], () => {
   page.value = 0
-  fetchNotifications()
+  fetchNotifications().catch(() => undefined)
 })
 onMounted(fetchNotifications)
 onBeforeUnmount(() => activeRequest?.abort())

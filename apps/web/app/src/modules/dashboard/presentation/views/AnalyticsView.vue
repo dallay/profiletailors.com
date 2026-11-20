@@ -53,11 +53,11 @@ const hasAnalyticsData = computed(
 )
 
 onMounted(() => {
-  store.refresh()
+  store.refresh().catch(() => undefined)
 })
 
 watch(() => store.activeDateRange, () => {
-  store.refresh()
+  store.refresh().catch(() => undefined)
 })
 
 const DAYS_OF_WEEK = computed(() => [

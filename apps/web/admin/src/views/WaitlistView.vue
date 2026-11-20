@@ -212,9 +212,9 @@ async function confirmCancel() {
   }
 }
 
-watch([statusFilter, search, waitlistKeyFilter, joinedFrom, joinedTo, invitedFrom, invitedTo], () => { page.value = 0; fetchEntries() })
+watch([statusFilter, search, waitlistKeyFilter, joinedFrom, joinedTo, invitedFrom, invitedTo], () => { page.value = 0; fetchEntries().catch(() => undefined) })
 onMounted(() => {
-  Promise.all([fetchEntries(), fetchSummary()])
+  Promise.all([fetchEntries(), fetchSummary()]).catch(() => undefined)
 })
 
 const STATUS_CLASSES: Record<string, string> = {

@@ -47,13 +47,12 @@ watch(
   () => isMobile.value,
   (mobile) => {
     if (mobile && url.state.value.surface === 'calendar-week' && !route.query.view && url.state.value.view === 'week') {
-      url.setView('3-days')
+      url.setView('3-days').catch(() => undefined)
     }
   },
   { immediate: true },
 )
 
-/** Calendar sub-view derived from URL surface */
 const calendarView = computed(() => {
   if (url.state.value.surface === 'calendar-month') return 'month' as const
   if (url.state.value.surface === 'list') return 'agenda' as const
@@ -75,7 +74,6 @@ const hasActiveFilters = computed(
     url.state.value.q.length > 0,
 )
 
-/** Navigation base date derived from URL date param */
 const currentBaseDate = computed(() => {
   const parsed = new Date(`${url.state.value.date}T00:00:00`)
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
@@ -116,9 +114,6 @@ const reconnect = usePublicationEventReconnect({
 })
 
 let invalidationChannel: ReturnType<typeof createCalendarInvalidationChannel> | null = null
-/**
- * Requests a coalesced refresh of the currently displayed calendar range.
- */
 const refreshFromInvalidation = (): void => {
   revalidation.request(currentRange.value)
 }
@@ -380,11 +375,11 @@ const periodLabel = computed(() => {
 })
 
 function goForward() {
-  url.stepPeriod('forward')
+  url.stepPeriod('forward').catch(() => undefined)
 }
 
 function goBackward() {
-  url.stepPeriod('backward')
+  url.stepPeriod('backward').catch(() => undefined)
 }
 
 function goToToday() {
@@ -392,19 +387,19 @@ function goToToday() {
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
-  url.setDate(`${y}-${m}-${d}`)
+  url.setDate(`${y}-${m}-${d}`).catch(() => undefined)
 }
 
 function handleHeaderViewChange(surface: 'calendar-week' | 'calendar-month' | 'list') {
-  url.setSurface(surface)
+  url.setSurface(surface).catch(() => undefined)
 }
 
 function handleHeaderPeriodChange(view: Exclude<SchedulerView, 'agenda'>) {
-  url.setView(view)
+  url.setView(view).catch(() => undefined)
 }
 
 function handleMobileViewChange(view: SchedulerView) {
-  url.setView(view)
+  url.setView(view).catch(() => undefined)
 }
 function handleMobileFilterChange(filter: {
   status?: SchedulerStatus
@@ -412,7 +407,7 @@ function handleMobileFilterChange(filter: {
   channelIds?: string[]
   q?: string
 }) {
-  url.setFilters(filter)
+  url.setFilters(filter).catch(() => undefined)
 }
 function handleHeaderDateChange(action: 'forward' | 'backward' | 'today') {
   if (action === 'forward') {
@@ -432,13 +427,13 @@ function handleHeaderFilterChange(filter: {
   channelIds?: string[]
 }) {
   if (filter.status !== undefined) {
-    url.setStatus(filter.status)
+    url.setStatus(filter.status).catch(() => undefined)
   }
   if (filter.timezone !== undefined) {
-    url.setTimezone(filter.timezone)
+    url.setTimezone(filter.timezone).catch(() => undefined)
   }
   if (filter.channelIds !== undefined) {
-    url.setChannelIds(filter.channelIds)
+    url.setChannelIds(filter.channelIds).catch(() => undefined)
   }
 }
 
@@ -663,11 +658,10 @@ function openChannelConnections() {
 }
 
 function openDayView(date: Date) {
-  // Format using local date components to avoid UTC-offset day shifts.
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
-  url.setDate(`${y}-${m}-${d}`)
+  url.setDate(`${y}-${m}-${d}`).catch(() => undefined)
 }
 
 async function handleDeletePublication(id: string) {
@@ -696,9 +690,6 @@ async function handleEditPublication(publication: Publication) {
   await closePostDetail()
 }
 
-/**
- * Closes and clears the editor, then requests a calendar refresh without awaiting the fetch.
- */
 async function handleUpdated() {
   isModalOpen.value = false
   editingPublication.value = null
@@ -710,21 +701,15 @@ function handleStartTour() {
 }
 function handleBulkScheduled(jobId: string) {
   toast.success(`Bulk job ${jobId} scheduled`)
-  handleUpdated()
+  handleUpdated().catch(() => undefined)
 }
 
-/**
- * Requests a calendar refresh and shows success, keeping the composer open only when requested.
- */
 function onPostCreated(options: { keepOpen?: boolean } = {}) {
   if (!options.keepOpen) isModalOpen.value = false
   revalidation.request(currentRange.value)
   toast.success(t('composer.scheduleSuccessToast'))
 }
 
-/**
- * Requests a calendar refresh and closes the detail route, ignoring close failures.
- */
 function onReschedule() {
   revalidation.request(currentRange.value)
   closePostDetail().catch(() => undefined)

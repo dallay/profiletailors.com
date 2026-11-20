@@ -50,7 +50,7 @@ async function fetchEvents() {
   }
 }
 
-watch([actionFilter, resultFilter], () => { page.value = 0; fetchEvents() })
+watch([actionFilter, resultFilter], () => { page.value = 0; fetchEvents().catch(() => undefined) })
 onMounted(fetchEvents)
 onBeforeUnmount(() => activeRequest?.abort())
 </script>

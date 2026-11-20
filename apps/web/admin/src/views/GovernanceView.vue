@@ -159,7 +159,7 @@ async function confirmReject() {
 }
 
 function navigateToDetail(r: TakedownReport) {
-  router.push({ name: 'governance-detail', params: { reportId: r.reportId } })
+  router.push({ name: 'governance-detail', params: { reportId: r.reportId } }).catch(() => undefined)
 }
 
 function getStatusLabel(status: string): string {
@@ -181,13 +181,13 @@ function getAssetStatusLabel(status: string | null | undefined): string {
   return map[status] ?? status
 }
 
-watch([statusFilter, workspaceFilter], () => { page.value = 0; fetchReports() })
+watch([statusFilter, workspaceFilter], () => { page.value = 0; fetchReports().catch(() => undefined) })
 
 onMounted(() => {
   if (isDetailView.value) {
-    fetchReportDetail(route.params.reportId as string)
+    fetchReportDetail(route.params.reportId as string).catch(() => undefined)
   } else {
-    fetchReports()
+    fetchReports().catch(() => undefined)
   }
 })
 </script>

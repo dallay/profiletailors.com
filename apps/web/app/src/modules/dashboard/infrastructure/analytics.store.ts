@@ -35,15 +35,15 @@ export const useAnalyticsStore = defineStore('dashboard-analytics', () => {
   )
 
   const topPlatform = computed(() => {
-    if (channelPerformance.value.length === 0) return null
-    return channelPerformance.value.reduce((best, ch) =>
-      ch.engagementRate > best.engagementRate ? ch : best,
+    const channels = channelPerformance.value
+    if (channels.length === 0) return null
+    const first = channels[0]!
+    return channels.reduce(
+      (best, ch) => (ch.engagementRate > best.engagementRate ? ch : best),
+      first,
     )
   })
 
-  /**
-   * Refreshes analytics data and updates the loading state.
-   */
   function refreshAll(): void {
     isLoading.value = true
     try {
