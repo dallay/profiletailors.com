@@ -43,6 +43,8 @@ ignore:
   - "**/McpBoundedContext.kt"
   - "**/McpApplicationMarker.kt"
   - "**/McpDomainMarker.kt"
+  - "apps/web/app/src/modules/dashboard/presentation/components/DashboardLayout.vue"
+  - "apps/web/app/src/modules/settings/presentation/AccountPrivacyView.vue"
 
 # Align Codecov's scope with SonarQube:
 # - project status reflects overall repo coverage across uploaded backend + frontend reports
