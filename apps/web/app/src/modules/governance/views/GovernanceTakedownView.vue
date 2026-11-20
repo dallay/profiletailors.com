@@ -109,7 +109,7 @@ function formatDate(dateStr: string) {
 
 // Load on mount
 onMounted(() => {
-  loadReports()
+  loadReports().catch(() => undefined)
 })
 </script>
 

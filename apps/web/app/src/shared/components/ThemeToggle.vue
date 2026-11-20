@@ -41,11 +41,11 @@ function animateThemeChange(next: 'dark' | 'light') {
         pseudoElement: '::view-transition-new(root)',
       },
     )
-  })
+  }).catch(() => undefined)
 
   transition.finished.then(() => {
     isAnimating.value = false
-  })
+  }).catch(() => undefined)
 }
 
 function handleClick() {

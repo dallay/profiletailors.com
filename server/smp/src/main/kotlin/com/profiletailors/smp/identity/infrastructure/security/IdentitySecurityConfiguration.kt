@@ -121,10 +121,6 @@ data class CorsConfigurationProperties(
 @EnableConfigurationProperties(CorsConfigurationProperties::class)
 class IdentitySecurityConfiguration {
 
-    /**
-     * Groups all [WebFilter] beans consumed by [securityWebFilterChain] so the method
-     * signature stays under SonarQube's 7-parameter limit.
-     */
     data class IdentityWebFilters(
         val authenticatedPrincipalContext: WebFilter,
         val refreshSessionOriginValidation: WebFilter,

@@ -28,7 +28,7 @@ const insights = useInsightsStore()
 const pipeline = useContentPipelineStore()
 
 onMounted(() => {
-  dashboard.refreshAll()
+  dashboard.refreshAll().catch(() => undefined)
 })
 
 function handleDismissInsight(id: string): void {

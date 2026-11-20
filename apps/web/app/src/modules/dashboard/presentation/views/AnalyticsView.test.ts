@@ -65,7 +65,7 @@ const { analyticsStore, storeHolder } = vi.hoisted(() => ({
     customStart: '2026-08-01',
     customEnd: '2026-08-03',
     activeDateRange: { startDate: '2026-08-01', endDate: '2026-08-03' },
-    refresh: vi.fn(),
+    refresh: vi.fn().mockResolvedValue(undefined),
     setPreset: vi.fn(),
     setCustomRange: vi.fn(),
     fetchPostAnalytics: vi.fn(),
@@ -121,7 +121,7 @@ describe('AnalyticsView accessibility', () => {
     Object.assign(storeHolder.current as object, {
       activeDateRange: { startDate: '2026-08-01', endDate: '2026-08-03' },
     })
-    analyticsStore.refresh.mockReset()
+    analyticsStore.refresh.mockClear().mockResolvedValue(undefined)
     analyticsStore.setPreset.mockReset()
     analyticsStore.setCustomRange.mockReset()
     analyticsStore.fetchPostAnalytics.mockReset()

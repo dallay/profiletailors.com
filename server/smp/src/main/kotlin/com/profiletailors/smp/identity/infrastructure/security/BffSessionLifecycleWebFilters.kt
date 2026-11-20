@@ -169,5 +169,3 @@ class BffLoginReturnPathCaptureWebFilter : WebFilter {
         val ENCODED_SEPARATOR = Regex("%(?:25)*(?:2f|5c)", RegexOption.IGNORE_CASE)
     }
 }
-
-private const val BFF_SESSION_ABSOLUTE_HOURS = 8L
