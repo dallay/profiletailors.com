@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.15](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.14...smp@v0.5.15) (2026-11-20)
+
+
+### Features
+
+* **identity:** implement Keycloak BFF human authentication and restricted identity links ([#1462](https://github.com/dallay/profiletailors.com/issues/1462)) ([246f2ac](https://github.com/dallay/profiletailors.com/commit/246f2ac8294b8bc34293b244038bbd6a27b30d66))
+* **platform-admin:** bootstrap initial platform owner ([#1441](https://github.com/dallay/profiletailors.com/issues/1441)) ([fd97978](https://github.com/dallay/profiletailors.com/commit/fd97978833dcf82715805b89de890d750192e101))
+* **security:** tighten Content-Security-Policy with explicit script-src and style-src ([#1463](https://github.com/dallay/profiletailors.com/issues/1463)) ([bb87882](https://github.com/dallay/profiletailors.com/commit/bb878828373a3601e33d53a0abe7695881ded7e6))
+
+
+### Bug Fixes
+
+* **quality:** remediate open sonarcloud findings on main ([#1448](https://github.com/dallay/profiletailors.com/issues/1448)) ([40fcd49](https://github.com/dallay/profiletailors.com/commit/40fcd498c9abfff7dc0841f4e72a91457aa37cef))
+* **sonar:** remediate 34 reliability bugs for quality gate ([#1465](https://github.com/dallay/profiletailors.com/issues/1465)) ([c625f09](https://github.com/dallay/profiletailors.com/commit/c625f09a47a16c76f2104629709f58a7c6e1c5e6))
+
 ## [0.5.14](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.13...smp@v0.5.14) (2026-10-27)
 
 
