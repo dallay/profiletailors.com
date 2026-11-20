@@ -55,6 +55,14 @@ describe('analytics store', () => {
       expect(store.topPlatform?.platform).toBe('bluesky')
       expect(store.topPlatform?.engagementRate).toBe(6.7)
     })
+
+    it('returns null for topPlatform when channelPerformance is empty', () => {
+      const store = useAnalyticsStore()
+      const original = [...store.channelPerformance]
+      store.channelPerformance = []
+      expect(store.topPlatform).toBeNull()
+      store.channelPerformance = original
+    })
   })
 
   describe('refreshAll', () => {
