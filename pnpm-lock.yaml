@@ -198,8 +198,8 @@ importers:
         specifier: 0.24.0
         version: 0.24.0(supports-color@10.2.2)
       portless:
-        specifier: 0.15.8
-        version: 0.15.8
+        specifier: 0.18.1
+        version: 0.18.1
       wrangler:
         specifier: ^4.152.0
         version: 4.152.0(@types/node@26.6.6)
@@ -6126,8 +6126,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  portless@0.15.8:
-    resolution: {integrity: sha512-kzGoG4xLsEytczl7O/COZaBwSAOKsWsZDxHv7/iFHKIC0X71OonpgbsQw58CGO29RklIHIx6yLM31TJMnTtPEw==}
+  portless@0.18.1:
+    resolution: {integrity: sha512-3gfeicAvS5kwFUbZrsZpt1oU1MUBvfiy2S0MT/n8mwWEp/ZjQsWI0mC353GEi/q8JUVgdx7lBGDzCcMI9O1MXg==}
     engines: {node: '>=24'}
     os: [darwin, linux, win32]
     hasBin: true
@@ -8137,7 +8137,7 @@ snapshots:
     dependencies:
       '@babel/template': 7.29.7
       '@babel/traverse': 7.29.8(supports-color@10.2.2)
-      '@babel/types': 7.29.8
+      '@babel/types': 7.29.14
     transitivePeerDependencies:
       - supports-color
 
@@ -8677,7 +8677,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.29.7
-      '@babel/types': 7.29.8
+      '@babel/types': 7.29.14
       esutils: 2.0.3
 
   '@babel/runtime@7.29.7': {}
@@ -13716,7 +13716,7 @@ snapshots:
     dependencies:
       playwright-core: 1.64.1
 
-  portless@0.15.8: {}
+  portless@0.18.1: {}
 
   possible-typed-array-names@1.1.0: {}
 
