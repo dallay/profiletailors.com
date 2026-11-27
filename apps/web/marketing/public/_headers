@@ -1,0 +1,5 @@
+/changelog.json
+  Access-Control-Allow-Origin: *
+
+/es/changelog.json
+  Access-Control-Allow-Origin: *

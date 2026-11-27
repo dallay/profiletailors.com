@@ -7,6 +7,7 @@ import {
   type ChangelogLocale,
   type ChangelogSection,
 } from '@profiletailors/shared-web'
+import { useTranslations } from '@i18n/utils'
 
 export interface RawChangelogItem {
   slug: string
@@ -33,9 +34,10 @@ function stripInlineMarkdown(text: string): string {
     .trim()
 }
 
-export function parseMarkdownSections(markdown: string): ChangelogSection[] {
+export function parseMarkdownSections(markdown: string, locale: ChangelogLocale): ChangelogSection[] {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
   const sections: ChangelogSection[] = []
+  const fallbackHeading = useTranslations(locale).changelog.highlightsHeading
 
   let currentHeading = ''
   let paragraphs: string[] = []
@@ -70,7 +72,7 @@ export function parseMarkdownSections(markdown: string): ChangelogSection[] {
       return
     }
     const section: ChangelogSection = {
-      heading: currentHeading || 'Highlights',
+      heading: currentHeading || fallbackHeading,
       paragraphs,
       ...(bullets.length > 0 ? { bullets } : {}),
       ...(image ? { image } : {}),
@@ -146,7 +148,7 @@ export function toChangelogEntry(item: RawChangelogItem, siteUrl: string): Chang
     ...(absoluteImage ? { image: absoluteImage } : {}),
     ...(item.imageAlt ? { imageAlt: item.imageAlt } : {}),
     url: absoluteUrl,
-    sections: parseMarkdownSections(item.body),
+    sections: parseMarkdownSections(item.body, item.locale),
   }
 }
 

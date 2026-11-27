@@ -135,7 +135,7 @@ const appJsonLdString = JSON.stringify(appJsonLd);
     <link
       rel="alternate"
       type="application/rss+xml"
-      title={lang === "es" ? "Registro de cambios de Profile Tailors" : "Profile Tailors Changelog"}
+      title={t.changelog.metaTitle}
       href={new URL(lang === "es" ? "/es/changelog/rss.xml" : "/changelog/rss.xml", baseUrl).href}
     />
 

@@ -55,7 +55,7 @@ const sampleItems: RawChangelogItem[] = [
 
 describe('marketing changelog helpers', () => {
   it('parses markdown headings, paragraphs, bullets, and standalone links into sections', () => {
-    const sections = parseMarkdownSections(sampleItems[0].body)
+    const sections = parseMarkdownSections(sampleItems[0].body, sampleItems[0].locale)
     expect(sections).toEqual([
       {
         heading: 'Calendar-first view',
@@ -67,6 +67,19 @@ describe('marketing changelog helpers', () => {
         },
       },
     ])
+  })
+
+  it.each([
+    { item: sampleItems[0], heading: 'Highlights' },
+    { item: sampleItems[2], heading: 'Destacados' },
+  ])('uses "$heading" for a section without a heading in the JSON feed', ({ item, heading }) => {
+    const feed = buildChangelogFeed(
+      [{ ...item, body: `${item.summary}\n\n${item.body}` }],
+      item.locale,
+      'https://profiletailors.com/',
+    )
+
+    expect(feed.entries[0].sections[0]).toEqual({ heading, paragraphs: [item.summary] })
   })
 
   it('builds a schema-valid JSON feed sorted newest-first per locale', () => {

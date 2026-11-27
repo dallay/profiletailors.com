@@ -190,12 +190,13 @@ const categories: readonly ChangelogCategory[] = ['feature', 'improvement', 'fix
     </div>
 
     <p
-      class="hidden py-16 text-center font-mono text-sm text-text-secondary"
+      class="py-16 text-center font-mono text-sm text-text-secondary"
+      hidden={renderedEntries.length > 0}
       data-changelog-empty
       role="status"
       aria-live="polite"
     >
-      {t.changelog.emptyTitle}
+      {renderedEntries.length === 0 ? t.changelog.emptyTimeline : t.changelog.emptyTitle}
     </p>
   </main>
 </Layout>
@@ -215,7 +216,7 @@ const categories: readonly ChangelogCategory[] = ['feature', 'improvement', 'fix
     }
 
     if (emptyState) {
-      emptyState.classList.toggle('hidden', visibleCount > 0)
+      emptyState.hidden = visibleCount > 0
     }
 
     for (const btn of buttons) {

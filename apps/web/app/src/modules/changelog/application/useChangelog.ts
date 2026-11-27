@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue'
+import { type ComputedRef, type Ref, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   getUnreadChangelogCount,
@@ -11,10 +11,27 @@ import {
 
 export type ChangelogStatus = 'idle' | 'loading' | 'ready' | 'error'
 
-export interface UseChangelogOptions {
+export type UseChangelogOptions = {
   marketingOrigin?: string
   fetcher?: typeof fetch
   autoFetch?: boolean
+}
+
+export type UseChangelogResult = {
+  entries: Ref<readonly ChangelogEntry[]>
+  status: Ref<ChangelogStatus>
+  activeIndex: Ref<number>
+  activeEntry: ComputedRef<ChangelogEntry | null>
+  hasPrevious: ComputedRef<boolean>
+  hasNext: ComputedRef<boolean>
+  unreadCount: ComputedRef<number>
+  hasUnread: ComputedRef<boolean>
+  currentLocale: ComputedRef<ChangelogLocale>
+  fullChangelogUrl: ComputedRef<string>
+  refresh: () => Promise<void>
+  markAsRead: () => void
+  selectPrevious: () => void
+  selectNext: () => void
 }
 
 const DEFAULT_MARKETING_ORIGIN = 'https://profiletailors.com'
@@ -51,12 +68,19 @@ export function formatShortChangelogDate(isoDate: string, locale: ChangelogLocal
   }).format(parsed)
 }
 
-function rewriteAssetUrl(value: string, feedSiteOrigin: string, targetOrigin: string): string {
-  if (value.startsWith('/')) {
+function rewriteFeedUrl(value: string, feedSiteOrigin: string, targetOrigin: string): string {
+  if (value.startsWith('/') && !value.startsWith('//')) {
     return `${targetOrigin}${value}`
   }
-  if (feedSiteOrigin && value.startsWith(feedSiteOrigin)) {
-    return `${targetOrigin}${value.slice(feedSiteOrigin.length)}`
+  if (!feedSiteOrigin || feedSiteOrigin === targetOrigin) return value
+
+  try {
+    const url = new URL(value)
+    if (url.origin === feedSiteOrigin && (url.protocol === 'https:' || url.protocol === 'http:')) {
+      return `${targetOrigin}${url.pathname}${url.search}${url.hash}`
+    }
+  } catch {
+    return value
   }
   return value
 }
@@ -73,24 +97,21 @@ export function normalizeEntryUrls(
     feedSiteOrigin = ''
   }
 
-  if (!feedSiteOrigin || feedSiteOrigin === targetOrigin) {
-    return entries
-  }
+  const rewrite = (value: string) => rewriteFeedUrl(value, feedSiteOrigin, targetOrigin)
 
   return entries.map((entry) => ({
     ...entry,
-    url: rewriteAssetUrl(entry.url, feedSiteOrigin, targetOrigin),
-    ...(entry.image ? { image: rewriteAssetUrl(entry.image, feedSiteOrigin, targetOrigin) } : {}),
+    url: rewrite(entry.url),
+    ...(entry.image ? { image: rewrite(entry.image) } : {}),
     sections: entry.sections.map((section) => ({
       ...section,
-      ...(section.image
-        ? { image: rewriteAssetUrl(section.image, feedSiteOrigin, targetOrigin) }
-        : {}),
+      ...(section.image ? { image: rewrite(section.image) } : {}),
+      ...(section.link ? { link: { ...section.link, href: rewrite(section.link.href) } } : {}),
     })),
   }))
 }
 
-export function useChangelog(options: UseChangelogOptions = {}) {
+export function useChangelog(options: UseChangelogOptions = {}): UseChangelogResult {
   const i18n = useI18n()
   const origin = resolveMarketingOrigin(options.marketingOrigin)
   const fetcher = options.fetcher ?? globalThis.fetch

@@ -112,6 +112,53 @@ describe('useChangelog', () => {
     expect(changelog.status.value).toBe('error')
   })
 
+  it.each(['http://localhost:4323', 'https://profiletailors.com'])(
+    'resolves feed section links against %s without changing external links',
+    async (marketingOrigin) => {
+      const section = sampleFeed.entries[0].sections[0]
+      const hrefs = [
+        '/docs/shortlinks?source=changelog#setup',
+        'https://profiletailors.com/docs/shortlinks',
+        'https://docs.example.com/shortlinks',
+        'https://profiletailors.com.example.com/docs/shortlinks',
+        '//docs.example.com/shortlinks',
+      ]
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ...sampleFeed,
+            entries: [
+              {
+                ...sampleFeed.entries[0],
+                sections: hrefs.map((href) => ({ ...section, link: { href, label: 'Read more' } })),
+              },
+            ],
+          }),
+        ),
+      )
+      const changelog = useChangelog({ marketingOrigin, fetcher, autoFetch: false })
+
+      await changelog.refresh()
+
+      expect(changelog.activeEntry.value?.sections.map((item) => item.link?.href)).toEqual([
+        `${marketingOrigin}/docs/shortlinks?source=changelog#setup`,
+        `${marketingOrigin}/docs/shortlinks`,
+        ...hrefs.slice(2),
+      ])
+    },
+  )
+
+  it('preserves external entry assets whose hosts only start with the feed host', () => {
+    const image = 'https://profiletailors.com.example.com/shortlinks.svg'
+    const rewritten = normalizeEntryUrls(
+      [{ ...sampleFeed.entries[0], image }],
+      sampleFeed.siteUrl,
+      'http://localhost:4323',
+    )
+
+    expect(rewritten[0].image).toBe(image)
+  })
+
   it('rewrites feed entry image and permalink URLs to the configured marketing origin', () => {
     const rewritten = normalizeEntryUrls(
       [

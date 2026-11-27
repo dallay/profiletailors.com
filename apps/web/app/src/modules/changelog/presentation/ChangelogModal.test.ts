@@ -1,28 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, describe, expect, it } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import type { ChangelogEntry } from '@profiletailors/shared-web'
 import i18n from '@shared/i18n'
-
-vi.mock('@/components/ui/dialog', () => ({
-  Dialog: {
-    props: ['open'],
-    template: '<div v-if="open" data-testid="dialog-root"><slot /></div>',
-  },
-  DialogContent: {
-    template: '<div data-testid="dialog-content"><slot /></div>',
-  },
-  DialogTitle: {
-    template: '<h2><slot /></h2>',
-  },
-  DialogDescription: {
-    template: '<p><slot /></p>',
-  },
-  DialogClose: {
-    template: '<div><slot /></div>',
-  },
-}))
-
 import ChangelogModal from './ChangelogModal.vue'
+
+enableAutoUnmount(afterEach)
 
 const entries: ChangelogEntry[] = [
   {
@@ -59,62 +41,109 @@ const entries: ChangelogEntry[] = [
   },
 ]
 
+function mountChangelog(props: Partial<InstanceType<typeof ChangelogModal>['$props']> = {}) {
+  return mount(ChangelogModal, {
+    attachTo: document.body,
+    global: { plugins: [i18n] },
+    props: {
+      open: true,
+      status: 'ready',
+      entries,
+      activeEntry: entries[0],
+      activeIndex: 0,
+      hasPrevious: true,
+      hasNext: false,
+      locale: 'en',
+      fullChangelogUrl: 'https://profiletailors.com/changelog/',
+      ...props,
+    },
+  })
+}
+
+function getDialog() {
+  const dialog = document.body.querySelector('[role="dialog"]')
+  if (!dialog) throw new Error('Changelog dialog not rendered')
+  return dialog
+}
+
 describe('ChangelogModal', () => {
   it('renders the Linear-style header, active entry content, and emits seen on open', async () => {
-    const wrapper = mount(ChangelogModal, {
-      global: {
-        plugins: [i18n],
-      },
-      props: {
-        open: true,
-        status: 'ready',
-        entries,
-        activeEntry: entries[0],
-        activeIndex: 0,
-        hasPrevious: true,
-        hasNext: false,
-        locale: 'en',
-        fullChangelogUrl: 'https://profiletailors.com/changelog/',
-      },
-    })
+    const wrapper = mountChangelog()
+    await flushPromises()
+    const dialog = getDialog()
 
     expect(wrapper.emitted('seen')).toHaveLength(1)
-    expect(wrapper.text()).toContain('Workspace shortlinks and click analytics')
-    expect(wrapper.text()).toContain('Automatic URL shortening')
-    expect(wrapper.text()).toContain('Best-effort shortening with non-blocking warnings.')
+    expect(dialog.textContent).toContain('Workspace shortlinks and click analytics')
+    expect(dialog.textContent).toContain('Automatic URL shortening')
+    expect(dialog.textContent).toContain('Best-effort shortening with non-blocking warnings.')
+    expect(
+      dialog.querySelector('[data-testid="changelog-external-link"]')?.getAttribute('href'),
+    ).toBe(entries[0].url)
 
-    const externalLink = wrapper.find('[data-testid="changelog-external-link"]')
-    expect(externalLink.attributes('href')).toBe(entries[0].url)
-
-    const prevButton = wrapper.find('[data-testid="changelog-previous-button"]')
-    await prevButton.trigger('click')
+    dialog.querySelector<HTMLButtonElement>('[data-testid="changelog-previous-button"]')?.click()
     expect(wrapper.emitted('previous')).toHaveLength(1)
-
-    wrapper.unmount()
   })
 
-  it('renders an explicit error state with retry action', () => {
-    const wrapper = mount(ChangelogModal, {
-      global: {
-        plugins: [i18n],
-      },
-      props: {
-        open: true,
-        status: 'error',
-        entries: [],
-        activeEntry: null,
-        activeIndex: 0,
-        hasPrevious: false,
-        hasNext: false,
-        locale: 'en',
-        fullChangelogUrl: 'https://profiletailors.com/changelog/',
-      },
+  it('renders an explicit error state with retry action', async () => {
+    mountChangelog({ status: 'error', entries: [], activeEntry: null })
+
+    await flushPromises()
+    expect(getDialog().querySelector('[role="alert"]')?.textContent).toContain(
+      'Could not load updates',
+    )
+  })
+
+  it('has an accessible name and loading announcement when opened during loading', async () => {
+    mountChangelog({ status: 'loading', entries: [], activeEntry: null })
+    await flushPromises()
+    const dialog = getDialog()
+    const titleId = dialog.getAttribute('aria-labelledby')
+
+    expect(titleId ? document.getElementById(titleId)?.textContent?.trim() : null).toBe('Changelog')
+    expect(dialog.querySelector('[role="status"]')?.textContent).toContain(
+      'Loading product updates',
+    )
+  })
+
+  it.each(['loading', 'error'] as const)(
+    'does not emit seen in the %s state with cached entries',
+    async (status) => {
+      const wrapper = mountChangelog({ status })
+
+      await flushPromises()
+      expect(getDialog().querySelector('article')).toBeNull()
+      expect(wrapper.emitted('seen')).toBeUndefined()
+    },
+  )
+
+  it('does not emit seen when ready without an active entry', async () => {
+    const wrapper = mountChangelog({ activeEntry: null })
+
+    await flushPromises()
+    expect(getDialog().querySelector('article')).toBeNull()
+    expect(wrapper.emitted('seen')).toBeUndefined()
+  })
+
+  it('emits seen when a refresh of the same length reveals the new latest entry', async () => {
+    const replaced = { ...entries[0], id: 'new-update', title: 'New update' }
+    const visibleTitles: string[] = []
+    const wrapper = mountChangelog({
+      open: false,
+      onSeen: () =>
+        visibleTitles.push(
+          document.querySelector('[role=dialog] article h2')?.textContent?.trim() ?? '',
+        ),
     })
 
-    const alert = wrapper.find('[data-testid="changelog-error-state"]')
-    expect(alert.exists()).toBe(true)
-    expect(alert.text()).toContain('Could not load updates')
+    await wrapper.setProps({ open: true })
+    await flushPromises()
+    await wrapper.setProps({ status: 'loading' })
+    await wrapper.setProps({
+      status: 'ready',
+      entries: [replaced, entries[1]],
+      activeEntry: replaced,
+    })
 
-    wrapper.unmount()
+    expect(visibleTitles).toEqual([entries[0].title, replaced.title])
   })
 })

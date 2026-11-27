@@ -144,6 +144,7 @@ export const en = {
     sub: 'Same form. We write when a wave opens.',
   },
   footer: {
+    changelogLabel: 'Changelog',
     copy: 'Profile Tailors. Early access waitlist.',
     tagline: 'A LinkedIn-first workspace for deliberate content.',
     versionBadge: 'v{version} ({shortSha})',
@@ -374,6 +375,8 @@ export const en = {
     nextEntry: 'Next update',
     rssLabel: 'RSS',
     jsonLabel: 'JSON',
+    highlightsHeading: 'Highlights',
+    emptyTimeline: 'No updates have been published yet.',
     emptyTitle: 'No updates match this filter.',
     categories: {
       feature: 'Feature',

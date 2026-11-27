@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowUpRight, ChevronLeft, ChevronRight, X } from '@lucide/vue'
 import {
@@ -45,14 +45,15 @@ const headerDate = computed(() => {
 
 const headerExternalUrl = computed(() => props.activeEntry?.url ?? props.fullChangelogUrl)
 
+const visibleEntry = computed(() => (props.status === 'ready' ? props.activeEntry : null))
+const entryArticle = useTemplateRef('entryArticle')
+
 watch(
-  () => [props.open, props.entries.length] as const,
-  ([isOpen, count]) => {
-    if (isOpen && count > 0) {
-      emit('seen')
-    }
+  () => (props.open && visibleEntry.value && entryArticle.value ? props.entries[0]?.id : undefined),
+  (latestId) => {
+    if (latestId) emit('seen')
   },
-  { immediate: true },
+  { flush: 'post' },
 )
 </script>
 
@@ -117,7 +118,8 @@ watch(
           aria-live="polite"
           class="space-y-4"
         >
-          <span class="sr-only">{{ t('changelog.loading') }}</span>
+          <DialogTitle class="sr-only">{{ t('changelog.title') }}</DialogTitle>
+          <DialogDescription class="sr-only">{{ t('changelog.loading') }}</DialogDescription>
           <div class="h-7 w-2/3 animate-pulse rounded bg-bg-primary" />
           <div class="aspect-video w-full animate-pulse rounded-xl border border-border-subtle bg-bg-primary" />
           <div class="h-4 w-full animate-pulse rounded bg-bg-primary" />
@@ -152,11 +154,11 @@ watch(
           </div>
         </div>
 
-        <article v-else-if="activeEntry" class="space-y-6">
+        <article v-else-if="visibleEntry" ref="entryArticle" class="space-y-6">
           <header class="space-y-2.5">
             <div class="flex flex-wrap gap-1.5">
               <span
-                v-for="category in activeEntry.categories"
+                v-for="category in visibleEntry.categories"
                 :key="category"
                 class="inline-flex items-center rounded-full border border-border-visible px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-text-secondary"
               >
@@ -165,20 +167,20 @@ watch(
             </div>
 
             <DialogTitle class="text-2xl font-medium tracking-tight text-text-display">
-              {{ activeEntry.title }}
+              {{ visibleEntry.title }}
             </DialogTitle>
             <DialogDescription class="text-sm leading-relaxed text-text-secondary">
-              {{ activeEntry.summary }}
+              {{ visibleEntry.summary }}
             </DialogDescription>
           </header>
 
           <figure
-            v-if="activeEntry.image"
+            v-if="visibleEntry.image"
             class="overflow-hidden rounded-xl border border-border-subtle bg-bg-primary"
           >
             <img
-              :src="activeEntry.image"
-              :alt="activeEntry.imageAlt ?? activeEntry.title"
+              :src="visibleEntry.image"
+              :alt="visibleEntry.imageAlt ?? visibleEntry.title"
               width="960"
               height="540"
               class="block h-auto w-full"
@@ -186,7 +188,7 @@ watch(
           </figure>
 
           <section
-            v-for="section in activeEntry.sections"
+            v-for="section in visibleEntry.sections"
             :key="section.heading"
             class="space-y-3"
           >

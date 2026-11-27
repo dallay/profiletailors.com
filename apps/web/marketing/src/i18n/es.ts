@@ -144,6 +144,7 @@ export const es = {
     sub: 'El mismo formulario. Te escribimos cuando abra una oleada.',
   },
   footer: {
+    changelogLabel: 'Cambios',
     copy: 'Profile Tailors. Lista de espera de acceso anticipado.',
     tagline: 'Un espacio LinkedIn-first para contenido deliberado.',
     versionBadge: 'v{version} ({shortSha})',
@@ -374,6 +375,8 @@ export const es = {
     nextEntry: 'Siguiente novedad',
     rssLabel: 'RSS',
     jsonLabel: 'JSON',
+    highlightsHeading: 'Destacados',
+    emptyTimeline: 'Aún no se han publicado novedades.',
     emptyTitle: 'No hay novedades para este filtro.',
     categories: {
       feature: 'Novedad',

@@ -1,4 +1,4 @@
-export default {
+export const changelog = {
   trigger: 'Novedades',
   unreadBadge: '{count} nuevas',
   unreadSrOnly: '{count} novedades de producto sin leer',

@@ -22,7 +22,7 @@ import consent from './consent'
 import tour from './tour'
 import pwa from './pwa'
 import shortlinks from './shortlinks'
-import changelog from './changelog'
+import { changelog } from './changelog'
 
 export default {
   common,
