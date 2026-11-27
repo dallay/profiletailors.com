@@ -100,9 +100,7 @@ describe('ChangelogModal', () => {
     const titleId = dialog.getAttribute('aria-labelledby')
 
     expect(titleId ? document.getElementById(titleId)?.textContent?.trim() : null).toBe('Changelog')
-    expect(dialog.querySelector('[role="status"]')?.textContent).toContain(
-      'Loading product updates',
-    )
+    expect(dialog.querySelector('output')?.textContent).toContain('Loading product updates')
   })
 
   it.each(['loading', 'error'] as const)(

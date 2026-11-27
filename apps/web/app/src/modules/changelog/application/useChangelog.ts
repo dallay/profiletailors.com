@@ -36,12 +36,20 @@ export type UseChangelogResult = {
 
 const DEFAULT_MARKETING_ORIGIN = 'https://profiletailors.com'
 
+function trimTrailingSlash(url: string): string {
+  let end = url.length
+  while (end > 0 && url.charCodeAt(end - 1) === 47) {
+    end--
+  }
+  return url.slice(0, end)
+}
+
 function resolveMarketingOrigin(explicitOrigin?: string): string {
   const configured =
     explicitOrigin ??
     (import.meta.env.VITE_MARKETING_URL as string | undefined) ??
     DEFAULT_MARKETING_ORIGIN
-  return configured.replace(/\/+$/, '')
+  return trimTrailingSlash(configured)
 }
 
 function normalizeLocale(value: string): ChangelogLocale {
@@ -49,12 +57,12 @@ function normalizeLocale(value: string): ChangelogLocale {
 }
 
 export function buildChangelogFeedUrl(origin: string, locale: ChangelogLocale): string {
-  const base = origin.replace(/\/+$/, '')
+  const base = trimTrailingSlash(origin)
   return locale === 'es' ? `${base}/es/changelog.json` : `${base}/changelog.json`
 }
 
 export function buildPublicChangelogUrl(origin: string, locale: ChangelogLocale): string {
-  const base = origin.replace(/\/+$/, '')
+  const base = trimTrailingSlash(origin)
   return locale === 'es' ? `${base}/es/changelog/` : `${base}/changelog/`
 }
 

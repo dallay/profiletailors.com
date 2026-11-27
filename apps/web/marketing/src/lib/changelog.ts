@@ -30,12 +30,12 @@ function stripInlineMarkdown(text: string): string {
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/\[([^\]\r\n]+)\]\(([^)\s]+)\)/g, '$1')
     .trim()
 }
 
 export function parseMarkdownSections(markdown: string, locale: ChangelogLocale): ChangelogSection[] {
-  const lines = markdown.replace(/\r\n/g, '\n').split('\n')
+  const lines = markdown.replaceAll('\r\n', '\n').split('\n')
   const sections: ChangelogSection[] = []
   const fallbackHeading = useTranslations(locale).changelog.highlightsHeading
 
@@ -199,11 +199,11 @@ export function formatShortChangelogDate(isoDate: string, locale: ChangelogLocal
 
 function escapeXml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;')
 }
 
 export function buildChangelogRss(

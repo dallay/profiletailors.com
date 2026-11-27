@@ -112,11 +112,10 @@ watch(
       </div>
 
       <div class="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-        <div
+        <output
           v-if="status === 'loading'"
-          role="status"
           aria-live="polite"
-          class="space-y-4"
+          class="block space-y-4"
         >
           <DialogTitle class="sr-only">{{ t('changelog.title') }}</DialogTitle>
           <DialogDescription class="sr-only">{{ t('changelog.loading') }}</DialogDescription>
@@ -124,7 +123,7 @@ watch(
           <div class="aspect-video w-full animate-pulse rounded-xl border border-border-subtle bg-bg-primary" />
           <div class="h-4 w-full animate-pulse rounded bg-bg-primary" />
           <div class="h-4 w-5/6 animate-pulse rounded bg-bg-primary" />
-        </div>
+        </output>
 
         <div
           v-else-if="status === 'error'"
