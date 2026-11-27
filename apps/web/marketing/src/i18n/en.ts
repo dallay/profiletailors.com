@@ -359,8 +359,9 @@ export const en = {
     },
   },
   changelog: {
-    metaTitle: 'Changelog — Profile Tailors',
-    metaDescription: 'Product updates, improvements, and security milestones shipped in Profile Tailors.',
+    metaTitle: 'Product Changelog — Profile Tailors',
+    metaDescription:
+      'Track product updates, workflow improvements, and security milestones shipped across Profile Tailors for LinkedIn and Threads planning.',
     label: 'CHANGELOG',
     heading: 'Product updates',
     subtitle: 'New capabilities, refinements, and security work shipped across Profile Tailors.',

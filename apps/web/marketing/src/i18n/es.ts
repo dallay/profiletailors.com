@@ -360,7 +360,8 @@ export const es = {
   },
   changelog: {
     metaTitle: 'Registro de cambios — Profile Tailors',
-    metaDescription: 'Novedades de producto, mejoras y avances de seguridad publicados en Profile Tailors.',
+    metaDescription:
+      'Sigue las novedades de producto, mejoras de flujo y avances de seguridad publicados en Profile Tailors para planificar LinkedIn y Threads.',
     label: 'CAMBIOS',
     heading: 'Novedades de producto',
     subtitle: 'Nuevas capacidades, mejoras y trabajo de seguridad publicados en Profile Tailors.',
