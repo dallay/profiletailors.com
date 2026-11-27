@@ -132,6 +132,12 @@ const appJsonLdString = JSON.stringify(appJsonLd);
     <link rel="alternate" hreflang="en" href={canonicalEN} />
     <link rel="alternate" hreflang="es" href={canonicalES} />
     <link rel="alternate" hreflang="x-default" href={canonicalEN} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t.changelog.metaTitle}
+      href={new URL(lang === "es" ? "/es/changelog/rss.xml" : "/changelog/rss.xml", baseUrl).href}
+    />
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />

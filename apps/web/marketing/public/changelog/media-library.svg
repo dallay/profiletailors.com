@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" fill="none">
+  <rect width="960" height="540" fill="#0a0a0a"/>
+  <rect x="48" y="48" width="864" height="444" rx="12" fill="#111111" stroke="#262626" stroke-width="1.5"/>
+  <text x="88" y="96" fill="#a3a3a3" font-family="monospace" font-size="12" letter-spacing="1.2">MEDIA LIBRARY · 12 ASSETS</text>
+  <rect x="720" y="70" width="152" height="36" rx="18" fill="#ffffff"/>
+  <text x="752" y="93" fill="#0a0a0a" font-family="monospace" font-size="12" font-weight="700">UPLOAD ASSET</text>
+  <rect x="88" y="128" width="248" height="156" rx="8" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <rect x="108" y="148" width="208" height="92" rx="4" fill="#111111" stroke="#262626" stroke-width="1"/>
+  <text x="108" y="266" fill="#e5e5e5" font-family="monospace" font-size="11">launch-cover.png</text>
+  <rect x="356" y="128" width="248" height="156" rx="8" fill="#1a1a1a" stroke="#ffffff" stroke-width="1"/>
+  <rect x="376" y="148" width="208" height="92" rx="4" fill="#111111" stroke="#333333" stroke-width="1"/>
+  <text x="376" y="266" fill="#ffffff" font-family="monospace" font-size="11">calendar-demo.webp</text>
+  <rect x="624" y="128" width="248" height="156" rx="8" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <rect x="644" y="148" width="208" height="92" rx="4" fill="#111111" stroke="#262626" stroke-width="1"/>
+  <text x="644" y="266" fill="#e5e5e5" font-family="monospace" font-size="11">architecture-card.svg</text>
+  <rect x="88" y="316" width="784" height="132" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="116" y="352" fill="#a3a3a3" font-family="monospace" font-size="11" letter-spacing="1">UPLOAD QUEUE</text>
+  <text x="116" y="384" fill="#e5e5e5" font-family="sans-serif" font-size="14">product-walkthrough.mp4</text>
+  <text x="802" y="384" fill="#4a9e5c" font-family="monospace" font-size="13">84%</text>
+  <rect x="116" y="404" width="728" height="8" rx="4" fill="#262626"/>
+  <rect x="116" y="404" width="612" height="8" rx="4" fill="#ffffff"/>
+</svg>

@@ -33,6 +33,9 @@ Not another social media scheduler landing page. Profile Tailors is a focused, o
 ## Capabilities and Constraints
 
 - Static Astro pages with locale routing (EN default, ES under `/es/`)
+- Public changelog with localized timelines and RSS and JSON feeds. If no updates have been
+  published in a locale, its timeline displays an empty-state message without JavaScript.
+  The public JSON feeds support cross-origin reads without credentials.
 - Waitlist form collects email plus optional marketing consent; submit posts to the waitlist API and sends `earlyAccess: true` as the join act (ADR-0011)
 - No commercial transactions on this surface
 - LinkedIn OAuth is planned but not yet live

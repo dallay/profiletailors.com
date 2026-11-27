@@ -296,14 +296,20 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 }))
 
 vi.mock('@lucide/vue', () => ({
+  ArrowUpRight: { template: '<svg />' },
   BarChart3: { template: '<svg />' },
   CalendarDays: { template: '<svg />' },
+  ChevronLeft: { template: '<svg />' },
+  ChevronRight: { template: '<svg />' },
   Images: { template: '<svg />' },
   Link: { template: '<svg />' },
   Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
   Settings: { template: '<svg />' },
   Shield: { template: '<svg />' },
+  Sparkles: { template: '<svg />' },
+  X: { template: '<svg />' },
+  XIcon: { template: '<svg />' },
 }))
 
 import AppShell from './AppShell.vue'

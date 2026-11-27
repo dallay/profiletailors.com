@@ -6,6 +6,7 @@ export const en = {
     langSwitchLabel: 'ES — Switch to Spanish',
     product: 'Product',
     how: 'How it works',
+    changelog: 'Changelog',
     join: 'Join',
   },
   hero: {
@@ -143,6 +144,7 @@ export const en = {
     sub: 'Same form. We write when a wave opens.',
   },
   footer: {
+    changelogLabel: 'Changelog',
     copy: 'Profile Tailors. Early access waitlist.',
     tagline: 'A LinkedIn-first workspace for deliberate content.',
     versionBadge: 'v{version} ({shortSha})',
@@ -355,6 +357,32 @@ export const en = {
     },
     privacy: {
       link: 'privacy policy',
+    },
+  },
+  changelog: {
+    metaTitle: 'Product Changelog — Profile Tailors',
+    metaDescription:
+      'Track product updates, workflow improvements, and security milestones shipped across Profile Tailors for LinkedIn and Threads planning.',
+    label: 'CHANGELOG',
+    heading: 'Product updates',
+    subtitle: 'New capabilities, refinements, and security work shipped across Profile Tailors.',
+    allCategories: 'All',
+    readEntry: 'Read full update',
+    backToChangelog: 'All updates',
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied',
+    previousEntry: 'Previous update',
+    nextEntry: 'Next update',
+    rssLabel: 'RSS',
+    jsonLabel: 'JSON',
+    highlightsHeading: 'Highlights',
+    emptyTimeline: 'No updates have been published yet.',
+    emptyTitle: 'No updates match this filter.',
+    categories: {
+      feature: 'Feature',
+      improvement: 'Improvement',
+      fix: 'Fix',
+      security: 'Security',
     },
   },
 } as const

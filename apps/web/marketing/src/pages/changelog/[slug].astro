@@ -1,0 +1,25 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content'
+import ChangelogDetailPage from '../_ChangelogDetailPage.astro'
+import { buildChangelogStaticPaths } from '@/lib/changelog-feed'
+
+export async function getStaticPaths() {
+  const entries = await getCollection('changelog', ({ data }) => data.locale === 'en')
+  return buildChangelogStaticPaths(entries)
+}
+
+interface Props {
+  entry: CollectionEntry<'changelog'>
+  previousEntry: CollectionEntry<'changelog'> | null
+  nextEntry: CollectionEntry<'changelog'> | null
+}
+
+const { entry, previousEntry, nextEntry } = Astro.props
+---
+
+<ChangelogDetailPage
+  locale="en"
+  entry={entry}
+  previousEntry={previousEntry}
+  nextEntry={nextEntry}
+/>

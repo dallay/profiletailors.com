@@ -127,6 +127,19 @@ CDN propagation on Cloudflare Pages can take up to 75 seconds. The workflow retr
 
 Confirm the change was saved in Cloudflare Pages dashboard. The setting lives under **Settings > Builds & deployments > Configure Production deployments**. Check that the correct branch (`main`) is targeted and that the toggle is fully disabled, not just set to a different branch.
 
+### Cross-origin access to the public changelog
+
+Cloudflare Pages serves `/changelog.json` and `/es/changelog.json` from the static marketing
+build. Marketing's `public/_headers` is copied to `dist/_headers` and allows cross-origin reads
+without credentials on those two paths only. Astro's prerendered response headers do not set
+headers on the deployed files.
+
+After deployment, request both JSON feeds with an `Origin` header and verify that each response
+includes `Access-Control-Allow-Origin: *` and does not include `Access-Control-Allow-Credentials`.
+Use `/changelog/` as a control to confirm that the deployment did not change its headers.
+Wrangler's local server can add a default CORS header to unrelated assets, so use a Pages
+preview or production URL to verify the deployed policy.
+
 ### Dashboard variables exist but the deployed bundle ignores them
 
 Since Release Please owns the build, the build-time env vars consumed by Vite and Astro are injected by the GitHub Actions job, not by the Cloudflare Pages dashboard. The dashboard's **Variables and secrets** view still receives `wrangler pages deploy` input, but for static frontends it only affects Pages Functions at runtime; the static bundle is already baked at that point.

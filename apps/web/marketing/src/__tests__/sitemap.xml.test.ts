@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { GET } from '../pages/sitemap.xml.ts';
 
-const EN_ROUTES = ['/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/'];
-const EXPECTED_12_PATHS = [
+const EN_ROUTES = ['/', '/changelog/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/'];
+const EXPECTED_14_PATHS = [
   'https://profiletailors.com/',
   'https://profiletailors.com/es/',
+  'https://profiletailors.com/changelog/',
+  'https://profiletailors.com/es/changelog/',
   'https://profiletailors.com/privacy/',
   'https://profiletailors.com/es/privacy/',
   'https://profiletailors.com/terms/',
@@ -17,7 +19,7 @@ const EXPECTED_12_PATHS = [
   'https://profiletailors.com/es/accessibility/',
 ];
 
-describe('sitemap.xml — 12 URL SEO contract', () => {
+describe('sitemap.xml — 14 URL SEO contract', () => {
   it('returns 200 OK with XML content type', async () => {
     const res: Response = await GET({ site: new URL('https://profiletailors.com') } as never);
     expect(res.status).toBe(200);
@@ -32,12 +34,12 @@ describe('sitemap.xml — 12 URL SEO contract', () => {
     expect(xml.trim().endsWith('</urlset>')).toBe(true);
   });
 
-  it('lists exactly the 12 approved canonical URLs', async () => {
+  it('lists exactly the 14 approved canonical URLs', async () => {
     const res: Response = await GET({ site: new URL('https://profiletailors.com') } as never);
     const xml: string = await res.text();
     const locs: string[] = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m: RegExpMatchArray): string => m[1]);
-    expect(locs).toHaveLength(12);
-    for (const expected of EXPECTED_12_PATHS) {
+    expect(locs).toHaveLength(14);
+    for (const expected of EXPECTED_14_PATHS) {
       expect(locs, `missing ${expected}`).toContain(expected);
     }
   });
@@ -81,7 +83,7 @@ describe('sitemap.xml — 12 URL SEO contract', () => {
     const res: Response = await GET({ site: new URL('https://profiletailors.com') } as never);
     const xml: string = await res.text();
     const entries: RegExpMatchArray[] = [...xml.matchAll(/<url>[\s\S]*?<\/url>/g)];
-    expect(entries).toHaveLength(12);
+    expect(entries).toHaveLength(14);
     for (const entry of entries) {
       expect(entry[0]).toContain('<lastmod>');
       expect(entry[0]).toContain('<changefreq>weekly</changefreq>');
@@ -101,7 +103,7 @@ describe('sitemap.xml — 12 URL SEO contract', () => {
     const res: Response = await GET({ site: undefined } as never);
     const xml: string = await res.text();
     const locs: string[] = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m: RegExpMatchArray): string => m[1]);
-    expect(locs).toHaveLength(12);
+    expect(locs).toHaveLength(14);
     for (const loc of locs) {
       expect(loc.startsWith('https://profiletailors.com/'), loc).toBe(true);
     }

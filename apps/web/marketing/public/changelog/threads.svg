@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" fill="none">
+  <rect width="960" height="540" fill="#0a0a0a"/>
+  <rect x="48" y="48" width="864" height="444" rx="12" fill="#111111" stroke="#262626" stroke-width="1.5"/>
+  <line x1="288" y1="48" x2="288" y2="492" stroke="#262626" stroke-width="1"/>
+  <text x="80" y="96" fill="#a3a3a3" font-family="monospace" font-size="12" letter-spacing="1.2">CHANNELS</text>
+  <rect x="72" y="118" width="192" height="44" rx="8" fill="#1a1a1a" stroke="#ffffff" stroke-width="1"/>
+  <text x="92" y="145" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="500">All channels</text>
+  <text x="234" y="145" fill="#a3a3a3" font-family="monospace" font-size="12">7</text>
+  <rect x="72" y="176" width="192" height="44" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <circle cx="94" cy="198" r="5" fill="#4a9e5c"/>
+  <text x="112" y="203" fill="#e5e5e5" font-family="sans-serif" font-size="14">LinkedIn</text>
+  <text x="234" y="203" fill="#a3a3a3" font-family="monospace" font-size="12">4</text>
+  <rect x="72" y="234" width="192" height="44" rx="8" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <circle cx="94" cy="256" r="5" fill="#4a9e5c"/>
+  <text x="112" y="261" fill="#ffffff" font-family="sans-serif" font-size="14">Threads</text>
+  <text x="234" y="261" fill="#4a9e5c" font-family="monospace" font-size="12">3</text>
+  <text x="328" y="96" fill="#a3a3a3" font-family="monospace" font-size="12" letter-spacing="1.2">WEEK VIEW · FILTERED QUEUE</text>
+  <rect x="328" y="118" width="170" height="332" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="346" y="146" fill="#a3a3a3" font-family="monospace" font-size="11">MON 05</text>
+  <rect x="342" y="166" width="142" height="86" rx="6" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <text x="356" y="190" fill="#a3a3a3" font-family="monospace" font-size="10">09:00 · LINKEDIN</text>
+  <text x="356" y="216" fill="#e5e5e5" font-family="sans-serif" font-size="13">Release notes</text>
+  <rect x="514" y="118" width="170" height="332" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="532" y="146" fill="#a3a3a3" font-family="monospace" font-size="11">TUE 06</text>
+  <rect x="528" y="166" width="142" height="86" rx="6" fill="#1a1a1a" stroke="#ffffff" stroke-width="1"/>
+  <text x="542" y="190" fill="#4a9e5c" font-family="monospace" font-size="10">11:30 · THREADS</text>
+  <text x="542" y="216" fill="#ffffff" font-family="sans-serif" font-size="13">Behind the build</text>
+  <rect x="700" y="118" width="170" height="332" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="718" y="146" fill="#a3a3a3" font-family="monospace" font-size="11">WED 07</text>
+  <rect x="714" y="268" width="142" height="86" rx="6" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <text x="728" y="292" fill="#a3a3a3" font-family="monospace" font-size="10">16:00 · THREADS</text>
+  <text x="728" y="318" fill="#e5e5e5" font-family="sans-serif" font-size="13">Weekly recap</text>
+</svg>

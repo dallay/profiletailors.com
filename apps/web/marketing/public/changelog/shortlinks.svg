@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" fill="none">
+  <rect width="960" height="540" fill="#0a0a0a"/>
+  <rect x="48" y="48" width="864" height="444" rx="12" fill="#111111" stroke="#262626" stroke-width="1.5"/>
+  <line x1="48" y1="104" x2="912" y2="104" stroke="#262626" stroke-width="1"/>
+  <circle cx="76" cy="76" r="5" fill="#333333"/>
+  <circle cx="96" cy="76" r="5" fill="#333333"/>
+  <circle cx="116" cy="76" r="5" fill="#333333"/>
+  <text x="148" y="81" fill="#a3a3a3" font-family="monospace" font-size="13" letter-spacing="1.2">WORKSPACE / SHORTLINKS &amp; CLICK ANALYTICS</text>
+  <rect x="88" y="136" width="784" height="84" rx="8" fill="#1a1a1a" stroke="#333333" stroke-width="1"/>
+  <text x="116" y="168" fill="#a3a3a3" font-family="monospace" font-size="12" letter-spacing="1">ORIGINAL URL</text>
+  <text x="116" y="196" fill="#e5e5e5" font-family="sans-serif" font-size="15">https://profiletailors.com/changelog/2026-10-09-workspace-shortlinks</text>
+  <rect x="656" y="158" width="188" height="40" rx="20" fill="#ffffff"/>
+  <text x="688" y="183" fill="#0a0a0a" font-family="monospace" font-size="13" font-weight="700">pt.link/8k2m</text>
+  <rect x="88" y="248" width="244" height="104" rx="8" fill="#1a1a1a" stroke="#262626" stroke-width="1"/>
+  <text x="112" y="280" fill="#a3a3a3" font-family="monospace" font-size="11" letter-spacing="1">TOTAL CLICKS</text>
+  <text x="112" y="326" fill="#ffffff" font-family="monospace" font-size="34">1,284</text>
+  <rect x="358" y="248" width="244" height="104" rx="8" fill="#1a1a1a" stroke="#262626" stroke-width="1"/>
+  <text x="382" y="280" fill="#a3a3a3" font-family="monospace" font-size="11" letter-spacing="1">ACTIVE LINKS</text>
+  <text x="382" y="326" fill="#ffffff" font-family="monospace" font-size="34">18</text>
+  <rect x="628" y="248" width="244" height="104" rx="8" fill="#1a1a1a" stroke="#262626" stroke-width="1"/>
+  <text x="652" y="280" fill="#a3a3a3" font-family="monospace" font-size="11" letter-spacing="1">STATUS</text>
+  <text x="652" y="326" fill="#4a9e5c" font-family="monospace" font-size="22">AUTO-SHORTEN</text>
+  <rect x="88" y="380" width="784" height="76" rx="8" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <rect x="112" y="424" width="64" height="16" rx="2" fill="#333333"/>
+  <rect x="192" y="410" width="64" height="30" rx="2" fill="#525252"/>
+  <rect x="272" y="400" width="64" height="40" rx="2" fill="#737373"/>
+  <rect x="352" y="416" width="64" height="24" rx="2" fill="#525252"/>
+  <rect x="432" y="394" width="64" height="46" rx="2" fill="#a3a3a3"/>
+  <rect x="512" y="404" width="64" height="36" rx="2" fill="#737373"/>
+  <rect x="592" y="390" width="64" height="50" rx="2" fill="#ffffff"/>
+  <rect x="672" y="398" width="64" height="42" rx="2" fill="#a3a3a3"/>
+  <rect x="752" y="408" width="96" height="32" rx="2" fill="#4a9e5c"/>
+</svg>

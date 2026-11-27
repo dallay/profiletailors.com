@@ -98,8 +98,11 @@ vi.mock('@shared/components/ThemeToggle.vue', () => ({
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<span />' }
   return {
+    ArrowUpRight: stub,
     BarChart3: stub,
     CalendarDays: stub,
+    ChevronLeft: stub,
+    ChevronRight: stub,
     ChevronsUpDown: stub,
     CircleHelp: stub,
     Images: stub,
@@ -111,7 +114,9 @@ vi.mock('@lucide/vue', () => {
     Plus: stub,
     Settings: stub,
     Shield: stub,
+    Sparkles: stub,
     Users: stub,
+    X: stub,
     XIcon: stub,
   }
 })

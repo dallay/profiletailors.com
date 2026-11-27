@@ -16,6 +16,7 @@ const t = useTranslations(locale)
 const homeHref = locale === 'es' ? '/es/' : '/'
 const productHref = `${homeHref}#product`
 const howHref = `${homeHref}#how`
+const changelogHref = locale === 'es' ? '/es/changelog/' : '/changelog/'
 const joinHref = `${homeHref}#waitlist`
 ---
 
@@ -33,6 +34,12 @@ const joinHref = `${homeHref}#waitlist`
       class="hidden md:inline-flex items-center min-h-[44px] font-mono text-xs tracking-wider uppercase text-text-secondary hover:text-text-display transition-colors duration-200"
     >
       {t.nav.how}
+    </a>
+    <a
+      href={changelogHref}
+      class="hidden md:inline-flex items-center min-h-[44px] font-mono text-xs tracking-wider uppercase text-text-secondary hover:text-text-display transition-colors duration-200"
+    >
+      {t.nav.changelog}
     </a>
     <ThemeToggle />
     <a

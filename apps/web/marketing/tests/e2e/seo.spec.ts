@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test'
 
-const ROUTES = ['/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/']
+const ROUTES = ['/', '/changelog/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/']
 const URLS: string[] = ROUTES.flatMap((r) => (r === '/' ? ['/', '/es/'] : [r, `/es${r}`]))
+const LEGAL_URLS: string[] = URLS.filter((u) => u !== '/' && u !== '/es/' && u !== '/changelog/' && u !== '/es/changelog/')
 const BOTS = ['OAI-SearchBot', 'GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'GoogleOther', 'Bingbot']
 
 function isSerifHost(href: string): boolean {
@@ -53,7 +54,7 @@ function resolveToPreview(href: string, previewOrigin: string): string {
 }
 
 test.describe('SEO — Link hygiene crawl graph', () => {
-  test('No broken or obfuscated href (12 URLs)', async ({ page, request }) => {
+  test('No broken or obfuscated href (14 URLs)', async ({ page, request }) => {
     const allHrefs = new Set<string>()
     const hrefToSources = new Map<string, string[]>()
 
@@ -87,7 +88,7 @@ test.describe('SEO — Link hygiene crawl graph', () => {
     }
   })
 
-  test('No http href on any of 12 URLs', async ({ page }) => {
+  test('No http href on any of 14 URLs', async ({ page }) => {
     for (const url of URLS) {
       await test.step(`check http href ${url}`, async () => {
         await page.goto(url)
@@ -106,12 +107,12 @@ test.describe('SEO — Link hygiene crawl graph', () => {
     }
   })
 
-  test('Sitemap parity — 12 loc and inbound >=1', async ({ page, request }) => {
+  test('Sitemap parity — 14 loc and inbound >=1', async ({ page, request }) => {
     const res = await request.get('/sitemap.xml')
     expect(res.status()).toBe(200)
     const xml = await res.text()
     const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1])
-    expect(locs).toHaveLength(12)
+    expect(locs).toHaveLength(14)
     for (const loc of locs) {
       expect(loc).toMatch(/^https:\/\/profiletailors\.com\//)
       expect(loc).toMatch(/\/$/)
@@ -174,7 +175,7 @@ test.describe('SEO — robots.txt per-bot Allow', () => {
     }
   })
 
-  test('Layout robots meta is index,follow on 12 URLs', async ({ page }) => {
+  test('Layout robots meta is index,follow on 14 URLs', async ({ page }) => {
     for (const url of URLS) {
       await test.step(`robots meta ${url}`, async () => {
         await page.goto(url)
@@ -201,12 +202,14 @@ test.describe('SEO — robots.txt per-bot Allow', () => {
 })
 
 test.describe('SEO — invariants head (titles, meta, h1, canonical, hreflang, og)', () => {
-  test('Single H1 and Canonical and hreflang and og on 12 URLs', async ({ page }) => {
+  test('Single H1 and Canonical and hreflang and og on 14 URLs', async ({ page }) => {
     const titles = new Set<string>()
     const descriptions = new Set<string>()
     const canonicalMap: Record<string, string> = {
       '/': 'https://profiletailors.com/',
       '/es/': 'https://profiletailors.com/es/',
+      '/changelog/': 'https://profiletailors.com/changelog/',
+      '/es/changelog/': 'https://profiletailors.com/es/changelog/',
       '/privacy/': 'https://profiletailors.com/privacy/',
       '/es/privacy/': 'https://profiletailors.com/es/privacy/',
       '/terms/': 'https://profiletailors.com/terms/',
@@ -221,6 +224,8 @@ test.describe('SEO — invariants head (titles, meta, h1, canonical, hreflang, o
     const hreflangMap: Record<string, { en: string; es: string }> = {
       '/': { en: 'https://profiletailors.com/', es: 'https://profiletailors.com/es/' },
       '/es/': { en: 'https://profiletailors.com/', es: 'https://profiletailors.com/es/' },
+      '/changelog/': { en: 'https://profiletailors.com/changelog/', es: 'https://profiletailors.com/es/changelog/' },
+      '/es/changelog/': { en: 'https://profiletailors.com/changelog/', es: 'https://profiletailors.com/es/changelog/' },
       '/privacy/': { en: 'https://profiletailors.com/privacy/', es: 'https://profiletailors.com/es/privacy/' },
       '/es/privacy/': { en: 'https://profiletailors.com/privacy/', es: 'https://profiletailors.com/es/privacy/' },
       '/terms/': { en: 'https://profiletailors.com/terms/', es: 'https://profiletailors.com/es/terms/' },
@@ -250,7 +255,7 @@ test.describe('SEO — invariants head (titles, meta, h1, canonical, hreflang, o
         await expect(h1, `${url} h1 count`).toHaveCount(1)
         const h1Text = (await h1.innerText()).trim()
         expect(h1Text.length, `${url} h1`).toBeGreaterThan(0)
-        if (url !== '/' && url !== '/es/') {
+        if (LEGAL_URLS.includes(url)) {
           const unavailable = await page.locator('#legal-unavailable-title').count() > 0
           if (unavailable) {
             expect(h1Text, `${url} unavailable h1`).toMatch(/Legal document not yet available|Documento legal todavía no disponible/)
@@ -279,8 +284,8 @@ test.describe('SEO — invariants head (titles, meta, h1, canonical, hreflang, o
         expect(ogType, url).toBe('website')
       })
     }
-    expect(titles.size, 'titles unique').toBe(12)
-    expect(descriptions.size, 'descriptions unique').toBe(12)
+    expect(titles.size, 'titles unique').toBe(14)
+    expect(descriptions.size, 'descriptions unique').toBe(14)
   })
 })
 
@@ -311,6 +316,8 @@ test.describe('SEO — accessible name alignment (WCAG 2.5.3 label-content-name-
   const langLinkByUrl: Record<string, { code: string; hrefContains: string }> = {
     '/': { code: 'ES', hrefContains: '/es/' },
     '/es/': { code: 'EN', hrefContains: '/' },
+    '/changelog/': { code: 'ES', hrefContains: '/es/changelog/' },
+    '/es/changelog/': { code: 'EN', hrefContains: '/changelog/' },
     '/privacy/': { code: 'ES', hrefContains: '/es/privacy/' },
     '/es/privacy/': { code: 'EN', hrefContains: '/privacy/' },
     '/terms/': { code: 'ES', hrefContains: '/es/terms/' },
@@ -353,6 +360,8 @@ test.describe('SEO — JSON-LD structured data identity', () => {
   const expectedJsonLd: Record<string, { type: string; inLanguage: string }> = {
     '/': { type: 'WebSite', inLanguage: 'en' },
     '/es/': { type: 'WebSite', inLanguage: 'es' },
+    '/changelog/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/changelog/': { type: 'WebPage', inLanguage: 'es' },
     '/privacy/': { type: 'WebPage', inLanguage: 'en' },
     '/es/privacy/': { type: 'WebPage', inLanguage: 'es' },
     '/terms/': { type: 'WebPage', inLanguage: 'en' },
@@ -395,8 +404,7 @@ test.describe('SEO — JSON-LD structured data identity', () => {
 })
 
 test.describe('SEO — legal contact links respect publication state', () => {
-  const legalUrls = URLS.filter((u) => u !== '/' && u !== '/es/')
-  for (const url of legalUrls) {
+  for (const url of LEGAL_URLS) {
     test(`${url} renders the correct contact state without cdn-cgi paths`, async ({ page }) => {
       await page.goto(url)
       const unavailableState = page.locator('#legal-unavailable-title')
@@ -429,6 +437,7 @@ test.describe('SEO — legal contact links respect publication state', () => {
 test.describe('SEO — canonical and hreflang parity between EN/ES counterparts', () => {
   const pairings: Array<[string, string]> = [
     ['/', '/es/'],
+    ['/changelog/', '/es/changelog/'],
     ['/privacy/', '/es/privacy/'],
     ['/terms/', '/es/terms/'],
     ['/cookies/', '/es/cookies/'],

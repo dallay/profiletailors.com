@@ -1,6 +1,6 @@
 ---
 import CookieSettingsLink from '@components/consent/CookieSettingsLink.astro'
-import type { Locale } from '@i18n/utils'
+import { type Locale, useTranslations } from '@i18n/utils'
 
 interface Props {
   tagline: string
@@ -10,6 +10,7 @@ interface Props {
 }
 
 const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
+const t = useTranslations(locale)
 ---
 
 <footer class="px-6 py-12 max-w-4xl mx-auto">
@@ -29,6 +30,12 @@ const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
         {link.label}
       </a>
     ))}
+    <a
+      href={locale === 'es' ? '/es/changelog/' : '/changelog/'}
+      class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]"
+    >
+      {t.footer.changelogLabel}
+    </a>
     <a
       href={`https://github.com/dallay/profiletailors.com/commit/${__GIT_SHA__}`}
       class="font-mono text-xs text-text-secondary hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]"

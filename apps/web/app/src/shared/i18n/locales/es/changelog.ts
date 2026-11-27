@@ -1,0 +1,23 @@
+export const changelog = {
+  trigger: 'Novedades',
+  unreadBadge: '{count} nuevas',
+  unreadSrOnly: '{count} novedades de producto sin leer',
+  title: 'Registro de cambios',
+  openFull: 'Cambios',
+  openFullAria: 'Abrir registro de cambios completo en una nueva pestaña',
+  close: 'Cerrar registro de cambios',
+  loading: 'Cargando novedades de producto…',
+  errorTitle: 'No se pudieron cargar las novedades',
+  errorDescription: 'Comprueba tu conexión o abre el registro de cambios completo en la web.',
+  retry: 'Reintentar',
+  empty: 'Todavía no hay novedades publicadas.',
+  previous: 'Anterior',
+  next: 'Siguiente',
+  readFullUpdate: 'Abrir enlace permanente',
+  categories: {
+    feature: 'Novedad',
+    improvement: 'Mejora',
+    fix: 'Corrección',
+    security: 'Seguridad',
+  },
+} as const
