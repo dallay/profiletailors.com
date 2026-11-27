@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.27](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.26...landing@v0.2.27) (2026-11-27)
+
+
+### Features
+
+* **web:** add Linear-style public changelog and in-app updates modal ([#1468](https://github.com/dallay/profiletailors.com/issues/1468)) ([a1b65e7](https://github.com/dallay/profiletailors.com/commit/a1b65e7ad53b32d3e4194e185768d487ebb17146))
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#1439](https://github.com/dallay/profiletailors.com/issues/1439)) ([100808e](https://github.com/dallay/profiletailors.com/commit/100808e4b90abee04c342698a38ac53758718351))
+* **deps:** update astro ([#1449](https://github.com/dallay/profiletailors.com/issues/1449)) ([27c2bc5](https://github.com/dallay/profiletailors.com/commit/27c2bc5385bcc071449799d7385d698d233fdb8d))
+* **deps:** update astro ([#1456](https://github.com/dallay/profiletailors.com/issues/1456)) ([56c2adf](https://github.com/dallay/profiletailors.com/commit/56c2adfeaf581206de39825c8cc5db62581b6a5e))
+
 ## [0.2.26](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.25...landing@v0.2.26) (2026-10-27)
 
 
