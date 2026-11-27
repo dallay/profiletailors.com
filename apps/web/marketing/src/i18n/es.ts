@@ -6,6 +6,7 @@ export const es = {
     langSwitchLabel: 'EN — Cambiar a inglés',
     product: 'Producto',
     how: 'Cómo funciona',
+    changelog: 'Cambios',
     join: 'Unirme',
   },
   hero: {
@@ -355,6 +356,29 @@ export const es = {
     },
     privacy: {
       link: 'política de privacidad',
+    },
+  },
+  changelog: {
+    metaTitle: 'Registro de cambios — Profile Tailors',
+    metaDescription: 'Novedades de producto, mejoras y avances de seguridad publicados en Profile Tailors.',
+    label: 'CAMBIOS',
+    heading: 'Novedades de producto',
+    subtitle: 'Nuevas capacidades, mejoras y trabajo de seguridad publicados en Profile Tailors.',
+    allCategories: 'Todo',
+    readEntry: 'Leer nota completa',
+    backToChangelog: 'Todas las novedades',
+    copyLink: 'Copiar enlace',
+    linkCopied: 'Enlace copiado',
+    previousEntry: 'Novedad anterior',
+    nextEntry: 'Siguiente novedad',
+    rssLabel: 'RSS',
+    jsonLabel: 'JSON',
+    emptyTitle: 'No hay novedades para este filtro.',
+    categories: {
+      feature: 'Novedad',
+      improvement: 'Mejora',
+      fix: 'Corrección',
+      security: 'Seguridad',
     },
   },
 } as const

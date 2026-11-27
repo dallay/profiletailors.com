@@ -1,0 +1,23 @@
+export default {
+  trigger: 'Changelog',
+  unreadBadge: '{count} new',
+  unreadSrOnly: '{count} unread product updates',
+  title: 'Changelog',
+  openFull: 'Changelog',
+  openFullAria: 'Open full changelog in a new tab',
+  close: 'Close changelog',
+  loading: 'Loading product updates…',
+  errorTitle: 'Could not load updates',
+  errorDescription: 'Check your connection or open the full changelog on the web.',
+  retry: 'Try again',
+  empty: 'No product updates published yet.',
+  previous: 'Older',
+  next: 'Newer',
+  readFullUpdate: 'Open permalink',
+  categories: {
+    feature: 'Feature',
+    improvement: 'Improvement',
+    fix: 'Fix',
+    security: 'Security',
+  },
+} as const

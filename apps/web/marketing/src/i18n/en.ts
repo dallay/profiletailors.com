@@ -6,6 +6,7 @@ export const en = {
     langSwitchLabel: 'ES — Switch to Spanish',
     product: 'Product',
     how: 'How it works',
+    changelog: 'Changelog',
     join: 'Join',
   },
   hero: {
@@ -355,6 +356,29 @@ export const en = {
     },
     privacy: {
       link: 'privacy policy',
+    },
+  },
+  changelog: {
+    metaTitle: 'Changelog — Profile Tailors',
+    metaDescription: 'Product updates, improvements, and security milestones shipped in Profile Tailors.',
+    label: 'CHANGELOG',
+    heading: 'Product updates',
+    subtitle: 'New capabilities, refinements, and security work shipped across Profile Tailors.',
+    allCategories: 'All',
+    readEntry: 'Read full update',
+    backToChangelog: 'All updates',
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied',
+    previousEntry: 'Previous update',
+    nextEntry: 'Next update',
+    rssLabel: 'RSS',
+    jsonLabel: 'JSON',
+    emptyTitle: 'No updates match this filter.',
+    categories: {
+      feature: 'Feature',
+      improvement: 'Improvement',
+      fix: 'Fix',
+      security: 'Security',
     },
   },
 } as const

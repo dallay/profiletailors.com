@@ -42,6 +42,7 @@ import { toast } from 'vue-sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'
 import CookieSettings from '@/components/consent/CookieSettings.vue'
 import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts'
+import { ChangelogModal, SidebarChangelogButton, useChangelog } from '@modules/changelog'
 
 // ---------------------------------------------------------------------------
 // Stores
@@ -51,6 +52,8 @@ const auth = useAuthStore()
 const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const showCookieSettings = ref(false)
+const showChangelogModal = ref(false)
+const changelog = useChangelog()
 const router = useRouter()
 const route = useRoute()
 const { t, te } = useI18n()
@@ -229,6 +232,10 @@ function openCookieSettings() {
   showCookieSettings.value = true
 }
 
+function openChangelogModal() {
+  showChangelogModal.value = true
+}
+
 function onStartTour() {
   startAppTour()
 }
@@ -348,8 +355,14 @@ onBeforeUnmount(() => {
     </template>
 
     <template #footer>
-      <div class="mt-2 px-2 pb-1 group-data-[collapsible=icon]:hidden">
-        <VersionBadge />
+      <div class="mt-2 space-y-1.5 px-2 pb-1">
+        <SidebarChangelogButton
+          :unread-count="changelog.unreadCount.value"
+          @open="openChangelogModal"
+        />
+        <div class="group-data-[collapsible=icon]:hidden">
+          <VersionBadge />
+        </div>
       </div>
     </template>
 
@@ -452,6 +465,21 @@ onBeforeUnmount(() => {
         <Toaster position="bottom-right" />
         <ConsentBanner />
         <CookieSettings v-model:open="showCookieSettings" />
+        <ChangelogModal
+          v-model:open="showChangelogModal"
+          :status="changelog.status.value"
+          :entries="changelog.entries.value"
+          :active-entry="changelog.activeEntry.value"
+          :active-index="changelog.activeIndex.value"
+          :has-previous="changelog.hasPrevious.value"
+          :has-next="changelog.hasNext.value"
+          :locale="changelog.currentLocale.value"
+          :full-changelog-url="changelog.fullChangelogUrl.value"
+          @previous="changelog.selectPrevious()"
+          @next="changelog.selectNext()"
+          @retry="changelog.refresh()"
+          @seen="changelog.markAsRead()"
+        />
       </div>
     </template>
   </DashboardShell>

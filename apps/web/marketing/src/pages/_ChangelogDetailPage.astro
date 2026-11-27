@@ -1,0 +1,224 @@
+---
+import { render, type CollectionEntry } from 'astro:content'
+import Layout from '@layouts/Layout.astro'
+import Nav from '@components/Nav.astro'
+import type { Locale } from '@i18n/utils'
+import { useTranslations } from '@i18n/utils'
+import {
+  buildChangelogEntryPath,
+  buildChangelogIndexPath,
+  formatChangelogDate,
+} from '@/lib/changelog'
+
+interface Props {
+  locale: Locale
+  entry: CollectionEntry<'changelog'>
+  previousEntry: CollectionEntry<'changelog'> | null
+  nextEntry: CollectionEntry<'changelog'> | null
+}
+
+const { locale, entry, previousEntry, nextEntry } = Astro.props
+const t = useTranslations(locale)
+const { Content } = await render(entry)
+
+const indexHref = buildChangelogIndexPath(locale)
+const counterpartHref =
+  locale === 'en'
+    ? `/es/changelog/${entry.data.slug}/`
+    : `/changelog/${entry.data.slug}/`
+const canonicalPath = `/changelog/${entry.data.slug}/`
+---
+
+<Layout
+  title={`${entry.data.title} — ${t.changelog.metaTitle}`}
+  description={entry.data.summary}
+  lang={locale}
+  canonicalPath={canonicalPath}
+  image={entry.data.image}
+  jsonLdType="WebPage"
+>
+  <div class="fixed inset-0 dot-grid pointer-events-none opacity-[0.06] dark:opacity-[0.14] -z-10" aria-hidden="true"></div>
+  <Nav
+    langSwitch={t.nav.langSwitch}
+    langHref={counterpartHref}
+    langLabel={t.nav.langSwitchLabel}
+    locale={locale}
+  />
+
+  <main id="main-content" class="max-w-3xl mx-auto px-6 py-12 sm:py-20" tabindex="-1">
+    <div class="flex items-center justify-between gap-4 mb-10">
+      <a
+        href={indexHref}
+        class="inline-flex items-center gap-2 min-h-[44px] font-mono text-xs uppercase tracking-[0.06em] text-text-secondary hover:text-text-display transition-colors duration-150"
+      >
+        <span aria-hidden="true">←</span>
+        <span>{t.changelog.backToChangelog}</span>
+      </a>
+
+      <button
+        type="button"
+        data-copy-changelog-link
+        data-copied-label={t.changelog.linkCopied}
+        data-default-label={t.changelog.copyLink}
+        class="inline-flex items-center min-h-[44px] px-4 rounded-full border border-border-visible font-mono text-xs uppercase tracking-[0.06em] text-text-secondary hover:text-text-display hover:border-text-secondary transition-colors duration-150 cursor-pointer"
+      >
+        {t.changelog.copyLink}
+      </button>
+    </div>
+
+    <article>
+      <header class="mb-8">
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <time
+            datetime={entry.data.date}
+            class="font-mono text-xs uppercase tracking-[0.06em] text-text-secondary"
+          >
+            {formatChangelogDate(entry.data.date, locale)}
+          </time>
+          {entry.data.version && (
+            <span class="font-mono text-xs text-text-muted">{entry.data.version}</span>
+          )}
+          <div class="flex flex-wrap gap-1.5">
+            {entry.data.categories.map((category) => (
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-border-visible font-mono text-[11px] uppercase tracking-[0.06em] text-text-secondary">
+                {t.changelog.categories[category]}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <h1 class="font-display text-3xl sm:text-4xl font-medium tracking-[-0.02em] text-text-display mb-4">
+          {entry.data.title}
+        </h1>
+        <p class="font-display text-base sm:text-lg text-text-secondary leading-relaxed">
+          {entry.data.summary}
+        </p>
+      </header>
+
+      {entry.data.image && (
+        <figure class="mb-10 overflow-hidden rounded-xl border border-border bg-bg-secondary">
+          <img
+            src={entry.data.image}
+            alt={entry.data.imageAlt ?? entry.data.title}
+            width="960"
+            height="540"
+            class="w-full h-auto block"
+          />
+        </figure>
+      )}
+
+      <div class="changelog-prose">
+        <Content />
+      </div>
+    </article>
+
+    {(previousEntry || nextEntry) && (
+      <nav
+        aria-label={t.changelog.label}
+        class="mt-16 pt-8 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4"
+      >
+        {previousEntry ? (
+          <a
+            href={buildChangelogEntryPath(locale, previousEntry.data.slug)}
+            class="group block p-4 rounded-xl border border-border hover:border-border-visible bg-bg-secondary transition-colors duration-150"
+          >
+            <span class="block font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary mb-1">
+              ← {t.changelog.previousEntry}
+            </span>
+            <span class="block font-display text-sm font-medium text-text-display group-hover:underline">
+              {previousEntry.data.title}
+            </span>
+          </a>
+        ) : (
+          <div />
+        )}
+
+        {nextEntry && (
+          <a
+            href={buildChangelogEntryPath(locale, nextEntry.data.slug)}
+            class="group block p-4 rounded-xl border border-border hover:border-border-visible bg-bg-secondary transition-colors duration-150 sm:text-right"
+          >
+            <span class="block font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary mb-1">
+              {t.changelog.nextEntry} →
+            </span>
+            <span class="block font-display text-sm font-medium text-text-display group-hover:underline">
+              {nextEntry.data.title}
+            </span>
+          </a>
+        )}
+      </nav>
+    )}
+  </main>
+</Layout>
+
+<script>
+  const copyButton = document.querySelector<HTMLButtonElement>('[data-copy-changelog-link]')
+  if (copyButton) {
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(globalThis.location.href)
+        const copiedLabel = copyButton.dataset.copiedLabel ?? 'Link copied'
+        const defaultLabel = copyButton.dataset.defaultLabel ?? 'Copy link'
+        copyButton.textContent = copiedLabel
+        globalThis.setTimeout(() => {
+          copyButton.textContent = defaultLabel
+        }, 2000)
+      } catch {
+        return
+      }
+    })
+  }
+</script>
+
+<style is:global>
+  .changelog-prose h2 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text-display);
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .changelog-prose h2:first-child {
+    margin-top: 0;
+  }
+
+  .changelog-prose p {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--text-body);
+    margin-bottom: 1rem;
+  }
+
+  .changelog-prose ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-secondary);
+  }
+
+  .changelog-prose li {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    margin-bottom: 0.5rem;
+  }
+
+  .changelog-prose a {
+    color: var(--text-display);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .changelog-prose code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background-color: var(--bg-surface);
+  }
+</style>

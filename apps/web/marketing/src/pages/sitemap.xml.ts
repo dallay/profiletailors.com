@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 
-const ROUTES = ['/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/']
+const ROUTES = ['/', '/changelog/', '/privacy/', '/terms/', '/cookies/', '/acceptable-use/', '/accessibility/']
 
 function buildUrl(base: URL, locale: 'en' | 'es', route: string): string {
     if (locale === 'en') {

@@ -1,0 +1,36 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content'
+import ChangelogDetailPage from '../../_ChangelogDetailPage.astro'
+import { sortChangelogByDateDesc } from '@/lib/changelog'
+
+export async function getStaticPaths() {
+  const entries = await getCollection('changelog', ({ data }) => data.locale === 'es')
+  const sorted = sortChangelogByDateDesc(
+    entries.map((entry) => ({ entry, date: entry.data.date, slug: entry.data.slug })),
+  )
+
+  return sorted.map((item, index) => ({
+    params: { slug: item.slug },
+    props: {
+      entry: item.entry,
+      nextEntry: index > 0 ? sorted[index - 1].entry : null,
+      previousEntry: index < sorted.length - 1 ? sorted[index + 1].entry : null,
+    },
+  }))
+}
+
+interface Props {
+  entry: CollectionEntry<'changelog'>
+  previousEntry: CollectionEntry<'changelog'> | null
+  nextEntry: CollectionEntry<'changelog'> | null
+}
+
+const { entry, previousEntry, nextEntry } = Astro.props
+---
+
+<ChangelogDetailPage
+  locale="es"
+  entry={entry}
+  previousEntry={previousEntry}
+  nextEntry={nextEntry}
+/>
