@@ -48,7 +48,18 @@ export async function handleChangelogRssRequest(
   })
 }
 
-export function buildChangelogStaticPaths(entries: readonly CollectionEntry<'changelog'>[]) {
+export interface ChangelogStaticPath {
+  params: { slug: string }
+  props: {
+    entry: CollectionEntry<'changelog'>
+    nextEntry: CollectionEntry<'changelog'> | null
+    previousEntry: CollectionEntry<'changelog'> | null
+  }
+}
+
+export function buildChangelogStaticPaths(
+  entries: readonly CollectionEntry<'changelog'>[],
+): ChangelogStaticPath[] {
   const sorted = sortChangelogByDateDesc(
     entries.map((entry) => ({ entry, date: entry.data.date, slug: entry.data.slug })),
   )
